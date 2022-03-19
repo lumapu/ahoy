@@ -22,10 +22,7 @@ using namespace std;
 
 // Generic:
 RF24 radio(22, 0);
-/****************** Linux (BBB,x86,etc) ***********************/
 // See http://nRF24.github.io/RF24/pages.html for more information on usage
-// See http://iotdk.intel.com/docs/master/mraa/ for more information on MRAA
-// See https://www.kernel.org/doc/Documentation/spi/spidev for more information on SPIDEV
 
 // For this example, we'll be using a payload containing
 // a single float number that will be incremented
@@ -58,12 +55,12 @@ string prettyPrintAddr(string &a)
 }
 
 
-/** Convert a hoymiles inverter/DTU serial number into its
+/** Convert a Hoymiles inverter/DTU serial number into its
  * corresponding NRF24 address byte sequence (5 bytes).
  *
  * The inverters use a BCD representation of the last 8
- * digits of the serial number, in reverse byte order, 
- * followed by a \x01.
+ * digits of their serial number, in reverse byte order, 
+ * followed by \x01.
  */
 string serno2shockburstaddrbytes(uint64_t n)
 {
@@ -88,7 +85,8 @@ string serno2shockburstaddrbytes(uint64_t n)
 bool doPing(int ch, string src, string dst)
 {
 //    radio.setPayloadSize(sizeof(payload)); // float datatype occupies 4 bytes
-    radio.setPayloadSize(4); // float datatype occupies 4 bytes
+//    radio.setPayloadSize(4); // float datatype occupies 4 bytes
+    radio.enableDynamicPayloads();
     radio.setChannel(ch);
 
     radio.setPALevel(RF24_PA_MIN); // RF24_PA_MAX is default.
@@ -99,12 +97,13 @@ bool doPing(int ch, string src, string dst)
 
     // set the RX address of the TX node into a RX pipe
     radio.openReadingPipe(1, (const uint8_t *)src.c_str());
+        // ...not that this matters for simple ping/ack
 
     radio.stopListening();                                          // put radio in TX mode
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &startTimer);            // start the timer
  //   bool report = radio.write(&payload, sizeof(float));         // transmit & save the report
-    bool report = radio.write(&payload, 4);         // transmit & save the report
+    bool report = radio.write("P", 1);         // transmit & save the report
     uint32_t timerEllapsed = getMicros();                       // end the timer
 
     if (report) {
@@ -148,7 +147,9 @@ int main(int argc, char** argv)
     // well-known valid DTU serial number
     // just in case the inverter only responds to addresses
     // that fulfil certain requirements.
-    string masteraddr = serno2shockburstaddrbytes(99912345678);
+    //string masteraddr = serno2shockburstaddrbytes(99912345678);
+    string masteraddr = serno2shockburstaddrbytes(999970535453);
+
 
     // serial numbers of all inverters that we are trying to find
     vector<string> dstaddrs;
@@ -158,7 +159,7 @@ int main(int argc, char** argv)
     dstaddrs.push_back(serno2shockburstaddrbytes(114174608177));
 
     // channels that we will scan
-    vector<int> channels{1, 3, 6, 9, 11, 23, 40, 61, 75, 76, 99};
+    vector<int> channels{1, 3, 6, 9, 11, 23, 40, 41, 61, 75, 76, 99};
 
     for(auto & ch : channels)
     {

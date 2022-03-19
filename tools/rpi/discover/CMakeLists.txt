@@ -8,3 +8,7 @@ message(STATUS "using RF24 library: ${RF24}")
 
 add_executable(discover discover.cpp)
 target_link_libraries(discover PUBLIC ${RF24} pthread)
+
+add_executable(pretender pretender.cpp common.cpp)
+target_link_libraries(pretender PUBLIC ${RF24} pthread)
+
