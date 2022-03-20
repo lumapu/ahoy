@@ -17,7 +17,7 @@ using namespace std;
 #include "common.hpp"
 
 // Generic:
-RF24 radio(22, 0);
+RF24 radio(22, 0, 1000000);
 // See http://nRF24.github.io/RF24/pages.html for more information on usage
 
 
@@ -27,34 +27,56 @@ void receiveForever(int ch, string myaddr)
 {
     uint8_t buf[30];
 
-    radio.enableDynamicPayloads();
     radio.setChannel(ch);
+    radio.enableDynamicPayloads();
+    radio.setAutoAck(true);
 
-    radio.setPALevel(RF24_PA_MIN); // RF24_PA_MAX is default.
+    radio.setPALevel(RF24_PA_MAX);
     radio.setDataRate(RF24_250KBPS);
-
-    // set the RX address of the TX node into a RX pipe
+    radio.openWritingPipe((const uint8_t *)"dummy");
+    radio.flush_rx();
+    radio.flush_tx();
     radio.openReadingPipe(1, (const uint8_t *)myaddr.c_str());
+    radio.startListening();
+    radio.printPrettyDetails();
+ 
+    cout << endl << "I'm listening..." << endl;
 
     while (true)
     {
         uint8_t pipe;
+	delay(500);
+	if (radio.failureDetected) {
+		cout << "!f! " << flush;
+	}
+	if (radio.rxFifoFull()) {
+		cout << "!F! " << flush;
+	}
         if (radio.available(&pipe)) 
         {
-            uint8_t bytes = radio.getPayloadSize();          // get the size of the payload
-            cout << "I was notified of having received " << (unsigned int)bytes;
-            cout << " bytes on pipe " << (unsigned int)pipe << flush;
+            uint8_t bytes = radio.getDynamicPayloadSize();          // get the size of the payload
+            cout << "I was notified of having received " << dec << (unsigned int)bytes;
+            cout << " bytes on pipe " << (unsigned int)pipe << ": " << flush;
             radio.read(buf, bytes);                     // fetch payload from FIFO
-            //cout << ": " << payload;                 // print the payload's value
-            //cout << " hex: " << hex << (unsigned int)b[0] << " " << (unsigned int)b[1] << " " 
-            //     << (unsigned int)b[2] << " " << (unsigned int)b[3] << " " <<endl;
-        }
+            for(int i=0; i<bytes; i++)
+	    {
+		cout << " " << hex << setfill('0') << setw(2) << (int)buf[i];
+	    }
+	    cout << " '";
+            for(int i=0; i<bytes; i++)
+	    {
+		cout << buf[i];
+	    }
+	    cout << "'" << endl;
+            //radio.printPrettyDetails();
+       }
     }
 }
 
 
 int main(int argc, char** argv) 
 {
+    delay(200);
     if (!radio.begin()) {
         cout << "radio hardware is not responding!!" << endl;
         return 0; // quit now
@@ -74,16 +96,11 @@ int main(int argc, char** argv)
 
     // TODO 
     // we probably want
-    // - 8-bit crc
-    // - dynamic payloads (check in rf logs)
-    // - what's the "primary mode"?
     // - do we need/want "custom ack payloads"?
     // - use isAckPayloadAvailable() once we've actually contacted an inverter successfully!
 
-    radio.printPrettyDetails();
-
     string addr = serno2shockburstaddrbytes(114174608177);
-    receiveForever(41, addr);
+    receiveForever(9, "2Node");
 
     return 0;
 }
