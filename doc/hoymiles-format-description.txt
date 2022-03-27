@@ -1,0 +1,299 @@
+Ziel dieses Projekts
+====================
+
+Anstelle der DTU wollen wir direkt von einem Arduino/RaspberryPi o.ä.
+die aktuellen Betriebsdaten der Wechselrichter auslesen.
+
+Ohne Umweg über die "Cloud".
+
+
+
+Systemaufbau
+============
+
+- Eine "DTU" kommuniziert mit vielen Wechselrichtern.
+- Die Kommunikation geht immer von der DTU aus:
+  DTU stellt Anfrage und erwartet eine Antwort vom WR.
+- Dafür muss die DTU die Adressen aller WR kennen.
+  
+
+                 Nordic
+              "Shockburst"
+                 2.4 GHz
+      \|/ <-----------------> \|/
+       |                       |
+   +-------+                +-----------+
+   |  DTU  |                | MI-600    |
+   +-------+                +-----------+-+
+                              | MI-600    |
+                              +-----------+-+
+                                | MI-1500   |
+                                +-----------+
+                                    :
+                                    :
+        ABBILDUNG 1: Systemübersicht
+     
+     
+
+                                Nordic
+      WLAN                   "Shockburst"
+                                2.4 GHz
+      \|/                        \|/
+       |                          |
+  +---------+               +-----------+
+  | ESP8266 |               | NRF24LE1E |
+  +---------+               +-----------+
+       ^                          ^
+       |                          |
+       |       +----------+       |
+       +-----> | GD32F303 | <-----+
+         (B)   +----------+   (C)
+              
+     ABBILDUNG 2: Innerer Aufbau "DTU"
+     
+                        
+                        
+                                             Nordic
+                                          "Shockburst"
+                           NRF24LE1E         2.4 GHz
+                       +------------------+      \|/
+   +----------+        |      |           |       |
+   | GD32F303 | <----->|  µC  | NRF24L01+ |-------+
+   +----------+   (C)  |      |           |
+                       +------+-----------+
+              
+   ABBILDUNG 3: Detailansicht GD32F303 - NRF24LE1E
+     
+
+
+Adressierung
+============
+
+Die Seriennummern der DTU und der WR werden intern wie folgt
+als Adresse für die Kommunikation verwendet:
+
+Beispiel: Seriennummer ....72818832
+
+Innerhalb der Pakete auf (C) wird daraus die 4-Byte-Adresse
+0x72, 0x81, 0x88, 0x32 gebildet. Das ist die BCD-Darstellung
+der letzen 8 Dezimalziffern.
+
+Die zugehörige Shockburst Zieladresse ist dieselbe, aber
+die Byte-Reihenfolge wird umgedreht, und eine 0x01 ergänzt
+(Shockburst ist auf 5-Byte-Adressen eingestellt).
+
+Um eine Nachricht an das Gerät mit o.g. Seriennummer zu senden
+lautet die Zieladresse also (0x32, 0x88, 0x81, 0x72, 0x01).
+
+
+
+Nachrichten
+===========
+
+Nachricht: DTU an WR: "Init" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   07   00 00 00 00      00 00 00 00      00    07    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^            ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#           ?    CRC8  EOF
+                                                                ?
+
+
+Nachricht: DTU an WR: "Init 2" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   07   72 81 88 32      72 81 88 32      00    07    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^            ^^    ^^
+Bedeutung    SOF  MID  DTU ser#         DTU ser#          ?    CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)    ?     ?
+Beispiel               72818832         72818832          ?   
+                                                               
+
+
+Nachricht 0x80: DTU an WR: "Zeit setzen" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+                                                            |<-------------CRC16 'modbus' für CRC_M----------------->|
+             7E   15   72 22 02 00      72 22 02 00      80 0B 00     62 09 04 9b      00 00     00 00   00 00   00 00     F2 68    F0    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^           ^^^^^^^^^^^                                          ^^^^^    ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?       TIME (UTC)                                           CRC_M    CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?       [s]                                                  HI LO   
+Beispiel               72220200         72220200              ?       2022-02-13                                              
+                                                                      13:16:11                                                
+
+
+Nachricht 0x81: DTU an WR: "Anfrage DC-Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+GD->NRF     7E    15   70 51 43 68    70 51 43 68      81     xx       7F     ...... (NOCH NICHT VERIFIZIERT / GESEHEN)
+                                      ^^^^^^^^^^^      ^^     ^^       ^^
+                                       | (wird von     CMD    CRC8     EOF
+                                       | NRF ersetzt)         | (wird von NRF
+                                       v                      v neu berechnet)
+                                                             
+on-air            15   70 51 43 68    70 53 54 53      81     BA
+(payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
+                       WR ser #       DTU ser #
+
+
+Nachricht 0x82: DTU an WR: "Anfrage AC-Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+GD->NRF     7E    15   70 51 43 68    70 51 43 68      82     xx       7F     ...... (NOCH NICHT VERIFIZIERT / GESEHEN)
+                                      ^^^^^^^^^^^      ^^     ^^       ^^
+                                       | (wird von     CMD    CRC8     EOF
+                                       | NRF ersetzt)         | (wird von NRF
+                                       v                      v neu berechnet)
+                                                             
+on-air            15   70 51 43 68    70 53 54 53      82     B9
+(payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
+                       WR ser #       DTU ser #
+
+
+Nachricht 0x83: DTU an WR: "Anfrage DC-Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+GD->NRF     7E    15   70 51 43 68    70 51 43 68      83     xx       7F     ...... (NOCH NICHT VERIFIZIERT / GESEHEN)
+                                      ^^^^^^^^^^^      ^^     ^^       ^^
+                                       | (wird von     CMD    CRC8     EOF
+                                       | NRF ersetzt)         | (wird von NRF
+                                       v                      v neu berechnet)
+                                                             
+on-air            15   70 51 43 68    70 53 54 53      83     B8
+(payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
+                       WR ser #       DTU ser #
+
+
+Nachricht 0x85: DTU an WR: "???" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+GD->NRF     7E    15   70 51 43 68    70 51 43 68      85     xx       7F     ...... (NOCH NICHT VERIFIZIERT / GESEHEN)
+                                      ^^^^^^^^^^^      ^^     ^^       ^^
+                                       | (wird von     CMD    CRC8     EOF
+                                       | NRF ersetzt)         | (wird von NRF
+                                       v                      v neu berechnet)
+                                                             
+on-air            15   70 51 43 68    70 53 54 53      85     BE
+(payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
+                       WR ser #       DTU ser #
+
+
+Nachricht 0xFF: DTU an WR: "???" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+GD->NRF     7E    15   70 51 43 68    70 51 43 68      FF     xx       7F     ...... (NOCH NICHT VERIFIZIERT / GESEHEN)
+                                      ^^^^^^^^^^^      ^^     ^^       ^^
+                                       | (wird von     CMD    CRC8     EOF
+                                       | NRF ersetzt)         | (wird von NRF
+                                       v                      v neu berechnet)
+                                                             
+on-air            15   70 51 43 68    70 53 54 53      FF     C4
+(payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
+                       WR ser #       DTU ser #
+
+
+Nachricht 0x01: WR an DTU: "Aktuelle DC Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   95   72 22 02 00      72 22 02 00      01 00 01      01 4c   03 bd   0c 46     00 b5   00 03   00 05     00 00    BD    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^            ^^^^^   ^^^^^   ^^^^^     ^^^^^   ^^^^^   ^^^^^              ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?        PV1.u   PV1.i   PV1.p     PV2.u   PV2.i   PV2.p       ?      CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?        [0.1V]  [0.01A] [.1W]     [0.1V]  [0.01A] [.1W]       ?     
+Beispiel               72220200         72220200              ?        33.2V   9.57A   317.2W    18.1V   0.03A   0.5W        ?     
+
+
+Nachricht 0x02: WR an DTU: "Aktuelle AC Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   95   72 22 02 00      72 22 02 00      02 28 23      00 00   24 44   00 3C     00 00   09 0F   13 88     0B D5   83    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^                                              ^^^^^   ^^^^^     ^^^^^   ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?                  ?       ?               AC.u    AC.f      AC.p    CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?                                          [0.1V]  [0.01Hz]  [0.1W]
+Beispiel               72220200         72220200              ?                9284    60                231.9V  50.00Hz   302.9W
+
+
+Nachricht 0x83: WR an DTU (?): "???" (nach CMD wäre das eher auch eine Antwort vom WR?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   95   72 22 02 00      72 22 02 00      83 00 03      00 83     03 E8     00 B2     00 0A     FD 26               1E    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^                                                                        ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?         ?          ?         ?         ?         ?                 CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?                                                   
+Beispiel               72220200         72220200              ?        131       1000      178       10                                           
+
+
+
+Hinweise
+========
+
+Die "on-air (payload)" Bytes geben nur die Nutzlast der gesendeten Shockburst-Pakete an.
+Intern enthalten diese Pakete auch die Zieladresse, die Länge, eine CRC.
+
+
+Legende
+=======
+
+MID: Message-ID. Antworten haben Bit 7 gesetzt, 
+     z.B. Frage 0x15 --> Antwort 0x95.
+     z.B. Frage 0x07 --> Antwort 0x87.
+     Für Kommunikation GD <--> NRF
+     
+CMD:
+     Befehl an den WR hat Bit 7 gesetzt
+       0x80 "Zeit setzen"
+       0x81 "Anfrage DC-Daten", erwartete Antwort: 0x01
+       0x82 "Anfrage AC-Daten", erwartete Antwort: 0x02
+       0x83 "?"
+       0x85 "?"
+       0xFF "?"
+     Antworten vom WR haben Bit 7 gelöscht:
+       0x01 "Aktuelle DC-Daten"
+       0x02 "Aktuelle AC-Daten"
+
+SOF: Start-of-Frame 0x7e
+EOF: End-of-Frame 0x7f
+CRC8: CRC8 mit poly=1 init=0 xor=0, für alle Bytes zwischen SOF und CRC8.
+  Beispiel in Python:
+    >>> import crcmod
+    >>> f = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
+    >>> payload = bytes((0x95,0x72,0x22,0x02,0x00,0x72,0x22,0x02,0x00,0x83,0x00,0x03,0x00,0x83,0x03,0xE8,0x00,0xB2,0x00,0x0A,0xFD,0x26))
+    >>> hex(f(payload))
+    '0x1e'
+    
+CRC_M: CRC16 wie für "Modbus"-Protokoll, High-Byte gefolgt von Low-Byte
+  Beispiel in Python:
+    >>> import crcmod
+    >>> f = crcmod.predefined.mkPredefinedCrcFun('modbus')
+    >>> payload = bytes((0x0B,0x00,0x62,0x2F,0x45,0x96,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00))
+    >>> hex(f(payload))
+    '0x3bd6'
+    
+TIME: Aktuelle (DTU-)Zeit als Unix "time_t" (Sekunden seit 1970-01-01)
+
+
+Glossar
+=======
+
+WR: Wechselrichter
+DTU: Data Terminal Unit (?). Die Hoymiles-Bezeichnung für den Kommunikations-Master.
+BCD: Binary Coded Decimal
+
+
+Notizen
+=======
+
+0x014c = 332    
+0x03bd = 957   
+0x0c64 = 3172
+0x6209049b = 1644758171
+datetime.datetime.utcfromtimestamp(0x6209049b): datetime.datetime(2022, 2, 13, 13, 16, 11)
+
+
+Historie
+========
+
+2022-03-09 / Petersilie / erste Version
+2022-03-10 / Petersilie / r2 / Nachrichten "02 28 23" und "82 00 03" ergänzt. Sauberer ausgerichtet. Python Beispiel für CRC.
+2022-03-12 / Petersilie / r3 / Erste on-air Formate hinzu. CMD-IDs hinzu. Neue Nachrichten von arnaldo_g hinzu. Übersicht hinzu.
+2022-03-15 / Petersilie / r4 / Nachricht 0x80: Mystery-Bytes am Ende "dechiffriert"
+2022-03-16 / Petersilie / r5 / ESP ist ein ESP8266, nicht ESP32 (danke an @tbnobody)
+2022-03-27 / Petersilie / Versionierung ab jetzt via Github.
