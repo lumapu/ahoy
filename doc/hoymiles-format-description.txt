@@ -69,8 +69,13 @@ Systemaufbau
 Adressierung
 ============
 
-Die Seriennummern der DTU und der WR werden intern wie folgt
-als Adresse für die Kommunikation verwendet:
+Die Seriennummern der DTU und der WR werden wie folgt in Adressen für die 
+Kommunikation verwendet:
+
+Interne Kommunikation: Die meisten Datenpakete enthalten Quell- und
+Zieladresse der jeweiligen Gesprächspartner. Hier werden 4-Byte-Adressen
+verwendet, die direkt aus den letzten 8 Stellen der Seriennummer des
+Wechselrichters bzw. der DTU gewonnen werden:
 
 Beispiel: Seriennummer ....72818832
 
@@ -78,12 +83,31 @@ Innerhalb der Pakete auf (C) wird daraus die 4-Byte-Adresse
 0x72, 0x81, 0x88, 0x32 gebildet. Das ist die BCD-Darstellung
 der letzen 8 Dezimalziffern.
 
-Die zugehörige Shockburst Zieladresse ist dieselbe, aber
-die Byte-Reihenfolge wird umgedreht, und eine 0x01 ergänzt
-(Shockburst ist auf 5-Byte-Adressen eingestellt).
+NRF24-Kommunikation: Die zugehörige Shockburst Zieladresse ist 
+ähnlich, aber die Byte-Reihenfolge wird umgedreht, und es wird ein 0x01-Byte
+am Ende ergänzt (Shockburst ist auf 5-Byte-Adressen eingestellt).
 
 Um eine Nachricht an das Gerät mit o.g. Seriennummer zu senden
-lautet die Zieladresse also (0x32, 0x88, 0x81, 0x72, 0x01).
+lautet die Shockburst-Zieladresse also (0x32, 0x88, 0x81, 0x72, 0x01).
+
+
+Additional example, this time for inverter with serial number 99973104619:
+
+The datasheet specifies the over-the-air packet format: "Most Significant Byte 
+(MSB) to the left" (cf figure 11)
+
+  Address := Byte_4, Byte_3, Byte_2, Byte_1, Byte_0   ("LSByte must be unique")
+
+so 0x1946107301 results in
+
+   19 46 10 73 01  "on the wire"
+
+Old-style NRF Libraries take uint64_t addresses. In this case, the correct
+address to pass to the library would be (uint64_t)0x1946107301ULL.
+
+https://nrf24.github.io actually wants uint8_t*, which makes more sense. Pass
+it the bytes in the order the chip expects, i.e. MSB to LSB. In this case,
+the correct sequence of bytes to pass to the library would be \x19\x46\x10\x73\x01.
 
 
 
