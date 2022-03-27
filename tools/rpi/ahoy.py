@@ -13,10 +13,10 @@ from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS
 radio = RF24(22, 0, 1000000)
 
 # Master Address ('DTU')
-dtu_ser = 99912345678
+dtu_ser = 99978563412  # identical to fc22's
 
 # inverter serial numbers
-inv_ser = 99972220200
+inv_ser = 444473104619  # identical to fc22's #99972220200
 
 # all inverters
 #...
@@ -49,7 +49,7 @@ def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
     """
 
     if not ts:
-        ts = 1644758171
+        ts = 0x623C8ECF  # identical to fc22's for testing  # doc: 1644758171
 
     # "framing"
     p = b''
@@ -61,7 +61,9 @@ def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
     # encapsulated payload
     pp = b'\x0b\x00'
     pp = pp + struct.pack('>L', ts)  # big-endian: msb at low address
-    pp = pp + b'\x00' * 8    # of22 adds a \x05 at position 19
+    #pp = pp + b'\x00' * 8    # of22 adds a \x05 at position 19
+
+    pp = pp + b'\x00\x00\x00\x05\x00\x00\x00\x00'
 
     # CRC_M
     crc_m = f_crc_m(pp)
@@ -107,7 +109,8 @@ def main_loop():
         radio.stopListening()  # put radio in TX mode
         radio.setChannel(41)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
-        payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser)
+        ts = int(time.time())
+        payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
         print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]))
         radio.write(payload)  # will always yield 'True' b/c auto-ack is disabled
         ctr = ctr + 1
