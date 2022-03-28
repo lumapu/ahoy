@@ -102,7 +102,7 @@ def on_receive(p):
 
     ts = datetime.utcnow()
     ts_unixtime = ts.timestamp()
-    print(ts.isoformat(), end=' ')
+    print(ts.isoformat(), end='Z ')
 
     # interpret content
     if p[0] == 0x95:
@@ -119,7 +119,7 @@ def on_receive(p):
         elif cmd==2:
             uk1, uk2, uk3, uk4, uk5, u, f, p = struct.unpack(
                 '>HHHHHHHH', p[10:26])
-            print(f'u={u/10}V, f={f/100}Hz, p={p/10}W,  ', end='')
+            print(f'u={u/10:.1f}V, f={f/100:.2f}Hz, p={p/10:.1f}W,  ', end='')
             print(f'uk1={uk1}, ', end='')
             print(f'uk2={uk2}, ', end='')
             print(f'uk3={uk3}, ', end='')
