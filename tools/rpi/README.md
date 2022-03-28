@@ -40,7 +40,7 @@ contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
 
-  $ sudo python3 ahoy.py | tee -a log2.log
+    $ sudo python3 ahoy.py | tee -a log2.log
 
 
 
@@ -49,13 +49,13 @@ Analysing the Logs
 
 Use basic command line tools to get an idea what you recorded. For example:
 
-  $ cat log2.log | grep 'cmd=2'
-  [...]
-  2022-03-28T17:36:53.018058Z MSG src=74608145, dst=74608145, cmd=2,   u=235.0V, f=49.98Hz, p=2.5W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-  2022-03-28T17:38:07.309501Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.99Hz, p=2.3W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-  2022-03-28T17:38:24.378337Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-  2022-03-28T17:38:34.417683Z MSG src=74608145, dst=74608145, cmd=2,   u=234.8V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14267, uk4=1663, uk5=1667
-  [...]
+    $ cat log2.log | grep 'cmd=2'
+    [...]
+    2022-03-28T17:36:53.018058Z MSG src=74608145, dst=74608145, cmd=2,   u=235.0V, f=49.98Hz, p=2.5W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
+    2022-03-28T17:38:07.309501Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.99Hz, p=2.3W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
+    2022-03-28T17:38:24.378337Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
+    2022-03-28T17:38:34.417683Z MSG src=74608145, dst=74608145, cmd=2,   u=234.8V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14267, uk4=1663, uk5=1667
+    [...]
 
 A brief example log is supplied in the `example-logs` folder.
 
@@ -85,9 +85,9 @@ Todo
 References
 ----------
 
-[1] https://www.mikrocontroller.net/topic/525778
-[2] https://tutorials-raspberrypi.de/funkkommunikation-zwischen-raspberry-pis-und-arduinos-2-4-ghz/
-[3] https://nrf24.github.io/RF24/index.html
-[4] https://nrf24.github.io/RF24/md_docs_linux_install.html
-[5] https://nrf24.github.io/RF24/md_docs_python_wrapper.html
+- [1] https://www.mikrocontroller.net/topic/525778
+- [2] https://tutorials-raspberrypi.de/funkkommunikation-zwischen-raspberry-pis-und-arduinos-2-4-ghz/
+- [3] https://nrf24.github.io/RF24/index.html
+- [4] https://nrf24.github.io/RF24/md_docs_linux_install.html
+- [5] https://nrf24.github.io/RF24/md_docs_python_wrapper.html
 
