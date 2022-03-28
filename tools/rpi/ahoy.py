@@ -37,12 +37,16 @@ def ser_to_esb_addr(s):
     """
     Convert a Hoymiles inverter/DTU serial number into its
     corresponding NRF24 'enhanced shockburst' address byte sequence (5 bytes).
-    *
+
+    The NRF library expects these in LSB to MSB order, even though the transceiver
+    itself will then output them in MSB-to-LSB order over the air.
+    
     The inverters use a BCD representation of the last 8
     digits of their serial number, in reverse byte order, 
     followed by \x01.
     """
-    return ser_to_hm_addr(s)[::-1] + b'\x01'
+    air_order = ser_to_hm_addr(s)[::-1] + b'\x01'
+    return air_order[::-1]
 
 def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
     """
@@ -76,12 +80,23 @@ def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
     p = p + struct.pack('B', crc8)   
     return p
 
+def print_addr(a):
+    print(f"ser# {a} ", end='')
+    print(f" -> HM  {' '.join([f'{x:02x}' for x in ser_to_hm_addr(a)])}", end='')
+    print(f" -> ESB {' '.join([f'{x:02x}' for x in ser_to_esb_addr(a)])}")
+
+
+
 
 def main_loop():
     """
     Keep receiving on channel 3. Every once in a while, transmit a request
     to one of our inverters on channel 40.
     """
+
+    print_addr(inv_ser)
+    print_addr(dtu_ser)
+
     ctr = 1
     while True:
         radio.setChannel(3)
