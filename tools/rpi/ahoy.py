@@ -16,7 +16,8 @@ radio = RF24(22, 0, 1000000)
 dtu_ser = 99978563412  # identical to fc22's
 
 # inverter serial numbers
-inv_ser = 444473104619  # identical to fc22's #99972220200
+#inv_ser = 444473104619  # identical to fc22's #99972220200
+inv_ser = 114174608145  # my inverter
 
 # all inverters
 #...
@@ -91,28 +92,33 @@ def main_loop():
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
         radio.flush_rx()
         radio.flush_tx()
-        radio.openReadingPipe(0,ser_to_esb_addr(dtu_ser))
-        radio.openReadingPipe(1,ser_to_esb_addr(inv_ser))
+        radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
+        #radio.openReadingPipe(1,ser_to_esb_addr(inv_ser))
         radio.startListening()
 
-        if ctr==1:
+        if ctr<3:
             radio.printPrettyDetails()
 
         t_end = time.monotonic_ns()+1e9
         while time.monotonic_ns() < t_end:
             has_payload, pipe_number = radio.available_pipe()
             if has_payload:
-                size = radio.payloadSize
+                size = radio.getDynamicPayloadSize()
                 payload = radio.read(size)
-                print(f"Received {size} bytes on pipe {pipe_number}: {payload}")
+                print(f"Received {size} bytes on pipe {pipe_number}: " +
+                      " ".join([f"{b:02x}" for b in payload]))
 
         radio.stopListening()  # put radio in TX mode
-        radio.setChannel(41)
+        radio.setChannel(40)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
+
+        if ctr<3:
+            radio.printPrettyDetails()
+
         ts = int(time.time())
         payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
         print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]))
-        radio.write(payload)  # will always yield 'True' b/c auto-ack is disabled
+        radio.write(payload)  # will always yield 'True' because auto-ack is disabled
         ctr = ctr + 1
 
 
