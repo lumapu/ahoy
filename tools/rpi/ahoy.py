@@ -8,10 +8,20 @@ import argparse
 import time
 import struct
 import crcmod
+import json
 from datetime import datetime
 from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS
+import paho.mqtt.client
+from configparser import ConfigParser
+
+cfg = ConfigParser()
+cfg.read('ahoy.conf')
+mqtt_host = cfg.get('mqtt', 'host', fallback='192.168.1.1')
+mqtt_port = cfg.getint('mqtt', 'port', fallback=1883)
 
 radio = RF24(22, 0, 1000000)
+mqtt_client = paho.mqtt.client.Client()
+mqtt_client.connect(mqtt_host, mqtt_port)
 
 # Master Address ('DTU')
 dtu_ser = 99978563412  # identical to fc22's
@@ -105,18 +115,37 @@ def on_receive(p):
     print(ts.isoformat(), end='Z ')
 
     # interpret content
-    if p[0] == 0x95:
+    mid = p[0]
+    d['mid'] = mid
+    name = 'unknowndata'
+ 
+    if mid == 0x95:
         src, dst, cmd = struct.unpack('>LLB', p[1:10])
         src_s = f'{src:08x}'
         dst_s = f'{dst:08x}'
+        d['src'] = src_s
+        d['dst'] = dst_s
+        d['cmd'] = cmd
         print(f'MSG src={src_s}, dst={dst_s}, cmd={cmd},  ', end=' ')
+
         if cmd==1:
+            name = 'dcdata'
             unknown1, u1, i1, p1, u2, i2, p2, unknown2 = struct.unpack(
                 '>HHHHHHHH', p[10:26])
             print(f'u1={u1/10}V, i1={i1/100}A, p1={p1/10}W,  ', end='')
             print(f'u2={u2/10}V, i2={i2/100}A, p2={p2/10}W,  ', end='')
             print(f'unknown1={unknown1}, unknown2={unknown2}')
+            d['u1_V'] = u1/10
+            d['i1_A'] = i1/100
+            d['p1_W'] = p1/10
+            d['u2_V'] = u2/10
+            d['i2_A'] = i2/100
+            d['p2_W'] = p2/10
+            d['unknown1'] = unknown1
+            d['unknown2'] = unknown2
+
         elif cmd==2:
+            name = 'acdata'
             uk1, uk2, uk3, uk4, uk5, u, f, p = struct.unpack(
                 '>HHHHHHHH', p[10:26])
             print(f'u={u/10:.1f}V, f={f/100:.2f}Hz, p={p/10:.1f}W,  ', end='')
@@ -125,10 +154,30 @@ def on_receive(p):
             print(f'uk3={uk3}, ', end='')
             print(f'uk4={uk4}, ', end='')
             print(f'uk5={uk5}')
+            d['u_V'] = u/10
+            d['f_Hz'] = f/100
+            d['p_W'] = p/10
+            d['wtot1_Wh'] = uk1
+            d['wtot2_Wh'] = uk3
+            d['wday1_Wh'] = uk4
+            d['wday2_Wh'] = uk5
+            d['uk2'] = uk2
+
         else:
             print(f'unknown cmd {cmd}')
     else:
         print(f'unknown frame id {p[0]}')
+
+    # output to MQTT
+    if d:
+        j = json.dumps(d)
+        mqtt_client.publish(f'ahoy/{src}/{name}', j)
+        if d['cmd']==2:
+            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p_W'])
+        if d['cmd']==1:
+            mqtt_client.publish(f'ahoy/{src}/{name}/p1_W', d['p1_W'])
+            mqtt_client.publish(f'ahoy/{src}/{name}/p2_W', d['p2_W'])
+            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p1_W']+d['p2_W'])
 
 
 def main_loop():
@@ -141,6 +190,9 @@ def main_loop():
     print_addr(dtu_ser)
 
     ctr = 1
+
+    ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
+
     while True:
         radio.setChannel(3)
         radio.enableDynamicPayloads()
@@ -167,6 +219,8 @@ def main_loop():
                 print(f"Received {size} bytes on pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
                 on_receive(payload)
+            else:
+                time.sleep(0.01)
 
         radio.stopListening()  # put radio in TX mode
         radio.setChannel(40)
@@ -176,7 +230,7 @@ def main_loop():
             pass
             # radio.printPrettyDetails()
 
-        ts = int(time.time())
+        # ts = int(time.time())
         payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
         print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]), 
             flush=True)
