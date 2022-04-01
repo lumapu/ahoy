@@ -105,9 +105,12 @@ so 0x1946107301 results in
 Old-style NRF Libraries take uint64_t addresses. In this case, the correct
 address to pass to the library would be (uint64_t)0x1946107301ULL.
 
-https://nrf24.github.io actually wants uint8_t*, which makes more sense. Pass
-it the bytes in the order the chip expects, i.e. MSB to LSB. In this case,
-the correct sequence of bytes to pass to the library would be \x19\x46\x10\x73\x01.
+https://nrf24.github.io actually wants uint8_t*, which maybe makes more sense. 
+But apparently it still wants the bytes in order LSB to MSB (even though the chip will
+then put them out in MSB-to-LSB order.
+
+So in this case,
+the correct sequence of bytes to pass to the library would be \x01\x73\x10\x46\x19.
 
 
 
