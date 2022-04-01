@@ -1,24 +1,66 @@
-Ziel dieses Projekts
-====================
+Goal of this Document
+=====================
 
-Anstelle der DTU wollen wir direkt von einem Arduino/RaspberryPi o.ä.
-die aktuellen Betriebsdaten der Wechselrichter auslesen.
+This description aims to document the data format that Hoymiles
+micro inverters use to communicate their current operating state.
 
-Ohne Umweg über die "Cloud".
+The original Hoymiles setup requires connectivity to "the cloud",
+see [this chapter](#system-description).
+
+With the information documented here, it is possible to interact with 
+a set of Hoymiles micro inverters in a purely "offline" way, i.e.
+without requiring internet access or any connectivity to a "cloud".
+
+The only required hardware is a Nordic "NRF24L01+" wireless module.
+
+The `ahoy` project at [ahoy] collects software for various platforms,
+including Aduino and RaspberryPi.
+
+> Note: Some of the sections in this document are (still) in German. Translation
+> will be provided if and when necessary.
+
+
+Origin, Contributors
+--------------------
+
+The information in this document was gathered in a large community 
+effort which started out with [this post][1]
+on the German [mikrocontroller.net][2] forum.
+
+As of April 2022, this effort is still ongoing. Not all details have
+been documented yet, and not all secrets have been uncovered.
+
+Multiple members of the community have already successfully retrieved (and
+continue to successfully retrieve) data from their Hoymiles micro inverters.
+
+Here's a list of some of the early contributors:
+
+- sorbit: created the original mikrocontroller.net thread
+- Martin (Gast): DTU and RF analysis
+- Hubi: protocol analysis
+- Marcel: initial analysis and much logging and interpretation
+- Pascal A. (pasarn): various datagram fields, crc8
+- Frank H. (fh_): discovered time_t
+- Thomas B. (tbnobody): protocol analysis, logging
+- Arnaldo G. (arnaldo_g): data capturing
+- Oliver F (of22): protocol analysis, logging
+- Martin G. (petersilie): protocol analysis, logging
 
 
 
-Systemaufbau
-============
+System Description
+==================
+
+Ein Setup wie von Hoymiles vorgesehen, sieht wie folgt aus:
 
 - Eine "DTU" kommuniziert mit vielen Wechselrichtern.
 - Die Kommunikation geht immer von der DTU aus:
   DTU stellt Anfrage und erwartet eine Antwort vom WR.
 - Dafür muss die DTU die Adressen aller WR kennen.
   
-
+```
                  Nordic
-              "Shockburst"
+            "Enh. Shockburst"
                  2.4 GHz
       \|/ <-----------------> \|/
        |                       |
@@ -32,11 +74,12 @@ Systemaufbau
                                     :
                                     :
         ABBILDUNG 1: Systemübersicht
+```
      
      
-
+```
                                 Nordic
-      WLAN                   "Shockburst"
+      WLAN                 "Enh. Shockburst"
                                 2.4 GHz
       \|/                        \|/
        |                          |
@@ -50,11 +93,12 @@ Systemaufbau
          (B)   +----------+   (C)
               
      ABBILDUNG 2: Innerer Aufbau "DTU"
+```
      
                         
-                        
+```
                                              Nordic
-                                          "Shockburst"
+                                       "Enh. Shockburst"
                            NRF24LE1E         2.4 GHz
                        +------------------+      \|/
    +----------+        |      |           |       |
@@ -63,6 +107,7 @@ Systemaufbau
                        +------+-----------+
               
    ABBILDUNG 3: Detailansicht GD32F303 - NRF24LE1E
+```
      
 
 
@@ -72,7 +117,7 @@ Adressierung
 Die Seriennummern der DTU und der WR werden wie folgt in Adressen für die 
 Kommunikation verwendet:
 
-Interne Kommunikation: Die meisten Datenpakete enthalten Quell- und
+**Interne Kommunikation**: Die meisten Datenpakete enthalten Quell- und
 Zieladresse der jeweiligen Gesprächspartner. Hier werden 4-Byte-Adressen
 verwendet, die direkt aus den letzten 8 Stellen der Seriennummer des
 Wechselrichters bzw. der DTU gewonnen werden:
@@ -83,39 +128,95 @@ Innerhalb der Pakete auf (C) wird daraus die 4-Byte-Adresse
 0x72, 0x81, 0x88, 0x32 gebildet. Das ist die BCD-Darstellung
 der letzen 8 Dezimalziffern.
 
-NRF24-Kommunikation: Die zugehörige Shockburst Zieladresse ist 
-ähnlich, aber die Byte-Reihenfolge wird umgedreht, und es wird ein 0x01-Byte
-am Ende ergänzt (Shockburst ist auf 5-Byte-Adressen eingestellt).
+**NRF24 addressing scheme**: Over the air, the inverters communicate using
+the Nordic "Enhanced Shockburst" [3] Protocol configured for
+5-byte addresses.
 
-Um eine Nachricht an das Gerät mit o.g. Seriennummer zu senden
-lautet die Shockburst-Zieladresse also (0x32, 0x88, 0x81, 0x72, 0x01).
+The inverter serial number is converted into a "Shockburst" address
+as follows:
 
+- encode the final 8 digits of the serial number in BCD format:  
+  `0x72, 0x81, 0x88, 0x32`
+- reverse the order of the bytes:  
+  `0x32, 0x88, 0x81, 0x72`
+- append a byte containing 0x01:  
+  `0x32, 0x88, 0x81, 0x72, 0x01`
 
-Additional example, this time for inverter with serial number 99973104619:
+In this example, the resulting "Shockburst" address is: 0x3288817201.
+
+**Additional example**, this time for inverter with serial number 99973104619:
 
 The datasheet specifies the over-the-air packet format: "Most Significant Byte 
 (MSB) to the left" (cf figure 11)
 
-  Address := Byte_4, Byte_3, Byte_2, Byte_1, Byte_0   ("LSByte must be unique")
+    Address := Byte_4, Byte_3, Byte_2, Byte_1, Byte_0   ("LSByte must be unique")
 
 so 0x1946107301 results in
 
-   19 46 10 73 01  "on the wire"
+    19 46 10 73 01  "on the wire"
 
 Old-style NRF Libraries take uint64_t addresses. In this case, the correct
 address to pass to the library would be (uint64_t)0x1946107301ULL.
 
-https://nrf24.github.io actually wants uint8_t*, which maybe makes more sense. 
+The ["Optimized high speed nRF24L01+ driver"][4] 
+actually wants `uint8_t*`, which maybe makes more sense. 
 But apparently it still wants the bytes in order LSB to MSB (even though the chip will
 then put them out in MSB-to-LSB order.
 
-So in this case,
-the correct sequence of bytes to pass to the library would be \x01\x73\x10\x46\x19.
+So in this case, the correct sequence of bytes to pass to the library 
+would be "\x01\x73\x10\x46\x19".
+
+Figure 4 below is an annotated example of an "Enhanced Shockburst" packet as
+seen on the air.
+
+```
++----------+--------------------+--------------------+---------------------+------------+
+| preamble | dst 5-byte-address | PCF (9-bit)        | payload (>=1 bytes) | 2-byte-CRC |
++----------+--------------------+--------------------+---------------------+------------+
+|          |                    | e.g. 0x0d8:        |                     |            |
+|  0x55    | addr[4]...addr[0]  | 0b011011  00  0    |                     |            |
+|   or     | MSB ... LSB        | len=27    PID nACK |                     |            |
+|  0xAA    |                    |                    |                     |            |
+|          |                    | e.g. 0x0da         |                     |            |
+|          |                    | 0b011011  01  0    |                     |            |
+|          |                    | len027    PID nACK |                     |            |
++----------+--------------------+--------------------+---------------------+------------+
+
+PCF: Packet control field
+PID: Packet IDentification (to detect/avoid duplicates), cycles through 0...3
+
+              FIGURE 4: Enhanced Shockburst On-Air Data Format
+```
 
 
 
-Nachrichten
-===========
+Messages
+========
+
+Initial protocol analysis focused on the data exchanged on link (C) in figure (3).
+Not all the frames observed on this link will result in an actual RF transmission,
+and some translation/mangling/processing happens inside the NRF24LE1E, in particular
+
+- replacement of serial numbers
+- recalculation of CRCs
+
+These packets (which are all framed in 0x7e...0x7f bytes) are described in section
+"encapsulated packets" below.
+
+More recent efforts focus mainly on the actual "Enhanced Shockburst" packets
+that are transmitted over the air. These packets are described in section
+"Enhanced Shockburst Payloads", and the information contained in this section is
+more up to date.
+
+
+
+
+Encapsulated Packets
+--------------------
+
+These are packets as observed on Link (C) in figure (3).
+
+
 
 Nachricht: DTU an WR: "Init" (?)
 ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -250,14 +351,97 @@ Beispiel               72220200         72220200              ?        131      
 
 
 Hinweise
-========
+--------
 
 Die "on-air (payload)" Bytes geben nur die Nutzlast der gesendeten Shockburst-Pakete an.
 Intern enthalten diese Pakete auch die Zieladresse, die Länge, eine CRC.
 
 
-Legende
-=======
+
+*****************************************************************************************************************************************************************************************
+
+
+
+Enhanced Shockburst Payloads
+----------------------------
+
+- These are the packets that are exchanged between inverters and DTU via the Nordic
+  "Enhanced Shockburst" protocol.
+- Each payload is preceded by a preamble, and terminated by a 16-bit CRC, as described
+  in the corresponding Nordic datasheet. See also figure 4 above.
+
+
+
+```
+CMD 0x80: DTU --> WR: "Set time/date" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+                                           |<-------------CRC16 'modbus' für CRC_M----------------->|
+            15   72220200  72220200   80   0B 00    62 09 04 9b       00 00     00 00   00 00   00 00     F2 68    F0  
+            ^^   ^^^^^^^^  ^^^^^^^^   ^^   ^^^^^    ^^^^^^^^^^^                 ^^^^^                     ^^^^^    ^^  
+Name        MID  DST_SER#  SRC_SER#   CMD  uk1      TIME (local)                SEQ?                      CRC_M    CRC8
+Units            see "addressing"           ?       [s-since-epoch]                                       HI LO   
+Example          72220200  72220200         ?       2022-02-13                                               
+                                                    13:16:11                                                 
+```
+- This message will cause the inverter to transmit a CMD=0x01, CMD=0x02, and, occasionally, also a CMD=0x83 message
+  to the DTU with serial number DST_SER#.
+- Values of "0xb0, 0x00" and "0x11, 0x00" have been observed for "UK1". Their meaning is unknown.
+- "SEQ" was observed to contain increasing numbers when sent by a Hoymiles DTU. In particular,
+  each issued "command" (e.g. "switch inverter on", "switch inverter off") appears to increase this
+  value. A constant value of 0x0000 or 0x0005 appears to work just fine.
+
+
+```
+CMD 0x01: WR --> DTU: "Current DC data" (?) (shown for an HM-700)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+            95   72 22 02 00      72 22 02 00      01 00 01      01 4c   03 bd   0c 46     00 b5   00 03   00 05     00 00    BD    7F
+            ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^            ^^^^^   ^^^^^   ^^^^^     ^^^^^   ^^^^^   ^^^^^              ^^    ^^
+NameMID          WR ser#          WR ser#          CMD  ?        PV1.u   PV1.i   PV1.p     PV2.u   PV2.i   PV2.p       ?      CRC8  EOF
+Units            BCD (letzte 8)   BCD (letzte 8)        ?        [0.1V]  [0.01A] [.1W]     [0.1V]  [0.01A] [.1W]       ?     
+Example          72220200         72220200              ?        33.2V   9.57A   317.2W    18.1V   0.03A   0.5W        ?     
+```
+- The exact meaning of the contents of this message varies depending on inverter type. So far, the following variants have been observed:
+  - HM-400 (single channel):
+  - HM-700 (2-channel):  
+  - HM-1500 (4-channel):
+73109025   73109025   01        00  01     014F      0003      000B    0000  40AE  03AC     08E6       7C
+                                                                                      ^^^^      ^^^^      ^^^^                ^^^^     ^^^^
+                                                                                      335       3         11                  940      2278
+                                                                                      33.5V     0.03A     1.1W                940W     22.78kW
+
+95     71603546   71603546   01        00  01     015D      004D      00B3    010C  0270  0001     3419       64   B327 B327 1
+                                                                                      ^^^^      ^^^^      ^^^^                ^^^^     ^^^^
+                                                                                      349       77        179                 1        13337
+                                                                                      34.9V     0.77A     1.79W               1        133.37kW
+
+```
+Nachricht 0x02: WR an DTU: "Aktuelle AC Daten" (?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   95   72 22 02 00      72 22 02 00      02 28 23      00 00   24 44   00 3C     00 00   09 0F   13 88     0B D5   83    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^                                              ^^^^^   ^^^^^     ^^^^^   ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?                  ?       ?               AC.u    AC.f      AC.p    CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?                                          [0.1V]  [0.01Hz]  [0.1W]
+Beispiel               72220200         72220200              ?                9284    60                231.9V  50.00Hz   302.9W
+```
+- The exact meaning of the contents of this message varies depending on inverter type. So far, the following variants have been observed:
+  - ...
+
+```
+Nachricht 0x83: WR an DTU (?): "???" (nach CMD wäre das eher auch eine Antwort vom WR?)
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+             7E   95   72 22 02 00      72 22 02 00      83 00 03      00 83     03 E8     00 B2     00 0A     FD 26               1E    7F
+             ^^   ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^                                                                        ^^    ^^
+Bedeutung    SOF  MID  WR ser#          WR ser#          CMD  ?         ?          ?         ?         ?         ?                 CRC8  EOF
+Einheit                BCD (letzte 8)   BCD (letzte 8)        ?                                                   
+Beispiel               72220200         72220200              ?        131       1000      178       10                                           
+```
+
+
+Legend
+======
 
 MID: Message-ID. Antworten haben Bit 7 gesetzt, 
      z.B. Frage 0x15 --> Antwort 0x95.
@@ -300,7 +484,7 @@ TIME: Aktuelle (DTU-)Zeit als Unix "time_t" (Sekunden seit 1970-01-01)
 Glossar
 =======
 
-WR: Wechselrichter
+WR: Wechselrichter (inverter)
 DTU: Data Terminal Unit (?). Die Hoymiles-Bezeichnung für den Kommunikations-Master.
 BCD: Binary Coded Decimal
 
@@ -315,12 +499,21 @@ Notizen
 datetime.datetime.utcfromtimestamp(0x6209049b): datetime.datetime(2022, 2, 13, 13, 16, 11)
 
 
-Historie
-========
+References
+==========
 
-2022-03-09 / Petersilie / erste Version
-2022-03-10 / Petersilie / r2 / Nachrichten "02 28 23" und "82 00 03" ergänzt. Sauberer ausgerichtet. Python Beispiel für CRC.
-2022-03-12 / Petersilie / r3 / Erste on-air Formate hinzu. CMD-IDs hinzu. Neue Nachrichten von arnaldo_g hinzu. Übersicht hinzu.
-2022-03-15 / Petersilie / r4 / Nachricht 0x80: Mystery-Bytes am Ende "dechiffriert"
-2022-03-16 / Petersilie / r5 / ESP ist ein ESP8266, nicht ESP32 (danke an @tbnobody)
-2022-03-27 / Petersilie / Versionierung ab jetzt via Github.
+- [1]: https://www.mikrocontroller.net/topic/525778 "The post that started the community effort"
+- [2]: https://www.mikrocontroller.net "mikrocontroller.net"
+- [3]: "Nordic NRF24LE01+ datasheet"
+- [4]: https://nrf24.github.io/RF24 "Optimized high speed nRF24L01+ driver documentation"
+
+
+Revision History
+================
+
+2022-03-09 / Petersilie / erste Version  
+2022-03-10 / Petersilie / r2 / Nachrichten "02 28 23" und "82 00 03" ergänzt. Sauberer ausgerichtet. Python Beispiel für CRC.  
+2022-03-12 / Petersilie / r3 / Erste on-air Formate hinzu. CMD-IDs hinzu. Neue Nachrichten von arnaldo_g hinzu. Übersicht hinzu.  
+2022-03-15 / Petersilie / r4 / Nachricht 0x80: Mystery-Bytes am Ende "dechiffriert"  
+2022-03-16 / Petersilie / r5 / ESP ist ein ESP8266, nicht ESP32 (danke an @tbnobody)  
+2022-03-27 / Petersilie / all future revisions are now versioned via Git.  
