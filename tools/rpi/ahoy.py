@@ -163,6 +163,17 @@ def on_receive(p):
             d['wday2_Wh'] = uk5
             d['uk2'] = uk2
 
+        elif cmd==131:
+            name = 'statedata'
+            uk1, uk2, uk3, uk4, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
+            print(f'uk1={uk1}, ', end='')
+            print(f'uk2={uk2}, ', end='')
+            print(f'uk3={uk3}, ', end='')
+            print(f'uk4={uk4}, ', end='')
+            print(f'uk5={uk5}, ', end='')
+            print(f'uk6={uk6}')
+            d['t_C'] = uk4/10
+
         else:
             print(f'unknown cmd {cmd}')
     else:
