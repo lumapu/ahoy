@@ -183,11 +183,20 @@ def on_receive(p):
         j = json.dumps(d)
         mqtt_client.publish(f'ahoy/{src}/{name}', j)
         if d['cmd']==2:
-            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/voltage', d['u_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/power', d['p_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/total', d['wtot1_Wh'])
+            mqtt_client.publish(f'ahoy/{src}/frequency', d['f_Hz'])
         if d['cmd']==1:
-            mqtt_client.publish(f'ahoy/{src}/{name}/p1_W', d['p1_W'])
-            mqtt_client.publish(f'ahoy/{src}/{name}/p2_W', d['p2_W'])
-            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p1_W']+d['p2_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/power', d['p1_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/voltage', d['u1_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/current', d['i1_A'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/power', d['p2_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/voltage', d['u2_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/current', d['i2_A'])
+        if d['cmd']==131:
+            mqtt_client.publish(f'ahoy/{src}/temperature', d['t_C'])
+
 
 
 def main_loop():
