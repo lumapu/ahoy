@@ -235,7 +235,8 @@ def main_loop():
             if has_payload:
                 size = radio.getDynamicPayloadSize()
                 payload = radio.read(size)
-                print(f"Received {size} bytes on pipe {pipe_number}: " +
+                dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                print(f"{dt} Received {size} bytes on pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
                 on_receive(payload)
             else:
