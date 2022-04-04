@@ -24,11 +24,10 @@ mqtt_client = paho.mqtt.client.Client()
 mqtt_client.connect(mqtt_host, mqtt_port)
 
 # Master Address ('DTU')
-dtu_ser = 99978563412  # identical to fc22's
+dtu_ser = cfg.get('dtu', 'serial', fallback='99978563412')  # identical to fc22's
 
 # inverter serial numbers
-#inv_ser = 444473104619  # identical to fc22's #99972220200
-inv_ser = 114174608145  # my inverter
+inv_ser = cfg.get('inverter', 'serial', fallback='444473104619')  # my inverter
 
 # all inverters
 #...
