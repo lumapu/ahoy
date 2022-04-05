@@ -211,9 +211,12 @@ def main_loop():
     ctr = 1
 
     ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
+    rx_channels = [3,23,61,75]
+    chn_id = 0
+    rx_channel = rx_channels[chn_id]
 
     while True:
-        radio.setChannel(3)
+        radio.setChannel(rx_channel)
         radio.enableDynamicPayloads()
         radio.setAutoAck(False)
         radio.setPALevel(RF24_PA_MAX)
@@ -236,10 +239,17 @@ def main_loop():
                 size = radio.getDynamicPayloadSize()
                 payload = radio.read(size)
                 dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-                print(f"{dt} Received {size} bytes on pipe {pipe_number}: " +
+                print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
                 on_receive(payload)
             else:
+                radio.stopListening()
+                radio.setChannel(rx_channel)
+                radio.startListening()
+                chn_id = chn_id + 1
+                if chn_id >= len(rx_channels):
+                    chn_id = 0
+                rx_channel = rx_channels[chn_id]
                 time.sleep(0.01)
 
         radio.stopListening()  # put radio in TX mode
