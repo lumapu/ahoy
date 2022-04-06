@@ -162,6 +162,10 @@ def on_receive(p):
             d['wday2_Wh'] = uk5
             d['uk2'] = uk2
 
+        elif cmd==129:
+            name = 'error'
+            print('Command error')
+
         elif cmd==131:
             name = 'statedata'
             uk1, uk2, uk3, uk4, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
