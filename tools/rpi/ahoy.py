@@ -22,6 +22,7 @@ mqtt_port = cfg.getint('mqtt', 'port', fallback=1883)
 radio = RF24(22, 0, 1000000)
 mqtt_client = paho.mqtt.client.Client()
 mqtt_client.connect(mqtt_host, mqtt_port)
+mqtt_client.loop_start()
 
 # Master Address ('DTU')
 dtu_ser = 99978563412  # identical to fc22's
@@ -101,8 +102,10 @@ def print_addr(a):
     print(f" -> HM  {' '.join([f'{x:02x}' for x in ser_to_hm_addr(a)])}", end='')
     print(f" -> ESB {' '.join([f'{x:02x}' for x in ser_to_esb_addr(a)])}")
 
+# time of last transmission - to calculcate response time
+t_last_tx = 0
 
-def on_receive(p):
+def on_receive(p, ch_rx=None, ch_tx=None):
     """
     Callback: get's invoked whenever a packet has been received.
     :param p: Payload of the received packet.
@@ -110,14 +113,25 @@ def on_receive(p):
 
     d = {}
 
+    t_now_ns = time.monotonic_ns()
     ts = datetime.utcnow()
     ts_unixtime = ts.timestamp()
+    d['ts_unixtime'] = ts_unixtime
+    d['isodate'] = ts.isoformat()
+    d['rawdata'] = " ".join([f"{b:02x}" for b in p])
     print(ts.isoformat(), end='Z ')
+
+    # check crc8
+    crc8 = f_crc8(p[:-1])
+    d['crc8_valid'] = True if crc8==p[-1] else False
 
     # interpret content
     mid = p[0]
     d['mid'] = mid
     name = 'unknowndata'
+    d['response_time_ns'] = t_now_ns-t_last_tx
+    d['ch_rx'] = ch_rx
+    d['ch_tx'] = ch_tx
  
     if mid == 0x95:
         src, dst, cmd = struct.unpack('>LLB', p[1:10])
@@ -163,10 +177,26 @@ def on_receive(p):
             d['wday2_Wh'] = uk5
             d['uk2'] = uk2
 
+        elif cmd==0x83:
+            name = 'misc1'
+            uk1, uk2, uk3, uk4, uk5, uk6 = struct.unpack(
+                '>HHHHHH', p[10:22])
+            print('')
+            d['uk1'] = uk1
+            d['uk2'] = uk2
+            d['uk3'] = uk3
+            d['uk4'] = uk4
+            d['uk5'] = uk5
+            d['uk6'] = uk6
+
         else:
             print(f'unknown cmd {cmd}')
     else:
         print(f'unknown frame id {p[0]}')
+
+    # output to stdout
+    if d:
+        print(json.dumps(d))
 
     # output to MQTT
     if d:
@@ -186,15 +216,19 @@ def main_loop():
     to one of our inverters on channel 40.
     """
 
+    global t_last_tx
+
     print_addr(inv_ser)
     print_addr(dtu_ser)
 
     ctr = 1
 
     ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
+    ch_tx = 40
+    ch_rx = 3
 
     while True:
-        radio.setChannel(3)
+        radio.setChannel(ch_rx)
         radio.enableDynamicPayloads()
         radio.setAutoAck(False)
         radio.setPALevel(RF24_PA_MAX)
@@ -218,12 +252,13 @@ def main_loop():
                 payload = radio.read(size)
                 print(f"Received {size} bytes on pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
-                on_receive(payload)
+                on_receive(payload, ch_rx=ch_rx, ch_tx=ch_tx)
             else:
-                time.sleep(0.01)
+                pass
+                # time.sleep(0.01)
 
         radio.stopListening()  # put radio in TX mode
-        radio.setChannel(40)
+        radio.setChannel(ch_tx)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
 
         if ctr<3:
@@ -235,6 +270,7 @@ def main_loop():
         print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]), 
             flush=True)
         radio.write(payload)  # will always yield 'True' because auto-ack is disabled
+        t_last_tx = time.monotonic_ns()
         ctr = ctr + 1
 
 
