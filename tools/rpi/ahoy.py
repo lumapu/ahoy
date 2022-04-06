@@ -226,28 +226,31 @@ def main_loop():
     print_addr(dtu_ser)
 
     ctr = 1
+    last_tx_message = ''
 
-    ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
     rx_channels = [3,23,61,75]
-    chn_id = 0
-    rx_channel = rx_channels[chn_id]
+    rx_channel_id = 0
+    rx_channel = rx_channels[rx_channel_id]
+
+    tx_channels = [40]
+    tx_channel_id = 0
+    tx_channel = tx_channels[tx_channel_id]
 
     while True:
+        # Sweep receive start channel
+        rx_channel_id = ctr % len(rx_channels)
+        rx_channel = rx_channels[rx_channel_id]
+
         radio.setChannel(rx_channel)
         radio.enableDynamicPayloads()
-        radio.setAutoAck(False)
+        radio.setAutoAck(True)
         radio.setPALevel(RF24_PA_MAX)
         radio.setDataRate(RF24_250KBPS)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
         radio.flush_rx()
         radio.flush_tx()
         radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
-        #radio.openReadingPipe(1,ser_to_esb_addr(inv_ser))
         radio.startListening()
-
-        if ctr<3:
-            pass
-            # radio.printPrettyDetails()
 
         t_end = time.monotonic_ns()+1e9
         while time.monotonic_ns() < t_end:
@@ -255,6 +258,8 @@ def main_loop():
             if has_payload:
                 size = radio.getDynamicPayloadSize()
                 payload = radio.read(size)
+                print(last_tx_message, end='')
+                last_tx_message = ''
                 dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                 print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
@@ -263,26 +268,30 @@ def main_loop():
                 radio.stopListening()
                 radio.setChannel(rx_channel)
                 radio.startListening()
-                chn_id = chn_id + 1
-                if chn_id >= len(rx_channels):
-                    chn_id = 0
-                rx_channel = rx_channels[chn_id]
+                rx_channel_id = rx_channel_id + 1
+                if rx_channel_id >= len(rx_channels):
+                    rx_channel_id = 0
+                rx_channel = rx_channels[rx_channel_id]
                 time.sleep(0.01)
 
+        tx_channel_id = tx_channel_id + 1
+        if tx_channel_id >= len(tx_channels):
+            tx_channel_id = 0
+        tx_channel = tx_channels[tx_channel_id]
+
         radio.stopListening()  # put radio in TX mode
-        radio.setChannel(40)
+        radio.setChannel(tx_channel)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
 
-        if ctr<3:
-            pass
-            # radio.printPrettyDetails()
-
-        # ts = int(time.time())
+        ts = int(time.time())
         payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
-        print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]), 
-            flush=True)
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} | " + \
+            " ".join([f"{b:02x}" for b in payload]) + "\n"
         radio.write(payload)  # will always yield 'True' because auto-ack is disabled
         ctr = ctr + 1
+
+        print(flush=True, end='')
 
 
 
