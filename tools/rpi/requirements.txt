@@ -1,1 +1,2 @@
 paho-mqtt
+crcmod

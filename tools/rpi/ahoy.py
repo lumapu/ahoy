@@ -24,11 +24,10 @@ mqtt_client = paho.mqtt.client.Client()
 mqtt_client.connect(mqtt_host, mqtt_port)
 
 # Master Address ('DTU')
-dtu_ser = 99978563412  # identical to fc22's
+dtu_ser = cfg.get('dtu', 'serial', fallback='99978563412')  # identical to fc22's
 
 # inverter serial numbers
-#inv_ser = 444473104619  # identical to fc22's #99972220200
-inv_ser = 114174608145  # my inverter
+inv_ser = cfg.get('inverter', 'serial', fallback='444473104619')  # my inverter
 
 # all inverters
 #...
@@ -163,6 +162,34 @@ def on_receive(p):
             d['wday2_Wh'] = uk5
             d['uk2'] = uk2
 
+        elif cmd==129:
+            name = 'error'
+            print('Command error')
+
+        elif cmd==131:
+            name = 'statedata'
+            uk1, l, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
+            print(f'l={l}%, t={t/10:.2f}C,  ', end='')
+            print(f'uk1={uk1}, ', end='')
+            print(f'uk3={uk3}, ', end='')
+            print(f'uk5={uk5}, ', end='')
+            print(f'uk6={uk6}')
+            d['l_Pct'] = l
+            d['t_C'] = t/10
+
+        elif cmd==132:
+            name = 'unknown'
+            uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+                '>HHHHHHHH', p[10:26])
+            print(f'uk1={uk1}, ', end='')
+            print(f'uk2={uk2}, ', end='')
+            print(f'uk3={uk3}, ', end='')
+            print(f'uk4={uk4}, ', end='')
+            print(f'uk5={uk5}, ', end='')
+            print(f'uk6={uk6}, ', end='')
+            print(f'uk7={uk7}, ', end='')
+            print(f'uk8={uk8}')
+
         else:
             print(f'unknown cmd {cmd}')
     else:
@@ -173,11 +200,20 @@ def on_receive(p):
         j = json.dumps(d)
         mqtt_client.publish(f'ahoy/{src}/{name}', j)
         if d['cmd']==2:
-            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/voltage', d['u_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/power', d['p_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/total', d['wtot1_Wh'])
+            mqtt_client.publish(f'ahoy/{src}/frequency', d['f_Hz'])
         if d['cmd']==1:
-            mqtt_client.publish(f'ahoy/{src}/{name}/p1_W', d['p1_W'])
-            mqtt_client.publish(f'ahoy/{src}/{name}/p2_W', d['p2_W'])
-            mqtt_client.publish(f'ahoy/{src}/{name}/p_W', d['p1_W']+d['p2_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/power', d['p1_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/voltage', d['u1_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/current', d['i1_A'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/power', d['p2_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/voltage', d['u2_V'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/current', d['i2_A'])
+        if d['cmd']==131:
+            mqtt_client.publish(f'ahoy/{src}/temperature', d['t_C'])
+
 
 
 def main_loop():
@@ -190,25 +226,31 @@ def main_loop():
     print_addr(dtu_ser)
 
     ctr = 1
+    last_tx_message = ''
 
-    ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
+    rx_channels = [3,23,61,75]
+    rx_channel_id = 0
+    rx_channel = rx_channels[rx_channel_id]
+
+    tx_channels = [40]
+    tx_channel_id = 0
+    tx_channel = tx_channels[tx_channel_id]
 
     while True:
-        radio.setChannel(3)
+        # Sweep receive start channel
+        rx_channel_id = ctr % len(rx_channels)
+        rx_channel = rx_channels[rx_channel_id]
+
+        radio.setChannel(rx_channel)
         radio.enableDynamicPayloads()
-        radio.setAutoAck(False)
+        radio.setAutoAck(True)
         radio.setPALevel(RF24_PA_MAX)
         radio.setDataRate(RF24_250KBPS)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
         radio.flush_rx()
         radio.flush_tx()
         radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
-        #radio.openReadingPipe(1,ser_to_esb_addr(inv_ser))
         radio.startListening()
-
-        if ctr<3:
-            pass
-            # radio.printPrettyDetails()
 
         t_end = time.monotonic_ns()+1e9
         while time.monotonic_ns() < t_end:
@@ -216,26 +258,40 @@ def main_loop():
             if has_payload:
                 size = radio.getDynamicPayloadSize()
                 payload = radio.read(size)
-                print(f"Received {size} bytes on pipe {pipe_number}: " +
+                print(last_tx_message, end='')
+                last_tx_message = ''
+                dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
                       " ".join([f"{b:02x}" for b in payload]))
                 on_receive(payload)
             else:
+                radio.stopListening()
+                radio.setChannel(rx_channel)
+                radio.startListening()
+                rx_channel_id = rx_channel_id + 1
+                if rx_channel_id >= len(rx_channels):
+                    rx_channel_id = 0
+                rx_channel = rx_channels[rx_channel_id]
                 time.sleep(0.01)
 
+        tx_channel_id = tx_channel_id + 1
+        if tx_channel_id >= len(tx_channels):
+            tx_channel_id = 0
+        tx_channel = tx_channels[tx_channel_id]
+
         radio.stopListening()  # put radio in TX mode
-        radio.setChannel(40)
+        radio.setChannel(tx_channel)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
 
-        if ctr<3:
-            pass
-            # radio.printPrettyDetails()
-
-        # ts = int(time.time())
+        ts = int(time.time())
         payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
-        print(f"{ctr:5d}: len={len(payload)} | " + " ".join([f"{b:02x}" for b in payload]), 
-            flush=True)
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} | " + \
+            " ".join([f"{b:02x}" for b in payload]) + "\n"
         radio.write(payload)  # will always yield 'True' because auto-ack is disabled
         ctr = ctr + 1
+
+        print(flush=True, end='')
 
 
 
