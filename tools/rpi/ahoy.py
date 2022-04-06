@@ -168,14 +168,27 @@ def on_receive(p):
 
         elif cmd==131:
             name = 'statedata'
-            uk1, uk2, uk3, uk4, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
+            uk1, l, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
+            print(f'l={l}%, t={t/10:.2f}C,  ', end='')
+            print(f'uk1={uk1}, ', end='')
+            print(f'uk3={uk3}, ', end='')
+            print(f'uk5={uk5}, ', end='')
+            print(f'uk6={uk6}')
+            d['l_Pct'] = l
+            d['t_C'] = t/10
+
+        elif cmd==132:
+            name = 'unknown'
+            uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+                '>HHHHHHHH', p[10:26])
             print(f'uk1={uk1}, ', end='')
             print(f'uk2={uk2}, ', end='')
             print(f'uk3={uk3}, ', end='')
             print(f'uk4={uk4}, ', end='')
             print(f'uk5={uk5}, ', end='')
-            print(f'uk6={uk6}')
-            d['t_C'] = uk4/10
+            print(f'uk6={uk6}, ', end='')
+            print(f'uk7={uk7}, ', end='')
+            print(f'uk8={uk8}')
 
         else:
             print(f'unknown cmd {cmd}')
