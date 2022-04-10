@@ -107,9 +107,10 @@ def print_addr(a):
 # time of last transmission - to calculcate response time
 t_last_tx = 0
 
-def on_receive(p, ch_rx=None, ch_tx=None):
+
+def on_receive(p=None, ctr=None, ch_rx=None, ch_tx=None, time_rx=datetime.now(), latency=None):
     """
-    Callback: get's invoked whenever a packet has been received.
+    Callback: get's invoked whenever a Nordic ESB packet has been received.
     :param p: Payload of the received packet.
     """
 
@@ -118,10 +119,15 @@ def on_receive(p, ch_rx=None, ch_tx=None):
     t_now_ns = time.monotonic_ns()
     ts = datetime.utcnow()
     ts_unixtime = ts.timestamp()
+    size = len(p)
     d['ts_unixtime'] = ts_unixtime
     d['isodate'] = ts.isoformat()
     d['rawdata'] = " ".join([f"{b:02x}" for b in p])
-    print(ts.isoformat(), end='Z ')
+    d['trans_id'] = ctr
+
+    dt = time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
+    print(f"{dt} Received {size} bytes on channel {ch_rx} after tx {latency}ns: " +
+        " ".join([f"{b:02x}" for b in p]))
 
     # check crc8
     crc8 = f_crc8(p[:-1])
@@ -136,109 +142,253 @@ def on_receive(p, ch_rx=None, ch_tx=None):
     d['ch_tx'] = ch_tx
  
     if mid == 0x95:
-        src, dst, cmd = struct.unpack('>LLB', p[1:10])
-        src_s = f'{src:08x}'
-        dst_s = f'{dst:08x}'
-        d['src'] = src_s
-        d['dst'] = dst_s
-        d['cmd'] = cmd
-        print(f'MSG src={src_s}, dst={dst_s}, cmd={cmd},  ', end=' ')
-
-        if cmd==1:
-            name = 'dcdata'
-            unknown1, u1, i1, p1, u2, i2, p2, unknown2 = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            print(f'u1={u1/10}V, i1={i1/100}A, p1={p1/10}W,  ', end='')
-            print(f'u2={u2/10}V, i2={i2/100}A, p2={p2/10}W,  ', end='')
-            print(f'unknown1={unknown1}, unknown2={unknown2}')
-            d['u1_V'] = u1/10
-            d['i1_A'] = i1/100
-            d['p1_W'] = p1/10
-            d['u2_V'] = u2/10
-            d['i2_A'] = i2/100
-            d['p2_W'] = p2/10
-            d['unknown1'] = unknown1
-            d['unknown2'] = unknown2
-
-        elif cmd==2:
-            name = 'acdata'
-            uk1, uk2, uk3, uk4, uk5, u, f, p = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            print(f'u={u/10:.1f}V, f={f/100:.2f}Hz, p={p/10:.1f}W,  ', end='')
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk2={uk2}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk4={uk4}, ', end='')
-            print(f'uk5={uk5}')
-            d['u_V'] = u/10
-            d['f_Hz'] = f/100
-            d['p_W'] = p/10
-            d['wtot1_Wh'] = uk1
-            d['wtot2_Wh'] = uk3
-            d['wday1_Wh'] = uk4
-            d['wday2_Wh'] = uk5
-            d['uk2'] = uk2
-
-        elif cmd==129:
-            name = 'error'
-            print('Command error')
-
-        elif cmd==131:  # 0x83
-            name = 'statedata'
-            uk1, l, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
-            print(f'l={l}%, t={t/10:.2f}C,  ', end='')
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk5={uk5}, ', end='')
-            print(f'uk6={uk6}')
-            d['l_Pct'] = l
-            d['t_C'] = t/10
-            d['uk1'] = uk1
-            d['uk3'] = uk3
-            d['uk5'] = uk5
-            d['uk6'] = uk6
-
-        elif cmd==132:  # 0x84
-            name = 'unknown0x84'
-            uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk2={uk2}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk4={uk4}, ', end='')
-            print(f'uk5={uk5}, ', end='')
-            print(f'uk6={uk6}, ', end='')
-            print(f'uk7={uk7}, ', end='')
-            print(f'uk8={uk8}')
-
-        else:
-            print(f'unknown cmd {cmd}')
+        decode_hoymiles_hm600(d, p, time_rx=time_rx)
     else:
         print(f'unknown frame id {p[0]}')
 
-    # output to stdout
-    if d:
-        print(json.dumps(d))
+
+def decode_hoymiles_hm600(d, p, time_rx=datetime.now()):
+    """
+    Decode payload from Hoymiles HM-600
+    :param d: Pre parsed data from on_receive
+    :param p: raw payload byte array
+    :param time_rx: datetime object when packet was received
+    """
+    src, dst, cmd = struct.unpack('>LLB', p[1:10])
+    src_s = f'{src:08x}'
+    dst_s = f'{dst:08x}'
+    d['src'] = src_s
+    d['dst'] = dst_s
+    d['cmd'] = cmd
+    dt = time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
+    print(f'{dt} Decoder src={src_s}, dst={dst_s}, cmd={cmd},  ', end=' ')
+
+    if cmd==1: # 0x01
+        """
+        On HM600 Response to
+            0x80 0x0b
+            0x80 0x0c
+            0x80 0x0d
+            0x80 0x0f
+            0x80 0x03 (garbled data)
+        """
+        name = 'dcdata'
+        uk1, u1, i1, p1, u2, i2, p2, uk2 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        print(f'u1={u1/10}V, i1={i1/100}A, p1={p1/10}W,  ', end='')
+        print(f'u2={u2/10}V, i2={i2/100}A, p2={p2/10}W,  ', end='')
+        print(f'uk1={uk1}, uk2={uk2}')
+        d['dc'] = {0: {}, 1: {}}
+        d['dc'][0]['voltage'] = u1/10
+        d['dc'][0]['current'] = i1/100
+        d['dc'][0]['power'] = p1/10
+        d['dc'][1]['voltage'] = u2/10
+        d['dc'][1]['current'] = i2/100
+        d['dc'][1]['power'] = p2/10
+        d['uk1'] = uk1
+        d['uk2'] = uk2
+
+    elif cmd==2: # 0x02
+        """
+        On HM600 Response to
+            0x80 0x0b
+            0x80 0x0c
+            0x80 0x0d
+            0x80 0x0f
+            0x80 0x03 (garbled data)
+        """
+        name = 'acdata'
+        uk1, uk2, uk3, uk4, uk5, ac_u1, f, ac_p1 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        print(f'ac_u1={ac_u1/10:.1f}V, ac_f={f/100:.2f}Hz, ac_p1={ac_p1/10:.1f}W, ', end='')
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}')
+        d['ac'] = {0: {}}
+        d['ac'][0]['voltage'] = ac_u1/10
+        d['frequency'] = f/100
+        d['ac'][0]['power'] = ac_p1/10
+        d['wtot1_Wh'] = uk1
+        d['wtot2_Wh'] = uk3
+        d['wday1_Wh'] = uk4
+        d['wday2_Wh'] = uk5
+        d['uk2'] = uk2
+
+    elif cmd==3:  # 0x03
+        """
+        On HM600 Response to
+            0x80 0x03 (garbled data)
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==4:  # 0x04
+        """
+        On HM600 Response to
+            0x80 0x03 (garbled data)
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==5:  # 0x05
+        """
+        On HM600 Response to
+            0x80 0x03 (garbled data)
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==6:  # 0x06
+        """
+        On HM600 Response to
+            0x80 0x03 (garbled data)
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==7:  # 0x07
+        """
+        On HM600 Response to
+            0x80 0x03 (garbled data)
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==129 and len(p) == 17:  # 0x81
+        """
+        On HM600 Response to
+            0x80 0x0a
+        """
+        uk1, uk2, uk3 = struct.unpack(
+            '>HHH', p[10:16])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ')
+
+    elif cmd==129:  # 0x81
+        """
+        On HM600 Response to
+            0x80 0x02
+            0x80 0x11
+        """
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        name = 'error'
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    elif cmd==131:  # 0x83
+        """
+        On HM600 Response to
+            0x80 0x0b
+            0x80 0x0c
+            0x80 0x0d
+            0x80 0x0f
+        """
+        name = 'statedata'
+        uk1, ac_i1, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
+        print(f'ac_i1={ac_i1/100}A, t={t/10:.2f}C,  ', end='')
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}')
+        d['ac'] = {0: {}}
+        d['ac'][0]['current'] = ac_i1/100
+        d['temperature'] = t/10
+        d['uk1'] = uk1
+        d['uk3'] = uk3
+        d['uk5'] = uk5
+        d['uk6'] = uk6
+
+    elif cmd==132:  # 0x84
+        name = 'unknown0x84'
+        uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
+            '>HHHHHHHH', p[10:26])
+        print(f'uk1={uk1}, ', end='')
+        print(f'uk2={uk2}, ', end='')
+        print(f'uk3={uk3}, ', end='')
+        print(f'uk4={uk4}, ', end='')
+        print(f'uk5={uk5}, ', end='')
+        print(f'uk6={uk6}, ', end='')
+        print(f'uk7={uk7}, ', end='')
+        print(f'uk8={uk8}')
+
+    else:
+        print(f'unknown cmd {cmd}')
 
     # output to MQTT
     if d:
         j = json.dumps(d)
-        mqtt_client.publish(f'ahoy/{src}/{name}', j)
+        mqtt_client.publish(f'ahoy/{src}/debug', j)
         if d['cmd']==2:
-            mqtt_client.publish(f'ahoy/{src}/emeter/0/voltage', d['u_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter/0/power', d['p_W'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/voltage', d['ac'][0]['voltage'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/power', d['ac'][0]['power'])
             mqtt_client.publish(f'ahoy/{src}/emeter/0/total', d['wtot1_Wh'])
-            mqtt_client.publish(f'ahoy/{src}/frequency', d['f_Hz'])
+            mqtt_client.publish(f'ahoy/{src}/frequency', d['frequency'])
         if d['cmd']==1:
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/power', d['p1_W'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/voltage', d['u1_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/current', d['i1_A'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/power', d['p2_W'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/voltage', d['u2_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/current', d['i2_A'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/power', d['dc'][0]['power'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/voltage', d['dc'][0]['voltage'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/current', d['dc'][0]['current'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/power', d['dc'][1]['power'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/voltage', d['dc'][1]['voltage'])
+            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/current', d['dc'][1]['current'])
         if d['cmd']==131:
-            mqtt_client.publish(f'ahoy/{src}/temperature', d['t_C'])
-
+            mqtt_client.publish(f'ahoy/{src}/temperature', d['temperature'])
+            mqtt_client.publish(f'ahoy/{src}/emeter/0/current', d['ac'][0]['current'])
 
 
 def main_loop():
@@ -260,69 +410,96 @@ def main_loop():
     rx_channels = [3,23,61,75]
     rx_channel_id = 0
     rx_channel = rx_channels[rx_channel_id]
+    rx_channel_ack = None
+    rx_error = 0
 
     tx_channels = [40]
     tx_channel_id = 0
     tx_channel = tx_channels[tx_channel_id]
 
-    while True:
-        # Sweep receive start channel
-        rx_channel_id = ctr % len(rx_channels)
-        rx_channel = rx_channels[rx_channel_id]
+    radio.setChannel(rx_channel)
+    radio.enableDynamicPayloads()
+    radio.setAutoAck(True)
+    radio.setRetries(15, 2)
+    radio.setPALevel(RF24_PA_LOW)
+    #radio.setPALevel(RF24_PA_MAX)
+    radio.setDataRate(RF24_250KBPS)
+    radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
+    radio.openWritingPipe(ser_to_esb_addr(inv_ser))
 
-        radio.setChannel(rx_channel)
-        radio.enableDynamicPayloads()
-        radio.setAutoAck(True)
-        radio.setPALevel(RF24_PA_MAX)
-        radio.setDataRate(RF24_250KBPS)
-        radio.openWritingPipe(ser_to_esb_addr(inv_ser))
+    while True:
         radio.flush_rx()
         radio.flush_tx()
-        radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
-        radio.startListening()
-
-        t_end = time.monotonic_ns()+1e9
-        while time.monotonic_ns() < t_end:
-            has_payload, pipe_number = radio.available_pipe()
-            if has_payload:
-                size = radio.getDynamicPayloadSize()
-                payload = radio.read(size)
-                print(last_tx_message, end='')
-                last_tx_message = ''
-                dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-                print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
-                      " ".join([f"{b:02x}" for b in payload]))
-                on_receive(payload, ch_rx=rx_channel, ch_tx=tx_channel)
-            else:
-                # pass
-                # time.sleep(0.01)
-                radio.stopListening()
-                radio.setChannel(rx_channel)
-                radio.startListening()
-                rx_channel_id = rx_channel_id + 1
-                if rx_channel_id >= len(rx_channels):
-                    rx_channel_id = 0
-                rx_channel = rx_channels[rx_channel_id]
-                time.sleep(0.01)
+        m_buf = []
+        # Sweep receive start channel
+        if not rx_channel_ack:
+            rx_channel_id = ctr % len(rx_channels)
+            rx_channel = rx_channels[rx_channel_id]
 
         tx_channel_id = tx_channel_id + 1
         if tx_channel_id >= len(tx_channels):
             tx_channel_id = 0
         tx_channel = tx_channels[tx_channel_id]
 
+        # Transmit
+        ts = int(time.time())
+        payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts, subtype=b'\x0b')
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
         radio.stopListening()  # put radio in TX mode
         radio.setChannel(tx_channel)
-        radio.openWritingPipe(ser_to_esb_addr(inv_ser))
+        t_tx_start = time.monotonic_ns()
+        tx_status = radio.write(payload)  # will always yield 'True' because auto-ack is disabled
+        t_last_tx = t_tx_end = time.monotonic_ns()
+        radio.setChannel(rx_channel)
+        radio.startListening()
 
-        ts = int(time.time())
-        payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} | " + \
+        last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} ack={tx_status} | " + \
             " ".join([f"{b:02x}" for b in payload]) + "\n"
-        radio.write(payload)  # will always yield 'True' because auto-ack is disabled
-        t_last_tx = time.monotonic_ns()
         ctr = ctr + 1
 
+        # Receive loop
+        t_end = time.monotonic_ns()+1e9
+        while time.monotonic_ns() < t_end:
+            has_payload, pipe_number = radio.available_pipe()
+            if has_payload:
+                # Data in nRF24 buffer, read it
+                rx_error = 0
+                rx_channel_ack = rx_channel
+                t_end = time.monotonic_ns()+6e7
+                
+                size = radio.getDynamicPayloadSize()
+                payload = radio.read(size)
+                m_buf.append( {
+                    'p': payload,
+                    'ch_rx': rx_channel, 'ch_tx': tx_channel,
+                    'time_rx': datetime.now(), 'latency': time.monotonic_ns()-t_last_tx} )
+
+                # Only print last transmittet message if we got any response
+                print(last_tx_message, end='')
+                last_tx_message = ''
+            else:
+                # No data in nRF rx buffer, search and wait
+                # Channel lock in (not currently used)
+                rx_error = rx_error + 1
+                if rx_error > 0:
+                    rx_channel_ack = None
+                # Channel hopping
+                if not rx_channel_ack:
+                    rx_channel_id = rx_channel_id + 1
+                    if rx_channel_id >= len(rx_channels):
+                        rx_channel_id = 0
+                    rx_channel = rx_channels[rx_channel_id]
+                    radio.stopListening()
+                    radio.setChannel(rx_channel)
+                    radio.startListening()
+                time.sleep(0.005)
+
+        # Process receive buffer outside time critical receive loop
+        for param in m_buf:
+            on_receive(**param)
+
+        # Flush console
         print(flush=True, end='')
 
 
