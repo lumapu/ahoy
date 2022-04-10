@@ -65,7 +65,7 @@ def ser_to_esb_addr(s):
     return air_order[::-1]
 
 
-def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
+def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None, subtype=b'\x0b'):
     """
     Create a valid 0x80 request with the given parameters, and containing the 
     current system time.
@@ -82,7 +82,7 @@ def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
     p = p + b'\x80'
 
     # encapsulated payload
-    pp = b'\x0b\x00'
+    pp = subtype + b'\x00'
     pp = pp + struct.pack('>L', ts)  # big-endian: msb at low address
     #pp = pp + b'\x00' * 8    # of22 adds a \x05 at position 19
 
