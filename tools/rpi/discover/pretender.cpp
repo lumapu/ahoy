@@ -11,6 +11,7 @@
 #include <sstream>
 #include <time.h>      // CLOCK_MONOTONIC_RAW, timespec, clock_gettime()
 #include <RF24/RF24.h> // RF24, RF24_PA_LOW, delay()
+#include <unistd.h>    // usleep()
 
 using namespace std;
 
@@ -45,7 +46,7 @@ void receiveForever(int ch, string myaddr)
     while (true)
     {
         uint8_t pipe;
-	delay(500);
+	usleep(500000);
 	if (radio.failureDetected) {
 		cout << "!f! " << flush;
 	}
