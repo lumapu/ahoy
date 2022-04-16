@@ -127,46 +127,37 @@ def on_receive(p, ch_rx=None, ch_tx=None):
     # interpret content
     mid = p[0]
     d['mid'] = mid
-    name = 'unknowndata'
     d['response_time_ns'] = t_now_ns-t_last_tx
     d['ch_rx'] = ch_rx
     d['ch_tx'] = ch_tx
+    d['src'] = 'src_unkn'
+    d['name'] = 'name_unkn'
  
     if mid == 0x95:
         src, dst, cmd = struct.unpack('>LLB', p[1:10])
-        src_s = f'{src:08x}'
-        dst_s = f'{dst:08x}'
-        d['src'] = src_s
-        d['dst'] = dst_s
+        d['src'] = f'{src:08x}'
+        d['dst'] = f'{dst:08x}'
         d['cmd'] = cmd
-        print(f'MSG src={src_s}, dst={dst_s}, cmd={cmd},  ', end=' ')
+        print(f'MSG src={d["src"]}, dst={d["dst"]}, cmd={d["cmd"]}:')
 
         if cmd==1:
-            name = 'dcdata'
+            d['name'] = 'dcdata'
             unknown1, u1, i1, p1, u2, i2, p2, unknown2 = struct.unpack(
                 '>HHHHHHHH', p[10:26])
-            print(f'u1={u1/10}V, i1={i1/100}A, p1={p1/10}W,  ', end='')
-            print(f'u2={u2/10}V, i2={i2/100}A, p2={p2/10}W,  ', end='')
-            print(f'unknown1={unknown1}, unknown2={unknown2}')
             d['u1_V'] = u1/10
             d['i1_A'] = i1/100
             d['p1_W'] = p1/10
             d['u2_V'] = u2/10
             d['i2_A'] = i2/100
             d['p2_W'] = p2/10
+            d['p_W'] = d['p1_W']+d['p2_W']
             d['unknown1'] = unknown1
             d['unknown2'] = unknown2
 
         elif cmd==2:
-            name = 'acdata'
+            d['name'] = 'acdata'
             uk1, uk2, uk3, uk4, uk5, u, f, p = struct.unpack(
                 '>HHHHHHHH', p[10:26])
-            print(f'u={u/10:.1f}V, f={f/100:.2f}Hz, p={p/10:.1f}W,  ', end='')
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk2={uk2}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk4={uk4}, ', end='')
-            print(f'uk5={uk5}')
             d['u_V'] = u/10
             d['f_Hz'] = f/100
             d['p_W'] = p/10
@@ -177,17 +168,11 @@ def on_receive(p, ch_rx=None, ch_tx=None):
             d['uk2'] = uk2
 
         elif cmd==129:
-            name = 'error'
-            print('Command error')
+            d['name'] = 'error'
 
         elif cmd==131:  # 0x83
-            name = 'statedata'
+            d['name'] = 'statedata'
             uk1, l, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
-            print(f'l={l}%, t={t/10:.2f}C,  ', end='')
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk5={uk5}, ', end='')
-            print(f'uk6={uk6}')
             d['l_Pct'] = l
             d['t_C'] = t/10
             d['uk1'] = uk1
@@ -196,17 +181,17 @@ def on_receive(p, ch_rx=None, ch_tx=None):
             d['uk6'] = uk6
 
         elif cmd==132:  # 0x84
-            name = 'unknown0x84'
+            d['name'] = 'unknown0x84'
             uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
                 '>HHHHHHHH', p[10:26])
-            print(f'uk1={uk1}, ', end='')
-            print(f'uk2={uk2}, ', end='')
-            print(f'uk3={uk3}, ', end='')
-            print(f'uk4={uk4}, ', end='')
-            print(f'uk5={uk5}, ', end='')
-            print(f'uk6={uk6}, ', end='')
-            print(f'uk7={uk7}, ', end='')
-            print(f'uk8={uk8}')
+            d['uk1'] = uk1
+            d['uk2'] = uk2
+            d['uk3'] = uk3
+            d['uk4'] = uk4
+            d['uk5'] = uk5
+            d['uk6'] = uk6
+            d['uk7'] = uk7
+            d['uk8'] = uk8
 
         else:
             print(f'unknown cmd {cmd}')
@@ -220,21 +205,21 @@ def on_receive(p, ch_rx=None, ch_tx=None):
     # output to MQTT
     if d:
         j = json.dumps(d)
-        mqtt_client.publish(f'ahoy/{src}/{name}', j)
+        mqtt_client.publish(f"ahoy/{d['src']}/{d['name']}", j)
         if d['cmd']==2:
-            mqtt_client.publish(f'ahoy/{src}/emeter/0/voltage', d['u_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter/0/power', d['p_W'])
-            mqtt_client.publish(f'ahoy/{src}/emeter/0/total', d['wtot1_Wh'])
-            mqtt_client.publish(f'ahoy/{src}/frequency', d['f_Hz'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/voltage', d['u_V'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/power', d['p_W'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/total', d['wtot1_Wh'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/frequency', d['f_Hz'])
         if d['cmd']==1:
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/power', d['p1_W'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/voltage', d['u1_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/0/current', d['i1_A'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/power', d['p2_W'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/voltage', d['u2_V'])
-            mqtt_client.publish(f'ahoy/{src}/emeter-dc/1/current', d['i2_A'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/power', d['p1_W'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/voltage', d['u1_V'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/current', d['i1_A'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/power', d['p2_W'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/voltage', d['u2_V'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/current', d['i2_A'])
         if d['cmd']==131:
-            mqtt_client.publish(f'ahoy/{src}/temperature', d['t_C'])
+            mqtt_client.publish(f'ahoy/{d["src"]}/temperature', d['t_C'])
 
 
 
@@ -269,7 +254,7 @@ def main_loop():
 
         radio.setChannel(rx_channel)
         radio.enableDynamicPayloads()
-        radio.setAutoAck(True)
+        radio.setAutoAck(False)
         radio.setPALevel(RF24_PA_MAX)
         radio.setDataRate(RF24_250KBPS)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
@@ -278,35 +263,14 @@ def main_loop():
         radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
         radio.startListening()
 
-        t_end = time.monotonic_ns()+1e9
-        while time.monotonic_ns() < t_end:
-            has_payload, pipe_number = radio.available_pipe()
-            if has_payload:
-                size = radio.getDynamicPayloadSize()
-                payload = radio.read(size)
-                print(last_tx_message, end='')
-                last_tx_message = ''
-                dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-                print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
-                      " ".join([f"{b:02x}" for b in payload]))
-                on_receive(payload, ch_rx=rx_channel, ch_tx=tx_channel)
-            else:
-                # pass
-                # time.sleep(0.01)
-                radio.stopListening()
-                radio.setChannel(rx_channel)
-                radio.startListening()
-                rx_channel_id = rx_channel_id + 1
-                if rx_channel_id >= len(rx_channels):
-                    rx_channel_id = 0
-                rx_channel = rx_channels[rx_channel_id]
-                time.sleep(0.01)
-
         tx_channel_id = tx_channel_id + 1
         if tx_channel_id >= len(tx_channels):
             tx_channel_id = 0
         tx_channel = tx_channels[tx_channel_id]
 
+        #
+        # TX
+        #
         radio.stopListening()  # put radio in TX mode
         radio.setChannel(tx_channel)
         radio.openWritingPipe(ser_to_esb_addr(inv_ser))
@@ -315,13 +279,47 @@ def main_loop():
         payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
         dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} | " + \
-            " ".join([f"{b:02x}" for b in payload]) + "\n"
-        radio.write(payload)  # will always yield 'True' because auto-ack is disabled
+            " ".join([f"{b:02x}" for b in payload]) + f" rx_ch: {rx_channel}"
+        print(last_tx_message)
+
+        # for i in range(0,3):
+        result = radio.write(payload)  # will always yield 'True' because auto-ack is disabled
+        #    time.sleep(.05)
+
         t_last_tx = time.monotonic_ns()
         ctr = ctr + 1
 
-        print(flush=True, end='')
+        t_end = time.monotonic_ns()+5e9
+        tslots = [1000]  #, 40, 50, 60, 70]  # switch channel at these ms times since transmission
 
+        for tslot in tslots:
+            t_end = t_last_tx + tslot*1e6  # ms to ns
+
+            radio.stopListening()
+            radio.setChannel(rx_channel)
+            radio.startListening()
+            while time.monotonic_ns() < t_end:
+                has_payload, pipe_number = radio.available_pipe()
+                if has_payload:
+                    size = radio.getDynamicPayloadSize()
+                    payload = radio.read(size)
+                    # print(last_tx_message, end='')
+                    last_tx_message = ''
+                    dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                    print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
+                          " ".join([f"{b:02x}" for b in payload]))
+                    on_receive(payload, ch_rx=rx_channel, ch_tx=tx_channel)
+                else:
+                    pass
+                    # time.sleep(0.001)
+
+            rx_channel_id = rx_channel_id + 1
+            if rx_channel_id >= len(rx_channels):
+                rx_channel_id = 0
+            rx_channel = rx_channels[rx_channel_id]
+
+        print(flush=True, end='')
+        # time.sleep(2)
 
 
 
