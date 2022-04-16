@@ -18,9 +18,12 @@ cfg = ConfigParser()
 cfg.read('ahoy.conf')
 mqtt_host = cfg.get('mqtt', 'host', fallback='192.168.1.1')
 mqtt_port = cfg.getint('mqtt', 'port', fallback=1883)
+mqtt_user = cfg.get('mqtt', 'user', fallback='')
+mqtt_password = cfg.get('mqtt', 'password', fallback='')
 
 radio = RF24(22, 0, 1000000)
 mqtt_client = paho.mqtt.client.Client()
+mqtt_client.username_pw_set(mqtt_user, mqtt_password)
 mqtt_client.connect(mqtt_host, mqtt_port)
 mqtt_client.loop_start()
 
