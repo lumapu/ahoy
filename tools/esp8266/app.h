@@ -9,6 +9,7 @@
 
 #include "CircularBuffer.h"
 #include "hoymiles.h"
+#include "hm1200Decode.h"
 
 
 class app : public Main {
@@ -30,6 +31,8 @@ class app : public Main {
         void showSetup(void);
         void showSave(void);
         void showCmdStatistics(void);
+        void showHoymiles(void);
+        void showLiveData(void);
 
         void saveValues(bool webSend);
         void dumpBuf(uint8_t buf[], uint8_t len);
@@ -39,6 +42,7 @@ class app : public Main {
 
         RF24 *mRadio;
         hoymiles *mHoymiles;
+        hm1200Decode *mDecoder;
         CircularBuffer<NRF24_packet_t> *mBufCtrl;
         NRF24_packet_t mBuffer[PACKET_BUFFER_SIZE];
 

@@ -10,7 +10,7 @@
 #define luint64_t       long long unsigned int
 
 #define DEFAULT_RECV_CHANNEL    3
-#define MAX_RF_PAYLOAD_SIZE     32
+#define MAX_RF_PAYLOAD_SIZE     64
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 

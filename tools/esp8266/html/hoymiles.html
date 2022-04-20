@@ -5,9 +5,8 @@
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript">
-            window.setInterval("getAjax('/uptime', 'uptime')", 1000);
-            window.setInterval("getAjax('/time', 'time')", 1000);
-            window.setInterval("getAjax('/cmdstat', 'cmds')", 2000);
+            getAjax('/livedata', 'livedata')
+            window.setInterval("getAjax('/livedata', 'livedata')", 10000);
 
             function getAjax(url, resid) {
                 var http = null;
@@ -25,20 +24,15 @@
                 }
             }
         </script>
+        <style type="text/css">
+        </style>
     </head>
     <body>
         <h1>AHOY - {DEVICE}</h1>
         <div id="content" class="content">
-            <p>
-                <a href="/hoymiles">Hoymiles</a><br/>
-                <a href="/update">Update</a><br/>
-                <br/>
-                <a href="/setup">Setup</a><br/>
-                <a href="/reboot">Reboot</a>
-            </p>
-            <p><span class="des">Uptime: </span><span id="uptime"></span></p>
-            <p><span class="des">Time: </span><span id="time"></span></p>
-            <p><span class="des">Statistics: </span><pre id="cmds"></pre></p>
+            <p><a href="/">Home</a><br/></p>
+            <div id="livedata"></div>
+            <p>Every 10 seconds the values are updated</p>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>

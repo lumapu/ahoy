@@ -1,11 +1,13 @@
 #include "app.h"
 
 #include "html/h/index_html.h"
+#include "html/h/hoymiles_html.h"
 extern String setup_html;
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
     mHoymiles = new hoymiles();
+    mDecoder = new hm1200Decode();
 
     mBufCtrl = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
 
@@ -32,6 +34,8 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     mWeb->on("/setup",   std::bind(&app::showSetup, this));
     mWeb->on("/save",    std::bind(&app::showSave, this));
     mWeb->on("/cmdstat", std::bind(&app::showCmdStatistics, this));
+    mWeb->on("/hoymiles", std::bind(&app::showHoymiles, this));
+    mWeb->on("/livedata", std::bind(&app::showLiveData, this));
 
     if(mSettingsValid)
         mEep->read(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
@@ -56,14 +60,16 @@ void app::loop(void) {
         uint8_t len, rptCnt;
         NRF24_packet_t *p = mBufCtrl->getBack();
 
-        //mHoymiles->dumpBuf("RAW ", p->packet, PACKET_BUFFER_SIZE);
+        //mHoymiles->dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
         if(mHoymiles->checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
                 Serial.println("CMD " + String(p->packet[11], HEX));
                 mHoymiles->dumpBuf("Payload ", p->packet, len);
-                // @TODO: do analysis here
+
+                mDecoder->convert(&p->packet[11], len);
+
                 if(p->packet[11] == 0x01)      mCmds[0]++;
                 else if(p->packet[11] == 0x02) mCmds[1]++;
                 else if(p->packet[11] == 0x03) mCmds[2]++;
@@ -265,6 +271,43 @@ void app::showCmdStatistics(void) {
     content += String("61: ") + String(mChannelStat[2]) + String("\n");
     content += String("75: ") + String(mChannelStat[3]) + String("\n");
     mWeb->send(200, "text/plain", content);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showHoymiles(void) {
+    String html = hoymiles_html;
+    html.replace("{DEVICE}", mDeviceName);
+    html.replace("{VERSION}", mVersion);
+    mWeb->send(200, "text/html", html);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showLiveData(void) {
+    String modHtml = "";
+
+    String unit[5] = {"V", "A", "W", "Wh", "kWh"};
+    String info[5] = {"VOLTAGE", "CURRENT", "POWER", "YIELD DAY", "YIELD"};
+
+    for(uint8_t i = 0; i < 4; i++) {
+        modHtml += "<div class=\"module\"><span class=\"header\">CHANNEL " + String(i) + "</span>";
+        for(uint8_t j = 0; j < 5; j++) {
+            modHtml += "<span class=\"value\">";
+            switch(j) {
+                default: modHtml += String(mDecoder->mData.ch_dc[i/2].u); break;
+                case 1:  modHtml += String(mDecoder->mData.ch_dc[i].i);   break;
+                case 2:  modHtml += String(mDecoder->mData.ch_dc[i].p);   break;
+                case 3:  modHtml += String(mDecoder->mData.ch_dc[i].y_d); break;
+                case 4:  modHtml += String(mDecoder->mData.ch_dc[i].y_t); break;
+            }
+            modHtml += "<span class=\"unit\">" + unit[j] + "</span></span>";
+            modHtml += "<span class=\"info\">" + info[j] + "</span>";
+        }
+        modHtml += "</div>";
+    }
+
+    mWeb->send(200, "text/html", modHtml);
 }
 
 
