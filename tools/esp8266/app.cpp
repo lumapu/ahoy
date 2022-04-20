@@ -5,21 +5,16 @@ extern String setup_html;
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    uint8_t wrAddr[6];
-    mRadio = new RF24(RF24_CE_PIN, RF24_CS_PIN);
-
-    mRadio->begin();
-    mRadio->setAutoAck(false);
-    mRadio->setRetries(0, 0);
-
     mHoymiles = new hoymiles();
-    mEep->read(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
-    mHoymiles->serial2RadioId();
 
     mBufCtrl = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
 
     mSendCnt = 0;
     mSendTicker = new Ticker();
+    mFlagSend = false;
+
+    memset(mCmds, 0, sizeof(uint32_t));
+    memset(mChannelStat, 0, sizeof(uint32_t));
 }
 
 
@@ -33,13 +28,23 @@ app::~app(void) {
 void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     Main::setup(ssid, pwd, timeout);
 
-    mWeb->on("/",       std::bind(&app::showIndex, this));
-    mWeb->on("/setup",  std::bind(&app::showSetup, this));
-    mWeb->on("/save ",  std::bind(&app::showSave, this));
+    mWeb->on("/",        std::bind(&app::showIndex, this));
+    mWeb->on("/setup",   std::bind(&app::showSetup, this));
+    mWeb->on("/save",    std::bind(&app::showSave, this));
+    mWeb->on("/cmdstat", std::bind(&app::showCmdStatistics, this));
+
+    if(mSettingsValid)
+        mEep->read(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
+    else
+        memset(mHoymiles->mAddrBytes, 0, 6);
+    mHoymiles->serial2RadioId();
 
     initRadio();
 
-    mSendTicker->attach_ms(1000, std::bind(&app::sendTicker, this));
+    if(mSettingsValid)
+        mSendTicker->attach_ms(1000, std::bind(&app::sendTicker, this));
+    else
+        Serial.println("Warn: your settings are not valid! check [IP]/setup");
 }
 
 
@@ -51,21 +56,52 @@ void app::loop(void) {
         uint8_t len, rptCnt;
         NRF24_packet_t *p = mBufCtrl->getBack();
 
-        //mHoymiles->dumpBuf("RAW", p->packet, PACKET_BUFFER_SIZE);
+        //mHoymiles->dumpBuf("RAW ", p->packet, PACKET_BUFFER_SIZE);
 
         if(mHoymiles->checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
-                mHoymiles->dumpBuf("Payload", p->packet, len);
+                Serial.println("CMD " + String(p->packet[11], HEX));
+                mHoymiles->dumpBuf("Payload ", p->packet, len);
                 // @TODO: do analysis here
-            }
-        }
-        else {
-            if(p->packetsLost != 0) {
-                Serial.println("Lost packets: " + String(p->packetsLost));
+                if(p->packet[11] == 0x01)      mCmds[0]++;
+                else if(p->packet[11] == 0x02) mCmds[1]++;
+                else if(p->packet[11] == 0x03) mCmds[2]++;
+                else if(p->packet[11] == 0x81) mCmds[3]++;
+                else if(p->packet[11] == 0x84) mCmds[4]++;
+                else                           mCmds[5]++;
+
+                if(p->sendCh == 23)      mChannelStat[0]++;
+                else if(p->sendCh == 40) mChannelStat[1]++;
+                else if(p->sendCh == 61) mChannelStat[2]++;
+                else                     mChannelStat[3]++;
             }
         }
         mBufCtrl->popBack();
+    }
+
+    if(mFlagSend) {
+        mFlagSend = false;
+
+        uint8_t size = 0;
+        if((mSendCnt % 6) == 0)
+            size = mHoymiles->getTimePacket(mSendBuf, mTimestamp);
+        else if((mSendCnt % 6) == 1)
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x81);
+        else if((mSendCnt % 6) == 2)
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x80);
+        else if((mSendCnt % 6) == 3)
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x83);
+        else if((mSendCnt % 6) == 4)
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x82);
+        else if((mSendCnt % 6) == 5)
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);
+
+        //Serial.println("sent packet: #" + String(mSendCnt));
+        //dumpBuf(mSendBuf, size);
+        sendPacket(mSendBuf, size);
+
+        mSendCnt++;
     }
 }
 
@@ -81,8 +117,7 @@ void app::handleIntr(void) {
         if(!mBufCtrl->full()) {
             p = mBufCtrl->getFront();
             memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-            p->timestamp = micros(); // Micros does not increase in interrupt, but it can be used.
-            p->packetsLost = lostCnt;
+            p->sendCh = mSendChannel;
             len = mRadio->getPayloadSize();
             if(len > MAX_RF_PAYLOAD_SIZE)
                 len = MAX_RF_PAYLOAD_SIZE;
@@ -106,6 +141,12 @@ void app::handleIntr(void) {
 
 //-----------------------------------------------------------------------------
 void app::initRadio(void) {
+    mRadio = new RF24(RF24_CE_PIN, RF24_CS_PIN);
+
+    mRadio->begin();
+    mRadio->setAutoAck(false);
+    mRadio->setRetries(0, 0);
+
     mRadio->setChannel(DEFAULT_RECV_CHANNEL);
     mRadio->setDataRate(RF24_250KBPS);
     mRadio->disableCRC();
@@ -123,20 +164,26 @@ void app::initRadio(void) {
 
     Serial.println("Radio Config:");
     mRadio->printPrettyDetails();
+
+    mSendChannel = mHoymiles->getDefaultChannel();
 }
 
 
 //-----------------------------------------------------------------------------
 void app::sendPacket(uint8_t buf[], uint8_t len) {
     DISABLE_IRQ;
-
     mRadio->stopListening();
 
 #ifdef CHANNEL_HOP
-    mRadio->setChannel(mHoymiles->getNxtChannel());
+    if(mSendCnt % 6 == 0)
+        mSendChannel = mHoymiles->getNxtChannel();
+    else
+        mSendChannel = mHoymiles->getLastChannel();
 #else
-    mRadio->setChannel(mHoymiles->getDefaultChannel());
+    mSendChannel = mHoymiles->getDefaultChannel();
 #endif
+    mRadio->setChannel(mSendChannel);
+    //Serial.println("CH: " + String(mSendChannel));
 
     mRadio->openWritingPipe(mHoymiles->mRadioId);
     mRadio->setCRCLength(RF24_CRC_16);
@@ -147,7 +194,7 @@ void app::sendPacket(uint8_t buf[], uint8_t len) {
     mRadio->write(buf, len);
 
     // Try to avoid zero payload acks (has no effect)
-    mRadio->openWritingPipe(DUMMY_RADIO_ID);
+    mRadio->openWritingPipe(DUMMY_RADIO_ID); // TODO: why dummy radio id?
 
     mRadio->setAutoAck(false);
     mRadio->setRetries(0, 0);
@@ -163,25 +210,7 @@ void app::sendPacket(uint8_t buf[], uint8_t len) {
 
 //-----------------------------------------------------------------------------
 void app::sendTicker(void) {
-    uint8_t size = 0;
-    if((mSendCnt % 6) == 0)
-        size = mHoymiles->getTimePacket(mSendBuf, mTimestamp);
-    else if((mSendCnt % 6) == 5)
-        size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x81);
-    else if((mSendCnt % 6) == 4)
-        size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x80);
-    else if((mSendCnt % 6) == 3)
-        size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x83);
-    else if((mSendCnt % 6) == 2)
-        size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x82);
-    else if((mSendCnt % 6) == 1)
-        size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);
-
-    Serial.println("sent packet: #" + String(mSendCnt));
-    dumpBuf(mSendBuf, size);
-    sendPacket(mSendBuf, size);
-
-    mSendCnt++;
+    mFlagSend = true;
 }
 
 
@@ -221,6 +250,25 @@ void app::showSave(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::showCmdStatistics(void) {
+    String content = "CMDs:\n";
+    content += String("0x01: ") + String(mCmds[0]) + String("\n");
+    content += String("0x02: ") + String(mCmds[1]) + String("\n");
+    content += String("0x03: ") + String(mCmds[2]) + String("\n");
+    content += String("0x81: ") + String(mCmds[3]) + String("\n");
+    content += String("0x84: ") + String(mCmds[4]) + String("\n");
+    content += String("other: ") + String(mCmds[5]) + String("\n");
+
+    content += "\nCHANNELs:\n";
+    content += String("23: ") + String(mChannelStat[0]) + String("\n");
+    content += String("40: ") + String(mChannelStat[1]) + String("\n");
+    content += String("61: ") + String(mChannelStat[2]) + String("\n");
+    content += String("75: ") + String(mChannelStat[3]) + String("\n");
+    mWeb->send(200, "text/plain", content);
+}
+
+
+//-----------------------------------------------------------------------------
 void app::saveValues(bool webSend = true) {
     Main::saveValues(false); // general configuration
 
@@ -240,6 +288,7 @@ void app::saveValues(bool webSend = true) {
 
         mEep->write(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
 
+        updateCrc();
         if((mWeb->arg("reboot") == "on"))
             showReboot();
         else {

@@ -29,6 +29,7 @@ class app : public Main {
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
+        void showCmdStatistics(void);
 
         void saveValues(bool webSend);
         void dumpBuf(uint8_t buf[], uint8_t len);
@@ -45,6 +46,11 @@ class app : public Main {
         Ticker *mSendTicker;
         uint32_t mSendCnt;
         uint8_t mSendBuf[MAX_RF_PAYLOAD_SIZE];
+        bool mFlagSend;
+        uint8_t mSendChannel;
+
+        uint32_t mCmds[6];
+        uint32_t mChannelStat[4];
 };
 
 #endif /*__APP_H__*/

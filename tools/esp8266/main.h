@@ -16,6 +16,7 @@
 
 #include "eep.h"
 #include "defines.h"
+#include "crc.h"
 
 
 const byte mDnsPort = 53;
@@ -37,10 +38,11 @@ class Main {
     protected:
         void showReboot(void);
         virtual void saveValues(bool webSend);
+        virtual void updateCrc(void);
 
         char mStationSsid[SSID_LEN];
         char mStationPwd[PWD_LEN];
-        bool mLinkLedActive;
+        bool mSettingsValid;
         bool mApActive;
         ESP8266WebServer *mWeb;
         char mVersion[9];
