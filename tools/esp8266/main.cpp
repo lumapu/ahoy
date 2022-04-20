@@ -4,6 +4,8 @@
 #include "html/h/style_css.h"
 #include "html/h/setup_html.h"
 
+
+//-----------------------------------------------------------------------------
 Main::Main(void) {
     mDns     = new DNSServer();
     mWeb     = new ESP8266WebServer(80);
@@ -11,6 +13,7 @@ Main::Main(void) {
     mUdp     = new WiFiUDP();
 
     mApActive    = true;
+    mSettingsValid = false;
 
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
@@ -22,6 +25,7 @@ Main::Main(void) {
     mUptimeSecs = 0;
     mUptimeTicker = new Ticker();
     mUptimeTicker->attach(1, std::bind(&Main::uptimeTicker, this));
+
 }
 
 
@@ -70,19 +74,31 @@ void Main::loop(void) {
 //-----------------------------------------------------------------------------
 bool Main::getConfig(void) {
     bool mApActive = false;
+    uint16_t crcRd, crcCheck;
+    uint8_t buf[ADDR_NEXT-ADDR_START];
 
-    mEep->read(ADDR_SSID,    mStationSsid, SSID_LEN);
-    mEep->read(ADDR_PWD,     mStationPwd, PWD_LEN);
-    mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
+    // check settings crc
+    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
+    crcCheck = crc16(buf, (ADDR_NEXT-ADDR_START));
+    mEep->read(ADDR_SETTINGS_CRC, &crcRd);
 
-    if(mStationSsid[0] == 0xff) { // empty memory
+    if(crcCheck == crcRd)
+        mSettingsValid = true;
+    //else
+    //    Serial.println("CRC RD: " + String(crcRd, HEX) + " CRC CHECK: " + String(crcCheck, HEX));
+
+
+    if(mSettingsValid) {
+        mEep->read(ADDR_SSID,    mStationSsid, SSID_LEN);
+        mEep->read(ADDR_PWD,     mStationPwd, PWD_LEN);
+        mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
+    }
+    else {
         mApActive = true;
         memset(mStationSsid, 0, SSID_LEN);
-    }
-    if(mStationPwd[0] == 0xff)
         memset(mStationPwd, 0, PWD_LEN);
-    if(mDeviceName[0] == 0xff)
         memset(mDeviceName, 0, DEVNAME_LEN);
+    }
 
     return mApActive;
 }
@@ -91,6 +107,8 @@ bool Main::getConfig(void) {
 //-----------------------------------------------------------------------------
 void Main::setupAp(const char *ssid, const char *pwd) {
     IPAddress apIp(192, 168, 1, 1);
+
+    Serial.println("\n---------\nAP MODE\nSSDI: "+ String(ssid) + "\nPWD: " + String(pwd) + "\n---------\n");
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -190,6 +208,7 @@ void Main::saveValues(bool webSend = true) {
         mEep->write(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
 
 
+        updateCrc();
         if(webSend) {
             if(mWeb->arg("reboot") == "on")
                 showReboot();
@@ -198,6 +217,18 @@ void Main::saveValues(bool webSend = true) {
                              "<p>saved</p></body></html>");
         }
     }
+}
+
+
+//-----------------------------------------------------------------------------
+void Main::updateCrc(void) {
+    uint16_t crc;
+    uint8_t buf[ADDR_NEXT-ADDR_START];
+
+    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
+    crc = crc16(buf, (ADDR_NEXT-ADDR_START));
+    //Serial.println("new CRC: " + String(crc, HEX));
+    mEep->write(ADDR_SETTINGS_CRC, crc);
 }
 
 
