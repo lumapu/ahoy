@@ -5,7 +5,7 @@
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript">
-            getAjax('/livedata', 'livedata')
+            getAjax('/livedata', 'livedata');
             window.setInterval("getAjax('/livedata', 'livedata')", 10000);
 
             function getAjax(url, resid) {

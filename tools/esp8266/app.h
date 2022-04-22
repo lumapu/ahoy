@@ -11,6 +11,8 @@
 #include "hoymiles.h"
 #include "hm1200Decode.h"
 
+#include "mqtt.h"
+
 
 class app : public Main {
     public:
@@ -26,6 +28,7 @@ class app : public Main {
         void sendPacket(uint8_t data[], uint8_t length);
 
         void sendTicker(void);
+        void mqttTicker(void);
 
         void showIndex(void);
         void showSetup(void);
@@ -33,6 +36,7 @@ class app : public Main {
         void showCmdStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
+        void showMqtt(void);
 
         void saveValues(bool webSend);
         void dumpBuf(uint8_t buf[], uint8_t len);
@@ -55,6 +59,11 @@ class app : public Main {
 
         uint32_t mCmds[6];
         uint32_t mChannelStat[4];
+
+        // mqtt
+        mqtt mMqtt;
+        Ticker *mMqttTicker;
+        bool mMqttEvt;
 };
 
 #endif /*__APP_H__*/

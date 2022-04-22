@@ -22,21 +22,51 @@
                         <input type="password" class="inputText" name="pwd" value="{PWD}" required/>
                         <span class="floating_label">PASSWORD</span>
                     </div>
+
+
                     <p class="des">Device Host Name</p>
                     <div class="inputWrp">
                         <input type="text" class="inputText" name="device" value="{DEVICE}" required/>
                         <span class="floating_label">DEVICE NAME</span>
                     </div>
 
-                    <p class="des">General</p>
 
+                    <p class="des">Inverter</p>
                     <div class="inputWrp">
-                        <input type="text" class="inputText" name="hoy_addr" value="{HOY_ADDR}" required/>
-                        <span class="floating_label">HOYMILES ADDRESS (eg. 11:22:33:44:55:66)</span>
+                        <input type="text" class="inputText" name="inv0Addr" value="{INV0_ADDR}" required/>
+                        <span class="floating_label">INVERTER 0 ADDRESS (eg. 11:22:33:44:55:66)</span>
                     </div>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="invInterval" value="{INV_INTERVAL}" required/>
+                        <span class="floating_label">INTERVAL (ms)</span>
+                    </div>
+
+
+                    <p class="des">MQTT</p>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="mqttAddr" value="{MQTT_ADDR}" required/>
+                        <span class="floating_label">BROKER (Server IP)</span>
+                    </div>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="mqttUser" value="{MQTT_USER}"/>
+                        <span class="floating_label">USERNAME (optional)</span>
+                    </div>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="mqttPwd" value="{MQTT_PWD}"/>
+                        <span class="floating_label">PASSWORD (optional)</span>
+                    </div>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="mqttTopic" value="{MQTT_TOPIC}" required/>
+                        <span class="floating_label">TOPIC</span>
+                    </div>
+                    <div class="inputWrp">
+                        <input type="text" class="inputText" name="mqttInterval" value="{MQTT_INTERVAL}" required/>
+                        <span class="floating_label">INTERVAL (ms)</span>
+                    </div>
+
+
                     <input type="checkbox" class="cb" name="reboot"/>
                     <label for="reboot">Reboot device after successful save</label>
-
                     <input type="submit" value="save" class="button" />
                 </form>
             </div>

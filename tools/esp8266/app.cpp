@@ -7,13 +7,15 @@ extern String setup_html;
 //-----------------------------------------------------------------------------
 app::app() : Main() {
     mHoymiles = new hoymiles();
-    mDecoder = new hm1200Decode();
+    mDecoder  = new hm1200Decode();
+    mBufCtrl  = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
 
-    mBufCtrl = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
-
-    mSendCnt = 0;
+    mSendCnt    = 0;
     mSendTicker = new Ticker();
-    mFlagSend = false;
+    mFlagSend   = false;
+
+    mMqttTicker = NULL;
+    mMqttEvt    = false;
 
     memset(mCmds, 0, sizeof(uint32_t));
     memset(mChannelStat, 0, sizeof(uint32_t));
@@ -30,24 +32,56 @@ app::~app(void) {
 void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     Main::setup(ssid, pwd, timeout);
 
-    mWeb->on("/",        std::bind(&app::showIndex, this));
-    mWeb->on("/setup",   std::bind(&app::showSetup, this));
-    mWeb->on("/save",    std::bind(&app::showSave, this));
-    mWeb->on("/cmdstat", std::bind(&app::showCmdStatistics, this));
-    mWeb->on("/hoymiles", std::bind(&app::showHoymiles, this));
-    mWeb->on("/livedata", std::bind(&app::showLiveData, this));
+    mWeb->on("/",          std::bind(&app::showIndex,         this));
+    mWeb->on("/setup",     std::bind(&app::showSetup,         this));
+    mWeb->on("/save",      std::bind(&app::showSave,          this));
+    mWeb->on("/cmdstat",   std::bind(&app::showCmdStatistics, this));
+    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,      this));
+    mWeb->on("/livedata",  std::bind(&app::showLiveData,      this));
+    mWeb->on("/mqttstate", std::bind(&app::showMqtt,          this));
 
-    if(mSettingsValid)
-        mEep->read(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
-    else
+    if(mSettingsValid) {
+        uint16_t interval;
+
+        // hoymiles
+        mEep->read(ADDR_INV0_ADDR,    mHoymiles->mAddrBytes, INV_ADDR_LEN);
+        mEep->read(ADDR_INV_INTERVAL, &interval);
+
+        if(interval < 1000)
+            interval = 1000;
+        mSendTicker->attach_ms(interval, std::bind(&app::sendTicker, this));
+
+
+        // mqtt
+        uint8_t mqttAddr[MQTT_ADDR_LEN];
+        char mqttUser[MQTT_USER_LEN];
+        char mqttPwd[MQTT_PWD_LEN];
+        char mqttTopic[MQTT_TOPIC_LEN];
+        mEep->read(ADDR_MQTT_ADDR,     mqttAddr,  MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_USER,     mqttUser,  MQTT_USER_LEN);
+        mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
+        mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
+        mEep->read(ADDR_MQTT_INTERVAL, &interval);
+
+        char addr[16] = {0};
+        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
+
+        if(interval < 1000)
+            interval = 1000;
+        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd);
+        mMqttTicker = new Ticker();
+        mMqttTicker->attach_ms(interval, std::bind(&app::mqttTicker, this));
+
+        mMqtt.sendMsg("version", mVersion);
+    }
+    else {
         memset(mHoymiles->mAddrBytes, 0, 6);
+    }
     mHoymiles->serial2RadioId();
 
     initRadio();
 
-    if(mSettingsValid)
-        mSendTicker->attach_ms(1000, std::bind(&app::sendTicker, this));
-    else
+    if(!mSettingsValid)
         Serial.println("Warn: your settings are not valid! check [IP]/setup");
 }
 
@@ -65,8 +99,8 @@ void app::loop(void) {
         if(mHoymiles->checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
-                Serial.println("CMD " + String(p->packet[11], HEX));
-                mHoymiles->dumpBuf("Payload ", p->packet, len);
+                //Serial.println("CMD " + String(p->packet[11], HEX));
+                //mHoymiles->dumpBuf("Payload ", p->packet, len);
 
                 mDecoder->convert(&p->packet[11], len);
 
@@ -108,6 +142,14 @@ void app::loop(void) {
         sendPacket(mSendBuf, size);
 
         mSendCnt++;
+    }
+
+
+    // mqtt
+    mMqtt.loop();
+    if(mMqttEvt) {
+        mMqttEvt = false;
+        mMqtt.isConnected(true);
     }
 }
 
@@ -221,6 +263,12 @@ void app::sendTicker(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::mqttTicker(void) {
+    mMqttEvt = true;
+}
+
+
+//-----------------------------------------------------------------------------
 void app::showIndex(void) {
     String html = index_html;
     html.replace("{DEVICE}", mDeviceName);
@@ -233,6 +281,8 @@ void app::showIndex(void) {
 void app::showSetup(void) {
     // overrides same method in main.cpp
 
+    uint16_t interval;
+
     String html = setup_html;
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
@@ -240,10 +290,36 @@ void app::showSetup(void) {
 
     char addr[20] = {0};
     sprintf(addr, "%02X:%02X:%02X:%02X:%02X:%02X", mHoymiles->mAddrBytes[0], mHoymiles->mAddrBytes[1], mHoymiles->mAddrBytes[2], mHoymiles->mAddrBytes[3], mHoymiles->mAddrBytes[4], mHoymiles->mAddrBytes[5]);
-    html.replace("{HOY_ADDR}", String(addr));
+    html.replace("{INV0_ADDR}", String(addr));
 
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+
+    if(mSettingsValid) {
+        mEep->read(ADDR_INV_INTERVAL, &interval);
+        html.replace("{INV_INTERVAL}", String(interval));
+
+        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_INTERVAL, &interval);
+
+        char addr[16] = {0};
+        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
+        html.replace("{MQTT_ADDR}",     String(addr));
+        html.replace("{MQTT_USER}",     String(mMqtt.getUser()));
+        html.replace("{MQTT_PWD}",      String(mMqtt.getPwd()));
+        html.replace("{MQTT_TOPIC}",    String(mMqtt.getTopic()));
+        html.replace("{MQTT_INTERVAL}", String(interval));
+    }
+    else {
+        html.replace("{INV_INTERVAL}", "1000");
+
+        html.replace("{MQTT_ADDR}", "");
+        html.replace("{MQTT_USER}", "");
+        html.replace("{MQTT_PWD}", "");
+        html.replace("{MQTT_TOPIC}", "/inverter");
+        html.replace("{MQTT_INTERVAL}", "10000");
+    }
 
     mWeb->send(200, "text/html", html);
 }
@@ -312,6 +388,15 @@ void app::showLiveData(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::showMqtt(void) {
+    String txt = "connected";
+    if(mMqtt.isConnected())
+        txt = "not " + txt;
+    mWeb->send(200, "text/plain", txt);
+}
+
+
+//-----------------------------------------------------------------------------
 void app::saveValues(bool webSend = true) {
     Main::saveValues(false); // general configuration
 
@@ -319,17 +404,42 @@ void app::saveValues(bool webSend = true) {
         char *p;
         char addr[20] = {0};
         uint8_t i = 0;
+        uint16_t interval;
 
+        // hoymiles
         memset(mHoymiles->mAddrBytes, 0, 6);
-        mWeb->arg("hoy_addr").toCharArray(addr, 20);
-
+        mWeb->arg("inv0Addr").toCharArray(addr, 20);
         p = strtok(addr, ":");
         while(NULL != p) {
             mHoymiles->mAddrBytes[i++] = strtol(p, NULL, 16);
             p = strtok(NULL, ":");
         }
+        interval = mWeb->arg("invInterval").toInt();
+        mEep->write(ADDR_INV0_ADDR, mHoymiles->mAddrBytes, INV_ADDR_LEN);
+        mEep->write(ADDR_INV_INTERVAL, interval);
 
-        mEep->write(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
+
+        // mqtt
+        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        char mqttUser[MQTT_USER_LEN];
+        char mqttPwd[MQTT_PWD_LEN];
+        char mqttTopic[MQTT_TOPIC_LEN];
+        mWeb->arg("mqttAddr").toCharArray(addr, 20);
+        i = 0;
+        p = strtok(addr, ".");
+        while(NULL != p) {
+            mqttAddr[i++] = atoi(p);
+            p = strtok(NULL, ".");
+        }
+        mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
+        mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
+        mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
+        interval = mWeb->arg("mqttInterval").toInt();
+        mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
+        mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
+        mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
+        mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
+        mEep->write(ADDR_MQTT_INTERVAL, interval);
 
         updateCrc();
         if((mWeb->arg("reboot") == "on"))
