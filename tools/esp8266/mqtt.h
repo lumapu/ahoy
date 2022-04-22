@@ -31,9 +31,8 @@ class mqtt {
 
         void sendMsg(const char *topic, const char *msg) {
             if(mAddressSet) {
-                uint8_t len = MQTT_TOPIC_LEN + strlen(msg);
-                char top[len];
-                snprintf(top, len, "%s/%s", mTopic, topic);
+                char top[64];
+                snprintf(top, 64, "%s/%s", mTopic, topic);
 
                 if(!mClient->connected())
                     reconnect();
@@ -69,12 +68,10 @@ class mqtt {
         void reconnect(void) {
             if(!mClient->connected()) {
                 String mqttId = "ESP-" + String(random(0xffff), HEX);
-                if((strlen(mUser) > 0) && (strlen(mPwd) > 0)) {
+                if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
                     mClient->connect(mqttId.c_str(), mUser, mPwd);
-                }
-                else {
+                else
                     mClient->connect(mqttId.c_str());
-                }
             }
         }
 

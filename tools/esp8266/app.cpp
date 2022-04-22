@@ -124,9 +124,9 @@ void app::loop(void) {
         mFlagSend = false;
 
         uint8_t size = 0;
-        if((mSendCnt % 6) == 0)
+        //if((mSendCnt % 6) == 0)
             size = mHoymiles->getTimePacket(mSendBuf, mTimestamp);
-        else if((mSendCnt % 6) == 1)
+        /*else if((mSendCnt % 6) == 1)
             size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x81);
         else if((mSendCnt % 6) == 2)
             size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x80);
@@ -135,7 +135,7 @@ void app::loop(void) {
         else if((mSendCnt % 6) == 4)
             size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x82);
         else if((mSendCnt % 6) == 5)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);
+            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);*/
 
         //Serial.println("sent packet: #" + String(mSendCnt));
         //dumpBuf(mSendBuf, size);
@@ -150,6 +150,47 @@ void app::loop(void) {
     if(mMqttEvt) {
         mMqttEvt = false;
         mMqtt.isConnected(true);
+        char topic[20], val[10];
+        for(uint8_t i = 0; i < 4; i++) {
+            for(uint8_t j = 0; j < 5; j++) {
+                switch(j) {
+                    default:
+                        sprintf(topic, "ch%d/%s", i, "voltage");
+                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i/2].u);
+                        break;
+                    case 1:
+                        sprintf(topic, "ch%d/%s", i, "current");
+                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].i);
+                        break;
+                    case 2:
+                        sprintf(topic, "ch%d/%s", i, "power");
+                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].p);
+                        break;
+                    case 3:
+                        sprintf(topic, "ch%d/%s", i, "yield_day");
+                        sprintf(val, "%.3f", (double)mDecoder->mData.ch_dc[i].y_d);
+                        break;
+                    case 4:
+                        sprintf(topic, "ch%d/%s", i, "yield");
+                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].y_t);
+                        break;
+                }
+                if(0 != strncmp("0.000", val, 5)) {
+                    mMqtt.sendMsg(topic, val);
+                    delay(10);
+                }
+            }
+        }
+
+        sprintf(val, "%.3f", mDecoder->mData.ch_ac.u);
+        mMqtt.sendMsg("ac/voltage", val);
+        delay(10);
+        sprintf(val, "%.3f", mDecoder->mData.ch_ac.i);
+        mMqtt.sendMsg("ac/current", val);
+        delay(10);
+        sprintf(val, "%.3f", mDecoder->mData.temp);
+        mMqtt.sendMsg("temperature", val);
+        delay(10);
     }
 }
 
@@ -223,10 +264,10 @@ void app::sendPacket(uint8_t buf[], uint8_t len) {
     mRadio->stopListening();
 
 #ifdef CHANNEL_HOP
-    if(mSendCnt % 6 == 0)
+    //if(mSendCnt % 6 == 0)
         mSendChannel = mHoymiles->getNxtChannel();
-    else
-        mSendChannel = mHoymiles->getLastChannel();
+    //else
+    //    mSendChannel = mHoymiles->getLastChannel();
 #else
     mSendChannel = mHoymiles->getDefaultChannel();
 #endif
