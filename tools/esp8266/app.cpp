@@ -4,12 +4,11 @@
 #include "html/h/hoymiles_html.h"
 extern String setup_html;
 
+
+#define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
+
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mHoymiles = new hoymiles();
-    mDecoder  = new hm1200Decode();
-    mBufCtrl  = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
-
     mSendCnt    = 0;
     mSendTicker = new Ticker();
     mFlagSend   = false;
@@ -19,6 +18,8 @@ app::app() : Main() {
 
     memset(mCmds, 0, sizeof(uint32_t));
     memset(mChannelStat, 0, sizeof(uint32_t));
+
+    mSys = new HmSystemType();
 }
 
 
@@ -42,10 +43,12 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
     if(mSettingsValid) {
         uint16_t interval;
+        uint64_t invSerial;
 
         // hoymiles
-        mEep->read(ADDR_INV0_ADDR,    mHoymiles->mAddrBytes, INV_ADDR_LEN);
+        mEep->read(ADDR_INV0_ADDR,    &invSerial);
         mEep->read(ADDR_INV_INTERVAL, &interval);
+        mSys->addInverter("HM1200", invSerial, INV_TYPE_HM1200);
 
         if(interval < 1000)
             interval = 1000;
@@ -74,10 +77,6 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
         mMqtt.sendMsg("version", mVersion);
     }
-    else {
-        memset(mHoymiles->mAddrBytes, 0, 6);
-    }
-    mHoymiles->serial2RadioId();
 
     initRadio();
 
@@ -90,26 +89,32 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 void app::loop(void) {
     Main::loop();
 
-    if(!mBufCtrl->empty()) {
+    if(!mSys->BufCtrl.empty()) {
         uint8_t len, rptCnt;
-        NRF24_packet_t *p = mBufCtrl->getBack();
+        packet_t *p = mSys->BufCtrl.getBack();
+        //dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
-        //mHoymiles->dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
-
-        if(mHoymiles->checkCrc(p->packet, &len, &rptCnt)) {
+        if(mSys->Radio.checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
-                //Serial.println("CMD " + String(p->packet[11], HEX));
-                //mHoymiles->dumpBuf("Payload ", p->packet, len);
+                //Serial.println("CMD " + String(*cmd, HEX));
+                //dumpBuf("Payload ", p->packet, len);
 
-                mDecoder->convert(&p->packet[11], len);
+                uint8_t *cmd = &p->packet[11];
+                inverter_t *iv = mSys->findInverter(&p->packet[3]);
+                if(NULL != iv) {
+                    for(uint8_t i = 0; i < iv->listLen; i++) {
+                        if(iv->assign[i].cmdId == *cmd)
+                            mSys->addValue(iv, i, &p->packet[11]);
+                    }
+                }
 
-                if(p->packet[11] == 0x01)      mCmds[0]++;
-                else if(p->packet[11] == 0x02) mCmds[1]++;
-                else if(p->packet[11] == 0x03) mCmds[2]++;
-                else if(p->packet[11] == 0x81) mCmds[3]++;
-                else if(p->packet[11] == 0x84) mCmds[4]++;
-                else                           mCmds[5]++;
+                if(*cmd == 0x01)      mCmds[0]++;
+                else if(*cmd == 0x02) mCmds[1]++;
+                else if(*cmd == 0x03) mCmds[2]++;
+                else if(*cmd == 0x81) mCmds[3]++;
+                else if(*cmd == 0x84) mCmds[4]++;
+                else                  mCmds[5]++;
 
                 if(p->sendCh == 23)      mChannelStat[0]++;
                 else if(p->sendCh == 40) mChannelStat[1]++;
@@ -117,94 +122,72 @@ void app::loop(void) {
                 else                     mChannelStat[3]++;
             }
         }
-        mBufCtrl->popBack();
+        mSys->BufCtrl.popBack();
     }
 
     if(mFlagSend) {
         mFlagSend = false;
 
         uint8_t size = 0;
-        //if((mSendCnt % 6) == 0)
-            size = mHoymiles->getTimePacket(mSendBuf, mTimestamp);
-        /*else if((mSendCnt % 6) == 1)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x81);
-        else if((mSendCnt % 6) == 2)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x80);
-        else if((mSendCnt % 6) == 3)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x83);
-        else if((mSendCnt % 6) == 4)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x82);
-        else if((mSendCnt % 6) == 5)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);*/
+        inverter_t *inv = mSys->getInverterByPos(0);
+        size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
 
         //Serial.println("sent packet: #" + String(mSendCnt));
         //dumpBuf(mSendBuf, size);
-        sendPacket(mSendBuf, size);
+        sendPacket(inv, mSendBuf, size);
 
         mSendCnt++;
     }
 
 
     // mqtt
-    mMqtt.loop();
+    //mMqtt.loop();
     if(mMqttEvt) {
         mMqttEvt = false;
-        mMqtt.isConnected(true);
+        /*mMqtt.isConnected(true);
         char topic[20], val[10];
-        for(uint8_t i = 0; i < 4; i++) {
-            for(uint8_t j = 0; j < 5; j++) {
-                switch(j) {
-                    default:
-                        sprintf(topic, "ch%d/%s", i, "voltage");
-                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i/2].u);
-                        break;
-                    case 1:
-                        sprintf(topic, "ch%d/%s", i, "current");
-                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].i);
-                        break;
-                    case 2:
-                        sprintf(topic, "ch%d/%s", i, "power");
-                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].p);
-                        break;
-                    case 3:
-                        sprintf(topic, "ch%d/%s", i, "yield_day");
-                        sprintf(val, "%.3f", (double)mDecoder->mData.ch_dc[i].y_d);
-                        break;
-                    case 4:
-                        sprintf(topic, "ch%d/%s", i, "yield");
-                        sprintf(val, "%.3f", mDecoder->mData.ch_dc[i].y_t);
-                        break;
+        for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+            inverter_t *iv = mSys->getInverterByPos(id);
+            if(NULL != iv) {
+                for(uint8_t i = 0; i < iv->listLen; i++) {
+                    if(0.0f != mSys->getValue(iv, i)) {
+                        sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                        sprintf(val, "%.3f", mSys->getValue(iv, i));
+                        mMqtt.sendMsg(topic, val);
+                        delay(10);
+                    }
                 }
-                if(0 != strncmp("0.000", val, 5)) {
-                    mMqtt.sendMsg(topic, val);
-                    delay(10);
+            }
+        }*/
+
+        // Serial debug
+        char topic[20], val[10];
+        for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+            inverter_t *iv = mSys->getInverterByPos(id);
+            if(NULL != iv) {
+                for(uint8_t i = 0; i < iv->listLen; i++) {
+                    //if(0.0f != mSys->getValue(iv, i)) {
+                        sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
+                        sprintf(val, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
+                        Serial.println(String(topic) + ": " + String(val));
+                    //}
                 }
             }
         }
-
-        sprintf(val, "%.3f", mDecoder->mData.ch_ac.u);
-        mMqtt.sendMsg("ac/voltage", val);
-        delay(10);
-        sprintf(val, "%.3f", mDecoder->mData.ch_ac.i);
-        mMqtt.sendMsg("ac/current", val);
-        delay(10);
-        sprintf(val, "%.3f", mDecoder->mData.temp);
-        mMqtt.sendMsg("temperature", val);
-        delay(10);
     }
 }
 
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
-    uint8_t lostCnt = 0, pipe, len;
-    NRF24_packet_t *p;
+    uint8_t pipe, len;
+    packet_t *p;
 
     DISABLE_IRQ;
 
     while(mRadio->available(&pipe)) {
-        if(!mBufCtrl->full()) {
-            p = mBufCtrl->getFront();
+        if(!mSys->BufCtrl.full()) {
+            p = mSys->BufCtrl.getFront();
             memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
             p->sendCh = mSendChannel;
             len = mRadio->getPayloadSize();
@@ -212,13 +195,10 @@ void app::handleIntr(void) {
                 len = MAX_RF_PAYLOAD_SIZE;
 
             mRadio->read(p->packet, len);
-            mBufCtrl->pushFront(p);
-            lostCnt = 0;
+            mSys->BufCtrl.pushFront(p);
         }
         else {
             bool tx_ok, tx_fail, rx_ready;
-            if(lostCnt < 255)
-                lostCnt++;
             mRadio->whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
             mRadio->flush_rx(); // drop the packet
         }
@@ -254,27 +234,27 @@ void app::initRadio(void) {
     Serial.println("Radio Config:");
     mRadio->printPrettyDetails();
 
-    mSendChannel = mHoymiles->getDefaultChannel();
+    mSendChannel = mSys->Radio.getDefaultChannel();
 }
 
 
 //-----------------------------------------------------------------------------
-void app::sendPacket(uint8_t buf[], uint8_t len) {
+void app::sendPacket(inverter_t *inv, uint8_t buf[], uint8_t len) {
     DISABLE_IRQ;
     mRadio->stopListening();
 
 #ifdef CHANNEL_HOP
     //if(mSendCnt % 6 == 0)
-        mSendChannel = mHoymiles->getNxtChannel();
+        mSendChannel = mSys->Radio.getNxtChannel();
     //else
-    //    mSendChannel = mHoymiles->getLastChannel();
+    //    mSendChannel = mSys->Radio.getLastChannel();
 #else
-    mSendChannel = mHoymiles->getDefaultChannel();
+    mSendChannel = mSys->Radio.getDefaultChannel();
 #endif
     mRadio->setChannel(mSendChannel);
     //Serial.println("CH: " + String(mSendChannel));
 
-    mRadio->openWritingPipe(mHoymiles->mRadioId);
+    mRadio->openWritingPipe(inv->radioId.u64);
     mRadio->setCRCLength(RF24_CRC_16);
     mRadio->enableDynamicPayloads();
     mRadio->setAutoAck(true);
@@ -329,12 +309,31 @@ void app::showSetup(void) {
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the placeholder "{PWD}"
 
-    char addr[20] = {0};
-    sprintf(addr, "%02X:%02X:%02X:%02X:%02X:%02X", mHoymiles->mAddrBytes[0], mHoymiles->mAddrBytes[1], mHoymiles->mAddrBytes[2], mHoymiles->mAddrBytes[3], mHoymiles->mAddrBytes[4], mHoymiles->mAddrBytes[5]);
-    html.replace("{INV0_ADDR}", String(addr));
-
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+
+    String inv;
+    inverter_t *pInv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        pInv = mSys->getInverterByPos(i);
+        inv += "<p class=\"subdes\">Inverter "+ String(i) + "</p>";
+
+        inv += "<label for=\"inv" + String(i) + "Addr\">Address</label>";
+        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Addr\" value=\"";
+        inv += (NULL != pInv) ? String(mSys->getSerial(pInv), HEX) : "";
+        inv += "\"/>";
+
+        inv += "<label for=\"inv" + String(i) + "Name\">Name</label>";
+        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
+        inv += (NULL != pInv) ? String(pInv->name) : "";
+        inv += "\"/>";
+
+        inv += "<label for=\"inv" + String(i) + "Type\">Type</label>";
+        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
+        inv += (NULL != pInv) ? String(pInv->type) : "";
+        inv += "\"/>";
+    }
+    html.replace("{INVERTERS}", String(inv));
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
@@ -402,27 +401,45 @@ void app::showHoymiles(void) {
 
 //-----------------------------------------------------------------------------
 void app::showLiveData(void) {
-    String modHtml = "";
+    String modHtml = "<pre>";
 
-    String unit[5] = {"V", "A", "W", "Wh", "kWh"};
-    String info[5] = {"VOLTAGE", "CURRENT", "POWER", "YIELD DAY", "YIELD"};
-
-    for(uint8_t i = 0; i < 4; i++) {
-        modHtml += "<div class=\"module\"><span class=\"header\">CHANNEL " + String(i) + "</span>";
-        for(uint8_t j = 0; j < 5; j++) {
-            modHtml += "<span class=\"value\">";
-            switch(j) {
-                default: modHtml += String(mDecoder->mData.ch_dc[i/2].u); break;
-                case 1:  modHtml += String(mDecoder->mData.ch_dc[i].i);   break;
-                case 2:  modHtml += String(mDecoder->mData.ch_dc[i].p);   break;
-                case 3:  modHtml += String(mDecoder->mData.ch_dc[i].y_d); break;
-                case 4:  modHtml += String(mDecoder->mData.ch_dc[i].y_t); break;
+    char topic[20], val[10];
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        inverter_t *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            /*uint8_t modNum;
+            switch(iv->type) {
+                default:              modNum = 1; break;
+                case INV_TYPE_HM600:  modNum = 2; break;
+                case INV_TYPE_HM1200: modNum = 4; break;
             }
-            modHtml += "<span class=\"unit\">" + unit[j] + "</span></span>";
-            modHtml += "<span class=\"info\">" + info[j] + "</span>";
+
+            for(uint8_t mod = 1; mod <= modNum; mod ++) {
+                modHtml += "<div class=\"module\"><span class=\"header\">CHANNEL " + String(i) + "</span>";
+                for(uint8_t j = 0; j < 5; j++) {
+                    modHtml += "<span class=\"value\">";
+                    switch(j) {
+                        default: modHtml += String(mDecoder->mData.ch_dc[i/2].u); break;
+                        case 1:  modHtml += String(mDecoder->mData.ch_dc[i].i);   break;
+                        case 2:  modHtml += String(mDecoder->mData.ch_dc[i].p);   break;
+                        case 3:  modHtml += String(mDecoder->mData.ch_dc[i].y_d); break;
+                        case 4:  modHtml += String(mDecoder->mData.ch_dc[i].y_t); break;
+                    }
+                    modHtml += "<span class=\"unit\">" + unit[j] + "</span></span>";
+                    modHtml += "<span class=\"info\">" + info[j] + "</span>";
+                }
+                modHtml += "</div>";
+            }*/
+
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
+                sprintf(val, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
+                modHtml += String(topic) + ": " + String(val) + "\n";
+            }
         }
-        modHtml += "</div>";
     }
+
+    modHtml += "</pre>";
 
     mWeb->send(200, "text/html", modHtml);
 }
@@ -443,20 +460,24 @@ void app::saveValues(bool webSend = true) {
 
     if(mWeb->args() > 0) {
         char *p;
-        char addr[20] = {0};
+        char buf[20] = {0};
         uint8_t i = 0;
         uint16_t interval;
 
-        // hoymiles
-        memset(mHoymiles->mAddrBytes, 0, 6);
-        mWeb->arg("inv0Addr").toCharArray(addr, 20);
-        p = strtok(addr, ":");
-        while(NULL != p) {
-            mHoymiles->mAddrBytes[i++] = strtol(p, NULL, 16);
-            p = strtok(NULL, ":");
+        // inverter
+        serial_u addr;
+        mWeb->arg("inv0Addr").toCharArray(buf, 20);
+        addr.u64 = Serial2u64(buf);
+        mSys->updateSerial(mSys->getInverterByPos(0), addr.u64);
+
+        for(uint8_t i = 0; i < 8; i++) {
+            Serial.print(String(addr.b[i], HEX) + " ");
         }
+        Serial.println();
+        Serial.println("addr: " + String(addr.u64, HEX));
+
         interval = mWeb->arg("invInterval").toInt();
-        mEep->write(ADDR_INV0_ADDR, mHoymiles->mAddrBytes, INV_ADDR_LEN);
+        mEep->write(ADDR_INV0_ADDR, addr.u64);
         mEep->write(ADDR_INV_INTERVAL, interval);
 
 
@@ -465,9 +486,9 @@ void app::saveValues(bool webSend = true) {
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
-        mWeb->arg("mqttAddr").toCharArray(addr, 20);
+        mWeb->arg("mqttAddr").toCharArray(buf, 20);
         i = 0;
-        p = strtok(addr, ".");
+        p = strtok(buf, ".");
         while(NULL != p) {
             mqttAddr[i++] = atoi(p);
             p = strtok(NULL, ".");
@@ -494,15 +515,4 @@ void app::saveValues(bool webSend = true) {
         mWeb->send(200, "text/html", "<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
             "<p>Error while saving</p></body></html>");
     }
-}
-
-
-//-----------------------------------------------------------------------------
-void app::dumpBuf(uint8_t buf[], uint8_t len) {
-    for(uint8_t i = 0; i < len; i ++) {
-        if((i % 8 == 0) && (i != 0))
-            Serial.println();
-        Serial.print(String(buf[i], HEX) + " ");
-    }
-    Serial.println();
 }

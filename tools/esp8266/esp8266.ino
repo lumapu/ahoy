@@ -1,3 +1,12 @@
+
+#include "Arduino.h"
+
+#include <ESP8266WiFi.h>
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <Ticker.h>
+
+#include <ESP8266HTTPUpdateServer.h>
 #include "app.h"
 
 app myApp;
@@ -22,4 +31,3 @@ void loop() {
 ICACHE_RAM_ATTR void handleIntr(void) {
     myApp.handleIntr();
 }
-

@@ -10,12 +10,20 @@
 #define RF24_CS_PIN         15
 
 
+
+//-------------------------------------
+// CONFIGURATION - COMPILE TIME
+//-------------------------------------
+#define PACKET_BUFFER_SIZE      30
+#define MAX_NUM_INVERTERS       3
+
+
 //-------------------------------------
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       1
-#define VERSION_PATCH       12
+#define VERSION_MINOR       2
+#define VERSION_PATCH       1
 
 
 //-------------------------------------
@@ -26,7 +34,7 @@
 #define DEVNAME_LEN         16
 #define CRC_LEN             2
 
-#define INV_ADDR_LEN        6
+#define INV_ADDR_LEN        8 // uint64_t
 #define INV_INTERVAL_LEN    2 // uint16_t
 
 

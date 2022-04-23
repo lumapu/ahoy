@@ -8,11 +8,14 @@
 #include "main.h"
 
 #include "CircularBuffer.h"
-#include "hoymiles.h"
-#include "hm1200Decode.h"
+#include "hmSystem.h"
 
 #include "mqtt.h"
 
+
+typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN> RadioType;
+typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
+typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, double> HmSystemType;
 
 class app : public Main {
     public:
@@ -25,7 +28,7 @@ class app : public Main {
 
     private:
         void initRadio(void);
-        void sendPacket(uint8_t data[], uint8_t length);
+        void sendPacket(inverter_t *inv, uint8_t data[], uint8_t length);
 
         void sendTicker(void);
         void mqttTicker(void);
@@ -39,16 +42,35 @@ class app : public Main {
         void showMqtt(void);
 
         void saveValues(bool webSend);
-        void dumpBuf(uint8_t buf[], uint8_t len);
+
+        void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
+            Serial.print(String(info));
+            for(uint8_t i = 0; i < len; i++) {
+                Serial.print(buf[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println();
+        }
+
+        uint64_t Serial2u64(const char *val) {
+            char tmp[3] = {0};
+            uint64_t ret = 0ULL;
+            uint64_t u64;
+            for(uint8_t i = 0; i < 6; i++) {
+                tmp[0] = val[i*2];
+                tmp[1] = val[i*2 + 1];
+                u64 = strtol(tmp, NULL, 16);
+                ret |= (u64 << ((5-i) << 3));
+            }
+            return ret;
+        }
 
         uint8_t mState;
         bool    mKeyPressed;
 
         RF24 *mRadio;
-        hoymiles *mHoymiles;
-        hm1200Decode *mDecoder;
-        CircularBuffer<NRF24_packet_t> *mBufCtrl;
-        NRF24_packet_t mBuffer[PACKET_BUFFER_SIZE];
+        packet_t mBuffer[PACKET_BUFFER_SIZE];
+        HmSystemType *mSys;
 
 
         Ticker *mSendTicker;

@@ -51,7 +51,7 @@ class mqtt {
         }
 
         char *getPwd(void) {
-            return mUser;
+            return mPwd;
         }
 
         char *getTopic(void) {
