@@ -52,6 +52,10 @@ class HmRadio {
             mChanIdx = 1;
 
             calcDtuCrc();
+
+            pinCs  = CS_PIN;
+            pinCe  = CE_PIN;
+            pinIrq = IRQ_PIN;
         }
         ~HmRadio() {}
 
@@ -117,7 +121,11 @@ class HmRadio {
             return valid;
         }
 
-    protected:
+        uint8_t pinCs;
+        uint8_t pinCe;
+        uint8_t pinIrq;
+
+    private:
         void calcDtuCrc(void) {
             uint64_t addr = DTU_RADIO_ID;
             uint8_t tmp[5];

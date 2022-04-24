@@ -86,20 +86,19 @@ div.content {
     overflow: hidden;
 }
 
-input {
+input, select {
     padding: 7px;
     font-size: 13pt;
 }
 
-input.text, input.password {
+input.text, select {
     width: 70%;
     box-sizing: border-box;
     margin-bottom: 10px;
-    /*float: right;*/
     border: 1px solid #ccc;
 }
 
-input.button {
+input.btn {
     background-color: #006ec0;
     color: #fff;
     border: 0px;

@@ -64,6 +64,12 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mSendTicker->attach_ms(interval, std::bind(&app::sendTicker, this));
 
 
+        // pinout
+        mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
+        mEep->read(ADDR_PINOUT+1, &mSys->Radio.pinCe);
+        mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
+
+
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN];
         char mqttUser[MQTT_USER_LEN];
@@ -372,6 +378,26 @@ void app::showSetup(void) {
     }
     html.replace("{INVERTERS}", String(inv));
 
+
+    // pinout
+    String pinout;
+    for(uint8_t i = 0; i < 3; i++) {
+        pinout += "<label for=\"" + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + "</label>";
+        pinout += "<select name=\"" + String(pinArgNames[i]) + "\">";
+        for(uint8_t j = 0; j <= 16; j++) {
+            pinout += "<option value=\"" + String(j) + "\"";
+            switch(i) {
+                default: if(j == mSys->Radio.pinCs)  pinout += " selected"; break;
+                case 1:  if(j == mSys->Radio.pinCe)  pinout += " selected"; break;
+                case 2:  if(j == mSys->Radio.pinIrq) pinout += " selected"; break;
+            }
+            pinout += ">" + String(wemosPins[j]) + "</option>";
+        }
+        pinout += "</select>";
+    }
+    html.replace("{PINOUT}", String(pinout));
+
+
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
         html.replace("{INV_INTERVAL}", String(interval));
@@ -530,6 +556,13 @@ void app::saveValues(bool webSend = true) {
         mEep->write(ADDR_INV_INTERVAL, interval);
 
 
+        // pinout
+        for(uint8_t i = 0; i < 3; i ++) {
+            uint8_t pin = mWeb->arg(String(pinArgNames[i])).toInt();
+            mEep->write(ADDR_PINOUT + i, pin);
+        }
+
+
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
         char mqttUser[MQTT_USER_LEN];
@@ -564,4 +597,15 @@ void app::saveValues(bool webSend = true) {
         mWeb->send(200, "text/html", "<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
             "<p>Error while saving</p></body></html>");
     }
+}
+
+
+//-----------------------------------------------------------------------------
+void app::updateCrc(void) {
+    Main::updateCrc();
+
+    uint16_t crc;
+    crc = buildEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT - ADDR_START_SETTINGS));
+    //Serial.println("new CRC: " + String(crc, HEX));
+    mEep->write(ADDR_SETTINGS_CRC, crc);
 }

@@ -40,8 +40,22 @@ class Main {
         virtual void saveValues(bool webSend);
         virtual void updateCrc(void);
 
+        inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
+            uint8_t buf[length];
+            mEep->read(start, buf, length);
+            return crc16(buf, length);
+        }
+
+        bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
+            uint16_t crcRd, crcCheck;
+            crcCheck = buildEEpCrc(start, length);
+            mEep->read(crcPos, &crcRd);
+            return (crcCheck == crcRd);
+        }
+
         char mStationSsid[SSID_LEN];
         char mStationPwd[PWD_LEN];
+        bool mWifiSettingsValid;
         bool mSettingsValid;
         bool mApActive;
         ESP8266WebServer *mWeb;

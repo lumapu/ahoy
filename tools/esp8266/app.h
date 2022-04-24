@@ -9,13 +9,18 @@
 
 #include "CircularBuffer.h"
 #include "hmSystem.h"
-
 #include "mqtt.h"
-
 
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN> RadioType;
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, float> HmSystemType;
+
+const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (GPIO3)",
+                                "D2 (GPIO4)", "D1 (GPIO5)", "GPIO6", "GPIO7", "GPIO8",
+                                "GPIO9", "GPIO10", "GPIO11", "D6 (GPIO12)", "D7 (GPIO13)",
+                                "D5 (GPIO14)", "D8 (GPIO15)", "D0 (GPIO16)"};
+const char* const pinNames[] = {"CS", "CE", "IRQ"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
 class app : public Main {
     public:
@@ -42,6 +47,7 @@ class app : public Main {
         void showMqtt(void);
 
         void saveValues(bool webSend);
+        void updateCrc(void);
 
         void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
             Serial.print(String(info));

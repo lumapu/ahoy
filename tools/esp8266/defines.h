@@ -5,9 +5,9 @@
 //-------------------------------------
 // PINOUT
 //-------------------------------------
-#define RF24_IRQ_PIN        4
-#define RF24_CE_PIN         5
 #define RF24_CS_PIN         15
+#define RF24_CE_PIN         2 //5
+#define RF24_IRQ_PIN        0 //4
 
 
 
@@ -25,7 +25,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       2
-#define VERSION_PATCH       3
+#define VERSION_PATCH       4
 
 
 //-------------------------------------
@@ -34,13 +34,14 @@
 #define SSID_LEN            32
 #define PWD_LEN             32
 #define DEVNAME_LEN         16
-#define CRC_LEN             2
+#define CRC_LEN             2 // uint16_t
 
 #define INV_ADDR_LEN        MAX_NUM_INVERTERS * 8                // uint64_t
 #define INV_NAME_LEN        MAX_NUM_INVERTERS * MAX_NAME_LENGTH  // char[]
 #define INV_TYPE_LEN        MAX_NUM_INVERTERS * 1                // uint8_t
 #define INV_INTERVAL_LEN    2                                    // uint16_t
 
+#define PINOUT_LEN          3 // 3 pins: CS, CE, IRQ
 
 #define MQTT_ADDR_LEN       4 // IP
 #define MQTT_USER_LEN       16
@@ -53,7 +54,12 @@
 #define ADDR_SSID           ADDR_START
 #define ADDR_PWD            ADDR_SSID          + SSID_LEN
 #define ADDR_DEVNAME        ADDR_PWD           + PWD_LEN
-#define ADDR_INV_ADDR       ADDR_DEVNAME       + DEVNAME_LEN
+#define ADDR_WIFI_CRC       ADDR_DEVNAME       + DEVNAME_LEN
+#define ADDR_START_SETTINGS ADDR_WIFI_CRC      + CRC_LEN
+
+#define ADDR_PINOUT         ADDR_START_SETTINGS
+
+#define ADDR_INV_ADDR       ADDR_PINOUT        + PINOUT_LEN
 #define ADDR_INV_NAME       ADDR_INV_ADDR      + INV_ADDR_LEN
 #define ADDR_INV_TYPE       ADDR_INV_NAME      + INV_NAME_LEN
 #define ADDR_INV_INTERVAL   ADDR_INV_TYPE      + INV_TYPE_LEN
