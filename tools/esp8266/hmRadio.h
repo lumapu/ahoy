@@ -5,7 +5,7 @@
 #include <RF24_config.h>
 #include "crc.h"
 
-#define CHANNEL_HOP // switch between channels or use static channel to send
+//#define CHANNEL_HOP // switch between channels or use static channel to send
 
 #define DEFAULT_RECV_CHANNEL    3
 #define MAX_RF_PAYLOAD_SIZE     64
@@ -42,7 +42,7 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, uint64_t DTU_ID=DTU_R
 class HmRadio {
     public:
         HmRadio() {
-            pinMode(IRQ_PIN, INPUT_PULLUP);
+            //pinMode(IRQ_PIN, INPUT_PULLUP);
             //attachInterrupt(digitalPinToInterrupt(IRQ_PIN), handleIntr, FALLING);
 
             mSendChan[0] = 23;
@@ -50,6 +50,8 @@ class HmRadio {
             mSendChan[2] = 61;
             mSendChan[3] = 75;
             mChanIdx = 1;
+
+            calcDtuCrc();
         }
         ~HmRadio() {}
 
@@ -84,8 +86,8 @@ class HmRadio {
         uint8_t getCmdPacket(const uint64_t *invId, uint8_t buf[], uint8_t mid, uint8_t cmd, bool calcCrc = true) {
             memset(buf, 0, MAX_RF_PAYLOAD_SIZE);
             buf[0] = mid; // message id
-            CP_U32_BigEndian(&buf[1], (*invId >> 8));
-            CP_U32_BigEndian(&buf[5], (DTU_ID >> 8));
+            CP_U32_BigEndian(&buf[1], ((*invId) >> 8));
+            CP_U32_BigEndian(&buf[5], (DTU_ID   >> 8));
             buf[9]  = cmd;
             if(calcCrc)
                 buf[10] = crc8(buf, 10);
@@ -116,7 +118,7 @@ class HmRadio {
         }
 
     protected:
-        void getDtuIdCrc(void) {
+        void calcDtuCrc(void) {
             uint64_t addr = DTU_RADIO_ID;
             uint8_t tmp[5];
             for(int8_t i = 4; i >= 0; i--) {

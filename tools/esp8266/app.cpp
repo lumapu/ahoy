@@ -130,10 +130,25 @@ void app::loop(void) {
 
         uint8_t size = 0;
         inverter_t *inv = mSys->getInverterByPos(0);
-        size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
+
+
+        //if((mSendCnt % 6) == 0)
+            size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
+        /*else if((mSendCnt % 6) == 1)
+            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x81);
+        else if((mSendCnt % 6) == 2)
+            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x80);
+        else if((mSendCnt % 6) == 3)
+            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x83);
+        else if((mSendCnt % 6) == 4)
+            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x82);
+        else if((mSendCnt % 6) == 5)
+            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x84);*/
+
+
 
         //Serial.println("sent packet: #" + String(mSendCnt));
-        //dumpBuf(mSendBuf, size);
+        //dumpBuf("SEN ", mSendBuf, size);
         sendPacket(inv, mSendBuf, size);
 
         mSendCnt++;
@@ -141,36 +156,36 @@ void app::loop(void) {
 
 
     // mqtt
-    //mMqtt.loop();
+    mMqtt.loop();
     if(mMqttEvt) {
         mMqttEvt = false;
-        /*mMqtt.isConnected(true);
-        char topic[20], val[10];
+        mMqtt.isConnected(true);
+        char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             inverter_t *iv = mSys->getInverterByPos(id);
             if(NULL != iv) {
                 for(uint8_t i = 0; i < iv->listLen; i++) {
                     if(0.0f != mSys->getValue(iv, i)) {
-                        sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                        sprintf(val, "%.3f", mSys->getValue(iv, i));
+                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                        snprintf(val, 10, "%.3f", mSys->getValue(iv, i));
                         mMqtt.sendMsg(topic, val);
                         delay(10);
                     }
                 }
             }
-        }*/
+        }
 
         // Serial debug
-        char topic[20], val[10];
+        //char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             inverter_t *iv = mSys->getInverterByPos(id);
             if(NULL != iv) {
                 for(uint8_t i = 0; i < iv->listLen; i++) {
-                    //if(0.0f != mSys->getValue(iv, i)) {
-                        sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
-                        sprintf(val, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
+                    if(0.0f != mSys->getValue(iv, i)) {
+                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
+                        snprintf(val, 10, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
                         Serial.println(String(topic) + ": " + String(val));
-                    //}
+                    }
                 }
             }
         }

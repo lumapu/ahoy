@@ -81,6 +81,7 @@ class app : public Main {
 
         uint32_t mCmds[6];
         uint32_t mChannelStat[4];
+        uint32_t mRecCnt;
 
         // mqtt
         mqtt mMqtt;

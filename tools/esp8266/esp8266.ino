@@ -13,6 +13,7 @@ app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
+    // TODO: move to HmRadio
     pinMode(RF24_IRQ_PIN, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(RF24_IRQ_PIN), handleIntr, FALLING);
 
