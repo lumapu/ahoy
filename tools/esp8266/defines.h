@@ -16,6 +16,8 @@
 //-------------------------------------
 #define PACKET_BUFFER_SIZE      30
 #define MAX_NUM_INVERTERS       3
+#define MAX_NAME_LENGTH         16
+#define LIVEDATA_VISUALIZED     // show live data pv-module wise or as dump
 
 
 //-------------------------------------
@@ -23,7 +25,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       2
-#define VERSION_PATCH       2
+#define VERSION_PATCH       3
 
 
 //-------------------------------------
@@ -34,8 +36,10 @@
 #define DEVNAME_LEN         16
 #define CRC_LEN             2
 
-#define INV_ADDR_LEN        8 // uint64_t
-#define INV_INTERVAL_LEN    2 // uint16_t
+#define INV_ADDR_LEN        MAX_NUM_INVERTERS * 8                // uint64_t
+#define INV_NAME_LEN        MAX_NUM_INVERTERS * MAX_NAME_LENGTH  // char[]
+#define INV_TYPE_LEN        MAX_NUM_INVERTERS * 1                // uint8_t
+#define INV_INTERVAL_LEN    2                                    // uint16_t
 
 
 #define MQTT_ADDR_LEN       4 // IP
@@ -49,8 +53,10 @@
 #define ADDR_SSID           ADDR_START
 #define ADDR_PWD            ADDR_SSID          + SSID_LEN
 #define ADDR_DEVNAME        ADDR_PWD           + PWD_LEN
-#define ADDR_INV0_ADDR      ADDR_DEVNAME       + DEVNAME_LEN
-#define ADDR_INV_INTERVAL   ADDR_INV0_ADDR     + INV_ADDR_LEN
+#define ADDR_INV_ADDR       ADDR_DEVNAME       + DEVNAME_LEN
+#define ADDR_INV_NAME       ADDR_INV_ADDR      + INV_ADDR_LEN
+#define ADDR_INV_TYPE       ADDR_INV_NAME      + INV_NAME_LEN
+#define ADDR_INV_INTERVAL   ADDR_INV_TYPE      + INV_TYPE_LEN
 
 #define ADDR_MQTT_ADDR      ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
 #define ADDR_MQTT_USER      ADDR_MQTT_ADDR     + MQTT_ADDR_LEN

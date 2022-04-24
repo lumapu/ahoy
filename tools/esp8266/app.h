@@ -15,7 +15,7 @@
 
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN> RadioType;
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
-typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, double> HmSystemType;
+typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, float> HmSystemType;
 
 class app : public Main {
     public:
@@ -59,6 +59,8 @@ class app : public Main {
             for(uint8_t i = 0; i < 6; i++) {
                 tmp[0] = val[i*2];
                 tmp[1] = val[i*2 + 1];
+                if((tmp[0] == '\0') || (tmp[1] == '\0'))
+                    break;
                 u64 = strtol(tmp, NULL, 16);
                 ret |= (u64 << ((5-i) << 3));
             }

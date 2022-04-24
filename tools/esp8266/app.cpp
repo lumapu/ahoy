@@ -44,12 +44,21 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     if(mSettingsValid) {
         uint16_t interval;
         uint64_t invSerial;
+        char invName[MAX_NAME_LENGTH + 1] = {0};
+        uint8_t invType;
 
-        // hoymiles
-        mEep->read(ADDR_INV0_ADDR,    &invSerial);
+        // inverter
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
+            mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
+            mEep->read(ADDR_INV_TYPE + i,                     &invType);
+            if(0ULL != invSerial) {
+                mSys->addInverter(invName, invSerial, invType);
+                Serial.println("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
+            }
+        }
+
         mEep->read(ADDR_INV_INTERVAL, &interval);
-        mSys->addInverter("HM1200", invSerial, INV_TYPE_HM1200);
-
         if(interval < 1000)
             interval = 1000;
         mSendTicker->attach_ms(interval, std::bind(&app::sendTicker, this));
@@ -129,29 +138,32 @@ void app::loop(void) {
         mFlagSend = false;
 
         uint8_t size = 0;
-        inverter_t *inv = mSys->getInverterByPos(0);
+        inverter_t *inv;
 
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            inv = mSys->getInverterByPos(i);
+            if(NULL != inv) {
+                //if((mSendCnt % 6) == 0)
+                    size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
+                /*else if((mSendCnt % 6) == 1)
+                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x81);
+                else if((mSendCnt % 6) == 2)
+                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x80);
+                else if((mSendCnt % 6) == 3)
+                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x83);
+                else if((mSendCnt % 6) == 4)
+                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x82);
+                else if((mSendCnt % 6) == 5)
+                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x84);*/
 
-        //if((mSendCnt % 6) == 0)
-            size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
-        /*else if((mSendCnt % 6) == 1)
-            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x81);
-        else if((mSendCnt % 6) == 2)
-            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x80);
-        else if((mSendCnt % 6) == 3)
-            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x83);
-        else if((mSendCnt % 6) == 4)
-            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x82);
-        else if((mSendCnt % 6) == 5)
-            size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x84);*/
+                //Serial.println("sent packet: #" + String(mSendCnt));
+                //dumpBuf("SEN ", mSendBuf, size);
+                sendPacket(inv, mSendBuf, size);
+                mSendCnt++;
 
-
-
-        //Serial.println("sent packet: #" + String(mSendCnt));
-        //dumpBuf("SEN ", mSendBuf, size);
-        sendPacket(inv, mSendBuf, size);
-
-        mSendCnt++;
+                delay(20);
+            }
+        }
     }
 
 
@@ -169,7 +181,7 @@ void app::loop(void) {
                         snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
                         snprintf(val, 10, "%.3f", mSys->getValue(iv, i));
                         mMqtt.sendMsg(topic, val);
-                        delay(10);
+                        delay(20);
                     }
                 }
             }
@@ -328,25 +340,35 @@ void app::showSetup(void) {
     html.replace("{VERSION}", String(mVersion));
 
     String inv;
-    inverter_t *pInv;
+    uint64_t invSerial;
+    char invName[MAX_NAME_LENGTH + 1] = {0};
+    uint8_t invType;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        pInv = mSys->getInverterByPos(i);
+        mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
+        mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
+        mEep->read(ADDR_INV_TYPE + i,                     &invType);
         inv += "<p class=\"subdes\">Inverter "+ String(i) + "</p>";
 
         inv += "<label for=\"inv" + String(i) + "Addr\">Address</label>";
         inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Addr\" value=\"";
-        inv += (NULL != pInv) ? String(mSys->getSerial(pInv), HEX) : "";
-        inv += "\"/>";
+        if(0ULL != invSerial)
+            inv += String(invSerial, HEX);
+        inv += "\"/ maxlength=\"12\">";
 
         inv += "<label for=\"inv" + String(i) + "Name\">Name</label>";
         inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
-        inv += (NULL != pInv) ? String(pInv->name) : "";
-        inv += "\"/>";
+        inv += String(invName);
+        inv += "\"/ maxlength=\"" + String(MAX_NAME_LENGTH) + "\">";
 
         inv += "<label for=\"inv" + String(i) + "Type\">Type</label>";
-        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
-        inv += (NULL != pInv) ? String(pInv->type) : "";
-        inv += "\"/>";
+        inv += "<select name=\"inv" + String(i) + "Type\">";
+        for(uint8_t t = 0; t < NUM_INVERTER_TYPES; t++) {
+            inv += "<option value=\"" + String(t) + "\"";
+            if(invType == t)
+                inv += " selected";
+            inv += ">" + String(invTypes[t]) + "</option>";
+        }
+        inv += "</select>";
     }
     html.replace("{INVERTERS}", String(inv));
 
@@ -416,45 +438,50 @@ void app::showHoymiles(void) {
 
 //-----------------------------------------------------------------------------
 void app::showLiveData(void) {
-    String modHtml = "<pre>";
-
-    char topic[20], val[10];
+    String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         inverter_t *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            /*uint8_t modNum;
+#ifdef LIVEDATA_VISUALIZED
+            uint8_t modNum, pos;
             switch(iv->type) {
                 default:              modNum = 1; break;
                 case INV_TYPE_HM600:  modNum = 2; break;
                 case INV_TYPE_HM1200: modNum = 4; break;
             }
 
-            for(uint8_t mod = 1; mod <= modNum; mod ++) {
-                modHtml += "<div class=\"module\"><span class=\"header\">CHANNEL " + String(i) + "</span>";
+            for(uint8_t ch = 1; ch <= modNum; ch ++) {
+                modHtml += "<div class=\"ch\"><span class=\"head\">CHANNEL " + String(ch) + "</span>";
                 for(uint8_t j = 0; j < 5; j++) {
-                    modHtml += "<span class=\"value\">";
                     switch(j) {
-                        default: modHtml += String(mDecoder->mData.ch_dc[i/2].u); break;
-                        case 1:  modHtml += String(mDecoder->mData.ch_dc[i].i);   break;
-                        case 2:  modHtml += String(mDecoder->mData.ch_dc[i].p);   break;
-                        case 3:  modHtml += String(mDecoder->mData.ch_dc[i].y_d); break;
-                        case 4:  modHtml += String(mDecoder->mData.ch_dc[i].y_t); break;
+                        default: pos = (mSys->getPosByChField(iv, ch, FLD_UDC)); break;
+                        case 1:  pos = (mSys->getPosByChField(iv, ch, FLD_IDC)); break;
+                        case 2:  pos = (mSys->getPosByChField(iv, ch, FLD_PDC)); break;
+                        case 3:  pos = (mSys->getPosByChField(iv, ch, FLD_YD));  break;
+                        case 4:  pos = (mSys->getPosByChField(iv, ch, FLD_YT));  break;
                     }
-                    modHtml += "<span class=\"unit\">" + unit[j] + "</span></span>";
-                    modHtml += "<span class=\"info\">" + info[j] + "</span>";
+                    if(0xff != pos) {
+                        modHtml += "<span class=\"value\">" + String(mSys->getValue(iv, pos));
+                        modHtml += "<span class=\"unit\">" + String(mSys->getUnit(iv, pos)) + "</span></span>";
+                        modHtml += "<span class=\"info\">" + String(mSys->getFieldName(iv, pos)) + "</span>";
+                    }
                 }
                 modHtml += "</div>";
-            }*/
-
+            }
+#else
+            // dump all data to web frontend
+            modHtml = "<pre>";
+            char topic[30], val[10];
             for(uint8_t i = 0; i < iv->listLen; i++) {
-                sprintf(topic, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
-                sprintf(val, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
+                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
+                snprintf(val, 10, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
                 modHtml += String(topic) + ": " + String(val) + "\n";
             }
+            modHtml += "</pre>";
+#endif
         }
     }
 
-    modHtml += "</pre>";
 
     mWeb->send(200, "text/html", modHtml);
 }
@@ -481,18 +508,25 @@ void app::saveValues(bool webSend = true) {
 
         // inverter
         serial_u addr;
-        mWeb->arg("inv0Addr").toCharArray(buf, 20);
-        addr.u64 = Serial2u64(buf);
-        mSys->updateSerial(mSys->getInverterByPos(0), addr.u64);
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            // address
+            mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+            if(strlen(buf) == 0)
+                snprintf(buf, 20, "\0");
+            addr.u64 = Serial2u64(buf);
+            mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 
-        for(uint8_t i = 0; i < 8; i++) {
-            Serial.print(String(addr.b[i], HEX) + " ");
+            // name
+            mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
+            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), buf, MAX_NAME_LENGTH);
+
+            // type
+            mWeb->arg("inv" + String(i) + "Type").toCharArray(buf, 20);
+            uint8_t type = atoi(buf);
+            mEep->write(ADDR_INV_TYPE + (i * MAX_NAME_LENGTH), type);
         }
-        Serial.println();
-        Serial.println("addr: " + String(addr.u64, HEX));
 
         interval = mWeb->arg("invInterval").toInt();
-        mEep->write(ADDR_INV0_ADDR, addr.u64);
         mEep->write(ADDR_INV_INTERVAL, interval);
 
 

@@ -31,11 +31,11 @@ class HmSystem {
                 return NULL;
             }
             inverter_t *p = &mInverter[mNumInv];
-            p->id         = mNumInv++;
+            p->id         = mNumInv;
             p->serial.u64 = serial;
             p->type       = type;
             uint8_t len   = strlen(name);
-            strncpy(p->name, name, (len > 20) ? 20 : len);
+            strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
             getAssignment(p);
             toRadioId(p);
 
@@ -44,8 +44,9 @@ class HmSystem {
                 return NULL;
             }
             else {
-                mRecord = new RECORDTYPE[p->listLen];
-                memset(mRecord, 0, sizeof(RECORDTYPE) * p->listLen);
+                mRecord[p->id] = new RECORDTYPE[p->listLen];
+                memset(mRecord[p->id], 0, sizeof(RECORDTYPE) * p->listLen);
+                mNumInv ++;
                 return p;
             }
         }
@@ -105,11 +106,20 @@ class HmSystem {
                 val |= buf[ptr];
             } while(++ptr != end);
 
-            mRecord[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
+            mRecord[p->id][pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
         }
 
         RECORDTYPE getValue(inverter_t *p, uint8_t pos) {
-            return mRecord[pos];
+            return mRecord[p->id][pos];
+        }
+
+        uint8_t getPosByChField(inverter_t *p, uint8_t channel, uint8_t fieldId) {
+            uint8_t pos = 0;
+            for(; pos < p->listLen; pos++) {
+                if((p->assign[pos].ch == channel) && (p->assign[pos].fieldId == fieldId))
+                    break;
+            }
+            return (pos >= p->listLen) ? 0xff : pos;
         }
 
         uint8_t getNumInverters(void) {
@@ -141,9 +151,9 @@ class HmSystem {
             }
         }
 
-        inverter_t mInverter[MAX_INVERTER]; // TODO: only one inverter supported!!!
+        inverter_t mInverter[MAX_INVERTER];
         uint8_t mNumInv;
-        RECORDTYPE *mRecord;
+        RECORDTYPE *mRecord[MAX_INVERTER];
 };
 
 #endif /*__HM_SYSTEM_H__*/

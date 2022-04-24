@@ -21,7 +21,8 @@ enum {CH0 = 0, CH1, CH2, CH3, CH4};
 enum {CMD01 = 0x01, CMD02, CMD03, CMD83 = 0x83, CMD84};
 
 enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200};
-
+const char* const invTypes[] = {"HM600", "HM1200"};
+#define NUM_INVERTER_TYPES   2
 
 typedef struct {
     uint8_t    fieldId; // field id
@@ -41,7 +42,7 @@ union serial_u {
 
 typedef struct {
     uint8_t       id;       // unique id
-    char          name[20]; // human readable name, eg. "HM-600.1"
+    char          name[MAX_NAME_LENGTH]; // human readable name, eg. "HM-600.1"
     uint8_t       type;     // integer which refers to inverter type
     byteAssign_t* assign;   // type of inverter
     uint8_t       listLen;  // length of assignments
