@@ -13,8 +13,8 @@ app::app() : Main() {
     mMqttTicker = NULL;
     mMqttEvt    = false;
 
-    memset(mCmds, 0, sizeof(uint32_t));
-    memset(mChannelStat, 0, sizeof(uint32_t));
+    memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
+    //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
 
     mSys = new HmSystemType();
 }
@@ -30,13 +30,14 @@ app::~app(void) {
 void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     Main::setup(ssid, pwd, timeout);
 
-    mWeb->on("/",          std::bind(&app::showIndex,         this));
-    mWeb->on("/setup",     std::bind(&app::showSetup,         this));
-    mWeb->on("/save",      std::bind(&app::showSave,          this));
-    mWeb->on("/cmdstat",   std::bind(&app::showCmdStatistics, this));
-    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,      this));
-    mWeb->on("/livedata",  std::bind(&app::showLiveData,      this));
-    mWeb->on("/mqttstate", std::bind(&app::showMqtt,          this));
+    mWeb->on("/",          std::bind(&app::showIndex,      this));
+    mWeb->on("/setup",     std::bind(&app::showSetup,      this));
+    mWeb->on("/save",      std::bind(&app::showSave,       this));
+    mWeb->on("/erase",     std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
+    mWeb->on("/mqttstate", std::bind(&app::showMqtt,       this));
 
     if(mSettingsValid) {
         uint16_t interval;
@@ -125,13 +126,15 @@ void app::loop(void) {
                 else if(*cmd == 0x02) mCmds[1]++;
                 else if(*cmd == 0x03) mCmds[2]++;
                 else if(*cmd == 0x81) mCmds[3]++;
-                else if(*cmd == 0x84) mCmds[4]++;
-                else                  mCmds[5]++;
+                else if(*cmd == 0x82) mCmds[4]++;
+                else if(*cmd == 0x83) mCmds[5]++;
+                else if(*cmd == 0x84) mCmds[6]++;
+                else                  mCmds[7]++;
 
-                if(p->sendCh == 23)      mChannelStat[0]++;
+                /*if(p->sendCh == 23)      mChannelStat[0]++;
                 else if(p->sendCh == 40) mChannelStat[1]++;
                 else if(p->sendCh == 61) mChannelStat[2]++;
-                else                     mChannelStat[3]++;
+                else                     mChannelStat[3]++;*/
             }
         }
         mSys->BufCtrl.popBack();
@@ -319,20 +322,26 @@ void app::showSave(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::showCmdStatistics(void) {
-    String content = "CMDs:\n";
-    content += String("0x01: ") + String(mCmds[0]) + String("\n");
-    content += String("0x02: ") + String(mCmds[1]) + String("\n");
-    content += String("0x03: ") + String(mCmds[2]) + String("\n");
-    content += String("0x81: ") + String(mCmds[3]) + String("\n");
-    content += String("0x84: ") + String(mCmds[4]) + String("\n");
-    content += String("other: ") + String(mCmds[5]) + String("\n");
+void app::showErase() {
+    eraseSettings();
+    showReboot();
+}
 
-    content += "\nCHANNELs:\n";
+
+//-----------------------------------------------------------------------------
+void app::showStatistics(void) {
+    String content = "CMDs:\n";
+    for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
+        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mCmds[i]) + String("\n");
+    }
+    content += String("other: ") + String(mCmds[DBG_CMD_LIST_LEN]) + String("\n\n");
+
+    /*content += "\nCHANNELs:\n";
     content += String("23: ") + String(mChannelStat[0]) + String("\n");
     content += String("40: ") + String(mChannelStat[1]) + String("\n");
     content += String("61: ") + String(mChannelStat[2]) + String("\n");
-    content += String("75: ") + String(mChannelStat[3]) + String("\n");
+    content += String("75: ") + String(mChannelStat[3]) + String("\n");*/
+
     mWeb->send(200, "text/plain", content);
 }
 

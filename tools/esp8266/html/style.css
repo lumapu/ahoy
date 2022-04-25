@@ -57,6 +57,15 @@ a:hover, a:focus {
     color: #f00;
 }
 
+a.erase {
+    background-color: #006ec0;
+    color: #fff;
+    padding: 7px;
+    display: inline-block;
+    margin-top: 30px;
+    float: right;
+}
+
 #content {
     padding: 15px 15px 60px 15px;
 }
@@ -103,6 +112,7 @@ input.btn {
     color: #fff;
     border: 0px;
     float: right;
+    margin: 10px 0 30px;
     text-transform: uppercase;
 }
 

@@ -79,7 +79,6 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            // Use lo PA level, as a higher level will disturb CH340 serial usb adapter
             mNrf24.setPALevel(RF24_PA_MAX);
             mNrf24.startListening();
 

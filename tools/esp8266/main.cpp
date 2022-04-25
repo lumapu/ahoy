@@ -90,9 +90,8 @@ bool Main::getConfig(void) {
         memset(mStationPwd, 0, PWD_LEN);
         memset(mDeviceName, 0, DEVNAME_LEN);
 
-        // erase eeprom
-        uint8_t buf[ADDR_NEXT-ADDR_START_SETTINGS] = {0};
-        mEep->write(ADDR_START_SETTINGS, buf, (ADDR_NEXT-ADDR_START_SETTINGS));
+        // erase application settings except wifi settings
+        eraseSettings();
     }
 
     return mApActive;

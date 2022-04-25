@@ -21,7 +21,7 @@ enum {CH0 = 0, CH1, CH2, CH3, CH4};
 enum {CMD01 = 0x01, CMD02, CMD03, CMD82 = 0x82, CMD83, CMD84};
 
 enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200, INV_TYPE_HM400};
-const char* const invTypes[] = {"HM600", "HM1200", "HM400"};
+const char* const invTypes[] = {"HM600", "HM1200 / HM1500", "HM400"};
 #define NUM_INVERTER_TYPES   3
 
 typedef struct {
@@ -97,7 +97,7 @@ const byteAssign_t hm600assignment[] = {
 
 
 //-------------------------------------
-// HM1200, HM1500?
+// HM1200, HM1500
 //-------------------------------------
 const byteAssign_t hm1200assignment[] = {
     { FLD_UDC, UNIT_V,   CH1, CMD01,  3, 2, 10   },
