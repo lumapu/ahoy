@@ -20,9 +20,9 @@ const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "
 enum {CH0 = 0, CH1, CH2, CH3, CH4};
 enum {CMD01 = 0x01, CMD02, CMD03, CMD83 = 0x83, CMD84};
 
-enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200};
-const char* const invTypes[] = {"HM600", "HM1200"};
-#define NUM_INVERTER_TYPES   2
+enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200, INV_TYPE_HM400};
+const char* const invTypes[] = {"HM600", "HM1200", "HM400"};
+#define NUM_INVERTER_TYPES   3
 
 typedef struct {
     uint8_t    fieldId; // field id
@@ -55,6 +55,23 @@ typedef struct {
  *  indices are built for the buffer starting with cmd-id in first byte
  *  (complete payload in buffer)
  * */
+
+//-------------------------------------
+// HM400 HM350?, HM300?
+//-------------------------------------
+const byteAssign_t hm400assignment[] = {
+    { FLD_UDC, UNIT_V,   CH1, CMD01, 14, 2, 10   },
+    { FLD_IDC, UNIT_A,   CH1, CMD01, 16, 2, 100  },
+    { FLD_PDC, UNIT_W,   CH1, CMD01, 18, 2, 10   },
+    { FLD_YT,  UNIT_KWH, CH1, CMD01, 20, 4, 1000 },
+    { FLD_YD,  UNIT_WH,  CH1, CMD01, 24, 2, 1000 },
+    { FLD_UAC, UNIT_V,   CH0, CMD01, 26, 2, 10   },
+    { FLD_F,   UNIT_HZ,  CH0, CMD82, 12, 2, 100  },
+    { FLD_PAC, UNIT_W,   CH0, CMD82, 14, 2, 10   },
+    { FLD_IAC, UNIT_A,   CH0, CMD82, 18, 2, 100  },
+    { FLD_T,   UNIT_C,   CH0, CMD82, 22, 2, 10   }
+};
+
 
 //-------------------------------------
 // HM600, HM700
