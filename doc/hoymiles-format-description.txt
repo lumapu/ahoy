@@ -418,14 +418,33 @@ Example          72220200  72220200         ?       2022-02-13
 
 
 ```
-CMD 0x01: WR --> DTU: "Current DC data" (?) (shown for an HM-700)
+CMD 0x01: WR --> DTU: "Current DC data" (?) (shown for an HM-700 and HM-400)
 ----------------------------------------------------------------------------------------------------------------------------------------------
-
+HM-700 (2-channel):
             95   72 22 02 00      72 22 02 00      01 00 01      01 4c   03 bd   0c 46     00 b5   00 03   00 05     00 00    BD    7F
             ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^            ^^^^^   ^^^^^   ^^^^^     ^^^^^   ^^^^^   ^^^^^              ^^    ^^
 NameMID          WR ser#          WR ser#          CMD  ?        PV1.u   PV1.i   PV1.p     PV2.u   PV2.i   PV2.p       ?      CRC8  EOF
 Units            BCD (letzte 8)   BCD (letzte 8)        ?        [0.1V]  [0.01A] [.1W]     [0.1V]  [0.01A] [.1W]       ?     
 Example          72220200         72220200              ?        33.2V   9.57A   317.2W    18.1V   0.03A   0.5W        ?     
+
+
+HM-400 (1-channel):
+byte        00   01 02 03 04      05 06 07 08      09 10 11      12 13   14 15   16 17     18 19   20 21   22 23     24 25  26 27  28    29
+            95   73 10 xx yy      73 10 xx yy      01 00 01      01 9A   00 46   01 21     00 00   FA E6   00 84     09 0C  F5 DD  BD    7F
+            ^^   ^^^^^^^^^^^      ^^^^^^^^^^^      ^^            ^^^^^   ^^^^^   ^^^^^     ^^^^^   ^^^^^   ^^^^^     ^^^^^  ^^^^^  ^^    ^^
+NameMID          WR ser#          WR ser#          CMD  ?        PV1.u   PV1.i   PV1.p       ?     P tot   P day     V AC           CRC8  EOF
+Units            BCD (letzte 8)   BCD (letzte 8)        ?        [0.1V]  [0.01A] [.1W]      []     [1Wh]   [1Wh]     [0.1V]   ?
+Example          7310xxyy         7310xxyy              ?        41.0V    0.70A  28.9W            64.23kWh 132Wh     231.6V   ?
+
+legend
+PVx.u:    DC voltage of panel x
+PVx.i:    DC current of panel x
+PVx.p:    DC power of panel x
+WR ser#:  inverter serial, e.g. 11217310xxyy (HM-400) => 7310xxyy
+P tot:    AC? power total (monthly/yearly?)
+P day:    AC? power daily
+V AC:     AC voltage
+
 ```
 - The exact meaning of the contents of this message varies depending on inverter type. So far, the following variants have been observed:
   - HM-400 (single channel):
