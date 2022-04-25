@@ -13,12 +13,11 @@ app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
-    // TODO: move to HmRadio
-    pinMode(RF24_IRQ_PIN, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(RF24_IRQ_PIN), handleIntr, FALLING);
-
     // AP name, password, timeout
     myApp.setup("ESP AHOY", "esp_8266", 15);
+
+    // TODO: move to HmRadio
+    attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
 }
 
 

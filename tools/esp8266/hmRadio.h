@@ -8,9 +8,9 @@
 //#define CHANNEL_HOP // switch between channels or use static channel to send
 
 #define DEFAULT_RECV_CHANNEL    3
-#define MAX_RF_PAYLOAD_SIZE     64
 
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
+#define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 
 //-----------------------------------------------------------------------------
@@ -38,17 +38,14 @@
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, uint64_t DTU_ID=DTU_RADIO_ID>
+template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
 class HmRadio {
     public:
-        HmRadio() {
-            //pinMode(IRQ_PIN, INPUT_PULLUP);
-            //attachInterrupt(digitalPinToInterrupt(IRQ_PIN), handleIntr, FALLING);
-
-            mSendChan[0] = 23;
-            mSendChan[1] = 40;
-            mSendChan[2] = 61;
-            mSendChan[3] = 75;
+        HmRadio() : mNrf24(CE_PIN, CS_PIN) {
+            mChanOut[0] = 23;
+            mChanOut[1] = 40;
+            mChanOut[2] = 61;
+            mChanOut[3] = 75;
             mChanIdx = 1;
 
             calcDtuCrc();
@@ -56,47 +53,106 @@ class HmRadio {
             pinCs  = CS_PIN;
             pinCe  = CE_PIN;
             pinIrq = IRQ_PIN;
+
+            mSendCnt    = 0;
         }
         ~HmRadio() {}
 
+        void setup(BUFFER *ctrl) {
+            //Serial.println("HmRadio::setup, pins: " + String(pinCs) + ", " + String(pinCe) + ", " + String(pinIrq));
+            pinMode(pinIrq, INPUT_PULLUP);
+
+            mBufCtrl = ctrl;
+
+            mNrf24.begin(pinCe, pinCs);
+            mNrf24.setAutoAck(false);
+            mNrf24.setRetries(0, 0);
+
+            mNrf24.setChannel(DEFAULT_RECV_CHANNEL);
+            mNrf24.setDataRate(RF24_250KBPS);
+            mNrf24.disableCRC();
+            mNrf24.setAutoAck(false);
+            mNrf24.setPayloadSize(MAX_RF_PAYLOAD_SIZE);
+            mNrf24.setAddressWidth(5);
+            mNrf24.openReadingPipe(1, DTU_RADIO_ID);
+
+            // enable only receiving interrupts
+            mNrf24.maskIRQ(true, true, false);
+
+            // Use lo PA level, as a higher level will disturb CH340 serial usb adapter
+            mNrf24.setPALevel(RF24_PA_MAX);
+            mNrf24.startListening();
+
+            Serial.println("Radio Config:");
+            mNrf24.printPrettyDetails();
+
+            mSendChannel = getDefaultChannel();
+        }
+
+        void handleIntr(void) {
+            uint8_t pipe, len;
+            packet_t *p;
+
+            DISABLE_IRQ;
+            while(mNrf24.available(&pipe)) {
+                if(!mBufCtrl->full()) {
+                    p = mBufCtrl->getFront();
+                    memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
+                    p->sendCh = mSendChannel;
+                    len = mNrf24.getPayloadSize();
+                    if(len > MAX_RF_PAYLOAD_SIZE)
+                        len = MAX_RF_PAYLOAD_SIZE;
+
+                    mNrf24.read(p->packet, len);
+                    mBufCtrl->pushFront(p);
+                }
+                else {
+                    bool tx_ok, tx_fail, rx_ready;
+                    mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
+                    mNrf24.flush_rx(); // drop the packet
+                }
+            }
+            RESTORE_IRQ;
+        }
+
         uint8_t getDefaultChannel(void) {
-            return mSendChan[2];
+            return mChanOut[2];
         }
         uint8_t getLastChannel(void) {
-            return mSendChan[mChanIdx];
+            return mChanOut[mChanIdx];
         }
 
         uint8_t getNxtChannel(void) {
             if(++mChanIdx >= 4)
                 mChanIdx = 0;
-            return mSendChan[mChanIdx];
+            return mChanOut[mChanIdx];
         }
 
-        uint8_t getTimePacket(const uint64_t *invId, uint8_t buf[], uint32_t ts) {
-            getCmdPacket(invId, buf, 0x15, 0x80, false);
-            buf[10] = 0x0b; // cid
-            buf[11] = 0x00;
-            CP_U32_LittleEndian(&buf[12], ts);
-            buf[19] = 0x05;
+        void sendTimePacket(uint64_t invId, uint32_t ts) {
+            sendCmdPacket(invId, 0x15, 0x80, false);
+            mSendBuf[10] = 0x0b; // cid
+            mSendBuf[11] = 0x00;
+            CP_U32_LittleEndian(&mSendBuf[12], ts);
+            mSendBuf[19] = 0x05;
 
-            uint16_t crc = crc16(&buf[10], 14);
-            buf[24] = (crc >> 8) & 0xff;
-            buf[25] = (crc     ) & 0xff;
-            buf[26] = crc8(buf, 26);
+            uint16_t crc = crc16(&mSendBuf[10], 14);
+            mSendBuf[24] = (crc >> 8) & 0xff;
+            mSendBuf[25] = (crc     ) & 0xff;
+            mSendBuf[26] = crc8(mSendBuf, 26);
 
-            return 27;
+            sendPacket(invId, mSendBuf, 27);
         }
 
-        uint8_t getCmdPacket(const uint64_t *invId, uint8_t buf[], uint8_t mid, uint8_t cmd, bool calcCrc = true) {
-            memset(buf, 0, MAX_RF_PAYLOAD_SIZE);
-            buf[0] = mid; // message id
-            CP_U32_BigEndian(&buf[1], ((*invId) >> 8));
-            CP_U32_BigEndian(&buf[5], (DTU_ID   >> 8));
-            buf[9]  = cmd;
-            if(calcCrc)
-                buf[10] = crc8(buf, 10);
-
-            return 11;
+        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t cmd, bool calcCrc = true) {
+            memset(mSendBuf, 0, MAX_RF_PAYLOAD_SIZE);
+            mSendBuf[0] = mid; // message id
+            CP_U32_BigEndian(&mSendBuf[1], (invId  >> 8));
+            CP_U32_BigEndian(&mSendBuf[5], (DTU_ID >> 8));
+            mSendBuf[9]  = cmd;
+            if(calcCrc) {
+                mSendBuf[10] = crc8(mSendBuf, 10);
+                sendPacket(invId, mSendBuf, 11);
+            }
         }
 
         bool checkCrc(uint8_t buf[], uint8_t *len, uint8_t *rptCnt) {
@@ -126,6 +182,44 @@ class HmRadio {
         uint8_t pinIrq;
 
     private:
+        void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len) {
+            //Serial.println("sent packet: #" + String(mSendCnt));
+            //dumpBuf("SEN ", buf, len);
+
+            DISABLE_IRQ;
+            mNrf24.stopListening();
+
+        #ifdef CHANNEL_HOP
+            mSendChannel = getNxtChannel();
+        #else
+            mSendChannel = getDefaultChannel();
+        #endif
+            mNrf24.setChannel(mSendChannel);
+            //Serial.println("CH: " + String(mSendChannel));
+
+            mNrf24.openWritingPipe(invId); // TODO: deprecated
+            mNrf24.setCRCLength(RF24_CRC_16);
+            mNrf24.enableDynamicPayloads();
+            mNrf24.setAutoAck(true);
+            mNrf24.setRetries(3, 15);
+
+            mNrf24.write(buf, len);
+
+            // Try to avoid zero payload acks (has no effect)
+            mNrf24.openWritingPipe(DUMMY_RADIO_ID); // TODO: why dummy radio id?, deprecated
+
+            mNrf24.setAutoAck(false);
+            mNrf24.setRetries(0, 0);
+            mNrf24.disableDynamicPayloads();
+            mNrf24.setCRCLength(RF24_CRC_DISABLED);
+
+            mNrf24.setChannel(DEFAULT_RECV_CHANNEL);
+            mNrf24.startListening();
+
+            RESTORE_IRQ;
+            mSendCnt++;
+        }
+
         void calcDtuCrc(void) {
             uint64_t addr = DTU_RADIO_ID;
             uint8_t tmp[5];
@@ -136,11 +230,26 @@ class HmRadio {
             mDtuIdCrc = crc16nrf24(tmp, BIT_CNT(5));
         }
 
-        uint8_t mSendChan[4];
+        void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
+            Serial.print(String(info));
+            for(uint8_t i = 0; i < len; i++) {
+                Serial.print(buf[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println();
+        }
+
+        uint8_t mChanOut[4];
         uint8_t mChanIdx;
         uint16_t mDtuIdCrc;
         uint16_t mLastCrc;
         uint8_t mRptCnt;
+
+        RF24 mNrf24;
+        uint8_t mSendChannel;
+        BUFFER *mBufCtrl;
+        uint32_t mSendCnt;
+        uint8_t mSendBuf[MAX_RF_PAYLOAD_SIZE];
 };
 
 #endif /*__RADIO_H__*/

@@ -160,7 +160,7 @@ bool Main::setupStation(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
-    String html = setup_html;
+    String html = FPSTR(setup_html);
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the default "{PWD}"
@@ -173,7 +173,7 @@ void Main::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showCss(void) {
-    mWeb->send(200, "text/css", style_css);
+    mWeb->send(200, "text/css", FPSTR(style_css));
 }
 
 

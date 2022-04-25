@@ -6,9 +6,8 @@
 // PINOUT
 //-------------------------------------
 #define RF24_CS_PIN         15
-#define RF24_CE_PIN         2 //5
-#define RF24_IRQ_PIN        0 //4
-
+#define RF24_CE_PIN         2
+#define RF24_IRQ_PIN        0
 
 
 //-------------------------------------
@@ -17,6 +16,7 @@
 #define PACKET_BUFFER_SIZE      30
 #define MAX_NUM_INVERTERS       3
 #define MAX_NAME_LENGTH         16
+#define MAX_RF_PAYLOAD_SIZE     64
 #define LIVEDATA_VISUALIZED     // show live data pv-module wise or as dump
 
 
@@ -26,6 +26,13 @@
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       2
 #define VERSION_PATCH       4
+
+
+//-------------------------------------
+typedef struct {
+    uint8_t sendCh;
+    uint8_t packet[MAX_RF_PAYLOAD_SIZE];
+} packet_t;
 
 
 //-------------------------------------

@@ -11,8 +11,8 @@
 #include "hmSystem.h"
 #include "mqtt.h"
 
-typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN> RadioType;
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
+typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, float> HmSystemType;
 
 const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (GPIO3)",
@@ -31,10 +31,11 @@ class app : public Main {
         void loop(void);
         void handleIntr(void);
 
-    private:
-        void initRadio(void);
-        void sendPacket(inverter_t *inv, uint8_t data[], uint8_t length);
+        uint8_t getIrqPin(void) {
+            return mSys->Radio.pinIrq;
+        }
 
+    private:
         void sendTicker(void);
         void mqttTicker(void);
 
@@ -48,15 +49,6 @@ class app : public Main {
 
         void saveValues(bool webSend);
         void updateCrc(void);
-
-        void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
-            Serial.print(String(info));
-            for(uint8_t i = 0; i < len; i++) {
-                Serial.print(buf[i], HEX);
-                Serial.print(" ");
-            }
-            Serial.println();
-        }
 
         uint64_t Serial2u64(const char *val) {
             char tmp[3] = {0};
@@ -76,16 +68,10 @@ class app : public Main {
         uint8_t mState;
         bool    mKeyPressed;
 
-        RF24 *mRadio;
-        packet_t mBuffer[PACKET_BUFFER_SIZE];
         HmSystemType *mSys;
 
-
         Ticker *mSendTicker;
-        uint32_t mSendCnt;
-        uint8_t mSendBuf[MAX_RF_PAYLOAD_SIZE];
         bool mFlagSend;
-        uint8_t mSendChannel;
 
         uint32_t mCmds[6];
         uint32_t mChannelStat[4];

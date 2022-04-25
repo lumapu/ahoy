@@ -4,10 +4,6 @@
 #include "hmInverters.h"
 #include "hmRadio.h"
 
-typedef struct {
-    uint8_t sendCh;
-    uint8_t packet[MAX_RF_PAYLOAD_SIZE];
-} packet_t;
 
 
 template <class RADIO, class BUFFER, uint8_t MAX_INVERTER, class RECORDTYPE=float>
@@ -23,6 +19,10 @@ class HmSystem {
         }
         ~HmSystem() {
             // TODO: cleanup
+        }
+
+        void setup() {
+            Radio.setup(&BufCtrl);
         }
 
         inverter_t *addInverter(const char *name, uint64_t serial, uint8_t type) {

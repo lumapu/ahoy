@@ -1,15 +1,12 @@
 #include "app.h"
 
 #include "html/h/index_html.h"
+#include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
-extern String setup_html;
 
-
-#define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mSendCnt    = 0;
     mSendTicker = new Ticker();
     mFlagSend   = false;
 
@@ -93,7 +90,7 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mMqtt.sendMsg("version", mVersion);
     }
 
-    initRadio();
+    mSys->setup();
 
     if(!mSettingsValid)
         Serial.println("Warn: your settings are not valid! check [IP]/setup");
@@ -107,15 +104,15 @@ void app::loop(void) {
     if(!mSys->BufCtrl.empty()) {
         uint8_t len, rptCnt;
         packet_t *p = mSys->BufCtrl.getBack();
-        //dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
+        //mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
         if(mSys->Radio.checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
-                //Serial.println("CMD " + String(*cmd, HEX));
-                //dumpBuf("Payload ", p->packet, len);
-
                 uint8_t *cmd = &p->packet[11];
+                //Serial.println("CMD " + String(*cmd, HEX));
+                //mSys->Radio.dumpBuf("Payload ", p->packet, len);
+
                 inverter_t *iv = mSys->findInverter(&p->packet[3]);
                 if(NULL != iv) {
                     for(uint8_t i = 0; i < iv->listLen; i++) {
@@ -142,31 +139,11 @@ void app::loop(void) {
 
     if(mFlagSend) {
         mFlagSend = false;
-
-        uint8_t size = 0;
         inverter_t *inv;
-
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             inv = mSys->getInverterByPos(i);
             if(NULL != inv) {
-                //if((mSendCnt % 6) == 0)
-                    size = mSys->Radio.getTimePacket(&inv->radioId.u64, mSendBuf, mTimestamp);
-                /*else if((mSendCnt % 6) == 1)
-                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x81);
-                else if((mSendCnt % 6) == 2)
-                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x80);
-                else if((mSendCnt % 6) == 3)
-                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x83);
-                else if((mSendCnt % 6) == 4)
-                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x82);
-                else if((mSendCnt % 6) == 5)
-                    size = mSys->Radio.getCmdPacket(&inv->radioId.u64, mSendBuf, 0x15, 0x84);*/
-
-                //Serial.println("sent packet: #" + String(mSendCnt));
-                //dumpBuf("SEN ", mSendBuf, size);
-                sendPacket(inv, mSendBuf, size);
-                mSendCnt++;
-
+                mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
                 delay(20);
             }
         }
@@ -213,100 +190,7 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
-    uint8_t pipe, len;
-    packet_t *p;
-
-    DISABLE_IRQ;
-
-    while(mRadio->available(&pipe)) {
-        if(!mSys->BufCtrl.full()) {
-            p = mSys->BufCtrl.getFront();
-            memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-            p->sendCh = mSendChannel;
-            len = mRadio->getPayloadSize();
-            if(len > MAX_RF_PAYLOAD_SIZE)
-                len = MAX_RF_PAYLOAD_SIZE;
-
-            mRadio->read(p->packet, len);
-            mSys->BufCtrl.pushFront(p);
-        }
-        else {
-            bool tx_ok, tx_fail, rx_ready;
-            mRadio->whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
-            mRadio->flush_rx(); // drop the packet
-        }
-    }
-
-    RESTORE_IRQ;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::initRadio(void) {
-    mRadio = new RF24(RF24_CE_PIN, RF24_CS_PIN);
-
-    mRadio->begin();
-    mRadio->setAutoAck(false);
-    mRadio->setRetries(0, 0);
-
-    mRadio->setChannel(DEFAULT_RECV_CHANNEL);
-    mRadio->setDataRate(RF24_250KBPS);
-    mRadio->disableCRC();
-    mRadio->setAutoAck(false);
-    mRadio->setPayloadSize(MAX_RF_PAYLOAD_SIZE);
-    mRadio->setAddressWidth(5);
-    mRadio->openReadingPipe(1, DTU_RADIO_ID);
-
-    // enable only receiving interrupts
-    mRadio->maskIRQ(true, true, false);
-
-    // Use lo PA level, as a higher level will disturb CH340 serial usb adapter
-    mRadio->setPALevel(RF24_PA_MAX);
-    mRadio->startListening();
-
-    Serial.println("Radio Config:");
-    mRadio->printPrettyDetails();
-
-    mSendChannel = mSys->Radio.getDefaultChannel();
-}
-
-
-//-----------------------------------------------------------------------------
-void app::sendPacket(inverter_t *inv, uint8_t buf[], uint8_t len) {
-    DISABLE_IRQ;
-    mRadio->stopListening();
-
-#ifdef CHANNEL_HOP
-    //if(mSendCnt % 6 == 0)
-        mSendChannel = mSys->Radio.getNxtChannel();
-    //else
-    //    mSendChannel = mSys->Radio.getLastChannel();
-#else
-    mSendChannel = mSys->Radio.getDefaultChannel();
-#endif
-    mRadio->setChannel(mSendChannel);
-    //Serial.println("CH: " + String(mSendChannel));
-
-    mRadio->openWritingPipe(inv->radioId.u64);
-    mRadio->setCRCLength(RF24_CRC_16);
-    mRadio->enableDynamicPayloads();
-    mRadio->setAutoAck(true);
-    mRadio->setRetries(3, 15);
-
-    mRadio->write(buf, len);
-
-    // Try to avoid zero payload acks (has no effect)
-    mRadio->openWritingPipe(DUMMY_RADIO_ID); // TODO: why dummy radio id?
-
-    mRadio->setAutoAck(false);
-    mRadio->setRetries(0, 0);
-    mRadio->disableDynamicPayloads();
-    mRadio->setCRCLength(RF24_CRC_DISABLED);
-
-    mRadio->setChannel(DEFAULT_RECV_CHANNEL);
-    mRadio->startListening();
-
-    RESTORE_IRQ;
+    mSys->Radio.handleIntr();
 }
 
 
@@ -324,7 +208,7 @@ void app::mqttTicker(void) {
 
 //-----------------------------------------------------------------------------
 void app::showIndex(void) {
-    String html = index_html;
+    String html = FPSTR(index_html);
     html.replace("{DEVICE}", mDeviceName);
     html.replace("{VERSION}", mVersion);
     mWeb->send(200, "text/html", html);
@@ -337,7 +221,7 @@ void app::showSetup(void) {
 
     uint16_t interval;
 
-    String html = setup_html;
+    String html = FPSTR(setup_html);
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the placeholder "{PWD}"
@@ -455,7 +339,7 @@ void app::showCmdStatistics(void) {
 
 //-----------------------------------------------------------------------------
 void app::showHoymiles(void) {
-    String html = hoymiles_html;
+    String html = FPSTR(hoymiles_html);
     html.replace("{DEVICE}", mDeviceName);
     html.replace("{VERSION}", mVersion);
     mWeb->send(200, "text/html", html);
