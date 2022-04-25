@@ -5,7 +5,8 @@ Various tools, examples, and documentation for communicating with Hoymiles micro
 
 In particular:
 
-* `doc\hoymiles-format-description.txt` is a detailed description of the communications format and the history of this project
-* The `tools` folder contains various software tools for RaspberryPi and Arduino
+* `doc/hoymiles-format-description.txt` is a detailed description of the communications format and the history of this project
+* `doc/getting-started-ESP8266.md` shows the hardware setup for an ESP8266-based system
+* The `tools` folder contains various software tools for RaspberryPi, Arduino and ESP8266/ESP32
 
 Contributors are always welcome!
