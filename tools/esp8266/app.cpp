@@ -68,6 +68,9 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
 
 
+        // nrf24 amplifier power
+        mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
+
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN];
         char mqttUser[MQTT_USER_LEN];
@@ -93,7 +96,7 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
     mSys->setup();
 
-    if(!mSettingsValid)
+    if(!mWifiSettingsValid)
         Serial.println("Warn: your settings are not valid! check [IP]/setup");
 }
 
@@ -285,6 +288,17 @@ void app::showSetup(void) {
     html.replace("{PINOUT}", String(pinout));
 
 
+    // nrf24l01+
+    String rf24;
+    for(uint8_t i = 0; i <= 3; i++) {
+        rf24 += "<option value=\"" + String(i) + "\"";
+        if(i == mSys->Radio.AmplifierPower)
+            rf24 += " selected";
+        rf24 += ">" + String(rf24AmpPower[i]) + "</option>";
+    }
+    html.replace("{RF24}", String(rf24));
+
+
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
         html.replace("{INV_INTERVAL}", String(interval));
@@ -409,7 +423,7 @@ void app::showLiveData(void) {
 //-----------------------------------------------------------------------------
 void app::showMqtt(void) {
     String txt = "connected";
-    if(mMqtt.isConnected())
+    if(!mMqtt.isConnected())
         txt = "not " + txt;
     mWeb->send(200, "text/plain", txt);
 }
@@ -455,6 +469,10 @@ void app::saveValues(bool webSend = true) {
             mEep->write(ADDR_PINOUT + i, pin);
         }
 
+
+        // nrf24 amplifier power
+        mSys->Radio.AmplifierPower = mWeb->arg(String(pinArgNames[i])).toInt() & 0x03;
+        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
 
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};

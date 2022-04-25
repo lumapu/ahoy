@@ -13,6 +13,10 @@
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 
+const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
+
+
+
 //-----------------------------------------------------------------------------
 // MACROS
 //-----------------------------------------------------------------------------
@@ -54,7 +58,8 @@ class HmRadio {
             pinCe  = CE_PIN;
             pinIrq = IRQ_PIN;
 
-            mSendCnt    = 0;
+            AmplifierPower = 1;
+            mSendCnt       = 0;
         }
         ~HmRadio() {}
 
@@ -79,7 +84,8 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            mNrf24.setPALevel(RF24_PA_MAX);
+            Serial.println("RF24 Amp Pwr: RF24_PA_" + String(rf24AmpPower[AmplifierPower]));
+            mNrf24.setPALevel(AmplifierPower & 0x03);
             mNrf24.startListening();
 
             Serial.println("Radio Config:");
@@ -179,6 +185,8 @@ class HmRadio {
         uint8_t pinCs;
         uint8_t pinCe;
         uint8_t pinIrq;
+
+        uint8_t AmplifierPower;
 
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len) {

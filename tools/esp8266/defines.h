@@ -25,7 +25,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       2
-#define VERSION_PATCH       6
+#define VERSION_PATCH       7
 
 
 //-------------------------------------
@@ -50,6 +50,8 @@ typedef struct {
 
 #define PINOUT_LEN          3 // 3 pins: CS, CE, IRQ
 
+#define RF24_AMP_PWR_LEN    1
+
 #define MQTT_ADDR_LEN       4 // IP
 #define MQTT_USER_LEN       16
 #define MQTT_PWD_LEN        32
@@ -66,7 +68,9 @@ typedef struct {
 
 #define ADDR_PINOUT         ADDR_START_SETTINGS
 
-#define ADDR_INV_ADDR       ADDR_PINOUT        + PINOUT_LEN
+#define ADDR_RF24_AMP_PWR   ADDR_PINOUT        + PINOUT_LEN
+
+#define ADDR_INV_ADDR       ADDR_RF24_AMP_PWR  + RF24_AMP_PWR_LEN
 #define ADDR_INV_NAME       ADDR_INV_ADDR      + INV_ADDR_LEN
 #define ADDR_INV_TYPE       ADDR_INV_NAME      + INV_NAME_LEN
 #define ADDR_INV_INTERVAL   ADDR_INV_TYPE      + INV_TYPE_LEN
