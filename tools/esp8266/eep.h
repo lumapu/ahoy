@@ -37,7 +37,7 @@ class eep {
         }
 
         void read(uint32_t addr, uint8_t data[], uint16_t length) {
-            for(uint8_t i = 0; i < length; i ++) {
+            for(uint16_t i = 0; i < length; i ++) {
                 *(data++) = EEPROM.read(addr++);
             }
         }
@@ -78,7 +78,7 @@ class eep {
         }
 
         void write(uint32_t addr, uint8_t data[], uint16_t length) {
-            for(uint8_t i = 0; i < length; i ++) {
+            for(uint16_t i = 0; i < length; i ++) {
                 EEPROM.write(addr++, data[i]);
             }
             EEPROM.commit();
