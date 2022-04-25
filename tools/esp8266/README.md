@@ -1,12 +1,9 @@
 ## OVERVIEW
 
-This code was tested on a ESP8266 - ESP-07 module. Many parts of the code are based on 'Hubi's code, which can be found here: <https://www.mikrocontroller.net/topic/525778?page=3#7033371>
+This code is intended to run on a Wemos D1mini or similar. The code is based on 'Hubi's code, which can be found here: <https://www.mikrocontroller.net/topic/525778?page=3#7033371>
 
-The NRF24L01+ radio module is connected to the standard SPI pins. Additional there are 3 pins, which can be set individual:
-
-- IRQ - Pin 4
-- CE - Pin 5
-- CS - Pin 15
+The NRF24L01+ radio module is connected to the standard SPI pins. Additional there are 3 pins, which can be set individual: CS, CE and IRQ
+These pins can be changed from the /setup URL
 
 
 ## Compile
@@ -29,14 +26,22 @@ This code can be compiled using Arduino. The settings were:
 
 ## Usage
 
-Connect the ESP to power and to your serial console. The webinterface is currently only used for OTA and config.
-The serial console will print all information which is send and received.
+Connect the ESP to power and to your serial console. The webinterface has the following abilities:
+
+- OTA Update (over the air update)
+- Configuration (Wifi, inverter(s), Pinout, MQTT)
+- visual display of the connected inverters / modules
+- some statistics about communication (debug)
+
+The serial console will print the converted values which were read out of the inverter(s)
 
 
-## Known Issues
+## Compatiblity
 
-- only command 0x81 is received
+For now the following inverters should work out of the box:
 
+- HM600
+- HM1200
 
 ## USED LIBRARIES
 

@@ -20,9 +20,15 @@ p {
 }
 
 .des {
+    margin-top: 35px;
     font-size: 14pt;
     color: #006ec0;
-    padding-bottom: 0px !important;
+}
+
+.subdes {
+    font-size: 13pt;
+    color: #006ec0;
+    margin-left: 7px;
 }
 
 .fw {
@@ -74,29 +80,25 @@ a:hover, a:focus {
     color: #fff;
 }
 
-#footer a:hover {
-    color: #f00;
-}
-
 div.content {
     background-color: #fff;
     padding-bottom: 65px;
     overflow: hidden;
 }
 
-span.warn {
-    display: inline-block;
-    padding-left: 20px;
-    color: #ff9900;
-    font-style: italic;
-}
-
-input {
-    padding: 10px;
+input, select {
+    padding: 7px;
     font-size: 13pt;
 }
 
-input.button {
+input.text, select {
+    width: 70%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+}
+
+input.btn {
     background-color: #006ec0;
     color: #fff;
     border: 0px;
@@ -109,7 +111,11 @@ input.cb {
 }
 
 label {
-    font-size: 14pt;
+    width: 20%;
+    display: inline-block;
+    font-size: 12pt;
+    padding-right: 10px;
+    margin-left: 10px;
 }
 
 .left {
@@ -120,32 +126,37 @@ label {
     float: right;
 }
 
-.inputWrp {
-    position: relative;
-}
-
-.inputWrp .inputText {
-    height: 35px;
-    width: 90%;
+div.ch {
+    width: 250px;
+    height: 410px;
+    background-color: #006ec0;
+    display: inline-block;
+    margin-right: 20px;
     margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-top: none;
-    border-right: none;
+}
+div.ch .value, div.ch .info, div.ch .head {
+    color: #fff;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
-.inputWrp .floating_label {
-  position: absolute;
-  pointer-events: none;
-  top: 20px;
-  left: 10px;
-  transition: 0.2s ease all;
+div.ch .unit {
+    font-size: 19px;
+    margin-left: 10px;
 }
 
-.inputWrp input:focus ~ .floating_label,
-.inputWrp input:not(:focus):valid ~ .floating_label {
-  top: 0px;
-  left: 20px;
-  font-size: 10px;
-  color:  blue;
-  opacity: 1;
+div.ch .value {
+    margin-top: 20px;
+    font-size: 30px;
+}
+
+div.ch .info {
+    margin-top: 3px;
+    font-size: 10px;
+}
+
+div.ch .head {
+    background-color: #003c80;
+    padding: 10px 0 10px 0;
 }

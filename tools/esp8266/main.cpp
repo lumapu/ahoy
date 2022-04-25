@@ -12,8 +12,9 @@ Main::Main(void) {
     mUpdater = new ESP8266HTTPUpdateServer();
     mUdp     = new WiFiUDP();
 
-    mApActive    = true;
-    mSettingsValid = false;
+    mApActive          = true;
+    mWifiSettingsValid = false;
+    mSettingsValid     = false;
 
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
@@ -74,21 +75,11 @@ void Main::loop(void) {
 //-----------------------------------------------------------------------------
 bool Main::getConfig(void) {
     bool mApActive = false;
-    uint16_t crcRd, crcCheck;
-    uint8_t buf[ADDR_NEXT-ADDR_START];
 
-    // check settings crc
-    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
-    crcCheck = crc16(buf, (ADDR_NEXT-ADDR_START));
-    mEep->read(ADDR_SETTINGS_CRC, &crcRd);
+    mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
+    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT-ADDR_START_SETTINGS), ADDR_SETTINGS_CRC);
 
-    if(crcCheck == crcRd)
-        mSettingsValid = true;
-    //else
-    //    Serial.println("CRC RD: " + String(crcRd, HEX) + " CRC CHECK: " + String(crcCheck, HEX));
-
-
-    if(mSettingsValid) {
+    if(mWifiSettingsValid) {
         mEep->read(ADDR_SSID,    mStationSsid, SSID_LEN);
         mEep->read(ADDR_PWD,     mStationPwd, PWD_LEN);
         mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
@@ -98,6 +89,10 @@ bool Main::getConfig(void) {
         memset(mStationSsid, 0, SSID_LEN);
         memset(mStationPwd, 0, PWD_LEN);
         memset(mDeviceName, 0, DEVNAME_LEN);
+
+        // erase eeprom
+        uint8_t buf[ADDR_NEXT-ADDR_START_SETTINGS] = {0};
+        mEep->write(ADDR_START_SETTINGS, buf, (ADDR_NEXT-ADDR_START_SETTINGS));
     }
 
     return mApActive;
@@ -165,7 +160,7 @@ bool Main::setupStation(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
-    String html = setup_html;
+    String html = FPSTR(setup_html);
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the default "{PWD}"
@@ -178,7 +173,7 @@ void Main::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showCss(void) {
-    mWeb->send(200, "text/css", style_css);
+    mWeb->send(200, "text/css", FPSTR(style_css));
 }
 
 
@@ -223,12 +218,9 @@ void Main::saveValues(bool webSend = true) {
 //-----------------------------------------------------------------------------
 void Main::updateCrc(void) {
     uint16_t crc;
-    uint8_t buf[ADDR_NEXT-ADDR_START];
-
-    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
-    crc = crc16(buf, (ADDR_NEXT-ADDR_START));
+    crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
     //Serial.println("new CRC: " + String(crc, HEX));
-    mEep->write(ADDR_SETTINGS_CRC, crc);
+    mEep->write(ADDR_WIFI_CRC, crc);
 }
 
 
