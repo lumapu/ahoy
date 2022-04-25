@@ -71,6 +71,7 @@ const byteAssign_t hm400assignment[] = {
     { FLD_IAC, UNIT_A,   CH0, CMD82, 18, 2, 100  },
     { FLD_T,   UNIT_C,   CH0, CMD82, 22, 2, 10   }
 };
+#define HM400_LIST_LEN     (sizeof(hm400assignment) / sizeof(byteAssign_t))
 
 
 //-------------------------------------
