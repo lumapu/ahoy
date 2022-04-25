@@ -18,7 +18,7 @@ const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "
 
 // CH0 is default channel (freq, ac, temp)
 enum {CH0 = 0, CH1, CH2, CH3, CH4};
-enum {CMD01 = 0x01, CMD02, CMD03, CMD83 = 0x83, CMD84};
+enum {CMD01 = 0x01, CMD02, CMD03, CMD82 = 0x82, CMD83, CMD84};
 
 enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200, INV_TYPE_HM400};
 const char* const invTypes[] = {"HM600", "HM1200", "HM400"};
