@@ -69,9 +69,7 @@ class app : public Main {
             return ret;
         }
 
-
-        uint8_t mState;
-        bool    mKeyPressed;
+        bool mShowRebootRequest;
 
         HmSystemType *mSys;
 

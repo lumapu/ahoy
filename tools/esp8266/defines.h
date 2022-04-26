@@ -25,7 +25,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       2
-#define VERSION_PATCH       8
+#define VERSION_PATCH       9
 
 
 //-------------------------------------
@@ -57,6 +57,7 @@ typedef struct {
 #define MQTT_PWD_LEN        32
 #define MQTT_TOPIC_LEN      32
 #define MQTT_INTERVAL_LEN   2 // uint16_t
+#define MQTT_PORT_LEN       2 // uint16_t
 
 
 #define ADDR_START          0
@@ -81,7 +82,8 @@ typedef struct {
 #define ADDR_MQTT_TOPIC     ADDR_MQTT_PWD      + MQTT_PWD_LEN
 #define ADDR_MQTT_INTERVAL  ADDR_MQTT_TOPIC    + MQTT_TOPIC_LEN
 
-#define ADDR_NEXT           ADDR_MQTT_INTERVAL + MQTT_INTERVAL_LEN
+#define ADDR_MQTT_PORT      ADDR_MQTT_INTERVAL + MQTT_INTERVAL_LEN
+#define ADDR_NEXT           ADDR_MQTT_PORT     + MQTT_PORT_LEN
 
 #define ADDR_SETTINGS_CRC   400
 

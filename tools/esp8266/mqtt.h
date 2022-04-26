@@ -20,9 +20,9 @@ class mqtt {
             delete mClient;
         }
 
-        void setup(const char *broker, const char *topic, const char *user, const char *pwd) {
+        void setup(const char *broker, const char *topic, const char *user, const char *pwd, uint16_t port) {
             mAddressSet = true;
-            mClient->setServer(broker, 1883);
+            mClient->setServer(broker, port);
 
             snprintf(mUser, MQTT_USER_LEN, "%s", user);
             snprintf(mPwd, MQTT_PWD_LEN, "%s", pwd);
