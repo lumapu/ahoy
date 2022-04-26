@@ -150,7 +150,8 @@ void app::loop(void) {
             inv = mSys->getInverterByPos(i);
             if(NULL != inv) {
                 mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
-                delay(20);
+                yield();
+                delay(100);
             }
         }
     }
@@ -171,6 +172,7 @@ void app::loop(void) {
                         snprintf(val, 10, "%.3f", mSys->getValue(iv, i));
                         mMqtt.sendMsg(topic, val);
                         delay(20);
+                        yield();
                     }
                 }
             }
@@ -187,6 +189,7 @@ void app::loop(void) {
                         snprintf(val, 10, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
                         Serial.println(String(topic) + ": " + String(val));
                     }
+                    yield();
                 }
             }
         }

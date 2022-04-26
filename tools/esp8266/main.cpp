@@ -43,8 +43,6 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     mWeb->onNotFound (std::bind(&Main::showNotFound, this));
 
     startAp = getConfig();
-    if(String(mDeviceName) != "")
-        WiFi.hostname(mDeviceName);
 
     if(false == startAp)
         startAp = setupStation(timeout);
@@ -126,6 +124,8 @@ bool Main::setupStation(uint32_t timeout) {
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(mStationSsid, mStationPwd);
+    if(String(mDeviceName) != "")
+        WiFi.hostname(mDeviceName);
 
     delay(5000);
     Serial.println("wait for network");
