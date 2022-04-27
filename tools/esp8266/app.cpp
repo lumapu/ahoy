@@ -482,7 +482,7 @@ void app::saveValues(bool webSend = true) {
             // type
             mWeb->arg("inv" + String(i) + "Type").toCharArray(buf, 20);
             uint8_t type = atoi(buf);
-            mEep->write(ADDR_INV_TYPE + (i * MAX_NAME_LENGTH), type);
+            mEep->write(ADDR_INV_TYPE + i, type);
         }
 
         interval = mWeb->arg("invInterval").toInt();
