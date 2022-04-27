@@ -433,7 +433,7 @@ void app::showLiveData(void) {
             char topic[30], val[10];
             for(uint8_t i = 0; i < iv->listLen; i++) {
                 snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
-                snprintf(val, 10, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
+                snprintf(val, 12, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
                 modHtml += String(topic) + ": " + String(val) + "\n";
             }
             modHtml += "</pre>";
