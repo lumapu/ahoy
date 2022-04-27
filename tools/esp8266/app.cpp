@@ -430,7 +430,7 @@ void app::showLiveData(void) {
 #else
             // dump all data to web frontend
             modHtml = "<pre>";
-            char topic[30], val[10];
+            char topic[30], val[12];
             for(uint8_t i = 0; i < iv->listLen; i++) {
                 snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
                 snprintf(val, 12, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
