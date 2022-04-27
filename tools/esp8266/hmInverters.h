@@ -64,7 +64,7 @@ const byteAssign_t hm400assignment[] = {
     { FLD_IDC, UNIT_A,   CH1, CMD01,  5, 2, 100  },
     { FLD_PDC, UNIT_W,   CH1, CMD01,  7, 2, 10   },
     { FLD_YT,  UNIT_KWH, CH1, CMD01,  9, 4, 1000 },
-    { FLD_YD,  UNIT_WH,  CH1, CMD01, 13, 2, 1    },
+    { FLD_YD,  UNIT_WH,  CH1, CMD01, 13, 2, 1000 },
     { FLD_UAC, UNIT_V,   CH0, CMD01, 15, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, CMD82,  1, 2, 100  },
     { FLD_PAC, UNIT_W,   CH0, CMD82,  3, 2, 10   },
