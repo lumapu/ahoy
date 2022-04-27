@@ -22,6 +22,9 @@ const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (
 const char* const pinNames[] = {"CS", "CE", "IRQ"};
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
+const uint8_t dbgCmds[] = {0x01, 0x02, 0x03, 0x81, 0x82, 0x83, 0x84};
+#define DBG_CMD_LIST_LEN    7
+
 class app : public Main {
     public:
         app();
@@ -42,7 +45,8 @@ class app : public Main {
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
-        void showCmdStatistics(void);
+        void showErase(void);
+        void showStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
         void showMqtt(void);
@@ -65,16 +69,15 @@ class app : public Main {
             return ret;
         }
 
-        uint8_t mState;
-        bool    mKeyPressed;
+        bool mShowRebootRequest;
 
         HmSystemType *mSys;
 
         Ticker *mSendTicker;
         bool mFlagSend;
 
-        uint32_t mCmds[6];
-        uint32_t mChannelStat[4];
+        uint32_t mCmds[DBG_CMD_LIST_LEN+1];
+        //uint32_t mChannelStat[4];
         uint32_t mRecCnt;
 
         // mqtt

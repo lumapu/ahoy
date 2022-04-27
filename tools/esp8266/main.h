@@ -53,6 +53,17 @@ class Main {
             return (crcCheck == crcRd);
         }
 
+        void eraseSettings(void) {
+            uint8_t buf[64] = {0};
+            uint16_t addr = ADDR_START_SETTINGS, end;
+            do {
+                end = addr += 64;
+                if(end > (ADDR_SETTINGS_CRC + 2))
+                    end = (ADDR_SETTINGS_CRC + 2 - addr);
+                mEep->write(ADDR_START_SETTINGS, buf, (ADDR_NEXT-ADDR_START_SETTINGS));
+            } while(addr < ADDR_START_SETTINGS);
+        }
+
         char mStationSsid[SSID_LEN];
         char mStationPwd[PWD_LEN];
         bool mWifiSettingsValid;

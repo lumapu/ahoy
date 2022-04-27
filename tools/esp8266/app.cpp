@@ -10,11 +10,14 @@ app::app() : Main() {
     mSendTicker = new Ticker();
     mFlagSend   = false;
 
+    mShowRebootRequest = false;
+
     mMqttTicker = NULL;
     mMqttEvt    = false;
 
-    memset(mCmds, 0, sizeof(uint32_t));
-    memset(mChannelStat, 0, sizeof(uint32_t));
+
+    memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
+    //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
 
     mSys = new HmSystemType();
 }
@@ -30,13 +33,14 @@ app::~app(void) {
 void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     Main::setup(ssid, pwd, timeout);
 
-    mWeb->on("/",          std::bind(&app::showIndex,         this));
-    mWeb->on("/setup",     std::bind(&app::showSetup,         this));
-    mWeb->on("/save",      std::bind(&app::showSave,          this));
-    mWeb->on("/cmdstat",   std::bind(&app::showCmdStatistics, this));
-    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,      this));
-    mWeb->on("/livedata",  std::bind(&app::showLiveData,      this));
-    mWeb->on("/mqttstate", std::bind(&app::showMqtt,          this));
+    mWeb->on("/",          std::bind(&app::showIndex,      this));
+    mWeb->on("/setup",     std::bind(&app::showSetup,      this));
+    mWeb->on("/save",      std::bind(&app::showSave,       this));
+    mWeb->on("/erase",     std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
+    mWeb->on("/mqttstate", std::bind(&app::showMqtt,       this));
 
     if(mSettingsValid) {
         uint16_t interval;
@@ -51,7 +55,7 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
             mEep->read(ADDR_INV_TYPE + i,                     &invType);
             if(0ULL != invSerial) {
                 mSys->addInverter(invName, invSerial, invType);
-                Serial.println("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
+                DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
             }
         }
 
@@ -67,8 +71,12 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
 
 
+        // nrf24 amplifier power
+        mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
+
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN];
+        uint16_t mqttPort;
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
@@ -77,13 +85,14 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
         mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
         mEep->read(ADDR_MQTT_INTERVAL, &interval);
+        mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
 
         if(interval < 1000)
             interval = 1000;
-        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd);
+        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = new Ticker();
         mMqttTicker->attach_ms(interval, std::bind(&app::mqttTicker, this));
 
@@ -92,8 +101,16 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
     mSys->setup();
 
-    if(!mSettingsValid)
-        Serial.println("Warn: your settings are not valid! check [IP]/setup");
+    if(!mWifiSettingsValid)
+        DPRINTLN("Warn: your settings are not valid! check [IP]/setup");
+    else {
+        DPRINTLN("\n\n----------------------------------------");
+        DPRINTLN("Welcome to AHOY!");
+        DPRINT("\npoint your browser to http://");
+        DPRINTLN(WiFi.localIP());
+        DPRINTLN("to configure your device");
+        DPRINTLN("----------------------------------------\n");
+    }
 }
 
 
@@ -110,7 +127,7 @@ void app::loop(void) {
             // process buffer only on first occurrence
             if((0 != len) && (0 == rptCnt)) {
                 uint8_t *cmd = &p->packet[11];
-                //Serial.println("CMD " + String(*cmd, HEX));
+                //DPRINTLN("CMD " + String(*cmd, HEX));
                 //mSys->Radio.dumpBuf("Payload ", p->packet, len);
 
                 inverter_t *iv = mSys->findInverter(&p->packet[3]);
@@ -125,13 +142,15 @@ void app::loop(void) {
                 else if(*cmd == 0x02) mCmds[1]++;
                 else if(*cmd == 0x03) mCmds[2]++;
                 else if(*cmd == 0x81) mCmds[3]++;
-                else if(*cmd == 0x84) mCmds[4]++;
-                else                  mCmds[5]++;
+                else if(*cmd == 0x82) mCmds[4]++;
+                else if(*cmd == 0x83) mCmds[5]++;
+                else if(*cmd == 0x84) mCmds[6]++;
+                else                  mCmds[7]++;
 
-                if(p->sendCh == 23)      mChannelStat[0]++;
+                /*if(p->sendCh == 23)      mChannelStat[0]++;
                 else if(p->sendCh == 40) mChannelStat[1]++;
                 else if(p->sendCh == 61) mChannelStat[2]++;
-                else                     mChannelStat[3]++;
+                else                     mChannelStat[3]++;*/
             }
         }
         mSys->BufCtrl.popBack();
@@ -144,7 +163,8 @@ void app::loop(void) {
             inv = mSys->getInverterByPos(i);
             if(NULL != inv) {
                 mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
-                delay(20);
+                yield();
+                delay(100);
             }
         }
     }
@@ -165,6 +185,7 @@ void app::loop(void) {
                         snprintf(val, 10, "%.3f", mSys->getValue(iv, i));
                         mMqtt.sendMsg(topic, val);
                         delay(20);
+                        yield();
                     }
                 }
             }
@@ -179,8 +200,9 @@ void app::loop(void) {
                     if(0.0f != mSys->getValue(iv, i)) {
                         snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, mSys->getFieldName(iv, i));
                         snprintf(val, 10, "%.3f %s", mSys->getValue(iv, i), mSys->getUnit(iv, i));
-                        Serial.println(String(topic) + ": " + String(val));
+                        DPRINTLN(String(topic) + ": " + String(val));
                     }
+                    yield();
                 }
             }
         }
@@ -282,17 +304,31 @@ void app::showSetup(void) {
     html.replace("{PINOUT}", String(pinout));
 
 
+    // nrf24l01+
+    String rf24;
+    for(uint8_t i = 0; i <= 3; i++) {
+        rf24 += "<option value=\"" + String(i) + "\"";
+        if(i == mSys->Radio.AmplifierPower)
+            rf24 += " selected";
+        rf24 += ">" + String(rf24AmpPower[i]) + "</option>";
+    }
+    html.replace("{RF24}", String(rf24));
+
+
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
         html.replace("{INV_INTERVAL}", String(interval));
 
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        uint16_t mqttPort;
         mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
         mEep->read(ADDR_MQTT_INTERVAL, &interval);
+        mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
         html.replace("{MQTT_ADDR}",     String(addr));
+        html.replace("{MQTT_PORT}",     String(mqttPort));
         html.replace("{MQTT_USER}",     String(mMqtt.getUser()));
         html.replace("{MQTT_PWD}",      String(mMqtt.getPwd()));
         html.replace("{MQTT_TOPIC}",    String(mMqtt.getTopic()));
@@ -302,6 +338,7 @@ void app::showSetup(void) {
         html.replace("{INV_INTERVAL}", "1000");
 
         html.replace("{MQTT_ADDR}", "");
+        html.replace("{MQTT_PORT}", "1883");
         html.replace("{MQTT_USER}", "");
         html.replace("{MQTT_PWD}", "");
         html.replace("{MQTT_TOPIC}", "/inverter");
@@ -319,20 +356,32 @@ void app::showSave(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::showCmdStatistics(void) {
-    String content = "CMDs:\n";
-    content += String("0x01: ") + String(mCmds[0]) + String("\n");
-    content += String("0x02: ") + String(mCmds[1]) + String("\n");
-    content += String("0x03: ") + String(mCmds[2]) + String("\n");
-    content += String("0x81: ") + String(mCmds[3]) + String("\n");
-    content += String("0x84: ") + String(mCmds[4]) + String("\n");
-    content += String("other: ") + String(mCmds[5]) + String("\n");
+void app::showErase() {
+    eraseSettings();
+    showReboot();
+}
 
-    content += "\nCHANNELs:\n";
+
+//-----------------------------------------------------------------------------
+void app::showStatistics(void) {
+    String content = "CMDs:\n";
+    for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
+        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mCmds[i]) + String("\n");
+    }
+    content += String("other: ") + String(mCmds[DBG_CMD_LIST_LEN]) + String("\n\n");
+
+    /*content += "\nCHANNELs:\n";
     content += String("23: ") + String(mChannelStat[0]) + String("\n");
     content += String("40: ") + String(mChannelStat[1]) + String("\n");
     content += String("61: ") + String(mChannelStat[2]) + String("\n");
-    content += String("75: ") + String(mChannelStat[3]) + String("\n");
+    content += String("75: ") + String(mChannelStat[3]) + String("\n");*/
+
+    if(!mSys->Radio.isChipConnected())
+        content += "WARNING! your NRF24 module can't be reached, check the wiring\n";
+
+    if(mShowRebootRequest)
+        content += "INFO: reboot your ESP to apply all your configuration changes!\n";
+
     mWeb->send(200, "text/plain", content);
 }
 
@@ -400,7 +449,7 @@ void app::showLiveData(void) {
 //-----------------------------------------------------------------------------
 void app::showMqtt(void) {
     String txt = "connected";
-    if(mMqtt.isConnected())
+    if(!mMqtt.isConnected())
         txt = "not " + txt;
     mWeb->send(200, "text/plain", txt);
 }
@@ -447,8 +496,13 @@ void app::saveValues(bool webSend = true) {
         }
 
 
+        // nrf24 amplifier power
+        mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
+        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        uint16_t mqttPort;
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
@@ -463,7 +517,9 @@ void app::saveValues(bool webSend = true) {
         mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
         mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
         interval = mWeb->arg("mqttInterval").toInt();
+        mqttPort = mWeb->arg("mqttPort").toInt();
         mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
+        mEep->write(ADDR_MQTT_PORT, mqttPort);
         mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
         mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
         mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
@@ -473,6 +529,7 @@ void app::saveValues(bool webSend = true) {
         if((mWeb->arg("reboot") == "on"))
             showReboot();
         else {
+            mShowRebootRequest = true;
             mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>");
         }
@@ -490,6 +547,6 @@ void app::updateCrc(void) {
 
     uint16_t crc;
     crc = buildEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT - ADDR_START_SETTINGS));
-    //Serial.println("new CRC: " + String(crc, HEX));
+    //DPRINTLN("new CRC: " + String(crc, HEX));
     mEep->write(ADDR_SETTINGS_CRC, crc);
 }

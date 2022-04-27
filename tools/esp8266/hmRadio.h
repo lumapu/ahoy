@@ -13,6 +13,10 @@
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 
+const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
+
+
+
 //-----------------------------------------------------------------------------
 // MACROS
 //-----------------------------------------------------------------------------
@@ -54,12 +58,13 @@ class HmRadio {
             pinCe  = CE_PIN;
             pinIrq = IRQ_PIN;
 
-            mSendCnt    = 0;
+            AmplifierPower = 1;
+            mSendCnt       = 0;
         }
         ~HmRadio() {}
 
         void setup(BUFFER *ctrl) {
-            //Serial.println("HmRadio::setup, pins: " + String(pinCs) + ", " + String(pinCe) + ", " + String(pinIrq));
+            //DPRINTLN("HmRadio::setup, pins: " + String(pinCs) + ", " + String(pinCe) + ", " + String(pinIrq));
             pinMode(pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
@@ -79,14 +84,18 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            // Use lo PA level, as a higher level will disturb CH340 serial usb adapter
-            mNrf24.setPALevel(RF24_PA_MAX);
+            DPRINTLN("RF24 Amp Pwr: RF24_PA_" + String(rf24AmpPower[AmplifierPower]));
+            mNrf24.setPALevel(AmplifierPower & 0x03);
             mNrf24.startListening();
 
-            Serial.println("Radio Config:");
+            DPRINTLN("Radio Config:");
             mNrf24.printPrettyDetails();
 
             mSendChannel = getDefaultChannel();
+
+            if(!mNrf24.isChipConnected()) {
+                DPRINTLN("WARNING! your NRF24 module can't be reached, check the wiring");
+            }
         }
 
         void handleIntr(void) {
@@ -177,13 +186,30 @@ class HmRadio {
             return valid;
         }
 
+        void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
+            DPRINT(String(info));
+            for(uint8_t i = 0; i < len; i++) {
+                if(buf[i] < 10)
+                    DPRINT("0");
+                DHEX(buf[i]);
+                DPRINT(" ");
+            }
+            DPRINTLN("");
+        }
+
+        bool isChipConnected(void) {
+            return mNrf24.isChipConnected();
+        }
+
         uint8_t pinCs;
         uint8_t pinCe;
         uint8_t pinIrq;
 
+        uint8_t AmplifierPower;
+
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len) {
-            //Serial.println("sent packet: #" + String(mSendCnt));
+            //DPRINTLN("sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
 
             DISABLE_IRQ;
@@ -195,7 +221,7 @@ class HmRadio {
             mSendChannel = getDefaultChannel();
         #endif
             mNrf24.setChannel(mSendChannel);
-            //Serial.println("CH: " + String(mSendChannel));
+            //DPRINTLN("CH: " + String(mSendChannel));
 
             mNrf24.openWritingPipe(invId); // TODO: deprecated
             mNrf24.setCRCLength(RF24_CRC_16);
@@ -228,15 +254,6 @@ class HmRadio {
                 addr >>= 8;
             }
             mDtuIdCrc = crc16nrf24(tmp, BIT_CNT(5));
-        }
-
-        void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
-            Serial.print(String(info));
-            for(uint8_t i = 0; i < len; i++) {
-                Serial.print(buf[i], HEX);
-                Serial.print(" ");
-            }
-            Serial.println();
         }
 
         uint8_t mChanOut[4];
