@@ -22,6 +22,9 @@
                     <label for="device">Device Name</label>
                     <input type="text" class="text" name="device" value="{DEVICE}"/>
 
+
+                    <a class="erase" href="/erase">ERASE SETTINGS (not WiFi)</a>
+
                     <p class="des">Inverter</p>
                     {INVERTERS}<br/>
                     <p class="subdes">General</p>
@@ -31,16 +34,22 @@
                     <p class="des">Pinout (Wemos)</p>
                     {PINOUT}
 
+                    <p class="des">Radio (NRF24L01+)</p>
+                    <label for="rf24Power">Amplifier Power Level</label>
+                    <select name="rf24Power">{RF24}</select>
+
                     <p class="des">MQTT</p>
                     <label for="mqttAddr">Broker / Server IP</label>
                     <input type="text" class="text" name="mqttAddr" value="{MQTT_ADDR}"/>
+                    <label for="mqttPort">Port</label>
+                    <input type="text" class="text" name="mqttPort" value="{MQTT_PORT}"/>
                     <label for="mqttUser">Username (optional)</label>
                     <input type="text" class="text" name="mqttUser" value="{MQTT_USER}"/>
                     <label for="mqttPwd">Password (optional)</label>
                     <input type="text" class="text" name="mqttPwd" value="{MQTT_PWD}"/>
                     <label for="mqttTopic">Topic</label>
                     <input type="text" class="text" name="mqttTopic" value="{MQTT_TOPIC}"/>
-                    <label for="mqttInterval">Interval (seconds)</label>
+                    <label for="mqttInterval">Interval (ms)</label>
                     <input type="text" class="text" name="mqttInterval" value="{MQTT_INTERVAL}"/>
 
                     <p class="des">&nbsp;</p>

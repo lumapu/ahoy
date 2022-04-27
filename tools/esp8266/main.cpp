@@ -43,8 +43,6 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     mWeb->onNotFound (std::bind(&Main::showNotFound, this));
 
     startAp = getConfig();
-    if(String(mDeviceName) != "")
-        WiFi.hostname(mDeviceName);
 
     if(false == startAp)
         startAp = setupStation(timeout);
@@ -90,9 +88,8 @@ bool Main::getConfig(void) {
         memset(mStationPwd, 0, PWD_LEN);
         memset(mDeviceName, 0, DEVNAME_LEN);
 
-        // erase eeprom
-        uint8_t buf[ADDR_NEXT-ADDR_START_SETTINGS] = {0};
-        mEep->write(ADDR_START_SETTINGS, buf, (ADDR_NEXT-ADDR_START_SETTINGS));
+        // erase application settings except wifi settings
+        eraseSettings();
     }
 
     return mApActive;
@@ -127,6 +124,8 @@ bool Main::setupStation(uint32_t timeout) {
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(mStationSsid, mStationPwd);
+    if(String(mDeviceName) != "")
+        WiFi.hostname(mDeviceName);
 
     delay(5000);
     Serial.println("wait for network");
