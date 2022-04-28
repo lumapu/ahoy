@@ -164,7 +164,7 @@ void app::loop(void) {
             if(NULL != inv) {
                 mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
                 yield();
-                delay(100);
+                //delay(100);
             }
         }
     }
@@ -184,7 +184,7 @@ void app::loop(void) {
                         snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
                         snprintf(val, 10, "%.3f", mSys->getValue(iv, i));
                         mMqtt.sendMsg(topic, val);
-                        delay(20);
+                        //delay(20);
                         yield();
                     }
                 }
