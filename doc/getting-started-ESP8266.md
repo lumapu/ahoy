@@ -40,6 +40,8 @@ Setup
 * Device Host Name
   * Enter Device Name `esp-ahoy` 
 * General
-  * Hoymiles Address (e.g. 114173123456) `11:41:73:12:34:56`
+  * Hoymiles Address (e.g. 114173123456)
+  * Choose inverter type
+  * Set individual inverter name
   * [x] Reboot device after successful save
 Save
