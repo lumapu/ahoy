@@ -137,17 +137,21 @@ class HmSystem {
         }
 
         void getAssignment(inverter_t *p) {
-            if(INV_TYPE_HM600 == p->type) {
+            if(INV_TYPE_HM400 == p->type) {
+                p->listLen = (uint8_t)(HM400_LIST_LEN);
+                p->assign  = (byteAssign_t*)hm400assignment;
+            }
+            else if(INV_TYPE_HM600 == p->type) {
                 p->listLen = (uint8_t)(HM600_LIST_LEN);
                 p->assign  = (byteAssign_t*)hm600assignment;
+            }
+            else if(INV_TYPE_HM800 == p->type) {
+                p->listLen = (uint8_t)(HM800_LIST_LEN);
+                p->assign  = (byteAssign_t*)hm800assignment;
             }
             else if(INV_TYPE_HM1200 == p->type) {
                 p->listLen = (uint8_t)(HM1200_LIST_LEN);
                 p->assign  = (byteAssign_t*)hm1200assignment;
-            }
-            else if(INV_TYPE_HM400 == p->type) {
-                p->listLen = (uint8_t)(HM400_LIST_LEN);
-                p->assign  = (byteAssign_t*)hm400assignment;
             }
             else {
                 p->listLen = 0;
