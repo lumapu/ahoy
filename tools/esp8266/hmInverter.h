@@ -3,7 +3,45 @@
 
 #include "hmDefines.h"
 
+/**
+ * For values which are of interest and not transmitted by the inverter can be
+ * calculated automatically.
+ * A list of functions can be linked to the assignment and will be executed
+ * automatically. Their result does not differ from original read values.
+ * The special command 0xff (CMDFF) must be used.
+ */
+
+// forward declaration of class
 template <class RECORDTYPE=float>
+class Inverter;
+
+
+// prototypes
+template<class T=float>
+static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+using func_t = T (Inverter<> *, uint8_t);
+
+template<class T=float>
+struct calcFunc_t {
+    uint8_t funcId; // unique id
+    func_t<T>*  func;   // function pointer
+} ;
+
+
+// list of all available functions, mapped in hmDefines.h
+template<class T=float>
+const calcFunc_t<T> calcFunctions[] = {
+    { CALC_YT_CH0, &calcYieldTotalCh0 },
+    { CALC_YD_CH0, &calcYieldDayCh0   }
+};
+
+
+template <class RECORDTYPE>
 class Inverter {
     public:
         uint8_t       id;       // unique id
@@ -91,7 +129,7 @@ class Inverter {
                 assign   = (byteAssign_t*)hm600assignment;
                 channels = 2;
             }
-            else if(INV_TYPE_HM800 == p->type) {
+            else if(INV_TYPE_HM800 == type) {
                 listLen  = (uint8_t)(HM800_LIST_LEN);
                 assign   = (byteAssign_t*)hm800assignment;
                 channels = 2;
@@ -107,6 +145,14 @@ class Inverter {
                 assign   = NULL;
             }
         }
+
+        void doCalculations(void) {
+            for(uint8_t i = 0; i < listLen; i++) {
+                if(CMDFF == assign[i].cmdId) {
+                    calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
+                }
+            }
+        }
 };
 
 
@@ -116,33 +162,43 @@ class Inverter {
  * The special command 0xff (CMDFF) must be used.
  */
 
-typedef float (*func_t)(Inverter<> *);
-typedef struct {
-    uint8_t funcId; // unique id
-    func_t  func;   // function pointer
-} calcFunc_t;
-
-static float calcYieldTotalCh0(Inverter<> *iv) {
+template<class T=float>
+static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
     if(NULL != iv) {
-        float yield[iv->channels];
+        T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
             uint8_t pos = iv->getPosByChFld(i, FLD_YT);
-            //yield[i-1] = iv->getValue(iv)
+            yield += iv->getValue(pos);
+        }
+        return yield;
+    }
+    return 0.0;
+}
+
+template<class T=float>
+static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
+    if(NULL != iv) {
+        T yield = 0;
+        for(uint8_t i = 1; i <= iv->channels; i++) {
+            uint8_t pos = iv->getPosByChFld(i, FLD_YD);
+            yield += iv->getValue(pos);
+        }
+        return yield;
+    }
+    return 0.0;
+}
+
+template<class T=float>
+static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
+    // arg0 = channel of source
+    for(uint8_t i = 0; i < iv->listLen; i++) {
+        if((FLD_UDC == iv->assign[i].fieldId) && (arg0 == iv->assign[i].ch)) {
+            return iv->getValue(i);
         }
     }
-    return 1.0;
+
+    return 0.0;
 }
-
-static float calcYieldDayCh0(Inverter<> *iv) {
-    return 1.0;
-}
-
-enum {CALC_YT_CH0 = 0, CALC_YD_CH0};
-
-const calcFunc_t calcFunctions[] = {
-    { CALC_YT_CH0, &calcYieldTotalCh0 },
-    { CALC_YD_CH0, &calcYieldDayCh0   }
-};
 
 
 #endif /*__HM_INVERTER_H__*/

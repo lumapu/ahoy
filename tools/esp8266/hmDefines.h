@@ -4,9 +4,17 @@
 #include "debug.h"
 #include <cstdint>
 
+
+union serial_u {
+    uint64_t u64;
+    uint8_t  b[8];
+};
+
+
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT};
 const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%"};
+
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
@@ -15,10 +23,8 @@ const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "
         "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct"};
 
 
-union serial_u {
-    uint64_t u64;
-    uint8_t  b[8];
-};
+// indices to calculation functions, defined in hmInverter.h
+enum {CALC_YT_CH0 = 0, CALC_YD_CH0, CALC_UDC_CH};
 
 
 // CH0 is default channel (freq, ac, temp)
@@ -29,6 +35,7 @@ enum {CMD01 = 0x01, CMD02, CMD03, CMD82 = 0x82, CMD83, CMD84, CMDFF=0xff};
 enum {INV_TYPE_HM600 = 0, INV_TYPE_HM1200, INV_TYPE_HM400, INV_TYPE_HM800};
 const char* const invTypes[] = {"HM600", "HM1200 / HM1500", "HM400", "HM800"};
 #define NUM_INVERTER_TYPES   4
+
 
 typedef struct {
     uint8_t    fieldId; // field id
@@ -119,7 +126,7 @@ const byteAssign_t hm1200assignment[] = {
     { FLD_PDC, UNIT_W,   CH1, CMD01,  9, 2, 10   },
     { FLD_YD,  UNIT_WH,  CH1, CMD02,  5, 2, 1    },
     { FLD_YT,  UNIT_KWH, CH1, CMD01, 13, 4, 1000 },
-    { FLD_UDC, UNIT_V,   CH2, CMD02,  9, 2, 10   },
+    { FLD_UDC, UNIT_V,   CH3, CMD02,  9, 2, 10   },
     { FLD_IDC, UNIT_A,   CH2, CMD01,  7, 2, 100  },
     { FLD_PDC, UNIT_W,   CH2, CMD01, 11, 2, 10   },
     { FLD_YD,  UNIT_WH,  CH2, CMD02,  7, 2, 1    },
@@ -137,9 +144,14 @@ const byteAssign_t hm1200assignment[] = {
     { FLD_PAC, UNIT_W,   CH0, CMD84,  3, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, CMD84,  1, 2, 100  },
     { FLD_PCT, UNIT_PCT, CH0, CMD84,  9, 2, 10   },
-    { FLD_T,   UNIT_C,   CH0, CMD84, 11, 2, 10   }
+    { FLD_T,   UNIT_C,   CH0, CMD84, 11, 2, 10   },
+    { FLD_YT,  UNIT_KWH, CH0, CMDFF, CALC_YT_CH0,   0, 1000 },
+    { FLD_YD,  UNIT_KWH, CH0, CMDFF, CALC_YD_CH0,   0, 1    },
+    { FLD_UDC, UNIT_KWH, CH2, CMDFF, CALC_UDC_CH, CH1, 1000 },
+    { FLD_UDC, UNIT_KWH, CH4, CMDFF, CALC_UDC_CH, CH3, 1000 }
 };
 #define HM1200_LIST_LEN     (sizeof(hm1200assignment) / sizeof(byteAssign_t))
+
 
 
 
