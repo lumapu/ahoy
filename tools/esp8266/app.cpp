@@ -409,6 +409,8 @@ void app::showLiveData(void) {
                 case INV_TYPE_HM1200: modNum = 4; break;
             }
 
+            modHtml += "<div class=\"ch-group\"><h3>" + String(iv->name) + "</h3>";
+
             for(uint8_t ch = 1; ch <= modNum; ch ++) {
                 modHtml += "<div class=\"ch\"><span class=\"head\">CHANNEL " + String(ch) + "</span>";
                 for(uint8_t j = 0; j < 5; j++) {
@@ -427,6 +429,8 @@ void app::showLiveData(void) {
                 }
                 modHtml += "</div>";
             }
+
+            modHtml += "</div>";
 #else
             // dump all data to web frontend
             modHtml = "<pre>";

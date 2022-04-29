@@ -136,6 +136,10 @@ label {
     float: right;
 }
 
+div.ch-group {
+    display: inline-block;
+}
+
 div.ch {
     width: 250px;
     height: 410px;
