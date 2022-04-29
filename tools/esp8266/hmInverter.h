@@ -81,20 +81,25 @@ class Inverter {
         }
 
         void getAssignment(void) {
-            if(INV_TYPE_HM600 == type) {
+            if(INV_TYPE_HM400 == type) {
+                listLen  = (uint8_t)(HM400_LIST_LEN);
+                assign   = (byteAssign_t*)hm400assignment;
+                channels = 1;
+            }
+            else if(INV_TYPE_HM600 == type) {
                 listLen  = (uint8_t)(HM600_LIST_LEN);
                 assign   = (byteAssign_t*)hm600assignment;
+                channels = 2;
+            }
+            else if(INV_TYPE_HM800 == p->type) {
+                listLen  = (uint8_t)(HM800_LIST_LEN);
+                assign   = (byteAssign_t*)hm800assignment;
                 channels = 2;
             }
             else if(INV_TYPE_HM1200 == type) {
                 listLen  = (uint8_t)(HM1200_LIST_LEN);
                 assign   = (byteAssign_t*)hm1200assignment;
                 channels = 4;
-            }
-            else if(INV_TYPE_HM400 == type) {
-                listLen  = (uint8_t)(HM400_LIST_LEN);
-                assign   = (byteAssign_t*)hm400assignment;
-                channels = 1;
             }
             else {
                 listLen  = 0;
