@@ -2,7 +2,9 @@
 #define __HM_SYSTEM_H__
 
 #include "hmInverter.h"
+#ifndef NO_RADIO
 #include "hmRadio.h"
+#endif
 
 
 
@@ -34,7 +36,8 @@ class HmSystem {
             p->id         = mNumInv;
             p->serial.u64 = serial;
             p->type       = type;
-            uint8_t len   = strlen(name);
+            p->init();
+            uint8_t len   = (uint8_t)strlen(name);
             strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
 
             if(NULL == p->assign) {

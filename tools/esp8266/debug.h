@@ -1,8 +1,6 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-#include "Arduino.h"
-
 #ifdef NDEBUG
   #define DPRINT(str)
   #define DPRINTLN(str)

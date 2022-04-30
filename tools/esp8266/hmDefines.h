@@ -145,10 +145,10 @@ const byteAssign_t hm1200assignment[] = {
     { FLD_F,   UNIT_HZ,  CH0, CMD84,  1, 2, 100  },
     { FLD_PCT, UNIT_PCT, CH0, CMD84,  9, 2, 10   },
     { FLD_T,   UNIT_C,   CH0, CMD84, 11, 2, 10   },
-    { FLD_YT,  UNIT_KWH, CH0, CMDFF, CALC_YT_CH0,   0, 1000 },
-    { FLD_YD,  UNIT_KWH, CH0, CMDFF, CALC_YD_CH0,   0, 1    },
-    { FLD_UDC, UNIT_KWH, CH2, CMDFF, CALC_UDC_CH, CH1, 1000 },
-    { FLD_UDC, UNIT_KWH, CH4, CMDFF, CALC_UDC_CH, CH3, 1000 }
+    { FLD_YT,  UNIT_KWH, CH0, CMDFF, CALC_YT_CH0,   0, 0 },
+    { FLD_YD,  UNIT_KWH, CH0, CMDFF, CALC_YD_CH0,   0, 0 },
+    { FLD_UDC, UNIT_V,   CH2, CMDFF, CALC_UDC_CH, CH1, 0 },
+    { FLD_UDC, UNIT_V,   CH4, CMDFF, CALC_UDC_CH, CH3, 0 }
 };
 #define HM1200_LIST_LEN     (sizeof(hm1200assignment) / sizeof(byteAssign_t))
 

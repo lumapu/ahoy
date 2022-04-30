@@ -24,6 +24,9 @@ template<class T=float>
 static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
+static T calcUdcCh(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
 
 template<class T=float>
@@ -37,7 +40,8 @@ struct calcFunc_t {
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {
     { CALC_YT_CH0, &calcYieldTotalCh0 },
-    { CALC_YD_CH0, &calcYieldDayCh0   }
+    { CALC_YD_CH0, &calcYieldDayCh0   },
+    { CALC_UDC_CH, &calcUdcCh         }
 };
 
 
@@ -55,14 +59,19 @@ class Inverter {
         RECORDTYPE    *record;  // pointer for values
 
         Inverter() {
-            getAssignment();
-            toRadioId();
-            record = new RECORDTYPE[listLen];
-            memset(record, 0, sizeof(RECORDTYPE) * listLen);
+
         }
 
         ~Inverter() {
             // TODO: cleanup
+        }
+
+        void init(void) {
+            getAssignment();
+            toRadioId();
+            record = new RECORDTYPE[listLen];
+            memset(name, 0, MAX_NAME_LENGTH);
+            memset(record, 0, sizeof(RECORDTYPE) * listLen);
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId) {
@@ -108,6 +117,14 @@ class Inverter {
             return record[pos];
         }
 
+        void doCalculations(void) {
+            for(uint8_t i = 0; i < listLen; i++) {
+                if(CMDFF == assign[i].cmdId) {
+                    record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
+                }
+            }
+        }
+
     private:
         void toRadioId(void) {
             radioId.u64  = 0ULL;
@@ -143,14 +160,6 @@ class Inverter {
                 listLen  = 0;
                 channels = 0;
                 assign   = NULL;
-            }
-        }
-
-        void doCalculations(void) {
-            for(uint8_t i = 0; i < listLen; i++) {
-                if(CMDFF == assign[i].cmdId) {
-                    calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
-                }
             }
         }
 };
