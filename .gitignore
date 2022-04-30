@@ -10,3 +10,8 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 build
+/**/Debug
+/**/v16/*
+*.db
+*.suo
+*.ipch

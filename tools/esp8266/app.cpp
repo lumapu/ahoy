@@ -136,6 +136,7 @@ void app::loop(void) {
                         if(iv->assign[i].cmdId == *cmd)
                             iv->addValue(i, &p->packet[11]);
                     }
+                    iv->doCalculations();
                 }
 
                 if(*cmd == 0x01)      mCmds[0]++;
