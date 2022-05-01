@@ -7,13 +7,12 @@
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mSendTicker = new Ticker();
-    mFlagSend   = false;
+    mSendTicker   = 0xffffffff;
+    mSendInterval = 0;
+    mMqttTicker   = 0xffffffff;
+    mMqttInterval = 0;
 
     mShowRebootRequest = false;
-
-    mMqttTicker = NULL;
-    mMqttEvt    = false;
 
 
     memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
@@ -43,7 +42,6 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     mWeb->on("/mqttstate", std::bind(&app::showMqtt,       this));
 
     if(mSettingsValid) {
-        uint16_t interval;
         uint64_t invSerial;
         char invName[MAX_NAME_LENGTH + 1] = {0};
         uint8_t invType;
@@ -59,10 +57,10 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
             }
         }
 
-        mEep->read(ADDR_INV_INTERVAL, &interval);
-        if(interval < 1000)
-            interval = 1000;
-        mSendTicker->attach_ms(interval, std::bind(&app::sendTicker, this));
+        mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
+        if(mSendInterval < 1000)
+            mSendInterval = 1000;
+        mSendTicker = 0;
 
 
         // pinout
@@ -84,17 +82,16 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mEep->read(ADDR_MQTT_USER,     mqttUser,  MQTT_USER_LEN);
         mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
         mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
-        mEep->read(ADDR_MQTT_INTERVAL, &interval);
+        mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
 
-        if(interval < 1000)
-            interval = 1000;
+        if(mMqttInterval < 1000)
+            mMqttInterval = 1000;
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
-        mMqttTicker = new Ticker();
-        mMqttTicker->attach_ms(interval, std::bind(&app::mqttTicker, this));
+        mMqttTicker = 0;
 
         mMqtt.sendMsg("version", mVersion);
     }
@@ -157,15 +154,13 @@ void app::loop(void) {
         mSys->BufCtrl.popBack();
     }
 
-    if(mFlagSend) {
-        mFlagSend = false;
+    if(checkTicker(&mSendTicker, &mSendInterval)) {
         Inverter<> *inv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             inv = mSys->getInverterByPos(i);
             if(NULL != inv) {
                 mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
                 yield();
-                //delay(100);
             }
         }
     }
@@ -173,8 +168,7 @@ void app::loop(void) {
 
     // mqtt
     mMqtt.loop();
-    if(mMqttEvt) {
-        mMqttEvt = false;
+    if(checkTicker(&mMqttTicker, &mMqttInterval)) {
         mMqtt.isConnected(true);
         char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -185,7 +179,6 @@ void app::loop(void) {
                         snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
                         snprintf(val, 10, "%.3f", iv->getValue(i));
                         mMqtt.sendMsg(topic, val);
-                        //delay(20);
                         yield();
                     }
                 }
@@ -193,7 +186,6 @@ void app::loop(void) {
         }
 
         // Serial debug
-        //char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL != iv) {
@@ -214,18 +206,6 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
     mSys->Radio.handleIntr();
-}
-
-
-//-----------------------------------------------------------------------------
-void app::sendTicker(void) {
-    mFlagSend = true;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::mqttTicker(void) {
-    mMqttEvt = true;
 }
 
 
@@ -371,6 +351,8 @@ void app::showStatistics(void) {
     }
     content += String("other: ") + String(mCmds[DBG_CMD_LIST_LEN]) + String("\n\n");
 
+    content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
+
     /*content += "\nCHANNELs:\n";
     content += String("23: ") + String(mChannelStat[0]) + String("\n");
     content += String("40: ") + String(mChannelStat[1]) + String("\n");
@@ -410,7 +392,21 @@ void app::showLiveData(void) {
                 case INV_TYPE_HM1200: modNum = 4; break;
             }
 
-            modHtml += "<div class=\"ch-group\"><h3>" + String(iv->name) + "</h3>";
+            modHtml += "<div class=\"iv\">";
+            modHtml += "<div class=\"ch-iv\"><span class=\"head\">" + String(iv->name) + "</span>";
+            uint8_t list[8] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD};
+
+            for(uint8_t fld = 0; fld < 8; fld++) {
+                pos = (iv->getPosByChFld(CH0, list[fld]));
+                if(0xff != pos) {
+                    modHtml += "<div class=\"subgrp\">";
+                    modHtml += "<span class=\"value\">" + String(iv->getValue(pos));
+                    modHtml += "<span class=\"unit\">" + String(iv->getUnit(pos)) + "</span></span>";
+                    modHtml += "<span class=\"info\">" + String(iv->getFieldName(pos)) + "</span>";
+                    modHtml += "</div>";
+                }
+            }
+            modHtml += "</div>";
 
             for(uint8_t ch = 1; ch <= modNum; ch ++) {
                 modHtml += "<div class=\"ch\"><span class=\"head\">CHANNEL " + String(ch) + "</span>";

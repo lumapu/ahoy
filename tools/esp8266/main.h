@@ -6,7 +6,6 @@
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include <Ticker.h>
 
 #include <ESP8266HTTPUpdateServer.h>
 
@@ -64,6 +63,20 @@ class Main {
             } while(addr < ADDR_START_SETTINGS);
         }
 
+        inline bool checkTicker(uint32_t *ticker, uint16_t *interval) {
+            uint32_t mil = millis();
+            if(mil >= *ticker) {
+                *ticker = mil + *interval;
+                return true;
+            }
+            else if(mil < (*ticker - *interval)) {
+                *ticker = mil + *interval;
+                return true;
+            }
+
+            return false;
+        }
+
         char mStationSsid[SSID_LEN];
         char mStationPwd[PWD_LEN];
         bool mWifiSettingsValid;
@@ -87,14 +100,13 @@ class Main {
         void showUptime(void);
         void showTime(void);
         void showCss(void);
-        void uptimeTicker(void);
-
 
         time_t getNtpTime(void);
         void sendNTPpacket(IPAddress& address);
         time_t offsetDayLightSaving (uint32_t local_t);
 
-        Ticker *mUptimeTicker;
+        uint32_t mUptimeTicker;
+        uint16_t mUptimeInterval;
         uint32_t mUptimeSecs;
 
         DNSServer *mDns;

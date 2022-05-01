@@ -23,10 +23,9 @@ Main::Main(void) {
     mEep = new eep();
     Serial.begin(115200);
 
-    mUptimeSecs = 0;
-    mUptimeTicker = new Ticker();
-    mUptimeTicker->attach(1, std::bind(&Main::uptimeTicker, this));
-
+    mUptimeSecs     = 0;
+    mUptimeTicker   = 0xffffffff;
+    mUptimeInterval = 1000;
 }
 
 
@@ -67,6 +66,11 @@ void Main::loop(void) {
     if(mApActive)
         mDns->processNextRequest();
     mWeb->handleClient();
+
+    if(checkTicker(&mUptimeTicker, &mUptimeInterval)) {
+        mUptimeSecs++;
+        mTimestamp++;
+    }
 }
 
 
@@ -268,14 +272,6 @@ void Main::showReboot(void) {
     mWeb->send(200, "text/html", "<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>");
     delay(1000);
     ESP.restart();
-}
-
-
-
-//-----------------------------------------------------------------------------
-void Main::uptimeTicker(void) {
-    mUptimeSecs++;
-    mTimestamp++;
 }
 
 

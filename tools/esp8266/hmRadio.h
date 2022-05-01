@@ -206,6 +206,7 @@ class HmRadio {
         uint8_t pinIrq;
 
         uint8_t AmplifierPower;
+        uint32_t mSendCnt;
 
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len) {
@@ -265,7 +266,6 @@ class HmRadio {
         RF24 mNrf24;
         uint8_t mSendChannel;
         BUFFER *mBufCtrl;
-        uint32_t mSendCnt;
         uint8_t mSendBuf[MAX_RF_PAYLOAD_SIZE];
 };
 

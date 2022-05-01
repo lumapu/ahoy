@@ -40,9 +40,6 @@ class app : public Main {
         }
 
     private:
-        void sendTicker(void);
-        void mqttTicker(void);
-
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
@@ -74,8 +71,8 @@ class app : public Main {
 
         HmSystemType *mSys;
 
-        Ticker *mSendTicker;
-        bool mFlagSend;
+        uint32_t mSendTicker;
+        uint16_t mSendInterval;
 
         uint32_t mCmds[DBG_CMD_LIST_LEN+1];
         //uint32_t mChannelStat[4];
@@ -83,8 +80,8 @@ class app : public Main {
 
         // mqtt
         mqtt mMqtt;
-        Ticker *mMqttTicker;
-        bool mMqttEvt;
+        uint32_t mMqttTicker;
+        uint16_t mMqttInterval;
 };
 
 #endif /*__APP_H__*/

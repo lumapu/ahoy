@@ -136,8 +136,12 @@ label {
     float: right;
 }
 
-div.ch-group {
+div.ch-iv {
+    width: 100%;
+    background-color: #32b004;
     display: inline-block;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
 }
 
 div.ch {
@@ -148,24 +152,29 @@ div.ch {
     margin-right: 20px;
     margin-bottom: 20px;
 }
-div.ch .value, div.ch .info, div.ch .head {
+div.ch .value, div.ch .info, div.ch .head, div.ch-iv  .value, div.ch-iv .info, div.ch-iv .head {
     color: #fff;
     display: block;
     width: 100%;
     text-align: center;
 }
 
-div.ch .unit {
+.subgrp {
+    float: left;
+    width: 250px;
+}
+
+div.ch .unit, div.ch-iv .unit {
     font-size: 19px;
     margin-left: 10px;
 }
 
-div.ch .value {
+div.ch .value, div.ch-iv .value {
     margin-top: 20px;
     font-size: 30px;
 }
 
-div.ch .info {
+div.ch .info, div.ch-iv .info {
     margin-top: 3px;
     font-size: 10px;
 }
@@ -173,4 +182,17 @@ div.ch .info {
 div.ch .head {
     background-color: #003c80;
     padding: 10px 0 10px 0;
+}
+
+div.ch-iv .head {
+    background-color: #1c6800;
+    padding: 10px 0 10px 0;
+}
+
+div.iv {
+    max-width: 1060px;
+}
+
+div.ch:last-child {
+    margin-right: 0px !important;
 }
