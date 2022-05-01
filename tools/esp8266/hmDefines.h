@@ -87,7 +87,8 @@ const byteAssign_t hm600assignment[] = {
     { FLD_YD,  UNIT_WH,  CH2, CMD02,  9, 2, 1    },
     { FLD_UAC, UNIT_V,   CH0, CMD02, 11, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, CMD02, 13, 2, 100  },
-    { FLD_IAC, UNIT_A,   CH0, CMD02, 15, 2, 10   },
+    { FLD_PAC, UNIT_W,   CH0, CMD02, 15, 2, 10   },
+    { FLD_IAC, UNIT_A,   CH0, CMD83,  3, 2, 100  },
     { FLD_T,   UNIT_C,   CH0, CMD83,  7, 2, 10   }
 };
 #define HM600_LIST_LEN     (sizeof(hm600assignment) / sizeof(byteAssign_t))
