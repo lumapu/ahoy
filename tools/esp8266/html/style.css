@@ -92,7 +92,7 @@ a.erase {
 div.content {
     background-color: #fff;
     padding-bottom: 65px;
-    overflow: hidden;
+    overflow: auto;
 }
 
 input, select {
@@ -142,15 +142,17 @@ div.ch-iv {
     display: inline-block;
     margin-bottom: 20px;
     padding-bottom: 20px;
+    overflow: auto;
 }
 
 div.ch {
     width: 250px;
-    height: 410px;
+    height: 550px;
     background-color: #006ec0;
     display: inline-block;
     margin-right: 20px;
     margin-bottom: 20px;
+    overflow: auto;
 }
 div.ch .value, div.ch .info, div.ch .head, div.ch-iv  .value, div.ch-iv .info, div.ch-iv .head {
     color: #fff;

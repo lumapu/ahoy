@@ -8,6 +8,7 @@
 //#define CHANNEL_HOP // switch between channels or use static channel to send
 
 #define DEFAULT_RECV_CHANNEL    3
+#define SPI_SPEED               1000000
 
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
@@ -45,7 +46,7 @@ const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
 class HmRadio {
     public:
-        HmRadio() : mNrf24(CE_PIN, CS_PIN) {
+        HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             mChanOut[0] = 23;
             mChanOut[1] = 40;
             mChanOut[2] = 61;

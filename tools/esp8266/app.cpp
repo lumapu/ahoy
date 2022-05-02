@@ -388,7 +388,8 @@ void app::showLiveData(void) {
             uint8_t modNum, pos;
             switch(iv->type) {
                 default:              modNum = 1; break;
-                case INV_TYPE_HM600:  modNum = 2; break;
+                case INV_TYPE_HM600:
+                case INV_TYPE_HM800:  modNum = 2; break;
                 case INV_TYPE_HM1200: modNum = 4; break;
             }
 
