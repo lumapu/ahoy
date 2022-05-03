@@ -16,6 +16,7 @@
 #include "eep.h"
 #include "defines.h"
 #include "crc.h"
+#include "debug.h"
 
 
 const byte mDnsPort = 53;
@@ -57,11 +58,13 @@ class Main {
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
             do {
-                end = addr += 64;
+                end = addr + 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))
-                    end = (ADDR_SETTINGS_CRC + 2 - addr);
-                mEep->write(ADDR_START_SETTINGS, buf, (ADDR_NEXT-ADDR_START_SETTINGS));
-            } while(addr < ADDR_START_SETTINGS);
+                    end = (ADDR_SETTINGS_CRC + 2);
+                DPRINTLN("erase: 0x" + String(addr, HEX) + " - 0x" + String(end, HEX));
+                mEep->write(addr, buf, (end-addr));
+                addr = end;
+            } while(addr < (ADDR_SETTINGS_CRC + 2));
         }
 
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
@@ -90,6 +93,7 @@ class Main {
         uint32_t mTimestamp;
         uint32_t mLimit;
         uint32_t mNextTryTs;
+        uint32_t mApLastTick;
 
     private:
         bool getConfig(void);

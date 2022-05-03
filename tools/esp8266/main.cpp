@@ -18,6 +18,7 @@ Main::Main(void) {
 
     mLimit       = 10;
     mNextTryTs   = 0;
+    mApLastTick  = 0;
 
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
@@ -53,16 +54,16 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
     if(true == startAp) {
         if(strlen(pwd) < 8)
-            Serial.println("password must be at least 8 characters long");
-        setupAp(ssid, pwd);
+            DPRINTLN("ERROR: password must be at least 8 characters long");
+    }
+    else {
+        mTimestamp  = getNtpTime();
+        DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
     }
 
     mUpdater->setup(mWeb);
-
     mApActive = startAp;
 
-    mTimestamp  = getNtpTime();
-    //Serial.println("[NTP]: " + getDateTimeStr(getNtpTime()));
 }
 
 
@@ -71,9 +72,16 @@ void Main::loop(void) {
     if(mApActive) {
         mDns->processNextRequest();
         if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
+            mApLastTick = millis();
             mApActive = setupStation(mLimit);
             if(mApActive)
                 setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+        }
+        else {
+            if(millis() - mApLastTick > 10000) {
+                mApLastTick = millis();
+                DPRINTLN("AP will be closed in " + String((mNextTryTs - mApLastTick) / 1000) + " seconds");
+            }
         }
     }
     mWeb->handleClient();
@@ -118,7 +126,12 @@ bool Main::getConfig(void) {
 void Main::setupAp(const char *ssid, const char *pwd) {
     IPAddress apIp(192, 168, 1, 1);
 
-    Serial.println("\n---------\nAP MODE\nSSDI: "+ String(ssid) + "\nPWD: " + String(pwd) + "\n---------\n");
+    DPRINTLN("\n---------\nAP MODE\nSSDI: "
+        + String(ssid) + "\nPWD: "
+        + String(pwd) + "\nActive for: "
+        + String(WIFI_AP_ACTIVE_TIME) + " seconds"
+        + "\n---------\n");
+    DPRINTLN("DBG: " + String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -153,7 +166,7 @@ bool Main::setupStation(uint32_t timeout) {
         WiFi.hostname(mDeviceName);
 
     delay(2000);
-    Serial.println("wait for network");
+    DPRINTLN("connect to network '" + String(mStationSsid) + "' ...");
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -192,6 +205,10 @@ void Main::showSetup(void) {
     // -> the PWD will only be changed if it does not match the default "{PWD}"
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+    if(mApActive)
+        html.replace("{IP}", String("http://192.168.1.1"));
+    else
+        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
 
     mWeb->send(200, "text/html", html);
 }
@@ -233,7 +250,7 @@ void Main::saveValues(bool webSend = true) {
         if(webSend) {
             if(mWeb->arg("reboot") == "on")
                 showReboot();
-            else
+            else // TODO: add device name as redirect in AP-mode
                 mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                              "<p>saved</p></body></html>");
         }

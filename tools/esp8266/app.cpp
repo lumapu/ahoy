@@ -7,10 +7,13 @@
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mSendTicker   = 0xffffffff;
-    mSendInterval = 0;
-    mMqttTicker   = 0xffffffff;
-    mMqttInterval = 0;
+    mSendTicker     = 0xffffffff;
+    mSendInterval   = 0;
+    mMqttTicker     = 0xffffffff;
+    mMqttInterval   = 0;
+    mSerialTicker   = 0xffffffff;
+    mSerialInterval = 0;
+    mMqttActive     = false;
 
     mShowRebootRequest = false;
 
@@ -86,11 +89,16 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
+        mMqttActive = (mqttAddr[0] > 0);
+
 
         if(mMqttInterval < 1000)
             mMqttInterval = 1000;
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
+
+        mSerialTicker = 0;
+        mSerialInterval = mMqttInterval; // TODO: add extra setting for this!
 
         mMqtt.sendMsg("version", mVersion);
     }
@@ -166,25 +174,31 @@ void app::loop(void) {
 
 
     // mqtt
-    mMqtt.loop();
-    if(checkTicker(&mMqttTicker, mMqttInterval)) {
-        mMqtt.isConnected(true);
-        char topic[30], val[10];
-        for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-            Inverter<> *iv = mSys->getInverterByPos(id);
-            if(NULL != iv) {
-                for(uint8_t i = 0; i < iv->listLen; i++) {
-                    if(0.0f != iv->getValue(i)) {
-                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                        snprintf(val, 10, "%.3f", iv->getValue(i));
-                        mMqtt.sendMsg(topic, val);
-                        yield();
+    if(mMqttActive) {
+        mMqtt.loop();
+        if(checkTicker(&mMqttTicker, mMqttInterval)) {
+            mMqtt.isConnected(true);
+            char topic[30], val[10];
+            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if(NULL != iv) {
+                    for(uint8_t i = 0; i < iv->listLen; i++) {
+                        if(0.0f != iv->getValue(i)) {
+                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                            snprintf(val, 10, "%.3f", iv->getValue(i));
+                            mMqtt.sendMsg(topic, val);
+                            yield();
+                        }
                     }
                 }
             }
         }
+    }
 
-        // Serial debug
+
+    // Serial debug
+    if(checkTicker(&mSerialTicker, mSerialInterval)) {
+        char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL != iv) {
@@ -230,6 +244,10 @@ void app::showSetup(void) {
 
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+    if(mApActive)
+        html.replace("{IP}", String("http://192.168.1.1"));
+    else
+        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
 
     String inv;
     uint64_t invSerial;

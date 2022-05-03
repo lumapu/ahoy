@@ -81,6 +81,9 @@ class app : public Main {
         mqtt mMqtt;
         uint32_t mMqttTicker;
         uint16_t mMqttInterval;
+        bool mMqttActive;
+        uint32_t mSerialTicker;
+        uint16_t mSerialInterval;
 };
 
 #endif /*__APP_H__*/
