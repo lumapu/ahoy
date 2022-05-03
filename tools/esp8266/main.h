@@ -52,9 +52,10 @@ class Main {
             return (crcCheck == crcRd);
         }
 
-        void eraseSettings(void) {
+        void eraseSettings(bool all = false) {
             uint8_t buf[64] = {0};
-            uint16_t addr = ADDR_START_SETTINGS, end;
+            uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
+            uint16_t end;
             do {
                 end = addr += 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))
@@ -63,14 +64,14 @@ class Main {
             } while(addr < ADDR_START_SETTINGS);
         }
 
-        inline bool checkTicker(uint32_t *ticker, uint16_t *interval) {
+        inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
             uint32_t mil = millis();
             if(mil >= *ticker) {
-                *ticker = mil + *interval;
+                *ticker = mil + interval;
                 return true;
             }
-            else if(mil < (*ticker - *interval)) {
-                *ticker = mil + *interval;
+            else if(mil < (*ticker - interval)) {
+                *ticker = mil + interval;
                 return true;
             }
 
@@ -87,7 +88,8 @@ class Main {
         char mDeviceName[DEVNAME_LEN];
         eep *mEep;
         uint32_t mTimestamp;
-
+        uint32_t mLimit;
+        uint32_t mNextTryTs;
 
     private:
         bool getConfig(void);
@@ -100,6 +102,7 @@ class Main {
         void showUptime(void);
         void showTime(void);
         void showCss(void);
+        void showFactoryRst(void);
 
         time_t getNtpTime(void);
         void sendNTPpacket(IPAddress& address);

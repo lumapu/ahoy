@@ -16,6 +16,9 @@ Main::Main(void) {
     mWifiSettingsValid = false;
     mSettingsValid     = false;
 
+    mLimit       = 10;
+    mNextTryTs   = 0;
+
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
     memset(&mDeviceName, 0, DEVNAME_LEN);
@@ -32,14 +35,16 @@ Main::Main(void) {
 //-----------------------------------------------------------------------------
 void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     bool startAp = mApActive;
+    mLimit = timeout;
 
-    mWeb->on("/setup", std::bind(&Main::showSetup, this));
-    mWeb->on("/save", std::bind(&Main::showSave, this));
-    mWeb->on("/uptime", std::bind(&Main::showUptime, this));
-    mWeb->on("/time", std::bind(&Main::showTime, this));
-    mWeb->on("/style.css", std::bind(&Main::showCss, this));
-    mWeb->on("/reboot", std::bind(&Main::showReboot,   this));
-    mWeb->onNotFound (std::bind(&Main::showNotFound, this));
+    mWeb->on("/setup",     std::bind(&Main::showSetup,      this));
+    mWeb->on("/save",      std::bind(&Main::showSave,       this));
+    mWeb->on("/uptime",    std::bind(&Main::showUptime,     this));
+    mWeb->on("/time",      std::bind(&Main::showTime,       this));
+    mWeb->on("/style.css", std::bind(&Main::showCss,        this));
+    mWeb->on("/reboot",    std::bind(&Main::showReboot,     this));
+    mWeb->on("/factory",   std::bind(&Main::showFactoryRst, this));
+    mWeb->onNotFound (     std::bind(&Main::showNotFound,   this));
 
     startAp = getConfig();
 
@@ -63,11 +68,17 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::loop(void) {
-    if(mApActive)
+    if(mApActive) {
         mDns->processNextRequest();
+        if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
+            mApActive = setupStation(mLimit);
+            if(mApActive)
+                setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+        }
+    }
     mWeb->handleClient();
 
-    if(checkTicker(&mUptimeTicker, &mUptimeInterval)) {
+    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
         mUptimeSecs++;
         mTimestamp++;
     }
@@ -87,13 +98,16 @@ bool Main::getConfig(void) {
         mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
     }
     else {
-        mApActive = true;
+        /*mApActive = true;
         memset(mStationSsid, 0, SSID_LEN);
         memset(mStationPwd, 0, PWD_LEN);
         memset(mDeviceName, 0, DEVNAME_LEN);
 
         // erase application settings except wifi settings
-        eraseSettings();
+        eraseSettings();*/
+        snprintf(mStationSsid, SSID_LEN,    "%s", FB_WIFI_SSID);
+        snprintf(mStationPwd,  PWD_LEN,     "%s", FB_WIFI_PWD);
+        snprintf(mDeviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
     }
 
     return mApActive;
@@ -123,15 +137,22 @@ void Main::setupAp(const char *ssid, const char *pwd) {
 
 //-----------------------------------------------------------------------------
 bool Main::setupStation(uint32_t timeout) {
-    int32_t cnt = timeout * 10;
+    int32_t cnt;
     bool startAp = false;
+
+    if(timeout >= 3)
+        cnt = (timeout - 3) / 2 * 10;
+    else {
+        timeout = 1;
+        cnt = 1;
+    }
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(mStationSsid, mStationPwd);
     if(String(mDeviceName) != "")
         WiFi.hostname(mDeviceName);
 
-    delay(5000);
+    delay(2000);
     Serial.println("wait for network");
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
@@ -142,8 +163,10 @@ bool Main::setupStation(uint32_t timeout) {
 
         if(timeout > 0) { // limit == 0 -> no limit
             if(--cnt <= 0) {
-                startAp = true;
-                WiFi.disconnect();
+                if(WiFi.status() != WL_CONNECTED) {
+                    startAp = true;
+                    WiFi.disconnect();
+                }
                 delay(100);
                 break;
             }
@@ -272,6 +295,35 @@ void Main::showReboot(void) {
     mWeb->send(200, "text/html", "<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>");
     delay(1000);
     ESP.restart();
+}
+
+
+
+//-----------------------------------------------------------------------------
+void Main::showFactoryRst(void) {
+    String content = "";
+    int refresh = 3;
+    if(mWeb->args() > 0) {
+        if(mWeb->arg("reset").toInt() == 1) {
+            eraseSettings(true);
+            content = "factory reset: success\n\nrebooting ... ";
+            refresh = 10;
+        }
+        else {
+            content = "factory reset: aborted";
+            refresh = 3;
+        }
+    }
+    else {
+        content = "<h1>Factory Reset</h1>";
+        content += "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>";
+        refresh = 120;
+    }
+    mWeb->send(200, "text/html", "<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"" + String(refresh) + "; URL=/\"></head><body>" + content + "</body></html>");
+    if(refresh == 10) {
+        delay(1000);
+        ESP.restart();
+    }
 }
 
 

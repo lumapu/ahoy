@@ -1,9 +1,10 @@
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
+#include "config.h"
 
 //-------------------------------------
-// PINOUT
+// PINOUT (Default, can be changed in setup)
 //-------------------------------------
 #define RF24_CS_PIN         15
 #define RF24_CE_PIN         2
@@ -11,21 +12,11 @@
 
 
 //-------------------------------------
-// CONFIGURATION - COMPILE TIME
-//-------------------------------------
-#define PACKET_BUFFER_SIZE      30
-#define MAX_NUM_INVERTERS       3
-#define MAX_NAME_LENGTH         16
-#define MAX_RF_PAYLOAD_SIZE     64
-#define LIVEDATA_VISUALIZED     // show live data pv-module wise or as dump
-
-
-//-------------------------------------
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       3
-#define VERSION_PATCH       3
+#define VERSION_PATCH       4
 
 
 //-------------------------------------

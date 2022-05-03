@@ -39,7 +39,6 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
     mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
     mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
-    mWeb->on("/mqttstate", std::bind(&app::showMqtt,       this));
 
     if(mSettingsValid) {
         uint64_t invSerial;
@@ -154,7 +153,7 @@ void app::loop(void) {
         mSys->BufCtrl.popBack();
     }
 
-    if(checkTicker(&mSendTicker, &mSendInterval)) {
+    if(checkTicker(&mSendTicker, mSendInterval)) {
         Inverter<> *inv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             inv = mSys->getInverterByPos(i);
@@ -168,7 +167,7 @@ void app::loop(void) {
 
     // mqtt
     mMqtt.loop();
-    if(checkTicker(&mMqttTicker, &mMqttInterval)) {
+    if(checkTicker(&mMqttTicker, mMqttInterval)) {
         mMqtt.isConnected(true);
         char topic[30], val[10];
         for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -360,10 +359,18 @@ void app::showStatistics(void) {
     content += String("75: ") + String(mChannelStat[3]) + String("\n");*/
 
     if(!mSys->Radio.isChipConnected())
-        content += "WARNING! your NRF24 module can't be reached, check the wiring\n";
+        content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";
 
     if(mShowRebootRequest)
         content += "INFO: reboot your ESP to apply all your configuration changes!\n";
+
+    if(!mSettingsValid)
+        content += "INFO: your settings are invalid, please switch to <a href=\"/setup\">setup</a> to correct this.\n";
+
+    content += "MQTT: ";
+    if(!mMqtt.isConnected())
+        content += "not ";
+    content += "connected\n";
 
     mWeb->send(200, "text/plain", content);
 }
@@ -445,15 +452,6 @@ void app::showLiveData(void) {
 
 
     mWeb->send(200, "text/html", modHtml);
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showMqtt(void) {
-    String txt = "connected";
-    if(!mMqtt.isConnected())
-        txt = "not " + txt;
-    mWeb->send(200, "text/plain", txt);
 }
 
 

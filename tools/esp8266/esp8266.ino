@@ -8,13 +8,13 @@
 
 #include <ESP8266HTTPUpdateServer.h>
 #include "app.h"
+#include "config.h"
 
 app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
-    // AP name, password, timeout
-    myApp.setup("ESP AHOY", "esp_8266", 15);
+    myApp.setup(WIFI_AP_SSID, WIFI_AP_PWD, WIFI_TRY_CONNECT_TIME);
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
