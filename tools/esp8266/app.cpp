@@ -7,16 +7,20 @@
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mSendTicker     = 0xffffffff;
+    mSendTicker     = 0xffff;
     mSendInterval   = 0;
-    mMqttTicker     = 0xffffffff;
+    mMqttTicker     = 0xffff;
     mMqttInterval   = 0;
-    mSerialTicker   = 0xffffffff;
+    mSerialTicker   = 0xffff;
     mSerialInterval = 0;
     mMqttActive     = false;
 
+    mTicker = 0;
+
     mShowRebootRequest = false;
 
+    mSerialValues = true;
+    mSerialDebug  = false;
 
     memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
     //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
@@ -32,8 +36,8 @@ app::~app(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
-    Main::setup(ssid, pwd, timeout);
+void app::setup(uint32_t timeout) {
+    Main::setup(timeout);
 
     mWeb->on("/",          std::bind(&app::showIndex,      this));
     mWeb->on("/setup",     std::bind(&app::showSetup,      this));
@@ -58,11 +62,9 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
                 DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
             }
         }
-
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < 1000)
-            mSendInterval = 1000;
-        mSendTicker = 0;
+        if(mSendInterval < 1)
+            mSendInterval = 1;
 
 
         // pinout
@@ -73,6 +75,17 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
         // nrf24 amplifier power
         mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
+
+        // serial console
+        uint8_t tmp;
+        mEep->read(ADDR_SER_INTERVAL, &mSerialInterval);
+        mEep->read(ADDR_SER_ENABLE, &tmp);
+        mSerialValues = (tmp == 0x01);
+        mEep->read(ADDR_SER_DEBUG, &tmp);
+        mSerialDebug = (tmp == 0x01);
+        if(mSerialInterval < 1)
+            mSerialInterval = 1;
+
 
         // mqtt
         uint8_t mqttAddr[MQTT_ADDR_LEN];
@@ -92,13 +105,12 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
         mMqttActive = (mqttAddr[0] > 0);
 
 
-        if(mMqttInterval < 1000)
-            mMqttInterval = 1000;
+        if(mMqttInterval < 1)
+            mMqttInterval = 1;
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
 
         mSerialTicker = 0;
-        mSerialInterval = mMqttInterval; // TODO: add extra setting for this!
 
         mMqtt.sendMsg("version", mVersion);
     }
@@ -125,7 +137,8 @@ void app::loop(void) {
     if(!mSys->BufCtrl.empty()) {
         uint8_t len, rptCnt;
         packet_t *p = mSys->BufCtrl.getBack();
-        //mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
+        if(mSerialDebug)
+            mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
         if(mSys->Radio.checkCrc(p->packet, &len, &rptCnt)) {
             // process buffer only on first occurrence
@@ -161,54 +174,58 @@ void app::loop(void) {
         mSys->BufCtrl.popBack();
     }
 
-    if(checkTicker(&mSendTicker, mSendInterval)) {
-        Inverter<> *inv;
-        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-            inv = mSys->getInverterByPos(i);
-            if(NULL != inv) {
-                mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
-                yield();
+    if(checkTicker(&mTicker, 1000)) {
+        if(++mSendTicker >= mSendInterval) {
+            mSendTicker = 0;
+
+            Inverter<> *inv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                inv = mSys->getInverterByPos(i);
+                if(NULL != inv) {
+                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    yield();
+                }
             }
         }
-    }
 
-
-    // mqtt
-    if(mMqttActive) {
-        mMqtt.loop();
-        if(checkTicker(&mMqttTicker, mMqttInterval)) {
-            mMqtt.isConnected(true);
-            char topic[30], val[10];
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        if(0.0f != iv->getValue(i)) {
-                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                            snprintf(val, 10, "%.3f", iv->getValue(i));
-                            mMqtt.sendMsg(topic, val);
-                            yield();
+        if(mMqttActive) {
+            mMqtt.loop();
+            if(++mMqttTicker > mMqttInterval) {
+                mMqttInterval = 0;
+                mMqtt.isConnected(true);
+                char topic[30], val[10];
+                for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                    Inverter<> *iv = mSys->getInverterByPos(id);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(0.0f != iv->getValue(i)) {
+                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                                snprintf(val, 10, "%.3f", iv->getValue(i));
+                                mMqtt.sendMsg(topic, val);
+                                yield();
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
-
-    // Serial debug
-    if(checkTicker(&mSerialTicker, mSerialInterval)) {
-        char topic[30], val[10];
-        for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-            Inverter<> *iv = mSys->getInverterByPos(id);
-            if(NULL != iv) {
-                for(uint8_t i = 0; i < iv->listLen; i++) {
-                    if(0.0f != iv->getValue(i)) {
-                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                        snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                        DPRINTLN(String(topic) + ": " + String(val));
+        if(mSerialValues) {
+            if(++mSerialTicker > mSerialInterval) {
+                mSerialInterval = 0;
+                char topic[30], val[10];
+                for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                    Inverter<> *iv = mSys->getInverterByPos(id);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(0.0f != iv->getValue(i)) {
+                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                                DPRINTLN(String(topic) + ": " + String(val));
+                            }
+                            yield();
+                        }
                     }
-                    yield();
                 }
             }
         }
@@ -315,7 +332,15 @@ void app::showSetup(void) {
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
-        html.replace("{INV_INTERVAL}", String(interval));
+        html.replace("{INV_INTVL}", String(interval));
+
+        uint8_t tmp;
+        mEep->read(ADDR_SER_INTERVAL, &interval);
+        mEep->read(ADDR_SER_ENABLE, &tmp);
+        html.replace("{SER_INTVL}", String(interval));
+        html.replace("{SER_VAL_CB}", (tmp == 0x01) ? "checked" : "");
+        mEep->read(ADDR_SER_DEBUG, &tmp);
+        html.replace("{SER_DBG_CB}", (tmp == 0x01) ? "checked" : "");
 
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
@@ -325,22 +350,28 @@ void app::showSetup(void) {
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-        html.replace("{MQTT_ADDR}",     String(addr));
-        html.replace("{MQTT_PORT}",     String(mqttPort));
-        html.replace("{MQTT_USER}",     String(mMqtt.getUser()));
-        html.replace("{MQTT_PWD}",      String(mMqtt.getPwd()));
-        html.replace("{MQTT_TOPIC}",    String(mMqtt.getTopic()));
-        html.replace("{MQTT_INTERVAL}", String(interval));
+        html.replace("{MQTT_ADDR}",  String(addr));
+        html.replace("{MQTT_PORT}",  String(mqttPort));
+        html.replace("{MQTT_USER}",  String(mMqtt.getUser()));
+        html.replace("{MQTT_PWD}",   String(mMqtt.getPwd()));
+        html.replace("{MQTT_TOPIC}", String(mMqtt.getTopic()));
+        html.replace("{MQTT_INTVL}", String(interval));
     }
     else {
-        html.replace("{INV_INTERVAL}", "1000");
+        html.replace("{INV_INTVL}", "5");
+
+        html.replace("{SER_VAL_CB}", "checked");
+        html.replace("{SER_DBG_CB}", "");
+        html.replace("{SER_INTVL}", "10");
 
         html.replace("{MQTT_ADDR}", "");
         html.replace("{MQTT_PORT}", "1883");
         html.replace("{MQTT_USER}", "");
         html.replace("{MQTT_PWD}", "");
         html.replace("{MQTT_TOPIC}", "/inverter");
-        html.replace("{MQTT_INTERVAL}", "10000");
+        html.replace("{MQTT_INTVL}", "10");
+
+        html.replace("{SER_INTVL}", "10");
     }
 
     mWeb->send(200, "text/html", html);
@@ -534,7 +565,7 @@ void app::saveValues(bool webSend = true) {
         mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
         mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
         mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
-        interval = mWeb->arg("mqttInterval").toInt();
+        interval = mWeb->arg("mqttIntvl").toInt();
         mqttPort = mWeb->arg("mqttPort").toInt();
         mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
         mEep->write(ADDR_MQTT_PORT, mqttPort);
@@ -543,12 +574,22 @@ void app::saveValues(bool webSend = true) {
         mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
         mEep->write(ADDR_MQTT_INTERVAL, interval);
 
+
+        // serial console
+        bool tmp;
+        interval = mWeb->arg("serIntvl").toInt();
+        mEep->write(ADDR_SER_INTERVAL, interval);
+        tmp = (mWeb->arg("serEn") == "on");
+        mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
+        tmp = (mWeb->arg("serDbg") == "on");
+        mEep->write(ADDR_SER_DEBUG, (uint8_t)((tmp) ? 0x01 : 0x00));
+
         updateCrc();
         if((mWeb->arg("reboot") == "on"))
             showReboot();
         else {
             mShowRebootRequest = true;
-            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
+            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>");
         }
     }

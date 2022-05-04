@@ -66,8 +66,7 @@ a.erase {
 
 #footer p, #footer a {
     color: #fff;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding: 0 7px 0 7px;
     font-size: 10pt !important;
 }
 
@@ -137,6 +136,7 @@ div.ch {
     overflow: auto;
     padding-bottom: 20px;
 }
+
 div.ch .value, div.ch .info, div.ch .head, div.ch-iv  .value, div.ch-iv .info, div.ch-iv .head {
     color: #fff;
     display: block;

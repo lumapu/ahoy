@@ -30,7 +30,7 @@ const byte mDnsPort = 53;
 class Main {
     public:
         Main(void);
-        virtual void setup(const char *ssid, const char *pwd, uint32_t timeout);
+        virtual void setup(uint32_t timeout);
         virtual void loop();
         String getDateTimeStr (time_t t);
 

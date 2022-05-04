@@ -9,6 +9,8 @@
 // access point info
 #define WIFI_AP_SSID    "AHOY DTU"
 #define WIFI_AP_PWD     "esp_8266"
+// stay in access point mode all the time
+//#define AP_ONLY
 
 
 //-------------------------------------

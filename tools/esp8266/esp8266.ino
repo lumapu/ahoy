@@ -14,7 +14,7 @@ app myApp;
 
 //-----------------------------------------------------------------------------
 void setup() {
-    myApp.setup(WIFI_AP_SSID, WIFI_AP_PWD, WIFI_TRY_CONNECT_TIME);
+    myApp.setup(WIFI_TRY_CONNECT_TIME);
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);

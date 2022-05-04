@@ -71,7 +71,6 @@ class HmRadio {
             mBufCtrl = ctrl;
 
             mNrf24.begin(pinCe, pinCs);
-            mNrf24.setAutoAck(false);
             mNrf24.setRetries(0, 0);
 
             mNrf24.setChannel(DEFAULT_RECV_CHANNEL);

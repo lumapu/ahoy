@@ -16,7 +16,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       3
-#define VERSION_PATCH       5
+#define VERSION_PATCH       6
 
 
 //-------------------------------------
@@ -50,6 +50,10 @@ typedef struct {
 #define MQTT_INTERVAL_LEN   2 // uint16_t
 #define MQTT_PORT_LEN       2 // uint16_t
 
+#define SER_ENABLE_LEN      1 // uint8_t
+#define SER_DEBUG_LEN       1 // uint8_t
+#define SER_INTERVAL_LEN    2 // uint16_t
+
 
 #define ADDR_START          0
 #define ADDR_SSID           ADDR_START
@@ -72,9 +76,12 @@ typedef struct {
 #define ADDR_MQTT_PWD       ADDR_MQTT_USER     + MQTT_USER_LEN
 #define ADDR_MQTT_TOPIC     ADDR_MQTT_PWD      + MQTT_PWD_LEN
 #define ADDR_MQTT_INTERVAL  ADDR_MQTT_TOPIC    + MQTT_TOPIC_LEN
-
 #define ADDR_MQTT_PORT      ADDR_MQTT_INTERVAL + MQTT_INTERVAL_LEN
-#define ADDR_NEXT           ADDR_MQTT_PORT     + MQTT_PORT_LEN
+
+#define ADDR_SER_ENABLE     ADDR_MQTT_PORT     + MQTT_PORT_LEN
+#define ADDR_SER_DEBUG      ADDR_SER_ENABLE    + SER_ENABLE_LEN
+#define ADDR_SER_INTERVAL   ADDR_SER_DEBUG     + SER_DEBUG_LEN
+#define ADDR_NEXT           ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
 
 #define ADDR_SETTINGS_CRC   400
 

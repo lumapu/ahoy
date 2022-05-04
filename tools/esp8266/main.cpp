@@ -34,7 +34,7 @@ Main::Main(void) {
 
 
 //-----------------------------------------------------------------------------
-void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
+void Main::setup(uint32_t timeout) {
     bool startAp = mApActive;
     mLimit = timeout;
 
@@ -49,14 +49,14 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 
     startAp = getConfig();
 
+#ifndef AP_ONLY
     if(false == startAp)
         startAp = setupStation(timeout);
+#else
+    setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+#endif
 
-    if(true == startAp) {
-        if(strlen(pwd) < 8)
-            DPRINTLN("ERROR: password must be at least 8 characters long");
-    }
-    else {
+    if(!startAp) {
         mTimestamp  = getNtpTime();
         DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
     }
@@ -71,11 +71,15 @@ void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 void Main::loop(void) {
     if(mApActive) {
         mDns->processNextRequest();
+#ifndef AP_ONLY
         if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
             mApLastTick = millis();
             mApActive = setupStation(mLimit);
-            if(mApActive)
+            if(mApActive) {
+                if(strlen(WIFI_AP_PWD) < 8)
+                    DPRINTLN("ERROR: password must be at least 8 characters long");
                 setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+            }
         }
         else {
             if(millis() - mApLastTick > 10000) {
@@ -83,6 +87,7 @@ void Main::loop(void) {
                 DPRINTLN("AP will be closed in " + String((mNextTryTs - mApLastTick) / 1000) + " seconds");
             }
         }
+#endif
     }
     mWeb->handleClient();
 

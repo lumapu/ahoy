@@ -28,8 +28,8 @@
                     <p class="des">Inverter</p>
                     {INVERTERS}<br/>
                     <p class="subdes">General</p>
-                    <label for="invInterval">Interval (ms)</label>
-                    <input type="text" class="text" name="invInterval" value="{INV_INTERVAL}"/>
+                    <label for="invInterval">Interval (s)</label>
+                    <input type="text" class="text" name="invInterval" value="{INV_INTVL}"/>
 
                     <p class="des">Pinout (Wemos)</p>
                     {PINOUT}
@@ -49,12 +49,20 @@
                     <input type="text" class="text" name="mqttPwd" value="{MQTT_PWD}"/>
                     <label for="mqttTopic">Topic</label>
                     <input type="text" class="text" name="mqttTopic" value="{MQTT_TOPIC}"/>
-                    <label for="mqttInterval">Interval (ms)</label>
-                    <input type="text" class="text" name="mqttInterval" value="{MQTT_INTERVAL}"/>
+                    <label for="mqttIntvl">Interval (s)</label>
+                    <input type="text" class="text" name="mqttIntvl" value="{MQTT_INTVL}"/>
+
+                    <p class="des">Serial Console</p>
+                    <label for="serEn">print inverter data</label>
+                    <input type="checkbox" class="cb" name="serEn" {SER_VAL_CB}/><br/>
+                    <label for="serDbg">print RF24 debug</label>
+                    <input type="checkbox" class="cb" name="serDbg" {SER_DBG_CB}/><br/>
+                    <label for="serIntvl">Interval (s)</label>
+                    <input type="text" class="text" name="serIntvl" value="{SER_INTVL}"/>
 
                     <p class="des">&nbsp;</p>
-                    <input type="checkbox" class="cb" name="reboot"/>
                     <label for="reboot">Reboot device after successful save</label>
+                    <input type="checkbox" class="cb" name="reboot"/>
                     <input type="submit" value="save" class="btn" />
                 </form>
             </div>

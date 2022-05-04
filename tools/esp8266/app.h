@@ -31,7 +31,7 @@ class app : public Main {
         app();
         ~app();
 
-        void setup(const char *ssid, const char *pwd, uint32_t timeout);
+        void setup(uint32_t timeout);
         void loop(void);
         void handleIntr(void);
 
@@ -70,19 +70,24 @@ class app : public Main {
 
         HmSystemType *mSys;
 
-        uint32_t mSendTicker;
+        uint16_t mSendTicker;
         uint16_t mSendInterval;
 
         uint32_t mCmds[DBG_CMD_LIST_LEN+1];
         //uint32_t mChannelStat[4];
         uint32_t mRecCnt;
 
+        // timer
+        uint32_t mTicker;
+        bool mSerialValues;
+        bool mSerialDebug;
+
         // mqtt
         mqtt mMqtt;
-        uint32_t mMqttTicker;
+        uint16_t mMqttTicker;
         uint16_t mMqttInterval;
         bool mMqttActive;
-        uint32_t mSerialTicker;
+        uint16_t mSerialTicker;
         uint16_t mSerialInterval;
 };
 
