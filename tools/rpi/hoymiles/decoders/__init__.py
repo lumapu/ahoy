@@ -155,42 +155,74 @@ class HM1500_Decode0B(StatusResponse):
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_0(self):
-        return self.unpack('>H', 6)[0]/10
+        return self.unpack('>H', 9)[0]/10
     @property
     def dc_energy_total_0(self):
-        return self.unpack('>L', 14)[0]
+        return self.unpack('>L', 12)[0]
     @property
     def dc_energy_daily_0(self):
-        return self.unpack('>H', 22)[0]
+        return self.unpack('>H', 20)[0]
 
     @property
     def dc_voltage_1(self):
-        return self.unpack('>H', 8)[0]/10
+        return self.unpack('>H', 2)[0]/10
     @property
     def dc_current_1(self):
-        return self.unpack('>H', 10)[0]/100
+        return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_1(self):
-        return self.unpack('>H', 12)[0]/10
+        return self.unpack('>H', 10)[0]/10
     @property
     def dc_energy_total_1(self):
-        return self.unpack('>L', 18)[0]
+        return self.unpack('>L', 16)[0]
     @property
     def dc_energy_daily_1(self):
-        return self.unpack('>H', 24)[0]
+        return self.unpack('>H', 22)[0]
+
+    @property
+    def dc_voltage_2(self):
+        return self.unpack('>H', 24)[0]/10
+    @property
+    def dc_current_2(self):
+        return self.unpack('>H', 26)[0]/100
+    @property
+    def dc_power_2(self):
+        return self.unpack('>H', 30)[0]/10
+    @property
+    def dc_energy_total_2(self):
+        return self.unpack('>L', 34)[0]
+    @property
+    def dc_energy_daily_2(self):
+        return self.unpack('>H', 42)[0]
+
+    @property
+    def dc_voltage_3(self):
+        return self.unpack('>H', 24)[0]/10
+    @property
+    def dc_current_3(self):
+        return self.unpack('>H', 28)[0]/100
+    @property
+    def dc_power_3(self):
+        return self.unpack('>H', 32)[0]/10
+    @property
+    def dc_energy_total_3(self):
+        return self.unpack('>L', 40)[0]
+    @property
+    def dc_energy_daily_3(self):
+        return self.unpack('>H', 44)[0]
 
     @property
     def ac_voltage_0(self):
-        return self.unpack('>H', 26)[0]/10
+        return self.unpack('>H', 46)[0]/10
     @property
     def ac_current_0(self):
-        return self.unpack('>H', 34)[0]/10
+        return self.unpack('>H', 54)[0]/10
     @property
     def ac_power_0(self):
-        return self.unpack('>H', 30)[0]/10
+        return self.unpack('>H', 50)[0]/10
     @property
     def frequency(self):
-        return self.unpack('>H', 28)[0]/100
+        return self.unpack('>H', 48)[0]/100
     @property
     def temperature(self):
-        return self.unpack('>H', 38)[0]/10
+        return self.unpack('>H', 58)[0]/10
