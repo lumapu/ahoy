@@ -1,0 +1,20 @@
+---
+
+ahoy:
+  interval: 0
+  sunset: true
+  mqtt:
+    disabled: false
+    host: example-broker.local
+    port: 1883
+    user: 'username'
+    password: 'password'
+
+  dtu:
+    serial: 99978563000
+
+  inverters:
+    - name: 'balkon'
+      serial: 114172220003
+      mqtt:
+        topic: 'ahoy/114172220143' # defaults to 'ahoy/{serial}'

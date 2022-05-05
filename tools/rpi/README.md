@@ -40,7 +40,7 @@ contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
 
-    $ sudo python3 ahoy.py | tee -a log2.log
+    $ sudo python3 ahoy.py --config /home/dtu/ahoy.yml | tee -a log2.log
 
 
 
@@ -65,8 +65,8 @@ A brief example log is supplied in the `example-logs` folder.
 Configuration
 -------------
 
-Local settings are read from ~/ahoy.conf  
-An example is provided as ahoy.conf.example
+Local settings are read from ahoy.yml  
+An example is provided as ahoy.yml.example
 
 Todo
 ----
