@@ -96,11 +96,14 @@ def poll_inverter(inverter):
                 print()
 
             if mqtt_client:
-                mqtt_send_status(mqtt_client, inverter_ser, data)
+                mqtt_send_status(mqtt_client, inverter_ser, data,
+                        topic=inverter.get('mqtt', {}).get('topic', None)
 
+def mqtt_send_status(broker, interter_ser, data, topic=None):
+    """ Publish StatusResponse object """
 
-def mqtt_send_status(broker, interter_ser, data):
-    topic = f'ahoy/{inverter_ser}'
+    if not topic:
+        topic = f'hoymiles/{inverter_ser}'
 
     # AC Data
     phase_id = 0
@@ -125,7 +128,7 @@ def mqtt_send_status(broker, interter_ser, data):
 def mqtt_on_command():
     """
     Handle commands to topic
-        ahoy/{inverter_ser}/command
+        hoymiles/{inverter_ser}/command
     frame it and put onto command_queue
     """
     raise NotImplementedError('Receiving mqtt commands is yet to be implemented')
