@@ -11,7 +11,7 @@ ahoy:
     password: 'password'
 
   dtu:
-    serial: 99978563000
+    serial: 99978563001
 
   inverters:
     - name: 'balkon'
