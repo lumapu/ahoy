@@ -97,9 +97,9 @@ def poll_inverter(inverter):
 
             if mqtt_client:
                 mqtt_send_status(mqtt_client, inverter_ser, data,
-                        topic=inverter.get('mqtt', {}).get('topic', None)
+                        topic=inverter.get('mqtt', {}).get('topic', None))
 
-def mqtt_send_status(broker, interter_ser, data, topic=None):
+def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """ Publish StatusResponse object """
 
     if not topic:
