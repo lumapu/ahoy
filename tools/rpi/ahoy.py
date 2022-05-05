@@ -134,7 +134,7 @@ if __name__ == '__main__':
     ahoy_config = dict(cfg.get('ahoy', {}))
 
     mqtt_config = ahoy_config.get('mqtt', [])
-    if mqtt_config.get('disabled', True):
+    if not mqtt_config.get('disabled', False):
         mqtt_client = paho.mqtt.client.Client()
         mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
         mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
