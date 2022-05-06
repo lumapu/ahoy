@@ -248,7 +248,7 @@ class HM1500_Decode0B(StatusResponse):
         return self.unpack('>H', 32)[0]/10
     @property
     def dc_energy_total_3(self):
-        return self.unpack('>L', 40)[0]
+        return self.unpack('>L', 38)[0]
     @property
     def dc_energy_daily_3(self):
         return self.unpack('>H', 44)[0]
