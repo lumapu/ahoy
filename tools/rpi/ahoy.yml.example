@@ -17,4 +17,5 @@ ahoy:
     - name: 'balkon'
       serial: 114172220003
       mqtt:
+        send_raw_enabled: false        # allow inject debug data via mqtt
         topic: 'hoymiles/114172221234' # defaults to 'hoymiles/{serial}'

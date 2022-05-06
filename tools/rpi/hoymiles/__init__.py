@@ -104,8 +104,12 @@ class ResponseDecoder(ResponseDecoderFactory):
         model = self.inverter_model
         command = self.request_command
 
-        model_decoder = __import__(f'hoymiles.decoders')
-        device = getattr(model_decoder, f'{model}_Decode{command.upper()}')
+        model_decoders = __import__(f'hoymiles.decoders')
+        if hasattr(model_decoders, f'{model}_Decode{command.upper()}'):
+            device = getattr(model_decoders, f'{model}_Decode{command.upper()}')
+        else:
+            if HOYMILES_DEBUG_LOGGING:
+                device = getattr(model_decoders, f'DEBUG_DecodeAny')
 
         return device(self.response)
 
