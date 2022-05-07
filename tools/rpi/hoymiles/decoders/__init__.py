@@ -155,7 +155,7 @@ class HM1500_Decode0B(StatusResponse):
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_0(self):
-        return self.unpack('>H', 9)[0]/10
+        return self.unpack('>H', 8)[0]/10
     @property
     def dc_energy_total_0(self):
         return self.unpack('>L', 12)[0]
