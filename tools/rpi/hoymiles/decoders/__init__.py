@@ -258,7 +258,7 @@ class HM1500_Decode0B(StatusResponse):
         return self.unpack('>H', 46)[0]/10
     @property
     def ac_current_0(self):
-        return self.unpack('>H', 54)[0]/10
+        return self.unpack('>H', 54)[0]/100
     @property
     def ac_power_0(self):
         return self.unpack('>H', 50)[0]/10
