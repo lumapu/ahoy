@@ -44,6 +44,34 @@ Whenever it sees a reply, it will decoded and logged to the given log file.
 
 
 
+Inject payloads via MQTT
+------------------------
+
+To enable mqtt payload injection, this must be configured per inverter
+```yaml
+...
+  inverters:
+...
+    - serial: 1147112345
+      mqtt:
+        send_raw_enabled: true
+...
+```
+
+This can be used to inject debug payloads
+The message must be in hexlified format
+
+Use of variables:
+  * tttttttt expands to current time like we know from our `80 0b` command
+
+Example injects exactly the same as we normally use to poll data
+
+    $ mosquitto_pub -h broker -t inverter_topic/command -m 800b00tttttttt0000000500000000
+
+This allows for even faster hacking during runtime
+
+
+
 Analysing the Logs
 ------------------
 
@@ -67,6 +95,8 @@ Configuration
 
 Local settings are read from ahoy.yml  
 An example is provided as ahoy.yml.example
+
+
 
 Todo
 ----

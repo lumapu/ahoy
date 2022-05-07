@@ -57,33 +57,75 @@ class UnknownResponse:
     @property
     def hex_ascii(self):
         return ' '.join([f'{b:02x}' for b in self.response])
+
     @property
     def dump_longs(self):
-        n = len(self.response)/4
-        vals = struct.unpack(f'>{int(n)}L', self.response)
+        res = self.response
+        n = len(res)/4
+
+        vals = None
+        if n % 4 == 0:
+            vals = struct.unpack(f'>{int(n)}L', res)
+
+        return vals
+
+    @property
+    def dump_longs_pad1(self):
+        res = self.response[1:]
+        n = len(res)/4
+
+        vals = None
+        if n % 4 == 0:
+            vals = struct.unpack(f'>{int(n)}L', res)
+
         return vals
 
     @property
     def dump_shorts(self):
         n = len(self.response)/2
-        vals = struct.unpack(f'>{int(n)}H', self.response)
+
+        vals = None
+        if n % 2 == 0:
+            vals = struct.unpack(f'>{int(n)}H', self.response)
         return vals
 
-class HM600_Decode02(UnknownResponse):
+    @property
+    def dump_shorts_pad1(self):
+        res = self.response[1:]
+        n = len(res)/2
+
+        vals = None
+        if n % 2 == 0:
+            vals = struct.unpack(f'>{int(n)}H', res)
+        return vals
+
+class DEBUG_DecodeAny(UnknownResponse):
     def __init__(self, response):
         self.response = response
 
-class HM600_Decode11(UnknownResponse):
-    def __init__(self, response):
-        self.response = response
+        longs = self.dump_longs
+        if not longs:
+            print(' type long      : unable to decode (len or not mod 4)')
+        else:
+            print(' type long      : ' + str(longs))
 
-class HM600_Decode12(UnknownResponse):
-    def __init__(self, response):
-        self.response = response
+        longs = self.dump_longs_pad1
+        if not longs:
+            print(' type long pad1 : unable to decode (len or not mod 4)')
+        else:
+            print(' type long pad1 : ' + str(longs))
 
-class HM600_Decode0A(UnknownResponse):
-    def __init__(self, response):
-        self.response = response
+        shorts = self.dump_shorts
+        if not shorts:
+            print(' type short     : unable to decode (len or not mod 2)')
+        else:
+            print(' type short     : ' + str(shorts))
+
+        shorts = self.dump_shorts_pad1
+        if not shorts:
+            print(' type short pad1: unable to decode (len or not mod 2)')
+        else:
+            print(' type short pad1: ' + str(shorts))
 
 class HM600_Decode0B(StatusResponse):
     def __init__(self, response):

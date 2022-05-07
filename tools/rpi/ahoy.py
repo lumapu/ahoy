@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import struct
+import re
 import time
 from datetime import datetime
 import argparse
@@ -28,6 +30,7 @@ hmradio = hoymiles.HoymilesNRF(device=radio)
 mqtt_client = None
 
 command_queue = {}
+mqtt_command_topic_subs = []
 
 hoymiles.HOYMILES_TRANSACTION_LOGGING=True
 hoymiles.HOYMILES_DEBUG_LOGGING=True
@@ -125,13 +128,46 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     broker.publish(f'{topic}/frequency', data['frequency'])
     broker.publish(f'{topic}/temperature', data['temperature'])
 
-def mqtt_on_command():
+def mqtt_on_command(client, userdata, message):
     """
     Handle commands to topic
         hoymiles/{inverter_ser}/command
-    frame it and put onto command_queue
+    frame a payload and put onto command_queue
+
+    Inverters must have mqtt.send_raw_enabled: true configured
+
+    This can be used to inject debug payloads
+    The message must be in hexlified format
+
+    Use of variables:
+    tttttttt gets expanded to a current int(time)
+
+    Example injects exactly the same as we normally use to poll data:
+      mosquitto -h broker -t inverter_topic/command -m 800b00tttttttt0000000500000000
+
+    This allows for even faster hacking during runtime
     """
-    raise NotImplementedError('Receiving mqtt commands is yet to be implemented')
+    try:
+        inverter_ser = next(
+                item[0] for item in mqtt_command_topic_subs if item[1] == message.topic)
+    except StopIteration:
+        print('Unexpedtedly received mqtt message for {message.topic}')
+
+    if inverter_ser:
+        p_message = message.payload.decode('utf-8').lower()
+
+        # Expand tttttttt to current time for use in hexlified payload
+        expand_time = ''.join(f'{b:02x}' for b in struct.pack('>L', int(time.time())))
+        p_message = p_message.replace('tttttttt', expand_time)
+
+        if (len(p_message) < 2048 \
+            and len(p_message) % 2 == 0 \
+            and re.match(r'^[a-f0-9]+$', p_message)):
+            payload = bytes.fromhex(p_message)
+            # commands must start with \x80
+            if payload[0] == 0x80:
+                command_queue[str(inverter_ser)].append(
+                    hoymiles.frame_payload(payload[1:]))
 
 if __name__ == '__main__':
     ahoy_config = dict(cfg.get('ahoy', {}))
@@ -142,21 +178,32 @@ if __name__ == '__main__':
         mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
         mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
         mqtt_client.loop_start()
+        mqtt_client.on_message = mqtt_on_command
 
     if not radio.begin():
         raise RuntimeError('Can\'t open radio')
 
-    #command_queue.append(hoymiles.compose_02_payload())
-    #command_queue.append(hoymiles.compose_11_payload())
-    
     inverters = [inverter.get('serial') for inverter in ahoy_config.get('inverters', [])]
-    for inverter_ser in inverters:
+    for inverter in ahoy_config.get('inverters', []):
+        inverter_ser = inverter.get('serial')
         command_queue[str(inverter_ser)] = []
+
+        #
+        # Enables and subscribe inverter to mqtt /command-Topic
+        #
+        if inverter.get('mqtt', {}).get('send_raw_enabled', False):
+            topic_item = (
+                    str(inverter_ser),
+                    inverter.get('mqtt', {}).get('topic', f'hoymiles/{inverter_ser}') + '/command'
+                    )
+            mqtt_client.subscribe(topic_item[1])
+            mqtt_command_topic_subs.append(topic_item)
 
     loop_interval = ahoy_config.get('interval', 1)
     try:
         while True:
             main_loop()
+
             if loop_interval:
                 time.sleep(time.time() % loop_interval)
 

@@ -109,6 +109,7 @@ int main(int argc, char** argv)
     dstaddrs.push_back(string("1Node"));
     dstaddrs.push_back(string("2Node"));
     dstaddrs.push_back(serno2shockburstaddrbytes(114174608145));
+    dstaddrs.push_back("\x45\x81\x60\x74\x01");
     dstaddrs.push_back(serno2shockburstaddrbytes(114174608177));
 
     // channels that we will scan
@@ -127,7 +128,7 @@ int main(int argc, char** argv)
                 cout << "  - ";
             }
             cout << "  " << flush;
-            delay(10);
+            //delay(10);
         }
         cout << endl;
     }
