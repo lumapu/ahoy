@@ -127,6 +127,46 @@ class DEBUG_DecodeAny(UnknownResponse):
         else:
             print(' type short pad1: ' + str(shorts))
 
+
+# 1121-Series Intervers, 1 MPPT, 1 Phase
+class HM300_Decode0B(StatusResponse):
+    def __init__(self, response):
+        self.response = response
+
+    @property
+    def dc_voltage_0(self):
+        return self.unpack('>H', 2)[0]/10
+    @property
+    def dc_current_0(self):
+        return self.unpack('>H', 4)[0]/100
+    @property
+    def dc_power_0(self):
+        return self.unpack('>H', 6)[0]/10
+    @property
+    def dc_energy_total_0(self):
+        return self.unpack('>L', 8)[0]
+    @property
+    def dc_energy_daily_0(self):
+        return self.unpack('>H', 12)[0]
+
+
+    @property
+    def ac_voltage_0(self):
+        return self.unpack('>H', 14)[0]/10
+    @property
+    def ac_current_0(self):
+        return self.unpack('>H', 22)[0]/100
+    @property
+    def ac_power_0(self):
+        return self.unpack('>H', 18)[0]/10
+    @property
+    def frequency(self):
+        return self.unpack('>H', 16)[0]/100
+    @property
+    def temperature(self):
+        return self.unpack('>H', 26)[0]/10
+
+
 # 1141-Series Inverters, 2 MPPT, 1 Phase
 class HM600_Decode0B(StatusResponse):
     def __init__(self, response):
