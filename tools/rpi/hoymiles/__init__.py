@@ -175,7 +175,7 @@ class HoymilesNRF:
     tx_channel_id = 0
     tx_channel_list = [40]
     rx_channel_id = 0
-    rx_channel_list = [3,6,9,11,23,40,61,75]
+    rx_channel_list = [3,23,40,61,75]
     rx_channel_ack = False
     rx_error = 0
 
@@ -246,7 +246,7 @@ class HoymilesNRF:
                 # No data in nRF rx buffer, search and wait
                 # Channel lock in (not currently used)
                 self.rx_error = self.rx_error + 1
-                if self.rx_error > 0:
+                if self.rx_error > 1:
                     self.rx_channel_ack = False
                 # Channel hopping
                 if self.next_rx_channel():
