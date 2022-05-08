@@ -72,12 +72,9 @@ class ResponseDecoderFactory:
             raise ValueError('Inverter serial while decoding response')
 
         ser_db = [
-                ('HM300', r'^112171......'),
-                ('HM350', r'^112172......'),
-                ('HM600', r'^114172......'),
-                ('HM700', r'^114174......'),
-                ('HM1200', r'^116170......'),
-                ('HM1500', r'^116171......')
+                ('HM300', r'^1121........'),
+                ('HM600', r'^1141........'),
+                ('HM1200', r'^1161........'),
                 ]
         ser_str = str(self.inverter_ser)
 

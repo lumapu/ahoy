@@ -127,6 +127,7 @@ class DEBUG_DecodeAny(UnknownResponse):
         else:
             print(' type short pad1: ' + str(shorts))
 
+# 1141-Series Inverters, 2 MPPT, 1 Phase
 class HM600_Decode0B(StatusResponse):
     def __init__(self, response):
         self.response = response
@@ -184,7 +185,7 @@ class HM600_Decode0C(HM600_Decode0B):
         self.response = response
 
 
-# HM-1500
+# 1161-Series Inverters, 4 MPPT, 1 Phase
 class HM1500_Decode0B(StatusResponse):
     def __init__(self, response):
         self.response = response
