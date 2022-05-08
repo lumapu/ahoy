@@ -226,7 +226,7 @@ class HM600_Decode0C(HM600_Decode0B):
 
 
 # 1161-Series Inverters, 4 MPPT, 1 Phase
-class HM1500_Decode0B(StatusResponse):
+class HM1200_Decode0B(StatusResponse):
     def __init__(self, response):
         self.response = response
 
