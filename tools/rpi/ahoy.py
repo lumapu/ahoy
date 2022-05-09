@@ -1,345 +1,212 @@
-"""
-First attempt at providing basic 'master' ('DTU') functionality
-for Hoymiles micro inverters.
-Based in particular on demostrated first contact by 'of22'.
-"""
-import sys
-import argparse
-import time
-import struct
-import crcmod
-import json
-from datetime import datetime
-from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS
-import paho.mqtt.client
-from configparser import ConfigParser
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
-cfg = ConfigParser()
-cfg.read('ahoy.conf')
-mqtt_host = cfg.get('mqtt', 'host', fallback='192.168.1.1')
-mqtt_port = cfg.getint('mqtt', 'port', fallback=1883)
-mqtt_user = cfg.get('mqtt', 'user', fallback='')
-mqtt_password = cfg.get('mqtt', 'password', fallback='')
+import sys
+import struct
+import re
+import time
+from datetime import datetime
+import argparse
+import hoymiles
+from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+import paho.mqtt.client
+import yaml
+from yaml.loader import SafeLoader
+
+parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway')
+parser.add_argument("-c", "--config-file", nargs="?",
+    help="configuration file")
+global_config = parser.parse_args()
+
+if global_config.config_file:
+    with open(global_config.config_file) as yf:
+        cfg = yaml.load(yf, Loader=SafeLoader)
+else:
+    with open(global_config.config_file) as yf:
+        cfg = yaml.load('ahoy.yml', Loader=SafeLoader)
 
 radio = RF24(22, 0, 1000000)
-mqtt_client = paho.mqtt.client.Client()
-mqtt_client.username_pw_set(mqtt_user, mqtt_password)
-mqtt_client.connect(mqtt_host, mqtt_port)
-mqtt_client.loop_start()
+hmradio = hoymiles.HoymilesNRF(device=radio)
+mqtt_client = None
 
-# Master Address ('DTU')
-dtu_ser = cfg.get('dtu', 'serial', fallback='99978563412')  # identical to fc22's
+command_queue = {}
+mqtt_command_topic_subs = []
 
-# inverter serial numbers
-inv_ser = cfg.get('inverter', 'serial', fallback='444473104619')  # my inverter
-
-# all inverters
-#...
-
-f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
-f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
-
-
-def ser_to_hm_addr(s):
-    """
-    Calculate the 4 bytes that the HM devices use in their internal messages to 
-    address each other.
-    """
-    bcd = int(str(s)[-8:], base=16)
-    return struct.pack('>L', bcd)
-
-
-def ser_to_esb_addr(s):
-    """
-    Convert a Hoymiles inverter/DTU serial number into its
-    corresponding NRF24 'enhanced shockburst' address byte sequence (5 bytes).
-
-    The NRF library expects these in LSB to MSB order, even though the transceiver
-    itself will then output them in MSB-to-LSB order over the air.
-    
-    The inverters use a BCD representation of the last 8
-    digits of their serial number, in reverse byte order, 
-    followed by \x01.
-    """
-    air_order = ser_to_hm_addr(s)[::-1] + b'\x01'
-    return air_order[::-1]
-
-
-def compose_0x80_msg(dst_ser_no=72220200, src_ser_no=72220200, ts=None):
-    """
-    Create a valid 0x80 request with the given parameters, and containing the 
-    current system time.
-    """
-
-    if not ts:
-        ts = 0x623C8ECF  # identical to fc22's for testing  # doc: 1644758171
-
-    # "framing"
-    p = b''
-    p = p + b'\x15'
-    p = p + ser_to_hm_addr(dst_ser_no)
-    p = p + ser_to_hm_addr(src_ser_no)
-    p = p + b'\x80'
-
-    # encapsulated payload
-    pp = b'\x0b\x00'
-    pp = pp + struct.pack('>L', ts)  # big-endian: msb at low address
-    #pp = pp + b'\x00' * 8    # of22 adds a \x05 at position 19
-
-    pp = pp + b'\x00\x00\x00\x05\x00\x00\x00\x00'
-
-    # CRC_M
-    crc_m = f_crc_m(pp)
-
-    p = p + pp
-    p = p + struct.pack('>H', crc_m)
-
-    crc8 = f_crc8(p)
-    p = p + struct.pack('B', crc8)   
-    return p
-
-
-def print_addr(a):
-    print(f"ser# {a} ", end='')
-    print(f" -> HM  {' '.join([f'{x:02x}' for x in ser_to_hm_addr(a)])}", end='')
-    print(f" -> ESB {' '.join([f'{x:02x}' for x in ser_to_esb_addr(a)])}")
-
-# time of last transmission - to calculcate response time
-t_last_tx = 0
-
-def on_receive(p, ch_rx=None, ch_tx=None):
-    """
-    Callback: get's invoked whenever a packet has been received.
-    :param p: Payload of the received packet.
-    """
-
-    d = {}
-
-    t_now_ns = time.monotonic_ns()
-    ts = datetime.utcnow()
-    ts_unixtime = ts.timestamp()
-    d['ts_unixtime'] = ts_unixtime
-    d['isodate'] = ts.isoformat()
-    d['rawdata'] = " ".join([f"{b:02x}" for b in p])
-    print(ts.isoformat(), end='Z ')
-
-    # check crc8
-    crc8 = f_crc8(p[:-1])
-    d['crc8_valid'] = True if crc8==p[-1] else False
-
-    # interpret content
-    mid = p[0]
-    d['mid'] = mid
-    d['response_time_ns'] = t_now_ns-t_last_tx
-    d['ch_rx'] = ch_rx
-    d['ch_tx'] = ch_tx
-    d['src'] = 'src_unkn'
-    d['name'] = 'name_unkn'
- 
-    if mid == 0x95:
-        src, dst, cmd = struct.unpack('>LLB', p[1:10])
-        d['src'] = f'{src:08x}'
-        d['dst'] = f'{dst:08x}'
-        d['cmd'] = cmd
-        print(f'MSG src={d["src"]}, dst={d["dst"]}, cmd={d["cmd"]}:')
-
-        if cmd==1:
-            d['name'] = 'dcdata'
-            unknown1, u1, i1, p1, u2, i2, p2, unknown2 = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            d['u1_V'] = u1/10
-            d['i1_A'] = i1/100
-            d['p1_W'] = p1/10
-            d['u2_V'] = u2/10
-            d['i2_A'] = i2/100
-            d['p2_W'] = p2/10
-            d['p_W'] = d['p1_W']+d['p2_W']
-            d['unknown1'] = unknown1
-            d['unknown2'] = unknown2
-
-        elif cmd==2:
-            d['name'] = 'acdata'
-            uk1, uk2, uk3, uk4, uk5, u, f, p = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            d['u_V'] = u/10
-            d['f_Hz'] = f/100
-            d['p_W'] = p/10
-            d['wtot1_Wh'] = uk1
-            d['wtot2_Wh'] = uk3
-            d['wday1_Wh'] = uk4
-            d['wday2_Wh'] = uk5
-            d['uk2'] = uk2
-
-        elif cmd==129:
-            d['name'] = 'error'
-
-        elif cmd==131:  # 0x83
-            d['name'] = 'statedata'
-            uk1, l, uk3, t, uk5, uk6 = struct.unpack('>HHHHHH', p[10:22])
-            d['l_Pct'] = l
-            d['t_C'] = t/10
-            d['uk1'] = uk1
-            d['uk3'] = uk3
-            d['uk5'] = uk5
-            d['uk6'] = uk6
-
-        elif cmd==132:  # 0x84
-            d['name'] = 'unknown0x84'
-            uk1, uk2, uk3, uk4, uk5, uk6, uk7, uk8 = struct.unpack(
-                '>HHHHHHHH', p[10:26])
-            d['uk1'] = uk1
-            d['uk2'] = uk2
-            d['uk3'] = uk3
-            d['uk4'] = uk4
-            d['uk5'] = uk5
-            d['uk6'] = uk6
-            d['uk7'] = uk7
-            d['uk8'] = uk8
-
-        else:
-            print(f'unknown cmd {cmd}')
-    else:
-        print(f'unknown frame id {p[0]}')
-
-    # output to stdout
-    if d:
-        print(json.dumps(d))
-
-    # output to MQTT
-    if d:
-        j = json.dumps(d)
-        mqtt_client.publish(f"ahoy/{d['src']}/{d['name']}", j)
-        if d['cmd']==2:
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/voltage', d['u_V'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/power', d['p_W'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter/0/total', d['wtot1_Wh'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/frequency', d['f_Hz'])
-        if d['cmd']==1:
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/power', d['p1_W'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/voltage', d['u1_V'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/0/current', d['i1_A'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/power', d['p2_W'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/voltage', d['u2_V'])
-            mqtt_client.publish(f'ahoy/{d["src"]}/emeter-dc/1/current', d['i2_A'])
-        if d['cmd']==131:
-            mqtt_client.publish(f'ahoy/{d["src"]}/temperature', d['t_C'])
-
-
+hoymiles.HOYMILES_TRANSACTION_LOGGING=True
+hoymiles.HOYMILES_DEBUG_LOGGING=True
 
 def main_loop():
+    inverters = [
+            inverter for inverter in ahoy_config.get('inverters', [])
+            if not inverter.get('disabled', False)]
+
+    for inverter in inverters:
+        if hoymiles.HOYMILES_DEBUG_LOGGING:
+            print(f'Poll inverter {inverter["serial"]}')
+        poll_inverter(inverter)
+
+def poll_inverter(inverter):
+    inverter_ser = inverter.get('serial')
+    dtu_ser = ahoy_config.get('dtu', {}).get('serial')
+
+    if len(command_queue[str(inverter_ser)]) > 0:
+        payload = command_queue[str(inverter_ser)].pop(0)
+    else:
+        payload = hoymiles.compose_set_time_payload()
+
+    payload_ttl = 4
+    while payload_ttl > 0:
+        payload_ttl = payload_ttl - 1
+        com = hoymiles.InverterTransaction(
+                radio=hmradio,
+                dtu_ser=dtu_ser,
+                inverter_ser=inverter_ser,
+                request=next(hoymiles.compose_esb_packet(
+                    payload,
+                    seq=b'\x80',
+                    src=dtu_ser,
+                    dst=inverter_ser
+                    )))
+        response = None
+        while com.rxtx():
+            try:
+                response = com.get_payload()
+                payload_ttl = 0
+            except Exception as e:
+                print(f'Error while retrieving data: {e}')
+                pass
+
+    if response:
+        dt = datetime.now()
+        print(f'{dt} Payload: ' + hoymiles.hexify_payload(response))
+        decoder = hoymiles.ResponseDecoder(response,
+                request=com.request,
+                inverter_ser=inverter_ser
+                )
+        result = decoder.decode()
+        if isinstance(result, hoymiles.decoders.StatusResponse):
+            data = result.__dict__()
+            if hoymiles.HOYMILES_DEBUG_LOGGING:
+                print(f'{dt} Decoded: {data["temperature"]}', end='')
+                phase_id = 0
+                for phase in data['phases']:
+                    print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
+                    phase_id = phase_id + 1
+                string_id = 0
+                for string in data['strings']:
+                    print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
+                    string_id = string_id + 1
+                print()
+
+            if mqtt_client:
+                mqtt_send_status(mqtt_client, inverter_ser, data,
+                        topic=inverter.get('mqtt', {}).get('topic', None))
+
+def mqtt_send_status(broker, inverter_ser, data, topic=None):
+    """ Publish StatusResponse object """
+
+    if not topic:
+        topic = f'hoymiles/{inverter_ser}'
+
+    # AC Data
+    phase_id = 0
+    for phase in data['phases']:
+        broker.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
+        broker.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
+        broker.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+        phase_id = phase_id + 1
+
+    # DC Data
+    string_id = 0
+    for string in data['strings']:
+        broker.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
+        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+        string_id = string_id + 1
+    # Global
+    broker.publish(f'{topic}/frequency', data['frequency'])
+    broker.publish(f'{topic}/temperature', data['temperature'])
+
+def mqtt_on_command(client, userdata, message):
     """
-    Keep receiving on channel 3. Every once in a while, transmit a request
-    to one of our inverters on channel 40.
+    Handle commands to topic
+        hoymiles/{inverter_ser}/command
+    frame a payload and put onto command_queue
+
+    Inverters must have mqtt.send_raw_enabled: true configured
+
+    This can be used to inject debug payloads
+    The message must be in hexlified format
+
+    Use of variables:
+    tttttttt gets expanded to a current int(time)
+
+    Example injects exactly the same as we normally use to poll data:
+      mosquitto -h broker -t inverter_topic/command -m 800b00tttttttt0000000500000000
+
+    This allows for even faster hacking during runtime
     """
+    try:
+        inverter_ser = next(
+                item[0] for item in mqtt_command_topic_subs if item[1] == message.topic)
+    except StopIteration:
+        print('Unexpedtedly received mqtt message for {message.topic}')
 
-    global t_last_tx
+    if inverter_ser:
+        p_message = message.payload.decode('utf-8').lower()
 
-    print_addr(inv_ser)
-    print_addr(dtu_ser)
+        # Expand tttttttt to current time for use in hexlified payload
+        expand_time = ''.join(f'{b:02x}' for b in struct.pack('>L', int(time.time())))
+        p_message = p_message.replace('tttttttt', expand_time)
 
-    ctr = 1
-    last_tx_message = ''
+        if (len(p_message) < 2048 \
+            and len(p_message) % 2 == 0 \
+            and re.match(r'^[a-f0-9]+$', p_message)):
+            payload = bytes.fromhex(p_message)
+            # commands must start with \x80
+            if payload[0] == 0x80:
+                command_queue[str(inverter_ser)].append(
+                    hoymiles.frame_payload(payload[1:]))
 
-    ts = int(time.time())  # see what happens if we always send one and the same (constant) time!
-    
-    rx_channels = [3,23,61,75]
-    rx_channel_id = 0
-    rx_channel = rx_channels[rx_channel_id]
+if __name__ == '__main__':
+    ahoy_config = dict(cfg.get('ahoy', {}))
 
-    tx_channels = [40]
-    tx_channel_id = 0
-    tx_channel = tx_channels[tx_channel_id]
-
-    while True:
-        # Sweep receive start channel
-        rx_channel_id = ctr % len(rx_channels)
-        rx_channel = rx_channels[rx_channel_id]
-
-        radio.setChannel(rx_channel)
-        radio.enableDynamicPayloads()
-        radio.setAutoAck(False)
-        radio.setPALevel(RF24_PA_MAX)
-        radio.setDataRate(RF24_250KBPS)
-        radio.openWritingPipe(ser_to_esb_addr(inv_ser))
-        radio.flush_rx()
-        radio.flush_tx()
-        radio.openReadingPipe(1,ser_to_esb_addr(dtu_ser))
-        radio.startListening()
-
-        tx_channel_id = tx_channel_id + 1
-        if tx_channel_id >= len(tx_channels):
-            tx_channel_id = 0
-        tx_channel = tx_channels[tx_channel_id]
-
-        #
-        # TX
-        #
-        radio.stopListening()  # put radio in TX mode
-        radio.setChannel(tx_channel)
-        radio.openWritingPipe(ser_to_esb_addr(inv_ser))
-
-        ts = int(time.time())
-        payload = compose_0x80_msg(src_ser_no=dtu_ser, dst_ser_no=inv_ser, ts=ts)
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        last_tx_message = f"{dt} Transmit {ctr:5d}: channel={tx_channel} len={len(payload)} | " + \
-            " ".join([f"{b:02x}" for b in payload]) + f" rx_ch: {rx_channel}"
-        print(last_tx_message)
-
-        # for i in range(0,3):
-        result = radio.write(payload)  # will always yield 'True' because auto-ack is disabled
-        #    time.sleep(.05)
-
-        t_last_tx = time.monotonic_ns()
-        ctr = ctr + 1
-
-        t_end = time.monotonic_ns()+5e9
-        tslots = [1000]  #, 40, 50, 60, 70]  # switch channel at these ms times since transmission
-
-        for tslot in tslots:
-            t_end = t_last_tx + tslot*1e6  # ms to ns
-
-            radio.stopListening()
-            radio.setChannel(rx_channel)
-            radio.startListening()
-            while time.monotonic_ns() < t_end:
-                has_payload, pipe_number = radio.available_pipe()
-                if has_payload:
-                    size = radio.getDynamicPayloadSize()
-                    payload = radio.read(size)
-                    # print(last_tx_message, end='')
-                    last_tx_message = ''
-                    dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-                    print(f"{dt} Received {size} bytes on channel {rx_channel} pipe {pipe_number}: " +
-                          " ".join([f"{b:02x}" for b in payload]))
-                    on_receive(payload, ch_rx=rx_channel, ch_tx=tx_channel)
-                else:
-                    pass
-                    # time.sleep(0.001)
-
-            rx_channel_id = rx_channel_id + 1
-            if rx_channel_id >= len(rx_channels):
-                rx_channel_id = 0
-            rx_channel = rx_channels[rx_channel_id]
-
-        print(flush=True, end='')
-        # time.sleep(2)
-
-
-
-if __name__ == "__main__":
+    mqtt_config = ahoy_config.get('mqtt', [])
+    if not mqtt_config.get('disabled', False):
+        mqtt_client = paho.mqtt.client.Client()
+        mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
+        mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
+        mqtt_client.loop_start()
+        mqtt_client.on_message = mqtt_on_command
 
     if not radio.begin():
-        raise RuntimeError("radio hardware is not responding")
+        raise RuntimeError('Can\'t open radio')
 
-    radio.setPALevel(RF24_PA_LOW)  # RF24_PA_MAX is default
+    inverters = [inverter.get('serial') for inverter in ahoy_config.get('inverters', [])]
+    for inverter in ahoy_config.get('inverters', []):
+        inverter_ser = inverter.get('serial')
+        command_queue[str(inverter_ser)] = []
 
-    # radio.printDetails();  # (smaller) function that prints raw register values
-    # radio.printPrettyDetails();  # (larger) function that prints human readable data
+        #
+        # Enables and subscribe inverter to mqtt /command-Topic
+        #
+        if inverter.get('mqtt', {}).get('send_raw_enabled', False):
+            topic_item = (
+                    str(inverter_ser),
+                    inverter.get('mqtt', {}).get('topic', f'hoymiles/{inverter_ser}') + '/command'
+                    )
+            mqtt_client.subscribe(topic_item[1])
+            mqtt_command_topic_subs.append(topic_item)
 
+    loop_interval = ahoy_config.get('interval', 1)
     try:
-        main_loop()
+        while True:
+            main_loop()
+
+            if loop_interval:
+                time.sleep(time.time() % loop_interval)
 
     except KeyboardInterrupt:
-        print(" Keyboard Interrupt detected. Exiting...")
         radio.powerDown()
         sys.exit()

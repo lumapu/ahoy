@@ -1,0 +1,21 @@
+---
+
+ahoy:
+  interval: 0
+  sunset: true
+  mqtt:
+    disabled: false
+    host: example-broker.local
+    port: 1883
+    user: 'username'
+    password: 'password'
+
+  dtu:
+    serial: 99978563001
+
+  inverters:
+    - name: 'balkon'
+      serial: 114172220003
+      mqtt:
+        send_raw_enabled: false        # allow inject debug data via mqtt
+        topic: 'hoymiles/114172221234' # defaults to 'hoymiles/{serial}'
