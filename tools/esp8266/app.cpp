@@ -3,6 +3,7 @@
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
+#include "html/h/debug_html.h"
 
 
 //-----------------------------------------------------------------------------
@@ -16,6 +17,7 @@ app::app() : Main() {
     mMqttActive     = false;
 
     mTicker = 0;
+    mRxTicker = 0;
 
     mShowRebootRequest = false;
 
@@ -26,6 +28,8 @@ app::app() : Main() {
     //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
 
     mSys = new HmSystemType();
+
+    memset(mPayload, 0, ((MAX_RF_PAYLOAD_SIZE-11) * MAX_NUM_PAC_PER_PAYLOAD));
 }
 
 
@@ -46,6 +50,7 @@ void app::setup(uint32_t timeout) {
     mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
     mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
+    mWeb->on("/debug",     std::bind(&app::showDebug,      this));
 
     if(mSettingsValid) {
         uint64_t invSerial;
@@ -62,10 +67,11 @@ void app::setup(uint32_t timeout) {
                 DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
             }
         }
-        mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < 1)
-            mSendInterval = 1;
-
+        // @TODO reenable
+        //mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
+        //if(mSendInterval < 5)
+        //    mSendInterval = 5;
+        mSendInterval = 5;
 
         // pinout
         mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
@@ -134,50 +140,53 @@ void app::setup(uint32_t timeout) {
 void app::loop(void) {
     Main::loop();
 
-    if(!mSys->BufCtrl.empty()) {
-        uint8_t len, rptCnt;
-        packet_t *p = mSys->BufCtrl.getBack();
-        if(mSerialDebug)
-            mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
+    if(checkTicker(&mRxTicker, 5)) {
+        mSys->Radio.switchRxCh();
+        if(!mSys->BufCtrl.empty()) {
+            uint8_t len, rptCnt;
+            packet_t *p = mSys->BufCtrl.getBack();
 
-        if(mSys->Radio.checkCrc(p->packet, &len, &rptCnt)) {
-            // process buffer only on first occurrence
-            if((0 != len) && (0 == rptCnt)) {
-                uint8_t *cmd = &p->packet[11];
-                //DPRINTLN("CMD " + String(*cmd, HEX));
-                //mSys->Radio.dumpBuf("Payload ", p->packet, len);
+            //if(mSerialDebug)
+            //    mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
-                Inverter<> *iv = mSys->findInverter(&p->packet[3]);
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        if(iv->assign[i].cmdId == *cmd)
-                            iv->addValue(i, &p->packet[11]);
+            if(mSys->Radio.checkPaketCrc(p->packet, &len, &rptCnt, p->rxCh)) {
+                // process buffer only on first occurrence
+                if((0 != len) && (0 == rptCnt)) {
+                    uint8_t *cmd = &p->packet[9];
+                    //DPRINTLN("CMD " + String(*cmd, HEX));
+                    if(mSerialDebug)
+                        mSys->Radio.dumpBuf("Payload ", p->packet, len);
+
+                    Inverter<> *iv = mSys->findInverter(&p->packet[1]);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(iv->assign[i].cmdId == *cmd)
+                                iv->addValue(i, &p->packet[9]);
+                        }
+                        iv->doCalculations();
+                        //memcpy(mPayload[(*cmd & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
                     }
-                    iv->doCalculations();
+
+                    if(*cmd == 0x01)      mCmds[0]++;
+                    else if(*cmd == 0x02) mCmds[1]++;
+                    else if(*cmd == 0x03) mCmds[2]++;
+                    else if(*cmd == 0x81) mCmds[3]++;
+                    else if(*cmd == 0x82) mCmds[4]++;
+                    else if(*cmd == 0x83) mCmds[5]++;
+                    else if(*cmd == 0x84) mCmds[6]++;
+                    else                  mCmds[7]++;
                 }
-
-                if(*cmd == 0x01)      mCmds[0]++;
-                else if(*cmd == 0x02) mCmds[1]++;
-                else if(*cmd == 0x03) mCmds[2]++;
-                else if(*cmd == 0x81) mCmds[3]++;
-                else if(*cmd == 0x82) mCmds[4]++;
-                else if(*cmd == 0x83) mCmds[5]++;
-                else if(*cmd == 0x84) mCmds[6]++;
-                else                  mCmds[7]++;
-
-                /*if(p->sendCh == 23)      mChannelStat[0]++;
-                else if(p->sendCh == 40) mChannelStat[1]++;
-                else if(p->sendCh == 61) mChannelStat[2]++;
-                else                     mChannelStat[3]++;*/
             }
+            mSys->BufCtrl.popBack();
         }
-        mSys->BufCtrl.popBack();
     }
 
     if(checkTicker(&mTicker, 1000)) {
         if(++mSendTicker >= mSendInterval) {
             mSendTicker = 0;
 
+            if(!mSys->BufCtrl.empty())
+                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
             Inverter<> *inv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 inv = mSys->getInverterByPos(i);
@@ -501,6 +510,36 @@ void app::showLiveData(void) {
 
 
     mWeb->send(200, "text/html", modHtml);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showDebug() {
+    if(mWeb->args() > 0) {
+        /*String html;
+
+        for(uint8_t i = 0; i < MAX_NUM_PAC_PER_PAYLOAD; i ++) {
+            for(uint8_t j = 0; j < (MAX_RF_PAYLOAD_SIZE- 11); j++) {
+                if(mPayload[i][j] < 0x10)
+                    html += "0";
+                html += String(mPayload[i][j], HEX) + " ";
+            }
+            html += "\n";
+        }
+        html += "CMDS: ";
+        for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
+            html += String(mCmds[i]) + String(" ");
+        }
+        html += "\n------------------";*/
+
+        mWeb->send(200, "text/plain", "na");
+    }
+    else {
+        String html = FPSTR(debug_html);
+        html.replace("{DEVICE}", mDeviceName);
+        html.replace("{VERSION}", mVersion);
+        mWeb->send(200, "text/html", html);
+    }
 }
 
 

@@ -15,14 +15,16 @@ def convert2Header(inFile):
         data = re.sub(r"(\;|\}|\:|\{)\s+", r'\1', data) # whitespaces inner css
 
     define = inFile.split(".")[0].upper()
+    define2 = inFile.split(".")[1].upper()
     f = open(outName, "w")
-    f.write("#ifndef __{}_H__\n".format(define))
-    f.write("#define __{}_H__\n".format(define))
+    f.write("#ifndef __{}_{}_H__\n".format(define, define2))
+    f.write("#define __{}_{}_H__\n".format(define, define2))
     f.write("const char {}[] PROGMEM = \"{}\";\n".format(inFile.replace(".", "_"), data))
-    f.write("#endif /*__{}_H__*/\n".format(define))
+    f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
 convert2Header("index.html")
 convert2Header("setup.html")
 convert2Header("hoymiles.html")
 convert2Header("style.css")
+convert2Header("debug.html")
