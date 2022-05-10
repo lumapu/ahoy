@@ -16,14 +16,14 @@ app::app() : Main() {
     mMqttActive     = false;
 
     mTicker = 0;
+    mRxTicker = 0;
 
     mShowRebootRequest = false;
 
     mSerialValues = true;
     mSerialDebug  = false;
 
-    memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
-    //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
+    memset(mPacketIds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
 
     mSys = new HmSystemType();
 }
@@ -63,9 +63,8 @@ void app::setup(uint32_t timeout) {
             }
         }
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < 1)
-            mSendInterval = 1;
-
+        if(mSendInterval < 5)
+            mSendInterval = 5;
 
         // pinout
         mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
@@ -134,63 +133,51 @@ void app::setup(uint32_t timeout) {
 void app::loop(void) {
     Main::loop();
 
-    if(!mSys->BufCtrl.empty()) {
-        uint8_t len, rptCnt;
-        packet_t *p = mSys->BufCtrl.getBack();
-        if(mSerialDebug)
-            mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
+    if(checkTicker(&mRxTicker, 5)) {
+        mSys->Radio.switchRxCh();
+        if(!mSys->BufCtrl.empty()) {
+            uint8_t len, rptCnt;
+            packet_t *p = mSys->BufCtrl.getBack();
 
-        if(mSys->Radio.checkCrc(p->packet, &len, &rptCnt)) {
-            // process buffer only on first occurrence
-            if((0 != len) && (0 == rptCnt)) {
-                uint8_t *cmd = &p->packet[11];
-                //DPRINTLN("CMD " + String(*cmd, HEX));
-                //mSys->Radio.dumpBuf("Payload ", p->packet, len);
+            //if(mSerialDebug)
+            //    mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
-                Inverter<> *iv = mSys->findInverter(&p->packet[3]);
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        if(iv->assign[i].cmdId == *cmd)
-                            iv->addValue(i, &p->packet[11]);
+            if(mSys->Radio.checkPaketCrc(p->packet, &len, &rptCnt, p->rxCh)) {
+                // process buffer only on first occurrence
+                if((0 != len) && (0 == rptCnt)) {
+                    uint8_t *packetId = &p->packet[9];
+                    //DPRINTLN("CMD " + String(*packetId, HEX));
+                    if(mSerialDebug)
+                        mSys->Radio.dumpBuf("Payload ", p->packet, len);
+
+                    Inverter<> *iv = mSys->findInverter(&p->packet[1]);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(iv->assign[i].cmdId == *packetId)
+                                iv->addValue(i, &p->packet[9]);
+                        }
+                        iv->doCalculations();
+                        //memcpy(mPayload[(*packetId & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
                     }
-                    iv->doCalculations();
+
+                    if(*packetId == 0x01)      mPacketIds[0]++;
+                    else if(*packetId == 0x02) mPacketIds[1]++;
+                    else if(*packetId == 0x03) mPacketIds[2]++;
+                    else if(*packetId == 0x81) mPacketIds[3]++;
+                    else if(*packetId == 0x82) mPacketIds[4]++;
+                    else if(*packetId == 0x83) mPacketIds[5]++;
+                    else if(*packetId == 0x84) mPacketIds[6]++;
+                    else                       mPacketIds[7]++;
                 }
-
-                if(*cmd == 0x01)      mCmds[0]++;
-                else if(*cmd == 0x02) mCmds[1]++;
-                else if(*cmd == 0x03) mCmds[2]++;
-                else if(*cmd == 0x81) mCmds[3]++;
-                else if(*cmd == 0x82) mCmds[4]++;
-                else if(*cmd == 0x83) mCmds[5]++;
-                else if(*cmd == 0x84) mCmds[6]++;
-                else                  mCmds[7]++;
-
-                /*if(p->sendCh == 23)      mChannelStat[0]++;
-                else if(p->sendCh == 40) mChannelStat[1]++;
-                else if(p->sendCh == 61) mChannelStat[2]++;
-                else                     mChannelStat[3]++;*/
             }
+            mSys->BufCtrl.popBack();
         }
-        mSys->BufCtrl.popBack();
     }
 
     if(checkTicker(&mTicker, 1000)) {
-        if(++mSendTicker >= mSendInterval) {
-            mSendTicker = 0;
-
-            Inverter<> *inv;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                inv = mSys->getInverterByPos(i);
-                if(NULL != inv) {
-                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
-                    yield();
-                }
-            }
-        }
-
         if(mMqttActive) {
             mMqtt.loop();
-            if(++mMqttTicker > mMqttInterval) {
+            if(++mMqttTicker >= mMqttInterval) {
                 mMqttInterval = 0;
                 mMqtt.isConnected(true);
                 char topic[30], val[10];
@@ -211,7 +198,7 @@ void app::loop(void) {
         }
 
         if(mSerialValues) {
-            if(++mSerialTicker > mSerialInterval) {
+            if(++mSerialTicker >= mSerialInterval) {
                 mSerialInterval = 0;
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -226,6 +213,22 @@ void app::loop(void) {
                             yield();
                         }
                     }
+                }
+            }
+        }
+
+        if(++mSendTicker >= mSendInterval) {
+            mSendTicker = 0;
+
+            if(!mSys->BufCtrl.empty())
+                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
+            Inverter<> *inv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                inv = mSys->getInverterByPos(i);
+                if(NULL != inv) {
+                    yield();
+                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    mRxTicker = 0;
                 }
             }
         }
@@ -393,19 +396,13 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    String content = "CMDs:\n";
+    String content = "Packets:\n";
     for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
-        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mCmds[i]) + String("\n");
+        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mPacketIds[i]) + String("\n");
     }
-    content += String("other: ") + String(mCmds[DBG_CMD_LIST_LEN]) + String("\n\n");
+    content += String("other: ") + String(mPacketIds[DBG_CMD_LIST_LEN]) + String("\n\n");
 
     content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
-
-    /*content += "\nCHANNELs:\n";
-    content += String("23: ") + String(mChannelStat[0]) + String("\n");
-    content += String("40: ") + String(mChannelStat[1]) + String("\n");
-    content += String("61: ") + String(mChannelStat[2]) + String("\n");
-    content += String("75: ") + String(mChannelStat[3]) + String("\n");*/
 
     if(!mSys->Radio.isChipConnected())
         content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";

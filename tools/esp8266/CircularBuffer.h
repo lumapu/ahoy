@@ -70,6 +70,10 @@ class CircularBuffer {
             return m_fill == m_size;
         }
 
+        inline uint8_t getFill(void) const {
+            return m_fill;
+        }
+
         /** Aquire record on front of the buffer, for writing.
          * After filling the record, it has to be pushed to actually
          * add it to the buffer.

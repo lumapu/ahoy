@@ -57,13 +57,13 @@ void Main::setup(uint32_t timeout) {
 #endif
 
     if(!startAp) {
+        delay(5000);
         mTimestamp  = getNtpTime();
         DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
     }
 
     mUpdater->setup(mWeb);
     mApActive = startAp;
-
 }
 
 
@@ -83,6 +83,11 @@ void Main::loop(void) {
         }
         else {
             if(millis() - mApLastTick > 10000) {
+                uint8_t cnt = WiFi.softAPgetStationNum();
+                if(cnt > 0) {
+                    DPRINTLN(String(cnt) + " clients connected, resetting AP timeout");
+                    mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
+                }
                 mApLastTick = millis();
                 DPRINTLN("AP will be closed in " + String((mNextTryTs - mApLastTick) / 1000) + " seconds");
             }

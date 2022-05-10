@@ -17,7 +17,7 @@
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
 // time in seconds how long the station info (ssid + pwd) will be tried
-#define WIFI_TRY_CONNECT_TIME   15
+#define WIFI_TRY_CONNECT_TIME   30
 
 // time during the ESP will act as access point on connection failure (to
 // station) in seconds
@@ -36,7 +36,7 @@
 #define MAX_NAME_LENGTH         16
 
 // maximum buffer length of packet received / sent to RF24 module
-#define MAX_RF_PAYLOAD_SIZE     64
+#define MAX_RF_PAYLOAD_SIZE     32
 
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED

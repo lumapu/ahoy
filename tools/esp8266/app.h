@@ -73,14 +73,15 @@ class app : public Main {
         uint16_t mSendTicker;
         uint16_t mSendInterval;
 
-        uint32_t mCmds[DBG_CMD_LIST_LEN+1];
-        //uint32_t mChannelStat[4];
+        uint32_t mPacketIds[DBG_CMD_LIST_LEN+1];
         uint32_t mRecCnt;
 
         // timer
         uint32_t mTicker;
         bool mSerialValues;
         bool mSerialDebug;
+
+        uint32_t mRxTicker;
 
         // mqtt
         mqtt mMqtt;
