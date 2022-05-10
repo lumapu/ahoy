@@ -11,8 +11,8 @@ f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
 
 
-HOYMILES_TRANSACTION_LOGGING=True
-HOYMILES_DEBUG_LOGGING=True
+HOYMILES_TRANSACTION_LOGGING=False
+HOYMILES_DEBUG_LOGGING=False
 
 def ser_to_hm_addr(s):
     """

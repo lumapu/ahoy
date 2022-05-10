@@ -13,28 +13,6 @@ import paho.mqtt.client
 import yaml
 from yaml.loader import SafeLoader
 
-parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway')
-parser.add_argument("-c", "--config-file", nargs="?",
-    help="configuration file")
-global_config = parser.parse_args()
-
-if global_config.config_file:
-    with open(global_config.config_file) as yf:
-        cfg = yaml.load(yf, Loader=SafeLoader)
-else:
-    with open(global_config.config_file) as yf:
-        cfg = yaml.load('ahoy.yml', Loader=SafeLoader)
-
-radio = RF24(22, 0, 1000000)
-hmradio = hoymiles.HoymilesNRF(device=radio)
-mqtt_client = None
-
-command_queue = {}
-mqtt_command_topic_subs = []
-
-hoymiles.HOYMILES_TRANSACTION_LOGGING=True
-hoymiles.HOYMILES_DEBUG_LOGGING=True
-
 def main_loop():
     inverters = [
             inverter for inverter in ahoy_config.get('inverters', [])
@@ -45,62 +23,66 @@ def main_loop():
             print(f'Poll inverter {inverter["serial"]}')
         poll_inverter(inverter)
 
-def poll_inverter(inverter):
+def poll_inverter(inverter, retries=4):
     inverter_ser = inverter.get('serial')
     dtu_ser = ahoy_config.get('dtu', {}).get('serial')
 
-    if len(command_queue[str(inverter_ser)]) > 0:
+    # Queue at least status data request
+    command_queue[str(inverter_ser)].append(hoymiles.compose_set_time_payload())
+
+    # Putt all queued commands for current inverter on air
+    while len(command_queue[str(inverter_ser)]) > 0:
         payload = command_queue[str(inverter_ser)].pop(0)
-    else:
-        payload = hoymiles.compose_set_time_payload()
 
-    payload_ttl = 4
-    while payload_ttl > 0:
-        payload_ttl = payload_ttl - 1
-        com = hoymiles.InverterTransaction(
-                radio=hmradio,
-                dtu_ser=dtu_ser,
-                inverter_ser=inverter_ser,
-                request=next(hoymiles.compose_esb_packet(
-                    payload,
-                    seq=b'\x80',
-                    src=dtu_ser,
-                    dst=inverter_ser
-                    )))
-        response = None
-        while com.rxtx():
-            try:
-                response = com.get_payload()
-                payload_ttl = 0
-            except Exception as e:
-                print(f'Error while retrieving data: {e}')
-                pass
+        # Send payload {ttl}-times until we get at least one reponse
+        payload_ttl = retries
+        while payload_ttl > 0:
+            payload_ttl = payload_ttl - 1
+            com = hoymiles.InverterTransaction(
+                    radio=hmradio,
+                    dtu_ser=dtu_ser,
+                    inverter_ser=inverter_ser,
+                    request=next(hoymiles.compose_esb_packet(
+                        payload,
+                        seq=b'\x80',
+                        src=dtu_ser,
+                        dst=inverter_ser
+                        )))
+            response = None
+            while com.rxtx():
+                try:
+                    response = com.get_payload()
+                    payload_ttl = 0
+                except Exception as e:
+                    print(f'Error while retrieving data: {e}')
+                    pass
 
-    if response:
-        dt = datetime.now()
-        print(f'{dt} Payload: ' + hoymiles.hexify_payload(response))
-        decoder = hoymiles.ResponseDecoder(response,
-                request=com.request,
-                inverter_ser=inverter_ser
-                )
-        result = decoder.decode()
-        if isinstance(result, hoymiles.decoders.StatusResponse):
-            data = result.__dict__()
-            if hoymiles.HOYMILES_DEBUG_LOGGING:
-                print(f'{dt} Decoded: {data["temperature"]}', end='')
-                phase_id = 0
-                for phase in data['phases']:
-                    print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
-                    phase_id = phase_id + 1
-                string_id = 0
-                for string in data['strings']:
-                    print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
-                    string_id = string_id + 1
-                print()
+        # Handle the response data if any
+        if response:
+            dt = datetime.now()
+            print(f'{dt} Payload: ' + hoymiles.hexify_payload(response))
+            decoder = hoymiles.ResponseDecoder(response,
+                    request=com.request,
+                    inverter_ser=inverter_ser
+                    )
+            result = decoder.decode()
+            if isinstance(result, hoymiles.decoders.StatusResponse):
+                data = result.__dict__()
+                if hoymiles.HOYMILES_DEBUG_LOGGING:
+                    print(f'{dt} Decoded: {data["temperature"]}', end='')
+                    phase_id = 0
+                    for phase in data['phases']:
+                        print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
+                        phase_id = phase_id + 1
+                    string_id = 0
+                    for string in data['strings']:
+                        print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
+                        string_id = string_id + 1
+                    print()
 
-            if mqtt_client:
-                mqtt_send_status(mqtt_client, inverter_ser, data,
-                        topic=inverter.get('mqtt', {}).get('topic', None))
+                if mqtt_client:
+                    mqtt_send_status(mqtt_client, inverter_ser, data,
+                            topic=inverter.get('mqtt', {}).get('topic', None))
 
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """ Publish StatusResponse object """
@@ -170,7 +152,50 @@ def mqtt_on_command(client, userdata, message):
                     hoymiles.frame_payload(payload[1:]))
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway', prog="hoymiles")
+    parser.add_argument("-c", "--config-file", nargs="?", required=True,
+        help="configuration file")
+    parser.add_argument("--log-transactions", action="store_true", default=False,
+        help="Enable transaction logging output")
+    parser.add_argument("--verbose", action="store_true", default=False,
+        help="Enable debug output")
+    global_config = parser.parse_args()
+
+    # Load ahoy.yml config file
+    try:
+        if isinstance(global_config.config_file, str) == True:
+            with open(global_config.config_file, 'r') as yf:
+                cfg = yaml.load(yf, Loader=SafeLoader)
+        else:
+            with open('ahoy.yml', 'r') as yf:
+                cfg = yaml.load(yf, Loader=SafeLoader)
+    except FileNotFoundError:
+        print("Could not load config file. Try --help")
+        sys.exit(2)
+    except yaml.YAMLError as ye:
+        print('Failed to load config frile {global_config.config_file}: {ye}')
+        sys.exit(1)
+
     ahoy_config = dict(cfg.get('ahoy', {}))
+
+    # Prepare for multiple transceivers, makes them configurable (currently
+    # only one supported)
+    for radio_config in ahoy_config.get('nrf', [{}]):
+        radio = RF24(
+                radio_config.get('ce_pin', 22),
+                radio_config.get('cs_pin', 0),
+                radio_config.get('spispeed', 1000000))
+        hmradio = hoymiles.HoymilesNRF(device=radio)
+
+    mqtt_client = None
+
+    command_queue = {}
+    mqtt_command_topic_subs = []
+
+    if global_config.log_transactions:
+        hoymiles.HOYMILES_TRANSACTION_LOGGING=True
+    if global_config.verbose:
+        hoymiles.HOYMILES_DEBUG_LOGGING=True
 
     mqtt_config = ahoy_config.get('mqtt', [])
     if not mqtt_config.get('disabled', False):
@@ -202,9 +227,13 @@ if __name__ == '__main__':
     loop_interval = ahoy_config.get('interval', 1)
     try:
         while True:
+            t_loop_start = time.time()
+
             main_loop()
 
-            if loop_interval:
+            print('', end='', flush=True)
+
+            if loop_interval > 0 and (time.time() - t_loop_start) < loop_interval:
                 time.sleep(time.time() % loop_interval)
 
     except KeyboardInterrupt:

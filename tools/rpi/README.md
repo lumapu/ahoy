@@ -40,8 +40,27 @@ contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
 
-    $ sudo python3 ahoy.py --config /home/dtu/ahoy.yml | tee -a log2.log
+    $ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
 
+Python parameters
+- `-u` enables python's unbuffered mode
+- `-m hoymiles` tells python to load module 'hoymiles' as main app
+
+
+The application describes itself
+```
+python -m hoymiles --help
+usage: hoymiles [-h] -c [CONFIG_FILE] [--log-transactions] [--verbose]
+
+Ahoy - Hoymiles solar inverter gateway
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c [CONFIG_FILE], --config-file [CONFIG_FILE]
+                        configuration file
+  --log-transactions    Enable transaction logging output
+  --verbose             Enable debug output
+```
 
 
 Inject payloads via MQTT
