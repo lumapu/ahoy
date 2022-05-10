@@ -205,9 +205,11 @@ class HmRadio {
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
+                DISABLE_IRQ;
                 mNrf24.stopListening();
                 mNrf24.setChannel(getRxNxtChannel());
                 mNrf24.startListening();
+                RESTORE_IRQ;
             }
             return (0 == mRxLoopCnt); // receive finished
         }

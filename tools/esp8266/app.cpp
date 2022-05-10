@@ -3,7 +3,6 @@
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
-#include "html/h/debug_html.h"
 
 
 //-----------------------------------------------------------------------------
@@ -24,12 +23,9 @@ app::app() : Main() {
     mSerialValues = true;
     mSerialDebug  = false;
 
-    memset(mCmds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
-    //memset(mChannelStat, 0, sizeof(uint32_t) * 4);
+    memset(mPacketIds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
 
     mSys = new HmSystemType();
-
-    memset(mPayload, 0, ((MAX_RF_PAYLOAD_SIZE-11) * MAX_NUM_PAC_PER_PAYLOAD));
 }
 
 
@@ -50,7 +46,6 @@ void app::setup(uint32_t timeout) {
     mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
     mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
-    mWeb->on("/debug",     std::bind(&app::showDebug,      this));
 
     if(mSettingsValid) {
         uint64_t invSerial;
@@ -67,11 +62,9 @@ void app::setup(uint32_t timeout) {
                 DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
             }
         }
-        // @TODO reenable
-        //mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        //if(mSendInterval < 5)
-        //    mSendInterval = 5;
-        mSendInterval = 5;
+        mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
+        if(mSendInterval < 5)
+            mSendInterval = 5;
 
         // pinout
         mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
@@ -152,29 +145,29 @@ void app::loop(void) {
             if(mSys->Radio.checkPaketCrc(p->packet, &len, &rptCnt, p->rxCh)) {
                 // process buffer only on first occurrence
                 if((0 != len) && (0 == rptCnt)) {
-                    uint8_t *cmd = &p->packet[9];
-                    //DPRINTLN("CMD " + String(*cmd, HEX));
+                    uint8_t *packetId = &p->packet[9];
+                    //DPRINTLN("CMD " + String(*packetId, HEX));
                     if(mSerialDebug)
                         mSys->Radio.dumpBuf("Payload ", p->packet, len);
 
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
                         for(uint8_t i = 0; i < iv->listLen; i++) {
-                            if(iv->assign[i].cmdId == *cmd)
+                            if(iv->assign[i].cmdId == *packetId)
                                 iv->addValue(i, &p->packet[9]);
                         }
                         iv->doCalculations();
-                        //memcpy(mPayload[(*cmd & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
+                        //memcpy(mPayload[(*packetId & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
                     }
 
-                    if(*cmd == 0x01)      mCmds[0]++;
-                    else if(*cmd == 0x02) mCmds[1]++;
-                    else if(*cmd == 0x03) mCmds[2]++;
-                    else if(*cmd == 0x81) mCmds[3]++;
-                    else if(*cmd == 0x82) mCmds[4]++;
-                    else if(*cmd == 0x83) mCmds[5]++;
-                    else if(*cmd == 0x84) mCmds[6]++;
-                    else                  mCmds[7]++;
+                    if(*packetId == 0x01)      mPacketIds[0]++;
+                    else if(*packetId == 0x02) mPacketIds[1]++;
+                    else if(*packetId == 0x03) mPacketIds[2]++;
+                    else if(*packetId == 0x81) mPacketIds[3]++;
+                    else if(*packetId == 0x82) mPacketIds[4]++;
+                    else if(*packetId == 0x83) mPacketIds[5]++;
+                    else if(*packetId == 0x84) mPacketIds[6]++;
+                    else                       mPacketIds[7]++;
                 }
             }
             mSys->BufCtrl.popBack();
@@ -182,24 +175,9 @@ void app::loop(void) {
     }
 
     if(checkTicker(&mTicker, 1000)) {
-        if(++mSendTicker >= mSendInterval) {
-            mSendTicker = 0;
-
-            if(!mSys->BufCtrl.empty())
-                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
-            Inverter<> *inv;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                inv = mSys->getInverterByPos(i);
-                if(NULL != inv) {
-                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
-                    yield();
-                }
-            }
-        }
-
         if(mMqttActive) {
             mMqtt.loop();
-            if(++mMqttTicker > mMqttInterval) {
+            if(++mMqttTicker >= mMqttInterval) {
                 mMqttInterval = 0;
                 mMqtt.isConnected(true);
                 char topic[30], val[10];
@@ -220,7 +198,7 @@ void app::loop(void) {
         }
 
         if(mSerialValues) {
-            if(++mSerialTicker > mSerialInterval) {
+            if(++mSerialTicker >= mSerialInterval) {
                 mSerialInterval = 0;
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -235,6 +213,22 @@ void app::loop(void) {
                             yield();
                         }
                     }
+                }
+            }
+        }
+
+        if(++mSendTicker >= mSendInterval) {
+            mSendTicker = 0;
+
+            if(!mSys->BufCtrl.empty())
+                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
+            Inverter<> *inv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                inv = mSys->getInverterByPos(i);
+                if(NULL != inv) {
+                    yield();
+                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    mRxTicker = 0;
                 }
             }
         }
@@ -402,19 +396,13 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    String content = "CMDs:\n";
+    String content = "Packets:\n";
     for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
-        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mCmds[i]) + String("\n");
+        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mPacketIds[i]) + String("\n");
     }
-    content += String("other: ") + String(mCmds[DBG_CMD_LIST_LEN]) + String("\n\n");
+    content += String("other: ") + String(mPacketIds[DBG_CMD_LIST_LEN]) + String("\n\n");
 
     content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
-
-    /*content += "\nCHANNELs:\n";
-    content += String("23: ") + String(mChannelStat[0]) + String("\n");
-    content += String("40: ") + String(mChannelStat[1]) + String("\n");
-    content += String("61: ") + String(mChannelStat[2]) + String("\n");
-    content += String("75: ") + String(mChannelStat[3]) + String("\n");*/
 
     if(!mSys->Radio.isChipConnected())
         content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";
@@ -510,36 +498,6 @@ void app::showLiveData(void) {
 
 
     mWeb->send(200, "text/html", modHtml);
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showDebug() {
-    if(mWeb->args() > 0) {
-        /*String html;
-
-        for(uint8_t i = 0; i < MAX_NUM_PAC_PER_PAYLOAD; i ++) {
-            for(uint8_t j = 0; j < (MAX_RF_PAYLOAD_SIZE- 11); j++) {
-                if(mPayload[i][j] < 0x10)
-                    html += "0";
-                html += String(mPayload[i][j], HEX) + " ";
-            }
-            html += "\n";
-        }
-        html += "CMDS: ";
-        for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
-            html += String(mCmds[i]) + String(" ");
-        }
-        html += "\n------------------";*/
-
-        mWeb->send(200, "text/plain", "na");
-    }
-    else {
-        String html = FPSTR(debug_html);
-        html.replace("{DEVICE}", mDeviceName);
-        html.replace("{VERSION}", mVersion);
-        mWeb->send(200, "text/html", html);
-    }
 }
 
 

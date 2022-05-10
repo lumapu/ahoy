@@ -47,7 +47,6 @@ class app : public Main {
         void showStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
-        void showDebug(void);
 
         void saveValues(bool webSend);
         void updateCrc(void);
@@ -74,8 +73,7 @@ class app : public Main {
         uint16_t mSendTicker;
         uint16_t mSendInterval;
 
-        uint32_t mCmds[DBG_CMD_LIST_LEN+1];
-        //uint32_t mChannelStat[4];
+        uint32_t mPacketIds[DBG_CMD_LIST_LEN+1];
         uint32_t mRecCnt;
 
         // timer
@@ -92,8 +90,6 @@ class app : public Main {
         bool mMqttActive;
         uint16_t mSerialTicker;
         uint16_t mSerialInterval;
-
-        uint8_t mPayload[MAX_NUM_PAC_PER_PAYLOAD][MAX_RF_PAYLOAD_SIZE-11];
 };
 
 #endif /*__APP_H__*/
