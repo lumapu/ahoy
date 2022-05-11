@@ -3,6 +3,12 @@
 ahoy:
   interval: 0
   sunset: true
+
+  # List of available NRF24 transceivers
+  nrf:
+    - ce_pin: 22
+      cs_pin: 0
+
   mqtt:
     disabled: false
     host: example-broker.local
