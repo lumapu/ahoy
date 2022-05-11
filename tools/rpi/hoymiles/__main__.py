@@ -14,6 +14,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 def main_loop():
+    """Main loop"""
     inverters = [
             inverter for inverter in ahoy_config.get('inverters', [])
             if not inverter.get('disabled', False)]
@@ -24,6 +25,13 @@ def main_loop():
         poll_inverter(inverter)
 
 def poll_inverter(inverter, retries=4):
+    """
+    Send/Receive command_queue, initiate status poll on inverter
+
+    :param str inverter: inverter serial
+    :param retries: tx retry count if no inverter contact
+    :type retries: int
+    """
     inverter_ser = inverter.get('serial')
     dtu_ser = ahoy_config.get('dtu', {}).get('serial')
 
@@ -85,7 +93,15 @@ def poll_inverter(inverter, retries=4):
                             topic=inverter.get('mqtt', {}).get('topic', None))
 
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
-    """ Publish StatusResponse object """
+    """
+    Publish StatusResponse object
+
+    :param paho.mqtt.client.Client broker: mqtt-client instance
+    :param str inverter_ser: inverter serial
+    :param hoymiles.StatusResponse data: decoded inverter StatusResponse
+    :param topic: custom mqtt topic prefix (default: hoymiles/{inverter_ser})
+    :type topic: str
+    """
 
     if not topic:
         topic = f'hoymiles/{inverter_ser}'
@@ -128,6 +144,10 @@ def mqtt_on_command(client, userdata, message):
       mosquitto -h broker -t inverter_topic/command -m 800b00tttttttt0000000500000000
 
     This allows for even faster hacking during runtime
+
+    :param paho.mqtt.client.Client client: mqtt-client instance
+    :param dict userdata: Userdata
+    :param dict message: mqtt-client message object
     """
     try:
         inverter_ser = next(
