@@ -178,7 +178,7 @@ void app::loop(void) {
         if(mMqttActive) {
             mMqtt.loop();
             if(++mMqttTicker >= mMqttInterval) {
-                mMqttInterval = 0;
+                mMqttTicker = 0;
                 mMqtt.isConnected(true);
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -199,7 +199,7 @@ void app::loop(void) {
 
         if(mSerialValues) {
             if(++mSerialTicker >= mSerialInterval) {
-                mSerialInterval = 0;
+                mSerialTicker = 0;
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
