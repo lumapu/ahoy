@@ -279,16 +279,14 @@ class HoymilesNRF:
         :rtype: bool
         """
 
-        #dst_esb_addr = b'\x01' + packet[1:5]
-        #src_esb_addr = b'\x01' + packet[6:9]
-
-        #hexify_payload(dst_esb_addr)
-        #hexify_payload(src_esb_addr)
+        inv_esb_addr = b'\01' + packet[1:5]
+        dtu_esb_addr = b'\01' + packet[5:9]
 
         self.radio.stopListening()  # put radio in TX mode
         self.radio.setDataRate(RF24_250KBPS)
-        #self.radio.openReadingPipe(1, src_esb_addr )
-        #self.radio.openWritingPipe( dst_esb_addr )
+        #self.radio.setPALevel(RF24_PA_LOW)
+        self.radio.openReadingPipe(1,dtu_esb_addr)
+        self.radio.openWritingPipe(inv_esb_addr)
         self.radio.setChannel(self.tx_channel)
         self.radio.setAutoAck(True)
         self.radio.setRetries(3, 15)

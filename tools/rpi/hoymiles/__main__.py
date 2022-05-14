@@ -236,7 +236,7 @@ if __name__ == '__main__':
         #
         # Enables and subscribe inverter to mqtt /command-Topic
         #
-        if inverter.get('mqtt', {}).get('send_raw_enabled', False):
+        if mqtt_client and inverter.get('mqtt', {}).get('send_raw_enabled', False):
             topic_item = (
                     str(inverter_ser),
                     inverter.get('mqtt', {}).get('topic', f'hoymiles/{inverter_ser}') + '/command'
