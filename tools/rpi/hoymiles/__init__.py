@@ -67,13 +67,18 @@ class ResponseDecoderFactory:
     :type request: bytes
     :param inverter_ser: inverter serial
     :type inverter_ser: str
+    :param time_rx: idatetime when payload was received
+    :type time_rx: datetime
     """
     model = None
     request = None
     response = None
+    time_rx = None
 
     def __init__(self, response, **params):
         self.response = response
+
+        self.time_rx = params.get('time_rx', datetime.now())
 
         if 'request' in params:
             self.request = params['request']
@@ -164,7 +169,10 @@ class ResponseDecoder(ResponseDecoderFactory):
             if HOYMILES_DEBUG_LOGGING:
                 device = getattr(model_decoders, f'DEBUG_DecodeAny')
 
-        return device(self.response)
+        return device(self.response,
+                time_rx=self.time_rx,
+                inverter_ser=self.inverter_ser
+                )
 
 class InverterPacketFragment:
     """ESB Frame"""
