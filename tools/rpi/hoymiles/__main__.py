@@ -91,6 +91,8 @@ def poll_inverter(inverter, retries=4):
                 if mqtt_client:
                     mqtt_send_status(mqtt_client, inverter_ser, data,
                             topic=inverter.get('mqtt', {}).get('topic', None))
+                if influx_client:
+                    influx_client.store_status(result)
 
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
@@ -224,6 +226,17 @@ if __name__ == '__main__':
         mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
         mqtt_client.loop_start()
         mqtt_client.on_message = mqtt_on_command
+
+    influx_client = None
+    influx_config = ahoy_config.get('influxdb', {})
+    if influx_config and not influx_config.get('disabled', False):
+        from .outputs import InfluxOutputPlugin
+        influx_client = InfluxOutputPlugin(
+                influx_config.get('url'),
+                influx_config.get('token'),
+                org=influx_config.get('org', ''),
+                bucket=influx_config.get('bucket', None),
+                measurement=influx_config.get('measurement', 'hoymiles'))
 
     if not radio.begin():
         raise RuntimeError('Can\'t open radio')
