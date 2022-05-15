@@ -2,13 +2,43 @@
 # -*- coding: utf-8 -*-
 import struct
 import crcmod
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 
-class StatusResponse:
+class Response:
+    inverter_ser = None
+    inverter_name = None
+    dtu_ser = None
+    response = None
+
+    def __init__(self, *args, **params):
+        """
+        :param bytes response: response payload bytes
+        """
+        self.inverter_ser = params.get('inverter_ser', None)
+        self.inverter_name = params.get('inverter_name', None)
+        self.dtu_ser = params.get('dtu_ser', None)
+
+        self.response = args[0]
+
+        if isinstance(params.get('time_rx', None), datetime):
+            self.time_rx = params['time_rx']
+        else:
+            self.time_rx = datetime.now()
+
+    def __dict__(self):
+        return {
+                'inverter_ser': self.inverter_ser,
+                'inverter_name': self.inverter_name,
+                'dtu_ser': self.dtu_ser}
+
+class StatusResponse(Response):
     """Inverter StatusResponse object"""
-    e_keys  = ['voltage','current','power','energy_total','energy_daily']
+    e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor']
+
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
     def unpack(self, fmt, base):
         """
@@ -77,17 +107,22 @@ class StatusResponse:
         :return: dict of properties
         :rtype: dict
         """
-        data = {}
+        data = super().__dict__()
         data['phases'] = self.phases
         data['strings'] = self.strings
         data['temperature'] = self.temperature
         data['frequency'] = self.frequency
+        data['time'] = self.time_rx
         return data
 
-class UnknownResponse:
+class UnknownResponse(Response):
     """
     Debugging helper for unknown payload format
     """
+
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
+
     @property
     def hex_ascii(self):
         """
@@ -291,8 +326,8 @@ class EventsResponse(UnknownResponse):
             9000: 'Microinverter is suspected of being stolen'
             }
 
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
         crc_valid = self.valid_crc
         if crc_valid:
@@ -318,13 +353,9 @@ class EventsResponse(UnknownResponse):
 
 class DEBUG_DecodeAny(UnknownResponse):
     """Default decoder"""
-    def __init__(self, response):
-        """
-        Try interpret and print unknown response data
 
-        :param bytes response: response payload bytes
-        """
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
         crc_valid = self.valid_crc
         if crc_valid:
@@ -385,8 +416,8 @@ class DEBUG_DecodeAny(UnknownResponse):
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase
 class HM300_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
     @property
     def dc_voltage_0(self):
@@ -422,19 +453,18 @@ class HM300_Decode0B(StatusResponse):
         return self.unpack('>H', 26)[0]/10
 
 class HM300_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
 class HM300_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
-
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
 
 # 1141-Series Inverters, 2 MPPT, 1 Phase
 class HM600_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
     @property
     def dc_voltage_0(self):
@@ -483,20 +513,23 @@ class HM600_Decode0B(StatusResponse):
     @property
     def temperature(self):
         return self.unpack('>H', 38)[0]/10
+    @property
+    def alarm_count(self):
+        return self.unpack('>H', 40)[0]
 
 class HM600_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
 class HM600_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
 
 # 1161-Series Inverters, 4 MPPT, 1 Phase
 class HM1200_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
     @property
     def dc_voltage_0(self):
@@ -579,9 +612,9 @@ class HM1200_Decode0B(StatusResponse):
         return self.unpack('>H', 58)[0]/10
 
 class HM1200_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
 class HM1200_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
