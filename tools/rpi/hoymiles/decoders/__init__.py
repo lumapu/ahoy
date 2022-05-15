@@ -148,7 +148,7 @@ class UnknownResponse(Response):
     @property
     def dump_longs(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 5:
+        if len(self.response) < 3:
             return None
 
         res = self.response
@@ -166,7 +166,7 @@ class UnknownResponse(Response):
     @property
     def dump_longs_pad1(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 7:
+        if len(self.response) < 5:
             return None
 
         res = self.response[2:]
@@ -184,7 +184,7 @@ class UnknownResponse(Response):
     @property
     def dump_longs_pad2(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 9:
+        if len(self.response) < 7:
             return None
 
         res = self.response[4:]
@@ -202,7 +202,7 @@ class UnknownResponse(Response):
     @property
     def dump_longs_pad3(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 11:
+        if len(self.response) < 9:
             return None
 
         res = self.response[6:]
@@ -220,7 +220,7 @@ class UnknownResponse(Response):
     @property
     def dump_shorts(self):
         """Get all data, interpreted as short"""
-        if len(self.response) < 5:
+        if len(self.response) < 3:
             return None
 
         res = self.response
@@ -238,7 +238,7 @@ class UnknownResponse(Response):
     @property
     def dump_shorts_pad1(self):
         """Get all data, interpreted as short"""
-        if len(self.response) < 6:
+        if len(self.response) < 4:
             return None
 
         res = self.response[1:]
@@ -332,7 +332,7 @@ class EventsResponse(UnknownResponse):
         crc_valid = self.valid_crc
         if crc_valid:
             print(' payload has valid modbus crc')
-            self.response = response[:-2]
+            self.response = self.response[:-2]
 
         status = self.response[:2]
 
@@ -360,7 +360,7 @@ class DEBUG_DecodeAny(UnknownResponse):
         crc_valid = self.valid_crc
         if crc_valid:
             print(' payload has valid modbus crc')
-            self.response = response[:-2]
+            self.response = self.response[:-2]
 
         l_payload = len(self.response)
         print(f' payload has {l_payload} bytes')
