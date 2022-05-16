@@ -261,7 +261,7 @@ class EventsResponse(UnknownResponse):
 
     alarm_codes = {
             1: 'Inverter start',
-            2: 'Producing power',
+            2: 'DTU command failed',
             121: 'Over temperature protection',
             125: 'Grid configuration parameter error',
             126: 'Software error code 126',
