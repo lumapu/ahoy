@@ -76,13 +76,13 @@ const byteAssign_t hm2chAssignment[] = {
     { FLD_IDC, UNIT_A,   CH1,  4, 2, 100  },
     { FLD_PDC, UNIT_W,   CH1,  6, 2, 10   },
     { FLD_YD,  UNIT_WH,  CH1, 22, 2, 1    },
-    { FLD_YD,  UNIT_KWH, CH1, 14, 4, 1000 },
+    { FLD_YT,  UNIT_KWH, CH1, 14, 4, 1000 },
 
     { FLD_UDC, UNIT_V,   CH2,  8, 2, 10   },
     { FLD_IDC, UNIT_A,   CH2, 10, 2, 100  },
     { FLD_PDC, UNIT_W,   CH2, 12, 2, 10   },
     { FLD_YD,  UNIT_WH,  CH2, 18, 2, 1    },
-    { FLD_YD,  UNIT_KWH, CH2, 24, 4, 1000 },
+    { FLD_YT,  UNIT_KWH, CH2, 24, 4, 1000 },
 
     { FLD_UAC, UNIT_V,   CH0, 26, 2, 10   },
     { FLD_IAC, UNIT_A,   CH0, 34, 2, 10   },
