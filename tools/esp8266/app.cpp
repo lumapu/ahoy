@@ -23,12 +23,8 @@ app::app() : Main() {
     mSerialValues = true;
     mSerialDebug  = false;
 
-    memset(mPacketIds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
-
-    memset(mPayload, 0, (MAX_PAYLOAD_ENTRIES * MAX_RF_PAYLOAD_SIZE));
-    memset(mPayloadLen, 0, MAX_PAYLOAD_ENTRIES);
-    mPayloadComplete = true;
-    mMaxPackId = 0;
+    memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
+    mRxFailed = 0;
 
     mSys = new HmSystemType();
 }
@@ -139,7 +135,7 @@ void app::loop(void) {
     Main::loop();
 
     if(checkTicker(&mRxTicker, 5)) {
-        bool rcvRdy = mSys->Radio.switchRxCh();
+        bool rxRdy = mSys->Radio.switchRxCh();
 
         if(!mSys->BufCtrl.empty()) {
             uint8_t len;
@@ -153,34 +149,19 @@ void app::loop(void) {
                 }
 
                 if(0 != len) {
-                    uint8_t *packetId = &p->packet[9];
-                    if((*packetId & 0x7F) < 5) {
-                        memcpy(mPayload[(*packetId & 0x7F) - 1], &p->packet[10], len-11);
-                        mPayloadLen[(*packetId & 0x7F) - 1] = len-11;
-                    }
-
-                    if((*packetId & 0x80) == 0x80) {
-                        if((*packetId & 0x7f) > mMaxPackId)
-                            mMaxPackId = (*packetId & 0x7f);
-                    }
-
-                    /*Inverter<> *iv = mSys->findInverter(&p->packet[1]);
+                    Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
-                        for(uint8_t i = 0; i < iv->listLen; i++) {
-                            if(iv->assign[i].cmdId == *packetId)
-                                iv->addValue(i, &p->packet[9]);
+                        uint8_t *pid = &p->packet[9];
+                        if((*pid & 0x7F) < 5) {
+                            memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                            mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
                         }
-                        iv->doCalculations();
-                    }*/
 
-                    if(*packetId == 0x01)      mPacketIds[0]++;
-                    else if(*packetId == 0x02) mPacketIds[1]++;
-                    else if(*packetId == 0x03) mPacketIds[2]++;
-                    else if(*packetId == 0x81) mPacketIds[3]++;
-                    else if(*packetId == 0x82) mPacketIds[4]++;
-                    else if(*packetId == 0x83) mPacketIds[5]++;
-                    else if(*packetId == 0x84) mPacketIds[6]++;
-                    else                       mPacketIds[7]++;
+                        if((*pid & 0x80) == 0x80) {
+                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId)
+                                mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                        }
+                    }
                 }
             }
 
@@ -188,43 +169,8 @@ void app::loop(void) {
         }
 
 
-        // TODO: support more than one inverter!
-        if(rcvRdy && (!mPayloadComplete)) {
-            Inverter<> *iv = mSys->getInverterByPos(0);
-            if(!buildPayload()) {
-                if(mMaxPackId != 0) {
-                    for(uint8_t i = 0; i < (mMaxPackId-1); i ++) {
-                        // retransmit
-                        if(mPayloadLen[i] == 0) {
-                            if(mSerialDebug)
-                                DPRINTLN("Error while retrieving data: Frame " + String(i+1) + " missing: Request Retransmit");
-                            mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
-                        }
-                    }
-                }
-                mSys->Radio.switchRxCh(200);
-            }
-            else {
-                mPayloadComplete = true;
-                uint8_t payload[256] = {0};
-                uint8_t offs = 0;
-                for(uint8_t i = 0; i < (mMaxPackId); i ++) {
-                    memcpy(&payload[offs], mPayload[i], (mPayloadLen[i]));
-                    offs += (mPayloadLen[i]);
-                }
-                offs-=2;
-                if(mSerialDebug) {
-                    DPRINT("Payload (" + String(offs) + "): ");
-                    mSys->Radio.dumpBuf(NULL, payload, offs);
-                }
-
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        iv->addValue(i, payload);
-                    }
-                    iv->doCalculations();
-                }
-            }
+        if(rxRdy) {
+            processPayload(true);
         }
     }
 
@@ -274,24 +220,34 @@ void app::loop(void) {
         if(++mSendTicker >= mSendInterval) {
             mSendTicker = 0;
 
-            memset(mPayloadLen, 0, MAX_PAYLOAD_ENTRIES);
-            mMaxPackId = 0;
-            if(mSerialDebug) {
-                if(!mPayloadComplete)
-                    DPRINTLN("no Payload received!");
-            }
-            mPayloadComplete = false;
-
             if(!mSys->BufCtrl.empty()) {
                 if(mSerialDebug)
                     DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
             }
-            Inverter<> *inv;
+            Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                inv = mSys->getInverterByPos(i);
-                if(NULL != inv) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL != iv) {
+                    // reset payload data
+                    memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
+                    mPayload[iv->id].maxPackId = 0;
+                    if(mSerialDebug) {
+                        if(!mPayload[iv->id].complete)
+                            processPayload(false);
+
+                        if(!mPayload[iv->id].complete) {
+                            DPRINT("Inverter #" + String(iv->id) + " ");
+                            DPRINTLN("no Payload received!");
+                            mRxFailed++;
+                        }
+                    }
+                    mPayload[iv->id].complete = false;
+                    mPayload[iv->id].ts = mTimestamp;
+
                     yield();
-                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    if(mSerialDebug)
+                        DPRINTLN("Requesting Inverter SN " + String(iv->serial.u64, HEX));
+                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
             }
@@ -307,26 +263,76 @@ void app::handleIntr(void) {
 
 
 //-----------------------------------------------------------------------------
-bool app::buildPayload() {
+bool app::buildPayload(uint8_t id) {
     //DPRINTLN("Payload");
     uint16_t crc = 0xffff, crcRcv;
-    if(mMaxPackId > MAX_PAYLOAD_ENTRIES)
-        mMaxPackId = MAX_PAYLOAD_ENTRIES;
+    if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
+        mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
 
-    for(uint8_t i = 0; i < mMaxPackId; i ++) {
-        if(mPayloadLen[i] > 0) {
-            if(i == (mMaxPackId-1)) {
-                crc = crc16(mPayload[i], mPayloadLen[i] - 2, crc);
-                crcRcv = (mPayload[i][mPayloadLen[i] - 2] << 8)
-                    | (mPayload[i][mPayloadLen[i] - 1]);
+    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
+        if(mPayload[id].len[i] > 0) {
+            if(i == (mPayload[id].maxPackId-1)) {
+                crc = crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
+                    | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
             else
-                crc = crc16(mPayload[i], mPayloadLen[i], crc);
+                crc = crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
     }
     if(crc == crcRcv)
         return true;
     return false;
+}
+
+
+//-----------------------------------------------------------------------------
+void app::processPayload(bool retransmit) {
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            if(!mPayload[iv->id].complete) {
+                if(!buildPayload(iv->id)) {
+                    if(retransmit) {
+                        if(mPayload[iv->id].maxPackId != 0) {
+                            for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
+                                if(mPayload[iv->id].len[i] == 0) {
+                                    if(mSerialDebug)
+                                        DPRINTLN("Error while retrieving data: Frame " + String(i+1) + " missing: Request Retransmit");
+                                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
+                                }
+                            }
+                        }
+                        else {
+                            if(mSerialDebug)
+                                DPRINTLN("Error while retrieving data: last frame missing: Request Retransmit");
+                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                        }
+                        mSys->Radio.switchRxCh(100);
+                    }
+                }
+                else {
+                    mPayload[iv->id].complete = true;
+                    uint8_t payload[128] = {0};
+                    uint8_t offs = 0;
+                    for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
+                        memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                        offs += (mPayload[iv->id].len[i]);
+                    }
+                    offs-=2;
+                    if(mSerialDebug) {
+                        DPRINT("Payload (" + String(offs) + "): ");
+                        mSys->Radio.dumpBuf(NULL, payload, offs);
+                    }
+
+                    for(uint8_t i = 0; i < iv->listLen; i++) {
+                        iv->addValue(i, payload);
+                    }
+                    iv->doCalculations();
+                }
+            }
+        }
+    }
 }
 
 
@@ -473,12 +479,7 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    String content = "Packets:\n";
-    for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
-        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mPacketIds[i]) + String("\n");
-    }
-    content += String("other: ") + String(mPacketIds[DBG_CMD_LIST_LEN]) + String("\n\n");
-
+    String content = "Failed Payload: " + String(mRxFailed) + "\n";
     content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
 
     if(!mSys->Radio.isChipConnected())
