@@ -40,6 +40,8 @@ class app : public Main {
         }
 
     private:
+        bool buildPayload();
+
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
@@ -75,6 +77,10 @@ class app : public Main {
 
         uint32_t mPacketIds[DBG_CMD_LIST_LEN+1];
         uint32_t mRecCnt;
+        uint8_t mPayload[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
+        uint8_t mPayloadLen[MAX_PAYLOAD_ENTRIES];
+        bool mPayloadComplete;
+        uint8_t mMaxPackId;
 
         // timer
         uint32_t mTicker;

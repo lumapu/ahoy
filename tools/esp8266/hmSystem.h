@@ -27,7 +27,7 @@ class HmSystem {
             Radio.setup(&BufCtrl);
         }
 
-        INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint8_t type) {
+        INVERTERTYPE *addInverter(const char *name, uint64_t serial) {
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT("max number of inverters reached!");
                 return NULL;
@@ -35,7 +35,19 @@ class HmSystem {
             INVERTERTYPE *p = &mInverter[mNumInv];
             p->id         = mNumInv;
             p->serial.u64 = serial;
-            p->type       = type;
+            DPRINT("SERIAL: " + String(p->serial.b[5], HEX));
+            DPRINTLN(" " + String(p->serial.b[4], HEX));
+            if(p->serial.b[5] == 0x11) {
+                switch(p->serial.b[4]) {
+                    case 0x21: p->type = INV_TYPE_1CH; break;
+                    case 0x41: p->type = INV_TYPE_2CH; break;
+                    case 0x61: p->type = INV_TYPE_4CH; break;
+                    default: DPRINTLN("unknown inverter type: 11" + String(p->serial.b[4], HEX)); break;
+                }
+            }
+            else
+                DPRINTLN("inverter type can't be detected!");
+
             p->init();
             uint8_t len   = (uint8_t)strlen(name);
             strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);

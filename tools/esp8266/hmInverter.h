@@ -95,22 +95,20 @@ class Inverter {
             return assign[pos].ch;
         }
 
-        uint8_t getCmdId(uint8_t pos) {
-            return assign[pos].cmdId;
-        }
-
         void addValue(uint8_t pos, uint8_t buf[]) {
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
             uint16_t div = assign[pos].div;
 
-            uint32_t val = 0;
-            do {
-                val <<= 8;
-                val |= buf[ptr];
-            } while(++ptr != end);
+            if(CMD_CALC != div) {
+                uint32_t val = 0;
+                do {
+                    val <<= 8;
+                    val |= buf[ptr];
+                } while(++ptr != end);
 
-            record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
+                record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
+            }
         }
 
         RECORDTYPE getValue(uint8_t pos) {
@@ -119,7 +117,7 @@ class Inverter {
 
         void doCalculations(void) {
             for(uint8_t i = 0; i < listLen; i++) {
-                if(CMDFF == assign[i].cmdId) {
+                if(CMD_CALC == assign[i].div) {
                     record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
                 }
             }
@@ -136,24 +134,19 @@ class Inverter {
         }
 
         void getAssignment(void) {
-            if(INV_TYPE_HM400 == type) {
-                listLen  = (uint8_t)(HM400_LIST_LEN);
-                assign   = (byteAssign_t*)hm400assignment;
+            if(INV_TYPE_1CH == type) {
+                listLen  = (uint8_t)(HM1CH_LIST_LEN);
+                assign   = (byteAssign_t*)hm1chAssignment;
                 channels = 1;
             }
-            else if(INV_TYPE_HM600 == type) {
-                listLen  = (uint8_t)(HM600_LIST_LEN);
-                assign   = (byteAssign_t*)hm600assignment;
+            else if(INV_TYPE_2CH == type) {
+                listLen  = (uint8_t)(HM2CH_LIST_LEN);
+                assign   = (byteAssign_t*)hm2chAssignment;
                 channels = 2;
             }
-            else if(INV_TYPE_HM800 == type) {
-                listLen  = (uint8_t)(HM800_LIST_LEN);
-                assign   = (byteAssign_t*)hm800assignment;
-                channels = 2;
-            }
-            else if(INV_TYPE_HM1200 == type) {
-                listLen  = (uint8_t)(HM1200_LIST_LEN);
-                assign   = (byteAssign_t*)hm1200assignment;
+            else if(INV_TYPE_4CH == type) {
+                listLen  = (uint8_t)(HM4CH_LIST_LEN);
+                assign   = (byteAssign_t*)hm4chAssignment;
                 channels = 4;
             }
             else {

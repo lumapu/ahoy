@@ -38,6 +38,9 @@
 // maximum buffer length of packet received / sent to RF24 module
 #define MAX_RF_PAYLOAD_SIZE     32
 
+// maximum total payload size
+#define MAX_PAYLOAD_ENTRIES     4
+
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
 
