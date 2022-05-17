@@ -518,8 +518,8 @@ void app::showLiveData(void) {
 #ifdef LIVEDATA_VISUALIZED
             uint8_t modNum, pos;
             switch(iv->type) {
-                default:           modNum = 1; break;
-                case INV_TYPE_1CH:
+                default:
+                case INV_TYPE_1CH: modNum = 1; break;
                 case INV_TYPE_2CH: modNum = 2; break;
                 case INV_TYPE_4CH: modNum = 4; break;
             }
