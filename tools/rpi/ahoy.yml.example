@@ -16,6 +16,15 @@ ahoy:
     user: 'username'
     password: 'password'
 
+  # Influx2 output
+  influxdb:
+    disabled: true
+    url: 'http://influxserver.local:8086'
+    org: 'myorg'
+    token: '<base64-token>'
+    bucket: 'telegraf/autogen'
+    measurement: 'hoymiles'
+
   dtu:
     serial: 99978563001
 
