@@ -40,7 +40,54 @@ contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
 
-    $ sudo python3 ahoy.py | tee -a log2.log
+    $ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
+
+Python parameters
+- `-u` enables python's unbuffered mode
+- `-m hoymiles` tells python to load module 'hoymiles' as main app
+
+
+The application describes itself
+```
+python -m hoymiles --help
+usage: hoymiles [-h] -c [CONFIG_FILE] [--log-transactions] [--verbose]
+
+Ahoy - Hoymiles solar inverter gateway
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c [CONFIG_FILE], --config-file [CONFIG_FILE]
+                        configuration file
+  --log-transactions    Enable transaction logging output
+  --verbose             Enable debug output
+```
+
+
+Inject payloads via MQTT
+------------------------
+
+To enable mqtt payload injection, this must be configured per inverter
+```yaml
+...
+  inverters:
+...
+    - serial: 1147112345
+      mqtt:
+        send_raw_enabled: true
+...
+```
+
+This can be used to inject debug payloads
+The message must be in hexlified format
+
+Use of variables:
+  * tttttttt expands to current time like we know from our `80 0b` command
+
+Example injects exactly the same as we normally use to poll data
+
+    $ mosquitto_pub -h broker -t inverter_topic/command -m 800b00tttttttt0000000500000000
+
+This allows for even faster hacking during runtime
 
 
 
@@ -49,12 +96,13 @@ Analysing the Logs
 
 Use basic command line tools to get an idea what you recorded. For example:
 
-    $ cat log2.log | grep 'cmd=2'
+    $ cat log2.log
     [...]
-    2022-03-28T17:36:53.018058Z MSG src=74608145, dst=74608145, cmd=2,   u=235.0V, f=49.98Hz, p=2.5W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-    2022-03-28T17:38:07.309501Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.99Hz, p=2.3W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-    2022-03-28T17:38:24.378337Z MSG src=74608145, dst=74608145, cmd=2,   u=234.7V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14266, uk4=1663, uk5=1666
-    2022-03-28T17:38:34.417683Z MSG src=74608145, dst=74608145, cmd=2,   u=234.8V, f=49.98Hz, p=2.2W,  uk1=12851, uk2=0, uk3=14267, uk4=1663, uk5=1667
+    2022-05-02 16:41:16.044179 Transmit | 15 72 22 01 43 78 56 34 12 80 0b 00 62 3c 8e cf 00 00 00 05 00 00 00 00 35 a3 08
+    2022-05-02 17:01:41.844361 Received 27 bytes on channel 3: 95 72 22 01 43 72 22 01 43 01 00 01 01 44 00 4e 00 fe 01 46 00 4f 01 02 00 00 6b
+    2022-05-02 17:01:41.886796 Received 27 bytes on channel 75: 95 72 22 01 43 72 22 01 43 02 8f 82 00 00 86 7a 05 fe 06 0b 08 fc 13 8a 01 e9 15
+    2022-05-02 17:01:41.934667 Received 23 bytes on channel 75: 95 72 22 01 43 72 22 01 43 83 00 00 00 15 03 e8 00 df 03 83 d5 f3 91
+    2022-05-02 17:01:41.934667 Decoded: 44 string1= 32.4VDC 0.78A 25.4W 36738Wh 1534Wh/day string2= 32.6VDC 0.79A 25.8W 34426Wh 1547Wh/day phase1= 230.0VAC 2.1A 48.9W inverter=114171230143 50.02Hz 22.3°C
     [...]
 
 A brief example log is supplied in the `example-logs` folder.
@@ -64,9 +112,9 @@ A brief example log is supplied in the `example-logs` folder.
 Configuration
 -------------
 
-Nothing so far, I'm afraid. You can change the serial number of the inverter
-that you are trying to talk to by changing the line that defines the
-`inv_ser` variable towards the top of `ahoy.py`.
+Local settings are read from ahoy.yml  
+An example is provided as ahoy.yml.example
+
 
 
 Todo
@@ -78,6 +126,7 @@ Todo
 - configurable polling interval
 - commands
 - picture of setup!
+- python module
 - ...
 
 

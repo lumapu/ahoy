@@ -1,20 +1,31 @@
 #include "app.h"
 
 #include "html/h/index_html.h"
-extern String setup_html;
+#include "html/h/setup_html.h"
+#include "html/h/hoymiles_html.h"
+
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
-    mHoymiles = new hoymiles();
+    mSendTicker     = 0xffff;
+    mSendInterval   = 0;
+    mMqttTicker     = 0xffff;
+    mMqttInterval   = 0;
+    mSerialTicker   = 0xffff;
+    mSerialInterval = 0;
+    mMqttActive     = false;
 
-    mBufCtrl = new CircularBuffer(mBuffer, PACKET_BUFFER_SIZE);
+    mTicker = 0;
+    mRxTicker = 0;
 
-    mSendCnt = 0;
-    mSendTicker = new Ticker();
-    mFlagSend = false;
+    mShowRebootRequest = false;
 
-    memset(mCmds, 0, sizeof(uint32_t));
-    memset(mChannelStat, 0, sizeof(uint32_t));
+    mSerialValues = true;
+    mSerialDebug  = false;
+
+    memset(mPacketIds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
+
+    mSys = new HmSystemType();
 }
 
 
@@ -25,26 +36,96 @@ app::~app(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
-    Main::setup(ssid, pwd, timeout);
+void app::setup(uint32_t timeout) {
+    Main::setup(timeout);
 
-    mWeb->on("/",        std::bind(&app::showIndex, this));
-    mWeb->on("/setup",   std::bind(&app::showSetup, this));
-    mWeb->on("/save",    std::bind(&app::showSave, this));
-    mWeb->on("/cmdstat", std::bind(&app::showCmdStatistics, this));
+    mWeb->on("/",          std::bind(&app::showIndex,      this));
+    mWeb->on("/setup",     std::bind(&app::showSetup,      this));
+    mWeb->on("/save",      std::bind(&app::showSave,       this));
+    mWeb->on("/erase",     std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
 
-    if(mSettingsValid)
-        mEep->read(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
-    else
-        memset(mHoymiles->mAddrBytes, 0, 6);
-    mHoymiles->serial2RadioId();
+    if(mSettingsValid) {
+        uint64_t invSerial;
+        char invName[MAX_NAME_LENGTH + 1] = {0};
+        uint8_t invType;
 
-    initRadio();
+        // inverter
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
+            mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
+            mEep->read(ADDR_INV_TYPE + i,                     &invType);
+            if(0ULL != invSerial) {
+                mSys->addInverter(invName, invSerial, invType);
+                DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
+            }
+        }
+        mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
+        if(mSendInterval < 5)
+            mSendInterval = 5;
 
-    if(mSettingsValid)
-        mSendTicker->attach_ms(1000, std::bind(&app::sendTicker, this));
-    else
-        Serial.println("Warn: your settings are not valid! check [IP]/setup");
+        // pinout
+        mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
+        mEep->read(ADDR_PINOUT+1, &mSys->Radio.pinCe);
+        mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
+
+
+        // nrf24 amplifier power
+        mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
+
+        // serial console
+        uint8_t tmp;
+        mEep->read(ADDR_SER_INTERVAL, &mSerialInterval);
+        mEep->read(ADDR_SER_ENABLE, &tmp);
+        mSerialValues = (tmp == 0x01);
+        mEep->read(ADDR_SER_DEBUG, &tmp);
+        mSerialDebug = (tmp == 0x01);
+        if(mSerialInterval < 1)
+            mSerialInterval = 1;
+
+
+        // mqtt
+        uint8_t mqttAddr[MQTT_ADDR_LEN];
+        uint16_t mqttPort;
+        char mqttUser[MQTT_USER_LEN];
+        char mqttPwd[MQTT_PWD_LEN];
+        char mqttTopic[MQTT_TOPIC_LEN];
+        mEep->read(ADDR_MQTT_ADDR,     mqttAddr,  MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_USER,     mqttUser,  MQTT_USER_LEN);
+        mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
+        mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
+        mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
+        mEep->read(ADDR_MQTT_PORT,     &mqttPort);
+
+        char addr[16] = {0};
+        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
+        mMqttActive = (mqttAddr[0] > 0);
+
+
+        if(mMqttInterval < 1)
+            mMqttInterval = 1;
+        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqttTicker = 0;
+
+        mSerialTicker = 0;
+
+        mMqtt.sendMsg("version", mVersion);
+    }
+
+    mSys->setup();
+
+    if(!mWifiSettingsValid)
+        DPRINTLN("Warn: your settings are not valid! check [IP]/setup");
+    else {
+        DPRINTLN("\n\n----------------------------------------");
+        DPRINTLN("Welcome to AHOY!");
+        DPRINT("\npoint your browser to http://");
+        DPRINTLN(WiFi.localIP());
+        DPRINTLN("to configure your device");
+        DPRINTLN("----------------------------------------\n");
+    }
 }
 
 
@@ -52,171 +133,118 @@ void app::setup(const char *ssid, const char *pwd, uint32_t timeout) {
 void app::loop(void) {
     Main::loop();
 
-    if(!mBufCtrl->empty()) {
-        uint8_t len, rptCnt;
-        NRF24_packet_t *p = mBufCtrl->getBack();
+    if(checkTicker(&mRxTicker, 5)) {
+        mSys->Radio.switchRxCh();
+        if(!mSys->BufCtrl.empty()) {
+            uint8_t len, rptCnt;
+            packet_t *p = mSys->BufCtrl.getBack();
 
-        //mHoymiles->dumpBuf("RAW ", p->packet, PACKET_BUFFER_SIZE);
+            //if(mSerialDebug)
+            //    mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
 
-        if(mHoymiles->checkCrc(p->packet, &len, &rptCnt)) {
-            // process buffer only on first occurrence
-            if((0 != len) && (0 == rptCnt)) {
-                Serial.println("CMD " + String(p->packet[11], HEX));
-                mHoymiles->dumpBuf("Payload ", p->packet, len);
-                // @TODO: do analysis here
-                if(p->packet[11] == 0x01)      mCmds[0]++;
-                else if(p->packet[11] == 0x02) mCmds[1]++;
-                else if(p->packet[11] == 0x03) mCmds[2]++;
-                else if(p->packet[11] == 0x81) mCmds[3]++;
-                else if(p->packet[11] == 0x84) mCmds[4]++;
-                else                           mCmds[5]++;
+            if(mSys->Radio.checkPaketCrc(p->packet, &len, &rptCnt, p->rxCh)) {
+                // process buffer only on first occurrence
+                if((0 != len) && (0 == rptCnt)) {
+                    uint8_t *packetId = &p->packet[9];
+                    //DPRINTLN("CMD " + String(*packetId, HEX));
+                    if(mSerialDebug)
+                        mSys->Radio.dumpBuf("Payload ", p->packet, len);
 
-                if(p->sendCh == 23)      mChannelStat[0]++;
-                else if(p->sendCh == 40) mChannelStat[1]++;
-                else if(p->sendCh == 61) mChannelStat[2]++;
-                else                     mChannelStat[3]++;
+                    Inverter<> *iv = mSys->findInverter(&p->packet[1]);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(iv->assign[i].cmdId == *packetId)
+                                iv->addValue(i, &p->packet[9]);
+                        }
+                        iv->doCalculations();
+                        //memcpy(mPayload[(*packetId & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
+                    }
+
+                    if(*packetId == 0x01)      mPacketIds[0]++;
+                    else if(*packetId == 0x02) mPacketIds[1]++;
+                    else if(*packetId == 0x03) mPacketIds[2]++;
+                    else if(*packetId == 0x81) mPacketIds[3]++;
+                    else if(*packetId == 0x82) mPacketIds[4]++;
+                    else if(*packetId == 0x83) mPacketIds[5]++;
+                    else if(*packetId == 0x84) mPacketIds[6]++;
+                    else                       mPacketIds[7]++;
+                }
             }
+            mSys->BufCtrl.popBack();
         }
-        mBufCtrl->popBack();
     }
 
-    if(mFlagSend) {
-        mFlagSend = false;
+    if(checkTicker(&mTicker, 1000)) {
+        if(mMqttActive) {
+            mMqtt.loop();
+            if(++mMqttTicker >= mMqttInterval) {
+                mMqttTicker = 0;
+                mMqtt.isConnected(true);
+                char topic[30], val[10];
+                for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                    Inverter<> *iv = mSys->getInverterByPos(id);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(0.0f != iv->getValue(i)) {
+                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                                snprintf(val, 10, "%.3f", iv->getValue(i));
+                                mMqtt.sendMsg(topic, val);
+                                yield();
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-        uint8_t size = 0;
-        if((mSendCnt % 6) == 0)
-            size = mHoymiles->getTimePacket(mSendBuf, mTimestamp);
-        else if((mSendCnt % 6) == 1)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x81);
-        else if((mSendCnt % 6) == 2)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x80);
-        else if((mSendCnt % 6) == 3)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x83);
-        else if((mSendCnt % 6) == 4)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x82);
-        else if((mSendCnt % 6) == 5)
-            size = mHoymiles->getCmdPacket(mSendBuf, 0x15, 0x84);
+        if(mSerialValues) {
+            if(++mSerialTicker >= mSerialInterval) {
+                mSerialTicker = 0;
+                char topic[30], val[10];
+                for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                    Inverter<> *iv = mSys->getInverterByPos(id);
+                    if(NULL != iv) {
+                        for(uint8_t i = 0; i < iv->listLen; i++) {
+                            if(0.0f != iv->getValue(i)) {
+                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                                DPRINTLN(String(topic) + ": " + String(val));
+                            }
+                            yield();
+                        }
+                    }
+                }
+            }
+        }
 
-        //Serial.println("sent packet: #" + String(mSendCnt));
-        //dumpBuf(mSendBuf, size);
-        sendPacket(mSendBuf, size);
+        if(++mSendTicker >= mSendInterval) {
+            mSendTicker = 0;
 
-        mSendCnt++;
+            if(!mSys->BufCtrl.empty())
+                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
+            Inverter<> *inv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                inv = mSys->getInverterByPos(i);
+                if(NULL != inv) {
+                    yield();
+                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    mRxTicker = 0;
+                }
+            }
+        }
     }
 }
 
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
-    uint8_t lostCnt = 0, pipe, len;
-    NRF24_packet_t *p;
-
-    DISABLE_IRQ;
-
-    while(mRadio->available(&pipe)) {
-        if(!mBufCtrl->full()) {
-            p = mBufCtrl->getFront();
-            memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-            p->sendCh = mSendChannel;
-            len = mRadio->getPayloadSize();
-            if(len > MAX_RF_PAYLOAD_SIZE)
-                len = MAX_RF_PAYLOAD_SIZE;
-
-            mRadio->read(p->packet, len);
-            mBufCtrl->pushFront(p);
-            lostCnt = 0;
-        }
-        else {
-            bool tx_ok, tx_fail, rx_ready;
-            if(lostCnt < 255)
-                lostCnt++;
-            mRadio->whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
-            mRadio->flush_rx(); // drop the packet
-        }
-    }
-
-    RESTORE_IRQ;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::initRadio(void) {
-    mRadio = new RF24(RF24_CE_PIN, RF24_CS_PIN);
-
-    mRadio->begin();
-    mRadio->setAutoAck(false);
-    mRadio->setRetries(0, 0);
-
-    mRadio->setChannel(DEFAULT_RECV_CHANNEL);
-    mRadio->setDataRate(RF24_250KBPS);
-    mRadio->disableCRC();
-    mRadio->setAutoAck(false);
-    mRadio->setPayloadSize(MAX_RF_PAYLOAD_SIZE);
-    mRadio->setAddressWidth(5);
-    mRadio->openReadingPipe(1, DTU_RADIO_ID);
-
-    // enable only receiving interrupts
-    mRadio->maskIRQ(true, true, false);
-
-    // Use lo PA level, as a higher level will disturb CH340 serial usb adapter
-    mRadio->setPALevel(RF24_PA_MAX);
-    mRadio->startListening();
-
-    Serial.println("Radio Config:");
-    mRadio->printPrettyDetails();
-
-    mSendChannel = mHoymiles->getDefaultChannel();
-}
-
-
-//-----------------------------------------------------------------------------
-void app::sendPacket(uint8_t buf[], uint8_t len) {
-    DISABLE_IRQ;
-    mRadio->stopListening();
-
-#ifdef CHANNEL_HOP
-    if(mSendCnt % 6 == 0)
-        mSendChannel = mHoymiles->getNxtChannel();
-    else
-        mSendChannel = mHoymiles->getLastChannel();
-#else
-    mSendChannel = mHoymiles->getDefaultChannel();
-#endif
-    mRadio->setChannel(mSendChannel);
-    //Serial.println("CH: " + String(mSendChannel));
-
-    mRadio->openWritingPipe(mHoymiles->mRadioId);
-    mRadio->setCRCLength(RF24_CRC_16);
-    mRadio->enableDynamicPayloads();
-    mRadio->setAutoAck(true);
-    mRadio->setRetries(3, 15);
-
-    mRadio->write(buf, len);
-
-    // Try to avoid zero payload acks (has no effect)
-    mRadio->openWritingPipe(DUMMY_RADIO_ID); // TODO: why dummy radio id?
-
-    mRadio->setAutoAck(false);
-    mRadio->setRetries(0, 0);
-    mRadio->disableDynamicPayloads();
-    mRadio->setCRCLength(RF24_CRC_DISABLED);
-
-    mRadio->setChannel(DEFAULT_RECV_CHANNEL);
-    mRadio->startListening();
-
-    RESTORE_IRQ;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::sendTicker(void) {
-    mFlagSend = true;
+    mSys->Radio.handleIntr();
 }
 
 
 //-----------------------------------------------------------------------------
 void app::showIndex(void) {
-    String html = index_html;
+    String html = FPSTR(index_html);
     html.replace("{DEVICE}", mDeviceName);
     html.replace("{VERSION}", mVersion);
     mWeb->send(200, "text/html", html);
@@ -227,17 +255,127 @@ void app::showIndex(void) {
 void app::showSetup(void) {
     // overrides same method in main.cpp
 
-    String html = setup_html;
+    uint16_t interval;
+
+    String html = FPSTR(setup_html);
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the placeholder "{PWD}"
 
-    char addr[20] = {0};
-    sprintf(addr, "%02X:%02X:%02X:%02X:%02X:%02X", mHoymiles->mAddrBytes[0], mHoymiles->mAddrBytes[1], mHoymiles->mAddrBytes[2], mHoymiles->mAddrBytes[3], mHoymiles->mAddrBytes[4], mHoymiles->mAddrBytes[5]);
-    html.replace("{HOY_ADDR}", String(addr));
-
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+    if(mApActive)
+        html.replace("{IP}", String("http://192.168.1.1"));
+    else
+        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
+
+    String inv;
+    uint64_t invSerial;
+    char invName[MAX_NAME_LENGTH + 1] = {0};
+    uint8_t invType;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
+        mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
+        mEep->read(ADDR_INV_TYPE + i,                     &invType);
+        inv += "<p class=\"subdes\">Inverter "+ String(i) + "</p>";
+
+        inv += "<label for=\"inv" + String(i) + "Addr\">Address</label>";
+        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Addr\" value=\"";
+        if(0ULL != invSerial)
+            inv += String(invSerial, HEX);
+        inv += "\"/ maxlength=\"12\">";
+
+        inv += "<label for=\"inv" + String(i) + "Name\">Name</label>";
+        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
+        inv += String(invName);
+        inv += "\"/ maxlength=\"" + String(MAX_NAME_LENGTH) + "\">";
+
+        inv += "<label for=\"inv" + String(i) + "Type\">Type</label>";
+        inv += "<select name=\"inv" + String(i) + "Type\">";
+        for(uint8_t t = 0; t < NUM_INVERTER_TYPES; t++) {
+            inv += "<option value=\"" + String(t) + "\"";
+            if(invType == t)
+                inv += " selected";
+            inv += ">" + String(invTypes[t]) + "</option>";
+        }
+        inv += "</select>";
+    }
+    html.replace("{INVERTERS}", String(inv));
+
+
+    // pinout
+    String pinout;
+    for(uint8_t i = 0; i < 3; i++) {
+        pinout += "<label for=\"" + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + "</label>";
+        pinout += "<select name=\"" + String(pinArgNames[i]) + "\">";
+        for(uint8_t j = 0; j <= 16; j++) {
+            pinout += "<option value=\"" + String(j) + "\"";
+            switch(i) {
+                default: if(j == mSys->Radio.pinCs)  pinout += " selected"; break;
+                case 1:  if(j == mSys->Radio.pinCe)  pinout += " selected"; break;
+                case 2:  if(j == mSys->Radio.pinIrq) pinout += " selected"; break;
+            }
+            pinout += ">" + String(wemosPins[j]) + "</option>";
+        }
+        pinout += "</select>";
+    }
+    html.replace("{PINOUT}", String(pinout));
+
+
+    // nrf24l01+
+    String rf24;
+    for(uint8_t i = 0; i <= 3; i++) {
+        rf24 += "<option value=\"" + String(i) + "\"";
+        if(i == mSys->Radio.AmplifierPower)
+            rf24 += " selected";
+        rf24 += ">" + String(rf24AmpPower[i]) + "</option>";
+    }
+    html.replace("{RF24}", String(rf24));
+
+
+    if(mSettingsValid) {
+        mEep->read(ADDR_INV_INTERVAL, &interval);
+        html.replace("{INV_INTVL}", String(interval));
+
+        uint8_t tmp;
+        mEep->read(ADDR_SER_INTERVAL, &interval);
+        mEep->read(ADDR_SER_ENABLE, &tmp);
+        html.replace("{SER_INTVL}", String(interval));
+        html.replace("{SER_VAL_CB}", (tmp == 0x01) ? "checked" : "");
+        mEep->read(ADDR_SER_DEBUG, &tmp);
+        html.replace("{SER_DBG_CB}", (tmp == 0x01) ? "checked" : "");
+
+        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        uint16_t mqttPort;
+        mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_INTERVAL, &interval);
+        mEep->read(ADDR_MQTT_PORT,     &mqttPort);
+
+        char addr[16] = {0};
+        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
+        html.replace("{MQTT_ADDR}",  String(addr));
+        html.replace("{MQTT_PORT}",  String(mqttPort));
+        html.replace("{MQTT_USER}",  String(mMqtt.getUser()));
+        html.replace("{MQTT_PWD}",   String(mMqtt.getPwd()));
+        html.replace("{MQTT_TOPIC}", String(mMqtt.getTopic()));
+        html.replace("{MQTT_INTVL}", String(interval));
+    }
+    else {
+        html.replace("{INV_INTVL}", "5");
+
+        html.replace("{SER_VAL_CB}", "checked");
+        html.replace("{SER_DBG_CB}", "");
+        html.replace("{SER_INTVL}", "10");
+
+        html.replace("{MQTT_ADDR}", "");
+        html.replace("{MQTT_PORT}", "1883");
+        html.replace("{MQTT_USER}", "");
+        html.replace("{MQTT_PWD}", "");
+        html.replace("{MQTT_TOPIC}", "/inverter");
+        html.replace("{MQTT_INTVL}", "10");
+
+        html.replace("{SER_INTVL}", "10");
+    }
 
     mWeb->send(200, "text/html", html);
 }
@@ -250,21 +388,116 @@ void app::showSave(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::showCmdStatistics(void) {
-    String content = "CMDs:\n";
-    content += String("0x01: ") + String(mCmds[0]) + String("\n");
-    content += String("0x02: ") + String(mCmds[1]) + String("\n");
-    content += String("0x03: ") + String(mCmds[2]) + String("\n");
-    content += String("0x81: ") + String(mCmds[3]) + String("\n");
-    content += String("0x84: ") + String(mCmds[4]) + String("\n");
-    content += String("other: ") + String(mCmds[5]) + String("\n");
+void app::showErase() {
+    eraseSettings();
+    showReboot();
+}
 
-    content += "\nCHANNELs:\n";
-    content += String("23: ") + String(mChannelStat[0]) + String("\n");
-    content += String("40: ") + String(mChannelStat[1]) + String("\n");
-    content += String("61: ") + String(mChannelStat[2]) + String("\n");
-    content += String("75: ") + String(mChannelStat[3]) + String("\n");
+
+//-----------------------------------------------------------------------------
+void app::showStatistics(void) {
+    String content = "Packets:\n";
+    for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
+        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mPacketIds[i]) + String("\n");
+    }
+    content += String("other: ") + String(mPacketIds[DBG_CMD_LIST_LEN]) + String("\n\n");
+
+    content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
+
+    if(!mSys->Radio.isChipConnected())
+        content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";
+
+    if(mShowRebootRequest)
+        content += "INFO: reboot your ESP to apply all your configuration changes!\n";
+
+    if(!mSettingsValid)
+        content += "INFO: your settings are invalid, please switch to <a href=\"/setup\">setup</a> to correct this.\n";
+
+    content += "MQTT: ";
+    if(!mMqtt.isConnected())
+        content += "not ";
+    content += "connected\n";
+
     mWeb->send(200, "text/plain", content);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showHoymiles(void) {
+    String html = FPSTR(hoymiles_html);
+    html.replace("{DEVICE}", mDeviceName);
+    html.replace("{VERSION}", mVersion);
+    mWeb->send(200, "text/html", html);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showLiveData(void) {
+    String modHtml;
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+#ifdef LIVEDATA_VISUALIZED
+            uint8_t modNum, pos;
+            switch(iv->type) {
+                default:              modNum = 1; break;
+                case INV_TYPE_HM600:
+                case INV_TYPE_HM800:  modNum = 2; break;
+                case INV_TYPE_HM1200: modNum = 4; break;
+            }
+
+            modHtml += "<div class=\"iv\">";
+            modHtml += "<div class=\"ch-iv\"><span class=\"head\">" + String(iv->name) + "</span>";
+            uint8_t list[8] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD};
+
+            for(uint8_t fld = 0; fld < 8; fld++) {
+                pos = (iv->getPosByChFld(CH0, list[fld]));
+                if(0xff != pos) {
+                    modHtml += "<div class=\"subgrp\">";
+                    modHtml += "<span class=\"value\">" + String(iv->getValue(pos));
+                    modHtml += "<span class=\"unit\">" + String(iv->getUnit(pos)) + "</span></span>";
+                    modHtml += "<span class=\"info\">" + String(iv->getFieldName(pos)) + "</span>";
+                    modHtml += "</div>";
+                }
+            }
+            modHtml += "</div>";
+
+            for(uint8_t ch = 1; ch <= modNum; ch ++) {
+                modHtml += "<div class=\"ch\"><span class=\"head\">CHANNEL " + String(ch) + "</span>";
+                for(uint8_t j = 0; j < 5; j++) {
+                    switch(j) {
+                        default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
+                        case 1:  pos = (iv->getPosByChFld(ch, FLD_IDC)); break;
+                        case 2:  pos = (iv->getPosByChFld(ch, FLD_PDC)); break;
+                        case 3:  pos = (iv->getPosByChFld(ch, FLD_YD));  break;
+                        case 4:  pos = (iv->getPosByChFld(ch, FLD_YT));  break;
+                    }
+                    if(0xff != pos) {
+                        modHtml += "<span class=\"value\">" + String(iv->getValue(pos));
+                        modHtml += "<span class=\"unit\">" + String(iv->getUnit(pos)) + "</span></span>";
+                        modHtml += "<span class=\"info\">" + String(iv->getFieldName(pos)) + "</span>";
+                    }
+                }
+                modHtml += "</div>";
+            }
+
+            modHtml += "</div>";
+#else
+            // dump all data to web frontend
+            modHtml = "<pre>";
+            char topic[30], val[10];
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                modHtml += String(topic) + ": " + String(val) + "\n";
+            }
+            modHtml += "</pre>";
+#endif
+        }
+    }
+
+
+    mWeb->send(200, "text/html", modHtml);
 }
 
 
@@ -274,25 +507,86 @@ void app::saveValues(bool webSend = true) {
 
     if(mWeb->args() > 0) {
         char *p;
-        char addr[20] = {0};
+        char buf[20] = {0};
         uint8_t i = 0;
+        uint16_t interval;
 
-        memset(mHoymiles->mAddrBytes, 0, 6);
-        mWeb->arg("hoy_addr").toCharArray(addr, 20);
+        // inverter
+        serial_u addr;
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            // address
+            mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+            if(strlen(buf) == 0)
+                snprintf(buf, 20, "\0");
+            addr.u64 = Serial2u64(buf);
+            mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 
-        p = strtok(addr, ":");
-        while(NULL != p) {
-            mHoymiles->mAddrBytes[i++] = strtol(p, NULL, 16);
-            p = strtok(NULL, ":");
+            // name
+            mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
+            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), buf, MAX_NAME_LENGTH);
+
+            // type
+            mWeb->arg("inv" + String(i) + "Type").toCharArray(buf, 20);
+            uint8_t type = atoi(buf);
+            mEep->write(ADDR_INV_TYPE + i, type);
         }
 
-        mEep->write(ADDR_HOY_ADDR, mHoymiles->mAddrBytes, HOY_ADDR_LEN);
+        interval = mWeb->arg("invInterval").toInt();
+        mEep->write(ADDR_INV_INTERVAL, interval);
+
+
+        // pinout
+        for(uint8_t i = 0; i < 3; i ++) {
+            uint8_t pin = mWeb->arg(String(pinArgNames[i])).toInt();
+            mEep->write(ADDR_PINOUT + i, pin);
+        }
+
+
+        // nrf24 amplifier power
+        mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
+        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
+        // mqtt
+        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        uint16_t mqttPort;
+        char mqttUser[MQTT_USER_LEN];
+        char mqttPwd[MQTT_PWD_LEN];
+        char mqttTopic[MQTT_TOPIC_LEN];
+        mWeb->arg("mqttAddr").toCharArray(buf, 20);
+        i = 0;
+        p = strtok(buf, ".");
+        while(NULL != p) {
+            mqttAddr[i++] = atoi(p);
+            p = strtok(NULL, ".");
+        }
+        mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
+        mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
+        mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
+        interval = mWeb->arg("mqttIntvl").toInt();
+        mqttPort = mWeb->arg("mqttPort").toInt();
+        mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
+        mEep->write(ADDR_MQTT_PORT, mqttPort);
+        mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
+        mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
+        mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
+        mEep->write(ADDR_MQTT_INTERVAL, interval);
+
+
+        // serial console
+        bool tmp;
+        interval = mWeb->arg("serIntvl").toInt();
+        mEep->write(ADDR_SER_INTERVAL, interval);
+        tmp = (mWeb->arg("serEn") == "on");
+        mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
+        tmp = (mWeb->arg("serDbg") == "on");
+        mEep->write(ADDR_SER_DEBUG, (uint8_t)((tmp) ? 0x01 : 0x00));
 
         updateCrc();
         if((mWeb->arg("reboot") == "on"))
             showReboot();
         else {
-            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
+            mShowRebootRequest = true;
+            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>");
         }
     }
@@ -304,11 +598,11 @@ void app::saveValues(bool webSend = true) {
 
 
 //-----------------------------------------------------------------------------
-void app::dumpBuf(uint8_t buf[], uint8_t len) {
-    for(uint8_t i = 0; i < len; i ++) {
-        if((i % 8 == 0) && (i != 0))
-            Serial.println();
-        Serial.print(String(buf[i], HEX) + " ");
-    }
-    Serial.println();
+void app::updateCrc(void) {
+    Main::updateCrc();
+
+    uint16_t crc;
+    crc = buildEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT - ADDR_START_SETTINGS));
+    //DPRINTLN("new CRC: " + String(crc, HEX));
+    mEep->write(ADDR_SETTINGS_CRC, crc);
 }

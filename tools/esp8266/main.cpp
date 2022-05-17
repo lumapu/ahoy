@@ -12,8 +12,13 @@ Main::Main(void) {
     mUpdater = new ESP8266HTTPUpdateServer();
     mUdp     = new WiFiUDP();
 
-    mApActive    = true;
-    mSettingsValid = false;
+    mApActive          = true;
+    mWifiSettingsValid = false;
+    mSettingsValid     = false;
+
+    mLimit       = 10;
+    mNextTryTs   = 0;
+    mApLastTick  = 0;
 
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
@@ -22,82 +27,105 @@ Main::Main(void) {
     mEep = new eep();
     Serial.begin(115200);
 
-    mUptimeSecs = 0;
-    mUptimeTicker = new Ticker();
-    mUptimeTicker->attach(1, std::bind(&Main::uptimeTicker, this));
-
+    mUptimeSecs     = 0;
+    mUptimeTicker   = 0xffffffff;
+    mUptimeInterval = 1000;
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::setup(const char *ssid, const char *pwd, uint32_t timeout) {
+void Main::setup(uint32_t timeout) {
     bool startAp = mApActive;
+    mLimit = timeout;
 
-    mWeb->on("/setup", std::bind(&Main::showSetup, this));
-    mWeb->on("/save", std::bind(&Main::showSave, this));
-    mWeb->on("/uptime", std::bind(&Main::showUptime, this));
-    mWeb->on("/time", std::bind(&Main::showTime, this));
-    mWeb->on("/style.css", std::bind(&Main::showCss, this));
-    mWeb->on("/reboot", std::bind(&Main::showReboot,   this));
-    mWeb->onNotFound (std::bind(&Main::showNotFound, this));
+    mWeb->on("/setup",     std::bind(&Main::showSetup,      this));
+    mWeb->on("/save",      std::bind(&Main::showSave,       this));
+    mWeb->on("/uptime",    std::bind(&Main::showUptime,     this));
+    mWeb->on("/time",      std::bind(&Main::showTime,       this));
+    mWeb->on("/style.css", std::bind(&Main::showCss,        this));
+    mWeb->on("/reboot",    std::bind(&Main::showReboot,     this));
+    mWeb->on("/factory",   std::bind(&Main::showFactoryRst, this));
+    mWeb->onNotFound (     std::bind(&Main::showNotFound,   this));
 
     startAp = getConfig();
-    if(String(mDeviceName) != "")
-        WiFi.hostname(mDeviceName);
 
+#ifndef AP_ONLY
     if(false == startAp)
         startAp = setupStation(timeout);
+#else
+    setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+#endif
 
-    if(true == startAp) {
-        if(strlen(pwd) < 8)
-            Serial.println("password must be at least 8 characters long");
-        setupAp(ssid, pwd);
+    if(!startAp) {
+        delay(5000);
+        mTimestamp  = getNtpTime();
+        DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
     }
 
     mUpdater->setup(mWeb);
-
     mApActive = startAp;
-
-    mTimestamp  = getNtpTime();
-    //Serial.println("[NTP]: " + getDateTimeStr(getNtpTime()));
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::loop(void) {
-    if(mApActive)
+    if(mApActive) {
         mDns->processNextRequest();
+#ifndef AP_ONLY
+        if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
+            mApLastTick = millis();
+            mApActive = setupStation(mLimit);
+            if(mApActive) {
+                if(strlen(WIFI_AP_PWD) < 8)
+                    DPRINTLN("ERROR: password must be at least 8 characters long");
+                setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+            }
+        }
+        else {
+            if(millis() - mApLastTick > 10000) {
+                uint8_t cnt = WiFi.softAPgetStationNum();
+                if(cnt > 0) {
+                    DPRINTLN(String(cnt) + " clients connected, resetting AP timeout");
+                    mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
+                }
+                mApLastTick = millis();
+                DPRINTLN("AP will be closed in " + String((mNextTryTs - mApLastTick) / 1000) + " seconds");
+            }
+        }
+#endif
+    }
     mWeb->handleClient();
+
+    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
+        mUptimeSecs++;
+        mTimestamp++;
+    }
 }
 
 
 //-----------------------------------------------------------------------------
 bool Main::getConfig(void) {
     bool mApActive = false;
-    uint16_t crcRd, crcCheck;
-    uint8_t buf[ADDR_NEXT-ADDR_START];
 
-    // check settings crc
-    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
-    crcCheck = crc16(buf, (ADDR_NEXT-ADDR_START));
-    mEep->read(ADDR_SETTINGS_CRC, &crcRd);
+    mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
+    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, (ADDR_NEXT-ADDR_START_SETTINGS), ADDR_SETTINGS_CRC);
 
-    if(crcCheck == crcRd)
-        mSettingsValid = true;
-    //else
-    //    Serial.println("CRC RD: " + String(crcRd, HEX) + " CRC CHECK: " + String(crcCheck, HEX));
-
-
-    if(mSettingsValid) {
+    if(mWifiSettingsValid) {
         mEep->read(ADDR_SSID,    mStationSsid, SSID_LEN);
         mEep->read(ADDR_PWD,     mStationPwd, PWD_LEN);
         mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
     }
     else {
-        mApActive = true;
+        /*mApActive = true;
         memset(mStationSsid, 0, SSID_LEN);
         memset(mStationPwd, 0, PWD_LEN);
         memset(mDeviceName, 0, DEVNAME_LEN);
+
+        // erase application settings except wifi settings
+        eraseSettings();*/
+        snprintf(mStationSsid, SSID_LEN,    "%s", FB_WIFI_SSID);
+        snprintf(mStationPwd,  PWD_LEN,     "%s", FB_WIFI_PWD);
+        snprintf(mDeviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
     }
 
     return mApActive;
@@ -108,7 +136,12 @@ bool Main::getConfig(void) {
 void Main::setupAp(const char *ssid, const char *pwd) {
     IPAddress apIp(192, 168, 1, 1);
 
-    Serial.println("\n---------\nAP MODE\nSSDI: "+ String(ssid) + "\nPWD: " + String(pwd) + "\n---------\n");
+    DPRINTLN("\n---------\nAP MODE\nSSDI: "
+        + String(ssid) + "\nPWD: "
+        + String(pwd) + "\nActive for: "
+        + String(WIFI_AP_ACTIVE_TIME) + " seconds"
+        + "\n---------\n");
+    DPRINTLN("DBG: " + String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -127,14 +160,23 @@ void Main::setupAp(const char *ssid, const char *pwd) {
 
 //-----------------------------------------------------------------------------
 bool Main::setupStation(uint32_t timeout) {
-    int32_t cnt = timeout * 10;
+    int32_t cnt;
     bool startAp = false;
+
+    if(timeout >= 3)
+        cnt = (timeout - 3) / 2 * 10;
+    else {
+        timeout = 1;
+        cnt = 1;
+    }
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(mStationSsid, mStationPwd);
+    if(String(mDeviceName) != "")
+        WiFi.hostname(mDeviceName);
 
-    delay(5000);
-    Serial.println("wait for network");
+    delay(2000);
+    DPRINTLN("connect to network '" + String(mStationSsid) + "' ...");
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -144,8 +186,10 @@ bool Main::setupStation(uint32_t timeout) {
 
         if(timeout > 0) { // limit == 0 -> no limit
             if(--cnt <= 0) {
-                startAp = true;
-                WiFi.disconnect();
+                if(WiFi.status() != WL_CONNECTED) {
+                    startAp = true;
+                    WiFi.disconnect();
+                }
                 delay(100);
                 break;
             }
@@ -165,12 +209,16 @@ bool Main::setupStation(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
-    String html = setup_html;
+    String html = FPSTR(setup_html);
     html.replace("{SSID}", mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the default "{PWD}"
     html.replace("{DEVICE}", String(mDeviceName));
     html.replace("{VERSION}", String(mVersion));
+    if(mApActive)
+        html.replace("{IP}", String("http://192.168.1.1"));
+    else
+        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
 
     mWeb->send(200, "text/html", html);
 }
@@ -178,7 +226,7 @@ void Main::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showCss(void) {
-    mWeb->send(200, "text/css", style_css);
+    mWeb->send(200, "text/css", FPSTR(style_css));
 }
 
 
@@ -212,7 +260,7 @@ void Main::saveValues(bool webSend = true) {
         if(webSend) {
             if(mWeb->arg("reboot") == "on")
                 showReboot();
-            else
+            else // TODO: add device name as redirect in AP-mode
                 mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                              "<p>saved</p></body></html>");
         }
@@ -223,12 +271,9 @@ void Main::saveValues(bool webSend = true) {
 //-----------------------------------------------------------------------------
 void Main::updateCrc(void) {
     uint16_t crc;
-    uint8_t buf[ADDR_NEXT-ADDR_START];
-
-    mEep->read(ADDR_START, buf, (ADDR_NEXT-ADDR_START));
-    crc = crc16(buf, (ADDR_NEXT-ADDR_START));
+    crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
     //Serial.println("new CRC: " + String(crc, HEX));
-    mEep->write(ADDR_SETTINGS_CRC, crc);
+    mEep->write(ADDR_WIFI_CRC, crc);
 }
 
 
@@ -282,9 +327,30 @@ void Main::showReboot(void) {
 
 
 //-----------------------------------------------------------------------------
-void Main::uptimeTicker(void) {
-    mUptimeSecs++;
-    mTimestamp++;
+void Main::showFactoryRst(void) {
+    String content = "";
+    int refresh = 3;
+    if(mWeb->args() > 0) {
+        if(mWeb->arg("reset").toInt() == 1) {
+            eraseSettings(true);
+            content = "factory reset: success\n\nrebooting ... ";
+            refresh = 10;
+        }
+        else {
+            content = "factory reset: aborted";
+            refresh = 3;
+        }
+    }
+    else {
+        content = "<h1>Factory Reset</h1>";
+        content += "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>";
+        refresh = 120;
+    }
+    mWeb->send(200, "text/html", "<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"" + String(refresh) + "; URL=/\"></head><body>" + content + "</body></html>");
+    if(refresh == 10) {
+        delay(1000);
+        ESP.restart();
+    }
 }
 
 
