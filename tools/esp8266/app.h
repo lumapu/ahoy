@@ -19,12 +19,20 @@ typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSyste
 const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (GPIO3)",
                                 "D2 (GPIO4)", "D1 (GPIO5)", "GPIO6", "GPIO7", "GPIO8",
                                 "GPIO9", "GPIO10", "GPIO11", "D6 (GPIO12)", "D7 (GPIO13)",
-                                "D5 (GPIO14)", "D8 (GPIO15)", "D0 (GPIO16)"};
+                                "D5 (GPIO14)", "D8 (GPIO15)", "D0 (GPIO16 - no IRQ!)"};
 const char* const pinNames[] = {"CS", "CE", "IRQ"};
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
-const uint8_t dbgCmds[] = {0x01, 0x02, 0x03, 0x81, 0x82, 0x83, 0x84};
-#define DBG_CMD_LIST_LEN    7
+
+typedef struct {
+    uint8_t invId;
+    uint32_t ts;
+    uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
+    uint8_t len[MAX_PAYLOAD_ENTRIES];
+    bool complete;
+    uint8_t maxPackId;
+} invPayload_t;
+
 
 class app : public Main {
     public:
@@ -40,6 +48,9 @@ class app : public Main {
         }
 
     private:
+        bool buildPayload(uint8_t id);
+        void processPayload(bool retransmit);
+
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
@@ -73,8 +84,8 @@ class app : public Main {
         uint16_t mSendTicker;
         uint16_t mSendInterval;
 
-        uint32_t mPacketIds[DBG_CMD_LIST_LEN+1];
-        uint32_t mRecCnt;
+        invPayload_t mPayload[MAX_NUM_INVERTERS];
+        uint32_t mRxFailed;
 
         // timer
         uint32_t mTicker;

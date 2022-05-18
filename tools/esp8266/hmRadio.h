@@ -58,14 +58,14 @@ class HmRadio {
             mRxChIdx    = 0;
             mRxLoopCnt  = RX_LOOP_CNT;
 
-            //calcDtuCrc();
-
             pinCs  = CS_PIN;
             pinCe  = CE_PIN;
             pinIrq = IRQ_PIN;
 
             AmplifierPower = 1;
             mSendCnt       = 0;
+
+            mSerialDebug = false;
         }
         ~HmRadio() {}
 
@@ -111,7 +111,7 @@ class HmRadio {
                 if(!mBufCtrl->full()) {
                     p = mBufCtrl->getFront();
                     memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-                    p->rxCh = mRxChIdx;
+                    p->rxCh = mRxChLst[mRxChIdx];
                     len = mNrf24.getPayloadSize();
                     if(len > MAX_RF_PAYLOAD_SIZE)
                         len = MAX_RF_PAYLOAD_SIZE;
@@ -156,19 +156,19 @@ class HmRadio {
             sendPacket(invId, mTxBuf, 27, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t cmd, bool calcCrc = true) {
+        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
             CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
-            mTxBuf[9]  = cmd;
+            mTxBuf[9]  = pid;
             if(calcCrc) {
                 mTxBuf[10] = crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
 
-        bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t *rptCnt, uint8_t rxCh) {
+        bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -179,17 +179,10 @@ class HmRadio {
             uint8_t crc = crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
-            if(valid) {
-                if(mLastCrc == crc)
-                    *rptCnt = (++mRptCnt);
-                else {
-                    mRptCnt = 0;
-                    *rptCnt = 0;
-                    mLastCrc = crc;
-                }
-                mRxStat[(buf[9] & 0x7F)-1]++;
-                mRxChStat[(buf[9] & 0x7F)-1][rxCh & 0x7]++;
-            }
+            //if(valid) {
+                //mRxStat[(buf[9] & 0x7F)-1]++;
+                //mRxChStat[(buf[9] & 0x7F)-1][rxCh & 0x7]++;
+            //}
             /*else {
                 DPRINT("CRC wrong: ");
                 DHEX(crc);
@@ -215,7 +208,8 @@ class HmRadio {
         }
 
         void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
-            DPRINT(String(info));
+            if(NULL != info)
+                DPRINT(String(info));
             for(uint8_t i = 0; i < len; i++) {
                 DHEX(buf[i]);
                 DPRINT(" ");
@@ -234,16 +228,22 @@ class HmRadio {
         uint8_t AmplifierPower;
         uint32_t mSendCnt;
 
+        bool mSerialDebug;
+
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool clear=false) {
             //DPRINTLN("sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
+            if(mSerialDebug) {
+                DPRINT("Transmit " + String(len) + " | ");
+                dumpBuf(NULL, buf, len);
+            }
 
             DISABLE_IRQ;
             mNrf24.stopListening();
 
             if(clear) {
-                uint8_t cnt = 4;
+                /*uint8_t cnt = 4;
                 for(uint8_t i = 0; i < 4; i ++) {
                     DPRINT(String(mRxStat[i]) + " (");
                     for(uint8_t j = 0; j < 4; j++) {
@@ -258,7 +258,7 @@ class HmRadio {
                 else
                     DPRINTLN(" -> missing: " + String(cnt));
                 memset(mRxStat, 0, 4);
-                memset(mRxChStat, 0, 4*8);
+                memset(mRxChStat, 0, 4*8);*/
                 mRxLoopCnt = RX_LOOP_CNT;
             }
 
@@ -295,34 +295,19 @@ class HmRadio {
             return mRxChLst[mRxChIdx];
         }
 
-        /*void calcDtuCrc(void) {
-            uint64_t addr = DTU_RADIO_ID;
-            uint8_t tmp[5];
-            for(int8_t i = 4; i >= 0; i--) {
-                tmp[i] = addr;
-                addr >>= 8;
-            }
-            mDtuIdCrc = crc16nrf24(tmp, BIT_CNT(5));
-        }*/
-
         uint8_t mTxCh;
         uint8_t mTxChLst[1];
         //uint8_t mTxChIdx;
 
         uint8_t mRxChLst[4];
         uint8_t mRxChIdx;
-        uint8_t mRxStat[4];
-        uint8_t mRxChStat[4][8];
+        //uint8_t mRxStat[4];
+        //uint8_t mRxChStat[4][8];
         uint16_t mRxLoopCnt;
-
-        //uint16_t mDtuIdCrc;
-        uint16_t mLastCrc;
-        uint8_t mRptCnt;
 
         RF24 mNrf24;
         BUFFER *mBufCtrl;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
-
 };
 
 #endif /*__RADIO_H__*/

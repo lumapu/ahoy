@@ -1,62 +1,65 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Hoymiles micro-inverters python shared code
+"""
+
 import struct
-import crcmod
-import json
 import time
 import re
 from datetime import datetime
+import json
+import crcmod
 from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 from .decoders import *
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
 
-
 HOYMILES_TRANSACTION_LOGGING=False
 HOYMILES_DEBUG_LOGGING=False
 
-def ser_to_hm_addr(s):
+def ser_to_hm_addr(inverter_ser):
     """
-    Calculate the 4 bytes that the HM devices use in their internal messages to 
+    Calculate the 4 bytes that the HM devices use in their internal messages to
     address each other.
 
-    :param str s: inverter serial
+    :param str inverter_ser: inverter serial
     :return: inverter address
     :rtype: bytes
     """
-    bcd = int(str(s)[-8:], base=16)
+    bcd = int(str(inverter_ser)[-8:], base=16)
     return struct.pack('>L', bcd)
 
-def ser_to_esb_addr(s):
+def ser_to_esb_addr(inverter_ser):
     """
     Convert a Hoymiles inverter/DTU serial number into its
     corresponding NRF24 'enhanced shockburst' address byte sequence (5 bytes).
 
     The NRF library expects these in LSB to MSB order, even though the transceiver
     itself will then output them in MSB-to-LSB order over the air.
-    
+
     The inverters use a BCD representation of the last 8
-    digits of their serial number, in reverse byte order, 
+    digits of their serial number, in reverse byte order,
     followed by \x01.
 
-    :param str s: inverter serial
+    :param str inverter_ser: inverter serial
     :return: ESB inverter address
     :rtype: bytes
     """
-    air_order = ser_to_hm_addr(s)[::-1] + b'\x01'
+    air_order = ser_to_hm_addr(inverter_ser)[::-1] + b'\x01'
     return air_order[::-1]
 
-def print_addr(a):
+def print_addr(inverter_ser):
     """
     Debug print addresses
 
-    :param str a: inverter serial
+    :param str inverter_ser: inverter serial
     """
-    print(f"ser# {a} ", end='')
-    print(f" -> HM  {' '.join([f'{x:02x}' for x in ser_to_hm_addr(a)])}", end='')
-    print(f" -> ESB {' '.join([f'{x:02x}' for x in ser_to_esb_addr(a)])}")
-
-# time of last transmission - to calculcate response time
-t_last_tx = 0
+    print(f"ser# {inverter_ser} ", end='')
+    print(f" -> HM  {' '.join([f'{byte:02x}' for byte in ser_to_hm_addr(inverter_ser)])}", end='')
+    print(f" -> ESB {' '.join([f'{byte:02x}' for byte in ser_to_esb_addr(inverter_ser)])}")
 
 class ResponseDecoderFactory:
     """
@@ -67,13 +70,18 @@ class ResponseDecoderFactory:
     :type request: bytes
     :param inverter_ser: inverter serial
     :type inverter_ser: str
+    :param time_rx: idatetime when payload was received
+    :type time_rx: datetime
     """
     model = None
     request = None
     response = None
+    time_rx = None
 
     def __init__(self, response, **params):
         self.response = response
+
+        self.time_rx = params.get('time_rx', datetime.now())
 
         if 'request' in params:
             self.request = params['request']
@@ -110,16 +118,16 @@ class ResponseDecoderFactory:
             raise ValueError('Inverter serial while decoding response')
 
         ser_db = [
-                ('HM300', r'^1121........'),
-                ('HM600', r'^1141........'),
-                ('HM1200', r'^1161........'),
+                ('Hm300', r'^1121........'),
+                ('Hm600', r'^1141........'),
+                ('Hm1200', r'^1161........'),
                 ]
         ser_str = str(self.inverter_ser)
 
         model = None
-        for m, r in ser_db:
-            if re.match(r, ser_str):
-                model = m
+        for s_model, r_match in ser_db:
+            if re.match(r_match, ser_str):
+                model = s_model
                 break
 
         if len(model):
@@ -157,14 +165,17 @@ class ResponseDecoder(ResponseDecoderFactory):
         model = self.inverter_model
         command = self.request_command
 
-        model_decoders = __import__(f'hoymiles.decoders')
-        if hasattr(model_decoders, f'{model}_Decode{command.upper()}'):
-            device = getattr(model_decoders, f'{model}_Decode{command.upper()}')
+        model_decoders = __import__('hoymiles.decoders')
+        if hasattr(model_decoders, f'{model}Decode{command.upper()}'):
+            device = getattr(model_decoders, f'{model}Decode{command.upper()}')
         else:
             if HOYMILES_DEBUG_LOGGING:
-                device = getattr(model_decoders, f'DEBUG_DecodeAny')
+                device = getattr(model_decoders, 'DebugDecodeAny')
 
-        return device(self.response)
+        return device(self.response,
+                time_rx=self.time_rx,
+                inverter_ser=self.inverter_ser
+                )
 
 class InverterPacketFragment:
     """ESB Frame"""
@@ -180,6 +191,8 @@ class InverterPacketFragment:
         :type ch_rx: int
         :param ch_tx: channel where request was sent
         :type ch_tx: int
+
+        :raises BufferError: when data gets lost on SPI bus
         """
 
         if not time_rx:
@@ -247,11 +260,11 @@ class InverterPacketFragment:
         :return: log line received frame
         :rtype: str
         """
-        dt = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
+        c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
         size = len(self.frame)
         channel = f' channel {self.ch_rx}' if self.ch_rx else ''
         raw = " ".join([f"{b:02x}" for b in self.frame])
-        return f"{dt} Received {size} bytes{channel}: {raw}"
+        return f"{c_datetime} Received {size} bytes{channel}: {raw}"
 
 class HoymilesNRF:
     """Hoymiles NRF24 Interface"""
@@ -322,6 +335,7 @@ class HoymilesNRF:
 
             has_payload, pipe_number = self.radio.available_pipe()
             if has_payload:
+
                 # Data in nRF24 buffer, read it
                 self.rx_error = 0
                 self.rx_channel_ack = True
@@ -334,9 +348,11 @@ class HoymilesNRF:
                         ch_rx=self.rx_channel, ch_tx=self.tx_channel,
                         time_rx=datetime.now()
                         )
-                yield(fragment)
+
+                yield fragment
 
             else:
+
                 # No data in nRF rx buffer, search and wait
                 # Channel lock in (not currently used)
                 self.rx_error = self.rx_error + 1
@@ -399,7 +415,7 @@ def frame_payload(payload):
 
     return payload
 
-def compose_esb_fragment(fragment, seq=b'\80', src=99999999, dst=1, **params):
+def compose_esb_fragment(fragment, seq=b'\x80', src=99999999, dst=1, **params):
     """
     Build standart ESB request fragment
 
@@ -415,20 +431,19 @@ def compose_esb_fragment(fragment, seq=b'\80', src=99999999, dst=1, **params):
     :raises ValueError: if fragment size larger 16 byte
     """
     if len(fragment) > 17:
-        raise ValueError(f'ESB fragment exeeds mtu ({mtu}): Fragment size {len(fragment)} bytes')
+        raise ValueError(f'ESB fragment exeeds mtu: Fragment size {len(fragment)} bytes')
 
-    p = b''
-    p = p + b'\x15'
-    p = p + ser_to_hm_addr(dst)
-    p = p + ser_to_hm_addr(src)
-    p = p + seq
+    packet = b'\x15'
+    packet = packet + ser_to_hm_addr(dst)
+    packet = packet + ser_to_hm_addr(src)
+    packet = packet + seq
 
-    p = p + fragment
+    packet = packet + fragment
 
-    crc8 = f_crc8(p)
-    p = p + struct.pack('B', crc8)
+    crc8 = f_crc8(packet)
+    packet = packet + struct.pack('B', crc8)
 
-    return p
+    return packet
 
 def compose_esb_packet(packet, mtu=17, **params):
     """
@@ -441,7 +456,7 @@ def compose_esb_packet(packet, mtu=17, **params):
     """
     for i in range(0, len(packet), mtu):
         fragment = compose_esb_fragment(packet[i:i+mtu], **params)
-        yield(fragment)
+        yield fragment
 
 def compose_set_time_payload(timestamp=None):
     """
@@ -472,6 +487,7 @@ class InverterTransaction:
     inverter_addr = None
     dtu_ser = None
     req_type = None
+    time_rx = None
 
     radio = None
 
@@ -530,15 +546,15 @@ class InverterTransaction:
         if not self.radio:
             return False
 
-        if not len(self.tx_queue):
+        if len(self.tx_queue) == 0:
             return False
 
         packet = self.tx_queue.pop(0)
 
         if HOYMILES_TRANSACTION_LOGGING:
-            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            print(f'{dt} Transmit {len(packet)} | {hexify_payload(packet)}')
-        
+            c_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+            print(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
+
         self.radio.transmit(packet)
 
         wait = False
@@ -546,7 +562,7 @@ class InverterTransaction:
             for response in self.radio.receive():
                 if HOYMILES_TRANSACTION_LOGGING:
                     print(response)
-        
+
                 self.frame_append(response)
                 wait = True
         except TimeoutError:
@@ -646,9 +662,9 @@ class InverterTransaction:
         :return: log line of payload for transmission
         :rtype: str
         """
-        dt = self.request_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+        c_datetime = self.request_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         size = len(self.request)
-        return f'{dt} Transmit | {hexify_payload(self.request)}'
+        return f'{c_datetime} Transmit | {hexify_payload(self.request)}'
 
 def hexify_payload(byte_var):
     """

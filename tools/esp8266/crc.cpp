@@ -11,8 +11,8 @@ uint8_t crc8(uint8_t buf[], uint8_t len) {
     return crc;
 }
 
-uint16_t crc16(uint8_t buf[], uint8_t len) {
-    uint16_t crc = 0xffff;
+uint16_t crc16(uint8_t buf[], uint8_t len, uint16_t start) {
+    uint16_t crc = start;
     uint8_t shift = 0;
 
     for(uint8_t i = 0; i < len; i ++) {

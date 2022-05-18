@@ -188,3 +188,18 @@ div.ch:last-child {
     width: 100%;
     border-top: 1px solid #bbb;
 }
+
+@media(max-width: 500px) {
+    div.ch .unit, div.ch-iv .unit {
+        font-size: 18px;
+    }
+
+    div.ch {
+        width: 170px;
+        min-height: 100px;
+    }
+
+    .subgrp {
+        width: 180px;
+    }
+}

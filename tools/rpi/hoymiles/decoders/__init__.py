@@ -1,14 +1,50 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+
+"""
+Hoymiles Micro-Inverters decoder library
+"""
+
 import struct
+from datetime import datetime, timedelta
 import crcmod
-from datetime import timedelta
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 
-class StatusResponse:
+class Response:
+    """ All Response Shared methods """
+    inverter_ser = None
+    inverter_name = None
+    dtu_ser = None
+    response = None
+
+    def __init__(self, *args, **params):
+        """
+        :param bytes response: response payload bytes
+        """
+        self.inverter_ser = params.get('inverter_ser', None)
+        self.inverter_name = params.get('inverter_name', None)
+        self.dtu_ser = params.get('dtu_ser', None)
+
+        self.response = args[0]
+
+        if isinstance(params.get('time_rx', None), datetime):
+            self.time_rx = params['time_rx']
+        else:
+            self.time_rx = datetime.now()
+
+    def __dict__(self):
+        """ Base values, availabe in each __dict__ call """
+        return {
+                'inverter_ser': self.inverter_ser,
+                'inverter_name': self.inverter_name,
+                'dtu_ser': self.dtu_ser}
+
+class StatusResponse(Response):
     """Inverter StatusResponse object"""
-    e_keys  = ['voltage','current','power','energy_total','energy_daily']
+    e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor']
+    temperature = None
+    frequency = None
 
     def unpack(self, fmt, base):
         """
@@ -77,17 +113,19 @@ class StatusResponse:
         :return: dict of properties
         :rtype: dict
         """
-        data = {}
+        data = super().__dict__()
         data['phases'] = self.phases
         data['strings'] = self.strings
         data['temperature'] = self.temperature
         data['frequency'] = self.frequency
+        data['time'] = self.time_rx
         return data
 
-class UnknownResponse:
+class UnknownResponse(Response):
     """
     Debugging helper for unknown payload format
     """
+
     @property
     def hex_ascii(self):
         """
@@ -96,7 +134,7 @@ class UnknownResponse:
         :return: hexlifierd byte string
         :rtype: str
         """
-        return ' '.join([f'{b:02x}' for b in self.response])
+        return ' '.join([f'{byte:02x}' for byte in self.response])
 
     @property
     def valid_crc(self):
@@ -113,116 +151,117 @@ class UnknownResponse:
     @property
     def dump_longs(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 5:
+        if len(self.response) < 3:
             return None
 
         res = self.response
 
-        r = len(res) % 16
-        res = res[:r*-1]
+        rem = len(res) % 16
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 16 == 0:
-            n = len(res)/4
-            vals = struct.unpack(f'>{int(n)}L', res)
+            rlen = len(res)/4
+            vals = struct.unpack(f'>{int(rlen)}L', res)
 
         return vals
 
     @property
     def dump_longs_pad1(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 7:
+        if len(self.response) < 5:
             return None
 
         res = self.response[2:]
 
-        r = len(res) % 16
-        res = res[:r*-1]
+        rem = len(res) % 16
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 16 == 0:
-            n = len(res)/4
-            vals = struct.unpack(f'>{int(n)}L', res)
+            rlen = len(res)/4
+            vals = struct.unpack(f'>{int(rlen)}L', res)
 
         return vals
 
     @property
     def dump_longs_pad2(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 9:
+        if len(self.response) < 7:
             return None
 
         res = self.response[4:]
 
-        r = len(res) % 16
-        res = res[:r*-1]
+        rem = len(res) % 16
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 16 == 0:
-            n = len(res)/4
-            vals = struct.unpack(f'>{int(n)}L', res)
+            rlen = len(res)/4
+            vals = struct.unpack(f'>{int(rlen)}L', res)
 
         return vals
 
     @property
     def dump_longs_pad3(self):
         """Get all data, interpreted as long"""
-        if len(self.response) < 11:
+        if len(self.response) < 9:
             return None
 
         res = self.response[6:]
 
-        r = len(res) % 16
-        res = res[:r*-1]
+        rem = len(res) % 16
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 16 == 0:
-            n = len(res)/4
-            vals = struct.unpack(f'>{int(n)}L', res)
+            rlen = len(res)/4
+            vals = struct.unpack(f'>{int(rlen)}L', res)
 
         return vals
 
     @property
     def dump_shorts(self):
         """Get all data, interpreted as short"""
-        if len(self.response) < 5:
+        if len(self.response) < 3:
             return None
 
         res = self.response
 
-        r = len(res) % 4
-        res = res[:r*-1]
+        rem = len(res) % 4
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 4 == 0:
-            n = len(res)/2
-            vals = struct.unpack(f'>{int(n)}H', res)
+            rlen = len(res)/2
+            vals = struct.unpack(f'>{int(rlen)}H', res)
 
         return vals
 
     @property
     def dump_shorts_pad1(self):
         """Get all data, interpreted as short"""
-        if len(self.response) < 6:
+        if len(self.response) < 4:
             return None
 
         res = self.response[1:]
 
-        r = len(res) % 4
-        res = res[:r*-1]
+        rem = len(res) % 4
+        res = res[:rem*-1]
 
         vals = None
         if len(res) % 4 == 0:
-            n = len(res)/2
-            vals = struct.unpack(f'>{int(n)}H', res)
+            rlen = len(res)/2
+            vals = struct.unpack(f'>{int(rlen)}H', res)
 
         return vals
 
 class EventsResponse(UnknownResponse):
+    """ Hoymiles micro-inverter event log decode helper """
 
     alarm_codes = {
             1: 'Inverter start',
-            2: 'Producing power',
+            2: 'DTU command failed',
             121: 'Over temperature protection',
             125: 'Grid configuration parameter error',
             126: 'Software error code 126',
@@ -291,21 +330,21 @@ class EventsResponse(UnknownResponse):
             9000: 'Microinverter is suspected of being stolen'
             }
 
-    def __init__(self, response):
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
         crc_valid = self.valid_crc
         if crc_valid:
             print(' payload has valid modbus crc')
-            self.response = response[:-2]
+            self.response = self.response[:-2]
 
         status = self.response[:2]
 
         chunk_size = 12
-        for c in range(2, len(self.response), chunk_size):
-            chunk = self.response[c:c+chunk_size]
+        for i_chunk in range(2, len(self.response), chunk_size):
+            chunk = self.response[i_chunk:i_chunk+chunk_size]
 
-            print(' '.join([f'{b:02x}' for b in chunk]) + ': ')
+            print(' '.join([f'{byte:02x}' for byte in chunk]) + ': ')
 
             opcode, a_code, a_count, uptime_sec = struct.unpack('>BBHH', chunk[0:6])
             a_text = self.alarm_codes.get(a_code, 'N/A')
@@ -316,20 +355,16 @@ class EventsResponse(UnknownResponse):
                 print(f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk)))
             print(end='', flush=True)
 
-class DEBUG_DecodeAny(UnknownResponse):
+class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
-    def __init__(self, response):
-        """
-        Try interpret and print unknown response data
 
-        :param bytes response: response payload bytes
-        """
-        self.response = response
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
 
         crc_valid = self.valid_crc
         if crc_valid:
             print(' payload has valid modbus crc')
-            self.response = response[:-2]
+            self.response = self.response[:-2]
 
         l_payload = len(self.response)
         print(f' payload has {l_payload} bytes')
@@ -384,204 +419,247 @@ class DEBUG_DecodeAny(UnknownResponse):
 
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase
-class HM300_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+class Hm300Decode0B(StatusResponse):
+    """ 1121-series mirco-inverters status data """
 
     @property
     def dc_voltage_0(self):
+        """ String 1 VDC """
         return self.unpack('>H', 2)[0]/10
     @property
     def dc_current_0(self):
+        """ String 1 ampere """
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_0(self):
+        """ String 1 watts """
         return self.unpack('>H', 6)[0]/10
     @property
     def dc_energy_total_0(self):
+        """ String 1 total energy in Wh """
         return self.unpack('>L', 8)[0]
     @property
     def dc_energy_daily_0(self):
+        """ String 1 daily energy in Wh """
         return self.unpack('>H', 12)[0]
-
 
     @property
     def ac_voltage_0(self):
+        """ Phase 1 VAC """
         return self.unpack('>H', 14)[0]/10
     @property
     def ac_current_0(self):
+        """ Phase 1 ampere """
         return self.unpack('>H', 22)[0]/100
     @property
     def ac_power_0(self):
+        """ Phase 1 watts """
         return self.unpack('>H', 18)[0]/10
     @property
     def frequency(self):
+        """ Grid frequency in Hertz """
         return self.unpack('>H', 16)[0]/100
     @property
     def temperature(self):
+        """ Inverter temperature in °C """
         return self.unpack('>H', 26)[0]/10
 
-class HM300_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+class Hm300Decode11(EventsResponse):
+    """ Inverter generic events log """
 
-class HM300_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
-
+class Hm300Decode12(EventsResponse):
+    """ Inverter major events log """
 
 
 # 1141-Series Inverters, 2 MPPT, 1 Phase
-class HM600_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+class Hm600Decode0B(StatusResponse):
+    """ 1141-series mirco-inverters status data """
 
     @property
     def dc_voltage_0(self):
+        """ String 1 VDC """
         return self.unpack('>H', 2)[0]/10
     @property
     def dc_current_0(self):
+        """ String 1 ampere """
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_0(self):
+        """ String 1 watts """
         return self.unpack('>H', 6)[0]/10
     @property
     def dc_energy_total_0(self):
+        """ String 1 total energy in Wh """
         return self.unpack('>L', 14)[0]
     @property
     def dc_energy_daily_0(self):
+        """ String 1 daily energy in Wh """
         return self.unpack('>H', 22)[0]
 
     @property
     def dc_voltage_1(self):
+        """ String 2 VDC """
         return self.unpack('>H', 8)[0]/10
     @property
     def dc_current_1(self):
+        """ String 2 ampere """
         return self.unpack('>H', 10)[0]/100
     @property
     def dc_power_1(self):
+        """ String 2 watts """
         return self.unpack('>H', 12)[0]/10
     @property
     def dc_energy_total_1(self):
+        """ String 2 total energy in Wh """
         return self.unpack('>L', 18)[0]
     @property
     def dc_energy_daily_1(self):
+        """ String 2 daily energy in Wh """
         return self.unpack('>H', 24)[0]
 
     @property
     def ac_voltage_0(self):
+        """ Phase 1 VAC """
         return self.unpack('>H', 26)[0]/10
     @property
     def ac_current_0(self):
+        """ Phase 1 ampere """
         return self.unpack('>H', 34)[0]/10
     @property
     def ac_power_0(self):
+        """ Phase 1 watts """
         return self.unpack('>H', 30)[0]/10
     @property
     def frequency(self):
+        """ Grid frequency in Hertz """
         return self.unpack('>H', 28)[0]/100
     @property
     def temperature(self):
+        """ Inverter temperature in °C """
         return self.unpack('>H', 38)[0]/10
+    @property
+    def alarm_count(self):
+        """ Event counter """
+        return self.unpack('>H', 40)[0]
 
-class HM600_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+class Hm600Decode11(EventsResponse):
+    """ Inverter generic events log """
 
-class HM600_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+class Hm600Decode12(EventsResponse):
+    """ Inverter major events log """
 
 
 # 1161-Series Inverters, 4 MPPT, 1 Phase
-class HM1200_Decode0B(StatusResponse):
-    def __init__(self, response):
-        self.response = response
+class Hm1200Decode0B(StatusResponse):
+    """ 1161-series mirco-inverters status data """
 
     @property
     def dc_voltage_0(self):
+        """ String 1 VDC """
         return self.unpack('>H', 2)[0]/10
     @property
     def dc_current_0(self):
+        """ String 1 ampere """
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_0(self):
+        """ String 1 watts """
         return self.unpack('>H', 8)[0]/10
     @property
     def dc_energy_total_0(self):
+        """ String 1 total energy in Wh """
         return self.unpack('>L', 12)[0]
     @property
     def dc_energy_daily_0(self):
+        """ String 1 daily energy in Wh """
         return self.unpack('>H', 20)[0]
 
     @property
     def dc_voltage_1(self):
+        """ String 2 VDC """
         return self.unpack('>H', 2)[0]/10
     @property
     def dc_current_1(self):
+        """ String 2 ampere """
         return self.unpack('>H', 4)[0]/100
     @property
     def dc_power_1(self):
+        """ String 2 watts """
         return self.unpack('>H', 10)[0]/10
     @property
     def dc_energy_total_1(self):
+        """ String 2 total energy in Wh """
         return self.unpack('>L', 16)[0]
     @property
     def dc_energy_daily_1(self):
+        """ String 2 daily energy in Wh """
         return self.unpack('>H', 22)[0]
 
     @property
     def dc_voltage_2(self):
+        """ String 3 VDC """
         return self.unpack('>H', 24)[0]/10
     @property
     def dc_current_2(self):
+        """ String 3 ampere """
         return self.unpack('>H', 26)[0]/100
     @property
     def dc_power_2(self):
+        """ String 3 watts """
         return self.unpack('>H', 30)[0]/10
     @property
     def dc_energy_total_2(self):
+        """ String 3 total energy in Wh """
         return self.unpack('>L', 34)[0]
     @property
     def dc_energy_daily_2(self):
+        """ String 3 daily energy in Wh """
         return self.unpack('>H', 42)[0]
 
     @property
     def dc_voltage_3(self):
+        """ String 4 VDC """
         return self.unpack('>H', 24)[0]/10
     @property
     def dc_current_3(self):
+        """ String 4 ampere """
         return self.unpack('>H', 28)[0]/100
     @property
     def dc_power_3(self):
+        """ String 4 watts """
         return self.unpack('>H', 32)[0]/10
     @property
     def dc_energy_total_3(self):
+        """ String 4 total energy in Wh """
         return self.unpack('>L', 38)[0]
     @property
     def dc_energy_daily_3(self):
+        """ String 4 daily energy in Wh """
         return self.unpack('>H', 44)[0]
 
     @property
     def ac_voltage_0(self):
+        """ Phase 1 VAC """
         return self.unpack('>H', 46)[0]/10
     @property
     def ac_current_0(self):
+        """ Phase 1 ampere """
         return self.unpack('>H', 54)[0]/100
     @property
     def ac_power_0(self):
+        """ Phase 1 watts """
         return self.unpack('>H', 50)[0]/10
     @property
     def frequency(self):
+        """ Grid frequency in Hertz """
         return self.unpack('>H', 48)[0]/100
     @property
     def temperature(self):
+        """ Inverter temperature in °C """
         return self.unpack('>H', 58)[0]/10
 
-class HM1200_Decode11(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+class Hm1200Decode11(EventsResponse):
+    """ Inverter generic events log """
 
-class HM1200_Decode12(EventsResponse):
-    def __init__(self, response):
-        super().__init__(response)
+class Hm1200Decode12(EventsResponse):
+    """ Inverter major events log """

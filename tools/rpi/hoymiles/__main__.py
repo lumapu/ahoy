@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Hoymiles micro-inverters main application
+"""
+
 import sys
 import struct
 import re
 import time
 from datetime import datetime
 import argparse
-import hoymiles
-from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
-import paho.mqtt.client
 import yaml
 from yaml.loader import SafeLoader
+import paho.mqtt.client
+from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+import hoymiles
 
 def main_loop():
     """Main loop"""
@@ -61,14 +65,14 @@ def poll_inverter(inverter, retries=4):
                 try:
                     response = com.get_payload()
                     payload_ttl = 0
-                except Exception as e:
-                    print(f'Error while retrieving data: {e}')
+                except Exception as e_all:
+                    print(f'Error while retrieving data: {e_all}')
                     pass
 
         # Handle the response data if any
         if response:
-            dt = datetime.now()
-            print(f'{dt} Payload: ' + hoymiles.hexify_payload(response))
+            c_datetime = datetime.now()
+            print(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
                     inverter_ser=inverter_ser
@@ -77,7 +81,7 @@ def poll_inverter(inverter, retries=4):
             if isinstance(result, hoymiles.decoders.StatusResponse):
                 data = result.__dict__()
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'{dt} Decoded: {data["temperature"]}', end='')
+                    print(f'{c_datetime} Decoded: {data["temperature"]}', end='')
                     phase_id = 0
                     for phase in data['phases']:
                         print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
@@ -91,6 +95,8 @@ def poll_inverter(inverter, retries=4):
                 if mqtt_client:
                     mqtt_send_status(mqtt_client, inverter_ser, data,
                             topic=inverter.get('mqtt', {}).get('topic', None))
+                if influx_client:
+                    influx_client.store_status(result)
 
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
@@ -183,17 +189,17 @@ if __name__ == '__main__':
 
     # Load ahoy.yml config file
     try:
-        if isinstance(global_config.config_file, str) == True:
-            with open(global_config.config_file, 'r') as yf:
-                cfg = yaml.load(yf, Loader=SafeLoader)
+        if isinstance(global_config.config_file, str):
+            with open(global_config.config_file, 'r') as fh_yaml:
+                cfg = yaml.load(fh_yaml, Loader=SafeLoader)
         else:
-            with open('ahoy.yml', 'r') as yf:
-                cfg = yaml.load(yf, Loader=SafeLoader)
+            with open('ahoy.yml', 'r') as fh_yaml:
+                cfg = yaml.load(fh_yaml, Loader=SafeLoader)
     except FileNotFoundError:
         print("Could not load config file. Try --help")
         sys.exit(2)
-    except yaml.YAMLError as ye:
-        print('Failed to load config frile {global_config.config_file}: {ye}')
+    except yaml.YAMLError as e_yaml:
+        print('Failed to load config frile {global_config.config_file}: {e_yaml}')
         sys.exit(1)
 
     ahoy_config = dict(cfg.get('ahoy', {}))
@@ -225,21 +231,32 @@ if __name__ == '__main__':
         mqtt_client.loop_start()
         mqtt_client.on_message = mqtt_on_command
 
+    influx_client = None
+    influx_config = ahoy_config.get('influxdb', {})
+    if influx_config and not influx_config.get('disabled', False):
+        from .outputs import InfluxOutputPlugin
+        influx_client = InfluxOutputPlugin(
+                influx_config.get('url'),
+                influx_config.get('token'),
+                org=influx_config.get('org', ''),
+                bucket=influx_config.get('bucket', None),
+                measurement=influx_config.get('measurement', 'hoymiles'))
+
     if not radio.begin():
         raise RuntimeError('Can\'t open radio')
 
-    inverters = [inverter.get('serial') for inverter in ahoy_config.get('inverters', [])]
-    for inverter in ahoy_config.get('inverters', []):
-        inverter_ser = inverter.get('serial')
-        command_queue[str(inverter_ser)] = []
+    g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
+    for g_inverter in ahoy_config.get('inverters', []):
+        g_inverter_ser = g_inverter.get('serial')
+        command_queue[str(g_inverter_ser)] = []
 
         #
         # Enables and subscribe inverter to mqtt /command-Topic
         #
-        if mqtt_client and inverter.get('mqtt', {}).get('send_raw_enabled', False):
+        if mqtt_client and g_inverter.get('mqtt', {}).get('send_raw_enabled', False):
             topic_item = (
-                    str(inverter_ser),
-                    inverter.get('mqtt', {}).get('topic', f'hoymiles/{inverter_ser}') + '/command'
+                    str(g_inverter_ser),
+                    g_inverter.get('mqtt', {}).get('topic', f'hoymiles/{g_inverter_ser}') + '/command'
                     )
             mqtt_client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)

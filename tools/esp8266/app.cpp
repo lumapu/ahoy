@@ -23,7 +23,8 @@ app::app() : Main() {
     mSerialValues = true;
     mSerialDebug  = false;
 
-    memset(mPacketIds, 0, sizeof(uint32_t)*DBG_CMD_LIST_LEN);
+    memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
+    mRxFailed = 0;
 
     mSys = new HmSystemType();
 }
@@ -50,21 +51,20 @@ void app::setup(uint32_t timeout) {
     if(mSettingsValid) {
         uint64_t invSerial;
         char invName[MAX_NAME_LENGTH + 1] = {0};
-        uint8_t invType;
 
         // inverter
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
             mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
-            mEep->read(ADDR_INV_TYPE + i,                     &invType);
             if(0ULL != invSerial) {
-                mSys->addInverter(invName, invSerial, invType);
-                DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX) + ", type: " + String(invType));
+                mSys->addInverter(invName, invSerial);
+                DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX));
             }
         }
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
         if(mSendInterval < 5)
             mSendInterval = 5;
+        mSendTicker = mSendInterval;
 
         // pinout
         mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
@@ -84,6 +84,7 @@ void app::setup(uint32_t timeout) {
         mSerialDebug = (tmp == 0x01);
         if(mSerialInterval < 1)
             mSerialInterval = 1;
+        mSys->Radio.mSerialDebug = mSerialDebug;
 
 
         // mqtt
@@ -134,43 +135,42 @@ void app::loop(void) {
     Main::loop();
 
     if(checkTicker(&mRxTicker, 5)) {
-        mSys->Radio.switchRxCh();
+        bool rxRdy = mSys->Radio.switchRxCh();
+
         if(!mSys->BufCtrl.empty()) {
-            uint8_t len, rptCnt;
+            uint8_t len;
             packet_t *p = mSys->BufCtrl.getBack();
 
-            //if(mSerialDebug)
-            //    mSys->Radio.dumpBuf("RAW ", p->packet, MAX_RF_PAYLOAD_SIZE);
-
-            if(mSys->Radio.checkPaketCrc(p->packet, &len, &rptCnt, p->rxCh)) {
+            if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
-                if((0 != len) && (0 == rptCnt)) {
-                    uint8_t *packetId = &p->packet[9];
-                    //DPRINTLN("CMD " + String(*packetId, HEX));
-                    if(mSerialDebug)
-                        mSys->Radio.dumpBuf("Payload ", p->packet, len);
+                if(mSerialDebug) {
+                    DPRINT("Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
+                    mSys->Radio.dumpBuf(NULL, p->packet, len);
+                }
 
+                if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
-                        for(uint8_t i = 0; i < iv->listLen; i++) {
-                            if(iv->assign[i].cmdId == *packetId)
-                                iv->addValue(i, &p->packet[9]);
+                        uint8_t *pid = &p->packet[9];
+                        if((*pid & 0x7F) < 5) {
+                            memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                            mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
                         }
-                        iv->doCalculations();
-                        //memcpy(mPayload[(*packetId & 0x7F) - 1], &p->packet[9], MAX_RF_PAYLOAD_SIZE - 11);
-                    }
 
-                    if(*packetId == 0x01)      mPacketIds[0]++;
-                    else if(*packetId == 0x02) mPacketIds[1]++;
-                    else if(*packetId == 0x03) mPacketIds[2]++;
-                    else if(*packetId == 0x81) mPacketIds[3]++;
-                    else if(*packetId == 0x82) mPacketIds[4]++;
-                    else if(*packetId == 0x83) mPacketIds[5]++;
-                    else if(*packetId == 0x84) mPacketIds[6]++;
-                    else                       mPacketIds[7]++;
+                        if((*pid & 0x80) == 0x80) {
+                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId)
+                                mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                        }
+                    }
                 }
             }
+
             mSys->BufCtrl.popBack();
+        }
+
+
+        if(rxRdy) {
+            processPayload(true);
         }
     }
 
@@ -220,14 +220,34 @@ void app::loop(void) {
         if(++mSendTicker >= mSendInterval) {
             mSendTicker = 0;
 
-            if(!mSys->BufCtrl.empty())
-                DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
-            Inverter<> *inv;
+            if(!mSys->BufCtrl.empty()) {
+                if(mSerialDebug)
+                    DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
+            }
+            Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                inv = mSys->getInverterByPos(i);
-                if(NULL != inv) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL != iv) {
+                    // reset payload data
+                    memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
+                    mPayload[iv->id].maxPackId = 0;
+                    if(mSerialDebug) {
+                        if(!mPayload[iv->id].complete)
+                            processPayload(false);
+
+                        if(!mPayload[iv->id].complete) {
+                            DPRINT("Inverter #" + String(iv->id) + " ");
+                            DPRINTLN("no Payload received!");
+                            mRxFailed++;
+                        }
+                    }
+                    mPayload[iv->id].complete = false;
+                    mPayload[iv->id].ts = mTimestamp;
+
                     yield();
-                    mSys->Radio.sendTimePacket(inv->radioId.u64, mTimestamp);
+                    if(mSerialDebug)
+                        DPRINTLN("Requesting Inverter SN " + String(iv->serial.u64, HEX));
+                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
             }
@@ -239,6 +259,80 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
     mSys->Radio.handleIntr();
+}
+
+
+//-----------------------------------------------------------------------------
+bool app::buildPayload(uint8_t id) {
+    //DPRINTLN("Payload");
+    uint16_t crc = 0xffff, crcRcv;
+    if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
+        mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
+
+    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
+        if(mPayload[id].len[i] > 0) {
+            if(i == (mPayload[id].maxPackId-1)) {
+                crc = crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
+                    | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
+            }
+            else
+                crc = crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
+        }
+    }
+    if(crc == crcRcv)
+        return true;
+    return false;
+}
+
+
+//-----------------------------------------------------------------------------
+void app::processPayload(bool retransmit) {
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            if(!mPayload[iv->id].complete) {
+                if(!buildPayload(iv->id)) {
+                    if(retransmit) {
+                        if(mPayload[iv->id].maxPackId != 0) {
+                            for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
+                                if(mPayload[iv->id].len[i] == 0) {
+                                    if(mSerialDebug)
+                                        DPRINTLN("Error while retrieving data: Frame " + String(i+1) + " missing: Request Retransmit");
+                                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
+                                }
+                            }
+                        }
+                        else {
+                            if(mSerialDebug)
+                                DPRINTLN("Error while retrieving data: last frame missing: Request Retransmit");
+                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                        }
+                        mSys->Radio.switchRxCh(100);
+                    }
+                }
+                else {
+                    mPayload[iv->id].complete = true;
+                    uint8_t payload[128] = {0};
+                    uint8_t offs = 0;
+                    for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
+                        memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                        offs += (mPayload[iv->id].len[i]);
+                    }
+                    offs-=2;
+                    if(mSerialDebug) {
+                        DPRINT("Payload (" + String(offs) + "): ");
+                        mSys->Radio.dumpBuf(NULL, payload, offs);
+                    }
+
+                    for(uint8_t i = 0; i < iv->listLen; i++) {
+                        iv->addValue(i, payload);
+                    }
+                    iv->doCalculations();
+                }
+            }
+        }
+    }
 }
 
 
@@ -276,7 +370,6 @@ void app::showSetup(void) {
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
-        mEep->read(ADDR_INV_TYPE + i,                     &invType);
         inv += "<p class=\"subdes\">Inverter "+ String(i) + "</p>";
 
         inv += "<label for=\"inv" + String(i) + "Addr\">Address</label>";
@@ -289,16 +382,6 @@ void app::showSetup(void) {
         inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
         inv += String(invName);
         inv += "\"/ maxlength=\"" + String(MAX_NAME_LENGTH) + "\">";
-
-        inv += "<label for=\"inv" + String(i) + "Type\">Type</label>";
-        inv += "<select name=\"inv" + String(i) + "Type\">";
-        for(uint8_t t = 0; t < NUM_INVERTER_TYPES; t++) {
-            inv += "<option value=\"" + String(t) + "\"";
-            if(invType == t)
-                inv += " selected";
-            inv += ">" + String(invTypes[t]) + "</option>";
-        }
-        inv += "</select>";
     }
     html.replace("{INVERTERS}", String(inv));
 
@@ -371,7 +454,7 @@ void app::showSetup(void) {
         html.replace("{MQTT_PORT}", "1883");
         html.replace("{MQTT_USER}", "");
         html.replace("{MQTT_PWD}", "");
-        html.replace("{MQTT_TOPIC}", "/inverter");
+        html.replace("{MQTT_TOPIC}", "inverter");
         html.replace("{MQTT_INTVL}", "10");
 
         html.replace("{SER_INTVL}", "10");
@@ -396,12 +479,7 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    String content = "Packets:\n";
-    for(uint8_t i = 0; i < DBG_CMD_LIST_LEN; i ++) {
-        content += String("0x") + String(dbgCmds[i], HEX) + String(": ") + String(mPacketIds[i]) + String("\n");
-    }
-    content += String("other: ") + String(mPacketIds[DBG_CMD_LIST_LEN]) + String("\n\n");
-
+    String content = "Failed Payload: " + String(mRxFailed) + "\n";
     content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
 
     if(!mSys->Radio.isChipConnected())
@@ -440,10 +518,10 @@ void app::showLiveData(void) {
 #ifdef LIVEDATA_VISUALIZED
             uint8_t modNum, pos;
             switch(iv->type) {
-                default:              modNum = 1; break;
-                case INV_TYPE_HM600:
-                case INV_TYPE_HM800:  modNum = 2; break;
-                case INV_TYPE_HM1200: modNum = 4; break;
+                default:
+                case INV_TYPE_1CH: modNum = 1; break;
+                case INV_TYPE_2CH: modNum = 2; break;
+                case INV_TYPE_4CH: modNum = 4; break;
             }
 
             modHtml += "<div class=\"iv\">";
@@ -524,11 +602,6 @@ void app::saveValues(bool webSend = true) {
             // name
             mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
             mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), buf, MAX_NAME_LENGTH);
-
-            // type
-            mWeb->arg("inv" + String(i) + "Type").toCharArray(buf, 20);
-            uint8_t type = atoi(buf);
-            mEep->write(ADDR_INV_TYPE + i, type);
         }
 
         interval = mWeb->arg("invInterval").toInt();
@@ -578,15 +651,18 @@ void app::saveValues(bool webSend = true) {
         mEep->write(ADDR_SER_INTERVAL, interval);
         tmp = (mWeb->arg("serEn") == "on");
         mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
-        tmp = (mWeb->arg("serDbg") == "on");
-        mEep->write(ADDR_SER_DEBUG, (uint8_t)((tmp) ? 0x01 : 0x00));
+        mSerialDebug = (mWeb->arg("serDbg") == "on");
+        mEep->write(ADDR_SER_DEBUG, (uint8_t)((mSerialDebug) ? 0x01 : 0x00));
+        DPRINT("Info: Serial debug is ");
+        if(mSerialDebug) DPRINTLN("on"); else DPRINTLN("off");
+        mSys->Radio.mSerialDebug = mSerialDebug;
 
         updateCrc();
         if((mWeb->arg("reboot") == "on"))
             showReboot();
         else {
             mShowRebootRequest = true;
-            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
+            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>");
         }
     }

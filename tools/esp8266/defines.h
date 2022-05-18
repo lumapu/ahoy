@@ -15,8 +15,8 @@
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       3
-#define VERSION_PATCH       9
+#define VERSION_MINOR       4
+#define VERSION_PATCH       3
 
 
 //-------------------------------------
@@ -68,7 +68,7 @@ typedef struct {
 
 #define ADDR_INV_ADDR       ADDR_RF24_AMP_PWR  + RF24_AMP_PWR_LEN
 #define ADDR_INV_NAME       ADDR_INV_ADDR      + INV_ADDR_LEN
-#define ADDR_INV_TYPE       ADDR_INV_NAME      + INV_NAME_LEN
+#define ADDR_INV_TYPE       ADDR_INV_NAME      + INV_NAME_LEN // obsolete
 #define ADDR_INV_INTERVAL   ADDR_INV_TYPE      + INV_TYPE_LEN
 
 #define ADDR_MQTT_ADDR      ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
