@@ -85,12 +85,12 @@ const byteAssign_t hm2chAssignment[] = {
     { FLD_YT,  UNIT_KWH, CH2, 18, 4, 1000 },
 
     { FLD_UAC, UNIT_V,   CH0, 26, 2, 10   },
-    { FLD_IAC, UNIT_A,   CH0, 34, 2, 10   },
+    { FLD_IAC, UNIT_A,   CH0, 34, 2, 100  },
     { FLD_PAC, UNIT_W,   CH0, 30, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, 28, 2, 100  },
     { FLD_T,   UNIT_C,   CH0, 38, 2, 10   },
-    { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,   0, CMD_CALC },
-    { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0,   0, CMD_CALC }
+    { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0, 0, CMD_CALC },
+    { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0, 0, CMD_CALC }
 
 };
 #define HM2CH_LIST_LEN     (sizeof(hm2chAssignment) / sizeof(byteAssign_t))
@@ -130,8 +130,8 @@ const byteAssign_t hm4chAssignment[] = {
     { FLD_F,   UNIT_HZ,  CH0, 48, 2, 100  },
     { FLD_PCT, UNIT_PCT, CH0, 56, 2, 10   },
     { FLD_T,   UNIT_C,   CH0, 58, 2, 10   },
-    { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,   0, CMD_CALC },
-    { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0,   0, CMD_CALC }
+    { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0, 0, CMD_CALC },
+    { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0, 0, CMD_CALC }
 };
 #define HM4CH_LIST_LEN     (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
 

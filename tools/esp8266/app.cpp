@@ -194,6 +194,8 @@ void app::loop(void) {
                         }
                     }
                 }
+                snprintf(val, 10, "%d", ESP.getFreeHeap());
+                mMqtt.sendMsg("free_heap", val);
             }
         }
 
@@ -220,6 +222,9 @@ void app::loop(void) {
         if(++mSendTicker >= mSendInterval) {
             mSendTicker = 0;
 
+            if(mSerialDebug)
+                DPRINTLN("Free heap: 0x" + String(ESP.getFreeHeap(), HEX));
+
             if(!mSys->BufCtrl.empty()) {
                 if(mSerialDebug)
                     DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
@@ -231,16 +236,17 @@ void app::loop(void) {
                     // reset payload data
                     memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
                     mPayload[iv->id].maxPackId = 0;
-                    if(mSerialDebug) {
-                        if(!mPayload[iv->id].complete)
-                            processPayload(false);
+                    if(!mPayload[iv->id].complete)
+                        processPayload(false);
 
-                        if(!mPayload[iv->id].complete) {
+                    if(!mPayload[iv->id].complete) {
+                        mRxFailed++;
+                        if(mSerialDebug) {
                             DPRINT("Inverter #" + String(iv->id) + " ");
                             DPRINTLN("no Payload received!");
-                            mRxFailed++;
                         }
                     }
+
                     mPayload[iv->id].complete = false;
                     mPayload[iv->id].ts = mTimestamp;
 
@@ -481,6 +487,8 @@ void app::showErase() {
 void app::showStatistics(void) {
     String content = "Failed Payload: " + String(mRxFailed) + "\n";
     content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
+
+    content += "Free Heap: 0x" + String(ESP.getFreeHeap(), HEX) + "\n";
 
     if(!mSys->Radio.isChipConnected())
         content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";
