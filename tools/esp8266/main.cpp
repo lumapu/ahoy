@@ -30,6 +30,8 @@ Main::Main(void) {
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
     mUptimeInterval = 1000;
+
+    mTimestamp = 0;
 }
 
 
@@ -55,12 +57,6 @@ void Main::setup(uint32_t timeout) {
 #else
     setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
 #endif
-
-    if(!startAp) {
-        delay(5000);
-        mTimestamp  = getNtpTime();
-        DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
-    }
 
     mUpdater->setup(mWeb);
     mApActive = startAp;
@@ -98,7 +94,14 @@ void Main::loop(void) {
 
     if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
         mUptimeSecs++;
-        mTimestamp++;
+        if(0 != mTimestamp)
+            mTimestamp++;
+        else {
+            if(!mApActive) {
+                mTimestamp  = getNtpTime();
+                DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
+            }
+        }
     }
 }
 
@@ -414,7 +417,7 @@ void Main::sendNTPpacket(IPAddress& address) {
 //-----------------------------------------------------------------------------
 String Main::getDateTimeStr(time_t t) {
     char str[20] = {0};
-    sprintf(str, "%04d-%02d-%02d+%02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+    sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
     return String(str);
 }
 

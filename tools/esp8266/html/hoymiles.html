@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript">
             getAjax('/livedata', 'livedata');
-            window.setInterval("getAjax('/livedata', 'livedata')", 10000);
+            window.setInterval("getAjax('/livedata', 'livedata')", {JS_TS});
 
             function getAjax(url, resid) {
                 var http = null;
@@ -31,7 +31,7 @@
         <h1>AHOY - {DEVICE}</h1>
         <div id="content" class="content">
             <div id="livedata"></div>
-            <p>Every 10 seconds the values are updated</p>
+            <p>Every {TS}seconds the values are updated</p>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>

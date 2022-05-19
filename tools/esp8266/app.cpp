@@ -319,6 +319,7 @@ void app::processPayload(bool retransmit) {
                 }
                 else {
                     mPayload[iv->id].complete = true;
+                    iv->ts = mPayload[iv->id].ts;
                     uint8_t payload[128] = {0};
                     uint8_t offs = 0;
                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
@@ -513,6 +514,8 @@ void app::showHoymiles(void) {
     String html = FPSTR(hoymiles_html);
     html.replace("{DEVICE}", mDeviceName);
     html.replace("{VERSION}", mVersion);
+    html.replace("{TS}", String(mSendInterval) + " ");
+    html.replace("{JS_TS}", String(mSendInterval * 1000));
     mWeb->send(200, "text/html", html);
 }
 
@@ -566,7 +569,7 @@ void app::showLiveData(void) {
                 }
                 modHtml += "</div>";
             }
-
+            modHtml += "<div class=\"ts\">Last data update: " + getDateTimeStr(iv->ts) + "</div>";
             modHtml += "</div>";
 #else
             // dump all data to web frontend

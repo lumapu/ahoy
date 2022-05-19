@@ -121,18 +121,17 @@ div.ch-iv {
     width: 100%;
     background-color: #32b004;
     display: inline-block;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     padding-bottom: 20px;
     overflow: auto;
 }
 
 div.ch {
-    width: 250px;
-    min-height: 420px;
+    width: 220px;
+    min-height: 350px;
     background-color: #006ec0;
     display: inline-block;
-    margin-right: 20px;
-    margin-bottom: 20px;
+    margin: 0 10px 15px 10px;
     overflow: auto;
     padding-bottom: 20px;
 }
@@ -146,7 +145,7 @@ div.ch .value, div.ch .info, div.ch .head, div.ch-iv  .value, div.ch-iv .info, d
 
 .subgrp {
     float: left;
-    width: 250px;
+    width: 220px;
 }
 
 div.ch .unit, div.ch-iv .unit {
@@ -156,7 +155,7 @@ div.ch .unit, div.ch-iv .unit {
 
 div.ch .value, div.ch-iv .value {
     margin-top: 20px;
-    font-size: 30px;
+    font-size: 24px;
 }
 
 div.ch .info, div.ch-iv .info {
@@ -175,11 +174,15 @@ div.ch-iv .head {
 }
 
 div.iv {
-    max-width: 1060px;
+    max-width: 960px;
+    margin-bottom: 40px;
 }
 
-div.ch:last-child {
-    margin-right: 0px !important;
+div.ts {
+    font-size: 13px;
+    background-color: #ddd;
+    border-top: 7px solid #999;
+    padding: 7px;
 }
 
 #note {

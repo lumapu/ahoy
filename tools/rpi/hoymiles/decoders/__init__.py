@@ -549,7 +549,7 @@ class Hm600Decode12(EventsResponse):
     """ Inverter major events log """
 
 
-# 1161-Series Inverters, 4 MPPT, 1 Phase
+# 1161-Series Inverters, 2 MPPT, 1 Phase
 class Hm1200Decode0B(StatusResponse):
     """ 1161-series mirco-inverters status data """
 
@@ -581,7 +581,7 @@ class Hm1200Decode0B(StatusResponse):
     @property
     def dc_current_1(self):
         """ String 2 ampere """
-        return self.unpack('>H', 4)[0]/100
+        return self.unpack('>H', 6)[0]/100
     @property
     def dc_power_1(self):
         """ String 2 watts """

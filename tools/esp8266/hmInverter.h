@@ -56,10 +56,11 @@ class Inverter {
         serial_u      serial;   // serial number as on barcode
         serial_u      radioId;  // id converted to modbus
         uint8_t       channels; // number of PV channels (1-4)
+        uint32_t      ts;       // timestamp of last received payload
         RECORDTYPE    *record;  // pointer for values
 
         Inverter() {
-
+            ts = 0;
         }
 
         ~Inverter() {
