@@ -7,14 +7,14 @@
         <script type="text/x-mathjax-config">
           MathJax.Hub.Config({"extensions":["tex2jax.js"],"jax":["input/TeX","output/HTML-CSS"],"messageStyle":"none","tex2jax":{"processEnvironments":false,"processEscapes":true,"inlineMath":[["$","$"],["\\(","\\)"]],"displayMath":[["$$","$$"],["\\[","\\]"]]},"TeX":{"extensions":["AMSmath.js","AMSsymbols.js","noErrors.js","noUndefined.js"]},"HTML-CSS":{"availableFonts":["TeX"]}});
         </script>
-        <script type="text/javascript" async src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.2/node_modules/@shd101wyy/mume/dependencies/mathjax/MathJax.js" charset="UTF-8"></script>
+        <script type="text/javascript" async src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.3/node_modules/@shd101wyy/mume/dependencies/mathjax/MathJax.js" charset="UTF-8"></script>
         
       
       
       
       
       
-      <script type="text/javascript" src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.2/node_modules/@shd101wyy/mume/dependencies/wavedrom/default.js" charset="UTF-8"></script><script type="text/javascript" src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.2/node_modules/@shd101wyy/mume/dependencies/wavedrom/wavedrom.min.js" charset="UTF-8"></script>
+      <script type="text/javascript" src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.3/node_modules/@shd101wyy/mume/dependencies/wavedrom/default.js" charset="UTF-8"></script><script type="text/javascript" src="file:////home/sthieme/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.6.3/node_modules/@shd101wyy/mume/dependencies/wavedrom/wavedrom.min.js" charset="UTF-8"></script>
       
       
       
@@ -1035,6 +1035,29 @@ GD-&gt;NRF     7E    15   70 51 43 68    70 51 43 68      82     xx       7F    
 on-air            15   70 51 43 68    70 53 54 53      82     B9
 (payload)              ^^^^^^^^^^^    ^^^^^^^^^^^
                        WR ser #       DTU ser #</code></pre>
+<div class="wavedrom"><script type="WaveDrom">{signal: [
+  {name:'Clock',     wave: 'p..........' },
+  {name:'',          wave: '', data: '' },
+  {name:'Data',      wave: 'x345.6.7892.........x', data: '7E 15 70514368 70514368 81 xx 7F ...(NOCH_NICHT_VERIFIZIERT_/_GESEHEN)', 
+                     node: '......a.c..' },
+  {name:'', wave: '', data: ''},
+  {name:'on-air (payload)',   
+                     wave: 'x.45.6.78x.', data: '15 70514368 70535453 81 BA', 
+                     node: '......b.d..' },
+  {name:'Bedeutung', wave: 'x..5.6.789x', data: 'WRser# DTUser# CMD CRC8 EOF' },
+  {name:'Request',   wave: '01........0' }
+],
+ edge: [ 'a~>b (wird von NRF ersetzt)', 'c~>d (wird von NRF neu berechnet)' ],
+ head:{
+   text:'Nachricht 0x81: DTU an WR: "Anfrage DC-Daten" (?)',
+   tick:0,
+   every:2
+ },
+ foot:{
+   text:'Nachricht 07',
+   tock:9
+ },
+}</script></div>
 <h3 id="nachricht-0x83-dtu-an-wr-anfrage-dc-daten">Nachricht 0x83: DTU
 an WR: &#x201C;Anfrage DC-Daten&#x201D; (?)</h3>
 <pre class="text language-text language-code" data-role="codeBlock" data-info="code"><code>Nachricht 0x83: DTU an WR: &quot;Anfrage DC-Daten&quot; (?)
