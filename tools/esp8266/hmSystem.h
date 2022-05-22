@@ -27,7 +27,7 @@ class HmSystem {
             Radio.setup(&BufCtrl);
         }
 
-        INVERTERTYPE *addInverter(const char *name, uint64_t serial) {
+        INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT("max number of inverters reached!");
                 return NULL;
@@ -35,6 +35,7 @@ class HmSystem {
             INVERTERTYPE *p = &mInverter[mNumInv];
             p->id         = mNumInv;
             p->serial.u64 = serial;
+            memcpy(p->chMaxPwr, chMaxPwr, (4*2));
             DPRINT("SERIAL: " + String(p->serial.b[5], HEX));
             DPRINTLN(" " + String(p->serial.b[4], HEX));
             if(p->serial.b[5] == 0x11) {

@@ -88,6 +88,11 @@ input.text, select {
     border: 1px solid #ccc;
 }
 
+input.sh {
+    max-width: 100px !important;
+    margin-right: 10px;
+}
+
 input.btn {
     background-color: #006ec0;
     color: #fff;

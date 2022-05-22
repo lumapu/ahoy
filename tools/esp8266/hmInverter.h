@@ -27,6 +27,15 @@ template<class T=float>
 static T calcUdcCh(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
+static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+static T calcIrradiation(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
 
 template<class T=float>
@@ -39,9 +48,12 @@ struct calcFunc_t {
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {
-    { CALC_YT_CH0, &calcYieldTotalCh0 },
-    { CALC_YD_CH0, &calcYieldDayCh0   },
-    { CALC_UDC_CH, &calcUdcCh         }
+    { CALC_YT_CH0,  &calcYieldTotalCh0 },
+    { CALC_YD_CH0,  &calcYieldDayCh0   },
+    { CALC_UDC_CH,  &calcUdcCh         },
+    { CALC_PDC_CH0, &calcPowerDcCh0    },
+    { CALC_EFF_CH0, &calcEffiencyCh0   },
+    { CALC_IRR_CH,  &calcIrradiation   }
 };
 
 
@@ -58,6 +70,7 @@ class Inverter {
         uint8_t       channels; // number of PV channels (1-4)
         uint32_t      ts;       // timestamp of last received payload
         RECORDTYPE    *record;  // pointer for values
+        uint16_t      chMaxPwr[4]; // maximum power of the modules (Wp)
 
         Inverter() {
             ts = 0;
@@ -122,6 +135,22 @@ class Inverter {
                     record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
                 }
             }
+        }
+
+        bool isAvailable(uint32_t timestamp) {
+            return ((timestamp - ts) < INACT_THRES_SEC);
+        }
+
+        bool isProducing(uint32_t timestamp) {
+            if(isAvailable(timestamp)) {
+                uint8_t pos = getPosByChFld(CH0, FLD_PAC);
+                return (getValue(pos) > INACT_PWR_THRESH);
+            }
+            return false;
+        }
+
+        uint32_t getLastTs(void) {
+            return ts;
         }
 
     private:
@@ -203,5 +232,44 @@ static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
     return 0.0;
 }
 
+template<class T=float>
+static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
+    if(NULL != iv) {
+        T dcPower = 0;
+        for(uint8_t i = 1; i <= iv->channels; i++) {
+            uint8_t pos = iv->getPosByChFld(i, FLD_PDC);
+            dcPower += iv->getValue(pos);
+        }
+        return dcPower;
+    }
+    return 0.0;
+}
+
+template<class T=float>
+static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
+    if(NULL != iv) {
+        uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC);
+        T acPower = iv->getValue(pos);
+        T dcPower = 0;
+        for(uint8_t i = 1; i <= iv->channels; i++) {
+            pos = iv->getPosByChFld(i, FLD_PDC);
+            dcPower += iv->getValue(pos);
+        }
+        if(dcPower > 0)
+            return acPower / dcPower * 100.0f;
+    }
+    return 0.0;
+}
+
+template<class T=float>
+static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
+    // arg0 = channel
+    if(NULL != iv) {
+        uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC);
+        if(iv->chMaxPwr[arg0-1] > 0)
+            return iv->getValue(pos) / iv->chMaxPwr[arg0-1] * 100.0f;
+    }
+    return 0.0;
+}
 
 #endif /*__HM_INVERTER_H__*/

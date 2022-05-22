@@ -86,6 +86,7 @@ class app : public Main {
 
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         uint32_t mRxFailed;
+        uint32_t mRxSuccess;
 
         // timer
         uint32_t mTicker;

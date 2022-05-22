@@ -38,8 +38,14 @@
 // maximum buffer length of packet received / sent to RF24 module
 #define MAX_RF_PAYLOAD_SIZE     32
 
-// maximum total payload size
+// maximum total payload buffers (must be greater than the number of received frame fragments)
 #define MAX_PAYLOAD_ENTRIES     4
+
+// number of seconds since last successful response, before inverter is marked inactive
+#define INACT_THRES_SEC         300
+
+// threshold of minimum power on which the inverter is marked as inactive
+#define INACT_PWR_THRESH        3
 
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
