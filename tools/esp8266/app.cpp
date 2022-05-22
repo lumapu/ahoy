@@ -14,6 +14,7 @@ app::app() : Main() {
     mSerialTicker   = 0xffff;
     mSerialInterval = 0;
     mMqttActive     = false;
+    mMqttNewDataAvail = false;
 
     mTicker = 0;
     mRxTicker = 0;
@@ -181,7 +182,7 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
-        if(mMqttActive) {
+        if(mMqttNewDataAvail) {
             if(++mMqttTicker >= mMqttInterval) {
                 mMqttTicker = 0;
                 mMqtt.isConnected(true);
@@ -190,17 +191,17 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
                         for(uint8_t i = 0; i < iv->listLen; i++) {
-                            if(0.0f != iv->getValue(i)) {
-                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                                snprintf(val, 10, "%.3f", iv->getValue(i));
-                                mMqtt.sendMsg(topic, val);
-                                yield();
-                            }
+                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                            snprintf(val, 10, "%.3f", iv->getValue(i));
+                            mMqtt.sendMsg(topic, val);
+                            yield();
+
                         }
                     }
                 }
                 snprintf(val, 10, "%d", ESP.getFreeHeap());
                 mMqtt.sendMsg("free_heap", val);
+                mMqttNewDataAvail = false;
             }
         }
 
@@ -342,6 +343,7 @@ void app::processPayload(bool retransmit) {
                         iv->addValue(i, payload);
                     }
                     iv->doCalculations();
+                    mMqttNewDataAvail = true;
                 }
             }
         }

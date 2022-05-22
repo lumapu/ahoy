@@ -102,6 +102,7 @@ class app : public Main {
         bool mMqttActive;
         uint16_t mSerialTicker;
         uint16_t mSerialInterval;
+        bool mMqttNewDataAvail;
 };
 
 #endif /*__APP_H__*/

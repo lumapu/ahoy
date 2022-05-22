@@ -54,7 +54,11 @@ For now the following inverters should work out of the box:
 
 ## USED LIBRARIES
 
-- `Time`
-- `RF24`
-- `PubSubClient`
+- `ESP8266WiFi` 1.0
+- `DNSServer` 1.1.0
+- `Ticker` 1.0
+- `ESP8266HTTPUpdateServer` 1.0
+- `Time` 1.6.1
+- `RF24` 1.4.2
+- `PubSubClient` 2.8
 
