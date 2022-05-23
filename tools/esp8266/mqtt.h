@@ -59,8 +59,8 @@ class mqtt {
         }
 
         void loop() {
-            if(!mClient->connected())
-                reconnect();
+            //if(!mClient->connected())
+            //    reconnect();
             mClient->loop();
         }
 
