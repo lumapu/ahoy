@@ -8,6 +8,7 @@ ahoy:
   nrf:
     - ce_pin: 22
       cs_pin: 0
+      txpower: 'low' # default txpower (low,max)
 
   mqtt:
     disabled: false
@@ -31,6 +32,7 @@ ahoy:
   inverters:
     - name: 'balkon'
       serial: 114172220003
+      txpower: 'low'                   # txpower per inverter (low,max)
       mqtt:
         send_raw_enabled: false        # allow inject debug data via mqtt
         topic: 'hoymiles/114172221234' # defaults to 'hoymiles/{serial}'

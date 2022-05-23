@@ -274,16 +274,27 @@ class HoymilesNRF:
     rx_channel_list = [3,23,40,61,75]
     rx_channel_ack = False
     rx_error = 0
+    txpower = 'max'
 
-    def __init__(self, device):
+    def __init__(self, **radio_config):
         """
         Claim radio device
 
         :param NRF24 device: instance of NRF24
         """
-        self.radio = device
+        radio = RF24(
+                radio_config.get('ce_pin', 22),
+                radio_config.get('cs_pin', 0),
+                radio_config.get('spispeed', 1000000))
 
-    def transmit(self, packet):
+        if not radio.begin():
+            raise RuntimeError('Can\'t open radio')
+
+        self.txpower = radio_config.get('txpower', 'max')
+
+        self.radio = radio
+
+    def transmit(self, packet, txpower=None):
         """
         Transmit Packet
 
@@ -292,12 +303,14 @@ class HoymilesNRF:
         :rtype: bool
         """
 
+        if not txpower:
+            txpower = self.txpower
+
         inv_esb_addr = b'\01' + packet[1:5]
         dtu_esb_addr = b'\01' + packet[5:9]
 
         self.radio.stopListening()  # put radio in TX mode
         self.radio.setDataRate(RF24_250KBPS)
-        #self.radio.setPALevel(RF24_PA_LOW)
         self.radio.openReadingPipe(1,dtu_esb_addr)
         self.radio.openWritingPipe(inv_esb_addr)
         self.radio.setChannel(self.tx_channel)
@@ -305,6 +318,11 @@ class HoymilesNRF:
         self.radio.setRetries(3, 15)
         self.radio.setCRCLength(RF24_CRC_16)
         self.radio.enableDynamicPayloads()
+
+        if txpower == 'low':
+            self.radio.setPALevel(RF24_PA_LOW)
+        else:
+            self.radio.setPALevel(RF24_PA_MAX)
 
         return self.radio.write(packet)
 
@@ -402,6 +420,9 @@ class HoymilesNRF:
         """
         return self.rx_channel_list[self.rx_channel_id]
 
+    def __del__(self):
+        self.radio.powerDown()
+
 def frame_payload(payload):
     """
     Prepare payload for transmission, append Modbus CRC16
@@ -490,6 +511,7 @@ class InverterTransaction:
     time_rx = None
 
     radio = None
+    txpower = None
 
     def __init__(self,
             request_time=None,
@@ -512,6 +534,9 @@ class InverterTransaction:
 
         if radio:
             self.radio = radio
+
+            if 'txpower' in params:
+                self.txpower = params['txpower']
 
         if not request_time:
             request_time=datetime.now()
@@ -555,7 +580,7 @@ class InverterTransaction:
             c_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             print(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
 
-        self.radio.transmit(packet)
+        self.radio.transmit(packet, txpower=self.txpower)
 
         wait = False
         try:
@@ -619,6 +644,8 @@ class InverterTransaction:
             self.time_rx = end_frame.time_rx
             tr_len = end_frame.seq - 0x80
         except StopIteration:
+            seq_last = max(frames, key=lambda frame:frame.seq).seq
+            self.__retransmit_frame(seq_last + 1)
             raise BufferError(f'Missing packet: Last packet {len(self.scratch)}')
 
         # Rebuild payload from unordered frames
