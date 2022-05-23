@@ -14,7 +14,6 @@ import argparse
 import yaml
 from yaml.loader import SafeLoader
 import paho.mqtt.client
-from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 import hoymiles
 
 def main_loop():
@@ -52,6 +51,7 @@ def poll_inverter(inverter, retries=4):
             payload_ttl = payload_ttl - 1
             com = hoymiles.InverterTransaction(
                     radio=hmradio,
+                    txpower=inverter.get('txpower', None),
                     dtu_ser=dtu_ser,
                     inverter_ser=inverter_ser,
                     request=next(hoymiles.compose_esb_packet(
@@ -207,11 +207,7 @@ if __name__ == '__main__':
     # Prepare for multiple transceivers, makes them configurable (currently
     # only one supported)
     for radio_config in ahoy_config.get('nrf', [{}]):
-        radio = RF24(
-                radio_config.get('ce_pin', 22),
-                radio_config.get('cs_pin', 0),
-                radio_config.get('spispeed', 1000000))
-        hmradio = hoymiles.HoymilesNRF(device=radio)
+        hmradio = hoymiles.HoymilesNRF(**radio_config)
 
     mqtt_client = None
 
@@ -242,9 +238,6 @@ if __name__ == '__main__':
                 bucket=influx_config.get('bucket', None),
                 measurement=influx_config.get('measurement', 'hoymiles'))
 
-    if not radio.begin():
-        raise RuntimeError('Can\'t open radio')
-
     g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
     for g_inverter in ahoy_config.get('inverters', []):
         g_inverter_ser = g_inverter.get('serial')
@@ -274,5 +267,4 @@ if __name__ == '__main__':
                 time.sleep(time.time() % loop_interval)
 
     except KeyboardInterrupt:
-        radio.powerDown()
         sys.exit()
