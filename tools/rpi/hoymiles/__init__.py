@@ -323,7 +323,7 @@ class HoymilesNRF:
             self.radio.setPALevel(RF24_PA_MIN)
         elif txpower == 'low':
             self.radio.setPALevel(RF24_PA_LOW)
-        if txpower == 'high':
+        elif txpower == 'high':
             self.radio.setPALevel(RF24_PA_HIGH)
         else:
             self.radio.setPALevel(RF24_PA_MAX)
