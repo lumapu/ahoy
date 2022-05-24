@@ -45,6 +45,7 @@ class StatusResponse(Response):
     e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor']
     temperature = None
     frequency = None
+    powerfactor = None
 
     def unpack(self, fmt, base):
         """
@@ -118,6 +119,7 @@ class StatusResponse(Response):
         data['strings'] = self.strings
         data['temperature'] = self.temperature
         data['frequency'] = self.frequency
+        data['powerfactor'] = self.powerfactor
         data['time'] = self.time_rx
         return data
 
@@ -534,6 +536,10 @@ class Hm600Decode0B(StatusResponse):
         """ Grid frequency in Hertz """
         return self.unpack('>H', 28)[0]/100
     @property
+    def powerfactor(self):
+        """ Powerfactor """
+        return self.unpack('>H', 36)[0]/1000
+    @property
     def temperature(self):
         """ Inverter temperature in °C """
         return self.unpack('>H', 38)[0]/10
@@ -653,6 +659,10 @@ class Hm1200Decode0B(StatusResponse):
     def frequency(self):
         """ Grid frequency in Hertz """
         return self.unpack('>H', 48)[0]/100
+    @property
+    def powerfactor(self):
+        """ Powerfactor """
+        return self.unpack('>H', 56)[0]/1000
     @property
     def temperature(self):
         """ Inverter temperature in °C """

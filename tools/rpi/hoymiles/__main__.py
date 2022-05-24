@@ -81,7 +81,9 @@ def poll_inverter(inverter, retries=4):
             if isinstance(result, hoymiles.decoders.StatusResponse):
                 data = result.__dict__()
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'{c_datetime} Decoded: {data["temperature"]}', end='')
+                    print(f'{c_datetime} Decoded: temp={data["temperature"]}', end='')
+                    if data['powerfactor'] is not None:
+                        print(f', pf={data["powerfactor"]}', end='')
                     phase_id = 0
                     for phase in data['phases']:
                         print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
@@ -129,6 +131,8 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
         broker.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
         string_id = string_id + 1
     # Global
+    if data['powerfactor'] is not None:
+        broker.publish(f'{topic}/pf', data['powerfactor'])
     broker.publish(f'{topic}/frequency', data['frequency'])
     broker.publish(f'{topic}/temperature', data['temperature'])
 
