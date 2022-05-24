@@ -675,6 +675,10 @@ class InverterTransaction:
         :return: if successful scheduled
         :rtype: bool
         """
+
+        if not self.radio:
+            return
+
         packet = compose_esb_fragment(b'',
                 seq=int(0x80 + frame_id).to_bytes(1, 'big'),
                 src=self.dtu_ser,
