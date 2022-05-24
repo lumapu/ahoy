@@ -29,7 +29,7 @@ class HmSystem {
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
             if(MAX_INVERTER <= mNumInv) {
-                DPRINT("max number of inverters reached!");
+                DPRINT(F("max number of inverters reached!"));
                 return NULL;
             }
             INVERTERTYPE *p = &mInverter[mNumInv];
@@ -43,18 +43,18 @@ class HmSystem {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x41: p->type = INV_TYPE_2CH; break;
                     case 0x61: p->type = INV_TYPE_4CH; break;
-                    default: DPRINTLN("unknown inverter type: 11" + String(p->serial.b[4], HEX)); break;
+                    default: DPRINTLN(F("unknown inverter type: 11") + String(p->serial.b[4], HEX)); break;
                 }
             }
             else
-                DPRINTLN("inverter type can't be detected!");
+                DPRINTLN(F("inverter type can't be detected!"));
 
             p->init();
             uint8_t len   = (uint8_t)strlen(name);
             strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
 
             if(NULL == p->assign) {
-                DPRINT("no assignment for type found!");
+                DPRINT(F("no assignment for type found!"));
                 return NULL;
             }
             else {

@@ -61,7 +61,7 @@ class Main {
                 end = addr + 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))
                     end = (ADDR_SETTINGS_CRC + 2);
-                DPRINTLN("erase: 0x" + String(addr, HEX) + " - 0x" + String(end, HEX));
+                DPRINTLN(F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
                 mEep->write(addr, buf, (end-addr));
                 addr = end;
             } while(addr < (ADDR_SETTINGS_CRC + 2));

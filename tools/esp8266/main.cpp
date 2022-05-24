@@ -73,7 +73,7 @@ void Main::loop(void) {
             mApActive = setupStation(mLimit);
             if(mApActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
-                    DPRINTLN("ERROR: password must be at least 8 characters long");
+                    DPRINTLN(F("ERROR: password must be at least 8 characters long"));
                 setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
             }
         }
@@ -81,11 +81,11 @@ void Main::loop(void) {
             if(millis() - mApLastTick > 10000) {
                 uint8_t cnt = WiFi.softAPgetStationNum();
                 if(cnt > 0) {
-                    DPRINTLN(String(cnt) + " clients connected, resetting AP timeout");
+                    DPRINTLN(String(cnt) + F(" clients connected, resetting AP timeout"));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
                 mApLastTick = millis();
-                DPRINTLN("AP will be closed in " + String((mNextTryTs - mApLastTick) / 1000) + " seconds");
+                DPRINTLN(F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
             }
         }
 #endif
@@ -99,7 +99,7 @@ void Main::loop(void) {
         else {
             if(!mApActive) {
                 mTimestamp  = getNtpTime();
-                DPRINTLN("[NTP]: " + getDateTimeStr(getNtpTime()));
+                DPRINTLN("[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
     }
@@ -131,6 +131,15 @@ bool Main::getConfig(void) {
         snprintf(mDeviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
     }
 
+    if(!mSettingsValid) {
+        DPRINTLN(F("Settings not valid, erasing ..."));
+        eraseSettings();
+        delay(100);
+        DPRINTLN(F("... restarting ..."));
+        delay(100);
+        ESP.restart();
+    }
+
     return mApActive;
 }
 
@@ -139,11 +148,11 @@ bool Main::getConfig(void) {
 void Main::setupAp(const char *ssid, const char *pwd) {
     IPAddress apIp(192, 168, 1, 1);
 
-    DPRINTLN("\n---------\nAP MODE\nSSDI: "
-        + String(ssid) + "\nPWD: "
-        + String(pwd) + "\nActive for: "
-        + String(WIFI_AP_ACTIVE_TIME) + " seconds"
-        + "\n---------\n");
+    DPRINTLN(F("\n---------\nAP MODE\nSSDI: ")
+        + String(ssid) + F("\nPWD: ")
+        + String(pwd) + F("\nActive for: ")
+        + String(WIFI_AP_ACTIVE_TIME) + F(" seconds")
+        + F("\n---------\n"));
     DPRINTLN("DBG: " + String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
@@ -179,7 +188,7 @@ bool Main::setupStation(uint32_t timeout) {
         WiFi.hostname(mDeviceName);
 
     delay(2000);
-    DPRINTLN("connect to network '" + String(mStationSsid) + "' ...");
+    DPRINTLN(F("connect to network '") + String(mStationSsid) + F("' ..."));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -213,17 +222,17 @@ bool Main::setupStation(uint32_t timeout) {
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
     String html = FPSTR(setup_html);
-    html.replace("{SSID}", mStationSsid);
+    html.replace(F("{SSID}"), mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the default "{PWD}"
-    html.replace("{DEVICE}", String(mDeviceName));
-    html.replace("{VERSION}", String(mVersion));
+    html.replace(F("{DEVICE}"), String(mDeviceName));
+    html.replace(F("{VERSION}"), String(mVersion));
     if(mApActive)
-        html.replace("{IP}", String("http://192.168.1.1"));
+        html.replace("{IP}", String(F("http://192.168.1.1")));
     else
-        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
+        html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
 
-    mWeb->send(200, "text/html", html);
+    mWeb->send(200, F("text/html"), html);
 }
 
 
@@ -264,8 +273,8 @@ void Main::saveValues(bool webSend = true) {
             if(mWeb->arg("reboot") == "on")
                 showReboot();
             else // TODO: add device name as redirect in AP-mode
-                mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
-                             "<p>saved</p></body></html>");
+                mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
+                             "<p>saved</p></body></html>"));
         }
     }
 }
@@ -303,12 +312,11 @@ void Main::showTime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showNotFound(void) {
-    String msg = "File Not Found\n\n";
-    msg += "URI: ";
+    String msg = F("File Not Found\n\nURI: ");
     msg += mWeb->uri();
-    msg += "\nMethod: ";
+    msg += F("\nMethod: ");
     msg += ( mWeb->method() == HTTP_GET ) ? "GET" : "POST";
-    msg += "\nArguments: ";
+    msg += F("\nArguments: ");
     msg += mWeb->args();
     msg += "\n";
 
@@ -316,13 +324,13 @@ void Main::showNotFound(void) {
         msg += " " + mWeb->argName(i) + ": " + mWeb->arg(i) + "\n";
     }
 
-    mWeb->send(404, "text/plain", msg);
+    mWeb->send(404, F("text/plain"), msg);
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::showReboot(void) {
-    mWeb->send(200, "text/html", "<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>");
+    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
     delay(1000);
     ESP.restart();
 }
@@ -336,20 +344,20 @@ void Main::showFactoryRst(void) {
     if(mWeb->args() > 0) {
         if(mWeb->arg("reset").toInt() == 1) {
             eraseSettings(true);
-            content = "factory reset: success\n\nrebooting ... ";
+            content = F("factory reset: success\n\nrebooting ... ");
             refresh = 10;
         }
         else {
-            content = "factory reset: aborted";
+            content = F("factory reset: aborted");
             refresh = 3;
         }
     }
     else {
-        content = "<h1>Factory Reset</h1>";
-        content += "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>";
+        content = F("<h1>Factory Reset</h1>"
+            "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
         refresh = 120;
     }
-    mWeb->send(200, "text/html", "<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"" + String(refresh) + "; URL=/\"></head><body>" + content + "</body></html>");
+    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
     if(refresh == 10) {
         delay(1000);
         ESP.restart();

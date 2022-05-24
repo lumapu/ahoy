@@ -62,7 +62,7 @@ void app::setup(uint32_t timeout) {
             mEep->read(ADDR_INV_MOD_PWR + (i * 2 * 4),        modPwr, 4);
             if(0ULL != invSerial) {
                 mSys->addInverter(invName, invSerial, modPwr);
-                DPRINTLN("add inverter: " + String(invName) + ", SN: " + String(invSerial, HEX));
+                DPRINTLN(F("add inverter: ") + String(invName) + ", SN: " + String(invSerial, HEX));
             }
         }
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
@@ -122,14 +122,14 @@ void app::setup(uint32_t timeout) {
     mSys->setup();
 
     if(!mWifiSettingsValid)
-        DPRINTLN("Warn: your settings are not valid! check [IP]/setup");
+        DPRINTLN(F("Warn: your settings are not valid! check [IP]/setup"));
     else {
-        DPRINTLN("\n\n----------------------------------------");
-        DPRINTLN("Welcome to AHOY!");
-        DPRINT("\npoint your browser to http://");
+        DPRINTLN(F("\n\n----------------------------------------"));
+        DPRINTLN(F("Welcome to AHOY!"));
+        DPRINT(F("\npoint your browser to http://"));
         DPRINTLN(WiFi.localIP());
-        DPRINTLN("to configure your device");
-        DPRINTLN("----------------------------------------\n");
+        DPRINTLN(F("to configure your device"));
+        DPRINTLN(F("----------------------------------------\n"));
     }
 }
 
@@ -229,11 +229,11 @@ void app::loop(void) {
             mSendTicker = 0;
 
             if(mSerialDebug)
-                DPRINTLN("Free heap: 0x" + String(ESP.getFreeHeap(), HEX));
+                DPRINTLN(F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
             if(!mSys->BufCtrl.empty()) {
                 if(mSerialDebug)
-                    DPRINTLN("recbuf not empty! #" + String(mSys->BufCtrl.getFill()));
+                    DPRINTLN(F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
             }
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
@@ -248,8 +248,8 @@ void app::loop(void) {
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
                         if(mSerialDebug) {
-                            DPRINT("Inverter #" + String(iv->id) + " ");
-                            DPRINTLN("no Payload received!");
+                            DPRINT(F("Inverter #") + String(iv->id) + " ");
+                            DPRINTLN(F("no Payload received!"));
                         }
                     }
 
@@ -258,7 +258,7 @@ void app::loop(void) {
 
                     yield();
                     if(mSerialDebug)
-                        DPRINTLN("Requesting Inverter SN " + String(iv->serial.u64, HEX));
+                        DPRINTLN(F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
@@ -310,14 +310,14 @@ void app::processPayload(bool retransmit) {
                             for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                 if(mPayload[iv->id].len[i] == 0) {
                                     if(mSerialDebug)
-                                        DPRINTLN("Error while retrieving data: Frame " + String(i+1) + " missing: Request Retransmit");
+                                        DPRINTLN(F("Error while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
                                     mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
                                 }
                             }
                         }
                         else {
                             if(mSerialDebug)
-                                DPRINTLN("Error while retrieving data: last frame missing: Request Retransmit");
+                                DPRINTLN(F("Error while retrieving data: last frame missing: Request Retransmit"));
                             mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                         }
                         mSys->Radio.switchRxCh(100);
@@ -334,7 +334,7 @@ void app::processPayload(bool retransmit) {
                     }
                     offs-=2;
                     if(mSerialDebug) {
-                        DPRINT("Payload (" + String(offs) + "): ");
+                        DPRINT(F("Payload (") + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
@@ -354,8 +354,8 @@ void app::processPayload(bool retransmit) {
 //-----------------------------------------------------------------------------
 void app::showIndex(void) {
     String html = FPSTR(index_html);
-    html.replace("{DEVICE}", mDeviceName);
-    html.replace("{VERSION}", mVersion);
+    html.replace(F("{DEVICE}"), mDeviceName);
+    html.replace(F("{VERSION}"), mVersion);
     mWeb->send(200, "text/html", html);
 }
 
@@ -367,16 +367,16 @@ void app::showSetup(void) {
     uint16_t interval;
 
     String html = FPSTR(setup_html);
-    html.replace("{SSID}", mStationSsid);
+    html.replace(F("{SSID}"), mStationSsid);
     // PWD will be left at the default value (for protection)
     // -> the PWD will only be changed if it does not match the placeholder "{PWD}"
 
-    html.replace("{DEVICE}", String(mDeviceName));
-    html.replace("{VERSION}", String(mVersion));
+    html.replace(F("{DEVICE}"), String(mDeviceName));
+    html.replace(F("{VERSION}"), String(mVersion));
     if(mApActive)
-        html.replace("{IP}", String("http://192.168.1.1"));
+        html.replace(F("{IP}"), String(F("http://192.168.1.1")));
     else
-        html.replace("{IP}", ("http://" + String(WiFi.localIP().toString())));
+        html.replace(F("{IP}"), ("http://" + String(WiFi.localIP().toString())));
 
     String inv;
     uint64_t invSerial;
@@ -387,70 +387,70 @@ void app::showSetup(void) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), invName, MAX_NAME_LENGTH);
         mEep->read(ADDR_INV_MOD_PWR + (i * 2 * 4), modPwr, 4);
-        inv += "<p class=\"subdes\">Inverter "+ String(i) + "</p>";
+        inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
 
-        inv += "<label for=\"inv" + String(i) + "Addr\">Address</label>";
-        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Addr\" value=\"";
+        inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
+        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
         if(0ULL != invSerial)
             inv += String(invSerial, HEX);
-        inv += "\"/ maxlength=\"12\">";
+        inv += F("\"/ maxlength=\"12\">");
 
-        inv += "<label for=\"inv" + String(i) + "Name\">Name</label>";
-        inv += "<input type=\"text\" class=\"text\" name=\"inv" + String(i) + "Name\" value=\"";
+        inv += F("<label for=\"inv") + String(i) + F("Name\">Name</label>");
+        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
         inv += String(invName);
-        inv += "\"/ maxlength=\"" + String(MAX_NAME_LENGTH) + "\">";
+        inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
 
-        inv += "<label for=\"inv" + String(i) + "ModPwr0\">Max Module Power (Wp)</label>";
+        inv += F("<label for=\"inv") + String(i) + F("ModPwr0\">Max Module Power (Wp)</label>");
         for(uint8_t j = 0; j < 4; j++) {
-            inv += "<input type=\"text\" class=\"text sh\" name=\"inv" + String(i) + "ModPwr" + String(j) + "\" value=\"";
+            inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
             inv += String(modPwr[j]);
-            inv += "\"/ maxlength=\"4\">";
+            inv += F("\"/ maxlength=\"4\">");
         }
     }
-    html.replace("{INVERTERS}", String(inv));
+    html.replace(F("{INVERTERS}"), String(inv));
 
 
     // pinout
     String pinout;
     for(uint8_t i = 0; i < 3; i++) {
-        pinout += "<label for=\"" + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + "</label>";
-        pinout += "<select name=\"" + String(pinArgNames[i]) + "\">";
+        pinout += F("<label for=\"") + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + F("</label>");
+        pinout += F("<select name=\"") + String(pinArgNames[i]) + "\">";
         for(uint8_t j = 0; j <= 16; j++) {
-            pinout += "<option value=\"" + String(j) + "\"";
+            pinout += F("<option value=\"") + String(j) + "\"";
             switch(i) {
-                default: if(j == mSys->Radio.pinCs)  pinout += " selected"; break;
-                case 1:  if(j == mSys->Radio.pinCe)  pinout += " selected"; break;
-                case 2:  if(j == mSys->Radio.pinIrq) pinout += " selected"; break;
+                default: if(j == mSys->Radio.pinCs)  pinout += F(" selected"); break;
+                case 1:  if(j == mSys->Radio.pinCe)  pinout += F(" selected"); break;
+                case 2:  if(j == mSys->Radio.pinIrq) pinout += F(" selected"); break;
             }
-            pinout += ">" + String(wemosPins[j]) + "</option>";
+            pinout += ">" + String(wemosPins[j]) + F("</option>");
         }
-        pinout += "</select>";
+        pinout += F("</select>");
     }
-    html.replace("{PINOUT}", String(pinout));
+    html.replace(F("{PINOUT}"), String(pinout));
 
 
     // nrf24l01+
     String rf24;
     for(uint8_t i = 0; i <= 3; i++) {
-        rf24 += "<option value=\"" + String(i) + "\"";
+        rf24 += F("<option value=\"") + String(i) + "\"";
         if(i == mSys->Radio.AmplifierPower)
-            rf24 += " selected";
-        rf24 += ">" + String(rf24AmpPower[i]) + "</option>";
+            rf24 += F(" selected");
+        rf24 += ">" + String(rf24AmpPower[i]) + F("</option>");
     }
-    html.replace("{RF24}", String(rf24));
+    html.replace(F("{RF24}"), String(rf24));
 
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &interval);
-        html.replace("{INV_INTVL}", String(interval));
+        html.replace(F("{INV_INTVL}"), String(interval));
 
         uint8_t tmp;
         mEep->read(ADDR_SER_INTERVAL, &interval);
         mEep->read(ADDR_SER_ENABLE, &tmp);
-        html.replace("{SER_INTVL}", String(interval));
-        html.replace("{SER_VAL_CB}", (tmp == 0x01) ? "checked" : "");
+        html.replace(F("{SER_INTVL}"), String(interval));
+        html.replace(F("{SER_VAL_CB}"), (tmp == 0x01) ? "checked" : "");
         mEep->read(ADDR_SER_DEBUG, &tmp);
-        html.replace("{SER_DBG_CB}", (tmp == 0x01) ? "checked" : "");
+        html.replace(F("{SER_DBG_CB}"), (tmp == 0x01) ? "checked" : "");
 
         uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
@@ -460,31 +460,31 @@ void app::showSetup(void) {
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-        html.replace("{MQTT_ADDR}",  String(addr));
-        html.replace("{MQTT_PORT}",  String(mqttPort));
-        html.replace("{MQTT_USER}",  String(mMqtt.getUser()));
-        html.replace("{MQTT_PWD}",   String(mMqtt.getPwd()));
-        html.replace("{MQTT_TOPIC}", String(mMqtt.getTopic()));
-        html.replace("{MQTT_INTVL}", String(interval));
+        html.replace(F("{MQTT_ADDR}"),  String(addr));
+        html.replace(F("{MQTT_PORT}"),  String(mqttPort));
+        html.replace(F("{MQTT_USER}"),  String(mMqtt.getUser()));
+        html.replace(F("{MQTT_PWD}"),   String(mMqtt.getPwd()));
+        html.replace(F("{MQTT_TOPIC}"), String(mMqtt.getTopic()));
+        html.replace(F("{MQTT_INTVL}"), String(interval));
     }
     else {
-        html.replace("{INV_INTVL}", "5");
+        html.replace(F("{INV_INTVL}"), "5");
 
-        html.replace("{SER_VAL_CB}", "checked");
-        html.replace("{SER_DBG_CB}", "");
-        html.replace("{SER_INTVL}", "10");
+        html.replace(F("{SER_VAL_CB}"), "checked");
+        html.replace(F("{SER_DBG_CB}"), "");
+        html.replace(F("{SER_INTVL}"), "10");
 
-        html.replace("{MQTT_ADDR}", "");
-        html.replace("{MQTT_PORT}", "1883");
-        html.replace("{MQTT_USER}", "");
-        html.replace("{MQTT_PWD}", "");
-        html.replace("{MQTT_TOPIC}", "inverter");
-        html.replace("{MQTT_INTVL}", "10");
+        html.replace(F("{MQTT_ADDR}"), "");
+        html.replace(F("{MQTT_PORT}"), "1883");
+        html.replace(F("{MQTT_USER}"), "");
+        html.replace(F("{MQTT_PWD}"), "");
+        html.replace(F("{MQTT_TOPIC}"), "inverter");
+        html.replace(F("{MQTT_INTVL}"), "10");
 
-        html.replace("{SER_INTVL}", "10");
+        html.replace(F("{SER_INTVL}"), "10");
     }
 
-    mWeb->send(200, "text/html", html);
+    mWeb->send(200, F("text/html"), html);
 }
 
 
@@ -503,58 +503,60 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    String content = "Receive success: " + String(mRxSuccess) + "\n";
-    content += "Receive fail: " + String(mRxFailed) + "\n";
-    content += "Send Cnt: " + String(mSys->Radio.mSendCnt) + String("\n\n");
+    String content = F("Receive success: ") + String(mRxSuccess) + "\n";
+    content += F("Receive fail: ") + String(mRxFailed) + "\n";
+    content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
 
-    content += "Free Heap: 0x" + String(ESP.getFreeHeap(), HEX) + "\n\n";
+    content += F("Free Heap: 0x") + String(ESP.getFreeHeap(), HEX) + "\n\n";
 
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         iv = mSys->getInverterByPos(i);
         if(NULL != iv) {
             bool avail = true;
-            content += "Inverter '"+ String(iv->name) + "' is ";
+            content += F("Inverter '") + String(iv->name) + F("' is ");
             if(!iv->isAvailable(mTimestamp)) {
-                content += "not ";
+                content += F("not ");
                 avail = false;
             }
-            content += "available and is ";
+            content += F("available and is ");
             if(!iv->isProducing(mTimestamp))
-                content += "not ";
-            content += "producing\n";
+                content += F("not ");
+            content += F("producing\n");
 
-            if(!avail)
-                content += "-> last successful transmission: " + getDateTimeStr(iv->getLastTs());
+            if(!avail) {
+                if(iv->getLastTs() > 0)
+                    content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
+            }
         }
     }
 
     if(!mSys->Radio.isChipConnected())
-        content += "WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n";
+        content += F("WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n");
 
     if(mShowRebootRequest)
-        content += "INFO: reboot your ESP to apply all your configuration changes!\n";
+        content += F("INFO: reboot your ESP to apply all your configuration changes!\n");
 
     if(!mSettingsValid)
-        content += "INFO: your settings are invalid, please switch to <a href=\"/setup\">setup</a> to correct this.\n";
+        content += F("INFO: your settings are invalid, please switch to <a href=\"/setup\">setup</a> to correct this.\n");
 
-    content += "MQTT: ";
+    content += F("MQTT: ");
     if(!mMqtt.isConnected())
-        content += "not ";
-    content += "connected\n";
+        content += F("not ");
+    content += F("connected\n");
 
-    mWeb->send(200, "text/plain", content);
+    mWeb->send(200, F("text/plain"), content);
 }
 
 
 //-----------------------------------------------------------------------------
 void app::showHoymiles(void) {
     String html = FPSTR(hoymiles_html);
-    html.replace("{DEVICE}", mDeviceName);
-    html.replace("{VERSION}", mVersion);
-    html.replace("{TS}", String(mSendInterval) + " ");
-    html.replace("{JS_TS}", String(mSendInterval * 1000));
-    mWeb->send(200, "text/html", html);
+    html.replace(F("{DEVICE}"), mDeviceName);
+    html.replace(F("{VERSION}"), mVersion);
+    html.replace(F("{TS}"), String(mSendInterval) + " ");
+    html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
+    mWeb->send(200, F("text/html"), html);
 }
 
 
@@ -573,24 +575,24 @@ void app::showLiveData(void) {
                 case INV_TYPE_4CH: modNum = 4; break;
             }
 
-            modHtml += "<div class=\"iv\">";
-            modHtml += "<div class=\"ch-iv\"><span class=\"head\">" + String(iv->name) + "</span>";
+            modHtml += F("<div class=\"iv\">"
+                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F("</span>");
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
 
             for(uint8_t fld = 0; fld < 10; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
                 if(0xff != pos) {
-                    modHtml += "<div class=\"subgrp\">";
-                    modHtml += "<span class=\"value\">" + String(iv->getValue(pos));
-                    modHtml += "<span class=\"unit\">" + String(iv->getUnit(pos)) + "</span></span>";
-                    modHtml += "<span class=\"info\">" + String(iv->getFieldName(pos)) + "</span>";
-                    modHtml += "</div>";
+                    modHtml += F("<div class=\"subgrp\">");
+                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
+                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
+                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
+                    modHtml += F("</div>");
                 }
             }
             modHtml += "</div>";
 
             for(uint8_t ch = 1; ch <= modNum; ch ++) {
-                modHtml += "<div class=\"ch\"><span class=\"head\">CHANNEL " + String(ch) + "</span>";
+                modHtml += F("<div class=\"ch\"><span class=\"head\">CHANNEL ") + String(ch) + F("</span>");
                 for(uint8_t j = 0; j < 6; j++) {
                     switch(j) {
                         default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
@@ -601,31 +603,31 @@ void app::showLiveData(void) {
                         case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR));  break;
                     }
                     if(0xff != pos) {
-                        modHtml += "<span class=\"value\">" + String(iv->getValue(pos));
-                        modHtml += "<span class=\"unit\">" + String(iv->getUnit(pos)) + "</span></span>";
-                        modHtml += "<span class=\"info\">" + String(iv->getFieldName(pos)) + "</span>";
+                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
+                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
+                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
                     }
                 }
                 modHtml += "</div>";
             }
-            modHtml += "<div class=\"ts\">Last received data requested at: " + getDateTimeStr(iv->ts) + "</div>";
-            modHtml += "</div>";
+            modHtml += F("<div class=\"ts\">Last received data requested at: ") + getDateTimeStr(iv->ts) + F("</div>");
+            modHtml += F("</div>");
 #else
             // dump all data to web frontend
-            modHtml = "<pre>";
+            modHtml = F("<pre>");
             char topic[30], val[10];
             for(uint8_t i = 0; i < iv->listLen; i++) {
                 snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
                 snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
                 modHtml += String(topic) + ": " + String(val) + "\n";
             }
-            modHtml += "</pre>";
+            modHtml += F("</pre>");
 #endif
         }
     }
 
 
-    mWeb->send(200, "text/html", modHtml);
+    mWeb->send(200, F("text/html"), modHtml);
 }
 
 
@@ -718,13 +720,13 @@ void app::saveValues(bool webSend = true) {
             showReboot();
         else {
             mShowRebootRequest = true;
-            mWeb->send(200, "text/html", "<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
-                "<p>saved</p></body></html>");
+            mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
+                "<p>saved</p></body></html>"));
         }
     }
     else {
-        mWeb->send(200, "text/html", "<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
-            "<p>Error while saving</p></body></html>");
+        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
+            "<p>Error while saving</p></body></html>"));
     }
 }
 

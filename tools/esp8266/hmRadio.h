@@ -88,17 +88,17 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            DPRINTLN("RF24 Amp Pwr: RF24_PA_" + String(rf24AmpPower[AmplifierPower]));
+            DPRINTLN(F("RF24 Amp Pwr: RF24_PA_") + String(rf24AmpPower[AmplifierPower]));
             mNrf24.setPALevel(AmplifierPower & 0x03);
             mNrf24.startListening();
 
-            DPRINTLN("Radio Config:");
+            DPRINTLN(F("Radio Config:"));
             mNrf24.printPrettyDetails();
 
             mTxCh = getDefaultChannel();
 
             if(!mNrf24.isChipConnected()) {
-                DPRINTLN("WARNING! your NRF24 module can't be reached, check the wiring");
+                DPRINTLN(F("WARNING! your NRF24 module can't be reached, check the wiring"));
             }
         }
 
@@ -179,18 +179,6 @@ class HmRadio {
             uint8_t crc = crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
-            //if(valid) {
-                //mRxStat[(buf[9] & 0x7F)-1]++;
-                //mRxChStat[(buf[9] & 0x7F)-1][rxCh & 0x7]++;
-            //}
-            /*else {
-                DPRINT("CRC wrong: ");
-                DHEX(crc);
-                DPRINT(" != ");
-                DHEX(buf[*len-1]);
-                DPRINTLN("");
-            }*/
-
             return valid;
         }
 
@@ -243,22 +231,6 @@ class HmRadio {
             mNrf24.stopListening();
 
             if(clear) {
-                /*uint8_t cnt = 4;
-                for(uint8_t i = 0; i < 4; i ++) {
-                    DPRINT(String(mRxStat[i]) + " (");
-                    for(uint8_t j = 0; j < 4; j++) {
-                        DPRINT(String(mRxChStat[i][j]));
-                    }
-                    DPRINT(") ");
-                    if(0 != mRxStat[i])
-                        cnt--;
-                }
-                if(cnt == 0)
-                    DPRINTLN(" -> all");
-                else
-                    DPRINTLN(" -> missing: " + String(cnt));
-                memset(mRxStat, 0, 4);
-                memset(mRxChStat, 0, 4*8);*/
                 mRxLoopCnt = RX_LOOP_CNT;
             }
 
@@ -301,8 +273,6 @@ class HmRadio {
 
         uint8_t mRxChLst[4];
         uint8_t mRxChIdx;
-        //uint8_t mRxStat[4];
-        //uint8_t mRxChStat[4][8];
         uint16_t mRxLoopCnt;
 
         RF24 mNrf24;
