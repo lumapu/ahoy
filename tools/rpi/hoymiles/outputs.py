@@ -114,6 +114,8 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},string={string_id},type=current value={string["current"]:3f} {ctime}')
             string_id = string_id + 1
         # Global
+        if data['powerfactor'] is not None:
+            data_stack.append(f'{measurement},type=pf value={data["powerfactor"]:f} {ctime}')
         data_stack.append(f'{measurement},type=frequency value={data["frequency"]:.3f} {ctime}')
         data_stack.append(f'{measurement},type=temperature value={data["temperature"]:.2f} {ctime}')
 
@@ -193,5 +195,7 @@ class MqttOutputPlugin(OutputPluginFactory):
             self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
             string_id = string_id + 1
         # Global
+        if data['powerfactor'] is not None:
+            self.client.publish(f'{topic}/pf', data['powerfactor'])
         self.client.publish(f'{topic}/frequency', data['frequency'])
         self.client.publish(f'{topic}/temperature', data['temperature'])
