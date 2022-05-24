@@ -11,7 +11,7 @@ import re
 from datetime import datetime
 import json
 import crcmod
-from RF24 import RF24, RF24_PA_LOW, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 from .decoders import *
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
@@ -319,8 +319,12 @@ class HoymilesNRF:
         self.radio.setCRCLength(RF24_CRC_16)
         self.radio.enableDynamicPayloads()
 
-        if txpower == 'low':
+        if txpower == 'min':
+            self.radio.setPALevel(RF24_PA_MIN)
+        elif txpower == 'low':
             self.radio.setPALevel(RF24_PA_LOW)
+        if txpower == 'high':
+            self.radio.setPALevel(RF24_PA_HIGH)
         else:
             self.radio.setPALevel(RF24_PA_MAX)
 
