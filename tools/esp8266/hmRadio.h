@@ -123,6 +123,7 @@ class HmRadio {
                     bool tx_ok, tx_fail, rx_ready;
                     mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
                     mNrf24.flush_rx(); // drop the packet
+                    break;
                 }
             }
             RESTORE_IRQ;

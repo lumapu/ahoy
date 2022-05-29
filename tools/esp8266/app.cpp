@@ -14,7 +14,6 @@ app::app() : Main() {
     mSerialTicker   = 0xffff;
     mSerialInterval = 0;
     mMqttActive     = false;
-    mMqttNewDataAvail = false;
 
     mTicker = 0;
     mRxTicker = 0;
@@ -25,8 +24,9 @@ app::app() : Main() {
     mSerialDebug  = false;
 
     memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
-    mRxFailed = 0;
-    mRxSuccess = 0;
+    mRxFailed     = 0;
+    mRxSuccess    = 0;
+    mLastPacketId = 0x00;
 
     mSys = new HmSystemType();
 }
@@ -162,8 +162,11 @@ void app::loop(void) {
                         }
 
                         if((*pid & 0x80) == 0x80) {
-                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId)
+                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
                                 mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                if(*pid > 0x81)
+                                    mLastPacketId = *pid;
+                            }
                         }
                     }
                 }
@@ -182,14 +185,14 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
-        if(mMqttNewDataAvail) {
-            if(++mMqttTicker >= mMqttInterval) {
-                mMqttTicker = 0;
-                mMqtt.isConnected(true);
-                char topic[30], val[10];
-                for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                    Inverter<> *iv = mSys->getInverterByPos(id);
-                    if(NULL != iv) {
+        if(++mMqttTicker >= mMqttInterval) {
+            mMqttTicker = 0;
+            mMqtt.isConnected(true);
+            char topic[30], val[10];
+            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if(NULL != iv) {
+                    if(iv->isAvailable(mTimestamp)) {
                         for(uint8_t i = 0; i < iv->listLen; i++) {
                             snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
                             snprintf(val, 10, "%.3f", iv->getValue(i));
@@ -199,10 +202,9 @@ void app::loop(void) {
                         }
                     }
                 }
-                snprintf(val, 10, "%d", ESP.getFreeHeap());
-                mMqtt.sendMsg("free_heap", val);
-                mMqttNewDataAvail = false;
             }
+            snprintf(val, 10, "%d", ESP.getFreeHeap());
+            mMqtt.sendMsg("free_heap", val);
         }
 
         if(mSerialValues) {
@@ -212,13 +214,15 @@ void app::loop(void) {
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
-                        for(uint8_t i = 0; i < iv->listLen; i++) {
-                            if(0.0f != iv->getValue(i)) {
-                                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                                DPRINTLN(String(topic) + ": " + String(val));
+                        if(iv->isAvailable(mTimestamp)) {
+                            for(uint8_t i = 0; i < iv->listLen; i++) {
+                                if(0.0f != iv->getValue(i)) {
+                                    snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                                    snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                                    DPRINTLN(String(topic) + ": " + String(val));
+                                }
+                                yield();
                             }
-                            yield();
                         }
                     }
                 }
@@ -318,7 +322,10 @@ void app::processPayload(bool retransmit) {
                         else {
                             if(mSerialDebug)
                                 DPRINTLN(F("Error while retrieving data: last frame missing: Request Retransmit"));
-                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                            if(0x00 != mLastPacketId)
+                                mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, mLastPacketId, true);
+                            else
+                                mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                         }
                         mSys->Radio.switchRxCh(100);
                     }
@@ -343,7 +350,6 @@ void app::processPayload(bool retransmit) {
                         iv->addValue(i, payload);
                     }
                     iv->doCalculations();
-                    mMqttNewDataAvail = true;
                 }
             }
         }

@@ -81,6 +81,15 @@ class Main {
             return false;
         }
 
+        void stats(void) {
+            uint32_t free;
+            uint16_t max;
+            uint8_t frag;
+            ESP.getHeapStats(&free, &max, &frag);
+
+            Serial.printf("free: 0x%x - max: 0x%x - frag: %d%%\n", free, max, frag);
+        }
+
         char mStationSsid[SSID_LEN];
         char mStationPwd[PWD_LEN];
         bool mWifiSettingsValid;
@@ -115,6 +124,7 @@ class Main {
         uint32_t mUptimeTicker;
         uint16_t mUptimeInterval;
         uint32_t mUptimeSecs;
+        uint8_t mHeapStatCnt;
 
         DNSServer *mDns;
         ESP8266HTTPUpdateServer *mUpdater;

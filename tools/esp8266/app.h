@@ -87,6 +87,7 @@ class app : public Main {
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         uint32_t mRxFailed;
         uint32_t mRxSuccess;
+        uint8_t mLastPacketId;
 
         // timer
         uint32_t mTicker;
@@ -100,9 +101,10 @@ class app : public Main {
         uint16_t mMqttTicker;
         uint16_t mMqttInterval;
         bool mMqttActive;
+
+        // serial
         uint16_t mSerialTicker;
         uint16_t mSerialInterval;
-        bool mMqttNewDataAvail;
 };
 
 #endif /*__APP_H__*/

@@ -32,6 +32,8 @@ Main::Main(void) {
     mUptimeInterval = 1000;
 
     mTimestamp = 0;
+
+    mHeapStatCnt = 0;
 }
 
 
@@ -102,6 +104,11 @@ void Main::loop(void) {
                 DPRINTLN("[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
+
+        if(++mHeapStatCnt >= 10) {
+            mHeapStatCnt = 0;
+            stats();
+        }
     }
 }
 
@@ -134,6 +141,7 @@ bool Main::getConfig(void) {
     if(!mSettingsValid) {
         DPRINTLN(F("Settings not valid, erasing ..."));
         eraseSettings();
+        saveValues(false);
         delay(100);
         DPRINTLN(F("... restarting ..."));
         delay(100);
