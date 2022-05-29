@@ -126,26 +126,9 @@ bool Main::getConfig(void) {
         mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
     }
     else {
-        /*mApActive = true;
-        memset(mStationSsid, 0, SSID_LEN);
-        memset(mStationPwd, 0, PWD_LEN);
-        memset(mDeviceName, 0, DEVNAME_LEN);
-
-        // erase application settings except wifi settings
-        eraseSettings();*/
         snprintf(mStationSsid, SSID_LEN,    "%s", FB_WIFI_SSID);
         snprintf(mStationPwd,  PWD_LEN,     "%s", FB_WIFI_PWD);
         snprintf(mDeviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
-    }
-
-    if(!mSettingsValid) {
-        DPRINTLN(F("Settings not valid, erasing ..."));
-        eraseSettings();
-        saveValues(false);
-        delay(100);
-        DPRINTLN(F("... restarting ..."));
-        delay(100);
-        ESP.restart();
     }
 
     return mApActive;

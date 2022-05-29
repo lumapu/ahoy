@@ -106,17 +106,31 @@ void app::setup(uint32_t timeout) {
 
         char addr[16] = {0};
         sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-        mMqttActive = (mqttAddr[0] > 0);
+
+        if(mqttAddr[0] > 0) {
+            mMqttActive = true;
+            if(mMqttInterval < 1)
+                mMqttInterval = 1;
+        }
+        else
+            mMqttInterval = 0xffff;
 
 
-        if(mMqttInterval < 1)
-            mMqttInterval = 1;
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
 
         mSerialTicker = 0;
 
         mMqtt.sendMsg("version", mVersion);
+    }
+    else {
+        DPRINTLN(F("Settings not valid, erasing ..."));
+        eraseSettings();
+        saveValues(false);
+        delay(100);
+        DPRINTLN(F("... restarting ..."));
+        delay(100);
+        ESP.restart();
     }
 
     mSys->setup();
@@ -731,6 +745,7 @@ void app::saveValues(bool webSend = true) {
         }
     }
     else {
+        updateCrc();
         mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
             "<p>Error while saving</p></body></html>"));
     }

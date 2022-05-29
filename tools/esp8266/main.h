@@ -50,6 +50,7 @@ class Main {
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
+            //DPRINTLN("CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
             return (crcCheck == crcRd);
         }
 
