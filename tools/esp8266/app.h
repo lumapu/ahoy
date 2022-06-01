@@ -43,6 +43,7 @@ class app : public Main {
         void loop(void);
         void handleIntr(void);
 
+        uint8_t app_loops;
         uint8_t getIrqPin(void) {
             return mSys->Radio.pinIrq;
         }

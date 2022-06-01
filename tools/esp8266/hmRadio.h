@@ -74,6 +74,7 @@ class HmRadio {
         ~HmRadio() {}
 
         void setup(BUFFER *ctrl) {
+            DPRINTLN(F("hmRadio.h:setup"));
             pinMode(pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
@@ -107,6 +108,7 @@ class HmRadio {
         }
 
         void handleIntr(void) {
+            DPRINTLN(F("hmRadio.h:handleIntr"));
             uint8_t pipe, len;
             packet_t *p;
 
@@ -134,6 +136,7 @@ class HmRadio {
         }
 
         uint8_t getDefaultChannel(void) {
+            //DPRINTLN(F("hmRadio.h:getDefaultChannel"));
             return mTxChLst[0];
         }
         /*uint8_t getLastChannel(void) {
@@ -147,6 +150,7 @@ class HmRadio {
         }*/
 
         void sendTimePacket(uint64_t invId, uint32_t ts) {
+            DPRINTLN(F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, 0x15, 0x80, false);
             mTxBuf[10] = 0x0b; // cid
             mTxBuf[11] = 0x00;
@@ -162,6 +166,7 @@ class HmRadio {
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
+            DPRINTLN(F("hmRadio.h:sendCmdPacket"));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -174,6 +179,7 @@ class HmRadio {
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
+            DPRINTLN(F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -188,6 +194,8 @@ class HmRadio {
         }
 
         bool switchRxCh(uint8_t addLoop = 0) {
+            //DPRINTLN(F("hmRadio.h:switchRxCh"));
+            //DPRINT(F("R"));
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
@@ -201,6 +209,7 @@ class HmRadio {
         }
 
         void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
+            //DPRINTLN(F("hmRadio.h:dumpBuf"));
             if(NULL != info)
                 DPRINT(String(info));
             for(uint8_t i = 0; i < len; i++) {
@@ -211,6 +220,7 @@ class HmRadio {
         }
 
         bool isChipConnected(void) {
+            DPRINTLN(F("hmRadio.h:isChipConnected"));
             return mNrf24.isChipConnected();
         }
 
@@ -225,6 +235,7 @@ class HmRadio {
 
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool clear=false) {
+            DPRINTLN(F("hmRadio.h:sendPacket"));
             //DPRINTLN("sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
             if(mSerialDebug) {

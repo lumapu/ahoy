@@ -7,6 +7,7 @@
 
 //-----------------------------------------------------------------------------
 app::app() : Main() {
+    DPRINTLN(F("app::app():Main"));
     mSendTicker     = 0xffff;
     mSendInterval   = 0;
     mMqttTicker     = 0xffff;
@@ -40,6 +41,7 @@ app::~app(void) {
 
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
+    DPRINTLN(F("app::setup"));
     Main::setup(timeout);
 
     mWeb->on("/",          std::bind(&app::showIndex,      this));
@@ -150,9 +152,15 @@ void app::setup(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
+    //DPRINT(F("a"));
+    //DPRINTLN(F("a"));
+    //app_loops++;
     Main::loop();
 
     if(checkTicker(&mRxTicker, 5)) {
+        //DPRINTLN(F("app_loops =") + String(app_loops));
+        //app_loops=0;
+        //DPRINT(F("a"));
         bool rxRdy = mSys->Radio.switchRxCh();
 
         if(!mSys->BufCtrl.empty()) {
@@ -288,6 +296,7 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
+    DPRINTLN(F("app::handleIntr"));
     mSys->Radio.handleIntr();
 }
 
@@ -295,6 +304,7 @@ void app::handleIntr(void) {
 //-----------------------------------------------------------------------------
 bool app::buildPayload(uint8_t id) {
     //DPRINTLN("Payload");
+    DPRINTLN(F("app::buildPayload"));
     uint16_t crc = 0xffff, crcRcv;
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
@@ -318,6 +328,8 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
+    //DPRINTLN(F("app::processPayload"));
+    //DPRINT(F("p"));
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
@@ -373,6 +385,7 @@ void app::processPayload(bool retransmit) {
 
 //-----------------------------------------------------------------------------
 void app::showIndex(void) {
+    DPRINTLN(F("app::showIndex"));
     String html = FPSTR(index_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
@@ -384,6 +397,7 @@ void app::showIndex(void) {
 
 //-----------------------------------------------------------------------------
 void app::showSetup(void) {
+    DPRINTLN(F("app::showSetup"));
     // overrides same method in main.cpp
 
     uint16_t interval;
@@ -512,12 +526,14 @@ void app::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void app::showSave(void) {
+    DPRINTLN(F("app::showSave"));
     saveValues(true);
 }
 
 
 //-----------------------------------------------------------------------------
 void app::showErase() {
+    DPRINTLN(F("app::showErase"));
     eraseSettings();
     showReboot();
 }
@@ -525,6 +541,7 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
+    DPRINTLN(F("app::showStatistics"));
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
     content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
@@ -573,6 +590,7 @@ void app::showStatistics(void) {
 
 //-----------------------------------------------------------------------------
 void app::showHoymiles(void) {
+    DPRINTLN(F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
@@ -584,6 +602,7 @@ void app::showHoymiles(void) {
 
 //-----------------------------------------------------------------------------
 void app::showLiveData(void) {
+    DPRINTLN(F("app::showLiveData"));
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
@@ -655,6 +674,7 @@ void app::showLiveData(void) {
 
 //-----------------------------------------------------------------------------
 void app::saveValues(bool webSend = true) {
+    DPRINTLN(F("app::saveValues"));
     Main::saveValues(false); // general configuration
 
     if(mWeb->args() > 0) {
@@ -756,6 +776,7 @@ void app::saveValues(bool webSend = true) {
 
 //-----------------------------------------------------------------------------
 void app::updateCrc(void) {
+    DPRINTLN(F("app::updateCrc"));
     Main::updateCrc();
 
     uint16_t crc;
