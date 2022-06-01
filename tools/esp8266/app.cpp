@@ -376,6 +376,8 @@ void app::showIndex(void) {
     String html = FPSTR(index_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
+    html.replace(F("{TS}"), String(mSendInterval) + " ");
+    html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
     mWeb->send(200, "text/html", html);
 }
 
