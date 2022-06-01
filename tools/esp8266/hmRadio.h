@@ -13,10 +13,10 @@
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
+#define RX_CHANNELS             5
 #define RX_LOOP_CNT             400
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
-
 
 
 //-----------------------------------------------------------------------------
@@ -48,13 +48,17 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
+            DPRINTLN(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
             mTxChLst[0] = 40;
             //mTxChIdx = 1;
 
-            mRxChLst[0] = 3;
+            // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
+            // Channel List      2403, 2423, 2440, 2461, 2475MHz
+            mRxChLst[0] = 03;
             mRxChLst[1] = 23;
-            mRxChLst[2] = 61;
-            mRxChLst[3] = 75;
+            mRxChLst[2] = 40;
+            mRxChLst[3] = 61;
+            mRxChLst[4] = 75;
             mRxChIdx    = 0;
             mRxLoopCnt  = RX_LOOP_CNT;
 
@@ -263,7 +267,7 @@ class HmRadio {
         }
 
         uint8_t getRxNxtChannel(void) {
-            if(++mRxChIdx >= 4)
+            if(++mRxChIdx >= RX_CHANNELS)
                 mRxChIdx = 0;
             return mRxChLst[mRxChIdx];
         }
@@ -272,7 +276,7 @@ class HmRadio {
         uint8_t mTxChLst[1];
         //uint8_t mTxChIdx;
 
-        uint8_t mRxChLst[4];
+        uint8_t mRxChLst[RX_CHANNELS];
         uint8_t mRxChIdx;
         uint16_t mRxLoopCnt;
 
