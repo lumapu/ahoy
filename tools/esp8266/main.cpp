@@ -105,10 +105,10 @@ void Main::loop(void) {
             }
         }
 
-        if(++mHeapStatCnt >= 10) {
+        /*if(++mHeapStatCnt >= 10) {
             mHeapStatCnt = 0;
             stats();
-        }
+        }*/
     }
 }
 

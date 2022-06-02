@@ -36,7 +36,8 @@ class mqtt {
 
                 if(!mClient->connected())
                     reconnect();
-                mClient->publish(top, msg);
+                if(mClient->connected())
+                    mClient->publish(top, msg);
             }
         }
 

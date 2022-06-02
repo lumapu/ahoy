@@ -13,7 +13,7 @@
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
-#define RX_LOOP_CNT             400
+#define RX_LOOP_CNT             600
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
@@ -55,6 +55,7 @@ class HmRadio {
             mRxChLst[1] = 23;
             mRxChLst[2] = 61;
             mRxChLst[3] = 75;
+            mRxChLst[4] = 40;
             mRxChIdx    = 0;
             mRxLoopCnt  = RX_LOOP_CNT;
 
@@ -66,6 +67,7 @@ class HmRadio {
             mSendCnt       = 0;
 
             mSerialDebug = false;
+            mIrqRcvd     = false;
         }
         ~HmRadio() {}
 
@@ -102,31 +104,39 @@ class HmRadio {
             }
         }
 
-        void handleIntr(void) {
-            uint8_t pipe, len;
-            packet_t *p;
-
+        void loop(void) {
             DISABLE_IRQ;
-            while(mNrf24.available(&pipe)) {
-                if(!mBufCtrl->full()) {
-                    p = mBufCtrl->getFront();
-                    memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-                    p->rxCh = mRxChLst[mRxChIdx];
-                    len = mNrf24.getPayloadSize();
-                    if(len > MAX_RF_PAYLOAD_SIZE)
-                        len = MAX_RF_PAYLOAD_SIZE;
+            if(mIrqRcvd) {
+                mIrqRcvd = false;
+                bool tx_ok, tx_fail, rx_ready;
+                mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
+                RESTORE_IRQ;
+                uint8_t pipe, len;
+                packet_t *p;
+                while(mNrf24.available(&pipe)) {
+                    if(!mBufCtrl->full()) {
+                        p = mBufCtrl->getFront();
+                        p->rxCh = mRxChLst[mRxChIdx];
+                        len = mNrf24.getPayloadSize();
+                        if(len > MAX_RF_PAYLOAD_SIZE)
+                            len = MAX_RF_PAYLOAD_SIZE;
 
-                    mNrf24.read(p->packet, len);
-                    mBufCtrl->pushFront(p);
-                }
-                else {
-                    bool tx_ok, tx_fail, rx_ready;
-                    mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
-                    mNrf24.flush_rx(); // drop the packet
-                    break;
+                        mNrf24.read(p->packet, len);
+                        mBufCtrl->pushFront(p);
+                    }
+                    else {
+                        mNrf24.flush_rx(); // drop the packet
+                        break;
+                    }
+                    yield();
                 }
             }
-            RESTORE_IRQ;
+            else
+                RESTORE_IRQ;
+        }
+
+        void handleIntr(void) {
+            mIrqRcvd = true;
         }
 
         uint8_t getDefaultChannel(void) {
@@ -183,7 +193,7 @@ class HmRadio {
             return valid;
         }
 
-        bool switchRxCh(uint8_t addLoop = 0) {
+        bool switchRxCh(uint16_t addLoop = 0) {
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
@@ -263,7 +273,7 @@ class HmRadio {
         }
 
         uint8_t getRxNxtChannel(void) {
-            if(++mRxChIdx >= 4)
+            if(++mRxChIdx >= 5)
                 mRxChIdx = 0;
             return mRxChLst[mRxChIdx];
         }
@@ -272,13 +282,15 @@ class HmRadio {
         uint8_t mTxChLst[1];
         //uint8_t mTxChIdx;
 
-        uint8_t mRxChLst[4];
+        uint8_t mRxChLst[5];
         uint8_t mRxChIdx;
         uint16_t mRxLoopCnt;
 
         RF24 mNrf24;
         BUFFER *mBufCtrl;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+
+        volatile bool mIrqRcvd;
 };
 
 #endif /*__RADIO_H__*/

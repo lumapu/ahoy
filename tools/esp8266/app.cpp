@@ -152,6 +152,8 @@ void app::setup(uint32_t timeout) {
 void app::loop(void) {
     Main::loop();
 
+    mSys->Radio.loop();
+
     if(checkTicker(&mRxTicker, 5)) {
         bool rxRdy = mSys->Radio.switchRxCh();
 
@@ -187,6 +189,7 @@ void app::loop(void) {
             }
 
             mSys->BufCtrl.popBack();
+            yield();
         }
 
 
@@ -309,6 +312,7 @@ bool app::buildPayload(uint8_t id) {
             else
                 crc = crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
+        yield();
     }
     if(crc == crcRcv)
         return true;
@@ -341,7 +345,7 @@ void app::processPayload(bool retransmit) {
                             else
                                 mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                         }
-                        mSys->Radio.switchRxCh(100);
+                        mSys->Radio.switchRxCh(300);
                     }
                 }
                 else {
@@ -352,6 +356,7 @@ void app::processPayload(bool retransmit) {
                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
                         memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
                         offs += (mPayload[iv->id].len[i]);
+                        yield();
                     }
                     offs-=2;
                     if(mSerialDebug) {
@@ -367,6 +372,7 @@ void app::processPayload(bool retransmit) {
                 }
             }
         }
+        yield();
     }
 }
 
@@ -629,6 +635,7 @@ void app::showLiveData(void) {
                     }
                 }
                 modHtml += "</div>";
+                yield();
             }
             modHtml += F("<div class=\"ts\">Last received data requested at: ") + getDateTimeStr(iv->ts) + F("</div>");
             modHtml += F("</div>");
