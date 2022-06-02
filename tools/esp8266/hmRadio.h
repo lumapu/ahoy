@@ -13,10 +13,11 @@
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
+#define RX_CHANNELS             5
 #define RX_LOOP_CNT             600
 
-const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
+const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
 //-----------------------------------------------------------------------------
@@ -48,14 +49,17 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
+            DPRINTLN(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
             mTxChLst[0] = 40;
             //mTxChIdx = 1;
 
-            mRxChLst[0] = 3;
+            // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
+            // Channel List      2403, 2423, 2440, 2461, 2475MHz
+            mRxChLst[0] = 03;
             mRxChLst[1] = 23;
-            mRxChLst[2] = 61;
-            mRxChLst[3] = 75;
-            mRxChLst[4] = 40;
+            mRxChLst[2] = 40;
+            mRxChLst[3] = 61;
+            mRxChLst[4] = 75;
             mRxChIdx    = 0;
             mRxLoopCnt  = RX_LOOP_CNT;
 
@@ -72,6 +76,7 @@ class HmRadio {
         ~HmRadio() {}
 
         void setup(BUFFER *ctrl) {
+            DPRINTLN(F("hmRadio.h:setup"));
             pinMode(pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
@@ -136,10 +141,12 @@ class HmRadio {
         }
 
         void handleIntr(void) {
+            DPRINTLN(F("hmRadio.h:handleIntr"));
             mIrqRcvd = true;
         }
 
         uint8_t getDefaultChannel(void) {
+            //DPRINTLN(F("hmRadio.h:getDefaultChannel"));
             return mTxChLst[0];
         }
         /*uint8_t getLastChannel(void) {
@@ -153,6 +160,7 @@ class HmRadio {
         }*/
 
         void sendTimePacket(uint64_t invId, uint32_t ts) {
+            DPRINTLN(F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, 0x15, 0x80, false);
             mTxBuf[10] = 0x0b; // cid
             mTxBuf[11] = 0x00;
@@ -168,6 +176,7 @@ class HmRadio {
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
+            DPRINTLN(F("hmRadio.h:sendCmdPacket"));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -180,6 +189,7 @@ class HmRadio {
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
+            DPRINTLN(F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -193,7 +203,10 @@ class HmRadio {
             return valid;
         }
 
-        bool switchRxCh(uint16_t addLoop = 0) {
+        bool switchRxCh(uint8_t addLoop = 0) {
+            //DPRINTLN(F("hmRadio.h:switchRxCh"));
+            //DPRINT(F("R"));
+
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
@@ -207,6 +220,7 @@ class HmRadio {
         }
 
         void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
+            //DPRINTLN(F("hmRadio.h:dumpBuf"));
             if(NULL != info)
                 DPRINT(String(info));
             for(uint8_t i = 0; i < len; i++) {
@@ -217,6 +231,7 @@ class HmRadio {
         }
 
         bool isChipConnected(void) {
+            DPRINTLN(F("hmRadio.h:isChipConnected"));
             return mNrf24.isChipConnected();
         }
 
@@ -231,6 +246,7 @@ class HmRadio {
 
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool clear=false) {
+            DPRINTLN(F("hmRadio.h:sendPacket"));
             //DPRINTLN("sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
             if(mSerialDebug) {
@@ -273,7 +289,8 @@ class HmRadio {
         }
 
         uint8_t getRxNxtChannel(void) {
-            if(++mRxChIdx >= 5)
+
+            if(++mRxChIdx >= RX_CHANNELS)
                 mRxChIdx = 0;
             return mRxChLst[mRxChIdx];
         }
@@ -282,7 +299,8 @@ class HmRadio {
         uint8_t mTxChLst[1];
         //uint8_t mTxChIdx;
 
-        uint8_t mRxChLst[5];
+        uint8_t mRxChLst[RX_CHANNELS];
+
         uint8_t mRxChIdx;
         uint16_t mRxLoopCnt;
 

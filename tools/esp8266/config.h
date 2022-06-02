@@ -7,7 +7,7 @@
 
 
 // access point info
-#define WIFI_AP_SSID    "AHOY DTU"
+#define WIFI_AP_SSID    "AHOY-DTU"
 #define WIFI_AP_PWD     "esp_8266"
 // stay in access point mode all the time
 //#define AP_ONLY
@@ -24,7 +24,7 @@
 #define WIFI_AP_ACTIVE_TIME     60
 
 // default device name
-#define DEF_DEVICE_NAME         "ESP-DTU"
+#define DEF_DEVICE_NAME         "AHOY-DTU"
 
 // number of packets hold in buffer
 #define PACKET_BUFFER_SIZE      30

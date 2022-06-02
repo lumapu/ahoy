@@ -81,6 +81,7 @@ class Inverter {
         }
 
         void init(void) {
+            DPRINTLN(F("hmInverter.h:init"));
             getAssignment();
             toRadioId();
             record = new RECORDTYPE[listLen];
@@ -89,6 +90,7 @@ class Inverter {
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId) {
+            DPRINTLN(F("hmInverter.h:getPosByChFld"));
             uint8_t pos = 0;
             for(; pos < listLen; pos++) {
                 if((assign[pos].ch == channel) && (assign[pos].fieldId == fieldId))
@@ -98,18 +100,22 @@ class Inverter {
         }
 
         const char *getFieldName(uint8_t pos) {
+            DPRINTLN(F("hmInverter.h:getFieldName"));
             return fields[assign[pos].fieldId];
         }
 
         const char *getUnit(uint8_t pos) {
+            DPRINTLN(F("hmInverter.h:getUnit"));
             return units[assign[pos].unitId];
         }
 
         uint8_t getChannel(uint8_t pos) {
+            DPRINTLN(F("hmInverter.h:getChannel"));
             return assign[pos].ch;
         }
 
         void addValue(uint8_t pos, uint8_t buf[]) {
+            DPRINTLN(F("hmInverter.h:addValue"));
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
             uint16_t div = assign[pos].div;
@@ -126,10 +132,12 @@ class Inverter {
         }
 
         RECORDTYPE getValue(uint8_t pos) {
+            DPRINTLN(F("hmInverter.h:getValue"));
             return record[pos];
         }
 
         void doCalculations(void) {
+            DPRINTLN(F("hmInverter.h:doCalculations"));
             for(uint8_t i = 0; i < listLen; i++) {
                 if(CMD_CALC == assign[i].div) {
                     record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
@@ -138,10 +146,12 @@ class Inverter {
         }
 
         bool isAvailable(uint32_t timestamp) {
+            DPRINTLN(F("hmInverter.h:isAvailable"));
             return ((timestamp - ts) < INACT_THRES_SEC);
         }
 
         bool isProducing(uint32_t timestamp) {
+            DPRINTLN(F("hmInverter.h:isProducing"));
             if(isAvailable(timestamp)) {
                 uint8_t pos = getPosByChFld(CH0, FLD_PAC);
                 return (getValue(pos) > INACT_PWR_THRESH);
@@ -150,11 +160,13 @@ class Inverter {
         }
 
         uint32_t getLastTs(void) {
+            DPRINTLN(F("hmInverter.h:getLastTs"));
             return ts;
         }
 
     private:
         void toRadioId(void) {
+            DPRINTLN(F("hmInverter.h:toRadioId"));
             radioId.u64  = 0ULL;
             radioId.b[4] = serial.b[0];
             radioId.b[3] = serial.b[1];
@@ -164,6 +176,7 @@ class Inverter {
         }
 
         void getAssignment(void) {
+            DPRINTLN(F("hmInverter.h:getAssignment"));
             if(INV_TYPE_1CH == type) {
                 listLen  = (uint8_t)(HM1CH_LIST_LEN);
                 assign   = (byteAssign_t*)hm1chAssignment;
@@ -196,6 +209,7 @@ class Inverter {
 
 template<class T=float>
 static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcYieldTotalCh0"));
     if(NULL != iv) {
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -209,6 +223,7 @@ static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcYieldDayCh0"));
     if(NULL != iv) {
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -222,6 +237,7 @@ static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcUdcCh"));
     // arg0 = channel of source
     for(uint8_t i = 0; i < iv->listLen; i++) {
         if((FLD_UDC == iv->assign[i].fieldId) && (arg0 == iv->assign[i].ch)) {
@@ -234,6 +250,7 @@ static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcPowerDcCh0"));
     if(NULL != iv) {
         T dcPower = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -247,6 +264,7 @@ static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcEfficiencyCh0"));
     if(NULL != iv) {
         uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC);
         T acPower = iv->getValue(pos);
@@ -263,6 +281,7 @@ static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(F("hmInverter.h:calcIrradiation"));
     // arg0 = channel
     if(NULL != iv) {
         uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC);
