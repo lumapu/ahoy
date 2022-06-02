@@ -46,6 +46,7 @@ class StatusResponse(Response):
     temperature = None
     frequency = None
     powerfactor = None
+    event_count = None
 
     def unpack(self, fmt, base):
         """
@@ -120,6 +121,7 @@ class StatusResponse(Response):
         data['temperature'] = self.temperature
         data['frequency'] = self.frequency
         data['powerfactor'] = self.powerfactor
+        data['event_count'] = self.event_count
         data['time'] = self.time_rx
         return data
 
@@ -544,7 +546,7 @@ class Hm600Decode0B(StatusResponse):
         """ Inverter temperature in °C """
         return self.unpack('>H', 38)[0]/10
     @property
-    def alarm_count(self):
+    def event_count(self):
         """ Event counter """
         return self.unpack('>H', 40)[0]
 
@@ -667,6 +669,10 @@ class Hm1200Decode0B(StatusResponse):
     def temperature(self):
         """ Inverter temperature in °C """
         return self.unpack('>H', 58)[0]/10
+    @property
+    def event_count(self):
+        """ Event counter """
+        return self.unpack('>H', 60)[0]
 
 class Hm1200Decode11(EventsResponse):
     """ Inverter generic events log """

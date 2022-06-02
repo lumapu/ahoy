@@ -114,6 +114,8 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},string={string_id},type=current value={string["current"]:3f} {ctime}')
             string_id = string_id + 1
         # Global
+        if data['event_count'] is not None:
+            data_stack.append(f'{measurement},type=total_events value={data["event_count"]} {ctime}')
         if data['powerfactor'] is not None:
             data_stack.append(f'{measurement},type=pf value={data["powerfactor"]:f} {ctime}')
         data_stack.append(f'{measurement},type=frequency value={data["frequency"]:.3f} {ctime}')
