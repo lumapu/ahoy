@@ -14,7 +14,8 @@
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 #define RX_CHANNELS             5
-#define RX_LOOP_CNT             400
+#define RX_LOOP_CNT             600
+
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
@@ -70,6 +71,7 @@ class HmRadio {
             mSendCnt       = 0;
 
             mSerialDebug = false;
+            mIrqRcvd     = false;
         }
         ~HmRadio() {}
 
@@ -107,32 +109,40 @@ class HmRadio {
             }
         }
 
-        void handleIntr(void) {
-            DPRINTLN(F("hmRadio.h:handleIntr"));
-            uint8_t pipe, len;
-            packet_t *p;
-
+        void loop(void) {
             DISABLE_IRQ;
-            while(mNrf24.available(&pipe)) {
-                if(!mBufCtrl->full()) {
-                    p = mBufCtrl->getFront();
-                    memset(p->packet, 0xcc, MAX_RF_PAYLOAD_SIZE);
-                    p->rxCh = mRxChLst[mRxChIdx];
-                    len = mNrf24.getPayloadSize();
-                    if(len > MAX_RF_PAYLOAD_SIZE)
-                        len = MAX_RF_PAYLOAD_SIZE;
+            if(mIrqRcvd) {
+                mIrqRcvd = false;
+                bool tx_ok, tx_fail, rx_ready;
+                mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
+                RESTORE_IRQ;
+                uint8_t pipe, len;
+                packet_t *p;
+                while(mNrf24.available(&pipe)) {
+                    if(!mBufCtrl->full()) {
+                        p = mBufCtrl->getFront();
+                        p->rxCh = mRxChLst[mRxChIdx];
+                        len = mNrf24.getPayloadSize();
+                        if(len > MAX_RF_PAYLOAD_SIZE)
+                            len = MAX_RF_PAYLOAD_SIZE;
 
-                    mNrf24.read(p->packet, len);
-                    mBufCtrl->pushFront(p);
-                }
-                else {
-                    bool tx_ok, tx_fail, rx_ready;
-                    mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // reset interrupt status
-                    mNrf24.flush_rx(); // drop the packet
-                    break;
+                        mNrf24.read(p->packet, len);
+                        mBufCtrl->pushFront(p);
+                    }
+                    else {
+                        mNrf24.flush_rx(); // drop the packet
+                        break;
+                    }
+                    yield();
                 }
             }
-            RESTORE_IRQ;
+            else
+                RESTORE_IRQ;
+        }
+
+        void handleIntr(void) {
+            DPRINTLN(F("hmRadio.h:handleIntr"));
+            mIrqRcvd = true;
         }
 
         uint8_t getDefaultChannel(void) {
@@ -196,6 +206,7 @@ class HmRadio {
         bool switchRxCh(uint8_t addLoop = 0) {
             //DPRINTLN(F("hmRadio.h:switchRxCh"));
             //DPRINT(F("R"));
+
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
@@ -278,6 +289,7 @@ class HmRadio {
         }
 
         uint8_t getRxNxtChannel(void) {
+
             if(++mRxChIdx >= RX_CHANNELS)
                 mRxChIdx = 0;
             return mRxChLst[mRxChIdx];
@@ -288,12 +300,15 @@ class HmRadio {
         //uint8_t mTxChIdx;
 
         uint8_t mRxChLst[RX_CHANNELS];
+
         uint8_t mRxChIdx;
         uint16_t mRxLoopCnt;
 
         RF24 mNrf24;
         BUFFER *mBufCtrl;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+
+        volatile bool mIrqRcvd;
 };
 
 #endif /*__RADIO_H__*/

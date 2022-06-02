@@ -21,7 +21,7 @@
 
 // time during the ESP will act as access point on connection failure (to
 // station) in seconds
-#define WIFI_AP_ACTIVE_TIME     3*60
+#define WIFI_AP_ACTIVE_TIME     60
 
 // default device name
 #define DEF_DEVICE_NAME         "AHOY-DTU"

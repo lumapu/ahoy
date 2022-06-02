@@ -38,8 +38,8 @@ class HmSystem {
             p->id         = mNumInv;
             p->serial.u64 = serial;
             memcpy(p->chMaxPwr, chMaxPwr, (4*2));
-            DPRINT("SERIAL: " + String(p->serial.b[5], HEX));
-            DPRINTLN(" " + String(p->serial.b[4], HEX));
+            //DPRINT("SERIAL: " + String(p->serial.b[5], HEX));
+            //DPRINTLN(" " + String(p->serial.b[4], HEX));
             if(p->serial.b[5] == 0x11) {
                 switch(p->serial.b[4]) {
                     case 0x21: p->type = INV_TYPE_1CH; break;
