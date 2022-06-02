@@ -31,7 +31,7 @@ class mqtt {
         }
 
         void sendMsg(const char *topic, const char *msg) {
-            DPRINTLN(F("mqtt.h:sendMsg"));
+            //DPRINTLN(F("mqtt.h:sendMsg"));
             if(mAddressSet) {
                 char top[64];
                 snprintf(top, 64, "%s/%s", mTopic, topic);
@@ -44,24 +44,24 @@ class mqtt {
         }
 
         bool isConnected(bool doRecon = false) {
-            DPRINTLN(F("mqtt.h:isConnected"));
+            //DPRINTLN(F("mqtt.h:isConnected"));
             if(doRecon)
                 reconnect();
             return mClient->connected();
         }
 
         char *getUser(void) {
-            DPRINTLN(F("mqtt.h:getUser"));
+            //DPRINTLN(F("mqtt.h:getUser"));
             return mUser;
         }
 
         char *getPwd(void) {
-            DPRINTLN(F("mqtt.h:getPwd"));
+            //DPRINTLN(F("mqtt.h:getPwd"));
             return mPwd;
         }
 
         char *getTopic(void) {
-            DPRINTLN(F("mqtt.h:getTopic"));
+            //DPRINTLN(F("mqtt.h:getTopic"));
             return mTopic;
         }
 
@@ -74,7 +74,7 @@ class mqtt {
 
     private:
         void reconnect(void) {
-            DPRINTLN(F("mqtt.h:reconnect"));
+            //DPRINTLN(F("mqtt.h:reconnect"));
             if(!mClient->connected()) {
                 String mqttId = "ESP-" + String(random(0xffff), HEX);
                 if((strlen(mUser) > 0) && (strlen(mPwd) > 0))

@@ -66,7 +66,7 @@ class HmSystem {
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {
-            DPRINTLN(F("hmSystem.h:findInverter"));
+            //DPRINTLN(F("hmSystem.h:findInverter"));
             INVERTERTYPE *p;
             for(uint8_t i = 0; i < mNumInv; i++) {
                 p = &mInverter[i];

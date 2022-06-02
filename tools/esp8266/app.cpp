@@ -301,15 +301,14 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::handleIntr(void) {
-    DPRINTLN(F("app::handleIntr"));
+    //DPRINTLN(F("app::handleIntr"));
     mSys->Radio.handleIntr();
 }
 
 
 //-----------------------------------------------------------------------------
 bool app::buildPayload(uint8_t id) {
-    //DPRINTLN("Payload");
-    DPRINTLN(F("app::buildPayload"));
+    //DPRINTLN(F("app::buildPayload"));
     uint16_t crc = 0xffff, crcRcv;
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
@@ -549,7 +548,7 @@ void app::showErase() {
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
-    DPRINTLN(F("app::showStatistics"));
+    //DPRINTLN(F("app::showStatistics"));
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
     content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");

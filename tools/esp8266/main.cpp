@@ -293,7 +293,7 @@ void Main::updateCrc(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showUptime(void) {
-    DPRINTLN(F("Main::showUptime"));
+    //DPRINTLN(F("Main::showUptime"));
     char time[20] = {0};
 
     int upTimeSc = uint32_t((mUptimeSecs) % 60);
@@ -309,14 +309,14 @@ void Main::showUptime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showTime(void) {
-    DPRINTLN(F("Main::showTime"));
+    //DPRINTLN(F("Main::showTime"));
     mWeb->send(200, "text/plain", getDateTimeStr(mTimestamp));
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::showNotFound(void) {
-    DPRINTLN(F("Main::showNotFound"));
+    DPRINTLN(F("Main::showNotFound - ") + mWeb->uri());
     String msg = F("File Not Found\n\nURI: ");
     msg += mWeb->uri();
     msg += F("\nMethod: ");
@@ -374,7 +374,7 @@ void Main::showFactoryRst(void) {
 
 //-----------------------------------------------------------------------------
 time_t Main::getNtpTime(void) {
-    DPRINTLN(F("Main::getNtpTime"));
+    //DPRINTLN(F("Main::getNtpTime"));
     time_t date = 0;
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
@@ -412,7 +412,7 @@ time_t Main::getNtpTime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::sendNTPpacket(IPAddress& address) {
-    DPRINTLN(F("Main::sendNTPpacket"));
+    //DPRINTLN(F("Main::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};
 
     buf[0] = B11100011; // LI, Version, Mode
@@ -433,7 +433,7 @@ void Main::sendNTPpacket(IPAddress& address) {
 
 //-----------------------------------------------------------------------------
 String Main::getDateTimeStr(time_t t) {
-    DPRINTLN(F("Main::getDateTimeStr"));
+    //DPRINTLN(F("Main::getDateTimeStr"));
     char str[20] = {0};
     sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
     return String(str);
@@ -444,7 +444,7 @@ String Main::getDateTimeStr(time_t t) {
 // calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 // from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
 time_t Main::offsetDayLightSaving (uint32_t local_t) {
-    DPRINTLN(F("Main::offsetDayLightSaving"));
+    //DPRINTLN(F("Main::offsetDayLightSaving"));
     int m = month (local_t);
     if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
     if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
