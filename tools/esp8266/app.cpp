@@ -154,6 +154,8 @@ void app::loop(void) {
 
     mSys->Radio.loop();
 
+    yield();
+
     if(checkTicker(&mRxTicker, 5)) {
         bool rxRdy = mSys->Radio.switchRxCh();
 
@@ -215,7 +217,6 @@ void app::loop(void) {
                             snprintf(val, 10, "%.3f", iv->getValue(i));
                             mMqtt.sendMsg(topic, val);
                             yield();
-
                         }
                     }
                 }
@@ -283,6 +284,7 @@ void app::loop(void) {
                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                     mRxTicker = 0;
                 }
+                yield();
             }
         }
     }
