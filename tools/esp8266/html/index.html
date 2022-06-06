@@ -5,6 +5,9 @@
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript">
+            getAjax('/uptime', 'uptime');
+            getAjax('/time', 'time');
+            getAjax('/cmdstat', 'cmdstat');
             window.setInterval("getAjax('/uptime', 'uptime')", {JS_TS});
             window.setInterval("getAjax('/time', 'time')", {JS_TS});
             window.setInterval("getAjax('/cmdstat', 'cmds')", {JS_TS});
