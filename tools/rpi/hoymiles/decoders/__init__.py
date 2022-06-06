@@ -357,6 +357,9 @@ class DebugDecodeAny(UnknownResponse):
 
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase
+class Hm300Decode02(EventsResponse):
+    """ Inverter generic events log """
+
 class Hm300Decode0B(StatusResponse):
     """ 1121-series mirco-inverters status data """
 
@@ -410,6 +413,9 @@ class Hm300Decode12(EventsResponse):
 
 
 # 1141-Series Inverters, 2 MPPT, 1 Phase
+class Hm600Decode02(EventsResponse):
+    """ Inverter generic events log """
+
 class Hm600Decode0B(StatusResponse):
     """ 1141-series mirco-inverters status data """
 
@@ -492,6 +498,9 @@ class Hm600Decode12(EventsResponse):
 
 
 # 1161-Series Inverters, 2 MPPT, 1 Phase
+class Hm1200Decode02(EventsResponse):
+    """ Inverter generic events log """
+
 class Hm1200Decode0B(StatusResponse):
     """ 1161-series mirco-inverters status data """
 
