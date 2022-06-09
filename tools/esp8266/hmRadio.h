@@ -14,7 +14,7 @@
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 #define RX_CHANNELS             5
-#define RX_LOOP_CNT             600
+#define RX_LOOP_CNT             300
 
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};

@@ -236,8 +236,8 @@ void app::loop(void) {
             }
 
             mSys->BufCtrl.popBack();
-            yield();
         }
+        yield();
 
 
         if(rxRdy) {
@@ -321,7 +321,7 @@ void app::loop(void) {
                         mRxFailed++;
                         if(mSerialDebug) {
                             DPRINT(F("Inverter #") + String(iv->id) + " ");
-                            DPRINTLN(F("no Payload received!"));
+                            DPRINTLN(F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
                         }
                     }
 
@@ -412,7 +412,7 @@ void app::processPayload(bool retransmit) {
                                     else
                                         mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                                 }
-                                mSys->Radio.switchRxCh(300);
+                                mSys->Radio.switchRxCh(100);
                             }
                         }
                     }
