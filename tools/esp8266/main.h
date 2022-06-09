@@ -42,13 +42,22 @@ class Main {
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
             DPRINTLN(F("main.h:buildEEpCrc"));
-            uint8_t buf[length];
-            mEep->read(start, buf, length);
-            return crc16(buf, length);
+            uint8_t buf[32];
+            uint16_t crc = 0xffff;
+            uint8_t len;
+
+            while(length > 0) {
+                len = (length < 32) ? length : 32;
+                mEep->read(start, buf, len);
+                crc = crc16(buf, len, crc);
+                start += len;
+                length -= len;
+            }
+            return crc;
         }
 
         bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
-            DPRINTLN(F("main.h:checkEEpCrc"));
+            //DPRINTLN(F("main.h:checkEEpCrc"));
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
@@ -57,7 +66,7 @@ class Main {
         }
 
         void eraseSettings(bool all = false) {
-            DPRINTLN(F("main.h:eraseSettings"));
+            //DPRINTLN(F("main.h:eraseSettings"));
             uint8_t buf[64] = {0};
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
@@ -69,6 +78,7 @@ class Main {
                 mEep->write(addr, buf, (end-addr));
                 addr = end;
             } while(addr < (ADDR_SETTINGS_CRC + 2));
+            mEep->commit();
         }
 
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {

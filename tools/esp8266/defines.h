@@ -16,7 +16,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       4
-#define VERSION_PATCH       15
+#define VERSION_PATCH       16
 
 
 //-------------------------------------
@@ -34,10 +34,12 @@ typedef struct {
 #define DEVNAME_LEN         16
 #define CRC_LEN             2 // uint16_t
 
-#define INV_ADDR_LEN        MAX_NUM_INVERTERS * 8                // uint64_t
-#define INV_NAME_LEN        MAX_NUM_INVERTERS * MAX_NAME_LENGTH  // char[]
-#define INV_CH_MOD_PWR_LEN  MAX_NUM_INVERTERS * 2 * 4            // uint16_t (4 channels)
-#define INV_INTERVAL_LEN    2                                    // uint16_t
+#define INV_ADDR_LEN        MAX_NUM_INVERTERS * 8                   // uint64_t
+#define INV_NAME_LEN        MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
+#define INV_CH_CH_PWR_LEN   MAX_NUM_INVERTERS * 2 * 4               // uint16_t (4 channels)
+#define INV_CH_CH_NAME_LEN  MAX_NUM_INVERTERS * MAX_NAME_LENGTH * 4 // (4 channels)
+#define INV_INTERVAL_LEN    2                                       // uint16_t
+#define INV_MAX_RTRY_LEN    1                                       // uint8_t
 
 #define PINOUT_LEN          3 // 3 pins: CS, CE, IRQ
 
@@ -68,10 +70,12 @@ typedef struct {
 
 #define ADDR_INV_ADDR       ADDR_RF24_AMP_PWR  + RF24_AMP_PWR_LEN
 #define ADDR_INV_NAME       ADDR_INV_ADDR      + INV_ADDR_LEN
-#define ADDR_INV_MOD_PWR    ADDR_INV_NAME      + INV_NAME_LEN
-#define ADDR_INV_INTERVAL   ADDR_INV_MOD_PWR   + INV_CH_MOD_PWR_LEN
+#define ADDR_INV_CH_PWR     ADDR_INV_NAME      + INV_NAME_LEN
+#define ADDR_INV_CH_NAME    ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
+#define ADDR_INV_INTERVAL   ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
+#define ADDR_INV_MAX_RTRY   ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
 
-#define ADDR_MQTT_ADDR      ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
+#define ADDR_MQTT_ADDR      ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
 #define ADDR_MQTT_USER      ADDR_MQTT_ADDR     + MQTT_ADDR_LEN
 #define ADDR_MQTT_PWD       ADDR_MQTT_USER     + MQTT_USER_LEN
 #define ADDR_MQTT_TOPIC     ADDR_MQTT_PWD      + MQTT_PWD_LEN
@@ -83,7 +87,7 @@ typedef struct {
 #define ADDR_SER_INTERVAL   ADDR_SER_DEBUG     + SER_DEBUG_LEN
 #define ADDR_NEXT           ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
 
-#define ADDR_SETTINGS_CRC   400
+#define ADDR_SETTINGS_CRC   950
 
 #if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
 #error address overlap!

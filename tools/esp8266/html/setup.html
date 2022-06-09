@@ -4,8 +4,51 @@
         <title>Setup - {DEVICE}</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="text/javascript">
+            function toggle(name, hide) {
+                var elm = document.getElementsByName(name)[0];
+                if(hide) {
+                    if(!elm.classList.contains("hide"))
+                        elm.classList.add("hide");
+                }
+                else
+                    elm.classList.remove('hide');
+            }
+
+            function load() {
+                document.querySelectorAll('input[name^="inv"][name$="Addr"]').forEach(elm => {
+                    elm.addEventListener("keyup", (e) => {
+                        serial = elm.value.substring(0,4);
+                        iv = elm.name.substring(3,4);
+                        max = 0;
+                        for(i=0;i<4;i++) {
+                            toggle("inv"+iv+"ModPwr"+i, true);
+                            toggle("inv"+iv+"ModName"+i, true);
+                        }
+                        toggle("lbl"+iv+"ModPwr", true);
+                        toggle("lbl"+iv+"ModName", true);
+
+                        if(serial == "1161") max = 4;
+                        else if(serial == "1141") max = 2;
+                        else if(serial == "1121") max = 1;
+
+                        for(i=0;i<max;i++) {
+                            toggle("inv"+iv+"ModPwr"+i, false);
+                            toggle("inv"+iv+"ModName"+i, false);
+                        }
+                        if(max != 0) {
+                            toggle("lbl"+iv+"ModPwr", false);
+                            toggle("lbl"+iv+"ModName", false);
+                        }
+                    });
+                    evt = document.createEvent("HTMLEvents");
+                    evt.initEvent("keyup", false, true);
+                    elm.dispatchEvent(evt);
+                });
+            }
+        </script>
     </head>
-    <body>
+    <body onload="load()">
         <h1>Setup</h1>
         <div id="setup" class="content">
             <div id="content">
@@ -28,8 +71,10 @@
                     <p class="des">Inverter</p>
                     {INVERTERS}<br/>
                     <p class="subdes">General</p>
-                    <label for="invInterval">Interval (s)</label>
+                    <label for="invInterval">Interval [s]</label>
                     <input type="text" class="text" name="invInterval" value="{INV_INTVL}"/>
+                    <label for="invRetry">Max retries per Payload</label>
+                    <input type="text" class="text" name="invRetry" value="{INV_RETRIES}"/>
 
                     <p class="des">Pinout (Wemos)</p>
                     {PINOUT}
@@ -49,20 +94,20 @@
                     <input type="text" class="text" name="mqttPwd" value="{MQTT_PWD}"/>
                     <label for="mqttTopic">Topic</label>
                     <input type="text" class="text" name="mqttTopic" value="{MQTT_TOPIC}"/>
-                    <label for="mqttIntvl">Interval (s)</label>
-                    <input type="text" class="text" name="mqttIntvl" value="{MQTT_INTVL}"/>
+                    <label for="mqttIntvl">Interval [s] (read-only)</label>
+                    <input type="text" class="text" name="mqttIntvl" value="{MQTT_INTVL}" readonly/>
 
                     <p class="des">Serial Console</p>
                     <label for="serEn">print inverter data</label>
                     <input type="checkbox" class="cb" name="serEn" {SER_VAL_CB}/><br/>
                     <label for="serDbg">print RF24 debug</label>
                     <input type="checkbox" class="cb" name="serDbg" {SER_DBG_CB}/><br/>
-                    <label for="serIntvl">Interval (s)</label>
+                    <label for="serIntvl">Interval [s]</label>
                     <input type="text" class="text" name="serIntvl" value="{SER_INTVL}"/>
 
                     <p class="des">&nbsp;</p>
                     <label for="reboot">Reboot device after successful save</label>
-                    <input type="checkbox" class="cb" name="reboot"/>
+                    <input type="checkbox" class="cb" name="reboot" checked/>
                     <input type="submit" value="save" class="btn" />
                 </form>
             </div>

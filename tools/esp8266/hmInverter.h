@@ -71,6 +71,7 @@ class Inverter {
         uint32_t      ts;       // timestamp of last received payload
         RECORDTYPE    *record;  // pointer for values
         uint16_t      chMaxPwr[4]; // maximum power of the modules (Wp)
+        char          chName[4][MAX_NAME_LENGTH]; // human readable name for channel
 
         Inverter() {
             ts = 0;
@@ -86,6 +87,7 @@ class Inverter {
             toRadioId();
             record = new RECORDTYPE[listLen];
             memset(name, 0, MAX_NAME_LENGTH);
+            memset(chName, 0, MAX_NAME_LENGTH * 4);
             memset(record, 0, sizeof(RECORDTYPE) * listLen);
         }
 

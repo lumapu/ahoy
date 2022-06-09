@@ -267,6 +267,7 @@ void Main::saveValues(bool webSend = true) {
         memset(mDeviceName, 0, DEVNAME_LEN);
         mWeb->arg("device").toCharArray(mDeviceName, DEVNAME_LEN);
         mEep->write(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
+        mEep->commit();
 
 
         updateCrc();
@@ -288,6 +289,7 @@ void Main::updateCrc(void) {
     crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
     //Serial.println("new CRC: " + String(crc, HEX));
     mEep->write(ADDR_WIFI_CRC, crc);
+    mEep->commit();
 }
 
 
@@ -435,7 +437,10 @@ void Main::sendNTPpacket(IPAddress& address) {
 String Main::getDateTimeStr(time_t t) {
     //DPRINTLN(F("Main::getDateTimeStr"));
     char str[20] = {0};
-    sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+    if(0 == t)
+        sprintf(str, "n/a");
+    else
+        sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
     return String(str);
 }
 

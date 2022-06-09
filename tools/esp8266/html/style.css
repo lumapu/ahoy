@@ -31,6 +31,15 @@ p {
     margin-left: 7px;
 }
 
+.subsubdes {
+    font-size:12pt;
+    color:#006ec0;
+    margin: 0 0 7px 12px;
+}
+
+.hide {
+    display: none;
+}
 
 a:link, a:visited {
     text-decoration: none;
@@ -89,7 +98,7 @@ input.text, select {
 }
 
 input.sh {
-    max-width: 100px !important;
+    max-width: 150px !important;
     margin-right: 10px;
 }
 
@@ -111,7 +120,7 @@ label {
     display: inline-block;
     font-size: 12pt;
     padding-right: 10px;
-    margin-left: 10px;
+    margin-left: 15px;
 }
 
 .left {

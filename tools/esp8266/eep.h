@@ -7,7 +7,7 @@
 class eep {
     public:
         eep() {
-            EEPROM.begin(500);
+            EEPROM.begin(1000);
         }
         ~eep() {
             EEPROM.end();
@@ -81,14 +81,12 @@ class eep {
             for(uint8_t i = 0; i < length; i ++) {
                 EEPROM.write(addr++, str[i]);
             }
-            EEPROM.commit();
         }
 
         void write(uint32_t addr, uint8_t data[], uint16_t length) {
             for(uint16_t i = 0; i < length; i ++) {
                 EEPROM.write(addr++, data[i]);
             }
-            EEPROM.commit();
         }
 
         void write(uint32_t addr, float value) {
@@ -96,24 +94,20 @@ class eep {
             for(uint8_t i = 0; i < 4; i ++) {
                 EEPROM.write(addr++, p[i]);
             }
-            EEPROM.commit();
         }
 
         void write(uint32_t addr, bool value) {
             uint8_t intVal = (value) ? 0x01 : 0x00;
             EEPROM.write(addr++, intVal);
-            EEPROM.commit();
         }
 
         void write(uint32_t addr, uint8_t value) {
             EEPROM.write(addr++, value);
-            EEPROM.commit();
         }
 
         void write(uint32_t addr, uint16_t value) {
             EEPROM.write(addr++, (value >> 8) & 0xff);
             EEPROM.write(addr++, (value     ) & 0xff);
-            EEPROM.commit();
         }
 
 
@@ -129,7 +123,6 @@ class eep {
             EEPROM.write(addr++, (value >> 16) & 0xff);
             EEPROM.write(addr++, (value >>  8) & 0xff);
             EEPROM.write(addr++, (value      ) & 0xff);
-            EEPROM.commit();
         }
 
         void write(uint64_t addr, uint64_t value) {
@@ -141,6 +134,9 @@ class eep {
             EEPROM.write(addr++, (value >> 16) & 0xff);
             EEPROM.write(addr++, (value >>  8) & 0xff);
             EEPROM.write(addr++, (value      ) & 0xff);
+        }
+
+        void commit(void) {
             EEPROM.commit();
         }
 };

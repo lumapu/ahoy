@@ -31,6 +31,8 @@ typedef struct {
     uint8_t len[MAX_PAYLOAD_ENTRIES];
     bool complete;
     uint8_t maxPackId;
+    uint8_t retransmits;
+    bool requested;
 } invPayload_t;
 
 
@@ -84,11 +86,13 @@ class app : public Main {
 
         uint16_t mSendTicker;
         uint16_t mSendInterval;
+        uint8_t mSendLastIvId;
 
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         uint32_t mRxFailed;
         uint32_t mRxSuccess;
         uint8_t mLastPacketId;
+        uint8_t mMaxRetransPerPyld;
 
         // timer
         uint32_t mTicker;

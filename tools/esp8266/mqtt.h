@@ -25,6 +25,7 @@ class mqtt {
             mAddressSet = true;
             mClient->setServer(broker, port);
 
+            mPort = port;
             snprintf(mUser, MQTT_USER_LEN, "%s", user);
             snprintf(mPwd, MQTT_PWD_LEN, "%s", pwd);
             snprintf(mTopic, MQTT_TOPIC_LEN, "%s", topic);
@@ -65,6 +66,10 @@ class mqtt {
             return mTopic;
         }
 
+        uint16_t getPort(void) {
+            return mPort;
+        }
+
         void loop() {
             //DPRINT(F("m"));
             //if(!mClient->connected())
@@ -88,6 +93,7 @@ class mqtt {
         PubSubClient *mClient;
 
         bool mAddressSet;
+        uint16_t mPort;
         char mUser[MQTT_USER_LEN];
         char mPwd[MQTT_PWD_LEN];
         char mTopic[MQTT_TOPIC_LEN];
