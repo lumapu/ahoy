@@ -130,8 +130,6 @@ void app::setup(uint32_t timeout) {
             mMqttActive = true;
             if(mMqttInterval < 1)
                 mMqttInterval = 10;
-
-            snprintf(mqttTopic, MQTT_TOPIC_LEN, "inverter");
         }
         else
             mMqttInterval = 0xffff;
