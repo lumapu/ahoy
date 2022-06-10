@@ -266,6 +266,8 @@ void app::loop(void) {
             }
             snprintf(val, 10, "%d", ESP.getFreeHeap());
             mMqtt.sendMsg("free_heap", val);
+            snprintf(val, 10, "%d", millis()/1000);
+            mMqtt.sendMsg("uptime", val);
         }
 
         if(mSerialValues) {
