@@ -87,10 +87,16 @@ typedef struct {
 #define ADDR_SER_INTERVAL   ADDR_SER_DEBUG     + SER_DEBUG_LEN
 #define ADDR_NEXT           ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
 
-#define ADDR_SETTINGS_CRC   950
+// #define ADDR_SETTINGS_CRC   950
+#define ADDR_SETTINGS_CRC   ADDR_NEXT          + CRC_LEN
 
 #if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
-#error address overlap!
+#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")" 
+#endif
+
+#if(ADDR_SETTINGS_CRC >= 4096 - CRC_LEN)
+#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")" 
+#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")" 
 #endif
 
 #endif /*__DEFINES_H__*/
