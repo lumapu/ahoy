@@ -11,7 +11,11 @@
 #include "hmRadio.h"
 #endif
 
-
+#ifdef DEBUG_HMSYSTEM
+#define DBGHMS(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#else
+#define DBGHMS(x...) do { (void)0; } while (0)
+#endif 
 
 template <class RADIO, class BUFFER, uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
@@ -29,12 +33,12 @@ class HmSystem {
         }
 
         void setup() {
-            DPRINTLN(F("hmSystem.h:setup"));
+            DBGHMS(F("hmSystem.h:setup"));
             Radio.setup(&BufCtrl);
         }
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
-            DPRINTLN(F("hmSystem.h:addInverter"));
+            DBGHMS(F("hmSystem.h:addInverter"));
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT(F("max number of inverters reached!"));
                 return NULL;
@@ -71,7 +75,7 @@ class HmSystem {
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {
-            //DPRINTLN(F("hmSystem.h:findInverter"));
+            //DBGHMS(F("hmSystem.h:findInverter"));
             INVERTERTYPE *p;
             for(uint8_t i = 0; i < mNumInv; i++) {
                 p = &mInverter[i];
@@ -85,7 +89,7 @@ class HmSystem {
         }
 
         INVERTERTYPE *getInverterByPos(uint8_t pos) {
-            //DPRINTLN(F("hmSystem.h:getInverterByPos"));
+            //DBGHMS(F("hmSystem.h:getInverterByPos"));
             if(mInverter[pos].serial.u64 != 0ULL)
                 return &mInverter[pos];
             else
@@ -93,7 +97,7 @@ class HmSystem {
         }
 
         uint8_t getNumInverters(void) {
-            //DPRINTLN(F("hmSystem.h:getNumInverters"));
+            //DBGHMS(F("hmSystem.h:getNumInverters"));
             return mNumInv;
         }
 

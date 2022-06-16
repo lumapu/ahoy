@@ -22,6 +22,12 @@
 #define RX_LOOP_CNT             300
 
 
+#ifdef DEBUG_HMRADIO
+#define DBGHMR(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#else
+#define DBGHMR(x...) do { (void)0; } while (0)
+#endif 
+
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
@@ -54,7 +60,7 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            DPRINTLN(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
+            DBGHMR(F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
             mTxChLst[0] = 40;
             //mTxChIdx = 1;
 
@@ -81,7 +87,7 @@ class HmRadio {
         ~HmRadio() {}
 
         void setup(BUFFER *ctrl) {
-            DPRINTLN(F("hmRadio.h:setup"));
+            DBGHMR(F("hmRadio.h:setup"));
             pinMode(pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
@@ -147,12 +153,12 @@ class HmRadio {
         }
 
         void handleIntr(void) {
-            //DPRINTLN(F("hmRadio.h:handleIntr"));
+            //DBGHMR(F("hmRadio.h:handleIntr"));
             mIrqRcvd = true;
         }
 
         uint8_t getDefaultChannel(void) {
-            //DPRINTLN(F("hmRadio.h:getDefaultChannel"));
+            //DBGHMR(F("hmRadio.h:getDefaultChannel"));
             return mTxChLst[0];
         }
         /*uint8_t getLastChannel(void) {
@@ -166,7 +172,7 @@ class HmRadio {
         }*/
 
         void sendTimePacket(uint64_t invId, uint32_t ts) {
-            //DPRINTLN(F("hmRadio.h:sendTimePacket"));
+            //DBGHMR(F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, 0x15, 0x80, false);
             mTxBuf[10] = 0x0b; // cid
             mTxBuf[11] = 0x00;
@@ -182,7 +188,7 @@ class HmRadio {
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
-            //DPRINTLN(F("hmRadio.h:sendCmdPacket"));
+            //DBGHMR(F("hmRadio.h:sendCmdPacket"));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -195,7 +201,7 @@ class HmRadio {
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
-            //DPRINTLN(F("hmRadio.h:checkPaketCrc"));
+            //DBGHMR(F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -210,8 +216,8 @@ class HmRadio {
         }
 
         bool switchRxCh(uint16_t addLoop = 0) {
-            //DPRINTLN(F("hmRadio.h:switchRxCh"));
-            //DPRINT(F("R"));
+            //DBGHMR(F("hmRadio.h:switchRxCh"));
+            //DBGHMR(F("R"));
 
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
@@ -226,7 +232,7 @@ class HmRadio {
         }
 
         void dumpBuf(const char *info, uint8_t buf[], uint8_t len) {
-            //DPRINTLN(F("hmRadio.h:dumpBuf"));
+            //DBGHMR(F("hmRadio.h:dumpBuf"));
             if(NULL != info)
                 DPRINT(String(info));
             for(uint8_t i = 0; i < len; i++) {
@@ -237,7 +243,7 @@ class HmRadio {
         }
 
         bool isChipConnected(void) {
-            //DPRINTLN(F("hmRadio.h:isChipConnected"));
+            //DBGHMR(F("hmRadio.h:isChipConnected"));
             return mNrf24.isChipConnected();
         }
 
@@ -252,8 +258,8 @@ class HmRadio {
 
     private:
         void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool clear=false) {
-            //DPRINTLN(F("hmRadio.h:sendPacket"));
-            //DPRINTLN("sent packet: #" + String(mSendCnt));
+            //DBGHMR(F("hmRadio.h:sendPacket"));
+            //DBGHMR("sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
             if(mSerialDebug) {
                 DPRINT("Transmit " + String(len) + " | ");

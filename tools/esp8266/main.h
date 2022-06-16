@@ -23,6 +23,11 @@
 #include "crc.h"
 #include "debug.h"
 
+#ifdef DEBUG_HMMAIN
+#define DBGMAIN(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#else
+#define DBGMAIN(x...) do { (void)0; } while (0)
+#endif 
 
 const byte mDnsPort = 53;
 
@@ -46,7 +51,7 @@ class Main {
         virtual void updateCrc(void);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
-            DPRINTLN(F("main.h:buildEEpCrc"));
+            DBGMAIN(F("main.h:buildEEpCrc"));
             uint8_t buf[32];
             uint16_t crc = 0xffff;
             uint8_t len;
@@ -62,16 +67,16 @@ class Main {
         }
 
         bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
-            //DPRINTLN(F("main.h:checkEEpCrc"));
+            //DBGMAIN(F("main.h:checkEEpCrc"));
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
-            //DPRINTLN("CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
+            //DBGMAIN("CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
             return (crcCheck == crcRd);
         }
 
         void eraseSettings(bool all = false) {
-            //DPRINTLN(F("main.h:eraseSettings"));
+            //DBGMAIN(F("main.h:eraseSettings"));
             uint8_t buf[64] = {0};
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
@@ -87,7 +92,7 @@ class Main {
         }
 
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
-            //DPRINT(F("c"));
+            //DBGMAIN(F("c"));
             uint32_t mil = millis();
             if(mil >= *ticker) {
                 *ticker = mil + interval;
@@ -102,7 +107,7 @@ class Main {
         }
 
         void stats(void) {
-            DPRINTLN(F("main.h:stats"));
+            DBGMAIN(F("main.h:stats"));
             uint32_t free;
             uint16_t max;
             uint8_t frag;
