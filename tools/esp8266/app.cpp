@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #include "app.h"
 
 #include "html/h/index_html.h"
@@ -29,6 +34,7 @@ app::app() : Main() {
     memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
     mRxFailed     = 0;
     mRxSuccess    = 0;
+    mFrameCnt     = 0;
     mLastPacketId = 0x00;
 
     mSys = new HmSystemType();
@@ -212,6 +218,7 @@ void app::loop(void) {
                     DPRINT("Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
+                mFrameCnt++;
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
@@ -264,8 +271,6 @@ void app::loop(void) {
                     }
                 }
             }
-            snprintf(val, 10, "%d", ESP.getFreeHeap());
-            mMqtt.sendMsg("free_heap", val);
             snprintf(val, 10, "%d", millis()/1000);
             mMqtt.sendMsg("uptime", val);
         }
@@ -390,9 +395,9 @@ void app::processPayload(bool retransmit) {
             if(!mPayload[iv->id].complete) {
                 if(!buildPayload(iv->id)) {
                     if(mPayload[iv->id].requested) {
-                        if(mPayload[iv->id].retransmits < mMaxRetransPerPyld) {
-                            mPayload[iv->id].retransmits++;
-                            if(retransmit) {
+                        if(retransmit) {
+                            if(mPayload[iv->id].retransmits < mMaxRetransPerPyld) {
+                                mPayload[iv->id].retransmits++;
                                 if(mPayload[iv->id].maxPackId != 0) {
                                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                         if(mPayload[iv->id].len[i] == 0) {
@@ -436,12 +441,13 @@ void app::processPayload(bool retransmit) {
 
                     for(uint8_t i = 0; i < iv->listLen; i++) {
                         iv->addValue(i, payload);
+                        yield();
                     }
                     iv->doCalculations();
                 }
             }
+            yield();
         }
-        yield();
     }
 }
 
@@ -598,9 +604,8 @@ void app::showStatistics(void) {
     //DPRINTLN(F("app::showStatistics"));
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
+    content += F("Frames received: ") + String(mFrameCnt) + "\n";
     content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
-
-    content += F("Free Heap: 0x") + String(ESP.getFreeHeap(), HEX) + "\n\n";
 
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {

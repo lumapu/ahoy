@@ -19,6 +19,11 @@ p {
     font-size: 13pt;
 }
 
+p.lic, p.lic a {
+    font-size: 8pt;
+    color: #999;
+}
+
 .des {
     margin-top: 35px;
     font-size: 13pt;

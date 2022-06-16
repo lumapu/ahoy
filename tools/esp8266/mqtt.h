@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __MQTT_H__
 #define __MQTT_H__
 
@@ -81,11 +86,10 @@ class mqtt {
         void reconnect(void) {
             //DPRINTLN(F("mqtt.h:reconnect"));
             if(!mClient->connected()) {
-                String mqttId = "ESP-" + String(random(0xffff), HEX);
                 if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
-                    mClient->connect(mqttId.c_str(), mUser, mPwd);
+                    mClient->connect(DEF_DEVICE_NAME, mUser, mPwd);
                 else
-                    mClient->connect(mqttId.c_str());
+                    mClient->connect(DEF_DEVICE_NAME);
             }
         }
 

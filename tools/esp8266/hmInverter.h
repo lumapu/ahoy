@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __HM_INVERTER_H__
 #define __HM_INVERTER_H__
 
@@ -8,7 +13,6 @@
  * calculated automatically.
  * A list of functions can be linked to the assignment and will be executed
  * automatically. Their result does not differ from original read values.
- * The special command 0xff (CMDFF) must be used.
  */
 
 // forward declaration of class
@@ -144,6 +148,7 @@ class Inverter {
                 if(CMD_CALC == assign[i].div) {
                     record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
                 }
+                yield();
             }
         }
 

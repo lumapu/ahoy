@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __RADIO_H__
 #define __RADIO_H__
 
@@ -86,11 +91,12 @@ class HmRadio {
 
             mNrf24.setChannel(DEFAULT_RECV_CHANNEL);
             mNrf24.setDataRate(RF24_250KBPS);
-            mNrf24.disableCRC();
+            mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.setAutoAck(false);
             mNrf24.setPayloadSize(MAX_RF_PAYLOAD_SIZE);
             mNrf24.setAddressWidth(5);
             mNrf24.openReadingPipe(1, DTU_RADIO_ID);
+            mNrf24.enableDynamicPayloads();
 
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
@@ -257,31 +263,26 @@ class HmRadio {
             DISABLE_IRQ;
             mNrf24.stopListening();
 
-            if(clear) {
+            if(clear)
                 mRxLoopCnt = RX_LOOP_CNT;
-            }
 
             mTxCh = getDefaultChannel();
             mNrf24.setChannel(mTxCh);
-
             mNrf24.openWritingPipe(invId); // TODO: deprecated
             mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.enableDynamicPayloads();
             mNrf24.setAutoAck(true);
             mNrf24.setRetries(3, 15); // 3*250us and 15 loops -> 11.25ms
-
             mNrf24.write(buf, len);
 
             // Try to avoid zero payload acks (has no effect)
             mNrf24.openWritingPipe(DUMMY_RADIO_ID); // TODO: why dummy radio id?, deprecated
-
+            mRxChIdx = 0;
+            mNrf24.setChannel(mRxChLst[mRxChIdx]);
             mNrf24.setAutoAck(false);
             mNrf24.setRetries(0, 0);
             mNrf24.disableDynamicPayloads();
             mNrf24.setCRCLength(RF24_CRC_DISABLED);
-
-            mRxChIdx = 0;
-            mNrf24.setChannel(mRxChLst[mRxChIdx]);
             mNrf24.startListening();
 
             RESTORE_IRQ;

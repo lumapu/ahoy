@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #ifndef __DEFINES_H__
 #define __DEFINES_H__
 
@@ -16,7 +21,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       4
-#define VERSION_PATCH       17
+#define VERSION_PATCH       18
 
 
 //-------------------------------------

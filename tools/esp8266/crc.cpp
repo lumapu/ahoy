@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+//-----------------------------------------------------------------------------
+
 #include "crc.h"
 
 uint8_t crc8(uint8_t buf[], uint8_t len) {
@@ -7,6 +12,7 @@ uint8_t crc8(uint8_t buf[], uint8_t len) {
         for(uint8_t b = 0; b < 8; b ++) {
             crc = (crc << 1) ^ ((crc & 0x80) ? CRC8_POLY : 0x00);
         }
+        yield();
     }
     return crc;
 }
@@ -21,23 +27,9 @@ uint16_t crc16(uint8_t buf[], uint8_t len, uint16_t start) {
             shift = (crc & 0x0001);
             crc = crc >> 1;
             if(shift != 0)
-                crc = crc ^ 0xA001;
+                crc = crc ^ CRC16_MODBUS_POLYNOM;
         }
+        yield();
     }
-    return crc;
-}
-
-uint16_t crc16nrf24(uint8_t buf[], uint16_t lenBits, uint16_t startBit, uint16_t crcIn) {
-    uint16_t crc = crcIn;
-    uint8_t idx, val = buf[(startBit >> 3)];
-
-    for(uint16_t bit = startBit; bit < lenBits; bit ++) {
-        idx = bit & 0x07;
-        if(0 == idx)
-            val = buf[(bit >> 3)];
-        crc ^= 0x8000 & (val << (8 + idx));
-        crc = (crc & 0x8000) ? ((crc << 1) ^ CRC16_NRF24_POLYNOM) : (crc << 1);
-    }
-
     return crc;
 }
