@@ -26,9 +26,7 @@ Main::Main(void) {
 
     mEep = new eep();
     Serial.begin(115200);
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::Main"));
-#endif
+    DBGMAIN(F("Main::Main"));
 
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
@@ -42,9 +40,7 @@ Main::Main(void) {
 
 //-----------------------------------------------------------------------------
 void Main::setup(uint32_t timeout) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::setup"));
-#endif
+    DBGMAIN(F("Main::setup"));
     bool startAp = mApActive;
     mLimit = timeout;
 
@@ -73,9 +69,7 @@ void Main::setup(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::loop(void) {
-#ifdef DEBUG_HMMAIN
-    //DPRINT(F("M"));
-#endif
+    //DBGMAIN(F("M"));
     if(mApActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
@@ -124,9 +118,7 @@ void Main::loop(void) {
 
 //-----------------------------------------------------------------------------
 bool Main::getConfig(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::getConfig"));
-#endif
+    DBGMAIN(F("Main::getConfig"));
     bool mApActive = false;
 
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
@@ -149,9 +141,7 @@ bool Main::getConfig(void) {
 
 //-----------------------------------------------------------------------------
 void Main::setupAp(const char *ssid, const char *pwd) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::setupAp"));
-#endif
+    DBGMAIN(F("Main::setupAp"));
     IPAddress apIp(192, 168, 1, 1);
 
     DPRINTLN(F("\n---------\nAP MODE\nSSDI: ")
@@ -159,9 +149,7 @@ void Main::setupAp(const char *ssid, const char *pwd) {
         + String(pwd) + F("\nActive for: ")
         + String(WIFI_AP_ACTIVE_TIME) + F(" seconds")
         + F("\n---------\n"));
-#ifdef DEBUG_HMMAIN
-    DPRINTLN("DBG: " + String(mNextTryTs));
-#endif
+    DBGMAIN("DBG: " + String(mNextTryTs));
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -180,9 +168,7 @@ void Main::setupAp(const char *ssid, const char *pwd) {
 
 //-----------------------------------------------------------------------------
 bool Main::setupStation(uint32_t timeout) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::setupStation"));
-#endif
+    DBGMAIN(F("Main::setupStation"));
     int32_t cnt;
     bool startAp = false;
 
@@ -232,9 +218,7 @@ bool Main::setupStation(uint32_t timeout) {
 
 //-----------------------------------------------------------------------------
 void Main::showSetup(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::showSetup"));
-#endif
+    DBGMAIN(F("Main::showSetup"));
     String html = FPSTR(setup_html);
     html.replace(F("{SSID}"), mStationSsid);
     // PWD will be left at the default value (for protection)
@@ -252,9 +236,7 @@ void Main::showSetup(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showCss(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::showCss"));
-#endif
+    DBGMAIN(F("Main::showCss"));
     mWeb->send(200, "text/css", FPSTR(style_css));
 }
 
@@ -270,9 +252,7 @@ void Main::showSave(void) {
 
 //-----------------------------------------------------------------------------
 void Main::saveValues(bool webSend = true) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::saveValues"));
-#endif
+    DBGMAIN(F("Main::saveValues"));
     if(mWeb->args() > 0) {
         if(mWeb->arg("ssid") != "") {
             memset(mStationSsid, 0, SSID_LEN);
@@ -306,9 +286,7 @@ void Main::saveValues(bool webSend = true) {
 
 //-----------------------------------------------------------------------------
 void Main::updateCrc(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::updateCrc"));
-#endif
+    DBGMAIN(F("Main::updateCrc"));
     uint16_t crc;
     crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
     //Serial.println("new CRC: " + String(crc, HEX));
@@ -319,9 +297,7 @@ void Main::updateCrc(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showUptime(void) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::showUptime"));
-#endif
+    //DBGMAIN(F("Main::showUptime"));
     char time[20] = {0};
 
     int upTimeSc = uint32_t((mUptimeSecs) % 60);
@@ -337,18 +313,14 @@ void Main::showUptime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showTime(void) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::showTime"));
-#endif
+    //DBGMAIN(F("Main::showTime"));
     mWeb->send(200, "text/plain", getDateTimeStr(mTimestamp));
 }
 
 
 //-----------------------------------------------------------------------------
 void Main::showNotFound(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::showNotFound - ") + mWeb->uri());
-#endif
+    DBGMAIN(F("Main::showNotFound - ") + mWeb->uri());
     String msg = F("File Not Found\n\nURI: ");
     msg += mWeb->uri();
     msg += F("\nMethod: ");
@@ -367,9 +339,7 @@ void Main::showNotFound(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showReboot(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::showReboot"));
-#endif
+    DBGMAIN(F("Main::showReboot"));
     mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
     delay(1000);
     ESP.restart();
@@ -379,9 +349,7 @@ void Main::showReboot(void) {
 
 //-----------------------------------------------------------------------------
 void Main::showFactoryRst(void) {
-#ifdef DEBUG_HMMAIN
-    DPRINTLN(F("Main::showFactoryRst"));
-#endif
+    DBGMAIN(F("Main::showFactoryRst"));
     String content = "";
     int refresh = 3;
     if(mWeb->args() > 0) {
@@ -410,9 +378,7 @@ void Main::showFactoryRst(void) {
 
 //-----------------------------------------------------------------------------
 time_t Main::getNtpTime(void) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::getNtpTime"));
-#endif
+    //DBGMAIN(F("Main::getNtpTime"));
     time_t date = 0;
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
@@ -450,9 +416,7 @@ time_t Main::getNtpTime(void) {
 
 //-----------------------------------------------------------------------------
 void Main::sendNTPpacket(IPAddress& address) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::sendNTPpacket"));
-#endif
+    //DBGMAIN(F("Main::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};
 
     buf[0] = B11100011; // LI, Version, Mode
@@ -473,9 +437,7 @@ void Main::sendNTPpacket(IPAddress& address) {
 
 //-----------------------------------------------------------------------------
 String Main::getDateTimeStr(time_t t) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::getDateTimeStr"));
-#endif
+    //DBGMAIN(F("Main::getDateTimeStr"));
     char str[20] = {0};
     if(0 == t)
         sprintf(str, "n/a");
@@ -489,9 +451,7 @@ String Main::getDateTimeStr(time_t t) {
 // calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 // from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
 time_t Main::offsetDayLightSaving (uint32_t local_t) {
-#ifdef DEBUG_HMMAIN
-    //DPRINTLN(F("Main::offsetDayLightSaving"));
-#endif
+    //DBGMAIN(F("Main::offsetDayLightSaving"));
     int m = month (local_t);
     if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
     if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep

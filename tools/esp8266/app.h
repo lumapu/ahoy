@@ -11,6 +11,12 @@
 #include "hmSystem.h"
 #include "mqtt.h"
 
+#ifdef DEBUG_APP
+#define DBGAPP(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#else
+#define DBGAPP(x...) do { (void)0; } while (0)
+#endif 
+
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
 typedef Inverter<float> InverterType;
