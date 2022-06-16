@@ -23,10 +23,10 @@
 #include "crc.h"
 #include "debug.h"
 
-#ifdef DEBUG_HMMAIN
-#define DBGMAIN(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#ifdef DEBUG_MAIN
+#define DBGMAIN(f) (DPRINTLN(f))
 #else
-#define DBGMAIN(x...) do { (void)0; } while (0)
+#define DBGMAIN(f)
 #endif 
 
 const byte mDnsPort = 53;

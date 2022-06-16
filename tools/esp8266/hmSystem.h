@@ -12,9 +12,9 @@
 #endif
 
 #ifdef DEBUG_HMSYSTEM
-#define DBGHMS(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#define DBGHMS(f) (DPRINTLN(f))
 #else
-#define DBGHMS(x...) do { (void)0; } while (0)
+#define DBGHMS(f)
 #endif 
 
 template <class RADIO, class BUFFER, uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>

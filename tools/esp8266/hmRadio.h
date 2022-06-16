@@ -23,9 +23,9 @@
 
 
 #ifdef DEBUG_HMRADIO
-#define DBGHMR(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#define DBGHMR(f) (DPRINTLN(f))
 #else
-#define DBGHMR(x...) do { (void)0; } while (0)
+#define DBGHMR(f)
 #endif 
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};

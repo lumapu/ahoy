@@ -9,9 +9,9 @@
 #include "hmDefines.h"
 
 #ifdef DEBUG_HMINVERTER
-#define DBGINV(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#define DBGINV(f) (DPRINTLN(f))
 #else
-#define DBGINV(x...) do { (void)0; } while (0)
+#define DBGINV(f)
 #endif 
 
 /**

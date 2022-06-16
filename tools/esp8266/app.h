@@ -17,9 +17,9 @@
 #include "mqtt.h"
 
 #ifdef DEBUG_APP
-#define DBGAPP(f,...) do { Serial.printf(PSTR(f), ##__VA_ARGS__); } while (0)
+#define DBGAPP(f) (DPRINTLN(f))
 #else
-#define DBGAPP(x...) do { (void)0; } while (0)
+#define DBGAPP(f)
 #endif 
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
