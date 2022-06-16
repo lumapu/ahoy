@@ -82,7 +82,9 @@ class Inverter {
         }
 
         void init(void) {
+#ifdef DEBUG_HMINVERTER
             DPRINTLN(F("hmInverter.h:init"));
+#endif
             getAssignment();
             toRadioId();
             record = new RECORDTYPE[listLen];
@@ -92,7 +94,9 @@ class Inverter {
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getPosByChFld"));
+#endif
             uint8_t pos = 0;
             for(; pos < listLen; pos++) {
                 if((assign[pos].ch == channel) && (assign[pos].fieldId == fieldId))
@@ -102,22 +106,30 @@ class Inverter {
         }
 
         const char *getFieldName(uint8_t pos) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getFieldName"));
+#endif
             return fields[assign[pos].fieldId];
         }
 
         const char *getUnit(uint8_t pos) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getUnit"));
+#endif
             return units[assign[pos].unitId];
         }
 
         uint8_t getChannel(uint8_t pos) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getChannel"));
+#endif
             return assign[pos].ch;
         }
 
         void addValue(uint8_t pos, uint8_t buf[]) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:addValue"));
+#endif
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
             uint16_t div = assign[pos].div;
@@ -134,12 +146,16 @@ class Inverter {
         }
 
         RECORDTYPE getValue(uint8_t pos) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getValue"));
+#endif
             return record[pos];
         }
 
         void doCalculations(void) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:doCalculations"));
+#endif
             for(uint8_t i = 0; i < listLen; i++) {
                 if(CMD_CALC == assign[i].div) {
                     record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
@@ -148,7 +164,9 @@ class Inverter {
         }
 
         bool isAvailable(uint32_t timestamp) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:isAvailable"));
+#endif
             return ((timestamp - ts) < INACT_THRES_SEC);
         }
 
@@ -162,13 +180,17 @@ class Inverter {
         }
 
         uint32_t getLastTs(void) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getLastTs"));
+#endif
             return ts;
         }
 
     private:
         void toRadioId(void) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:toRadioId"));
+#endif
             radioId.u64  = 0ULL;
             radioId.b[4] = serial.b[0];
             radioId.b[3] = serial.b[1];
@@ -178,7 +200,9 @@ class Inverter {
         }
 
         void getAssignment(void) {
+#ifdef DEBUG_HMINVERTER
             //DPRINTLN(F("hmInverter.h:getAssignment"));
+#endif
             if(INV_TYPE_1CH == type) {
                 listLen  = (uint8_t)(HM1CH_LIST_LEN);
                 assign   = (byteAssign_t*)hm1chAssignment;
@@ -211,7 +235,9 @@ class Inverter {
 
 template<class T=float>
 static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcYieldTotalCh0"));
+#endif
     if(NULL != iv) {
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -225,7 +251,9 @@ static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcYieldDayCh0"));
+#endif
     if(NULL != iv) {
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -239,7 +267,9 @@ static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcUdcCh"));
+#endif
     // arg0 = channel of source
     for(uint8_t i = 0; i < iv->listLen; i++) {
         if((FLD_UDC == iv->assign[i].fieldId) && (arg0 == iv->assign[i].ch)) {
@@ -252,7 +282,9 @@ static T calcUdcCh(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcPowerDcCh0"));
+#endif
     if(NULL != iv) {
         T dcPower = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
@@ -266,7 +298,9 @@ static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcEfficiencyCh0"));
+#endif
     if(NULL != iv) {
         uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC);
         T acPower = iv->getValue(pos);
@@ -283,7 +317,9 @@ static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
 
 template<class T=float>
 static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
+#ifdef DEBUG_HMINVERTER
     //DPRINTLN(F("hmInverter.h:calcIrradiation"));
+#endif
     // arg0 = channel
     if(NULL != iv) {
         uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC);

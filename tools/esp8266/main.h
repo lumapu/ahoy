@@ -41,7 +41,9 @@ class Main {
         virtual void updateCrc(void);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
+#ifdef DEBUG_HMMAIN
             DPRINTLN(F("main.h:buildEEpCrc"));
+#endif
             uint8_t buf[32];
             uint16_t crc = 0xffff;
             uint8_t len;
@@ -57,16 +59,22 @@ class Main {
         }
 
         bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
+#ifdef DEBUG_HMMAIN
             //DPRINTLN(F("main.h:checkEEpCrc"));
+#endif
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
+#ifdef DEBUG_HMMAIN
             //DPRINTLN("CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
+#endif
             return (crcCheck == crcRd);
         }
 
         void eraseSettings(bool all = false) {
+#ifdef DEBUG_HMMAIN
             //DPRINTLN(F("main.h:eraseSettings"));
+#endif
             uint8_t buf[64] = {0};
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
@@ -82,7 +90,9 @@ class Main {
         }
 
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
+#ifdef DEBUG_HMMAIN
             //DPRINT(F("c"));
+#endif
             uint32_t mil = millis();
             if(mil >= *ticker) {
                 *ticker = mil + interval;
@@ -97,7 +107,9 @@ class Main {
         }
 
         void stats(void) {
+#ifdef DEBUG_HMMAIN
             DPRINTLN(F("main.h:stats"));
+#endif
             uint32_t free;
             uint16_t max;
             uint8_t frag;

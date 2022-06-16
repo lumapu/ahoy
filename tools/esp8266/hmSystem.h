@@ -24,12 +24,16 @@ class HmSystem {
         }
 
         void setup() {
+#ifdef DEBUG_HMSYSTEM
             DPRINTLN(F("hmSystem.h:setup"));
+#endif
             Radio.setup(&BufCtrl);
         }
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
+#ifdef DEBUG_HMSYSTEM
             DPRINTLN(F("hmSystem.h:addInverter"));
+#endif
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT(F("max number of inverters reached!"));
                 return NULL;
@@ -66,7 +70,9 @@ class HmSystem {
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {
+#ifdef DEBUG_HMSYSTEM
             //DPRINTLN(F("hmSystem.h:findInverter"));
+#endif
             INVERTERTYPE *p;
             for(uint8_t i = 0; i < mNumInv; i++) {
                 p = &mInverter[i];
@@ -80,7 +86,9 @@ class HmSystem {
         }
 
         INVERTERTYPE *getInverterByPos(uint8_t pos) {
+#ifdef DEBUG_HMSYSTEM
             //DPRINTLN(F("hmSystem.h:getInverterByPos"));
+#endif
             if(mInverter[pos].serial.u64 != 0ULL)
                 return &mInverter[pos];
             else
@@ -88,7 +96,9 @@ class HmSystem {
         }
 
         uint8_t getNumInverters(void) {
+#ifdef DEBUG_HMSYSTEM
             //DPRINTLN(F("hmSystem.h:getNumInverters"));
+#endif
             return mNumInv;
         }
 
