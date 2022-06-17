@@ -23,11 +23,6 @@
 #include "crc.h"
 #include "debug.h"
 
-#ifdef DEBUG_MAIN
-#define DBGMAIN(f) (DPRINTLN(f))
-#else
-#define DBGMAIN(f)
-#endif 
 
 const byte mDnsPort = 53;
 
@@ -51,7 +46,7 @@ class Main {
         virtual void updateCrc(void);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
-            DBGMAIN(F("main.h:buildEEpCrc"));
+            DPRINTLN(DBG_VERBOSE, F("main.h:buildEEpCrc"));
             uint8_t buf[32];
             uint16_t crc = 0xffff;
             uint8_t len;
@@ -67,16 +62,17 @@ class Main {
         }
 
         bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
-            //DBGMAIN(F("main.h:checkEEpCrc"));
+            DPRINTLN(DBG_VERBOSE, F("main.h:checkEEpCrc"));
+            DPRINTLN(DBG_DEBUG, F("start: ") + String(start) + F(", length: ") + String(length));
             uint16_t crcRd, crcCheck;
             crcCheck = buildEEpCrc(start, length);
             mEep->read(crcPos, &crcRd);
-            //DBGMAIN("CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
+            DPRINTLN(DBG_DEBUG, "CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
             return (crcCheck == crcRd);
         }
 
         void eraseSettings(bool all = false) {
-            //DBGMAIN(F("main.h:eraseSettings"));
+            //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
             uint8_t buf[64] = {0};
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
@@ -84,7 +80,7 @@ class Main {
                 end = addr + 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))
                     end = (ADDR_SETTINGS_CRC + 2);
-                DPRINTLN(F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
+                DPRINTLN(DBG_DEBUG, F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
                 mEep->write(addr, buf, (end-addr));
                 addr = end;
             } while(addr < (ADDR_SETTINGS_CRC + 2));
@@ -92,7 +88,7 @@ class Main {
         }
 
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
-            //DBGMAIN(F("c"));
+            //DPRINTLN(DBG_VERBOSE, F("c"));
             uint32_t mil = millis();
             if(mil >= *ticker) {
                 *ticker = mil + interval;
@@ -107,7 +103,7 @@ class Main {
         }
 
         void stats(void) {
-            DBGMAIN(F("main.h:stats"));
+            DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
             uint32_t free;
             uint16_t max;
             uint8_t frag;

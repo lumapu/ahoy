@@ -11,11 +11,6 @@
 #include "hmRadio.h"
 #endif
 
-#ifdef DEBUG_HMSYSTEM
-#define DBGHMS(f) (DPRINTLN(f))
-#else
-#define DBGHMS(f)
-#endif 
 
 template <class RADIO, class BUFFER, uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
@@ -33,39 +28,39 @@ class HmSystem {
         }
 
         void setup() {
-            DBGHMS(F("hmSystem.h:setup"));
+            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:setup"));
             Radio.setup(&BufCtrl);
         }
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
-            DBGHMS(F("hmSystem.h:addInverter"));
+            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:addInverter"));
             if(MAX_INVERTER <= mNumInv) {
-                DPRINT(F("max number of inverters reached!"));
+                DPRINT(DBG_WARN, F("max number of inverters reached!"));
                 return NULL;
             }
             INVERTERTYPE *p = &mInverter[mNumInv];
             p->id         = mNumInv;
             p->serial.u64 = serial;
             memcpy(p->chMaxPwr, chMaxPwr, (4*2));
-            //DPRINT("SERIAL: " + String(p->serial.b[5], HEX));
-            //DPRINTLN(" " + String(p->serial.b[4], HEX));
+            DPRINT(DBG_VERBOSE, "SERIAL: " + String(p->serial.b[5], HEX));
+            DPRINTLN(DBG_VERBOSE, " " + String(p->serial.b[4], HEX));
             if(p->serial.b[5] == 0x11) {
                 switch(p->serial.b[4]) {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x41: p->type = INV_TYPE_2CH; break;
                     case 0x61: p->type = INV_TYPE_4CH; break;
-                    default: DPRINTLN(F("unknown inverter type: 11") + String(p->serial.b[4], HEX)); break;
+                    default: DPRINTLN(DBG_ERROR, F("unknown inverter type: 11") + String(p->serial.b[4], HEX)); break;
                 }
             }
             else
-                DPRINTLN(F("inverter type can't be detected!"));
+                DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
 
             p->init();
             uint8_t len   = (uint8_t)strlen(name);
             strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
 
             if(NULL == p->assign) {
-                DPRINT(F("no assignment for type found!"));
+                DPRINT(DBG_ERROR, F("no assignment for type found!"));
                 return NULL;
             }
             else {
@@ -75,7 +70,7 @@ class HmSystem {
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {
-            //DBGHMS(F("hmSystem.h:findInverter"));
+            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:findInverter"));
             INVERTERTYPE *p;
             for(uint8_t i = 0; i < mNumInv; i++) {
                 p = &mInverter[i];
@@ -89,7 +84,7 @@ class HmSystem {
         }
 
         INVERTERTYPE *getInverterByPos(uint8_t pos) {
-            //DBGHMS(F("hmSystem.h:getInverterByPos"));
+            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(mInverter[pos].serial.u64 != 0ULL)
                 return &mInverter[pos];
             else
@@ -97,7 +92,7 @@ class HmSystem {
         }
 
         uint8_t getNumInverters(void) {
-            //DBGHMS(F("hmSystem.h:getNumInverters"));
+            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getNumInverters"));
             return mNumInv;
         }
 

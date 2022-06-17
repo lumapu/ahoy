@@ -21,7 +21,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       4
-#define VERSION_PATCH       18
+#define VERSION_PATCH       19
 
 
 //-------------------------------------
@@ -93,7 +93,7 @@ typedef struct {
 #define ADDR_NEXT           ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
 
 // #define ADDR_SETTINGS_CRC   950
-#define ADDR_SETTINGS_CRC   ADDR_NEXT          + CRC_LEN
+#define ADDR_SETTINGS_CRC   ADDR_NEXT + 2
 
 #if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
 #pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")" 

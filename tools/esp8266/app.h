@@ -16,11 +16,6 @@
 #include "hmSystem.h"
 #include "mqtt.h"
 
-#ifdef DEBUG_APP
-#define DBGAPP(f) (DPRINTLN(f))
-#else
-#define DBGAPP(f)
-#endif 
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
