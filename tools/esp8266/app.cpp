@@ -636,6 +636,9 @@ void app::showStatistics(void) {
                     content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
             }
         }
+        else {
+            content += F("Inverter ") + String(i) + F(" not (correctly) configured\n");
+        }
     }
 
     if(!mSys->Radio.isChipConnected())

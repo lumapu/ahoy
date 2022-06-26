@@ -12,6 +12,10 @@ This code can be compiled using Arduino. The settings were:
 
 - Board: Generic ESP8266 Module
 - Flash-Size: 1MB (FS: none, OTA: 502kB)
+- Install libraries (not included in the Arduino IDE 1.8.19):
+  - Time            Arduino Time library (TimeLib.h)
+  - RF24            Optimized high speed nRF24L01+ driver class documentation
+  - PubSubClient    A client library for MQTT messaging. By Nick O'Leary
 
 ### Optional Configuration before compilation
 
