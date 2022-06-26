@@ -65,4 +65,3 @@ For now the following inverters should work out of the box:
 - `Time` 1.6.1
 - `RF24` 1.4.2
 - `PubSubClient` 2.8
-

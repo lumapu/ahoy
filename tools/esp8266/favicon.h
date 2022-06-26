@@ -5,7 +5,7 @@
 
 
 // a) https://www.favicon-generator.org/
-// b) exiftool -all:all= -r 
+// b) exiftool -all:all= -r
 // c) hexlify.py:
 //    import sys
 //    f = open (sys.argv[1], 'rb').read()

@@ -62,7 +62,7 @@ void app::setup(uint32_t timeout) {
     mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
     mWeb->on("/json",        std::bind(&app::showJSON,       this));
-    
+
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
         if(mSendInterval < 5)
@@ -753,7 +753,7 @@ void app::showLiveData(void) {
             modHtml += F("</pre>");
 #endif
         }
-    }    
+    }
     mWeb->send(200, F("text/html"), modHtml);
 }
 
