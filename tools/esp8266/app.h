@@ -60,6 +60,7 @@ class app : public Main {
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
 
+        void showFavicon(void);
         void showIndex(void);
         void showSetup(void);
         void showSave(void);

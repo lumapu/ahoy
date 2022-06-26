@@ -5,6 +5,7 @@
 
 #include "app.h"
 
+#include "favicon.h"
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
@@ -53,6 +54,7 @@ void app::setup(uint32_t timeout) {
     Main::setup(timeout);
 
     mWeb->on("/",            std::bind(&app::showIndex,      this));
+    mWeb->on("/favicon.ico", std::bind(&app::showFavicon,    this));
     mWeb->on("/setup",       std::bind(&app::showSetup,      this));
     mWeb->on("/save",        std::bind(&app::showSave,       this));
     mWeb->on("/erase",       std::bind(&app::showErase,      this));
@@ -668,6 +670,15 @@ void app::showHoymiles(void) {
     html.replace(F("{TS}"), String(mSendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
     mWeb->send(200, F("text/html"), html);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showFavicon(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::showFavicon"));
+    static const char favicon_type[] PROGMEM = "image/x-icon";
+    static const char favicon_content[] PROGMEM = FAVICON_PANEL_16;
+    mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
 }
 
 
