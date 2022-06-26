@@ -52,14 +52,15 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",          std::bind(&app::showIndex,      this));
-    mWeb->on("/setup",     std::bind(&app::showSetup,      this));
-    mWeb->on("/save",      std::bind(&app::showSave,       this));
-    mWeb->on("/erase",     std::bind(&app::showErase,      this));
-    mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
-    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
-    mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
-
+    mWeb->on("/",            std::bind(&app::showIndex,      this));
+    mWeb->on("/setup",       std::bind(&app::showSetup,      this));
+    mWeb->on("/save",        std::bind(&app::showSave,       this));
+    mWeb->on("/erase",       std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",     std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
+    mWeb->on("/json",        std::bind(&app::showJSON,       this));
+    
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
         if(mSendInterval < 5)
@@ -738,10 +739,35 @@ void app::showLiveData(void) {
             modHtml += F("</pre>");
 #endif
         }
-    }
-
-
+    }    
     mWeb->send(200, F("text/html"), modHtml);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showJSON(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::showJSON"));
+    String modJson;
+
+    modJson = F("{\n");
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            char topic[40], val[25];
+            snprintf(topic, 30, "\"%s\": {\n", iv->name);
+            modJson += String(topic);
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
+                snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
+                modJson += String(topic) + ": " + String(val) + F(",\n");
+            }
+            modJson += F("\t\"last_msg\": \"") + getDateTimeStr(iv->ts) + F("\"\n\t},\n");
+        }
+    }
+    modJson += F("\"json_ts\": \"") + String(getDateTimeStr(mTimestamp)) + F("\"\n}\n");
+
+    // mWeb->send(200, F("text/json"), modJson);
+    mWeb->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
 }
 
 

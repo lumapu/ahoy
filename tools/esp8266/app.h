@@ -67,6 +67,8 @@ class app : public Main {
         void showStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
+        void showJSON(void);
+        
 
         void saveValues(bool webSend);
         void updateCrc(void);

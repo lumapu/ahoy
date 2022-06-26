@@ -10,6 +10,8 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 build
+tools/esp8266/tmp
+tools/esp8266/binaries
 /**/Debug
 /**/v16/*
 *.db
