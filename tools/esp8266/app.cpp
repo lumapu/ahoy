@@ -99,6 +99,11 @@ void app::setup(uint32_t timeout) {
         mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
         mEep->read(ADDR_PINOUT+1, &mSys->Radio.pinCe);
         mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
+        if(mSys->Radio.pinCs == mSys->Radio.pinCe) {
+            mSys->Radio.pinCs  = RF24_CS_PIN;
+            mSys->Radio.pinCe  = RF24_CE_PIN;
+            mSys->Radio.pinIrq = RF24_IRQ_PIN;
+        }
 
 
         // nrf24 amplifier power
@@ -186,7 +191,10 @@ void app::setup(uint32_t timeout) {
         DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
         DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
         DPRINT(DBG_INFO, F("\npoint your browser to http://"));
-        DBGPRINTLN(WiFi.localIP());
+        if(mApActive)
+            DBGPRINTLN(F("192.168.1.1"));
+        else
+            DBGPRINTLN(WiFi.localIP());
         DPRINTLN(DBG_INFO, F("to configure your device"));
         DPRINTLN(DBG_INFO, F("----------------------------------------\n"));
     }

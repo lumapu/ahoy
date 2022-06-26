@@ -63,8 +63,6 @@ void Main::setup(uint32_t timeout) {
 #ifndef AP_ONLY
     if(false == startAp)
         startAp = setupStation(timeout);
-#else
-    setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
 #endif
 
     mUpdater->setup(mWeb);
@@ -79,11 +77,12 @@ void Main::loop(void) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
         if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            mApLastTick = millis();
             mApActive = setupStation(mLimit);
             if(mApActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
                     DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
+                mApLastTick = millis();
+                mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
             }
         }
@@ -134,7 +133,8 @@ bool Main::getConfig(void) {
         mEep->read(ADDR_PWD,     mStationPwd, PWD_LEN);
         mEep->read(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
     }
-    else {
+
+    if((!mWifiSettingsValid) || (mStationSsid[0] == 0xff)) {
         snprintf(mStationSsid, SSID_LEN,    "%s", FB_WIFI_SSID);
         snprintf(mStationPwd,  PWD_LEN,     "%s", FB_WIFI_PWD);
         snprintf(mDeviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
