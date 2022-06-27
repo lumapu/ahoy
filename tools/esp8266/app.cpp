@@ -5,6 +5,7 @@
 
 #include "app.h"
 
+#include "favicon.h"
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
@@ -52,13 +53,15 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",          std::bind(&app::showIndex,      this));
-    mWeb->on("/setup",     std::bind(&app::showSetup,      this));
-    mWeb->on("/save",      std::bind(&app::showSave,       this));
-    mWeb->on("/erase",     std::bind(&app::showErase,      this));
-    mWeb->on("/cmdstat",   std::bind(&app::showStatistics, this));
-    mWeb->on("/hoymiles",  std::bind(&app::showHoymiles,   this));
-    mWeb->on("/livedata",  std::bind(&app::showLiveData,   this));
+    mWeb->on("/",            std::bind(&app::showIndex,      this));
+    mWeb->on("/favicon.ico", std::bind(&app::showFavicon,    this));
+    mWeb->on("/setup",       std::bind(&app::showSetup,      this));
+    mWeb->on("/save",        std::bind(&app::showSave,       this));
+    mWeb->on("/erase",       std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",     std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
+    mWeb->on("/json",        std::bind(&app::showJSON,       this));
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
@@ -635,6 +638,9 @@ void app::showStatistics(void) {
                     content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
             }
         }
+        else {
+            content += F("Inverter ") + String(i) + F(" not (correctly) configured\n");
+        }
     }
 
     if(!mSys->Radio.isChipConnected())
@@ -664,6 +670,15 @@ void app::showHoymiles(void) {
     html.replace(F("{TS}"), String(mSendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
     mWeb->send(200, F("text/html"), html);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showFavicon(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::showFavicon"));
+    static const char favicon_type[] PROGMEM = "image/x-icon";
+    static const char favicon_content[] PROGMEM = FAVICON_PANEL_16;
+    mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
 }
 
 
@@ -739,9 +754,34 @@ void app::showLiveData(void) {
 #endif
         }
     }
-
-
     mWeb->send(200, F("text/html"), modHtml);
+}
+
+
+//-----------------------------------------------------------------------------
+void app::showJSON(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::showJSON"));
+    String modJson;
+
+    modJson = F("{\n");
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            char topic[40], val[25];
+            snprintf(topic, 30, "\"%s\": {\n", iv->name);
+            modJson += String(topic);
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
+                snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
+                modJson += String(topic) + ": " + String(val) + F(",\n");
+            }
+            modJson += F("\t\"last_msg\": \"") + getDateTimeStr(iv->ts) + F("\"\n\t},\n");
+        }
+    }
+    modJson += F("\"json_ts\": \"") + String(getDateTimeStr(mTimestamp)) + F("\"\n}\n");
+
+    // mWeb->send(200, F("text/json"), modJson);
+    mWeb->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
 }
 
 

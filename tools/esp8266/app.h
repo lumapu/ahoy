@@ -60,6 +60,7 @@ class app : public Main {
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
 
+        void showFavicon(void);
         void showIndex(void);
         void showSetup(void);
         void showSave(void);
@@ -67,6 +68,8 @@ class app : public Main {
         void showStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
+        void showJSON(void);
+
 
         void saveValues(bool webSend);
         void updateCrc(void);
