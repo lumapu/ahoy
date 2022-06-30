@@ -263,8 +263,7 @@ class InverterPacketFragment:
         c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
         size = len(self.frame)
         channel = f' channel {self.ch_rx}' if self.ch_rx else ''
-        raw = " ".join([f"{b:02x}" for b in self.frame])
-        return f"{c_datetime} Received {size} bytes{channel}: {raw}"
+        return f"{c_datetime} Received {size} bytes{channel}: {hexify_payload(self.frame)}"
 
 class HoymilesNRF:
     """Hoymiles NRF24 Interface"""
