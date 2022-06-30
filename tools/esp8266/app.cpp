@@ -283,7 +283,7 @@ void app::loop(void) {
                     }
                 }
             }
-            snprintf(val, 10, "%d", millis()/1000);
+            snprintf(val, 10, "%ld", millis()/1000);
             mMqtt.sendMsg("uptime", val);
         }
 
@@ -480,8 +480,6 @@ void app::showSetup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
     // overrides same method in main.cpp
 
-    uint16_t interval;
-
     String html = FPSTR(setup_html);
     html.replace(F("{SSID}"), mStationSsid);
     // PWD will be left at the default value (for protection)
@@ -497,7 +495,6 @@ void app::showSetup(void) {
     String inv;
     uint64_t invSerial;
     char name[MAX_NAME_LENGTH + 1] = {0};
-    uint8_t invType;
     uint16_t modPwr[4];
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
@@ -802,7 +799,7 @@ void app::saveValues(bool webSend = true) {
             // address
             mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
             if(strlen(buf) == 0)
-                snprintf(buf, 20, "\0");
+                memset(buf, 0, 20);
             addr.u64 = Serial2u64(buf);
             mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 

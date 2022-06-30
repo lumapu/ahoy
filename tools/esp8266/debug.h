@@ -6,7 +6,6 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
-
 //-----------------------------------------------------------------------------
 // available levels
 #define DBG_ERROR       1
@@ -20,40 +19,44 @@
 // globally used level
 #define DEBUG_LEVEL DBG_INFO
 
-
+#ifdef ARDUINO
+  #include "Arduino.h"
+#endif
 
 #ifdef NDEBUG
     #define DBGPRINT(str)
     #define DBGPRINTLN(str)
 #else
-    #ifndef DSERIAL
-    #define DSERIAL Serial
-    #endif
+    #ifdef ARDUINO
+        #ifndef DSERIAL
+        #define DSERIAL Serial
+        #endif
 
-    template <class T>
-    inline void DBGPRINT(T str) { DSERIAL.print(str); }
-    template <class T>
-    inline void DBGPRINTLN(T str) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
-    inline void DHEX(uint8_t b) {
-        if( b<0x10 ) DSERIAL.print('0');
-        DSERIAL.print(b,HEX);
-    }
-    inline void DHEX(uint16_t b) {
-        if( b<0x10 ) DSERIAL.print(F("000"));
-        else if( b<0x100 ) DSERIAL.print(F("00"));
-        else if( b<0x1000 ) DSERIAL.print(F("0"));
-        DSERIAL.print(b,HEX);
-    }
-    inline void DHEX(uint32_t b) {
-        if( b<0x10 ) DSERIAL.print(F("0000000"));
-        else if( b<0x100 ) DSERIAL.print(F("000000"));
-        else if( b<0x1000 ) DSERIAL.print(F("00000"));
-        else if( b<0x10000 ) DSERIAL.print(F("0000"));
-        else if( b<0x100000 ) DSERIAL.print(F("000"));
-        else if( b<0x1000000 ) DSERIAL.print(F("00"));
-        else if( b<0x10000000 ) DSERIAL.print(F("0"));
-        DSERIAL.print(b,HEX);
-    }
+        template <class T>
+        inline void DBGPRINT(T str) { DSERIAL.print(str); }
+        template <class T>
+        inline void DBGPRINTLN(T str) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
+        inline void DHEX(uint8_t b) {
+            if( b<0x10 ) DSERIAL.print('0');
+            DSERIAL.print(b,HEX);
+        }
+        inline void DHEX(uint16_t b) {
+            if( b<0x10 ) DSERIAL.print(F("000"));
+            else if( b<0x100 ) DSERIAL.print(F("00"));
+            else if( b<0x1000 ) DSERIAL.print(F("0"));
+            DSERIAL.print(b,HEX);
+        }
+        inline void DHEX(uint32_t b) {
+            if( b<0x10 ) DSERIAL.print(F("0000000"));
+            else if( b<0x100 ) DSERIAL.print(F("000000"));
+            else if( b<0x1000 ) DSERIAL.print(F("00000"));
+            else if( b<0x10000 ) DSERIAL.print(F("0000"));
+            else if( b<0x100000 ) DSERIAL.print(F("000"));
+            else if( b<0x1000000 ) DSERIAL.print(F("00"));
+            else if( b<0x10000000 ) DSERIAL.print(F("0"));
+            DSERIAL.print(b,HEX);
+        }
+    #endif
 #endif
 
 
