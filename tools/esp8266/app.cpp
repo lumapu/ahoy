@@ -84,8 +84,7 @@ void app::setup(uint32_t timeout) {
                     DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX));
 
                     for(uint8_t j = 0; j < 4; j++) {
-                        mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, name, MAX_NAME_LENGTH);
-                        snprintf(iv->chName[j], MAX_NAME_LENGTH, "%s", name);
+                        mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
                     }
                 }
 
@@ -375,7 +374,7 @@ void app::handleIntr(void) {
 //-----------------------------------------------------------------------------
 bool app::buildPayload(uint8_t id) {
     DPRINTLN(DBG_VERBOSE, F("app::buildPayload"));
-    uint16_t crc = 0xffff, crcRcv;
+    uint16_t crc = 0xffff, crcRcv = 0x0000;
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
 

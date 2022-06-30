@@ -6,11 +6,11 @@
 #ifndef __APP_H__
 #define __APP_H__
 
+#include "main.h"
 #include <RF24.h>
 #include <RF24_config.h>
 
 #include "defines.h"
-#include "main.h"
 
 #include "CircularBuffer.h"
 #include "hmSystem.h"

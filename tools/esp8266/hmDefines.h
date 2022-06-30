@@ -6,7 +6,7 @@
 #ifndef __HM_DEFINES_H__
 #define __HM_DEFINES_H__
 
-#include "debug.h"
+#include "dbg.h"
 #include <cstdint>
 
 

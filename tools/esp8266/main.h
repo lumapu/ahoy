@@ -6,6 +6,7 @@
 #ifndef __MAIN_H__
 #define __MAIN_H__
 
+#include "dbg.h"
 #include "Arduino.h"
 
 #include <ESP8266WiFi.h>
@@ -21,7 +22,6 @@
 #include "eep.h"
 #include "defines.h"
 #include "crc.h"
-#include "debug.h"
 
 
 const byte mDnsPort = 53;
@@ -108,8 +108,9 @@ class Main {
             uint16_t max;
             uint8_t frag;
             ESP.getHeapStats(&free, &max, &frag);
-
-            Serial.printf("free: 0x%x - max: 0x%x - frag: %d%%\n", free, max, frag);
+            DPRINT(DBG_VERBOSE, F("free: ") + String(free));
+            DPRINT(DBG_VERBOSE, F(" - max: ") + String(max) + "%");
+            DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
         char mStationSsid[SSID_LEN];

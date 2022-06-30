@@ -21,9 +21,7 @@ class mqtt {
             memset(mTopic, 0, MQTT_TOPIC_LEN);
         }
 
-        ~mqtt() {
-            delete mClient;
-        }
+        ~mqtt() { }
 
         void setup(const char *broker, const char *topic, const char *user, const char *pwd, uint16_t port) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));

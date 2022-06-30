@@ -3,18 +3,17 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#include "Arduino.h"
-
-#include <ESP8266WiFi.h>
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
-#include <Ticker.h>
-
-#include <ESP8266HTTPUpdateServer.h>
+#include "dbg.h"
 #include "app.h"
 #include "config.h"
 
 app myApp;
+
+//-----------------------------------------------------------------------------
+IRAM_ATTR void handleIntr(void) {
+    myApp.handleIntr();
+}
+
 
 //-----------------------------------------------------------------------------
 void setup() {
@@ -28,10 +27,4 @@ void setup() {
 //-----------------------------------------------------------------------------
 void loop() {
     myApp.loop();
-}
-
-
-//-----------------------------------------------------------------------------
-ICACHE_RAM_ATTR void handleIntr(void) {
-    myApp.handleIntr();
 }
