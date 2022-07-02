@@ -154,7 +154,7 @@ void app::setup(uint32_t timeout) {
 
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
-
+        
         mSerialTicker = 0;
 
         if(mqttAddr[0] > 0) {
@@ -284,6 +284,7 @@ void app::loop(void) {
                 }
             }
             snprintf(val, 10, "%d", millis()/1000);
+            sendMqttDiscoveryConfig();
             mMqtt.sendMsg("uptime", val);
         }
 
@@ -903,4 +904,62 @@ void app::updateCrc(void) {
     crc = buildEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)));
     DPRINTLN(DBG_DEBUG, F("new CRC: ") + String(crc, HEX));
     mEep->write(ADDR_SETTINGS_CRC, crc);
+}
+
+void app::sendMqttDiscoveryConfig(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
+
+    char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            if(iv->isAvailable(mTimestamp) && mMqttConfigSendState[id] != true) {
+                DynamicJsonDocument deviceDoc(128);
+                deviceDoc["name"] = iv->name;
+                deviceDoc["ids"] = String(iv->serial.u64, HEX);
+                deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
+                JsonObject deviceObj = deviceDoc.as<JsonObject>();
+                DynamicJsonDocument doc(384);
+
+                for(uint8_t i = 0; i < iv->listLen; i++) {
+                    if (iv->assign[i].ch == CH0) {
+                        snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i));
+                    } else {
+                        snprintf(name, 32, "%s CH%d %s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                    }
+                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mMqtt.getTopic(), iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                    snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                    snprintf(uniq_id, 32, "ch%d_%s", iv->assign[i].ch, iv->getFieldName(i));
+                    const char* devCls = getFieldDeviceClass(iv->assign[i].fieldId);
+
+                    doc["name"] = name;
+                    doc["stat_t"]  = stateTopic;
+                    doc["unit_of_meas"] = iv->getUnit(i);
+                    doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
+                    doc["dev"] = deviceObj;
+                    doc["exp_aft"] = mMqttInterval;
+                    if (devCls != NULL) {
+                        doc["dev_cla"] = devCls;
+                    }
+
+                    serializeJson(doc, buffer);
+                    mMqtt.sendMsg2(discoveryTopic, buffer);
+                    doc.clear();
+
+                    yield();
+                }
+
+                mMqttConfigSendState[id] = true;
+            }
+        }
+    }
+}
+
+const char* app::getFieldDeviceClass(uint8_t fieldId) {
+    uint8_t pos = 0;
+    for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+        if(deviceFieldAssignment[pos].fieldId == fieldId)
+            break;
+    }
+    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
 }

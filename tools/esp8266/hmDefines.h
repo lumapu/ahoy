@@ -27,6 +27,29 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Effiency", "Irradiation"};
 
+// mqtt discovery device classes
+enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
+const char* const deviceClasses[] = {0, "current", "energy", "power", "voltage", "frequency", "temperature"};
+typedef struct {
+    uint8_t    fieldId; // field id
+    uint8_t    deviceClsId;  // device class
+} byteAssign_fieldDeviceClass;
+const byteAssign_fieldDeviceClass deviceFieldAssignment[] = {
+    {FLD_UDC, DEVICE_CLS_VOLTAGE},
+    {FLD_IDC, DEVICE_CLS_CURRENT},
+    {FLD_PDC, DEVICE_CLS_PWR},
+    {FLD_YD, DEVICE_CLS_ENERGY},
+    {FLD_YW, DEVICE_CLS_ENERGY},
+    {FLD_YT, DEVICE_CLS_ENERGY},
+    {FLD_UAC, DEVICE_CLS_VOLTAGE},
+    {FLD_IAC, DEVICE_CLS_CURRENT},
+    {FLD_PAC, DEVICE_CLS_PWR},
+    {FLD_F, DEVICE_CLS_FREQ},
+    {FLD_T, DEVICE_CLS_TEMP},
+    {FLD_EFF, DEVICE_CLS_NONE},
+    {FLD_IRR, DEVICE_CLS_NONE}
+};
+#define DEVICE_CLS_ASSIGN_LIST_LEN     (sizeof(deviceFieldAssignment) / sizeof(byteAssign_fieldDeviceClass))
 
 // indices to calculation functions, defined in hmInverter.h
 enum {CALC_YT_CH0 = 0, CALC_YD_CH0, CALC_UDC_CH, CALC_PDC_CH0, CALC_EFF_CH0, CALC_IRR_CH};

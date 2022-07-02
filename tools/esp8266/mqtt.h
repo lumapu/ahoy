@@ -29,6 +29,7 @@ class mqtt {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
             mClient->setServer(broker, port);
+            mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
             mPort = port;
             snprintf(mUser, MQTT_USER_LEN, "%s", user);
@@ -38,14 +39,17 @@ class mqtt {
 
         void sendMsg(const char *topic, const char *msg) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
-            if(mAddressSet) {
-                char top[64];
-                snprintf(top, 64, "%s/%s", mTopic, topic);
+            char top[64];
+            snprintf(top, 64, "%s/%s", mTopic, topic);
+            sendMsg2(top, msg);
+        }
 
+        void sendMsg2(const char *topic, const char *msg) {
+            if(mAddressSet) {
                 if(!mClient->connected())
                     reconnect();
                 if(mClient->connected())
-                    mClient->publish(top, msg);
+                    mClient->publish(topic, msg);
             }
         }
 
