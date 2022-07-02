@@ -85,11 +85,25 @@ class mqtt {
     private:
         void reconnect(void) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:reconnect"));
-            if(!mClient->connected()) {
-                if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
-                    mClient->connect(DEF_DEVICE_NAME, mUser, mPwd);
-                else
-                    mClient->connect(DEF_DEVICE_NAME);
+            if (WiFi.status() != WL_CONNECTED) {
+                Serial.println("WiFi not connected");
+            }
+            else {
+                int count = 0;
+                while(!mClient->connected()) { 
+                    if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
+                        if (mClient->connect(DEF_DEVICE_NAME, mUser, mPwd)){
+                        Serial.println("MQTT connected");
+                    }
+                    else {
+                        Serial.println("MQTT failed");
+                        delay(2000);
+                        count = count + 1;
+                    }
+                    if (count >=3){
+                        ESP.restart();
+                    }
+                }
             }
         }
 
