@@ -25,7 +25,7 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%"};
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PCT, FLD_EFF, FLD_IRR};
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
-        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Effiency", "Irradiation"};
+        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Efficiency", "Irradiation"};
 
 // mqtt discovery device classes
 enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
