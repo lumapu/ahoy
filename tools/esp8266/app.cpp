@@ -154,7 +154,7 @@ void app::setup(uint32_t timeout) {
 
         mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
-        
+
         mSerialTicker = 0;
 
         if(mqttAddr[0] > 0) {
@@ -937,7 +937,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     doc["unit_of_meas"] = iv->getUnit(i);
                     doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
                     doc["dev"] = deviceObj;
-                    doc["exp_aft"] = mMqttInterval;
+                    doc["exp_aft"] = mMqttInterval + 5; // add 5 sec if connection is bad or ESP too slow
                     if (devCls != NULL) {
                         doc["dev_cla"] = devCls;
                     }
