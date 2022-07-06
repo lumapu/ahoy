@@ -1,4 +1,4 @@
-name: PIO ESP82266
+name: ESP8266
 
 on:
   push:
@@ -36,5 +36,5 @@ jobs:
         pio run -d tools/esp8266
     - uses: actions/upload-artifact@v3
       with:
-        name: firmware
-        path: tools/esp8266/.pio/build/d1_mini/
+        name: esp8266
+        path: tools/esp8266/.pio/build/d1_mini/firmware.bin
