@@ -35,6 +35,6 @@ jobs:
       run: |
         pio run -d tools/esp8266
     - uses: actions/upload-artifact@v3
-        with:
-          name: firmware
-          path: ./build_output
+      with:
+        name: firmware
+        path: ./build_output
