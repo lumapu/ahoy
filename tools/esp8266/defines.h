@@ -50,12 +50,14 @@ typedef struct {
 
 #define RF24_AMP_PWR_LEN    1
 
-#define MQTT_ADDR_LEN       4 // IP
-#define MQTT_USER_LEN       16
-#define MQTT_PWD_LEN        32
-#define MQTT_TOPIC_LEN      32
-#define MQTT_INTERVAL_LEN   2 // uint16_t
-#define MQTT_PORT_LEN       2 // uint16_t
+#define MQTT_ADDR_LEN         4 // IP
+#define MQTT_USER_LEN         16
+#define MQTT_PWD_LEN          32
+#define MQTT_TOPIC_LEN        32
+#define MQTT_INTERVAL_LEN     2 // uint16_t
+#define MQTT_PORT_LEN         2 // uint16_t
+#define MQTT_DISCOVERY_PREFIX "homeassistant"
+#define MQTT_MAX_PACKET_SIZE  384
 
 #define SER_ENABLE_LEN      1 // uint8_t
 #define SER_DEBUG_LEN       1 // uint8_t

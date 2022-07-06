@@ -9,6 +9,7 @@
 #include "main.h"
 #include <RF24.h>
 #include <RF24_config.h>
+#include <ArduinoJson.h>
 
 #include "defines.h"
 
@@ -73,6 +74,9 @@ class app : public Main {
 
         void saveValues(bool webSend);
         void updateCrc(void);
+        void sendMqttDiscoveryConfig(void);
+        const char* getFieldDeviceClass(uint8_t fieldId);
+        const char* getFieldStateClass(uint8_t fieldId);
 
         uint64_t Serial2u64(const char *val) {
             char tmp[3] = {0};
@@ -116,6 +120,7 @@ class app : public Main {
         uint16_t mMqttTicker;
         uint16_t mMqttInterval;
         bool mMqttActive;
+        bool mMqttConfigSendState[MAX_NUM_INVERTERS];
 
         // serial
         uint16_t mSerialTicker;
