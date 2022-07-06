@@ -1,4 +1,4 @@
-name: PlatformIO ESP82266
+name: PIO ESP82266
 
 on:
   push:
@@ -37,4 +37,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: firmware
-        path: .pio/build/d1_mini/
+        path: tools/esp8266/.pio/build/d1_mini/
