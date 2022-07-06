@@ -26,5 +26,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade platformio
     - name: Run PlatformIO
-      run: pio project config -d tools\esp8266
-      run: pio run -e d1_mini
+      run: |
+        pio project config -d tools\esp8266
+        pio run -e d1_mini
