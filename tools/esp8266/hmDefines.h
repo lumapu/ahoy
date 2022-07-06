@@ -25,8 +25,35 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%"};
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PCT, FLD_EFF, FLD_IRR};
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
-        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Effiency", "Irradiation"};
+        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Efficiency", "Irradiation"};
 
+// mqtt discovery device classes
+enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
+const char* const deviceClasses[] = {0, "current", "energy", "power", "voltage", "frequency", "temperature"};
+enum {STATE_CLS_NONE = 0, STATE_CLS_MEASUREMENT, STATE_CLS_TOTAL_INCREASING};
+const char* const stateClasses[] = {0, "measurement", "total_increasing"};
+typedef struct {
+    uint8_t    fieldId;      // field id
+    uint8_t    deviceClsId;  // device class
+    uint8_t    stateClsId;   // state class
+} byteAssign_fieldDeviceClass;
+const byteAssign_fieldDeviceClass deviceFieldAssignment[] = {
+    {FLD_UDC, DEVICE_CLS_VOLTAGE, STATE_CLS_MEASUREMENT},
+    {FLD_IDC, DEVICE_CLS_CURRENT, STATE_CLS_MEASUREMENT},
+    {FLD_PDC, DEVICE_CLS_PWR,     STATE_CLS_MEASUREMENT},
+    {FLD_YD,  DEVICE_CLS_ENERGY,  STATE_CLS_TOTAL_INCREASING},
+    {FLD_YW,  DEVICE_CLS_ENERGY,  STATE_CLS_TOTAL_INCREASING},
+    {FLD_YT,  DEVICE_CLS_ENERGY,  STATE_CLS_TOTAL_INCREASING},
+    {FLD_UAC, DEVICE_CLS_VOLTAGE, STATE_CLS_MEASUREMENT},
+    {FLD_IAC, DEVICE_CLS_CURRENT, STATE_CLS_MEASUREMENT},
+    {FLD_PAC, DEVICE_CLS_PWR,     STATE_CLS_MEASUREMENT},
+    {FLD_F,   DEVICE_CLS_FREQ,    STATE_CLS_NONE},
+    {FLD_T,   DEVICE_CLS_TEMP,    STATE_CLS_MEASUREMENT},
+    {FLD_PCT, DEVICE_CLS_NONE,    STATE_CLS_NONE},
+    {FLD_EFF, DEVICE_CLS_NONE,    STATE_CLS_NONE},
+    {FLD_IRR, DEVICE_CLS_NONE,    STATE_CLS_NONE}
+};
+#define DEVICE_CLS_ASSIGN_LIST_LEN     (sizeof(deviceFieldAssignment) / sizeof(byteAssign_fieldDeviceClass))
 
 // indices to calculation functions, defined in hmInverter.h
 enum {CALC_YT_CH0 = 0, CALC_YD_CH0, CALC_UDC_CH, CALC_PDC_CH0, CALC_EFF_CH0, CALC_IRR_CH};
