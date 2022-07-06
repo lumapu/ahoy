@@ -931,6 +931,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     snprintf(uniq_id, 32, "ch%d_%s", iv->assign[i].ch, iv->getFieldName(i));
                     const char* devCls = getFieldDeviceClass(iv->assign[i].fieldId);
+                    const char* stateCls = getFieldStateClass(iv->assign[i].fieldId);
 
                     doc["name"] = name;
                     doc["stat_t"]  = stateTopic;
@@ -940,6 +941,9 @@ void app::sendMqttDiscoveryConfig(void) {
                     doc["exp_aft"] = mMqttInterval + 5; // add 5 sec if connection is bad or ESP too slow
                     if (devCls != NULL) {
                         doc["dev_cla"] = devCls;
+                    }
+                    if (stateCls != NULL) {
+                        doc["stat_cla"] = stateCls;
                     }
 
                     serializeJson(doc, buffer);
@@ -962,4 +966,13 @@ const char* app::getFieldDeviceClass(uint8_t fieldId) {
             break;
     }
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
+}
+
+const char* app::getFieldStateClass(uint8_t fieldId) {
+    uint8_t pos = 0;
+    for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+        if(deviceFieldAssignment[pos].fieldId == fieldId)
+            break;
+    }
+    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
 }

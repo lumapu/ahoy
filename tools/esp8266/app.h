@@ -76,6 +76,7 @@ class app : public Main {
         void updateCrc(void);
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);
+        const char* getFieldStateClass(uint8_t fieldId);
 
         uint64_t Serial2u64(const char *val) {
             char tmp[3] = {0};
