@@ -8,7 +8,7 @@ These pins can be changed from the /setup URL
 
 ## Compile
 
-This code can be compiled using Arduino. The settings were:
+This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The settings were:
 
 - Board: Generic ESP8266 Module
 - Flash-Size: 1MB (FS: none, OTA: 502kB)
@@ -21,9 +21,8 @@ This code can be compiled using Arduino. The settings were:
 ### Optional Configuration before compilation
 
 - number of supported inverters (set to 3 by default) `defines.h`
-- enable channel hopping `hmRadio.h`
 - DTU radio id `hmRadio.h`
-- unformated list in webbrowser `/livedata` `defines.h`, `LIVEDATA_VISUALIZED`
+- unformated list in webbrowser `/livedata` `config.h`, `LIVEDATA_VISUALIZED`
 
 
 ## Flash ESP with firmware
@@ -52,10 +51,13 @@ The serial console will print the converted values which were read out of the in
 
 For now the following inverters should work out of the box:
 
+- HM350
 - HM400
 - HM600
+- HM700
 - HM800
 - HM1200
+- HM1500
 
 ## USED LIBRARIES
 
