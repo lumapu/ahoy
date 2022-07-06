@@ -3,8 +3,8 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#ifndef __DEBUG_H__
-#define __DEBUG_H__
+#ifndef __DBG_H__
+#define __DBG_H__
 
 //-----------------------------------------------------------------------------
 // available levels
@@ -29,7 +29,7 @@
 #else
     #ifdef ARDUINO
         #ifndef DSERIAL
-        #define DSERIAL Serial
+            #define DSERIAL Serial
         #endif
 
         template <class T>
@@ -120,4 +120,4 @@
     }\
 })
 
-#endif /*__DEBUG_H__*/
+#endif /*__DBG_H__*/
