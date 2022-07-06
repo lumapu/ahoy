@@ -1,8 +1,8 @@
 import os
 from datetime import date
 
-def readVersion(infile):
-    f = open(infile, "r")
+def readVersion(path, infile):
+    f = open(path + infile, "r")
     lines = f.readlines()
     f.close()
 
@@ -17,9 +17,9 @@ def readVersion(infile):
                     version += line[p+13:].rstrip() + "."
 
     version = version[:-1] + "_esp8266.bin"
-    src = "../.pio/build/d1_mini/firmware.bin"
-    dst = "../.pio/build/d1_mini/out/" + version
-    os.mkdir("../.pio/build/d1_mini/out/")
+    src = path + ".pio/build/d1_mini/firmware.bin"
+    dst = path + ".pio/build/d1_mini/out/" + version
+    os.mkdir(path + ".pio/build/d1_mini/out/")
     os.rename(src, dst)
 
-readVersion("../defines.h")
+readVersion("tools/esp8266/", "defines.h")
