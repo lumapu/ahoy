@@ -32,8 +32,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade platformio
     - name: Run PlatformIO
-      run: |
-        pio run -d tools/esp8266
+      run: pio run -d tools/esp8266
+    - name: rename
+      run: python tools/esp8266/helpers/getVersion.py
     - uses: actions/upload-artifact@v3
       with:
         name: esp8266
