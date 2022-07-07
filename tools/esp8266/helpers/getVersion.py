@@ -22,4 +22,4 @@ def readVersion(path, infile):
     os.mkdir(path + ".pio/build/d1_mini/out/")
     os.rename(src, dst)
 
-readVersion("tools/esp8266/", "defines.h")
+readVersion("../", "defines.h")
