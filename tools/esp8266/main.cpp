@@ -37,7 +37,11 @@ Main::Main(void) {
     mUptimeTicker   = 0xffffffff;
     mUptimeInterval = 1000;
 
+#ifdef AP_ONLY
+    mTimestamp = 1;
+#else
     mTimestamp = 0;
+#endif
 
     mHeapStatCnt = 0;
 }
