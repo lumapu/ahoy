@@ -61,18 +61,18 @@ class app : public Main {
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
 
-        void showFavicon(void);
-        void showIndex(void);
-        void showSetup(void);
-        void showSave(void);
-        void showErase(void);
-        void showStatistics(void);
-        void showHoymiles(void);
-        void showLiveData(void);
-        void showJSON(void);
+        void showFavicon(AsyncWebServerRequest *request);
+        void showIndex(AsyncWebServerRequest *request);
+        void showSetup(AsyncWebServerRequest *request);
+        void showSave(AsyncWebServerRequest *request);
+        void showErase(AsyncWebServerRequest *request);
+        void showStatistics(AsyncWebServerRequest *request);
+        void showHoymiles(AsyncWebServerRequest *request);
+        void showLiveData(AsyncWebServerRequest *request);
+        void showJSON(AsyncWebServerRequest *request);
 
 
-        void saveValues(bool webSend);
+        void saveValues(AsyncWebServerRequest *request, bool webSend);
         void updateCrc(void);
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);

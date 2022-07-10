@@ -11,9 +11,10 @@
 
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
-
-#include <ESP8266HTTPUpdateServer.h>
+//#include <ESP8266WebServer.h>
+//#include <ESP8266HTTPUpdateServer.h>
+#include "ESPAsyncTCP.h"
+#include "ESPAsyncWebServer.h"
 
 // NTP
 #include <WiFiUdp.h>
@@ -41,8 +42,8 @@ class Main {
 
 
     protected:
-        void showReboot(void);
-        virtual void saveValues(bool webSend);
+        void showReboot(AsyncWebServerRequest *request);
+        virtual void saveValues(AsyncWebServerRequest *request, bool webSend);
         virtual void updateCrc(void);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
@@ -118,7 +119,7 @@ class Main {
         bool mWifiSettingsValid;
         bool mSettingsValid;
         bool mApActive;
-        ESP8266WebServer *mWeb;
+        AsyncWebServer *mWeb;
         char mVersion[9];
         char mDeviceName[DEVNAME_LEN];
         eep *mEep;
@@ -127,18 +128,24 @@ class Main {
         uint32_t mNextTryTs;
         uint32_t mApLastTick;
 
+        bool mShouldReboot;
+
     private:
         bool getConfig(void);
         void setupAp(const char *ssid, const char *pwd);
         bool setupStation(uint32_t timeout);
 
-        void showNotFound(void);
-        virtual void showSetup(void);
-        virtual void showSave(void);
-        void showUptime(void);
-        void showTime(void);
-        void showCss(void);
-        void showFactoryRst(void);
+        void showNotFound(AsyncWebServerRequest *request);
+        virtual void showSetup(AsyncWebServerRequest *request);
+        virtual void showSave(AsyncWebServerRequest *request);
+        void showUptime(AsyncWebServerRequest *request);
+        void showTime(AsyncWebServerRequest *request);
+        void showCss(AsyncWebServerRequest *request);
+        void showFavicon(AsyncWebServerRequest *request);
+        void showFactoryRst(AsyncWebServerRequest *request);
+        void showUpdateForm(AsyncWebServerRequest *request);
+        void showUpdate(AsyncWebServerRequest *request);
+        void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 
         time_t getNtpTime(void);
         void sendNTPpacket(IPAddress& address);
@@ -150,7 +157,7 @@ class Main {
         uint8_t mHeapStatCnt;
 
         DNSServer *mDns;
-        ESP8266HTTPUpdateServer *mUpdater;
+        //ESP8266HTTPUpdateServer *mUpdater;
 
         WiFiUDP *mUdp; // for time server
 };

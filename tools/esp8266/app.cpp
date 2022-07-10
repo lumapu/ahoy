@@ -5,7 +5,6 @@
 
 #include "app.h"
 
-#include "favicon.h"
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
@@ -53,15 +52,14 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",            std::bind(&app::showIndex,      this));
-    mWeb->on("/favicon.ico", std::bind(&app::showFavicon,    this));
-    mWeb->on("/setup",       std::bind(&app::showSetup,      this));
-    mWeb->on("/save",        std::bind(&app::showSave,       this));
-    mWeb->on("/erase",       std::bind(&app::showErase,      this));
-    mWeb->on("/cmdstat",     std::bind(&app::showStatistics, this));
-    mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
-    mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
-    mWeb->on("/json",        std::bind(&app::showJSON,       this));
+    mWeb->on("/",         HTTP_ANY, std::bind(&app::showIndex,      this, std::placeholders::_1));
+    mWeb->on("/setup",    HTTP_ANY, std::bind(&app::showSetup,      this, std::placeholders::_1));
+    mWeb->on("/save",     HTTP_ANY, std::bind(&app::showSave,       this, std::placeholders::_1));
+    mWeb->on("/erase",    HTTP_ANY, std::bind(&app::showErase,      this, std::placeholders::_1));
+    mWeb->on("/cmdstat",  HTTP_ANY, std::bind(&app::showStatistics, this, std::placeholders::_1));
+    mWeb->on("/hoymiles", HTTP_ANY, std::bind(&app::showHoymiles,   this, std::placeholders::_1));
+    mWeb->on("/livedata", HTTP_ANY, std::bind(&app::showLiveData,   this, std::placeholders::_1));
+    mWeb->on("/json",     HTTP_ANY, std::bind(&app::showJSON,       this, std::placeholders::_1));
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
@@ -178,7 +176,7 @@ void app::setup(uint32_t timeout) {
         DPRINTLN(DBG_DEBUG, F("NXT pos: ") + String(ADDR_NEXT));
         DPRINTLN(DBG_INFO, F("Settings not valid, erasing ..."));
         eraseSettings();
-        saveValues(false);
+        saveValues(NULL, false);
         delay(100);
         DPRINTLN(DBG_INFO, F("... restarting ..."));
         delay(100);
@@ -464,19 +462,19 @@ void app::processPayload(bool retransmit) {
 
 
 //-----------------------------------------------------------------------------
-void app::showIndex(void) {
+void app::showIndex(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showIndex"));
     String html = FPSTR(index_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
     html.replace(F("{TS}"), String(mSendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
-    mWeb->send(200, "text/html", html);
+    request->send(200, "text/html", html);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showSetup(void) {
+void app::showSetup(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
     // overrides same method in main.cpp
 
@@ -588,27 +586,27 @@ void app::showSetup(void) {
         html.replace(F("{MQTT_INTVL}"), String(mMqttInterval));
     }
 
-    mWeb->send(200, F("text/html"), html);
+    request->send(200, F("text/html"), html);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showSave(void) {
+void app::showSave(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showSave"));
-    saveValues(true);
+    saveValues(request, true);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showErase() {
+void app::showErase(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showErase"));
     eraseSettings();
-    showReboot();
+    showReboot(request);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showStatistics(void) {
+void app::showStatistics(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showStatistics"));
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
@@ -654,33 +652,23 @@ void app::showStatistics(void) {
         content += F("not ");
     content += F("connected\n");
 
-    mWeb->send(200, F("text/plain"), content);
+    request->send(200, F("text/plain"), content);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showHoymiles(void) {
+void app::showHoymiles(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
     html.replace(F("{DEVICE}"), mDeviceName);
     html.replace(F("{VERSION}"), mVersion);
     html.replace(F("{TS}"), String(mSendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
-    mWeb->send(200, F("text/html"), html);
+    request->send(200, F("text/html"), html);
 }
 
-
 //-----------------------------------------------------------------------------
-void app::showFavicon(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showFavicon"));
-    static const char favicon_type[] PROGMEM = "image/x-icon";
-    static const char favicon_content[] PROGMEM = FAVICON_PANEL_16;
-    mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showLiveData(void) {
+void app::showLiveData(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showLiveData"));
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -734,7 +722,6 @@ void app::showLiveData(void) {
                     }
                 }
                 modHtml += "</div>";
-                yield();
             }
             modHtml += F("<div class=\"ts\">Last received data requested at: ") + getDateTimeStr(iv->ts) + F("</div>");
             modHtml += F("</div>");
@@ -751,12 +738,12 @@ void app::showLiveData(void) {
 #endif
         }
     }
-    mWeb->send(200, F("text/html"), modHtml);
+    request->send(200, F("text/html"), modHtml);
 }
 
 
 //-----------------------------------------------------------------------------
-void app::showJSON(void) {
+void app::showJSON(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showJSON"));
     String modJson;
 
@@ -777,116 +764,122 @@ void app::showJSON(void) {
     }
     modJson += F("\"json_ts\": \"") + String(getDateTimeStr(mTimestamp)) + F("\"\n}\n");
 
-    // mWeb->send(200, F("text/json"), modJson);
-    mWeb->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
+    // request->send(200, F("text/json"), modJson);
+    request->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
 }
 
 
 //-----------------------------------------------------------------------------
-void app::saveValues(bool webSend = true) {
+void app::saveValues(AsyncWebServerRequest *request, bool webSend = true) {
     DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
-    Main::saveValues(false); // general configuration
+    Main::saveValues(request, false); // general configuration
 
-    if(mWeb->args() > 0) {
-        char *p;
-        char buf[20] = {0};
-        uint8_t i = 0;
-        uint16_t interval;
+    if(NULL != request) {
+        if(request->args() > 0) {
+            char *p;
+            char buf[20] = {0};
+            uint8_t i = 0;
+            uint16_t interval;
 
-        // inverter
-        serial_u addr;
-        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-            // address
-            mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-            if(strlen(buf) == 0)
-                memset(buf, 0, 20);
-            addr.u64 = Serial2u64(buf);
-            mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
+            // inverter
+            serial_u addr;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                // address
+                request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+                if(strlen(buf) == 0)
+                    memset(buf, 0, 20);
+                addr.u64 = Serial2u64(buf);
+                mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
 
-            // name
-            mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
-            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), buf, MAX_NAME_LENGTH);
+                // name
+                request->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
+                mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), buf, MAX_NAME_LENGTH);
 
-            // max channel power / name
-            for(uint8_t j = 0; j < 4; j++) {
-                uint16_t pwr = mWeb->arg("inv" + String(i) + "ModPwr" + String(j)).toInt();
-                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), pwr);
-                memset(buf, 0, 20);
-                mWeb->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(buf, 20);
-                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, buf, MAX_NAME_LENGTH);
+                // max channel power / name
+                for(uint8_t j = 0; j < 4; j++) {
+                    uint16_t pwr = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt();
+                    mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), pwr);
+                    memset(buf, 0, 20);
+                    request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(buf, 20);
+                    mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, buf, MAX_NAME_LENGTH);
+                }
+            }
+
+            interval = request->arg("invInterval").toInt();
+            mEep->write(ADDR_INV_INTERVAL, interval);
+            i = request->arg("invRetry").toInt();
+            mEep->write(ADDR_INV_MAX_RTRY, i);
+
+
+            // pinout
+            for(uint8_t i = 0; i < 3; i ++) {
+                uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
+                mEep->write(ADDR_PINOUT + i, pin);
+            }
+
+
+            // nrf24 amplifier power
+            mSys->Radio.AmplifierPower = request->arg("rf24Power").toInt() & 0x03;
+            mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
+            // mqtt
+            uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+            uint16_t mqttPort;
+            char mqttUser[MQTT_USER_LEN];
+            char mqttPwd[MQTT_PWD_LEN];
+            char mqttTopic[MQTT_TOPIC_LEN];
+            request->arg("mqttAddr").toCharArray(buf, 20);
+            i = 0;
+            p = strtok(buf, ".");
+            while(NULL != p) {
+                mqttAddr[i++] = atoi(p);
+                p = strtok(NULL, ".");
+            }
+            request->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
+            request->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
+            request->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
+            //interval = request->arg("mqttIntvl").toInt();
+            mqttPort = request->arg("mqttPort").toInt();
+            mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
+            mEep->write(ADDR_MQTT_PORT, mqttPort);
+            mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
+            mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
+            mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
+            //mEep->write(ADDR_MQTT_INTERVAL, interval);
+
+
+            // serial console
+            bool tmp;
+            interval = request->arg("serIntvl").toInt();
+            mEep->write(ADDR_SER_INTERVAL, interval);
+            tmp = (request->arg("serEn") == "on");
+            mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
+            mSerialDebug = (request->arg("serDbg") == "on");
+            mEep->write(ADDR_SER_DEBUG, (uint8_t)((mSerialDebug) ? 0x01 : 0x00));
+            DPRINT(DBG_INFO, "Serial debug is ");
+            if(mSerialDebug) DPRINTLN(DBG_INFO, "on"); else DPRINTLN(DBG_INFO, "off");
+            mSys->Radio.mSerialDebug = mSerialDebug;
+
+            updateCrc();
+            mEep->commit();
+            if((request->arg("reboot") == "on"))
+                showReboot(request);
+            else {
+                mShowRebootRequest = true;
+                request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
+                    "<p>saved</p></body></html>"));
             }
         }
-
-        interval = mWeb->arg("invInterval").toInt();
-        mEep->write(ADDR_INV_INTERVAL, interval);
-        i = mWeb->arg("invRetry").toInt();
-        mEep->write(ADDR_INV_MAX_RTRY, i);
-
-
-        // pinout
-        for(uint8_t i = 0; i < 3; i ++) {
-            uint8_t pin = mWeb->arg(String(pinArgNames[i])).toInt();
-            mEep->write(ADDR_PINOUT + i, pin);
-        }
-
-
-        // nrf24 amplifier power
-        mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
-        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
-
-        // mqtt
-        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
-        uint16_t mqttPort;
-        char mqttUser[MQTT_USER_LEN];
-        char mqttPwd[MQTT_PWD_LEN];
-        char mqttTopic[MQTT_TOPIC_LEN];
-        mWeb->arg("mqttAddr").toCharArray(buf, 20);
-        i = 0;
-        p = strtok(buf, ".");
-        while(NULL != p) {
-            mqttAddr[i++] = atoi(p);
-            p = strtok(NULL, ".");
-        }
-        mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
-        mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
-        mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
-        //interval = mWeb->arg("mqttIntvl").toInt();
-        mqttPort = mWeb->arg("mqttPort").toInt();
-        mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
-        mEep->write(ADDR_MQTT_PORT, mqttPort);
-        mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
-        mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
-        mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
-        //mEep->write(ADDR_MQTT_INTERVAL, interval);
-
-
-        // serial console
-        bool tmp;
-        interval = mWeb->arg("serIntvl").toInt();
-        mEep->write(ADDR_SER_INTERVAL, interval);
-        tmp = (mWeb->arg("serEn") == "on");
-        mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
-        mSerialDebug = (mWeb->arg("serDbg") == "on");
-        mEep->write(ADDR_SER_DEBUG, (uint8_t)((mSerialDebug) ? 0x01 : 0x00));
-        DPRINT(DBG_INFO, "Serial debug is ");
-        if(mSerialDebug) DPRINTLN(DBG_INFO, "on"); else DPRINTLN(DBG_INFO, "off");
-        mSys->Radio.mSerialDebug = mSerialDebug;
-
-        updateCrc();
-        mEep->commit();
-        if((mWeb->arg("reboot") == "on"))
-            showReboot();
         else {
-            mShowRebootRequest = true;
-            mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
-                "<p>saved</p></body></html>"));
+            updateCrc();
+            mEep->commit();
+            request->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
+            "<p>Error while saving</p></body></html>"));
         }
     }
     else {
         updateCrc();
         mEep->commit();
-        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
-            "<p>Error while saving</p></body></html>"));
     }
 }
 
@@ -902,6 +895,8 @@ void app::updateCrc(void) {
     mEep->write(ADDR_SETTINGS_CRC, crc);
 }
 
+
+//-----------------------------------------------------------------------------
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 
@@ -955,6 +950,8 @@ void app::sendMqttDiscoveryConfig(void) {
     }
 }
 
+
+//-----------------------------------------------------------------------------
 const char* app::getFieldDeviceClass(uint8_t fieldId) {
     uint8_t pos = 0;
     for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
@@ -964,6 +961,8 @@ const char* app::getFieldDeviceClass(uint8_t fieldId) {
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
 }
 
+
+//-----------------------------------------------------------------------------
 const char* app::getFieldStateClass(uint8_t fieldId) {
     uint8_t pos = 0;
     for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {

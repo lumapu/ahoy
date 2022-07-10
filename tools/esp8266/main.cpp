@@ -8,13 +8,14 @@
 
 #include "html/h/style_css.h"
 #include "html/h/setup_html.h"
+#include "html/h/favicon_ico_gz.h"
 
 
 //-----------------------------------------------------------------------------
 Main::Main(void) {
     mDns     = new DNSServer();
-    mWeb     = new ESP8266WebServer(80);
-    mUpdater = new ESP8266HTTPUpdateServer();
+    mWeb     = new AsyncWebServer(80);
+    //mUpdater = new ESP8266HTTPUpdateServer();
     mUdp     = new WiFiUDP();
 
     mApActive          = true;
@@ -37,6 +38,8 @@ Main::Main(void) {
     mUptimeTicker   = 0xffffffff;
     mUptimeInterval = 1000;
 
+    mShouldReboot = false;
+
 #ifdef AP_ONLY
     mTimestamp = 1;
 #else
@@ -53,14 +56,18 @@ void Main::setup(uint32_t timeout) {
     bool startAp = mApActive;
     mLimit = timeout;
 
-    mWeb->on("/setup",     std::bind(&Main::showSetup,      this));
-    mWeb->on("/save",      std::bind(&Main::showSave,       this));
-    mWeb->on("/uptime",    std::bind(&Main::showUptime,     this));
-    mWeb->on("/time",      std::bind(&Main::showTime,       this));
-    mWeb->on("/style.css", std::bind(&Main::showCss,        this));
-    mWeb->on("/reboot",    std::bind(&Main::showReboot,     this));
-    mWeb->on("/factory",   std::bind(&Main::showFactoryRst, this));
-    mWeb->onNotFound (     std::bind(&Main::showNotFound,   this));
+    mWeb->on("/setup",       HTTP_ANY,  std::bind(&Main::showSetup,      this, std::placeholders::_1));
+    mWeb->on("/save",        HTTP_ANY,  std::bind(&Main::showSave,       this, std::placeholders::_1));
+    mWeb->on("/uptime",      HTTP_ANY,  std::bind(&Main::showUptime,     this, std::placeholders::_1));
+    mWeb->on("/time",        HTTP_ANY,  std::bind(&Main::showTime,       this, std::placeholders::_1));
+    mWeb->on("/style.css",   HTTP_ANY,  std::bind(&Main::showCss,        this, std::placeholders::_1));
+    mWeb->on("/favicon.ico", HTTP_ANY,  std::bind(&Main::showFavicon,    this, std::placeholders::_1));
+    mWeb->on("/reboot",      HTTP_ANY,  std::bind(&Main::showReboot,     this, std::placeholders::_1));
+    mWeb->on("/factory",     HTTP_ANY,  std::bind(&Main::showFactoryRst, this, std::placeholders::_1));
+    mWeb->on("/update",      HTTP_GET,  std::bind(&Main::showUpdateForm, this, std::placeholders::_1));
+    mWeb->on("/update",      HTTP_POST, std::bind(&Main::showUpdate,     this, std::placeholders::_1),
+                                        std::bind(&Main::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+    mWeb->onNotFound(                   std::bind(&Main::showNotFound,   this, std::placeholders::_1));
 
     startAp = getConfig();
 
@@ -69,7 +76,6 @@ void Main::setup(uint32_t timeout) {
         startAp = setupStation(timeout);
 #endif
 
-    mUpdater->setup(mWeb);
     mApActive = startAp;
 }
 
@@ -103,7 +109,7 @@ void Main::loop(void) {
         }
 #endif
     }
-    mWeb->handleClient();
+    //mWeb->handleClient();
 
     if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
         mUptimeSecs++;
@@ -120,6 +126,12 @@ void Main::loop(void) {
             mHeapStatCnt = 0;
             stats();
         }*/
+    }
+
+    if(mShouldReboot) {
+        Serial.println("Rebooting...");
+        delay(100);
+        ESP.restart();
     }
 }
 
@@ -166,10 +178,10 @@ void Main::setupAp(const char *ssid, const char *pwd) {
 
     mDns->start(mDnsPort, "*", apIp);
 
-    mWeb->onNotFound([&]() {
+    /*mWeb->onNotFound([&]() {
         showSetup();
     });
-    mWeb->on("/", std::bind(&Main::showSetup, this));
+    mWeb->on("/", std::bind(&Main::showSetup, this));*/
 
     mWeb->begin();
 }
@@ -226,7 +238,7 @@ bool Main::setupStation(uint32_t timeout) {
 
 
 //-----------------------------------------------------------------------------
-void Main::showSetup(void) {
+void Main::showSetup(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("Main::showSetup"));
     String html = FPSTR(setup_html);
     html.replace(F("{SSID}"), mStationSsid);
@@ -239,52 +251,62 @@ void Main::showSetup(void) {
     else
         html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
 
-    mWeb->send(200, F("text/html"), html);
+    request->send(200, F("text/html"), html);
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::showCss(void) {
+void Main::showCss(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("Main::showCss"));
-    mWeb->send(200, "text/css", FPSTR(style_css));
+    request->send(200, "text/css", FPSTR(style_css));
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::showSave(void) {
+void Main::showFavicon(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("Main::showFavicon"));
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("image/x-icon"), favicon_ico_gz, favicon_ico_gz_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+
+//-----------------------------------------------------------------------------
+void Main::showSave(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("Main::showSave"));
-    saveValues(true);
+    saveValues(request, true);
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::saveValues(bool webSend = true) {
+void Main::saveValues(AsyncWebServerRequest *request, bool webSend = true) {
     DPRINTLN(DBG_VERBOSE, F("Main::saveValues"));
-    if(mWeb->args() > 0) {
-        if(mWeb->arg("ssid") != "") {
+    if(request->args() > 0) {
+        if(request->arg("ssid") != "") {
             memset(mStationSsid, 0, SSID_LEN);
-            mWeb->arg("ssid").toCharArray(mStationSsid, SSID_LEN);
+            request->arg("ssid").toCharArray(mStationSsid, SSID_LEN);
             mEep->write(ADDR_SSID, mStationSsid, SSID_LEN);
 
-            if(mWeb->arg("pwd") != "{PWD}") {
+            if(request->arg("pwd") != "{PWD}") {
                 memset(mStationPwd, 0, PWD_LEN);
-                mWeb->arg("pwd").toCharArray(mStationPwd, PWD_LEN);
+                request->arg("pwd").toCharArray(mStationPwd, PWD_LEN);
                 mEep->write(ADDR_PWD, mStationPwd, PWD_LEN);
             }
         }
 
         memset(mDeviceName, 0, DEVNAME_LEN);
-        mWeb->arg("device").toCharArray(mDeviceName, DEVNAME_LEN);
+        request->arg("device").toCharArray(mDeviceName, DEVNAME_LEN);
         mEep->write(ADDR_DEVNAME, mDeviceName, DEVNAME_LEN);
         mEep->commit();
 
 
         updateCrc();
         if(webSend) {
-            if(mWeb->arg("reboot") == "on")
-                showReboot();
+            if(request->arg("reboot") == "on")
+                showReboot(request);
             else // TODO: add device name as redirect in AP-mode
-                mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
+                request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                              "<p>saved</p></body></html>"));
         }
     }
@@ -303,7 +325,7 @@ void Main::updateCrc(void) {
 
 
 //-----------------------------------------------------------------------------
-void Main::showUptime(void) {
+void Main::showUptime(AsyncWebServerRequest *request) {
     //DPRINTLN(DBG_VERBOSE, F("Main::showUptime"));
     char time[20] = {0};
 
@@ -314,53 +336,51 @@ void Main::showUptime(void) {
 
     snprintf(time, 20, "%d Tage, %02d:%02d:%02d", upTimeDy, upTimeHr, upTimeMn, upTimeSc);
 
-    mWeb->send(200, "text/plain", String(time));
+    request->send(200, "text/plain", String(time));
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::showTime(void) {
+void Main::showTime(AsyncWebServerRequest *request) {
     //DPRINTLN(DBG_VERBOSE, F("Main::showTime"));
-    mWeb->send(200, "text/plain", getDateTimeStr(mTimestamp));
+    request->send(200, "text/plain", getDateTimeStr(mTimestamp));
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::showNotFound(void) {
-    DPRINTLN(DBG_VERBOSE, F("Main::showNotFound - ") + mWeb->uri());
-    String msg = F("File Not Found\n\nURI: ");
-    msg += mWeb->uri();
+void Main::showNotFound(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("Main::showNotFound - ") + request->url());
+    String msg = F("File Not Found\n\nURL: ");
+    msg += request->url();
     msg += F("\nMethod: ");
-    msg += ( mWeb->method() == HTTP_GET ) ? "GET" : "POST";
+    msg += ( request->method() == HTTP_GET ) ? "GET" : "POST";
     msg += F("\nArguments: ");
-    msg += mWeb->args();
+    msg += request->args();
     msg += "\n";
 
-    for(uint8_t i = 0; i < mWeb->args(); i++ ) {
-        msg += " " + mWeb->argName(i) + ": " + mWeb->arg(i) + "\n";
+    for(uint8_t i = 0; i < request->args(); i++ ) {
+        msg += " " + request->argName(i) + ": " + request->arg(i) + "\n";
     }
 
-    mWeb->send(404, F("text/plain"), msg);
+    request->send(404, F("text/plain"), msg);
 }
 
 
 //-----------------------------------------------------------------------------
-void Main::showReboot(void) {
+void Main::showReboot(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("Main::showReboot"));
-    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
-    delay(1000);
-    ESP.restart();
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
+    mShouldReboot = true;
 }
 
 
-
 //-----------------------------------------------------------------------------
-void Main::showFactoryRst(void) {
+void Main::showFactoryRst(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("Main::showFactoryRst"));
     String content = "";
     int refresh = 3;
-    if(mWeb->args() > 0) {
-        if(mWeb->arg("reset").toInt() == 1) {
+    if(request->args() > 0) {
+        if(request->arg("reset").toInt() == 1) {
             eraseSettings(true);
             content = F("factory reset: success\n\nrebooting ... ");
             refresh = 10;
@@ -375,10 +395,49 @@ void Main::showFactoryRst(void) {
             "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
         refresh = 120;
     }
-    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
     if(refresh == 10) {
         delay(1000);
         ESP.restart();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void Main::showUpdateForm(AsyncWebServerRequest *request) {
+    request->send(200, F("text/html"), F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>"));
+}
+
+
+//-----------------------------------------------------------------------------
+void Main::showUpdate(AsyncWebServerRequest *request) {
+    mShouldReboot = !Update.hasError();
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", mShouldReboot ? "OK" : "FAIL");
+    response->addHeader("Connection", "close");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void Main::showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    if(!index) {
+        Serial.printf("Update Start: %s\n", filename.c_str());
+        Update.runAsync(true);
+        if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
+            Update.printError(Serial);
+        }
+    }
+    if(!Update.hasError()) {
+        if(Update.write(data, len) != len){
+            Update.printError(Serial);
+        }
+    }
+    if(final) {
+        if(Update.end(true)) {
+            Serial.printf("Update Success: %uB\n", index+len);
+        } else {
+            Update.printError(Serial);
+        }
     }
 }
 
