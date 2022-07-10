@@ -58,11 +58,4 @@
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
 
-// comment out to disable any of the debug options here
-#define DEBUG_APP
-#define DEBUG_HMINVERTER
-#define DEBUG_HMRADIO
-#define DEBUG_HMSYSTEM
-#define DEBUG_HMMAIN
-
 #endif /*__CONFIG_H__*/
