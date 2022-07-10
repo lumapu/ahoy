@@ -50,7 +50,7 @@ typedef struct {
 
 #define RF24_AMP_PWR_LEN    1
 
-#define MQTT_ADDR_LEN         4 // IP
+#define MQTT_ADDR_LEN         32 // DNS Name
 #define MQTT_USER_LEN         16
 #define MQTT_PWD_LEN          32
 #define MQTT_TOPIC_LEN        32

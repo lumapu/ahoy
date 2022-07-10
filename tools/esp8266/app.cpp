@@ -124,7 +124,7 @@ void app::setup(uint32_t timeout) {
 
 
         // mqtt
-        uint8_t mqttAddr[MQTT_ADDR_LEN];
+        char mqttAddr[MQTT_ADDR_LEN];
         uint16_t mqttPort;
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
@@ -135,9 +135,6 @@ void app::setup(uint32_t timeout) {
         mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
         //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
-
-        char addr[16] = {0};
-        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
 
         if(mqttAddr[0] > 0) {
             mMqttActive = true;
@@ -150,8 +147,7 @@ void app::setup(uint32_t timeout) {
         if(0 == mqttPort)
             mqttPort = 1883;
 
-
-        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
 
         mSerialTicker = 0;
@@ -573,14 +569,12 @@ void app::showSetup(void) {
         mEep->read(ADDR_SER_DEBUG, &tmp);
         html.replace(F("{SER_DBG_CB}"), (tmp == 0x01) ? "checked" : "");
 
-        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        char mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
         mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
-        char addr[16] = {0};
-        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-        html.replace(F("{MQTT_ADDR}"),  String(addr));
+        html.replace(F("{MQTT_ADDR}"),  String(mqttAddr));
         html.replace(F("{MQTT_PORT}"),  String(mMqtt.getPort()));
         html.replace(F("{MQTT_USER}"),  String(mMqtt.getUser()));
         html.replace(F("{MQTT_PWD}"),   String(mMqtt.getPwd()));
@@ -835,18 +829,12 @@ void app::saveValues(bool webSend = true) {
         mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
 
         // mqtt
-        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        char mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
-        mWeb->arg("mqttAddr").toCharArray(buf, 20);
-        i = 0;
-        p = strtok(buf, ".");
-        while(NULL != p) {
-            mqttAddr[i++] = atoi(p);
-            p = strtok(NULL, ".");
-        }
+        mWeb->arg("mqttAddr").toCharArray(mqttAddr, MQTT_ADDR_LEN);
         mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
         mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
         mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
