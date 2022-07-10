@@ -15,11 +15,11 @@
 app::app() : Main() {
     DPRINTLN(DBG_VERBOSE, F("app::app():Main"));
     mSendTicker     = 0xffff;
-    mSendInterval   = 0;
+    mSendInterval   = MIN_SEND_INTERVAL;
     mMqttTicker     = 0xffff;
-    mMqttInterval   = 0;
+    mMqttInterval   = MIN_MQTT_INTERVAL;
     mSerialTicker   = 0xffff;
-    mSerialInterval = 0;
+    mSerialInterval = MIN_SERIAL_INTERVAL;
     mMqttActive     = false;
 
     mTicker = 0;
@@ -65,8 +65,8 @@ void app::setup(uint32_t timeout) {
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < 5)
-            mSendInterval = 5;
+        if(mSendInterval < MIN_SEND_INTERVAL)
+            mSendInterval = MIN_SEND_INTERVAL;
         mSendTicker = mSendInterval;
 
         // inverter
@@ -114,12 +114,12 @@ void app::setup(uint32_t timeout) {
         // serial console
         uint8_t tmp;
         mEep->read(ADDR_SER_INTERVAL, &mSerialInterval);
+        if(mSerialInterval < MIN_SERIAL_INTERVAL)
+            mSerialInterval = MIN_SERIAL_INTERVAL;
         mEep->read(ADDR_SER_ENABLE, &tmp);
         mSerialValues = (tmp == 0x01);
         mEep->read(ADDR_SER_DEBUG, &tmp);
         mSerialDebug = (tmp == 0x01);
-        if(mSerialInterval < 1)
-            mSerialInterval = 1;
         mSys->Radio.mSerialDebug = mSerialDebug;
 
 
@@ -138,8 +138,8 @@ void app::setup(uint32_t timeout) {
 
         if(mqttAddr[0] > 0) {
             mMqttActive = true;
-            if(mMqttInterval < 1)
-                mMqttInterval = 10;
+            if(mMqttInterval < MIN_MQTT_INTERVAL)
+                mMqttInterval = MIN_MQTT_INTERVAL;
         }
         else
             mMqttInterval = 0xffff;
