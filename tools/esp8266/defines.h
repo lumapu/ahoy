@@ -12,8 +12,8 @@
 // PINOUT (Default, can be changed in setup)
 //-------------------------------------
 #define RF24_CS_PIN         15
-#define RF24_CE_PIN         0
-#define RF24_IRQ_PIN        2
+#define RF24_CE_PIN         2
+#define RF24_IRQ_PIN        0
 
 
 //-------------------------------------
