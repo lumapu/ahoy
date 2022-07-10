@@ -74,7 +74,7 @@ For now the following inverters should work out of the box:
 
 (*) Eeprom settings changed so your settings will be overwritten and need to be set again!
 
-- v0.4.24 added fixes for #63, #88, #93. (*) EEPROM changes
+- v0.4.24 added fixes for #63, #88, #93. revert #36 (*) EEPROM changes
 - v0.4.23 
 - v0.4.22
 - v0.4.21
