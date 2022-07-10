@@ -35,7 +35,7 @@ typedef struct {
 // EEPROM
 //-------------------------------------
 #define SSID_LEN            32
-#define PWD_LEN             63
+#define PWD_LEN             64
 #define DEVNAME_LEN         16
 #define CRC_LEN             2 // uint16_t
 
