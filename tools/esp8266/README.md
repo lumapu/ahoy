@@ -69,3 +69,15 @@ For now the following inverters should work out of the box:
 - `RF24` 1.4.2
 - `PubSubClient` 2.8
 - `ArduinoJson` 6.19.4
+
+## Changelog
+
+(*) Eeprom settings changed so your settings will be overwritten and need to be set again!
+
+- v0.4.24 added fixes for #63, #88, #93. (*) EEPROM changes
+- v0.4.23 
+- v0.4.22
+- v0.4.21
+- v0.4.20
+- v0.4.19
+- v0.4.18
