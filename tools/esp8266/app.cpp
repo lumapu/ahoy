@@ -782,7 +782,6 @@ void app::saveValues(bool webSend = true) {
     Main::saveValues(false); // general configuration
 
     if(mWeb->args() > 0) {
-        char *p;
         char buf[20] = {0};
         uint8_t i = 0;
         uint16_t interval;
