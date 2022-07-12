@@ -37,14 +37,14 @@
 // number of configurable inverters
 #define MAX_NUM_INVERTERS       3
 
-// minimum serial interval
-#define MIN_SERIAL_INTERVAL     5
+// default serial interval
+#define SERIAL_INTERVAL     5
 
-// minimum send interval
-#define MIN_SEND_INTERVAL       30
+// default send interval
+#define SEND_INTERVAL       30
 
-// minimum mqtt interval
-#define MIN_MQTT_INTERVAL       60
+// default mqtt interval
+#define MQTT_INTERVAL       60
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16

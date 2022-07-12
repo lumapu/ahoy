@@ -30,6 +30,14 @@ typedef struct {
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 
+// minimum serial interval
+#define MIN_SERIAL_INTERVAL     5
+
+// minimum send interval
+#define MIN_SEND_INTERVAL       15
+
+// minimum mqtt interval
+#define MIN_MQTT_INTERVAL       60
 
 //-------------------------------------
 // EEPROM
