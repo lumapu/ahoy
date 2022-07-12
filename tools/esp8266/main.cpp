@@ -8,7 +8,7 @@
 
 #include "html/h/style_css.h"
 #include "html/h/setup_html.h"
-#include "html/h/favicon_ico_gz.h"
+#include "html/h/favicon.h"
 
 
 //-----------------------------------------------------------------------------
@@ -264,9 +264,12 @@ void Main::showCss(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void Main::showFavicon(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("Main::showFavicon"));
-    AsyncWebServerResponse *response = request->beginResponse_P(200, F("image/x-icon"), favicon_ico_gz, favicon_ico_gz_len);
-    response->addHeader(F("Content-Encoding"), "gzip");
+    DPRINTLN(DBG_VERBOSE, F("app::showFavicon"));
+    static const char favicon_type[] PROGMEM = "image/x-icon";
+    static const unsigned char favicon_content[] PROGMEM = FAVICON_PANEL_57;
+    // mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
+    AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_content, sizeof(favicon_content));
+    // response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
 }
 
