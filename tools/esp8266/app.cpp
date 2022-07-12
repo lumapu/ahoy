@@ -15,11 +15,11 @@
 app::app() : Main() {
     DPRINTLN(DBG_VERBOSE, F("app::app():Main"));
     mSendTicker     = 0xffff;
-    mSendInterval   = MIN_SEND_INTERVAL;
+    mSendInterval   = SEND_INTERVAL;
     mMqttTicker     = 0xffff;
-    mMqttInterval   = MIN_MQTT_INTERVAL;
+    mMqttInterval   = MQTT_INTERVAL;
     mSerialTicker   = 0xffff;
-    mSerialInterval = MIN_SERIAL_INTERVAL;
+    mSerialInterval = SERIAL_INTERVAL;
     mMqttActive     = false;
 
     mTicker = 0;
