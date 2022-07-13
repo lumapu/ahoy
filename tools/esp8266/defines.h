@@ -12,8 +12,8 @@
 // PINOUT (Default, can be changed in setup)
 //-------------------------------------
 #define RF24_CS_PIN         15
-#define RF24_CE_PIN         0
-#define RF24_IRQ_PIN        2
+#define RF24_CE_PIN         2
+#define RF24_IRQ_PIN        0
 
 
 //-------------------------------------
@@ -21,7 +21,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       4
-#define VERSION_PATCH       23
+#define VERSION_PATCH       25
 
 
 //-------------------------------------
@@ -30,12 +30,20 @@ typedef struct {
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 
+// minimum serial interval
+#define MIN_SERIAL_INTERVAL     5
+
+// minimum send interval
+#define MIN_SEND_INTERVAL       15
+
+// minimum mqtt interval
+#define MIN_MQTT_INTERVAL       60
 
 //-------------------------------------
 // EEPROM
 //-------------------------------------
 #define SSID_LEN            32
-#define PWD_LEN             63
+#define PWD_LEN             64
 #define DEVNAME_LEN         16
 #define CRC_LEN             2 // uint16_t
 
@@ -50,7 +58,7 @@ typedef struct {
 
 #define RF24_AMP_PWR_LEN    1
 
-#define MQTT_ADDR_LEN         4 // IP
+#define MQTT_ADDR_LEN         32 // DNS Name
 #define MQTT_USER_LEN         16
 #define MQTT_PWD_LEN          32
 #define MQTT_TOPIC_LEN        32

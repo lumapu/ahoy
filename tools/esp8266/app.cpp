@@ -14,11 +14,11 @@
 app::app() : Main() {
     DPRINTLN(DBG_VERBOSE, F("app::app():Main"));
     mSendTicker     = 0xffff;
-    mSendInterval   = 0;
+    mSendInterval   = SEND_INTERVAL;
     mMqttTicker     = 0xffff;
-    mMqttInterval   = 0;
+    mMqttInterval   = MQTT_INTERVAL;
     mSerialTicker   = 0xffff;
-    mSerialInterval = 0;
+    mSerialInterval = SERIAL_INTERVAL;
     mMqttActive     = false;
 
     mTicker = 0;
@@ -63,8 +63,8 @@ void app::setup(uint32_t timeout) {
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < 5)
-            mSendInterval = 5;
+        if(mSendInterval < MIN_SEND_INTERVAL)
+            mSendInterval = MIN_SEND_INTERVAL;
         mSendTicker = mSendInterval;
 
         // inverter
@@ -112,17 +112,17 @@ void app::setup(uint32_t timeout) {
         // serial console
         uint8_t tmp;
         mEep->read(ADDR_SER_INTERVAL, &mSerialInterval);
+        if(mSerialInterval < MIN_SERIAL_INTERVAL)
+            mSerialInterval = MIN_SERIAL_INTERVAL;
         mEep->read(ADDR_SER_ENABLE, &tmp);
         mSerialValues = (tmp == 0x01);
         mEep->read(ADDR_SER_DEBUG, &tmp);
         mSerialDebug = (tmp == 0x01);
-        if(mSerialInterval < 1)
-            mSerialInterval = 1;
         mSys->Radio.mSerialDebug = mSerialDebug;
 
 
         // mqtt
-        uint8_t mqttAddr[MQTT_ADDR_LEN];
+        char mqttAddr[MQTT_ADDR_LEN];
         uint16_t mqttPort;
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
@@ -134,13 +134,10 @@ void app::setup(uint32_t timeout) {
         //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
-        char addr[16] = {0};
-        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-
         if(mqttAddr[0] > 0) {
             mMqttActive = true;
-            if(mMqttInterval < 1)
-                mMqttInterval = 10;
+            if(mMqttInterval < MIN_MQTT_INTERVAL)
+                mMqttInterval = MIN_MQTT_INTERVAL;
         }
         else
             mMqttInterval = 0xffff;
@@ -148,8 +145,7 @@ void app::setup(uint32_t timeout) {
         if(0 == mqttPort)
             mqttPort = 1883;
 
-
-        mMqtt.setup(addr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort);
         mMqttTicker = 0;
 
         mSerialTicker = 0;
@@ -571,14 +567,12 @@ void app::showSetup(AsyncWebServerRequest *request) {
         mEep->read(ADDR_SER_DEBUG, &tmp);
         html.replace(F("{SER_DBG_CB}"), (tmp == 0x01) ? "checked" : "");
 
-        uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
+        char mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
         mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
 
-        char addr[16] = {0};
-        sprintf(addr, "%d.%d.%d.%d", mqttAddr[0], mqttAddr[1], mqttAddr[2], mqttAddr[3]);
-        html.replace(F("{MQTT_ADDR}"),  String(addr));
+        html.replace(F("{MQTT_ADDR}"),  String(mqttAddr));
         html.replace(F("{MQTT_PORT}"),  String(mMqtt.getPort()));
         html.replace(F("{MQTT_USER}"),  String(mMqtt.getUser()));
         html.replace(F("{MQTT_PWD}"),   String(mMqtt.getPwd()));
