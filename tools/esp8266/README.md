@@ -74,6 +74,7 @@ For now the following inverters should work out of the box:
 
 (*) EEPROM changes require settings to be changed, your settings will be overwritten and need to be set again!
 
+- v0.4.25 added default SERIAL/MQTT/SEND_INTERVAL #100, fixed env:node_mcu_v2 build #101
 - v0.4.24 added fixes for #63, #88, #93. revert #36 (*) EEPROM changes
 - v0.4.23 added workflow, fix index.html to load inverter info immediately, changed timestamp to 1 for stand alone ESP #90, Implement MQTT discovery for Home Assistant
 - v0.4.22 compiles with PlatformIO
