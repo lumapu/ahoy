@@ -930,7 +930,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     }
 
                     serializeJson(doc, buffer);
-                    mMqtt.sendMsg2(discoveryTopic, buffer);
+                    mMqtt.sendMsg2(discoveryTopic, buffer, true);
                     doc.clear();
 
                     yield();
