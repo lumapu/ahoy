@@ -39,15 +39,15 @@ class mqtt {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
             char top[64];
             snprintf(top, 64, "%s/%s", mTopic, topic);
-            sendMsg2(top, msg);
+            sendMsg2(top, msg, false);
         }
 
-        void sendMsg2(const char *topic, const char *msg) {
+        void sendMsg2(const char *topic, const char *msg, boolean retained) {
             if(mAddressSet) {
                 if(!mClient->connected())
                     reconnect();
                 if(mClient->connected())
-                    mClient->publish(topic, msg);
+                    mClient->publish(topic, msg, retained);
             }
         }
 
