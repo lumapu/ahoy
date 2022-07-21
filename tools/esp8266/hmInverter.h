@@ -69,6 +69,8 @@ class Inverter {
         uint8_t       type;     // integer which refers to inverter type
         byteAssign_t* assign;   // type of inverter
         uint8_t       listLen;  // length of assignments
+        uint16_t      powerLimit;  // limit power output
+        bool          powerLimitChange; // true if change needed
         serial_u      serial;   // serial number as on barcode
         serial_u      radioId;  // id converted to modbus
         uint8_t       channels; // number of PV channels (1-4)
@@ -79,6 +81,8 @@ class Inverter {
 
         Inverter() {
             ts = 0;
+            powerLimit = -1; // 65535 W Limit -> unlimited
+            powerLimitChange = false;
         }
 
         ~Inverter() {

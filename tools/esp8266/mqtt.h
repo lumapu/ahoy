@@ -12,6 +12,8 @@
 
 class mqtt {
     public:
+        PubSubClient *mClient;
+
         mqtt() {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
@@ -33,6 +35,10 @@ class mqtt {
             snprintf(mUser, MQTT_USER_LEN, "%s", user);
             snprintf(mPwd, MQTT_PWD_LEN, "%s", pwd);
             snprintf(mTopic, MQTT_TOPIC_LEN, "%s", topic);
+        }
+
+        void setCallback(void (*func)(const char* topic, byte* payload, unsigned int length)){
+            mClient->setCallback(func);
         }
 
         void sendMsg(const char *topic, const char *msg) {
@@ -79,25 +85,25 @@ class mqtt {
 
         void loop() {
             //DPRINT(F("m"));
-            //if(!mClient->connected())
-            //    reconnect();
+            if(!mClient->connected())
+                reconnect();
             mClient->loop();
         }
 
     private:
         void reconnect(void) {
-            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:reconnect"));
+            DPRINTLN(DBG_INFO, F("mqtt.h:reconnect"));
             if(!mClient->connected()) {
                 if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
                     mClient->connect(DEF_DEVICE_NAME, mUser, mPwd);
                 else
                     mClient->connect(DEF_DEVICE_NAME);
             }
+            mClient->subscribe("home/huette/powerset");
         }
 
         WiFiClient mEspClient;
-        PubSubClient *mClient;
-
+        
         bool mAddressSet;
         uint16_t mPort;
         char mUser[MQTT_USER_LEN];
