@@ -81,8 +81,8 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX));
-
+                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit);
+                    DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
                     }
@@ -148,6 +148,7 @@ void app::setup(uint32_t timeout) {
             mqttPort = 1883;
 
         mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqtt.mClient->setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMqttTicker = 0;
 
         mSerialTicker = 0;
@@ -229,7 +230,7 @@ void app::loop(void) {
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if(NULL != iv) {
+                    if(NULL != iv && p->packet[0] == 0x95) {
                         uint8_t *pid = &p->packet[9];
                         if((*pid & 0x7F) < 5) {
                             memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
@@ -349,8 +350,15 @@ void app::loop(void) {
                     yield();
                     if(mSerialDebug)
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
-                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
-                    mRxTicker = 0;
+                    if(iv->powerLimitChange){
+                        if(mSerialDebug)
+                            DPRINTLN(DBG_INFO, F("Requesting Inverter to change power limit to ") + String(iv->powerLimit));
+                        mSys->Radio.sendControlPacket(iv->radioId.u64, uint16_t(iv->powerLimit*10));
+                        iv->powerLimitChange = false;
+                    } else {
+                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                        mRxTicker = 0;
+                    }
                 }
             }
             else if(mSerialDebug)
@@ -600,6 +608,22 @@ void app::showErase() {
     showReboot();
 }
 
+//-----------------------------------------------------------------------------
+void app::cbMqtt(const char* topic, byte* payload, unsigned int length) {
+    DPRINTLN(DBG_INFO, F("app::cbMqtt"));
+    // DPRINTLN(DBG_INFO, topic);
+    // ToDo check topic !
+    int inverterId = 0; // ToDo get inverter id from topic
+    Inverter<> *iv = this->mSys->getInverterByPos(inverterId); 
+    if(NULL != iv) {
+        iv->powerLimit = std::stoi((char*)payload);
+        iv->powerLimitChange = true;
+        mEep->write(ADDR_INV_PWR_LIM + inverterId * 2,iv->powerLimit);
+        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit) + F("W") );
+    }
+}
+
+
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(void) {
@@ -690,7 +714,7 @@ void app::showLiveData(void) {
             }
 
             modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F("</span>");
+                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit) + F(" W</span>");
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
 
             for(uint8_t fld = 0; fld < 10; fld++) {

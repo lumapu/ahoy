@@ -166,6 +166,28 @@ class HmRadio {
             return mTxChLst[mTxChIdx];
         }*/
 
+        void sendControlPacket(uint64_t invId, uint16_t data) {
+            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
+            sendCmdPacket(invId, 0x51, 0x80, false);
+            mTxBuf[10] = 0x0b; // control type --> 0x0b => Type_ActivePowerContr
+            mTxBuf[11] = 0x00;
+            // 4 bytes control data
+            // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
+            mTxBuf[12] = (data >> 8) & 0xff; // 0x01
+            mTxBuf[13] = (data     ) & 0xff; // 0x2c
+            //
+            mTxBuf[14] = 0x00;
+            mTxBuf[15] = 0x00;
+            // crc control data
+            uint16_t crc = crc16(&mTxBuf[10], 6);
+            mTxBuf[16] = (crc >> 8) & 0xff;
+            mTxBuf[17] = (crc     ) & 0xff;
+            // crc over all
+            mTxBuf[18] = crc8(mTxBuf, 18);
+
+            sendPacket(invId, mTxBuf, 19, true);
+        }
+
         void sendTimePacket(uint64_t invId, uint32_t ts) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, 0x15, 0x80, false);

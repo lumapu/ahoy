@@ -51,6 +51,7 @@ class app : public Main {
         void setup(uint32_t timeout);
         void loop(void);
         void handleIntr(void);
+        void cbMqtt(const char* topic, byte* payload, unsigned int length);
 
         uint8_t app_loops;
         uint8_t getIrqPin(void) {
