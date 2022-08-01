@@ -99,7 +99,10 @@ class mqtt {
                 else
                     mClient->connect(DEF_DEVICE_NAME);
             }
-            mClient->subscribe("home/huette/powerset");
+            char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
+            // ToDo: "/devcontrol/#" is hardcoded 
+            snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mTopic); 
+            mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
         }
 
         WiFiClient mEspClient;

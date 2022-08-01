@@ -82,6 +82,7 @@ void app::setup(uint32_t timeout) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
                     mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit);
+                    iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
                     DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
@@ -216,6 +217,8 @@ void app::loop(void) {
 
         bool rxRdy = mSys->Radio.switchRxCh();
 
+        char respTopic[64];
+
         if(!mSys->BufCtrl.empty()) {
             uint8_t len;
             packet_t *p = mSys->BufCtrl.getBack();
@@ -230,7 +233,7 @@ void app::loop(void) {
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if(NULL != iv && p->packet[0] == 0x95) {
+                    if(NULL != iv && p->packet[0] == (0x15 + 0x80)) { // response from get all information command
                         uint8_t *pid = &p->packet[9];
                         if (*pid == 0x00) {
                             DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
@@ -248,6 +251,10 @@ void app::loop(void) {
                                 }
                             }
                         }
+                    }
+                    if(NULL != iv && p->packet[0] == (0x51 + 0x80)) { // response from dev control command q'n'd
+                        snprintf(respTopic, 64, "%s/devcontrol/%d/resp", mMqtt.getTopic(), iv->id);
+                        mMqtt.sendMsg2(respTopic,(const char*)p->packet,false);
                     }
                 }
             }
@@ -354,11 +361,13 @@ void app::loop(void) {
                     yield();
                     if(mSerialDebug)
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
-                    if(iv->powerLimitChange){
+                    if(iv->devControlRequest){
                         if(mSerialDebug)
-                            DPRINTLN(DBG_INFO, F("Requesting Inverter to change power limit to ") + String(iv->powerLimit));
-                        mSys->Radio.sendControlPacket(iv->radioId.u64, uint16_t(iv->powerLimit*10));
-                        iv->powerLimitChange = false;
+                            DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit));
+                        mSys->Radio.sendControlPacket(iv->radioId.u64, uint16_t(iv->powerLimit),iv->devControlCmd);
+                        // ToDo: Only set Request to false if succesful executed
+                        iv->devControlRequest = false;
+                        // ^^
                     } else {
                         mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
                         mRxTicker = 0;
@@ -504,10 +513,12 @@ void app::showSetup(void) {
     uint64_t invSerial;
     char name[MAX_NAME_LENGTH + 1] = {0};
     uint16_t modPwr[4];
+    uint16_t invActivePowerLimit = -1;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
         mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4), modPwr, 4);
+        mEep->read(ADDR_INV_PWR_LIM + (i * 2),&invActivePowerLimit);
         inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
 
         inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
@@ -520,6 +531,12 @@ void app::showSetup(void) {
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
         inv += String(name);
         inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+
+        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit (W)</label>");
+        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
+        inv += String(invActivePowerLimit);
+        inv += F("\"/ maxlength=\"") + String(6) + "\">";
+
 
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label>");
@@ -613,17 +630,68 @@ void app::showErase() {
 }
 
 //-----------------------------------------------------------------------------
-void app::cbMqtt(const char* topic, byte* payload, unsigned int length) {
+void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
+    // callback handling on subscribed devcontrol topic
     DPRINTLN(DBG_INFO, F("app::cbMqtt"));
-    // DPRINTLN(DBG_INFO, topic);
-    // ToDo check topic !
-    int inverterId = 0; // ToDo get inverter id from topic
-    Inverter<> *iv = this->mSys->getInverterByPos(inverterId); 
-    if(NULL != iv) {
-        iv->powerLimit = std::stoi((char*)payload);
-        iv->powerLimitChange = true;
-        mEep->write(ADDR_INV_PWR_LIM + inverterId * 2,iv->powerLimit);
-        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit) + F("W") );
+    DPRINTLN(DBG_INFO, topic);
+    // subcribed topics are mTopic + "/devcontrol/#" where # is <inverter_id>/<subcmd in dec>/<value in dec>
+    // eg. mypvsolar/devcontrol/1/11/400 --> inverter 1 active power limit 400 Watt
+    char *token = strtok(topic, "/");
+    while (token != NULL)
+    {   
+        // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+        //        ^^^
+        if (strcmp(token,"devcontrol")){
+            Inverter<> *iv = this->mSys->getInverterByPos(std::stoi(strtok(NULL, "/")));
+            // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+            //                    ^^^
+            if(NULL != iv) {
+                // switch case subcmd
+                switch ( std::stoi(strtok(NULL, "/")) ){
+                // .../devcontrol/<inverter_id as int>/<subcmd in dec>/<value in dec>    
+                //                                           ^^^^
+                    case 11: // Active Power Control
+                        iv->devControlCmd = 11;
+                        iv->powerLimit = std::stoi(strtok(NULL, "/"));
+                        // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+                        //                                                    ^^^
+                        mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit);
+                        // updateCrc();
+                        // mEep->commit();
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit) + F("W") );
+                    break;
+                    case 0: // Turn On
+                        iv->devControlCmd = 0;
+                        DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id) );
+                    break;
+                    case 1: // Turn Off
+                        iv->devControlCmd = 1;
+                        DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id) );
+                    break;
+                    case 2: // Restart
+                        iv->devControlCmd = 2;
+                        DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id) );
+                    break;
+                    case 12: // Reactive Power Control
+                        // iv->devControlCmd = 12;
+                        // uint16_t reactive_power = std::stoi(strtok(NULL, "/"));
+                        // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+                        //                                                    ^^^
+                        DPRINTLN(DBG_INFO, F("Reactive Power Control not implemented for inverter ") + String(iv->id) );
+                    break;
+                    case 13: // Set Power Factor
+                        // iv->devControlCmd = 13;
+                        // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
+                        // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+                        //                                                    ^^^
+                        DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
+                    break;
+                }
+            iv->devControlRequest = true;
+            }
+            break;
+        }
+        token = strtok(NULL, "/");
     }
 }
 
@@ -813,6 +881,7 @@ void app::saveValues(bool webSend = true) {
         char buf[20] = {0};
         uint8_t i = 0;
         uint16_t interval;
+        uint16_t activepowerlimit=-1;
 
         // inverter
         serial_u addr;
@@ -823,6 +892,10 @@ void app::saveValues(bool webSend = true) {
                 memset(buf, 0, 20);
             addr.u64 = Serial2u64(buf);
             mEep->write(ADDR_INV_ADDR + (i * 8), addr.u64);
+
+            // active power limit
+            activepowerlimit = mWeb->arg("inv" + String(i) + "ActivePowerLimit").toInt();
+            mEep->write(ADDR_INV_PWR_LIM + i * 2,activepowerlimit);
 
             // name
             mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);

@@ -166,26 +166,30 @@ class HmRadio {
             return mTxChLst[mTxChIdx];
         }*/
 
-        void sendControlPacket(uint64_t invId, uint16_t data) {
+        void sendControlPacket(uint64_t invId, uint16_t data, uint8_t cmd) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
-            sendCmdPacket(invId, 0x51, 0x80, false);
-            mTxBuf[10] = 0x0b; // control type --> 0x0b => Type_ActivePowerContr
-            mTxBuf[11] = 0x00;
-            // 4 bytes control data
-            // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
-            mTxBuf[12] = (data >> 8) & 0xff; // 0x01
-            mTxBuf[13] = (data     ) & 0xff; // 0x2c
-            //
-            mTxBuf[14] = 0x00;
-            mTxBuf[15] = 0x00;
+            // sendCmdPacket(invId, 0x51, 0x80, false); // 0x80 implementation as original DTU code
+            sendCmdPacket(invId, 0x51, 0x81, false);
+            int cnt = 0;
+            mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
+            mTxBuf[10 + (++cnt)] = 0x00;
+            if (cmd == 11){
+                // 4 bytes control data
+                // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
+                mTxBuf[10 + (++cnt)] = (data*10 >> 8) & 0xff; // 0x01
+                mTxBuf[10 + (++cnt)] = (data*10     ) & 0xff; // 0x2c
+                // are these two bytes necessary?
+                mTxBuf[10 + (++cnt)] = 0x00;
+                mTxBuf[10 + (++cnt)] = 0x00;
+            }
             // crc control data
-            uint16_t crc = crc16(&mTxBuf[10], 6);
-            mTxBuf[16] = (crc >> 8) & 0xff;
-            mTxBuf[17] = (crc     ) & 0xff;
+            uint16_t crc = crc16(&mTxBuf[10], 10 - (cnt+1));
+            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
+            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
             // crc over all
-            mTxBuf[18] = crc8(mTxBuf, 18);
+            mTxBuf[10 + (++cnt)] = crc8(mTxBuf, 18);
 
-            sendPacket(invId, mTxBuf, 19, true);
+            sendPacket(invId, mTxBuf, 10 + (++cnt), true);
         }
 
         void sendTimePacket(uint64_t invId, uint32_t ts) {
