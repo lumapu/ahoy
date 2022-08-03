@@ -232,16 +232,20 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
                         uint8_t *pid = &p->packet[9];
-                        if((*pid & 0x7F) < 5) {
-                            memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
-                            mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
-                        }
+                        if (*pid == 0x00) {
+                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
+                        } else {
+                            if((*pid & 0x7F) < 5) {
+                                memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                                mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
+                            }
 
-                        if((*pid & 0x80) == 0x80) {
-                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
-                                mPayload[iv->id].maxPackId = (*pid & 0x7f);
-                                if(*pid > 0x81)
-                                    mLastPacketId = *pid;
+                            if((*pid & 0x80) == 0x80) {
+                                if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
+                                    mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                    if(*pid > 0x81)
+                                        mLastPacketId = *pid;
+                                }
                             }
                         }
                     }
