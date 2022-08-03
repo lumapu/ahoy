@@ -124,8 +124,8 @@ void app::setup(uint32_t timeout) {
 
 
         // mqtt
-        char mqttAddr[MQTT_ADDR_LEN];
         uint16_t mqttPort;
+        char mqttAddr[MQTT_ADDR_LEN];
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
@@ -209,9 +209,9 @@ void app::loop(void) {
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        DPRINTLN(DBG_DEBUG, F("app_loops =") + String(app_loops));
+        //DPRINTLN(DBG_VERBOSE, F("app_loops =") + String(app_loops));
         app_loops=0;
-        DPRINT(DBG_DEBUG, F("a"));
+        DPRINT(DBG_VERBOSE, F("a"));
 
         bool rxRdy = mSys->Radio.switchRxCh();
 
@@ -222,7 +222,8 @@ void app::loop(void) {
             if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
                 if(mSerialDebug) {
-                    DPRINT(DBG_DEBUG, "Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
+                    DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
+
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
                 mFrameCnt++;
