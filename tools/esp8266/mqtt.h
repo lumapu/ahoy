@@ -16,6 +16,7 @@ class mqtt {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
 
+            memset(mAddr,  0, MQTT_ADDR_LEN);
             memset(mUser,  0, MQTT_USER_LEN);
             memset(mPwd,   0, MQTT_PWD_LEN);
             memset(mTopic, 0, MQTT_TOPIC_LEN);
@@ -23,13 +24,14 @@ class mqtt {
 
         ~mqtt() { }
 
-        void setup(const char *broker, const char *topic, const char *user, const char *pwd, uint16_t port) {
+        void setup(const char *addr, const char *topic, const char *user, const char *pwd, uint16_t port) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
-            mClient->setServer(broker, port);
+            mClient->setServer(addr, port);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
             mPort = port;
+            snprintf(mAddr, MQTT_ADDR_LEN, "%s", addr);
             snprintf(mUser, MQTT_USER_LEN, "%s", user);
             snprintf(mPwd, MQTT_PWD_LEN, "%s", pwd);
             snprintf(mTopic, MQTT_TOPIC_LEN, "%s", topic);
@@ -56,6 +58,11 @@ class mqtt {
             if(doRecon)
                 reconnect();
             return mClient->connected();
+        }
+
+        char *getAddr(void) {
+            //DPRINTLN(DBG_VERBOSE, F("mqtt.h:getAddr"));
+            return mAddr;
         }
 
         char *getUser(void) {
@@ -88,10 +95,12 @@ class mqtt {
         void reconnect(void) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:reconnect"));
             if(!mClient->connected()) {
-                if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
-                    mClient->connect(DEF_DEVICE_NAME, mUser, mPwd);
-                else
-                    mClient->connect(DEF_DEVICE_NAME);
+                if(strlen(mAddr) > 0) {
+                    if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
+                        mClient->connect(mAddr, mUser, mPwd);
+                    else
+                        mClient->connect(mAddr);
+                }
             }
         }
 
@@ -100,6 +109,7 @@ class mqtt {
 
         bool mAddressSet;
         uint16_t mPort;
+        char mAddr[MQTT_ADDR_LEN];
         char mUser[MQTT_USER_LEN];
         char mPwd[MQTT_PWD_LEN];
         char mTopic[MQTT_TOPIC_LEN];
