@@ -106,6 +106,10 @@ class mqtt {
             DPRINTLN(DBG_DEBUG, F("WIFI mEspClient.status ") + String(mEspClient.status()) );
             if(!mClient->connected()) {
                 if(strlen(mDevName) > 0) {
+                    // der Server und der Port müssen neu gesetzt werden, 
+                    // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
+                    mClient->setServer(mBroker, mPort);
+                    mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
                     if((strlen(mUser) > 0) && (strlen(mPwd) > 0))
                         mClient->connect(mDevName, mUser, mPwd);
                     else
