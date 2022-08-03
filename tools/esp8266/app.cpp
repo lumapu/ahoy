@@ -129,12 +129,15 @@ void app::setup(uint32_t timeout) {
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
+        char mDeviceName[DEVNAME_LEN];
+
         mEep->read(ADDR_MQTT_ADDR,     mqttAddr,  MQTT_ADDR_LEN);
         mEep->read(ADDR_MQTT_USER,     mqttUser,  MQTT_USER_LEN);
         mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
         mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
         //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
         mEep->read(ADDR_MQTT_PORT,     &mqttPort);
+        mEep->read(ADDR_DEVNAME,       mDeviceName, DEVNAME_LEN);
 
         if(mqttAddr[0] > 0) {
             mMqttActive = true;
@@ -147,13 +150,14 @@ void app::setup(uint32_t timeout) {
         if(0 == mqttPort)
             mqttPort = 1883;
 
-        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort, mDeviceName);
         mMqttTicker = 0;
-
+        
         mSerialTicker = 0;
 
         if(mqttAddr[0] > 0) {
             char topic[30];
+            mMqtt.sendMsg("Device", mDeviceName);
             mMqtt.sendMsg("version", mVersion);
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
@@ -167,6 +171,8 @@ void app::setup(uint32_t timeout) {
                     }
                 }
             }
+            //  erste MQTT Übertragung aus der Loop in 2 Sekunden
+            mMqttTicker = mMqttInterval - 2;
         }
     }
     else {
@@ -231,20 +237,16 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
                         uint8_t *pid = &p->packet[9];
-                        if (*pid == 0x00) {
-                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
-                        } else {
-                            if((*pid & 0x7F) < 5) {
-                                memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
-                                mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
-                            }
+                        if((*pid & 0x7F) < 5) {
+                            memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                            mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
+                        }
 
-                            if((*pid & 0x80) == 0x80) {
-                                if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
-                                    mPayload[iv->id].maxPackId = (*pid & 0x7f);
-                                    if(*pid > 0x81)
-                                        mLastPacketId = *pid;
-                                }
+                        if((*pid & 0x80) == 0x80) {
+                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
+                                mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                if(*pid > 0x81)
+                                    mLastPacketId = *pid;
                             }
                         }
                     }
@@ -265,6 +267,10 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
+        // Zählt den MQTT Disconnect Counter runter, Damit wird ein sofortiger reconnect im Fall von Loss_Connect
+        // unterdrückt.
+        mMqtt.decReconnect();
+        
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff)) {
             mMqttTicker = 0;
             mMqtt.isConnected(true);
@@ -284,7 +290,12 @@ void app::loop(void) {
             }
             snprintf(val, 10, "%ld", millis()/1000);
             sendMqttDiscoveryConfig();
+
             mMqtt.sendMsg("uptime", val);
+            
+            // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
+            // mMqttTicker = mMqttInterval -10;
+            
         }
 
         if(mSerialValues) {
@@ -295,6 +306,7 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
                         if(iv->isAvailable(mTimestamp)) {
+                            DPRINTLN(DBG_INFO, " Inverter : " + String(id));
                             for(uint8_t i = 0; i < iv->listLen; i++) {
                                 if(0.0f != iv->getValue(i)) {
                                     snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
@@ -303,6 +315,7 @@ void app::loop(void) {
                                 }
                                 yield();
                             }
+                            DPRINTLN(DBG_INFO, " ");
                         }
                     }
                 }
@@ -400,6 +413,8 @@ bool app::buildPayload(uint8_t id) {
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
     DPRINTLN(DBG_VERBOSE, F("app::processPayload"));
+    boolean doMQTT = false;
+    
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
@@ -455,11 +470,23 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     iv->doCalculations();
+                    
+                    doMQTT = true;
                 }
             }
             yield();
         }
     }
+    
+//  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet ( doMQTT = true) 
+//  dann die den mMqttTicker auf mMqttIntervall -2 setzen, also  
+//  MQTT aussenden in 2 sek aktivieren 
+//  dies sollte noch über einen Schalter im Setup aktivier / deaktivierbar gemacht werden
+    if( (mMqttInterval != 0xffff) && doMQTT ) {
+        ++mMqttTicker = mMqttInterval -2;
+        DPRINT(DBG_DEBUG, F("MQTTticker auf Intervall -2 sec ")) ;
+    }
+    
 }
 
 
