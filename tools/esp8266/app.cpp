@@ -122,17 +122,19 @@ void app::setup(uint32_t timeout) {
 
 
         // mqtt
-        char mqttAddr[MQTT_ADDR_LEN];
         uint16_t mqttPort;
+        char mqttAddr[MQTT_ADDR_LEN];
         char mqttUser[MQTT_USER_LEN];
         char mqttPwd[MQTT_PWD_LEN];
         char mqttTopic[MQTT_TOPIC_LEN];
-        mEep->read(ADDR_MQTT_ADDR,     mqttAddr,  MQTT_ADDR_LEN);
-        mEep->read(ADDR_MQTT_USER,     mqttUser,  MQTT_USER_LEN);
-        mEep->read(ADDR_MQTT_PWD,      mqttPwd,   MQTT_PWD_LEN);
-        mEep->read(ADDR_MQTT_TOPIC,    mqttTopic, MQTT_TOPIC_LEN);
+        char mqttDevName[DEVNAME_LEN];
+        mEep->read(ADDR_MQTT_ADDR,  mqttAddr,    MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_USER,  mqttUser,    MQTT_USER_LEN);
+        mEep->read(ADDR_MQTT_PWD,   mqttPwd,     MQTT_PWD_LEN);
+        mEep->read(ADDR_MQTT_TOPIC, mqttTopic,   MQTT_TOPIC_LEN);
+        mEep->read(ADDR_DEVNAME,    mqttDevName, DEVNAME_LEN);
         //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
-        mEep->read(ADDR_MQTT_PORT,     &mqttPort);
+        mEep->read(ADDR_MQTT_PORT,  &mqttPort);
 
         if(mqttAddr[0] > 0) {
             mMqttActive = true;
@@ -145,13 +147,14 @@ void app::setup(uint32_t timeout) {
         if(0 == mqttPort)
             mqttPort = 1883;
 
-        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttPort);
+        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttDevName, mqttPort);
         mMqttTicker = 0;
 
         mSerialTicker = 0;
 
         if(mqttAddr[0] > 0) {
             char topic[30];
+            mMqtt.sendMsg("device", mqttDevName);
             mMqtt.sendMsg("version", mVersion);
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
@@ -207,9 +210,9 @@ void app::loop(void) {
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        DPRINTLN(DBG_DEBUG, F("app_loops =") + String(app_loops));
+        //DPRINTLN(DBG_VERBOSE, F("app_loops =") + String(app_loops));
         app_loops=0;
-        DPRINT(DBG_DEBUG, F("a"));
+        DPRINT(DBG_VERBOSE, F("a"));
 
         bool rxRdy = mSys->Radio.switchRxCh();
 
@@ -220,7 +223,8 @@ void app::loop(void) {
             if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
                 if(mSerialDebug) {
-                    DPRINT(DBG_DEBUG, "Received " + String(len) + " bytes channel " + String(p->rxCh) + ": ");
+                    DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
+
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
                 mFrameCnt++;
@@ -229,16 +233,20 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv) {
                         uint8_t *pid = &p->packet[9];
-                        if((*pid & 0x7F) < 5) {
-                            memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
-                            mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
-                        }
+                        if (*pid == 0x00) {
+                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
+                        } else {
+                            if((*pid & 0x7F) < 5) {
+                                memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                                mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
+                            }
 
-                        if((*pid & 0x80) == 0x80) {
-                            if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
-                                mPayload[iv->id].maxPackId = (*pid & 0x7f);
-                                if(*pid > 0x81)
-                                    mLastPacketId = *pid;
+                            if((*pid & 0x80) == 0x80) {
+                                if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
+                                    mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                    if(*pid > 0x81)
+                                        mLastPacketId = *pid;
+                                }
                             }
                         }
                     }
@@ -289,6 +297,7 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
                         if(iv->isAvailable(mTimestamp)) {
+                            DPRINTLN(DBG_INFO, "Inverter: " + String(id));
                             for(uint8_t i = 0; i < iv->listLen; i++) {
                                 if(0.0f != iv->getValue(i)) {
                                     snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
@@ -297,6 +306,7 @@ void app::loop(void) {
                                 }
                                 yield();
                             }
+                            DPRINTLN(DBG_INFO, "");                            
                         }
                     }
                 }
@@ -932,7 +942,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     }
 
                     serializeJson(doc, buffer);
-                    mMqtt.sendMsg2(discoveryTopic, buffer);
+                    mMqtt.sendMsg2(discoveryTopic, buffer, true);
                     doc.clear();
 
                     yield();
