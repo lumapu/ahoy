@@ -177,8 +177,8 @@ class HmRadio {
                 }
                 mTxBuf[10 + (++cnt)] = (data >> 8) & 0xff; // 0x01
                 mTxBuf[10 + (++cnt)] = (data     ) & 0xff; // 0x2c
-                // are these two bytes necessary? --> yes it seems so
-                mTxBuf[10 + (++cnt)] = 0x00;
+                // mTxBuf[10 + (++cnt)] = 0x00; // not persistent
+                mTxBuf[10 + (++cnt)] = 0x01; // persistent
                 mTxBuf[10 + (++cnt)] = 0x00;
             }
             // crc control data
