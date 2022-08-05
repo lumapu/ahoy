@@ -84,6 +84,7 @@ class Inverter {
             ts = 0;
             powerLimit = -1; // 65535 W Limit -> unlimited
             devControlRequest = false;
+            devControlCmd = 0xff;
         }
 
         ~Inverter() {

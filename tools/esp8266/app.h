@@ -71,6 +71,7 @@ class app : public Main {
         void showHoymiles(void);
         void showLiveData(void);
         void showJSON(void);
+        void devControl(void);
 
 
         void saveValues(bool webSend);

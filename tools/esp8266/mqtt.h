@@ -102,6 +102,7 @@ class mqtt {
             char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
             // ToDo: "/devcontrol/#" is hardcoded 
             snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mTopic); 
+            DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
             mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
         }
 
