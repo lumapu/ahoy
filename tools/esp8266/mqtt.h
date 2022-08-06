@@ -12,6 +12,8 @@
 
 class mqtt {
     public:
+        PubSubClient *mClient;
+
         mqtt() {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
@@ -38,6 +40,10 @@ class mqtt {
 
             mClient->setServer(mBroker, mPort);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
+        }
+
+        void setCallback(void (*func)(const char* topic, byte* payload, unsigned int length)){
+            mClient->setCallback(func);
         }
 
         void sendMsg(const char *topic, const char *msg) {
@@ -94,8 +100,8 @@ class mqtt {
 
         void loop() {
             //DPRINT(F("m"));
-            //if(!mClient->connected())
-            //    reconnect();
+            if(!mClient->connected())
+                reconnect();
             mClient->loop();
         }
 
@@ -116,13 +122,15 @@ class mqtt {
                         mClient->connect(mDevName);
                 }
             }
-            DPRINTLN(DBG_DEBUG, F("MQTT mClient->_state ") + String(mClient->state()) );
-            DPRINTLN(DBG_DEBUG, F("WIFI mEspClient.status ") + String(mEspClient.status()) );
+            char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
+            // ToDo: "/devcontrol/#" is hardcoded 
+            snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mTopic); 
+            DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
+            mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
         }
 
         WiFiClient mEspClient;
-        PubSubClient *mClient;
-
+        
         bool mAddressSet;
         uint16_t mPort;
         char mBroker[MQTT_ADDR_LEN];

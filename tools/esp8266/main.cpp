@@ -77,6 +77,7 @@ void Main::setup(uint32_t timeout) {
 #endif
 
     mApActive = startAp;
+    mStActive = !startAp;
 }
 
 
@@ -132,6 +133,10 @@ void Main::loop(void) {
         Serial.println("Rebooting...");
         delay(100);
         ESP.restart();
+
+    if (WiFi.status() != WL_CONNECTED) {
+        DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
+        mStActive = false;
     }
 }
 

@@ -52,14 +52,17 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",         HTTP_ANY, std::bind(&app::showIndex,      this, std::placeholders::_1));
-    mWeb->on("/setup",    HTTP_ANY, std::bind(&app::showSetup,      this, std::placeholders::_1));
-    mWeb->on("/save",     HTTP_ANY, std::bind(&app::showSave,       this, std::placeholders::_1));
-    mWeb->on("/erase",    HTTP_ANY, std::bind(&app::showErase,      this, std::placeholders::_1));
-    mWeb->on("/cmdstat",  HTTP_ANY, std::bind(&app::showStatistics, this, std::placeholders::_1));
-    mWeb->on("/hoymiles", HTTP_ANY, std::bind(&app::showHoymiles,   this, std::placeholders::_1));
-    mWeb->on("/livedata", HTTP_ANY, std::bind(&app::showLiveData,   this, std::placeholders::_1));
-    mWeb->on("/json",     HTTP_ANY, std::bind(&app::showJSON,       this, std::placeholders::_1));
+
+    mWeb->on("/",            std::bind(&app::showIndex,      this));
+    mWeb->on("/favicon.ico", std::bind(&app::showFavicon,    this));
+    mWeb->on("/setup",       std::bind(&app::showSetup,      this));
+    mWeb->on("/save",        std::bind(&app::showSave,       this));
+    mWeb->on("/erase",       std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",     std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
+    mWeb->on("/json",        std::bind(&app::showJSON,       this));
+    mWeb->on("/devcontrol",  std::bind(&app::devControl,     this));
 
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
@@ -79,8 +82,10 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX));
-
+                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit);
+                    iv->devControlCmd = 11; // set active power limit
+                    iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
+                    DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
                     }
@@ -148,6 +153,7 @@ void app::setup(uint32_t timeout) {
             mqttPort = 1883;
 
         mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttDevName, mqttPort);
+        mMqtt.mClient->setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMqttTicker = 0;
 
         mSerialTicker = 0;
@@ -204,7 +210,7 @@ void app::setup(uint32_t timeout) {
 void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
     Main::loop();
-
+    
     mSys->Radio.loop();
 
     yield();
@@ -231,7 +237,7 @@ void app::loop(void) {
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if(NULL != iv) {
+                    if(NULL != iv && p->packet[0] == (0x15 + 0x80)) { // response from get all information command
                         uint8_t *pid = &p->packet[9];
                         if (*pid == 0x00) {
                             DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
@@ -248,6 +254,23 @@ void app::loop(void) {
                                         mLastPacketId = *pid;
                                 }
                             }
+                        }
+                    }
+                    if(NULL != iv && p->packet[0] == (0x51 + 0x80)) { // response from dev control command
+                        DPRINTLN(DBG_INFO, F("Response from devcontrol received"));
+                        iv->devControlRequest = false; 
+                        if (p->packet[12] != 11 && iv->devControlCmd == 11){
+                            // set back to last accpted limit
+                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, &iv->powerLimit);
+                            DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));    
+                        }
+                        if (p->packet[12] == 11 && iv->devControlCmd == 11){ // ok inverter accepted the set point copy it to dtu eeprom
+                            // on every reboot the dtu sets the power limit acc to the value in eeprom
+                            mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit);
+                            updateCrc();
+                            mEep->commit();
+                            DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point, written to dtu eeprom"));    
+                            iv->devControlCmd = 0xff; // set to none known command.
                         }
                     }
                 }
@@ -357,8 +380,14 @@ void app::loop(void) {
                     yield();
                     if(mSerialDebug)
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
-                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
-                    mRxTicker = 0;
+                    if(iv->devControlRequest){
+                        if(mSerialDebug)
+                            DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit));
+                        mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,uint16_t(iv->powerLimit));
+                    } else {
+                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                        mRxTicker = 0;
+                    }
                 }
             }
             else if(mSerialDebug)
@@ -500,10 +529,12 @@ void app::showSetup(AsyncWebServerRequest *request) {
     uint64_t invSerial;
     char name[MAX_NAME_LENGTH + 1] = {0};
     uint16_t modPwr[4];
+    uint16_t invActivePowerLimit = -1;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
         mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4), modPwr, 4);
+        mEep->read(ADDR_INV_PWR_LIM + (i * 2),&invActivePowerLimit);
         inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
 
         inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
@@ -516,6 +547,12 @@ void app::showSetup(AsyncWebServerRequest *request) {
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
         inv += String(name);
         inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+
+        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit (W)</label>");
+        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
+        inv += String(invActivePowerLimit);
+        inv += F("\"/ maxlength=\"") + String(6) + "\">";
+
 
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label>");
@@ -608,6 +645,77 @@ void app::showErase(AsyncWebServerRequest *request) {
     showReboot(request);
 }
 
+//-----------------------------------------------------------------------------
+void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
+    // callback handling on subscribed devcontrol topic
+    DPRINTLN(DBG_INFO, F("app::cbMqtt"));
+    // subcribed topics are mTopic + "/devcontrol/#" where # is <inverter_id>/<subcmd in dec>
+    // eg. mypvsolar/devcontrol/1/11 with payload "400" --> inverter 1 active power limit 400 Watt
+    const char *token = strtok(topic, "/");
+    while (token != NULL)
+    {   
+        if (std::strcmp(token,"devcontrol")==0){
+            token = strtok(NULL, "/");
+            uint8_t iv_id = std::stoi(token);
+            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
+                Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
+                if(NULL != iv) {
+                    if (!iv->devControlRequest) { // still pending
+                        token = strtok(NULL, "/");
+                        uint8_t subcmd = std::stoi(token);
+                        switch ( subcmd ){
+                            case 11: // Active Power Control
+                                if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
+                                    iv->devControlCmd = 11;
+                                    iv->powerLimit = std::stoi((char*)payload);
+                                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit) + F("W") );
+                                }
+                                iv->devControlRequest = true;
+                                break;
+                            case 0: // Turn On
+                                iv->devControlCmd = 0;
+                                DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id) );
+                                iv->devControlRequest = true;
+                                break;
+                            case 1: // Turn Off
+                                iv->devControlCmd = 1;
+                                DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id) );
+                                iv->devControlRequest = true;
+                                break;
+                            case 2: // Restart
+                                iv->devControlCmd = 2;
+                                DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id) );
+                                iv->devControlRequest = true;
+                                break;
+                            case 12: // Reactive Power Control
+                                // iv->devControlCmd = 12;
+                                // uint16_t reactive_power = std::stoi(strtok(NULL, "/"));
+                                // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+                                //                                                    ^^^
+                                DPRINTLN(DBG_INFO, F("Reactive Power Control not implemented for inverter ") + String(iv->id) );
+                                break;
+                            case 13: // Set Power Factor
+                                // iv->devControlCmd = 13;
+                                // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
+                                // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
+                                //                                                    ^^^
+                                DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
+                                break;
+                            default:
+                                DPRINTLN(DBG_INFO, "Not implemented");
+                                break;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        token = strtok(NULL, "/");
+    }
+    DPRINTLN(DBG_INFO, F("app::cbMqtt finished"));
+}
+
+
 
 //-----------------------------------------------------------------------------
 void app::showStatistics(AsyncWebServerRequest *request) {
@@ -659,6 +767,19 @@ void app::showStatistics(AsyncWebServerRequest *request) {
     request->send(200, F("text/plain"), content);
 }
 
+//-----------------------------------------------------------------------------
+void app::devControl(void) { // ToDo
+    DPRINTLN(DBG_VERBOSE, F("app::devControl"));
+    if(mWeb->args() > 0) {
+        //mWeb->arg("ivid").toChar... 
+        // get iv
+        // set devControl on/off/power limt --> integrate  buttons in app::showLiveData
+        // ...
+        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Command sent</title><meta http-equiv=\"refresh\" content=\"2; URL=/hoymiles\"></head><body>"
+                             "<p>sent</p></body></html>"));
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 void app::showHoymiles(AsyncWebServerRequest *request) {
@@ -688,7 +809,7 @@ void app::showLiveData(AsyncWebServerRequest *request) {
             }
 
             modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F("</span>");
+                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit) + F(" W</span>");
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
 
             for(uint8_t fld = 0; fld < 10; fld++) {
@@ -784,6 +905,7 @@ void app::saveValues(AsyncWebServerRequest *request, bool webSend = true) {
             char buf[20] = {0};
             uint8_t i = 0;
             uint16_t interval;
+            uint16_t activepowerlimit=-1;
 
             // inverter
             serial_u addr;
@@ -807,6 +929,10 @@ void app::saveValues(AsyncWebServerRequest *request, bool webSend = true) {
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(buf, 20);
                     mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, buf, MAX_NAME_LENGTH);
                 }
+
+                // active power limit
+                activepowerlimit = request->arg("inv" + String(i) + "ActivePowerLimit").toInt();
+                mEep->write(ADDR_INV_PWR_LIM + i * 2,activepowerlimit);
             }
 
             interval = request->arg("invInterval").toInt();

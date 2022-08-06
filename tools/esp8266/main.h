@@ -120,6 +120,7 @@ class Main {
         bool mSettingsValid;
         bool mApActive;
         AsyncWebServer *mWeb;
+        bool mStActive;
         char mVersion[9];
         char mDeviceName[DEVNAME_LEN];
         eep *mEep;
