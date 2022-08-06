@@ -83,9 +83,11 @@ void app::setup(uint32_t timeout) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
                     mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit);
-                    iv->devControlCmd = 11; // set active power limit
-                    iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
-                    DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
+                    if (iv->powerLimit != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
+                        iv->devControlCmd = 11; // set active power limit
+                        iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
+                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
+                    }
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
                     }
@@ -550,7 +552,12 @@ void app::showSetup(void) {
 
         inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit (W)</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
-        inv += String(invActivePowerLimit);
+        if (name[0] == 0){
+            // If this value will be "saved" on next reboot the command to set the power limit will not be executed.
+            inv += String(65535); 
+        } else {
+            inv += String(invActivePowerLimit);
+        }
         inv += F("\"/ maxlength=\"") + String(6) + "\">";
 
 
@@ -928,7 +935,9 @@ void app::saveValues(bool webSend = true) {
 
             // active power limit
             activepowerlimit = mWeb->arg("inv" + String(i) + "ActivePowerLimit").toInt();
-            mEep->write(ADDR_INV_PWR_LIM + i * 2,activepowerlimit);
+            if (activepowerlimit != 0xffff && activepowerlimit > 0) {
+                mEep->write(ADDR_INV_PWR_LIM + i * 2,activepowerlimit);
+            }
 
             // name
             mWeb->arg("inv" + String(i) + "Name").toCharArray(buf, 20);
