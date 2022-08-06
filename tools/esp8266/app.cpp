@@ -110,7 +110,6 @@ void app::setup(uint32_t timeout) {
             mSys->Radio.pinIrq = RF24_IRQ_PIN;
         }
 
-
         // nrf24 amplifier power
         mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
 
@@ -125,6 +124,12 @@ void app::setup(uint32_t timeout) {
         mSerialDebug = (tmp == 0x01);
         mSys->Radio.mSerialDebug = mSerialDebug;
 
+        // ntp
+        char ntpAddr[NTP_ADDR_LEN];
+        uint16_t ntpPort;
+        mEep->read(ADDR_NTP_ADDR,   ntpAddr,    NTP_ADDR_LEN);
+        mEep->read(ADDR_NTP_PORT,   &ntpPort);
+        // TODO set ntpAddr & ntpPort in main
 
         // mqtt
         uint16_t mqttPort;
@@ -379,6 +384,7 @@ void app::loop(void) {
 
                     yield();
                     if(mSerialDebug)
+                        DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     if(iv->devControlRequest){
                         if(mSerialDebug)
@@ -613,6 +619,13 @@ void app::showSetup(void) {
         html.replace(F("{SER_VAL_CB}"), (tmp == 0x01) ? "checked" : "");
         mEep->read(ADDR_SER_DEBUG, &tmp);
         html.replace(F("{SER_DBG_CB}"), (tmp == 0x01) ? "checked" : "");
+
+        char ntpAddr[NTP_ADDR_LEN] = {0};
+        uint16_t ntpPort;
+        mEep->read(ADDR_NTP_ADDR,      ntpAddr, NTP_ADDR_LEN);
+        mEep->read(ADDR_NTP_PORT,      &ntpPort);
+        html.replace(F("{NTP_ADDR}"),  String(ntpAddr));
+        html.replace(F("{NTP_PORT}"),  String(ntpPort));
 
         char mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
@@ -960,6 +973,14 @@ void app::saveValues(bool webSend = true) {
         // nrf24 amplifier power
         mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
         mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
+        // ntp
+        char ntpAddr[NTP_ADDR_LEN] = {0};
+        uint16_t ntpPort;
+        mWeb->arg("ntpAddr").toCharArray(ntpAddr, NTP_ADDR_LEN);
+        ntpPort = mWeb->arg("ntpPort").toInt();
+        mEep->write(ADDR_NTP_ADDR, ntpAddr, NTP_ADDR_LEN);
+        mEep->write(ADDR_NTP_PORT, ntpPort);
 
         // mqtt
         char mqttAddr[MQTT_ADDR_LEN] = {0};

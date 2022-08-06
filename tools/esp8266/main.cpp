@@ -396,8 +396,8 @@ time_t Main::getNtpTime(void) {
     uint8_t buf[NTP_PACKET_SIZE];
     uint8_t retry = 0;
 
-    WiFi.hostByName (TIMESERVER_NAME, timeServer);
-    mUdp->begin(TIME_LOCAL_PORT);
+    WiFi.hostByName(NTP_SERVER_NAME, timeServer);
+    mUdp->begin(NTP_LOCAL_PORT);
 
 
     sendNTPpacket(timeServer);
