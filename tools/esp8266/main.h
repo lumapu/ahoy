@@ -118,6 +118,7 @@ class Main {
         bool mWifiSettingsValid;
         bool mSettingsValid;
         bool mApActive;
+        bool mStActive;
         ESP8266WebServer *mWeb;
         char mVersion[9];
         char mDeviceName[DEVNAME_LEN];

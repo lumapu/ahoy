@@ -51,6 +51,7 @@ class app : public Main {
         void setup(uint32_t timeout);
         void loop(void);
         void handleIntr(void);
+        void cbMqtt(char* topic, byte* payload, unsigned int length);
 
         uint8_t app_loops;
         uint8_t getIrqPin(void) {
@@ -70,6 +71,7 @@ class app : public Main {
         void showHoymiles(void);
         void showLiveData(void);
         void showJSON(void);
+        void devControl(void);
 
 
         void saveValues(bool webSend);

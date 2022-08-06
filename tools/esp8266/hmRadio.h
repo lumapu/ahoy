@@ -159,6 +159,39 @@ class HmRadio {
             return mRfChLst[mTxChIdx];
         }
 
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t data) {
+            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
+            // sendCmdPacket(invId, 0x51, 0x80, false); // 0x80 implementation as original DTU code
+            sendCmdPacket(invId, 0x51, 0x81, false);
+            int cnt = 0;
+            mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
+            mTxBuf[10 + (++cnt)] = 0x00;
+            if (cmd == 11){
+                // 4 bytes control data
+                // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
+                // -1 = 0xffff --> no limit
+                if (data == 0xffff){
+                    data &= 0xffff; // ToDo: unlimit value is needed and is inverter specific! --> get it via RF from inverter or via user interface
+                } else {
+                    data*= 10;
+                }
+                mTxBuf[10 + (++cnt)] = (data >> 8) & 0xff; // 0x01
+                mTxBuf[10 + (++cnt)] = (data     ) & 0xff; // 0x2c
+                // mTxBuf[10 + (++cnt)] = 0x00; // not persistent
+                mTxBuf[10 + (++cnt)] = 0x01; // persistent
+                mTxBuf[10 + (++cnt)] = 0x00;
+            }
+            // crc control data
+            uint16_t crc = crc16(&mTxBuf[10], cnt+1);
+            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
+            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
+            // crc over all
+            cnt +=1;
+            mTxBuf[10 + cnt] = crc8(mTxBuf, 10 + cnt);
+
+            sendPacket(invId, mTxBuf, 10 + (++cnt), true);
+        }
+
         void sendTimePacket(uint64_t invId, uint32_t ts) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, 0x15, 0x80, false);
