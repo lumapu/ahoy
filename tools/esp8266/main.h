@@ -26,9 +26,9 @@
 
 const byte mDnsPort = 53;
 
-/* TIMESERVER CONFIG */
-#define TIMESERVER_NAME     "pool.ntp.org"
-#define TIME_LOCAL_PORT     8888
+/* NTP TIMESERVER CONFIG */
+#define NTP_SERVER_NAME     "pool.ntp.org"
+#define NTP_LOCAL_PORT      8888
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
 
