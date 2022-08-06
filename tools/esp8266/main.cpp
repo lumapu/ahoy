@@ -71,6 +71,7 @@ void Main::setup(uint32_t timeout) {
 
     mUpdater->setup(mWeb);
     mApActive = startAp;
+    mStActive = !startAp;
 }
 
 
@@ -120,6 +121,10 @@ void Main::loop(void) {
             mHeapStatCnt = 0;
             stats();
         }*/
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+        DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
+        mStActive = false;
     }
 }
 

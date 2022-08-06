@@ -20,8 +20,8 @@
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       4
-#define VERSION_PATCH       26
+#define VERSION_MINOR       5
+#define VERSION_PATCH       1
 
 
 //-------------------------------------
@@ -53,6 +53,7 @@ typedef struct {
 #define INV_CH_CH_NAME_LEN  MAX_NUM_INVERTERS * MAX_NAME_LENGTH * 4 // (4 channels)
 #define INV_INTERVAL_LEN    2                                       // uint16_t
 #define INV_MAX_RTRY_LEN    1                                       // uint8_t
+#define INV_PWR_LIM_LEN     MAX_NUM_INVERTERS * 2                   // uint16_t 
 
 #define PINOUT_LEN          3 // 3 pins: CS, CE, IRQ
 
@@ -89,8 +90,9 @@ typedef struct {
 #define ADDR_INV_CH_NAME    ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
 #define ADDR_INV_INTERVAL   ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
 #define ADDR_INV_MAX_RTRY   ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
+#define ADDR_INV_PWR_LIM    ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
 
-#define ADDR_MQTT_ADDR      ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
+#define ADDR_MQTT_ADDR      ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
 #define ADDR_MQTT_USER      ADDR_MQTT_ADDR     + MQTT_ADDR_LEN
 #define ADDR_MQTT_PWD       ADDR_MQTT_USER     + MQTT_USER_LEN
 #define ADDR_MQTT_TOPIC     ADDR_MQTT_PWD      + MQTT_PWD_LEN
