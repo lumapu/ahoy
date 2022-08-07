@@ -9,6 +9,8 @@
 #include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
+#include <ArduinoJson.h>
+
 
 
 //-----------------------------------------------------------------------------
@@ -53,17 +55,17 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",            std::bind(&app::showIndex,      this));
-    mWeb->on("/favicon.ico", std::bind(&app::showFavicon,    this));
-    mWeb->on("/setup",       std::bind(&app::showSetup,      this));
-    mWeb->on("/save",        std::bind(&app::showSave,       this));
-    mWeb->on("/erase",       std::bind(&app::showErase,      this));
-    mWeb->on("/cmdstat",     std::bind(&app::showStatistics, this));
-    mWeb->on("/hoymiles",    std::bind(&app::showHoymiles,   this));
-    mWeb->on("/livedata",    std::bind(&app::showLiveData,   this));
-    mWeb->on("/json",        std::bind(&app::showJSON,       this));
-    mWeb->on("/devcontrol",  std::bind(&app::devControl,     this));
-
+    mWeb->on("/",               std::bind(&app::showIndex,      this));
+    mWeb->on("/favicon.ico",    std::bind(&app::showFavicon,    this));
+    mWeb->on("/setup",          std::bind(&app::showSetup,      this));
+    mWeb->on("/save",           std::bind(&app::showSave,       this));
+    mWeb->on("/erase",          std::bind(&app::showErase,      this));
+    mWeb->on("/cmdstat",        std::bind(&app::showStatistics, this));
+    mWeb->on("/hoymiles",       std::bind(&app::showHoymiles,   this));
+    mWeb->on("/livedata",       std::bind(&app::showLiveData,   this));
+    mWeb->on("/json",           std::bind(&app::showJSON,       this));
+    mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));
+    
     if(mSettingsValid) {
         mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
         if(mSendInterval < MIN_SEND_INTERVAL)
@@ -82,11 +84,12 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit);
-                    if (iv->powerLimit != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
+                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit[0]);
+                    if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
+                        iv->powerLimit[1] = 0x0100; // set the limit as persistent
                         iv->devControlCmd = 11; // set active power limit
                         iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
-                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit));
+                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));
                     }
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
@@ -232,52 +235,84 @@ void app::loop(void) {
                 // process buffer only on first occurrence
                 if(mSerialDebug) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
-
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
                 mFrameCnt++;
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if(NULL != iv && p->packet[0] == (0x15 + 0x80)) { // response from get all information command
-                        uint8_t *pid = &p->packet[9];
-                        if (*pid == 0x00) {
-                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
-                        } else {
-                            if((*pid & 0x7F) < 5) {
-                                memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
-                                mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
+                    if(NULL != iv && p->packet[0] == (TX_REQ_INFO + 0x80)) { // response from get information command
+                        DPRINTLN(DBG_DEBUG, F("Response from info request received"));
+                        switch (mSys->InfoCmd){
+                            case InverterDevInform_Simple:
+                            {
+                                DPRINT(DBG_INFO, "Response from inform simple\n");
+                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
+                                break;
                             }
+                            case InverterDevInform_All:
+                            {
+                                DPRINT(DBG_INFO, "Response from inform all\n");
+                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
+                                break;
+                            }
+                            case GetLossRate:
+                            {
+                                DPRINT(DBG_INFO, "Response from get loss rate\n");
+                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
+                                break;
+                            }
+                            case RealTimeRunData_Debug:
+                            {
+                                uint8_t *pid = &p->packet[9];
+                                if (*pid == 0x00) {
+                                    DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
+                                } else {
+                                    if((*pid & 0x7F) < 5) {
+                                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
+                                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
+                                    }
 
-                            if((*pid & 0x80) == 0x80) {
-                                if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
-                                    mPayload[iv->id].maxPackId = (*pid & 0x7f);
-                                    if(*pid > 0x81)
-                                        mLastPacketId = *pid;
+                                    if((*pid & 0x80) == 0x80) { // Last packet
+                                        if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
+                                            mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                            if(*pid > 0x81)
+                                                mLastPacketId = *pid;
+                                        }
+                                    }
                                 }
+                                break;
                             }
                         }
                     }
-                    if(NULL != iv && p->packet[0] == (0x51 + 0x80)) { // response from dev control command
-                        DPRINTLN(DBG_INFO, F("Response from devcontrol received"));
+                    if(NULL != iv && p->packet[0] == (TX_REQ_DEVCONTROL + 0x80)) { // response from dev control command
+                        DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
                         iv->devControlRequest = false; 
-                        if (p->packet[12] != 11 && iv->devControlCmd == 11){
-                            // set back to last accpted limit
-                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, &iv->powerLimit);
+                        switch (p->packet[12]){
+                        case ActivePowerContr:
+                            if (iv->devControlCmd == ActivePowerContr){ // ok inverter accepted the set point copy it to dtu eeprom
+                                if (iv->powerLimit[1]>0){ // User want to have it persistent
+                                    mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit[0]);
+                                    updateCrc();
+                                    mEep->commit();
+                                    DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point, written to dtu eeprom"));    
+                                }
+                                DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point"));
+                                iv->devControlCmd = Init;
+                            }
+                            break;
+                        default:
+                            if (iv->devControlCmd == ActivePowerContr){
+                            //case inverter did not accept the sent limit; set back to last stored limit
+                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, &iv->powerLimit[0]);
                             DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));    
-                        }
-                        if (p->packet[12] == 11 && iv->devControlCmd == 11){ // ok inverter accepted the set point copy it to dtu eeprom
-                            // on every reboot the dtu sets the power limit acc to the value in eeprom
-                            mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit);
-                            updateCrc();
-                            mEep->commit();
-                            DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point, written to dtu eeprom"));    
-                            iv->devControlCmd = 0xff; // set to none known command.
+                            }
+                            iv->devControlCmd = Init;
+                            break;
                         }
                     }
                 }
             }
-
             mSys->BufCtrl.popBack();
         }
         yield();
@@ -384,10 +419,10 @@ void app::loop(void) {
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     if(iv->devControlRequest){
                         if(mSerialDebug)
-                            DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit));
-                        mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,uint16_t(iv->powerLimit));
+                            DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
+                        mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
                     } else {
-                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts);
                         mRxTicker = 0;
                     }
                 }
@@ -449,7 +484,7 @@ void app::processPayload(bool retransmit) {
                                         if(mPayload[iv->id].len[i] == 0) {
                                             if(mSerialDebug)
                                                 DPRINTLN(DBG_ERROR, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
-                                            mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, (0x81+i), true);
+                                            mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME+i), true);
                                             break; // only retransmit one frame per loop
                                         }
                                         yield();
@@ -459,9 +494,9 @@ void app::processPayload(bool retransmit) {
                                     if(mSerialDebug)
                                         DPRINTLN(DBG_ERROR, F("while retrieving data: last frame missing: Request Retransmit"));
                                     if(0x00 != mLastPacketId)
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x15, mLastPacketId, true);
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
                                     else
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].ts);
+                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts);
                                 }
                                 mSys->Radio.switchRxCh(100);
                             }
@@ -669,43 +704,44 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                 if(NULL != iv) {
                     if (!iv->devControlRequest) { // still pending
                         token = strtok(NULL, "/");
-                        uint8_t subcmd = std::stoi(token);
-                        switch ( subcmd ){
-                            case 11: // Active Power Control
+                        switch ( std::stoi(token) ){
+                            case ActivePowerContr:  // Active Power Control
                                 if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
-                                    iv->devControlCmd = 11;
-                                    iv->powerLimit = std::stoi((char*)payload);
-                                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit) + F("W") );
+                                    iv->devControlCmd = ActivePowerContr;
+                                    iv->powerLimit[0] = std::stoi((char*)payload);
+                                    iv->powerLimit[1] = 0x0000; // if power limit is set via external interface --> set it temporay
+                                    DPRINTLN(DBG_DEBUG, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
                                 }
                                 iv->devControlRequest = true;
                                 break;
-                            case 0: // Turn On
-                                iv->devControlCmd = 0;
+                            case TurnOn: // Turn On
+                                iv->devControlCmd = TurnOn;
                                 DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case 1: // Turn Off
-                                iv->devControlCmd = 1;
+                            case TurnOff: // Turn Off
+                                iv->devControlCmd = TurnOff;
                                 DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case 2: // Restart
-                                iv->devControlCmd = 2;
+                            case Restart: // Restart
+                                iv->devControlCmd = Restart;
                                 DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case 12: // Reactive Power Control
-                                // iv->devControlCmd = 12;
-                                // uint16_t reactive_power = std::stoi(strtok(NULL, "/"));
-                                // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
-                                //                                                    ^^^
-                                DPRINTLN(DBG_INFO, F("Reactive Power Control not implemented for inverter ") + String(iv->id) );
+                            case ReactivePowerContr: // Reactive Power Control
+                                iv->devControlCmd = ReactivePowerContr;
+                                if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
+                                    iv->devControlCmd = ReactivePowerContr;
+                                    iv->powerLimit[0] = std::stoi((char*)payload);
+                                    iv->powerLimit[1] = 0x0000; // if reactivepower limit is set via external interface --> set it temporay
+                                    DPRINTLN(DBG_DEBUG, F("Reactivepower limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                                    iv->devControlRequest = true;
+                                }
                                 break;
-                            case 13: // Set Power Factor
-                                // iv->devControlCmd = 13;
+                            case PFSet: // Set Power Factor
+                                // iv->devControlCmd = PFSet;
                                 // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
-                                // .../devcontrol/<inverter_id>/<subcmd in dec>/<value in dec>
-                                //                                                    ^^^
                                 DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
                                 break;
                             default:
@@ -775,16 +811,20 @@ void app::showStatistics(void) {
 }
 
 //-----------------------------------------------------------------------------
-void app::devControl(void) { // ToDo
-    DPRINTLN(DBG_VERBOSE, F("app::devControl"));
-    if(mWeb->args() > 0) {
-        //mWeb->arg("ivid").toChar... 
-        // get iv
-        // set devControl on/off/power limt --> integrate  buttons in app::showLiveData
-        // ...
-        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Command sent</title><meta http-equiv=\"refresh\" content=\"2; URL=/hoymiles\"></head><body>"
-                             "<p>sent</p></body></html>"));
+void app::webapi(void) { // ToDo
+    DPRINTLN(DBG_VERBOSE, F("app::api"));
+    DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
+    const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
+    DynamicJsonDocument payload(capacity);
+  
+   // Parse JSON object
+    deserializeJson(payload, mWeb->arg("plain"));
+    // ToDo: error handling for payload
+    if (payload["tx_request"] == TX_REQ_INFO){
+        mSys->InfoCmd = payload["cmd"];
+        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
     }
+    mWeb->send ( 200, "text/json", "{success:true}" );
 }
 
 
@@ -826,7 +866,7 @@ void app::showLiveData(void) {
             }
 
             modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit) + F(" W</span>");
+                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]) + F(" W</span>");
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
 
             for(uint8_t fld = 0; fld < 10; fld++) {
