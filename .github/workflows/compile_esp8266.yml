@@ -2,7 +2,11 @@ name: ESP8266
 
 on:
   push:
-    branches: !master 
+    branches:
+      - '*'         # matches every branch that doesn't contain a '/'
+      - '*/*'       # matches every branch containing a single '/'
+      - '**'        # matches every branch
+      - '!main'   # excludes master
     paths-ignore:
     - '**.md' # Do no build on *.md changes
 jobs:
