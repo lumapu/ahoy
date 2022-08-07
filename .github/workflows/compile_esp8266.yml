@@ -2,7 +2,7 @@ name: ESP8266
 
 on:
   push:
-    branches: main
+    branches: !master 
     paths-ignore:
     - '**.md' # Do no build on *.md changes
 jobs:
