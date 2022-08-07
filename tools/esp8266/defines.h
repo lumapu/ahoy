@@ -21,7 +21,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       1
+#define VERSION_PATCH       2
 
 
 //-------------------------------------
@@ -96,6 +96,9 @@ typedef enum
 
 #define RF24_AMP_PWR_LEN    1
 
+#define NTP_ADDR_LEN        32 // DNS Name
+#define NTP_PORT_LEN        2 // uint16_t
+
 #define MQTT_ADDR_LEN         32 // DNS Name
 #define MQTT_USER_LEN         16
 #define MQTT_PWD_LEN          32
@@ -129,7 +132,10 @@ typedef enum
 #define ADDR_INV_MAX_RTRY   ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
 #define ADDR_INV_PWR_LIM    ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
 
-#define ADDR_MQTT_ADDR      ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
+#define ADDR_NTP_ADDR       ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN //Bugfix #125
+#define ADDR_NTP_PORT       ADDR_NTP_ADDR      + NTP_ADDR_LEN
+
+#define ADDR_MQTT_ADDR      ADDR_NTP_PORT      + NTP_PORT_LEN
 #define ADDR_MQTT_USER      ADDR_MQTT_ADDR     + MQTT_ADDR_LEN
 #define ADDR_MQTT_PWD       ADDR_MQTT_USER     + MQTT_USER_LEN
 #define ADDR_MQTT_TOPIC     ADDR_MQTT_PWD      + MQTT_PWD_LEN
