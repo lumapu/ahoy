@@ -176,12 +176,13 @@ class HmRadio {
                 if (data[0] == 0xffff){
                     data[0] &= 0xffff; // ToDo: unlimit value is needed and is inverter specific! --> get it via RF from inverter or via user interface
                 } else {
-                    data[0] *= 10;
+                    data[0] *= 10; // will overwrite the data bc it is a pointer
                 }
                 mTxBuf[10 + (++cnt)] = (data[0] >> 8) & 0xff; // power limit
                 mTxBuf[10 + (++cnt)] = (data[0]     ) & 0xff; // power limit
                 mTxBuf[10 + (++cnt)] = (data[1] >> 8) & 0xff; // setting for persistens handling
                 mTxBuf[10 + (++cnt)] = (data[1]     ) & 0xff; // setting for persistens handling
+                data[0] /= 10; // UGLY!
             }
             // crc control data
             uint16_t crc = crc16(&mTxBuf[10], cnt+1);

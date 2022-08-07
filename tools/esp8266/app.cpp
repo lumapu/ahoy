@@ -84,10 +84,10 @@ void app::setup(uint32_t timeout) {
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
                 if(NULL != iv) {
-                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),&iv->powerLimit[0]);
+                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *)&(iv->powerLimit[0]));
                     if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
                         iv->powerLimit[1] = 0x0100; // set the limit as persistent
-                        iv->devControlCmd = 11; // set active power limit
+                        iv->devControlCmd = ActivePowerContr; // set active power limit
                         iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
                         DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));
                     }
@@ -304,7 +304,7 @@ void app::loop(void) {
                         default:
                             if (iv->devControlCmd == ActivePowerContr){
                             //case inverter did not accept the sent limit; set back to last stored limit
-                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, &iv->powerLimit[0]);
+                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, (uint16_t *)&(iv->powerLimit[0]));
                             DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));    
                             }
                             iv->devControlCmd = Init;
@@ -571,7 +571,7 @@ void app::showSetup(void) {
         mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
         mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
         mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4), modPwr, 4);
-        mEep->read(ADDR_INV_PWR_LIM + (i * 2),&invActivePowerLimit);
+        mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *) &invActivePowerLimit);
         inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
 
         inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
