@@ -880,9 +880,9 @@ void app::showLiveData(void) {
 
             modHtml += F("<div class=\"iv\">"
                     "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]) + F(" W</span>");
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF};
+            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA};
 
-            for(uint8_t fld = 0; fld < 10; fld++) {
+            for(uint8_t fld = 0; fld < 11; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
                 if(0xff != pos) {
                     modHtml += F("<div class=\"subgrp\">");
