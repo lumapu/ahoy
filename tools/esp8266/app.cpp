@@ -110,7 +110,6 @@ void app::setup(uint32_t timeout) {
             mSys->Radio.pinIrq = RF24_IRQ_PIN;
         }
 
-
         // nrf24 amplifier power
         mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
 
@@ -125,6 +124,12 @@ void app::setup(uint32_t timeout) {
         mSerialDebug = (tmp == 0x01);
         mSys->Radio.mSerialDebug = mSerialDebug;
 
+        // ntp
+        char ntpAddr[NTP_ADDR_LEN];
+        uint16_t ntpPort;
+        mEep->read(ADDR_NTP_ADDR,   ntpAddr,    NTP_ADDR_LEN);
+        mEep->read(ADDR_NTP_PORT,   &ntpPort);
+        // TODO set ntpAddr & ntpPort in main
 
         // mqtt
         uint16_t mqttPort;
@@ -379,6 +384,7 @@ void app::loop(void) {
 
                     yield();
                     if(mSerialDebug)
+                        DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     if(iv->devControlRequest){
                         if(mSerialDebug)
@@ -614,6 +620,13 @@ void app::showSetup(AsyncWebServerRequest *request) {
         mEep->read(ADDR_SER_DEBUG, &tmp);
         html.replace(F("{SER_DBG_CB}"), (tmp == 0x01) ? "checked" : "");
 
+        char ntpAddr[NTP_ADDR_LEN] = {0};
+        uint16_t ntpPort;
+        mEep->read(ADDR_NTP_ADDR,      ntpAddr, NTP_ADDR_LEN);
+        mEep->read(ADDR_NTP_PORT,      &ntpPort);
+        html.replace(F("{NTP_ADDR}"),  String(ntpAddr));
+        html.replace(F("{NTP_PORT}"),  String(ntpPort));
+
         char mqttAddr[MQTT_ADDR_LEN] = {0};
         uint16_t mqttPort;
         mEep->read(ADDR_MQTT_ADDR,     mqttAddr, MQTT_ADDR_LEN);
@@ -770,12 +783,12 @@ void app::showStatistics(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void app::devControl(void) { // ToDo
     DPRINTLN(DBG_VERBOSE, F("app::devControl"));
-    if(mWeb->args() > 0) {
-        //mWeb->arg("ivid").toChar... 
+    if(request->args() > 0) {
+        //request->arg("ivid").toChar... 
         // get iv
         // set devControl on/off/power limt --> integrate  buttons in app::showLiveData
         // ...
-        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Command sent</title><meta http-equiv=\"refresh\" content=\"2; URL=/hoymiles\"></head><body>"
+        request->send(200, F("text/html"), F("<!doctype html><html><head><title>Command sent</title><meta http-equiv=\"refresh\" content=\"2; URL=/hoymiles\"></head><body>"
                              "<p>sent</p></body></html>"));
     }
 }
@@ -951,6 +964,14 @@ void app::saveValues(AsyncWebServerRequest *request, bool webSend = true) {
             // nrf24 amplifier power
             mSys->Radio.AmplifierPower = request->arg("rf24Power").toInt() & 0x03;
             mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
+            // ntp
+            char ntpAddr[NTP_ADDR_LEN] = {0};
+            uint16_t ntpPort;
+            request->arg("ntpAddr").toCharArray(ntpAddr, NTP_ADDR_LEN);
+            ntpPort = request->arg("ntpPort").toInt();
+            mEep->write(ADDR_NTP_ADDR, ntpAddr, NTP_ADDR_LEN);
+            mEep->write(ADDR_NTP_PORT, ntpPort);
 
             // mqtt
             uint8_t mqttAddr[MQTT_ADDR_LEN] = {0};
