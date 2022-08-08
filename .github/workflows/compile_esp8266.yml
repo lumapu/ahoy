@@ -41,5 +41,5 @@ jobs:
       run: python getVersion.py
     - uses: actions/upload-artifact@v3
       with:
-        name: esp8266
+        name: esp8266_$GITHUB_REPOSITORY_OWNER_$GITHUB_SHA
         path: tools/esp8266/.pio/build/out/*.bin
