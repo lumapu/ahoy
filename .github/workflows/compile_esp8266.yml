@@ -35,9 +35,7 @@ jobs:
       working-directory: tools/esp8266/html
       run: python convert.py
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266 --environment node_mcu_v2
-    - name: Run PlatformIO
-      run: pio run -d tools/esp8266 --environment d1_mini
+      run: pio run -d tools/esp8266
     - name: rename
       working-directory: tools/esp8266/helpers
       run: python getVersion.py
