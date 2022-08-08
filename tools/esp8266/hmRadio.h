@@ -169,7 +169,7 @@ class HmRadio {
             int cnt = 0;
             mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
             mTxBuf[10 + (++cnt)] = 0x00;
-            if (cmd == ActivePowerContr){
+            if (cmd >= ActivePowerContr && cmd <= PFSet){
                 // 4 bytes control data
                 // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
                 // -1 = 0xffff --> no limit

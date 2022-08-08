@@ -295,14 +295,15 @@ void app::loop(void) {
                         iv->devControlRequest = false; 
                         switch (p->packet[12]){
                         case ActivePowerContr:
-                            if (iv->devControlCmd == ActivePowerContr){ // ok inverter accepted the set point copy it to dtu eeprom
+                            if (iv->devControlCmd >= ActivePowerContr && iv->devControlCmd <= PFSet){ // ok inverter accepted the set point copy it to dtu eeprom
                                 if (iv->powerLimit[1]>0){ // User want to have it persistent
                                     mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit[0]);
                                     updateCrc();
                                     mEep->commit();
                                     DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point, written to dtu eeprom"));    
+                                } else {
+                                    DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point"));
                                 }
-                                DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point"));
                                 iv->devControlCmd = Init;
                             }
                             break;
