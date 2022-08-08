@@ -217,76 +217,76 @@ class EventsResponse(UnknownResponse):
     """ Hoymiles micro-inverter event log decode helper """
 
     alarm_codes = {
-            // HM Error Codes
-            1: 'Inverter start', // 0x01
-            2: 'DTU command failed', // 0x02
-            121: 'Over temperature protection', // 0x79
-            125: 'Grid configuration parameter error', // 0x7D
-            126: 'Software error code 126', // 0x7E
-            127: 'Firmware error', // 0x7F
-            128: 'Software error code 128', // 0x80
-            129: 'Software error code 129', // 0x81
-            130: 'Offline', // 0x82
-            141: 'Grid overvoltage', // 0x8D
-            142: 'Average grid overvoltage', // 0x8E
-            143: 'Grid undervoltage', // 0x8F
-            144: 'Grid overfrequency', // 0x90
-            145: 'Grid underfrequency', // 0x91
-            146: 'Rapid grid frequency change', // 0x92
-            147: 'Power grid outage', // 0x93
-            148: 'Grid disconnection', // 0x94
-            149: 'Island detected', // 0x95
-            205: 'Input port 1 & 2 overvoltage', // 0xCD
-            206: 'Input port 3 & 4 overvoltage', // 0xCE
-            207: 'Input port 1 & 2 undervoltage', // 0xCF
-            208: 'Input port 3 & 4 undervoltage', // 0xD0
-            209: 'Port 1 no input', // 0xD1
-            210: 'Port 2 no input', // 0xD2
-            211: 'Port 3 no input', // 0xD3
-            212: 'Port 4 no input', // 0xD4
-            213: 'PV-1 & PV-2 abnormal wiring', // 0xD5
-            214: 'PV-3 & PV-4 abnormal wiring', // 0xD6
-            215: 'PV-1 Input overvoltage', // 0xD7
-            216: 'PV-1 Input undervoltage', // 0xD8
-            217: 'PV-2 Input overvoltage', // 0xD9
-            218: 'PV-2 Input undervoltage', // 0xDA
-            219: 'PV-3 Input overvoltage', // 0xDB
-            220: 'PV-3 Input undervoltage', // 0xDC
-            221: 'PV-4 Input overvoltage', // 0xDD
-            222: 'PV-4 Input undervoltage', // 0xDE
-            301: 'Hardware error code 301', // 0x012D
-            302: 'Hardware error code 302', // 0x012E
-            303: 'Hardware error code 303', // 0x012F
-            304: 'Hardware error code 304', // 0x0130
-            305: 'Hardware error code 305', // 0x0131
-            306: 'Hardware error code 306', // 0x0132
-            307: 'Hardware error code 307', // 0x0133
-            308: 'Hardware error code 308', // 0x0134
-            309: 'Hardware error code 309', // 0x0135
-            310: 'Hardware error code 310', // 0x0136
-            311: 'Hardware error code 311', // 0x0137
-            312: 'Hardware error code 312', // 0x0138
-            313: 'Hardware error code 313', // 0x0139
-            314: 'Hardware error code 314', // 0x013A
-            // MI Error Codes
-            5041: 'Error code-04 Port 1', // 0x13B1
-            5042: 'Error code-04 Port 2', // 0x13B2
-            5043: 'Error code-04 Port 3', // 0x13B3
-            5044: 'Error code-04 Port 4', // 0x13B4
-            5051: 'PV Input 1 Overvoltage/Undervoltage', // 0x13BB
-            5052: 'PV Input 2 Overvoltage/Undervoltage', // 0x13BC
-            5053: 'PV Input 3 Overvoltage/Undervoltage', // 0x13BD
-            5054: 'PV Input 4 Overvoltage/Undervoltage', // 0x13BE
-            5060: 'Abnormal bias', // 0x13C4
-            5070: 'Over temperature protection', // 0x13CE
-            5080: 'Grid Overvoltage/Undervoltage', // 0x13D8
-            5090: 'Grid Overfrequency/Underfrequency', // 0x13E2
-            5100: 'Island detected', // 0x13EC
-            5120: 'EEPROM reading and writing error', // 0x1400
-            5150: '10 min value grid overvoltage', // 0x141E
-            5200: 'Firmware error', // 0x1450
-            8310: 'Shut down', // 0x2076
-            9000: 'Microinverter is suspected of being stolen' // 0x2328
+            # HM Error Codes
+            1: 'Inverter start', # 0x01
+            2: 'DTU command failed', # 0x02
+            121: 'Over temperature protection', # 0x79
+            125: 'Grid configuration parameter error', # 0x7D
+            126: 'Software error code 126', # 0x7E
+            127: 'Firmware error', # 0x7F
+            128: 'Software error code 128', # 0x80
+            129: 'Software error code 129', # 0x81
+            130: 'Offline', # 0x82
+            141: 'Grid overvoltage', # 0x8D
+            142: 'Average grid overvoltage', # 0x8E
+            143: 'Grid undervoltage', # 0x8F
+            144: 'Grid overfrequency', # 0x90
+            145: 'Grid underfrequency', # 0x91
+            146: 'Rapid grid frequency change', # 0x92
+            147: 'Power grid outage', # 0x93
+            148: 'Grid disconnection', # 0x94
+            149: 'Island detected', # 0x95
+            205: 'Input port 1 & 2 overvoltage', # 0xCD
+            206: 'Input port 3 & 4 overvoltage', # 0xCE
+            207: 'Input port 1 & 2 undervoltage', # 0xCF
+            208: 'Input port 3 & 4 undervoltage', # 0xD0
+            209: 'Port 1 no input', # 0xD1
+            210: 'Port 2 no input', # 0xD2
+            211: 'Port 3 no input', # 0xD3
+            212: 'Port 4 no input', # 0xD4
+            213: 'PV-1 & PV-2 abnormal wiring', # 0xD5
+            214: 'PV-3 & PV-4 abnormal wiring', # 0xD6
+            215: 'PV-1 Input overvoltage', # 0xD7
+            216: 'PV-1 Input undervoltage', # 0xD8
+            217: 'PV-2 Input overvoltage', # 0xD9
+            218: 'PV-2 Input undervoltage', # 0xDA
+            219: 'PV-3 Input overvoltage', # 0xDB
+            220: 'PV-3 Input undervoltage', # 0xDC
+            221: 'PV-4 Input overvoltage', # 0xDD
+            222: 'PV-4 Input undervoltage', # 0xDE
+            301: 'Hardware error code 301', # 0x012D
+            302: 'Hardware error code 302', # 0x012E
+            303: 'Hardware error code 303', # 0x012F
+            304: 'Hardware error code 304', # 0x0130
+            305: 'Hardware error code 305', # 0x0131
+            306: 'Hardware error code 306', # 0x0132
+            307: 'Hardware error code 307', # 0x0133
+            308: 'Hardware error code 308', # 0x0134
+            309: 'Hardware error code 309', # 0x0135
+            310: 'Hardware error code 310', # 0x0136
+            311: 'Hardware error code 311', # 0x0137
+            312: 'Hardware error code 312', # 0x0138
+            313: 'Hardware error code 313', # 0x0139
+            314: 'Hardware error code 314', # 0x013A
+            # MI Error Codes
+            5041: 'Error code-04 Port 1', # 0x13B1
+            5042: 'Error code-04 Port 2', # 0x13B2
+            5043: 'Error code-04 Port 3', # 0x13B3
+            5044: 'Error code-04 Port 4', # 0x13B4
+            5051: 'PV Input 1 Overvoltage/Undervoltage', # 0x13BB
+            5052: 'PV Input 2 Overvoltage/Undervoltage', # 0x13BC
+            5053: 'PV Input 3 Overvoltage/Undervoltage', # 0x13BD
+            5054: 'PV Input 4 Overvoltage/Undervoltage', # 0x13BE
+            5060: 'Abnormal bias', # 0x13C4
+            5070: 'Over temperature protection', # 0x13CE
+            5080: 'Grid Overvoltage/Undervoltage', # 0x13D8
+            5090: 'Grid Overfrequency/Underfrequency', # 0x13E2
+            5100: 'Island detected', # 0x13EC
+            5120: 'EEPROM reading and writing error', # 0x1400
+            5150: '10 min value grid overvoltage', # 0x141E
+            5200: 'Firmware error', # 0x1450
+            8310: 'Shut down', # 0x2076
+            9000: 'Microinverter is suspected of being stolen' # 0x2328
             }
 
     def __init__(self, *args, **params):
