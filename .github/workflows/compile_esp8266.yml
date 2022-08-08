@@ -35,11 +35,13 @@ jobs:
       working-directory: tools/esp8266/html
       run: python convert.py
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266
+      run: |
+        pio run -d tools/esp8266 --environment node_mcu_v2
+        pio run -d tools/esp8266 --environment d1_mini
     - name: rename
       working-directory: tools/esp8266/helpers
       run: python getVersion.py
     - uses: actions/upload-artifact@v3
       with:
         name: esp8266
-        path: tools/esp8266/.pio/build/d1_mini/out
+        path: tools/esp8266/.pio/build/d1_mini/out/*.bin
