@@ -42,4 +42,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: esp8266
-        path: tools/esp8266/.pio/build/d1_mini/out/*.bin
+        path: tools/esp8266/.pio/build/out/*.bin
