@@ -16,7 +16,13 @@ def readVersion(path, infile):
                 if(p != -1):
                     version += line[p+13:].rstrip() + "."
 
-    version = version[:-1] + "_esp8266.bin"
+    version = version[:-1] + "_esp8266_node_mcu_v2.bin"
+    src = path + ".pio/build/node_mcu_v2/firmware.bin"
+    dst = path + ".pio/build/node_mcu_v2/out/" + version
+    os.mkdir(path + ".pio/build/node_mcu_v2/out/")
+    os.rename(src, dst)
+    
+    version = version[:-1] + "_esp8266_d1_mini.bin"
     src = path + ".pio/build/d1_mini/firmware.bin"
     dst = path + ".pio/build/d1_mini/out/" + version
     os.mkdir(path + ".pio/build/d1_mini/out/")
