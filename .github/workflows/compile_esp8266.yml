@@ -2,16 +2,12 @@ name: ESP8266
 
 on:
   push:
-    branches:
-      - '*'         # matches every branch that doesn't contain a '/'
-      - '*/*'       # matches every branch containing a single '/'
-      - '**'        # matches every branch
-      - '!main'   # excludes master
+    branches: main
     paths-ignore:
     - '**.md' # Do no build on *.md changes
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
