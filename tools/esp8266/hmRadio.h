@@ -135,13 +135,12 @@ class HmRadio {
 
                         mNrf24.read(p->packet, len);
                         mBufCtrl->pushFront(p);
+                        yield();
                     }
-                    else {
-                        mNrf24.flush_rx(); // drop the packet
+                    else
                         break;
-                    }
-                    yield();
                 }
+                mNrf24.flush_rx(); // drop the packet
             }
             else
                 RESTORE_IRQ;
