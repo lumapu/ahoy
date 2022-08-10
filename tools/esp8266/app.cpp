@@ -424,7 +424,7 @@ void app::loop(void) {
                     if(mSerialDebug)
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
-                    if(iv->devControlRequest){
+                    if(iv->devControlRequest && iv->powerLimit[0] > 0){ // prevent to "switch off"
                         if(mSerialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
