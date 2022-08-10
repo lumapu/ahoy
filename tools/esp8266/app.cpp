@@ -165,6 +165,8 @@ void app::setup(uint32_t timeout) {
         mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttDevName, mqttPort);
         mMqtt.mClient->setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMqttTicker = 0;
+        // für mqtt test
+        mMqttTicker = mMqttInterval -10;
 
         mSerialTicker = 0;
 
@@ -363,8 +365,12 @@ void app::loop(void) {
                 }
             }
             snprintf(val, 10, "%ld", millis()/1000);
-            sendMqttDiscoveryConfig();
+            // sendMqttDiscoveryConfig();
             mMqtt.sendMsg("uptime", val);
+
+            // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
+            mMqttTicker = mMqttInterval -10;
+
         }
 
         if(mSerialValues) {
@@ -488,6 +494,9 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
+
+    boolean doMQTT = false;
+
     DPRINTLN(DBG_VERBOSE, F("app::processPayload"));
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
@@ -544,11 +553,23 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     iv->doCalculations();
+                    doMQTT = true;
+                    
                 }
             }
             yield();
         }
     }
+
+//  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet ( doMQTT = true) 
+//  dann die den mMqttTicker auf mMqttIntervall -2 setzen, also  
+//  MQTT aussenden in 2 sek aktivieren 
+//  dies sollte noch über einen Schalter im Setup aktivier / deaktivierbar gemacht werden
+    if( (mMqttInterval != 0xffff) && doMQTT ) {
+        ++mMqttTicker = mMqttInterval -2;
+        DPRINT(DBG_DEBUG, F("MQTTticker auf Intervall -2 sec ")) ;
+    }
+
 }
 
 
