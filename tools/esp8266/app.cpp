@@ -548,6 +548,7 @@ void app::showIndex(void) {
     html.replace(F("{VERSION}"), mVersion);
     html.replace(F("{TS}"), String(mSendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
+    html.replace(F("{BUILD}"), String(AUTO_GIT_HASH));
     mWeb->send(200, "text/html", html);
 }
 
