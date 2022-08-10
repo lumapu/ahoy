@@ -22,6 +22,10 @@
 #define RF_CHANNELS             5
 #define RF_LOOP_CNT             300
 
+#define TX_REQ_INFO         0X15
+#define TX_REQ_DEVCONTROL   0x51
+#define ALL_FRAMES          0x80
+#define SINGLE_FRAME        0x81
 
 const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 
@@ -135,13 +139,12 @@ class HmRadio {
 
                         mNrf24.read(p->packet, len);
                         mBufCtrl->pushFront(p);
+                        yield();
                     }
-                    else {
-                        mNrf24.flush_rx(); // drop the packet
+                    else
                         break;
-                    }
-                    yield();
                 }
+                mNrf24.flush_rx(); // drop the packet
             }
             else
                 RESTORE_IRQ;
@@ -159,27 +162,26 @@ class HmRadio {
             return mRfChLst[mTxChIdx];
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t data) {
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
-            // sendCmdPacket(invId, 0x51, 0x80, false); // 0x80 implementation as original DTU code
-            sendCmdPacket(invId, 0x51, 0x81, false);
+            sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
             int cnt = 0;
             mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
             mTxBuf[10 + (++cnt)] = 0x00;
-            if (cmd == 11){
+            if (cmd >= ActivePowerContr && cmd <= PFSet){
                 // 4 bytes control data
                 // Power Limit fix point 10 eg. 30 W --> 0d300 = 0x012c
                 // -1 = 0xffff --> no limit
-                if (data == 0xffff){
-                    data &= 0xffff; // ToDo: unlimit value is needed and is inverter specific! --> get it via RF from inverter or via user interface
+                if (data[0] == 0xffff){
+                    data[0] &= 0xffff; // ToDo: unlimit value is needed and is inverter specific! --> get it via RF from inverter or via user interface
                 } else {
-                    data*= 10;
+                    data[0] *= 10; // will overwrite the data bc it is a pointer
                 }
-                mTxBuf[10 + (++cnt)] = (data >> 8) & 0xff; // 0x01
-                mTxBuf[10 + (++cnt)] = (data     ) & 0xff; // 0x2c
-                // mTxBuf[10 + (++cnt)] = 0x00; // not persistent
-                mTxBuf[10 + (++cnt)] = 0x01; // persistent
-                mTxBuf[10 + (++cnt)] = 0x00;
+                mTxBuf[10 + (++cnt)] = (data[0] >> 8) & 0xff; // power limit
+                mTxBuf[10 + (++cnt)] = (data[0]     ) & 0xff; // power limit
+                mTxBuf[10 + (++cnt)] = (data[1] >> 8) & 0xff; // setting for persistens handling
+                mTxBuf[10 + (++cnt)] = (data[1]     ) & 0xff; // setting for persistens handling
+                data[0] /= 10; // UGLY!
             }
             // crc control data
             uint16_t crc = crc16(&mTxBuf[10], cnt+1);
@@ -192,14 +194,20 @@ class HmRadio {
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
         }
 
-        void sendTimePacket(uint64_t invId, uint32_t ts) {
+        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
-            sendCmdPacket(invId, 0x15, 0x80, false);
-            mTxBuf[10] = 0x0b; // cid
+            sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
+            mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            mTxBuf[19] = 0x05;
-
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData || cmd == AlarmUpdate ){
+                mTxBuf[18] = (alarmMesId >> 8) & 0xff;
+                mTxBuf[19] = (alarmMesId     ) & 0xff;
+                //mTxBuf[19] = 0x05; // ToDo: Shall be the last received Alarm Index Number
+            } else {
+                mTxBuf[18] = 0x00;
+                mTxBuf[19] = 0x00;
+            }
             uint16_t crc = crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
@@ -341,6 +349,8 @@ class HmRadio {
         RF24 mNrf24;
         BUFFER *mBufCtrl;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+
+        DevControlCmdType DevControlCmd;
 
         volatile bool mIrqRcvd;
 };

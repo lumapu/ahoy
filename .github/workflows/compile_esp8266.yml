@@ -37,9 +37,9 @@ jobs:
     - name: Run PlatformIO
       run: pio run -d tools/esp8266
     - name: rename
-      working-directory: tools/esp8266/helpers
+      working-directory: tools/esp8266/scripts
       run: python getVersion.py
     - uses: actions/upload-artifact@v3
       with:
-        name: esp8266
-        path: tools/esp8266/.pio/build/d1_mini/out
+        name: esp8266_ahoy
+        path: tools/esp8266/.pio/build/out/*.bin

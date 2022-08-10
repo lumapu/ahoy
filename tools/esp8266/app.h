@@ -72,6 +72,7 @@ class app : public Main {
         void showLiveData(AsyncWebServerRequest *request);
         void showJSON(AsyncWebServerRequest *request);
         void devControl(AsyncWebServerRequest *request);
+        void webapi(AsyncWebServerRequest *request);
 
 
         void saveValues(AsyncWebServerRequest *request, bool webSend);
