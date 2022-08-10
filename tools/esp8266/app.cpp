@@ -267,6 +267,18 @@ void app::loop(void) {
                                 mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
+                            case AlarmData:
+                            {
+                                DPRINT(DBG_INFO, "Response from AlarmData\n");
+                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
+                                break;
+                            }
+                            case AlarmUpdate:
+                            {
+                                DPRINT(DBG_INFO, "Response from AlarmUpdate\n");
+                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
+                                break;
+                            }
                             case RealTimeRunData_Debug:
                             {
                                 uint8_t *pid = &p->packet[9];
@@ -429,7 +441,7 @@ void app::loop(void) {
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
                     } else {
-                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts);
+                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts,iv->alarmMesIndex);
                         mRxTicker = 0;
                     }
                 }
@@ -503,7 +515,7 @@ void app::processPayload(bool retransmit) {
                                     if(0x00 != mLastPacketId)
                                         mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
                                     else
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts);
+                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts,iv->alarmMesIndex);
                                 }
                                 mSys->Radio.switchRxCh(100);
                             }
@@ -882,9 +894,9 @@ void app::showLiveData(void) {
 
             modHtml += F("<div class=\"iv\">"
                     "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]) + F(" W</span>");
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA};
+            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
 
-            for(uint8_t fld = 0; fld < 11; fld++) {
+            for(uint8_t fld = 0; fld < 12; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
                 if(0xff != pos) {
                     modHtml += F("<div class=\"subgrp\">");

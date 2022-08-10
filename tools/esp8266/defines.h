@@ -43,8 +43,8 @@ typedef enum
     //RealTimeRunData_A_Phase = 13, // 0x0d
     //RealTimeRunData_B_Phase = 14, // 0x0e
     //RealTimeRunData_C_Phase = 15, // 0x0f
-    //AlarmData = 17, // 0x11    //Alarm data - all unsent alarms
-    //AlarmUpdate = 18, // 0x12    //Alarm data - all pending alarms
+    AlarmData = 17, // 0x11    //Alarm data - all unsent alarms
+    AlarmUpdate = 18, // 0x12    //Alarm data - all pending alarms
     //RecordData = 19, // 0x13
     //InternalData = 20, // 0x14
     GetLossRate = 21, // 0x15

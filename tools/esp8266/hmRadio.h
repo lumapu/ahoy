@@ -195,15 +195,18 @@ class HmRadio {
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
         }
 
-        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts) {
+        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug){
-                mTxBuf[19] = 0x05; // ToDo: Shall be the last received Alarm Index Number
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData || cmd == AlarmUpdate ){
+                mTxBuf[18] = (alarmMesId >> 8) & 0xff;
+                mTxBuf[19] = (alarmMesId     ) & 0xff;
+                //mTxBuf[19] = 0x05; // ToDo: Shall be the last received Alarm Index Number
             } else {
+                mTxBuf[18] = 0x00;
                 mTxBuf[19] = 0x00;
             }
             uint16_t crc = crc16(&mTxBuf[10], 14);

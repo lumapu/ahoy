@@ -69,6 +69,7 @@ class Inverter {
         uint8_t       type;     // integer which refers to inverter type
         byteAssign_t* assign;   // type of inverter
         uint8_t       listLen;  // length of assignments
+        uint16_t      alarmMesIndex; // Last recorded Alarm Message Index
         uint16_t      powerLimit[2];  // limit power output
         uint8_t       devControlCmd;  // carries the requested cmd
         bool          devControlRequest; // true if change needed
@@ -132,7 +133,6 @@ class Inverter {
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
             uint16_t div = assign[pos].div;
-
             if(CMD_CALC != div) {
                 uint32_t val = 0;
                 do {
@@ -141,6 +141,10 @@ class Inverter {
                 } while(++ptr != end);
 
                 record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
+            }
+            // get last alarm message index and save it in the inverter instance
+            if (getPosByChFld(0, FLD_ALARM_MES_ID) == pos){ 
+                alarmMesIndex = record[pos];
             }
         }
 
