@@ -885,6 +885,22 @@ void app::webapi(void) { // ToDo
         mSys->InfoCmd = payload["cmd"];
         DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
     }
+    if (payload["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL){
+        if(payload["cmd"] == (uint8_t)ActivePowerContr){
+            uint8_t iv_id = payload["inverter"];
+            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
+                Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
+                uint16_t webapiPayload = payload["payload"];
+                if (webapiPayload > 0 && webapiPayload < 10000){
+                    iv->devControlCmd = ActivePowerContr;
+                    iv->powerLimit[0] = webapiPayload;
+                    iv->powerLimit[1] = 0x0000; // if power limit is set via external interface --> set it temporay
+                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API") );
+                    iv->devControlRequest = true;
+                }
+            }
+        }
+    }
     mWeb->send ( 200, "text/json", "{success:true}" );
 }
 
