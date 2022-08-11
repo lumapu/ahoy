@@ -22,7 +22,7 @@
 //
 // #define __MQTT_TEST__                   // MQTT Interval wird auf 10 Sekunden verkürzt ( nur für testzwecke )
 #define __MQTT_AFTER_RX__               // versendet die MQTT Daten sobald die WR daten Aufbereitet wurden  ( gehört eigentlich ins Setup )
-// #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
+#define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
 typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
