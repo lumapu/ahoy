@@ -1,8 +1,19 @@
 import re
+import sys
+import os
 
 def convert2Header(inFile):
-    outName  = "h/" + inFile.replace(".", "_") + ".h"
-    fileType = inFile.split(".")[1]
+    fileType      = inFile.split(".")[1]
+    define        = inFile.split(".")[0].upper()
+    define2       = inFile.split(".")[1].upper()
+    inFileVarName = inFile.replace(".", "_")
+
+    if os.getcwd()[-4:] != "html":
+        print("ok")
+        outName = "html/" + "h/" + inFileVarName + ".h"
+        inFile  = "html/" + inFile
+    else:
+        outName = "h/" + inFileVarName + ".h"
 
     f = open(inFile, "r")
     data = f.read().replace('\n', '')
@@ -14,12 +25,10 @@ def convert2Header(inFile):
     else:
         data = re.sub(r"(\;|\}|\:|\{)\s+", r'\1', data) # whitespaces inner css
 
-    define = inFile.split(".")[0].upper()
-    define2 = inFile.split(".")[1].upper()
     f = open(outName, "w")
     f.write("#ifndef __{}_{}_H__\n".format(define, define2))
     f.write("#define __{}_{}_H__\n".format(define, define2))
-    f.write("const char {}[] PROGMEM = \"{}\";\n".format(inFile.replace(".", "_"), data))
+    f.write("const char {}[] PROGMEM = \"{}\";\n".format(inFileVarName, data))
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
