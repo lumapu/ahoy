@@ -66,7 +66,7 @@ For now the following inverters should work out of the box:
 - `Ticker` 1.0
 - `ESP8266HTTPUpdateServer` 1.0
 - `Time` 1.6.1
-- `RF24` 1.4.2
+- `RF24` 1.4.5
 - `PubSubClient` 2.8
 - `ArduinoJson` 6.19.4
 
