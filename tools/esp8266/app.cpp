@@ -166,6 +166,10 @@ void app::setup(uint32_t timeout) {
         mMqtt.mClient->setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMqttTicker = 0;
 
+#ifdef __MQTT_TEST__
+        // für mqtt test
+        mMqttTicker = mMqttInterval -10;
+#endif
         mSerialTicker = 0;
 
         if(mqttAddr[0] > 0) {
@@ -363,8 +367,17 @@ void app::loop(void) {
                 }
             }
             snprintf(val, 10, "%ld", millis()/1000);
+            
+#ifndef __MQTT_NO_DISCOVERCONFIG__
+            // MQTTDiscoveryConfig nur wenn nicht abgeschaltet.
             sendMqttDiscoveryConfig();
+#endif            
             mMqtt.sendMsg("uptime", val);
+
+#ifdef __MQTT_TEST__
+            // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
+            mMqttTicker = mMqttInterval -10;
+#endif
         }
 
         if(mSerialValues) {
@@ -488,6 +501,11 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
+
+#ifdef __MQTT_AFTER_RX__
+    boolean doMQTT = false;
+#endif
+
     DPRINTLN(DBG_VERBOSE, F("app::processPayload"));
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
@@ -544,11 +562,27 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     iv->doCalculations();
+
+#ifdef __MQTT_AFTER_RX__
+                    doMQTT = true;
+#endif
+
                 }
             }
             yield();
         }
     }
+
+#ifdef __MQTT_AFTER_RX__
+    //  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet ( doMQTT = true) 
+    //  dann die den mMqttTicker auf mMqttIntervall -2 setzen, also  
+    //  MQTT aussenden in 2 sek aktivieren 
+    //  dies sollte noch über einen Schalter im Setup aktivier / deaktivierbar gemacht werden
+    if( (mMqttInterval != 0xffff) && doMQTT ) {
+        ++mMqttTicker = mMqttInterval -2;
+        DPRINT(DBG_DEBUG, F("MQTTticker auf Intervall -2 sec ")) ;
+    }
+#endif
 }
 
 
