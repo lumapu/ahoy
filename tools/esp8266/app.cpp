@@ -86,7 +86,7 @@ void app::setup(uint32_t timeout) {
                 if(NULL != iv) {
                     mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *)&(iv->powerLimit[0]));
                     if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
-                        iv->powerLimit[1] = 0x0100; // set the limit as persistent
+                        iv->powerLimit[1] = 0x0001; // set the limit as persistent
                         iv->devControlCmd = ActivePowerContr; // set active power limit
                         iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
                         DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));

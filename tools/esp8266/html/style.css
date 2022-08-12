@@ -25,9 +25,33 @@ p.lic, p.lic a {
 }
 
 .des {
-    margin-top: 35px;
+    margin-top: 20px;
     font-size: 13pt;
     color: #006ec0;
+}
+
+.s_active, .s_collapsible:hover {
+    background-color: #006ec0;
+}
+
+.s_content {
+    display: none;
+    overflow: hidden;
+    margin-bottom: 20px;
+
+}
+
+.s_collapsible {
+    background-color: #044e86;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    margin-bottom: 4px;
 }
 
 .subdes {
@@ -218,7 +242,7 @@ div.ts {
 
     div.ch {
         width: 170px;
-        min-height: 100px;
+        min-height: 100px
     }
 
     .subgrp {

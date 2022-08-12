@@ -73,7 +73,26 @@ For now the following inverters should work out of the box:
 ## Changelog
 
 (*) EEPROM changes require settings to be changed, your settings will be overwritten and need to be set again!
-
+- v0.5.9 *fix PowerLimit PowerPFDev.Desc=0x0001 for permanent
+- v0.5.8 *fix #146 device name in setup
+- v0.5.7 *add collapsible setup
+- v0.5.6 *fix only MQTT sub after the first loop in a conenction
+- v0.5.5 *fixed MQTT sub only after connection is established (HorstG-57)
+         + added in app.cpp some compiler if statements
+         *fix: compile possible for non repository versions (if project was download as zip - lumapu)
+         *fix README.md - Update line 69 (`RF24` 1.4.2 -> 1.4.5) (DanielR92)
+         *Update hmRadio.h (lumapu)
+- v0.5.4 + added Github report text with a URL (aschiffler)
+         + added auto_firmware_version.py for GIT_HASH
+         + added switch case AlarmData/AlarmUpdate
+- v0.5.3 #Bugfix #125 PowerLimit 
+         + prototype webapi to get info, improved pwr limit  (aschiffler)
+         + Merge remote-tracking branch 'upstream/main' into pwrlimit 
+- v0.5.2 add #114 ntp_server_name and port to eeprom 
+         + stefan123t added some functions (devcontrol/cbMqtt/...)
+- v0.5.1 *Merge branch 'upstream/HEAD' into control 
+         *update revision  (0.4.26 -> 0.5.1)
+- v0.4.26 first poc for power set via mqtt 
 - v0.4.25 added default SERIAL/MQTT/SEND_INTERVAL #100, fixed env:node_mcu_v2 build #101
 - v0.4.24 added fixes for #63, #88, #93. revert #36 (*) EEPROM changes
 - v0.4.23 added workflow, fix index.html to load inverter info immediately, changed timestamp to 1 for stand alone ESP #90, Implement MQTT discovery for Home Assistant
