@@ -1,24 +1,8 @@
 import os
 from datetime import date
-from dulwich import porcelain
-import pkg_resources
-
-Import("env")
-
-required_pkgs = {'dulwich'}
-installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
-missing_pkgs = required_pkgs - installed_pkgs
-
-if missing_pkgs:
-    env.Execute('"$PYTHONEXE" -m pip install dulwich --global-option="--pure"')
-
-def get_firmware_specifier_build_flag():
-    try:
-        build_version = porcelain.describe('../../')  # refers to the repository root dir
-    except:
-        build_version = "g0000000"
-
-    return (build_version)
+import subprocess
+def get_git_revision_short_hash() -> str:
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 
 def readVersion(path, infile):
@@ -38,14 +22,15 @@ def readVersion(path, infile):
     
     os.mkdir(path + ".pio/build/out/")
     
-    versionout = version[:-1] + "_esp8266_debug_" + get_firmware_specifier_build_flag() + ".bin"
+    versionout = version[:-1] + "_esp8266_debug_g" + get_git_revision_short_hash() + ".bin"
     src = path + ".pio/build/esp8266-debug/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
     
-    versionout = version[:-1] + "_esp8266_release_" + get_firmware_specifier_build_flag() + ".bin"
+    versionout = version[:-1] + "_esp8266_release_g" + get_git_revision_short_hash() + ".bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
 
 readVersion("../", "defines.h")
+
