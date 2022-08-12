@@ -1,5 +1,15 @@
 import os
 from datetime import date
+from dulwich import porcelain
+
+def get_firmware_specifier_build_flag():
+    try:
+        build_version = porcelain.describe('../../')  # refers to the repository root dir
+    except:
+        build_version = "g0000000"
+
+    return (build_version)
+
 
 def readVersion(path, infile):
     f = open(path + infile, "r")
@@ -18,12 +28,12 @@ def readVersion(path, infile):
     
     os.mkdir(path + ".pio/build/out/")
     
-    versionout = version[:-1] + "_esp8266_debug.bin"
+    versionout = version[:-1] + "_esp8266_debug_" + get_firmware_specifier_build_flag() + "".bin"
     src = path + ".pio/build/esp8266-debug/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
     
-    versionout = version[:-1] + "_esp8266_release.bin"
+    versionout = version[:-1] + "_esp8266_release_" + get_firmware_specifier_build_flag() + "".bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
