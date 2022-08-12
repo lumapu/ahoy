@@ -1,6 +1,16 @@
 import os
 from datetime import date
 from dulwich import porcelain
+import pkg_resources
+
+Import("env")
+
+required_pkgs = {'dulwich'}
+installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
+missing_pkgs = required_pkgs - installed_pkgs
+
+if missing_pkgs:
+    env.Execute('"$PYTHONEXE" -m pip install dulwich --global-option="--pure"')
 
 def get_firmware_specifier_build_flag():
     try:
