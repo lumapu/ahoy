@@ -6,7 +6,6 @@
 #include "app.h"
 
 #include "favicon.h"
-#include "html/h/index_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/hoymiles_html.h"
 #include <ArduinoJson.h>
@@ -17,7 +16,6 @@
 app::app() : Main() {
     DPRINTLN(DBG_VERBOSE, F("app::app():Main"));
     mSendTicker     = 0xffff;
-    mSendInterval   = SEND_INTERVAL;
     mMqttTicker     = 0xffff;
     mMqttInterval   = MQTT_INTERVAL;
     mSerialTicker   = 0xffff;
@@ -55,11 +53,9 @@ void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     Main::setup(timeout);
 
-    mWeb->on("/",               std::bind(&app::showIndex,      this));
     mWeb->on("/favicon.ico",    std::bind(&app::showFavicon,    this));
-    mWeb->on("/setup",          std::bind(&app::showSetup,      this));
-    mWeb->on("/save",           std::bind(&app::showSave,       this));
-    mWeb->on("/erase",          std::bind(&app::showErase,      this));
+    //mWeb->on("/setup",          std::bind(&app::showSetup,      this));
+    //mWeb->on("/save",           std::bind(&app::showSave,       this));
     mWeb->on("/cmdstat",        std::bind(&app::showStatistics, this));
     mWeb->on("/hoymiles",       std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",       std::bind(&app::showLiveData,   this));
@@ -67,10 +63,10 @@ void app::setup(uint32_t timeout) {
     mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));
     
     if(mSettingsValid) {
-        mEep->read(ADDR_INV_INTERVAL, &mSendInterval);
-        if(mSendInterval < MIN_SEND_INTERVAL)
-            mSendInterval = MIN_SEND_INTERVAL;
-        mSendTicker = mSendInterval;
+        mEep->read(ADDR_INV_INTERVAL, &config.sendInterval);
+        if(config.sendInterval < MIN_SEND_INTERVAL)
+            config.sendInterval = MIN_SEND_INTERVAL;
+        mSendTicker = config.sendInterval;
 
         // inverter
         uint64_t invSerial;
@@ -97,7 +93,7 @@ void app::setup(uint32_t timeout) {
                 }
 
 
-                mMqttInterval += mSendInterval;
+                mMqttInterval += config.sendInterval;
             }
         }
 
@@ -175,7 +171,7 @@ void app::setup(uint32_t timeout) {
         if(mqttAddr[0] > 0) {
             char topic[30];
             mMqtt.sendMsg("device", mqttDevName);
-            mMqtt.sendMsg("version", mVersion);
+            mMqtt.sendMsg("version", config.version);
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
                 if(NULL != iv) {
@@ -210,7 +206,7 @@ void app::setup(uint32_t timeout) {
         DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
         DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
         DPRINT(DBG_INFO, F("\npoint your browser to http://"));
-        if(mApActive)
+        if(config.apActive)
             DBGPRINTLN(F("192.168.1.1"));
         else
             DBGPRINTLN(WiFi.localIP());
@@ -404,7 +400,7 @@ void app::loop(void) {
             }
         }
 
-        if(++mSendTicker >= mSendInterval) {
+        if(++mSendTicker >= config.sendInterval) {
             mSendTicker = 0;
 
             if(0 != mTimestamp) {
@@ -587,20 +583,7 @@ void app::processPayload(bool retransmit) {
 
 
 //-----------------------------------------------------------------------------
-void app::showIndex(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showIndex"));
-    String html = FPSTR(index_html);
-    html.replace(F("{DEVICE}"), mDeviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mSendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
-    html.replace(F("{BUILD}"), String(AUTO_GIT_HASH));
-    mWeb->send(200, "text/html", html);
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showSetup(void) {
+/*void app::showSetup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
     // overrides same method in main.cpp
 
@@ -737,16 +720,9 @@ void app::showSetup(void) {
 //-----------------------------------------------------------------------------
 void app::showSave(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showSave"));
-    saveValues(true);
-}
+    //saveValues(true);
+}*/
 
-
-//-----------------------------------------------------------------------------
-void app::showErase() {
-    DPRINTLN(DBG_VERBOSE, F("app::showErase"));
-    eraseSettings();
-    showReboot();
-}
 
 //-----------------------------------------------------------------------------
 void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
@@ -893,10 +869,10 @@ void app::webapi(void) { // ToDo
 void app::showHoymiles(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
-    html.replace(F("{DEVICE}"), mDeviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mSendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
+    html.replace(F("{DEVICE}"), config.deviceName);
+    html.replace(F("{VERSION}"), config.version);
+    html.replace(F("{TS}"), String(config.sendInterval) + " ");
+    html.replace(F("{JS_TS}"), String(config.sendInterval * 1000));
     mWeb->send(200, F("text/html"), html);
 }
 
@@ -1014,7 +990,7 @@ void app::showJSON(void) {
 
 
 //-----------------------------------------------------------------------------
-void app::saveValues(bool webSend = true) {
+/*void app::saveValues(bool webSend = true) {
     DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
     Main::saveValues(false); // general configuration
 
@@ -1127,11 +1103,11 @@ void app::saveValues(bool webSend = true) {
         mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
             "<p>Error while saving</p></body></html>"));
     }
-}
+}*/
 
 
 //-----------------------------------------------------------------------------
-void app::updateCrc(void) {
+/*void app::updateCrc(void) {
     DPRINTLN(DBG_VERBOSE, F("app::updateCrc"));
     Main::updateCrc();
 
@@ -1139,7 +1115,7 @@ void app::updateCrc(void) {
     crc = buildEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)));
     DPRINTLN(DBG_DEBUG, F("new CRC: ") + String(crc, HEX));
     mEep->write(ADDR_SETTINGS_CRC, crc);
-}
+}*/
 
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));

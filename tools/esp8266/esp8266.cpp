@@ -7,7 +7,10 @@
 #include "app.h"
 #include "config.h"
 
+#include "web.h"
+
 app myApp;
+web *mWebInst;
 
 //-----------------------------------------------------------------------------
 IRAM_ATTR void handleIntr(void) {
@@ -18,6 +21,7 @@ IRAM_ATTR void handleIntr(void) {
 //-----------------------------------------------------------------------------
 void setup() {
     myApp.setup(WIFI_TRY_CONNECT_TIME);
+    mWebInst = new web(&myApp);
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);

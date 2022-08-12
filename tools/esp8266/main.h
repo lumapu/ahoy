@@ -13,8 +13,6 @@
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 
-#include <ESP8266HTTPUpdateServer.h>
-
 // NTP
 #include <WiFiUdp.h>
 #include <TimeLib.h>
@@ -32,17 +30,72 @@ const byte mDnsPort = 53;
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
 
+
+typedef struct {
+    char version[12];
+    char deviceName[DEVNAME_LEN];
+
+    // wifi
+    char stationSsid[SSID_LEN];
+    char stationPwd[PWD_LEN];
+    bool apActive;
+
+    // nrf24
+    uint16_t sendInterval;
+} config_t;
+
+
+#define SAVE_SSID           0x00000001
+#define SAVE_PWD            0x00000002
+#define SAVE_DEVICE_NAME    0x00000004
+
+#define CHK_MSK(v, m) ((m & v) == m)
+
 class Main {
     public:
         Main(void);
         virtual void setup(uint32_t timeout);
         virtual void loop();
-        String getDateTimeStr (time_t t);
+        void saveValues(uint32_t saveMask);
+
+        String getDateTimeStr(time_t t) {
+            char str[20] = {0};
+            if(0 == t)
+                sprintf(str, "n/a");
+            else
+                sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+            return String(str);
+        }
+
+        inline uint32_t getUptime(void) {
+            return mUptimeSecs;
+        }
+
+        inline uint32_t getTimestamp(void) {
+            return mTimestamp;
+        }
+
+        void eraseSettings(bool all = false) {
+            //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
+            uint8_t buf[64] = {0};
+            uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
+            uint16_t end;
+            do {
+                end = addr + 64;
+                if(end > (ADDR_SETTINGS_CRC + 2))
+                    end = (ADDR_SETTINGS_CRC + 2);
+                DPRINTLN(DBG_DEBUG, F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
+                mEep->write(addr, buf, (end-addr));
+                addr = end;
+            } while(addr < (ADDR_SETTINGS_CRC + 2));
+            mEep->commit();
+        }
+
+        ESP8266WebServer *mWeb;
+        config_t config;
 
 
     protected:
-        void showReboot(void);
-        virtual void saveValues(bool webSend);
         virtual void updateCrc(void);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
@@ -71,22 +124,6 @@ class Main {
             return (crcCheck == crcRd);
         }
 
-        void eraseSettings(bool all = false) {
-            //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
-            uint8_t buf[64] = {0};
-            uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
-            uint16_t end;
-            do {
-                end = addr + 64;
-                if(end > (ADDR_SETTINGS_CRC + 2))
-                    end = (ADDR_SETTINGS_CRC + 2);
-                DPRINTLN(DBG_DEBUG, F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
-                mEep->write(addr, buf, (end-addr));
-                addr = end;
-            } while(addr < (ADDR_SETTINGS_CRC + 2));
-            mEep->commit();
-        }
-
         inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
             //DPRINTLN(DBG_VERBOSE, F("c"));
             uint32_t mil = millis();
@@ -113,15 +150,10 @@ class Main {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
-        char mStationSsid[SSID_LEN];
-        char mStationPwd[PWD_LEN];
         bool mWifiSettingsValid;
         bool mSettingsValid;
-        bool mApActive;
         bool mStActive;
-        ESP8266WebServer *mWeb;
-        char mVersion[9];
-        char mDeviceName[DEVNAME_LEN];
+
         eep *mEep;
         uint32_t mTimestamp;
         uint32_t mLimit;
@@ -133,13 +165,6 @@ class Main {
         void setupAp(const char *ssid, const char *pwd);
         bool setupStation(uint32_t timeout);
 
-        void showNotFound(void);
-        virtual void showSetup(void);
-        virtual void showSave(void);
-        void showUptime(void);
-        void showTime(void);
-        void showCss(void);
-        void showFactoryRst(void);
 
         time_t getNtpTime(void);
         void sendNTPpacket(IPAddress& address);
@@ -151,7 +176,6 @@ class Main {
         uint8_t mHeapStatCnt;
 
         DNSServer *mDns;
-        ESP8266HTTPUpdateServer *mUpdater;
 
         WiFiUDP *mUdp; // for time server
 };

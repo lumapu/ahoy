@@ -69,10 +69,8 @@ class app : public Main {
         void processPayload(bool retransmit);
 
         void showFavicon(void);
-        void showIndex(void);
         void showSetup(void);
         void showSave(void);
-        void showErase(void);
         void showStatistics(void);
         void showHoymiles(void);
         void showLiveData(void);
@@ -80,8 +78,6 @@ class app : public Main {
         void webapi(void);
 
 
-        void saveValues(bool webSend);
-        void updateCrc(void);
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);
         const char* getFieldStateClass(uint8_t fieldId);
@@ -106,7 +102,6 @@ class app : public Main {
         HmSystemType *mSys;
 
         uint16_t mSendTicker;
-        uint16_t mSendInterval;
         uint8_t mSendLastIvId;
 
         invPayload_t mPayload[MAX_NUM_INVERTERS];
