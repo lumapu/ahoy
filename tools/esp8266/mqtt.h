@@ -12,8 +12,6 @@
 
 class mqtt {
     public:
-        PubSubClient *mClient;
-
         mqtt() {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
@@ -42,8 +40,8 @@ class mqtt {
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
         }
 
-        void setCallback(void (*func)(const char* topic, byte* payload, unsigned int length)){
-            mClient->setCallback(func);
+        void setCallback(MQTT_CALLBACK_SIGNATURE){
+            mClient->setCallback(callback);
         }
 
         void sendMsg(const char *topic, const char *msg) {
@@ -131,6 +129,7 @@ class mqtt {
         }
 
         WiFiClient mEspClient;
+        PubSubClient *mClient;
         
         bool mAddressSet;
         uint16_t mPort;
