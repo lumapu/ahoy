@@ -73,6 +73,9 @@ For now the following inverters should work out of the box:
 ## Changelog
 
 (*) EEPROM changes require settings to be changed, your settings will be overwritten and need to be set again!
+- v0.5.9 *fix PowerLimit PowerPFDev.Desc=0x0001 for permanent
+- v0.5.8 *fix #146 device name in setup
+- v0.5.7 *add collapsible setup
 - v0.5.6 *fix only MQTT sub after the first loop in a conenction
 - v0.5.5 *fixed MQTT sub only after connection is established (HorstG-57)
          + added in app.cpp some compiler if statements
