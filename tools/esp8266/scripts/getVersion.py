@@ -28,12 +28,12 @@ def readVersion(path, infile):
     
     os.mkdir(path + ".pio/build/out/")
     
-    versionout = version[:-1] + "_esp8266_debug_" + get_firmware_specifier_build_flag() + "".bin"
+    versionout = version[:-1] + "_esp8266_debug_" + get_firmware_specifier_build_flag() + ".bin"
     src = path + ".pio/build/esp8266-debug/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
     
-    versionout = version[:-1] + "_esp8266_release_" + get_firmware_specifier_build_flag() + "".bin"
+    versionout = version[:-1] + "_esp8266_release_" + get_firmware_specifier_build_flag() + ".bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
