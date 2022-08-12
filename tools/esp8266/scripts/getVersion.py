@@ -18,7 +18,7 @@ def readVersion(path, infile):
     
     os.mkdir(path + ".pio/build/out/")
     
-    versionout = version[:-1] + "_esp8266_release.bin"
+    versionout = version[:-1] + "_esp8266_release1.bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
