@@ -130,7 +130,7 @@ class eep {
             EEPROM.write(addr++, (value      ) & 0xff);
         }
 
-        void write(uint64_t addr, uint64_t value) {
+        void write(uint32_t addr, uint64_t value) {
             EEPROM.write(addr++, (value >> 56) & 0xff);
             EEPROM.write(addr++, (value >> 48) & 0xff);
             EEPROM.write(addr++, (value >> 40) & 0xff);

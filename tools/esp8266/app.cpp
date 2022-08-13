@@ -15,28 +15,18 @@ app::app() {
     mDns     = new DNSServer();
     mWeb     = new ESP8266WebServer(80);
     mUdp     = new WiFiUDP();
+    mEep = new eep();
 
-    memset(&config, 0, sizeof(config_t));
+    loadDefaultConfig();
 
-    config.apActive          = true;
-    mWifiSettingsValid = false;
-    mSettingsValid     = false;
+    mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
+    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT)-(ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
 
-    mLimit       = 10;
+    mWifiStationTimeout = 10;
     mNextTryTs   = 0;
     mApLastTick  = 0;
 
-    // default config
-    snprintf(config.version, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-    config.apActive = false;
-    config.sendInterval = SEND_INTERVAL;
 
-    config.serialInterval = SERIAL_INTERVAL;
-    config.serialShowIv   = true;
-    config.serialDebug    = false;
-
-
-    mEep = new eep();
     Serial.begin(115200);
     DPRINTLN(DBG_VERBOSE, F("Main::Main"));
 
@@ -82,35 +72,15 @@ app::~app(void) {
 }
 
 
-
-//-----------------------------------------------------------------------------
-void app::Mainsetup(uint32_t timeout) {
-    DPRINTLN(DBG_VERBOSE, F("Main::setup"));
-    bool startAp = config.apActive;
-    mLimit = timeout;
-
-
-    startAp = getConfig();
-
-#ifndef AP_ONLY
-    if(false == startAp)
-        startAp = setupStation(timeout);
-#endif
-
-    config.apActive = startAp;
-    mStActive = !startAp;
-}
-
-
 //-----------------------------------------------------------------------------
 void app::MainLoop(void) {
     //DPRINTLN(DBG_VERBOSE, F("M"));
-    if(config.apActive) {
+    if(sysConfig.apActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
         if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            config.apActive = setupStation(mLimit);
-            if(config.apActive) {
+            sysConfig.apActive = setupStation(mWifiStationTimeout);
+            if(sysConfig.apActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
                     DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
                 mApLastTick = millis();
@@ -138,7 +108,7 @@ void app::MainLoop(void) {
         if(0 != mTimestamp)
             mTimestamp++;
         else {
-            if(!config.apActive) {
+            if(!sysConfig.apActive) {
                 mTimestamp  = getNtpTime();
                 DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
             }
@@ -151,7 +121,7 @@ void app::MainLoop(void) {
     }
     if (WiFi.status() != WL_CONNECTED) {
         DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
-        mStActive = false;
+        setupStation(mWifiStationTimeout);
     }
 }
 
@@ -159,7 +129,13 @@ void app::MainLoop(void) {
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
-    Mainsetup(timeout);
+    mWifiStationTimeout = timeout;
+
+
+#ifndef AP_ONLY
+    if(false == sysConfig.apActive)
+        sysConfig.apActive = setupStation(mWifiStationTimeout);
+#endif
 
     //mWeb->on("/setup",          std::bind(&app::showSetup,      this));
     //mWeb->on("/save",           std::bind(&app::showSave,       this));
@@ -169,134 +145,8 @@ void app::setup(uint32_t timeout) {
     mWeb->on("/json",           std::bind(&app::showJSON,       this));
     mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));
     
-    if(mSettingsValid) {
-        mEep->read(ADDR_INV_INTERVAL, &config.sendInterval);
-        if(config.sendInterval < MIN_SEND_INTERVAL)
-            config.sendInterval = MIN_SEND_INTERVAL;
-        mSendTicker = config.sendInterval;
-
-        // inverter
-        uint64_t invSerial;
-        char name[MAX_NAME_LENGTH + 1] = {0};
-        uint16_t modPwr[4];
-        Inverter<> *iv;
-        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-            mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
-            mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
-            mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4),         modPwr, 4);
-            if(0ULL != invSerial) {
-                iv = mSys->addInverter(name, invSerial, modPwr);
-                if(NULL != iv) {
-                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *)&(iv->powerLimit[0]));
-                    if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
-                        iv->powerLimit[1] = 0x0001; // set the limit as persistent
-                        iv->devControlCmd = ActivePowerContr; // set active power limit
-                        iv->devControlRequest = true; // set to true to update the active power limit from setup html page 
-                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));
-                    }
-                    for(uint8_t j = 0; j < 4; j++) {
-                        mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
-                    }
-                }
-
-
-                mMqttInterval += config.sendInterval;
-            }
-        }
-
-        mEep->read(ADDR_INV_MAX_RTRY, &config.maxRetransPerPyld);
-        if(0 == config.maxRetransPerPyld)
-            config.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
-
-        // pinout
-        mEep->read(ADDR_PINOUT,   &mSys->Radio.pinCs);
-        mEep->read(ADDR_PINOUT+1, &mSys->Radio.pinCe);
-        mEep->read(ADDR_PINOUT+2, &mSys->Radio.pinIrq);
-        if(mSys->Radio.pinCs == mSys->Radio.pinCe) {
-            mSys->Radio.pinCs  = RF24_CS_PIN;
-            mSys->Radio.pinCe  = RF24_CE_PIN;
-            mSys->Radio.pinIrq = RF24_IRQ_PIN;
-        }
-
-        // nrf24 amplifier power
-        mEep->read(ADDR_RF24_AMP_PWR, &mSys->Radio.AmplifierPower);
-
-        // serial console
-        uint8_t tmp;
-        mEep->read(ADDR_SER_INTERVAL, &config.serialInterval);
-        if(config.serialInterval < MIN_SERIAL_INTERVAL)
-            config.serialInterval = MIN_SERIAL_INTERVAL;
-        mEep->read(ADDR_SER_ENABLE, &tmp);
-        config.serialShowIv = (tmp == 0x01);
-        mEep->read(ADDR_SER_DEBUG, &tmp);
-        config.serialDebug = (tmp == 0x01);
-        mSys->Radio.mSerialDebug = config.serialDebug;
-
-        // ntp
-        char ntpAddr[NTP_ADDR_LEN];
-        uint16_t ntpPort;
-        mEep->read(ADDR_NTP_ADDR,   ntpAddr,    NTP_ADDR_LEN);
-        mEep->read(ADDR_NTP_PORT,   &ntpPort);
-        // TODO set ntpAddr & ntpPort in main
-
-        // mqtt
-        mEep->read(ADDR_MQTT_ADDR,  config.mqtt.broker,  MQTT_ADDR_LEN);
-        mEep->read(ADDR_MQTT_USER,  config.mqtt.user,    MQTT_USER_LEN);
-        mEep->read(ADDR_MQTT_PWD,   config.mqtt.pwd,     MQTT_PWD_LEN);
-        mEep->read(ADDR_MQTT_TOPIC, config.mqtt.topic,   MQTT_TOPIC_LEN);
-        mEep->read(ADDR_MQTT_PORT,  &config.mqtt.port);
-        //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
-
-        if(config.mqtt.broker[0] > 0) {
-            mMqttActive = true;
-            if(mMqttInterval < MIN_MQTT_INTERVAL)
-                mMqttInterval = MIN_MQTT_INTERVAL;
-        }
-        else
-            mMqttInterval = 0xffff;
-
-        if(0 == config.mqtt.port)
-            config.mqtt.port = 1883;
-
-        mMqtt.setup(&config.mqtt, config.deviceName);
-        mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        mMqttTicker = 0;
-
-#ifdef __MQTT_TEST__
-        // für mqtt test
-        mMqttTicker = mMqttInterval -10;
-#endif
-        mSerialTicker = 0;
-
-        if(config.mqtt.broker[0] > 0) {
-            char topic[30];
-            mMqtt.sendMsg("device", config.deviceName);
-            mMqtt.sendMsg("version", config.version);
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < 4; i++) {
-                        if(0 != iv->chName[i][0]) {
-                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, i+1, "name");
-                            mMqtt.sendMsg(topic, iv->chName[i]);
-                            yield();
-                        }
-                    }
-                }
-            }
-        }
-    }
-    else {
-        DPRINTLN(DBG_DEBUG, F("CRC pos: ") + String(ADDR_SETTINGS_CRC));
-        DPRINTLN(DBG_DEBUG, F("NXT pos: ") + String(ADDR_NEXT));
-        DPRINTLN(DBG_INFO, F("Settings not valid, erasing ..."));
-        eraseSettings();
-        saveValues(false);
-        delay(100);
-        DPRINTLN(DBG_INFO, F("... restarting ..."));
-        delay(100);
-        ESP.restart();
-    }
+    loadEEpconfig();
+    setupMqtt();
 
     mSys->setup();
 
@@ -306,7 +156,7 @@ void app::setup(uint32_t timeout) {
         DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
         DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
         DPRINT(DBG_INFO, F("\npoint your browser to http://"));
-        if(config.apActive)
+        if(sysConfig.apActive)
             DBGPRINTLN(F("192.168.1.1"));
         else
             DBGPRINTLN(WiFi.localIP());
@@ -969,8 +819,8 @@ void app::webapi(void) { // ToDo
 void app::showHoymiles(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
-    html.replace(F("{DEVICE}"), config.deviceName);
-    html.replace(F("{VERSION}"), config.version);
+    html.replace(F("{DEVICE}"), sysConfig.deviceName);
+    html.replace(F("{VERSION}"), version);
     html.replace(F("{TS}"), String(config.sendInterval) + " ");
     html.replace(F("{JS_TS}"), String(config.sendInterval * 1000));
     mWeb->send(200, F("text/html"), html);
@@ -1154,30 +1004,6 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 
 
 //-----------------------------------------------------------------------------
-bool app::getConfig(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::getConfig"));
-    config.apActive = false;
-
-    mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
-    mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT)-(ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
-
-    if(mWifiSettingsValid) {
-        mEep->read(ADDR_SSID,    config.stationSsid, SSID_LEN);
-        mEep->read(ADDR_PWD,     config.stationPwd, PWD_LEN);
-        mEep->read(ADDR_DEVNAME, config.deviceName, DEVNAME_LEN);
-    }
-
-    if((!mWifiSettingsValid) || (config.stationSsid[0] == 0xff)) {
-        snprintf(config.stationSsid, SSID_LEN,    "%s", FB_WIFI_SSID);
-        snprintf(config.stationPwd,  PWD_LEN,     "%s", FB_WIFI_PWD);
-        snprintf(config.deviceName,  DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
-    }
-
-    return config.apActive;
-}
-
-
-//-----------------------------------------------------------------------------
 void app::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
     IPAddress apIp(192, 168, 1, 1);
@@ -1218,12 +1044,12 @@ bool app::setupStation(uint32_t timeout) {
     }
 
     WiFi.mode(WIFI_STA);
-    WiFi.begin(config.stationSsid, config.stationPwd);
-    if(String(config.deviceName) != "")
-        WiFi.hostname(config.deviceName);
+    WiFi.begin(sysConfig.stationSsid, sysConfig.stationPwd);
+    if(String(sysConfig.deviceName) != "")
+        WiFi.hostname(sysConfig.deviceName);
 
     delay(2000);
-    DPRINTLN(DBG_INFO, F("connect to network '") + String(config.stationSsid) + F("' ..."));
+    DPRINTLN(DBG_INFO, F("connect to network '") + String(sysConfig.stationSsid) + F("' ..."));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 100 == 0)
@@ -1254,17 +1080,154 @@ bool app::setupStation(uint32_t timeout) {
 }
 
 
+//-----------------------------------------------------------------------------
+void app::loadDefaultConfig(void) {
+    memset(&sysConfig, 0, sizeof(sysConfig_t));
+    memset(&config, 0, sizeof(config_t));
+    snprintf(version, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+
+    snprintf(sysConfig.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
+
+    // wifi
+    snprintf(sysConfig.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
+    snprintf(sysConfig.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
+    sysConfig.apActive = false;
+
+    // nrf24
+    config.sendInterval      = SEND_INTERVAL;
+    config.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
+
+    // ntp
+    snprintf(config.ntpAddr, NTP_ADDR_LEN, "%s", NTP_SERVER_NAME);
+    config.ntpPort = NTP_LOCAL_PORT;
+
+    // mqtt
+    snprintf(config.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
+    config.mqtt.port = DEF_MQTT_PORT;
+    snprintf(config.mqtt.user, MQTT_USER_LEN, "%s", DEF_MQTT_USER);
+    snprintf(config.mqtt.pwd, MQTT_PWD_LEN, "%s", DEF_MQTT_PWD);
+    snprintf(config.mqtt.topic, MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
+
+    // serial
+    config.serialInterval = SERIAL_INTERVAL;
+    config.serialShowIv   = true;
+    config.serialDebug    = false;
+}
+
+
+//-----------------------------------------------------------------------------
+void app::loadEEpconfig(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::loadEEpconfig"));
+
+    if(mWifiSettingsValid)
+        mEep->read(ADDR_CFG_SYS, (uint8_t*) &sysConfig, CFG_SYS_LEN);
+    if(mSettingsValid) {
+        mEep->read(ADDR_CFG, (uint8_t*) &config, CFG_LEN);
+
+        mSendTicker   = config.sendInterval;
+        mSerialTicker = 0;
+
+        // inverter
+        uint64_t invSerial;
+        char name[MAX_NAME_LENGTH + 1] = {0};
+        uint16_t modPwr[4];
+        Inverter<> *iv;
+        for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            mEep->read(ADDR_INV_ADDR + (i * 8),               &invSerial);
+            mEep->read(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), name, MAX_NAME_LENGTH);
+            mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4),         modPwr, 4);
+            if(0ULL != invSerial) {
+                iv = mSys->addInverter(name, invSerial, modPwr);
+                if(NULL != iv) {
+                    mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *)&(iv->powerLimit[0]));
+                    if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
+                        iv->powerLimit[1] = 0x0001; // set the limit as persistent
+                        iv->devControlCmd = ActivePowerContr; // set active power limit
+                        iv->devControlRequest = true; // set to true to update the active power limit from setup html page
+                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));
+                    }
+                    for(uint8_t j = 0; j < 4; j++) {
+                        mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
+                    }
+                }
+
+
+                mMqttInterval += config.sendInterval;
+            }
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void app::setupMqtt(void) {
+    if(mSettingsValid) {
+        if(config.mqtt.broker[0] > 0) {
+            mMqttActive = true;
+            if(mMqttInterval < MIN_MQTT_INTERVAL)
+                mMqttInterval = MIN_MQTT_INTERVAL;
+        }
+        else
+            mMqttInterval = 0xffff;
+
+        mMqttTicker = 0;
+        mMqtt.setup(&config.mqtt, sysConfig.deviceName);
+        mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+
+        if(mMqttActive) {
+            mMqtt.sendMsg("version", version);
+            if(mMqtt.isConnected())
+                mMqtt.sendMsg("device", sysConfig.deviceName);
+
+            /*char topic[30];
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL != iv) {
+                    for(uint8_t i = 0; i < 4; i++) {
+                        if(0 != iv->chName[i][0]) {
+                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, i+1, "name");
+                            mMqtt.sendMsg(topic, iv->chName[i]);
+                            yield();
+                        }
+                    }
+                }
+            }*/
+        }
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 void app::saveValues(uint32_t saveMask = 0) {
     DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
 
-    if(CHK_MSK(saveMask, SAVE_SSID))
-        mEep->write(ADDR_SSID, config.stationSsid, SSID_LEN);
+    mEep->write(ADDR_CFG_SYS, (uint8_t*)&sysConfig, CFG_SYS_LEN);
+    mEep->write(ADDR_CFG, (uint8_t*)&config, CFG_LEN);
+    Inverter<> *iv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        iv = mSys->getInverterByPos(i);
+        if(NULL != iv) {
+            mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
+            mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
+            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
+            // max channel power / name
+            for(uint8_t j = 0; j < 4; j++) {
+                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
+                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
+            }
+        }
+    }
+
+    updateCrc();
+    mEep->commit();
+
+    /*if(CHK_MSK(saveMask, SAVE_SSID))
+        mEep->write(ADDR_SSID, sysConfig.stationSsid, SSID_LEN);
     if(CHK_MSK(saveMask, SAVE_PWD))
-        mEep->write(ADDR_PWD, config.stationPwd, SSID_LEN);
+        mEep->write(ADDR_PWD, sysConfig.stationPwd, SSID_LEN);
     if(CHK_MSK(saveMask, SAVE_DEVICE_NAME))
-        mEep->write(ADDR_DEVNAME, config.deviceName, DEVNAME_LEN);
+        mEep->write(ADDR_DEVNAME, sysConfig.deviceName, DEVNAME_LEN);
 
     if(CHK_MSK(saveMask, SAVE_INVERTERS)) {
         Inverter<> *iv;
@@ -1328,7 +1291,7 @@ void app::saveValues(uint32_t saveMask = 0) {
     if(0 < saveMask) {
         updateCrc();
         mEep->commit();
-    }
+    }*/
 }
 
 

@@ -45,8 +45,8 @@ class web {
         void showIndex(void) {
             DPRINTLN(DBG_VERBOSE, F("showIndex"));
             String html = FPSTR(index_html);
-            html.replace(F("{DEVICE}"), mMain->config.deviceName);
-            html.replace(F("{VERSION}"), mMain->config.version);
+            html.replace(F("{DEVICE}"), mMain->sysConfig.deviceName);
+            html.replace(F("{VERSION}"), mMain->version);
             html.replace(F("{TS}"), String(mMain->config.sendInterval) + " ");
             html.replace(F("{JS_TS}"), String(mMain->config.sendInterval * 1000));
             html.replace(F("{BUILD}"), String(AUTO_GIT_HASH));
@@ -126,12 +126,12 @@ class web {
         void showSetup(void) {
             DPRINTLN(DBG_VERBOSE, F("showSetup"));
             String html = FPSTR(setup_html);
-            html.replace(F("{SSID}"), mMain->config.stationSsid);
+            html.replace(F("{SSID}"), mMain->sysConfig.stationSsid);
             // PWD will be left at the default value (for protection)
             // -> the PWD will only be changed if it does not match the default "{PWD}"
-            html.replace(F("{DEVICE}"), String(mMain->config.deviceName));
-            html.replace(F("{VERSION}"), String(mMain->config.version));
-            if(mMain->config.apActive)
+            html.replace(F("{DEVICE}"), String(mMain->sysConfig.deviceName));
+            html.replace(F("{VERSION}"), String(mMain->version));
+            if(mMain->sysConfig.apActive)
                 html.replace("{IP}", String(F("http://192.168.1.1")));
             else
                 html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
@@ -148,15 +148,15 @@ class web {
 
                 // general
                 if(mWeb->arg("ssid") != "") {
-                    mWeb->arg("ssid").toCharArray(mMain->config.stationSsid, SSID_LEN);
+                    mWeb->arg("ssid").toCharArray(mMain->sysConfig.stationSsid, SSID_LEN);
                     saveMask |= SAVE_SSID;
                 }
                 if(mWeb->arg("pwd") != "{PWD}") {
-                    mWeb->arg("pwd").toCharArray(mMain->config.stationPwd, PWD_LEN);
+                    mWeb->arg("pwd").toCharArray(mMain->sysConfig.stationPwd, PWD_LEN);
                     saveMask |= SAVE_PWD;
                 }
                 if(mWeb->arg("device") != "") {
-                    mWeb->arg("device").toCharArray(mMain->config.deviceName, DEVNAME_LEN);
+                    mWeb->arg("device").toCharArray(mMain->sysConfig.deviceName, DEVNAME_LEN);
                     saveMask |= SAVE_DEVICE_NAME;
                 }
 

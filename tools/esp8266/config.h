@@ -67,4 +67,25 @@
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
 
+// default ntp server uri
+#define NTP_SERVER_NAME     "pool.ntp.org"
+
+// default ntp server port
+#define NTP_LOCAL_PORT      8888
+
+// default MQTT broker uri
+#define DEF_MQTT_BROKER         "\0"
+
+// default MQTT port
+#define DEF_MQTT_PORT           1883
+
+// default MQTT user
+#define DEF_MQTT_USER           "\0"
+
+// default MQTT pwd
+#define DEF_MQTT_PWD           "\0"
+
+// default MQTT topic
+#define DEF_MQTT_TOPIC          "inverter"
+
 #endif /*__CONFIG_H__*/

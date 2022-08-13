@@ -111,7 +111,7 @@ typedef enum {
 #define SER_DEBUG_LEN           1 // uint8_t
 #define SER_INTERVAL_LEN        2 // uint16_t
 
-
+/*
 #define ADDR_START              0
 #define ADDR_SSID               ADDR_START
 #define ADDR_PWD                ADDR_SSID          + SSID_LEN
@@ -145,18 +145,7 @@ typedef enum {
 #define ADDR_SER_DEBUG          ADDR_SER_ENABLE    + SER_ENABLE_LEN
 #define ADDR_SER_INTERVAL       ADDR_SER_DEBUG     + SER_DEBUG_LEN
 #define ADDR_NEXT               ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
-
-// #define ADDR_SETTINGS_CRC   950
-#define ADDR_SETTINGS_CRC       ADDR_NEXT + 2
-
-#if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
-#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")" 
-#endif
-
-#if(ADDR_SETTINGS_CRC >= 4096 - CRC_LEN)
-#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")" 
-#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")" 
-#endif
+*/
 
 
 //-------------------------------------
@@ -169,14 +158,15 @@ typedef struct {
 } mqttConfig_t;
 
 typedef struct {
-    char version[12];
     char deviceName[DEVNAME_LEN];
 
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     bool apActive;
+} sysConfig_t;
 
+typedef struct {
     // nrf24
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
@@ -193,6 +183,42 @@ typedef struct {
     bool serialShowIv;
     bool serialDebug;
 } config_t;
+
+// eeprom new
+#define CFG_MQTT_LEN    MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
+#define CFG_SYS_LEN     DEVNAME_LEN + SSID_LEN + PWD_LEN + 1
+#define CFG_LEN         2 + 1 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 2 + 1 + 1
+
+#define ADDR_START              0
+#define ADDR_CFG_SYS            ADDR_START
+#define ADDR_WIFI_CRC           ADDR_CFG_SYS  + CFG_SYS_LEN
+#define ADDR_START_SETTINGS     ADDR_WIFI_CRC + CRC_LEN
+
+#define ADDR_CFG                ADDR_START_SETTINGS
+#define ADDR_CFG_INVERTER       ADDR_CFG + CFG_LEN
+
+#define ADDR_INV_ADDR           ADDR_CFG_INVERTER
+#define ADDR_INV_NAME           ADDR_INV_ADDR      + INV_ADDR_LEN
+#define ADDR_INV_CH_PWR         ADDR_INV_NAME      + INV_NAME_LEN
+#define ADDR_INV_CH_NAME        ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
+#define ADDR_INV_INTERVAL       ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
+#define ADDR_INV_MAX_RTRY       ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
+#define ADDR_INV_PWR_LIM        ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
+
+#define ADDR_NEXT               ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
+
+
+#define ADDR_SETTINGS_CRC       ADDR_NEXT + 2
+
+#if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
+#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")"
+#endif
+
+#if(ADDR_SETTINGS_CRC >= 4096 - CRC_LEN)
+#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")"
+#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")"
+#endif
+
 
 
 #endif /*__DEFINES_H__*/

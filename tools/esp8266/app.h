@@ -63,11 +63,8 @@ typedef struct {
 const byte mDnsPort = 53;
 
 /* NTP TIMESERVER CONFIG */
-#define NTP_SERVER_NAME     "pool.ntp.org"
-#define NTP_LOCAL_PORT      8888
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
-
 
 
 #define SAVE_SSID               0x00000001
@@ -150,15 +147,18 @@ class app {
         }
 
         ESP8266WebServer *mWeb;
+        sysConfig_t sysConfig;
         config_t config;
+        char version[12];
 
     private:
         void MainLoop(void);
-        void Mainsetup(uint32_t timeout);
-        bool getConfig(void);
         void setupAp(const char *ssid, const char *pwd);
         bool setupStation(uint32_t timeout);
 
+        void loadDefaultConfig(void);
+        void loadEEpconfig(void);
+        void setupMqtt(void);
 
         time_t getNtpTime(void);
         void sendNTPpacket(IPAddress& address);
@@ -243,11 +243,10 @@ class app {
 
         bool mWifiSettingsValid;
         bool mSettingsValid;
-        bool mStActive;
 
         eep *mEep;
         uint32_t mTimestamp;
-        uint32_t mLimit;
+        uint32_t mWifiStationTimeout;
         uint32_t mNextTryTs;
         uint32_t mApLastTick;
 
