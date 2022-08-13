@@ -240,21 +240,14 @@ void app::setup(uint32_t timeout) {
         // TODO set ntpAddr & ntpPort in main
 
         // mqtt
-        uint16_t mqttPort;
-        char mqttAddr[MQTT_ADDR_LEN];
-        char mqttUser[MQTT_USER_LEN];
-        char mqttPwd[MQTT_PWD_LEN];
-        char mqttTopic[MQTT_TOPIC_LEN];
-        char mqttDevName[DEVNAME_LEN];
-        mEep->read(ADDR_MQTT_ADDR,  mqttAddr,    MQTT_ADDR_LEN);
-        mEep->read(ADDR_MQTT_USER,  mqttUser,    MQTT_USER_LEN);
-        mEep->read(ADDR_MQTT_PWD,   mqttPwd,     MQTT_PWD_LEN);
-        mEep->read(ADDR_MQTT_TOPIC, mqttTopic,   MQTT_TOPIC_LEN);
-        mEep->read(ADDR_DEVNAME,    mqttDevName, DEVNAME_LEN);
+        mEep->read(ADDR_MQTT_ADDR,  config.mqtt.broker,  MQTT_ADDR_LEN);
+        mEep->read(ADDR_MQTT_USER,  config.mqtt.user,    MQTT_USER_LEN);
+        mEep->read(ADDR_MQTT_PWD,   config.mqtt.pwd,     MQTT_PWD_LEN);
+        mEep->read(ADDR_MQTT_TOPIC, config.mqtt.topic,   MQTT_TOPIC_LEN);
+        mEep->read(ADDR_MQTT_PORT,  &config.mqtt.port);
         //mEep->read(ADDR_MQTT_INTERVAL, &mMqttInterval);
-        mEep->read(ADDR_MQTT_PORT,  &mqttPort);
 
-        if(mqttAddr[0] > 0) {
+        if(config.mqtt.broker[0] > 0) {
             mMqttActive = true;
             if(mMqttInterval < MIN_MQTT_INTERVAL)
                 mMqttInterval = MIN_MQTT_INTERVAL;
@@ -262,10 +255,10 @@ void app::setup(uint32_t timeout) {
         else
             mMqttInterval = 0xffff;
 
-        if(0 == mqttPort)
-            mqttPort = 1883;
+        if(0 == config.mqtt.port)
+            config.mqtt.port = 1883;
 
-        mMqtt.setup(mqttAddr, mqttTopic, mqttUser, mqttPwd, mqttDevName, mqttPort);
+        mMqtt.setup(&config.mqtt, config.deviceName);
         mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMqttTicker = 0;
 
@@ -275,9 +268,9 @@ void app::setup(uint32_t timeout) {
 #endif
         mSerialTicker = 0;
 
-        if(mqttAddr[0] > 0) {
+        if(config.mqtt.broker[0] > 0) {
             char topic[30];
-            mMqtt.sendMsg("device", mqttDevName);
+            mMqtt.sendMsg("device", config.deviceName);
             mMqtt.sendMsg("version", config.version);
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
@@ -1109,7 +1102,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     } else {
                         snprintf(name, 32, "%s CH%d %s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     }
-                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mMqtt.getTopic(), iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", config.mqtt.topic, iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     snprintf(uniq_id, 32, "ch%d_%s", iv->assign[i].ch, iv->getFieldName(i));
                     const char* devCls = getFieldDeviceClass(iv->assign[i].fieldId);

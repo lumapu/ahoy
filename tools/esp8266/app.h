@@ -68,40 +68,6 @@ const byte mDnsPort = 53;
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
 
-typedef struct {
-    char broker[MQTT_ADDR_LEN];
-    uint16_t port;
-    char user[MQTT_USER_LEN];
-    char pwd[MQTT_PWD_LEN];
-    char topic[MQTT_TOPIC_LEN];
-    char devName[DEVNAME_LEN];
-} mqttConfig_t;
-
-typedef struct {
-    char version[12];
-    char deviceName[DEVNAME_LEN];
-
-    // wifi
-    char stationSsid[SSID_LEN];
-    char stationPwd[PWD_LEN];
-    bool apActive;
-
-    // nrf24
-    uint16_t sendInterval;
-    uint8_t maxRetransPerPyld;
-
-    // ntp
-    char ntpAddr[NTP_ADDR_LEN];
-    uint16_t ntpPort;
-
-    // mqtt
-    mqttConfig_t mqtt;
-
-    // serial
-    uint16_t serialInterval;
-    bool serialShowIv;
-    bool serialDebug;
-} config_t;
 
 
 #define SAVE_SSID               0x00000001
