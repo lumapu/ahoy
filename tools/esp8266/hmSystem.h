@@ -30,9 +30,9 @@ class HmSystem {
             // TODO: cleanup
         }
 
-        void setup() {
+        void setup(config_t *config) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:setup"));
-            Radio.setup(&BufCtrl);
+            Radio.setup(config, &BufCtrl);
         }
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {

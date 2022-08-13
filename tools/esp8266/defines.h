@@ -170,6 +170,10 @@ typedef struct {
     // nrf24
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
+    uint8_t pinCs;
+    uint8_t pinCe;
+    uint8_t pinIrq;
+    uint8_t amplifierPower;
 
     // ntp
     char ntpAddr[NTP_ADDR_LEN];
@@ -187,7 +191,7 @@ typedef struct {
 // eeprom new
 #define CFG_MQTT_LEN    MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
 #define CFG_SYS_LEN     DEVNAME_LEN + SSID_LEN + PWD_LEN + 1
-#define CFG_LEN         2 + 1 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 2 + 1 + 1
+#define CFG_LEN         7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 4
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START

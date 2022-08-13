@@ -136,6 +136,97 @@ class web {
             else
                 html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
 
+            String inv = "";
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                iv = mMain->mSys->getInverterByPos(i);
+
+                inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
+                inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
+                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
+                if(NULL != iv)
+                    inv += String(iv->serial.u64, HEX);
+                inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
+
+                inv += F("<label for=\"inv") + String(i) + F("Name\">Name</label>");
+                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
+                if(NULL != iv)
+                    inv += String(iv->name);
+                inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+
+                inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit (W)</label>");
+                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
+                if(NULL != iv)
+                    inv += String(iv->powerLimit[0]);
+                inv += F("\"/ maxlength=\"") + String(6) + "\">";
+
+                inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
+                inv += F("ModPwr\">Max Module Power (Wp)</label>");
+                for(uint8_t j = 0; j < 4; j++) {
+                    inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
+                    if(NULL != iv)
+                        inv += String(iv->chMaxPwr[j]);
+                    inv += F("\"/ maxlength=\"4\">");
+                }
+                inv += F("<br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
+                inv += F("ModName\">Module Name</label>");
+                for(uint8_t j = 0; j < 4; j++) {
+                    inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
+                    if(NULL != iv)
+                        inv += String(iv->chName[j]);
+                    inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
+                }
+            }
+            html.replace(F("{INVERTERS}"), String(inv));
+
+
+            // pinout
+            String pinout;
+            for(uint8_t i = 0; i < 3; i++) {
+                pinout += F("<label for=\"") + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + F("</label>");
+                pinout += F("<select name=\"") + String(pinArgNames[i]) + "\">";
+                for(uint8_t j = 0; j <= 16; j++) {
+                    pinout += F("<option value=\"") + String(j) + "\"";
+                    switch(i) {
+                        default: if(j == mMain->config.pinCs)  pinout += F(" selected"); break;
+                        case 1:  if(j == mMain->config.pinCe)  pinout += F(" selected"); break;
+                        case 2:  if(j == mMain->config.pinIrq) pinout += F(" selected"); break;
+                    }
+                    pinout += ">" + String(wemosPins[j]) + F("</option>");
+                }
+                pinout += F("</select>");
+            }
+            html.replace(F("{PINOUT}"), String(pinout));
+
+
+            // nrf24l01+
+            String rf24;
+            for(uint8_t i = 0; i <= 3; i++) {
+                rf24 += F("<option value=\"") + String(i) + "\"";
+                if(i == mMain->config.amplifierPower)
+                    rf24 += F(" selected");
+                rf24 += ">" + String(rf24AmpPowerNames[i]) + F("</option>");
+            }
+            html.replace(F("{RF24}"), String(rf24));
+
+
+            html.replace(F("{INV_INTVL}"), String(mMain->config.sendInterval));
+            html.replace(F("{INV_RETRIES}"), String(mMain->config.maxRetransPerPyld));
+
+            html.replace(F("{SER_INTVL}"), String(mMain->config.serialInterval));
+            html.replace(F("{SER_VAL_CB}"), (mMain->config.serialShowIv) ? "checked" : "");
+            html.replace(F("{SER_DBG_CB}"), (mMain->config.serialDebug) ? "checked" : "");
+
+            html.replace(F("{NTP_ADDR}"),  String(mMain->config.ntpAddr));
+            html.replace(F("{NTP_PORT}"),  String(mMain->config.ntpPort));
+
+            html.replace(F("{MQTT_ADDR}"),  String(mMain->config.mqtt.broker));
+            html.replace(F("{MQTT_PORT}"),  String(mMain->config.mqtt.port));
+            html.replace(F("{MQTT_USER}"),  String(mMain->config.mqtt.user));
+            html.replace(F("{MQTT_PWD}"),   String(mMain->config.mqtt.pwd));
+            html.replace(F("{MQTT_TOPIC}"), String(mMain->config.mqtt.topic));
+            html.replace(F("{MQTT_INTVL}"), String("0"));
+
             mWeb->send(200, F("text/html"), html);
         }
 
@@ -143,22 +234,15 @@ class web {
             DPRINTLN(DBG_VERBOSE, F("showSave"));
 
             if(mWeb->args() > 0) {
-                uint32_t saveMask = 0;
                 char buf[20] = {0};
 
                 // general
-                if(mWeb->arg("ssid") != "") {
+                if(mWeb->arg("ssid") != "")
                     mWeb->arg("ssid").toCharArray(mMain->sysConfig.stationSsid, SSID_LEN);
-                    saveMask |= SAVE_SSID;
-                }
-                if(mWeb->arg("pwd") != "{PWD}") {
+                if(mWeb->arg("pwd") != "{PWD}")
                     mWeb->arg("pwd").toCharArray(mMain->sysConfig.stationPwd, PWD_LEN);
-                    saveMask |= SAVE_PWD;
-                }
-                if(mWeb->arg("device") != "") {
+                if(mWeb->arg("device") != "")
                     mWeb->arg("device").toCharArray(mMain->sysConfig.deviceName, DEVNAME_LEN);
-                    saveMask |= SAVE_DEVICE_NAME;
-                }
 
                 // inverter
                 Inverter<> *iv;
@@ -168,8 +252,6 @@ class web {
                     mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
                     if(strlen(buf) == 0)
                         memset(buf, 0, 20);
-                    else
-                        saveMask |= SAVE_INVERTERS;
                     iv->serial.u64 = mMain->Serial2u64(buf);
 
                     // active power limit
@@ -186,36 +268,29 @@ class web {
                         mWeb->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
                     }
                 }
-                if(mWeb->arg("invInterval") != "") {
+                if(mWeb->arg("invInterval") != "")
                     mMain->config.sendInterval = mWeb->arg("invInterval").toInt();
-                    saveMask |= SAVE_INV_SEND_INTERVAL;
-                }
-                if(mWeb->arg("invRetry") != "") {
+                if(mWeb->arg("invRetry") != "")
                     mMain->config.sendInterval = mWeb->arg("invRetry").toInt();
-                    saveMask |= SAVE_INV_RETRY;
-                }
 
                 // pinout
                 uint8_t pin;
                 for(uint8_t i = 0; i < 3; i ++) {
                     pin = mWeb->arg(String(pinArgNames[i])).toInt();
                     switch(i) {
-                        default: mMain->mSys->Radio.pinCs  = pin; break;
-                        case 1:  mMain->mSys->Radio.pinCe  = pin; break;
-                        case 2:  mMain->mSys->Radio.pinIrq = pin; break;
+                        default: mMain->config.pinCs  = pin; break;
+                        case 1:  mMain->config.pinCe  = pin; break;
+                        case 2:  mMain->config.pinIrq = pin; break;
                     }
                 }
-                saveMask |= SAVE_PINOUT;
 
                 // nrf24 amplifier power
-                mMain->mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
-                saveMask |= SAVE_RF24;
+                mMain->config.amplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
 
                 // ntp
                 if(mWeb->arg("ntpAddr") != "") {
                     mWeb->arg("ntpAddr").toCharArray(mMain->config.ntpAddr, NTP_ADDR_LEN);
                     mMain->config.ntpPort = mWeb->arg("ntpPort").toInt() & 0xffff;
-                    saveMask |= SAVE_NTP;
                 }
 
                 // mqtt
@@ -225,7 +300,6 @@ class web {
                     mWeb->arg("mqttPwd").toCharArray(mMain->config.mqtt.pwd, MQTT_PWD_LEN);
                     mWeb->arg("mqttTopic").toCharArray(mMain->config.mqtt.topic, MQTT_TOPIC_LEN);
                     mMain->config.mqtt.port = mWeb->arg("mqttPort").toInt();
-                    saveMask |= SAVE_MQTT;
                 }
 
                 // serial console
@@ -234,11 +308,9 @@ class web {
 
                     mMain->config.serialDebug  = (mWeb->arg("serEn") == "on");
                     mMain->config.serialShowIv = (mWeb->arg("serDbg") == "on");
-                    saveMask |= SAVE_SERIAL;
                 }
 
-
-                mMain->saveValues(saveMask);
+                mMain->saveValues();
 
                 if(mWeb->arg("reboot") == "on")
                     showReboot();
@@ -247,8 +319,6 @@ class web {
                         "<p>saved</p></body></html>"));
             }
         }
-
-
 
 
     private:

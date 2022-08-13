@@ -37,7 +37,7 @@
 // #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
-typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, RF24_IRQ_PIN, BufferType> RadioType;
+typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, BufferType> RadioType;
 typedef Inverter<float> InverterType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
 
@@ -67,20 +67,6 @@ const byte mDnsPort = 53;
 #define TIMEZONE            1 // Central European time +1
 
 
-#define SAVE_SSID               0x00000001
-#define SAVE_PWD                0x00000002
-#define SAVE_DEVICE_NAME        0x00000004
-#define SAVE_INVERTERS          0x00000008
-#define SAVE_INV_SEND_INTERVAL  0x00000010
-#define SAVE_INV_RETRY          0x00000020
-#define SAVE_PINOUT             0x00000040
-#define SAVE_RF24               0x00000080
-#define SAVE_NTP                0x00000100
-#define SAVE_MQTT               0x00000200
-#define SAVE_SERIAL             0x00000400
-
-#define CHK_MSK(v, m) ((m & v) == m)
-
 class app {
     public:
         app();
@@ -90,12 +76,11 @@ class app {
         void loop(void);
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
+        void saveValues(void);
 
-        uint8_t app_loops;
         uint8_t getIrqPin(void) {
-            return mSys->Radio.pinIrq;
+            return config.pinIrq;
         }
-        HmSystemType *mSys;
 
         uint64_t Serial2u64(const char *val) {
             char tmp[3] = {0};
@@ -111,7 +96,6 @@ class app {
             }
             return ret;
         }
-        void saveValues(uint32_t saveMask);
 
         String getDateTimeStr(time_t t) {
             char str[20] = {0};
@@ -146,6 +130,8 @@ class app {
             mEep->commit();
         }
 
+        uint8_t app_loops;
+        HmSystemType *mSys;
         ESP8266WebServer *mWeb;
         sysConfig_t sysConfig;
         config_t config;
@@ -156,6 +142,7 @@ class app {
         void setupAp(const char *ssid, const char *pwd);
         bool setupStation(uint32_t timeout);
 
+        void resetSystem(void);
         void loadDefaultConfig(void);
         void loadEEpconfig(void);
         void setupMqtt(void);
