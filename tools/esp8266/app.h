@@ -68,6 +68,14 @@ const byte mDnsPort = 53;
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
 
+typedef struct {
+    char broker[MQTT_ADDR_LEN];
+    uint16_t port;
+    char user[MQTT_USER_LEN];
+    char pwd[MQTT_PWD_LEN];
+    char topic[MQTT_TOPIC_LEN];
+    char devName[DEVNAME_LEN];
+} mqttConfig_t;
 
 typedef struct {
     char version[12];
@@ -82,6 +90,17 @@ typedef struct {
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
 
+    // ntp
+    char ntpAddr[NTP_ADDR_LEN];
+    uint16_t ntpPort;
+
+    // mqtt
+    mqttConfig_t mqtt;
+
+    // serial
+    uint16_t serialInterval;
+    bool serialShowIv;
+    bool serialDebug;
 } config_t;
 
 
@@ -91,6 +110,11 @@ typedef struct {
 #define SAVE_INVERTERS          0x00000008
 #define SAVE_INV_SEND_INTERVAL  0x00000010
 #define SAVE_INV_RETRY          0x00000020
+#define SAVE_PINOUT             0x00000040
+#define SAVE_RF24               0x00000080
+#define SAVE_NTP                0x00000100
+#define SAVE_MQTT               0x00000200
+#define SAVE_SERIAL             0x00000400
 
 #define CHK_MSK(v, m) ((m & v) == m)
 
@@ -290,8 +314,6 @@ class app {
 
         // timer
         uint32_t mTicker;
-        bool mSerialValues;
-        bool mSerialDebug;
 
         uint32_t mRxTicker;
 
@@ -304,7 +326,6 @@ class app {
 
         // serial
         uint16_t mSerialTicker;
-        uint16_t mSerialInterval;
 };
 
 #endif /*__APP_H__*/

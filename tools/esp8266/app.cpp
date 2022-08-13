@@ -31,6 +31,10 @@ app::app() {
     config.apActive = false;
     config.sendInterval = SEND_INTERVAL;
 
+    config.serialInterval = SERIAL_INTERVAL;
+    config.serialShowIv   = true;
+    config.serialDebug    = false;
+
 
     mEep = new eep();
     Serial.begin(115200);
@@ -52,7 +56,6 @@ app::app() {
     mMqttTicker     = 0xffff;
     mMqttInterval   = MQTT_INTERVAL;
     mSerialTicker   = 0xffff;
-    mSerialInterval = SERIAL_INTERVAL;
     mMqttActive     = false;
 
     mTicker = 0;
@@ -62,8 +65,6 @@ app::app() {
 
     mShowRebootRequest = false;
 
-    mSerialValues = true;
-    mSerialDebug  = false;
 
     memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
     mRxFailed     = 0;
@@ -78,6 +79,80 @@ app::app() {
 //-----------------------------------------------------------------------------
 app::~app(void) {
 
+}
+
+
+
+//-----------------------------------------------------------------------------
+void app::Mainsetup(uint32_t timeout) {
+    DPRINTLN(DBG_VERBOSE, F("Main::setup"));
+    bool startAp = config.apActive;
+    mLimit = timeout;
+
+
+    startAp = getConfig();
+
+#ifndef AP_ONLY
+    if(false == startAp)
+        startAp = setupStation(timeout);
+#endif
+
+    config.apActive = startAp;
+    mStActive = !startAp;
+}
+
+
+//-----------------------------------------------------------------------------
+void app::MainLoop(void) {
+    //DPRINTLN(DBG_VERBOSE, F("M"));
+    if(config.apActive) {
+        mDns->processNextRequest();
+#ifndef AP_ONLY
+        if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
+            config.apActive = setupStation(mLimit);
+            if(config.apActive) {
+                if(strlen(WIFI_AP_PWD) < 8)
+                    DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
+                mApLastTick = millis();
+                mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
+                setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+            }
+        }
+        else {
+            if(millis() - mApLastTick > 10000) {
+                uint8_t cnt = WiFi.softAPgetStationNum();
+                if(cnt > 0) {
+                    DPRINTLN(DBG_INFO, String(cnt) + F(" clients connected, resetting AP timeout"));
+                    mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
+                }
+                mApLastTick = millis();
+                DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
+            }
+        }
+#endif
+    }
+    mWeb->handleClient();
+
+    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
+        mUptimeSecs++;
+        if(0 != mTimestamp)
+            mTimestamp++;
+        else {
+            if(!config.apActive) {
+                mTimestamp  = getNtpTime();
+                DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
+            }
+        }
+
+        /*if(++mHeapStatCnt >= 10) {
+            mHeapStatCnt = 0;
+            stats();
+        }*/
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+        DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
+        mStActive = false;
+    }
 }
 
 
@@ -148,14 +223,14 @@ void app::setup(uint32_t timeout) {
 
         // serial console
         uint8_t tmp;
-        mEep->read(ADDR_SER_INTERVAL, &mSerialInterval);
-        if(mSerialInterval < MIN_SERIAL_INTERVAL)
-            mSerialInterval = MIN_SERIAL_INTERVAL;
+        mEep->read(ADDR_SER_INTERVAL, &config.serialInterval);
+        if(config.serialInterval < MIN_SERIAL_INTERVAL)
+            config.serialInterval = MIN_SERIAL_INTERVAL;
         mEep->read(ADDR_SER_ENABLE, &tmp);
-        mSerialValues = (tmp == 0x01);
+        config.serialShowIv = (tmp == 0x01);
         mEep->read(ADDR_SER_DEBUG, &tmp);
-        mSerialDebug = (tmp == 0x01);
-        mSys->Radio.mSerialDebug = mSerialDebug;
+        config.serialDebug = (tmp == 0x01);
+        mSys->Radio.mSerialDebug = config.serialDebug;
 
         // ntp
         char ntpAddr[NTP_ADDR_LEN];
@@ -270,7 +345,7 @@ void app::loop(void) {
 
             if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
-                if(mSerialDebug) {
+                if(config.serialDebug) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
@@ -408,8 +483,8 @@ void app::loop(void) {
 #endif
         }
 
-        if(mSerialValues) {
-            if(++mSerialTicker >= mSerialInterval) {
+        if(config.serialShowIv) {
+            if(++mSerialTicker >= config.serialInterval) {
                 mSerialTicker = 0;
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -436,11 +511,11 @@ void app::loop(void) {
             mSendTicker = 0;
 
             if(0 != mTimestamp) {
-                if(mSerialDebug)
+                if(config.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
                 if(!mSys->BufCtrl.empty()) {
-                    if(mSerialDebug)
+                    if(config.serialDebug)
                         DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
                 }
 
@@ -459,7 +534,7 @@ void app::loop(void) {
 
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
-                        if(mSerialDebug) {
+                        if(config.serialDebug) {
                             DPRINT(DBG_INFO, F("Inverter #") + String(iv->id) + " ");
                             DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
                         }
@@ -474,11 +549,11 @@ void app::loop(void) {
                     mPayload[iv->id].ts = mTimestamp;
 
                     yield();
-                    if(mSerialDebug)
+                    if(config.serialDebug)
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     if(iv->devControlRequest && iv->powerLimit[0] > 0){ // prevent to "switch off"
-                        if(mSerialDebug)
+                        if(config.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
                     } else {
@@ -487,7 +562,7 @@ void app::loop(void) {
                     }
                 }
             }
-            else if(mSerialDebug)
+            else if(config.serialDebug)
                 DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
             yield();
         }
@@ -547,7 +622,7 @@ void app::processPayload(bool retransmit) {
                                 if(mPayload[iv->id].maxPackId != 0) {
                                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                         if(mPayload[iv->id].len[i] == 0) {
-                                            if(mSerialDebug)
+                                            if(config.serialDebug)
                                                 DPRINTLN(DBG_ERROR, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
                                             mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME+i), true);
                                             break; // only retransmit one frame per loop
@@ -556,7 +631,7 @@ void app::processPayload(bool retransmit) {
                                     }
                                 }
                                 else {
-                                    if(mSerialDebug)
+                                    if(config.serialDebug)
                                         DPRINTLN(DBG_ERROR, F("while retrieving data: last frame missing: Request Retransmit"));
                                     if(0x00 != mLastPacketId)
                                         mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
@@ -579,7 +654,7 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     offs-=2;
-                    if(mSerialDebug) {
+                    if(config.serialDebug) {
                         DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
@@ -1012,88 +1087,6 @@ void app::showJSON(void) {
 }
 
 
-//-----------------------------------------------------------------------------
-/*void app::saveValues(bool webSend = true) {
-    DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
-    Main::saveValues(false); // general configuration
-
-    if(mWeb->args() > 0) {
-        char buf[20] = {0};
-        uint8_t i = 0;
-        uint16_t interval;
-
-
-
-        // pinout
-        for(uint8_t i = 0; i < 3; i ++) {
-            uint8_t pin = mWeb->arg(String(pinArgNames[i])).toInt();
-            mEep->write(ADDR_PINOUT + i, pin);
-        }
-
-
-        // nrf24 amplifier power
-        mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
-        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
-
-        // ntp
-        char ntpAddr[NTP_ADDR_LEN] = {0};
-        uint16_t ntpPort;
-        mWeb->arg("ntpAddr").toCharArray(ntpAddr, NTP_ADDR_LEN);
-        ntpPort = mWeb->arg("ntpPort").toInt();
-        mEep->write(ADDR_NTP_ADDR, ntpAddr, NTP_ADDR_LEN);
-        mEep->write(ADDR_NTP_PORT, ntpPort);
-
-        // mqtt
-        char mqttAddr[MQTT_ADDR_LEN] = {0};
-        uint16_t mqttPort;
-        char mqttUser[MQTT_USER_LEN];
-        char mqttPwd[MQTT_PWD_LEN];
-        char mqttTopic[MQTT_TOPIC_LEN];
-        mWeb->arg("mqttAddr").toCharArray(mqttAddr, MQTT_ADDR_LEN);
-        mWeb->arg("mqttUser").toCharArray(mqttUser, MQTT_USER_LEN);
-        mWeb->arg("mqttPwd").toCharArray(mqttPwd, MQTT_PWD_LEN);
-        mWeb->arg("mqttTopic").toCharArray(mqttTopic, MQTT_TOPIC_LEN);
-        //interval = mWeb->arg("mqttIntvl").toInt();
-        mqttPort = mWeb->arg("mqttPort").toInt();
-        mEep->write(ADDR_MQTT_ADDR, mqttAddr, MQTT_ADDR_LEN);
-        mEep->write(ADDR_MQTT_PORT, mqttPort);
-        mEep->write(ADDR_MQTT_USER, mqttUser, MQTT_USER_LEN);
-        mEep->write(ADDR_MQTT_PWD,  mqttPwd,  MQTT_PWD_LEN);
-        mEep->write(ADDR_MQTT_TOPIC, mqttTopic, MQTT_TOPIC_LEN);
-        //mEep->write(ADDR_MQTT_INTERVAL, interval);
-
-
-        // serial console
-        bool tmp;
-        interval = mWeb->arg("serIntvl").toInt();
-        mEep->write(ADDR_SER_INTERVAL, interval);
-        tmp = (mWeb->arg("serEn") == "on");
-        mEep->write(ADDR_SER_ENABLE, (uint8_t)((tmp) ? 0x01 : 0x00));
-        mSerialDebug = (mWeb->arg("serDbg") == "on");
-        mEep->write(ADDR_SER_DEBUG, (uint8_t)((mSerialDebug) ? 0x01 : 0x00));
-        DPRINT(DBG_INFO, "Serial debug is ");
-        if(mSerialDebug) DPRINTLN(DBG_INFO, "on"); else DPRINTLN(DBG_INFO, "off");
-        mSys->Radio.mSerialDebug = mSerialDebug;
-
-        updateCrc();
-        mEep->commit();
-        if((mWeb->arg("reboot") == "on"))
-            showReboot();
-        else {
-            mShowRebootRequest = true;
-            mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"1; URL=/setup\"></head><body>"
-                "<p>saved</p></body></html>"));
-        }
-    }
-    else {
-        updateCrc();
-        mEep->commit();
-        mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Error</title><meta http-equiv=\"refresh\" content=\"3; URL=/setup\"></head><body>"
-            "<p>Error while saving</p></body></html>"));
-    }
-}*/
-
-
 
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
@@ -1164,80 +1157,6 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
             break;
     }
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
-}
-
-
-
-//-----------------------------------------------------------------------------
-void app::Mainsetup(uint32_t timeout) {
-    DPRINTLN(DBG_VERBOSE, F("Main::setup"));
-    bool startAp = config.apActive;
-    mLimit = timeout;
-
-
-    startAp = getConfig();
-
-#ifndef AP_ONLY
-    if(false == startAp)
-        startAp = setupStation(timeout);
-#endif
-
-    config.apActive = startAp;
-    mStActive = !startAp;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::MainLoop(void) {
-    //DPRINTLN(DBG_VERBOSE, F("M"));
-    if(config.apActive) {
-        mDns->processNextRequest();
-#ifndef AP_ONLY
-        if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            config.apActive = setupStation(mLimit);
-            if(config.apActive) {
-                if(strlen(WIFI_AP_PWD) < 8)
-                    DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
-                mApLastTick = millis();
-                mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
-                setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
-            }
-        }
-        else {
-            if(millis() - mApLastTick > 10000) {
-                uint8_t cnt = WiFi.softAPgetStationNum();
-                if(cnt > 0) {
-                    DPRINTLN(DBG_INFO, String(cnt) + F(" clients connected, resetting AP timeout"));
-                    mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
-                }
-                mApLastTick = millis();
-                DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
-            }
-        }
-#endif
-    }
-    mWeb->handleClient();
-
-    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
-        mUptimeSecs++;
-        if(0 != mTimestamp)
-            mTimestamp++;
-        else {
-            if(!config.apActive) {
-                mTimestamp  = getNtpTime();
-                DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
-            }
-        }
-
-        /*if(++mHeapStatCnt >= 10) {
-            mHeapStatCnt = 0;
-            stats();
-        }*/
-    }
-    if (WiFi.status() != WL_CONNECTED) {
-        DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
-        mStActive = false;
-    }
 }
 
 
@@ -1354,8 +1273,8 @@ void app::saveValues(uint32_t saveMask = 0) {
     if(CHK_MSK(saveMask, SAVE_DEVICE_NAME))
         mEep->write(ADDR_DEVNAME, config.deviceName, DEVNAME_LEN);
 
-    Inverter<> *iv;
     if(CHK_MSK(saveMask, SAVE_INVERTERS)) {
+        Inverter<> *iv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             iv = mSys->getInverterByPos(i);
             if(NULL != iv) {
@@ -1375,7 +1294,45 @@ void app::saveValues(uint32_t saveMask = 0) {
     if(CHK_MSK(saveMask, SAVE_INV_RETRY))
         mEep->write(ADDR_INV_MAX_RTRY, config.maxRetransPerPyld);
 
-    if(saveMask > 0) {
+
+    if(CHK_MSK(saveMask, SAVE_PINOUT)) {
+        uint8_t pin;
+        for(uint8_t i = 0; i < 3; i ++) {
+            switch(i) {
+                default: pin = mSys->Radio.pinCs;  break;
+                case 1:  pin = mSys->Radio.pinCe;  break;
+                case 2:  pin = mSys->Radio.pinIrq; break;
+            }
+            mEep->write(ADDR_PINOUT + i, pin);
+        }
+    }
+
+    if(CHK_MSK(saveMask, SAVE_RF24))
+        mEep->write(ADDR_RF24_AMP_PWR, mSys->Radio.AmplifierPower);
+
+    if(CHK_MSK(saveMask, SAVE_NTP)) {
+        mEep->write(ADDR_NTP_ADDR, config.ntpAddr, NTP_ADDR_LEN);
+        mEep->write(ADDR_NTP_PORT, config.ntpPort);
+    }
+
+    if(CHK_MSK(saveMask, SAVE_MQTT)) {
+        mEep->write(ADDR_MQTT_ADDR,  config.mqtt.broker, MQTT_ADDR_LEN);
+        mEep->write(ADDR_MQTT_PORT,  config.mqtt.port);
+        mEep->write(ADDR_MQTT_USER,  config.mqtt.user,   MQTT_USER_LEN);
+        mEep->write(ADDR_MQTT_PWD,   config.mqtt.pwd,    MQTT_PWD_LEN);
+        mEep->write(ADDR_MQTT_TOPIC, config.mqtt.topic,  MQTT_TOPIC_LEN);
+    }
+
+    if(CHK_MSK(saveMask, SAVE_SERIAL)) {
+        DPRINT(DBG_INFO, "Serial debug is ");
+        if(config.serialDebug) DPRINTLN(DBG_INFO, "on"); else DPRINTLN(DBG_INFO, "off");
+        mSys->Radio.mSerialDebug = config.serialDebug;
+        mEep->write(ADDR_SER_INTERVAL, config.serialInterval);
+        mEep->write(ADDR_SER_ENABLE, (uint8_t)((config.serialShowIv) ? 0x01 : 0x00));
+        mEep->write(ADDR_SER_DEBUG, (uint8_t)((config.serialDebug) ? 0x01 : 0x00));
+    }
+
+    if(0 < saveMask) {
         updateCrc();
         mEep->commit();
     }

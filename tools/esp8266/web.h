@@ -195,6 +195,49 @@ class web {
                     saveMask |= SAVE_INV_RETRY;
                 }
 
+                // pinout
+                uint8_t pin;
+                for(uint8_t i = 0; i < 3; i ++) {
+                    pin = mWeb->arg(String(pinArgNames[i])).toInt();
+                    switch(i) {
+                        default: mMain->mSys->Radio.pinCs  = pin; break;
+                        case 1:  mMain->mSys->Radio.pinCe  = pin; break;
+                        case 2:  mMain->mSys->Radio.pinIrq = pin; break;
+                    }
+                }
+                saveMask |= SAVE_PINOUT;
+
+                // nrf24 amplifier power
+                mMain->mSys->Radio.AmplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
+                saveMask |= SAVE_RF24;
+
+                // ntp
+                if(mWeb->arg("ntpAddr") != "") {
+                    mWeb->arg("ntpAddr").toCharArray(mMain->config.ntpAddr, NTP_ADDR_LEN);
+                    mMain->config.ntpPort = mWeb->arg("ntpPort").toInt() & 0xffff;
+                    saveMask |= SAVE_NTP;
+                }
+
+                // mqtt
+                if(mWeb->arg("mqttAddr") != "") {
+                    mWeb->arg("mqttAddr").toCharArray(mMain->config.mqtt.broker, MQTT_ADDR_LEN);
+                    mWeb->arg("mqttUser").toCharArray(mMain->config.mqtt.user, MQTT_USER_LEN);
+                    mWeb->arg("mqttPwd").toCharArray(mMain->config.mqtt.pwd, MQTT_PWD_LEN);
+                    mWeb->arg("mqttTopic").toCharArray(mMain->config.mqtt.topic, MQTT_TOPIC_LEN);
+                    mMain->config.mqtt.port = mWeb->arg("mqttPort").toInt();
+                    saveMask |= SAVE_MQTT;
+                }
+
+                // serial console
+                if(mWeb->arg("serIntvl") != "") {
+                    mMain->config.serialInterval = mWeb->arg("serIntvl").toInt() & 0xffff;
+
+                    mMain->config.serialDebug  = (mWeb->arg("serEn") == "on");
+                    mMain->config.serialShowIv = (mWeb->arg("serDbg") == "on");
+                    saveMask |= SAVE_SERIAL;
+                }
+
+
                 mMain->saveValues(saveMask);
 
                 if(mWeb->arg("reboot") == "on")
