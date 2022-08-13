@@ -28,6 +28,7 @@
 #include "CircularBuffer.h"
 #include "hmSystem.h"
 #include "mqtt.h"
+#include "web.h"
 
 //  hier läst sich das Verhalten der app in Bezug auf MQTT
 //  durch PER-Conpiler defines  anpassen
@@ -66,6 +67,7 @@ const byte mDnsPort = 53;
 #define NTP_PACKET_SIZE     48
 #define TIMEZONE            1 // Central European time +1
 
+class web;
 
 class app {
     public:
@@ -79,7 +81,7 @@ class app {
         void saveValues(void);
 
         uint8_t getIrqPin(void) {
-            return config.pinIrq;
+            return mConfig.pinIrq;
         }
 
         uint64_t Serial2u64(const char *val) {
@@ -133,9 +135,8 @@ class app {
         uint8_t app_loops;
         HmSystemType *mSys;
         ESP8266WebServer *mWeb;
-        sysConfig_t sysConfig;
-        config_t config;
-        char version[12];
+        bool apActive;
+        bool wifiWasEstablished;
 
     private:
         void MainLoop(void);
@@ -254,6 +255,10 @@ class app {
 
         bool mShowRebootRequest;
 
+        web *mWebInst;
+        sysConfig_t mSysConfig;
+        config_t mConfig;
+        char mVersion[12];
 
         uint16_t mSendTicker;
         uint8_t mSendLastIvId;

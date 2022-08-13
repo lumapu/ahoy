@@ -163,7 +163,6 @@ typedef struct {
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
-    bool apActive;
 } sysConfig_t;
 
 typedef struct {

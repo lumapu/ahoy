@@ -13,10 +13,13 @@
 app::app() {
     DPRINTLN(DBG_VERBOSE, F("app::app"));
     mDns = new DNSServer();
-    mWeb = new ESP8266WebServer(80);
+    //mWeb = new ESP8266WebServer(80);
     mUdp = new WiFiUDP();
     mEep = new eep();
     Serial.begin(115200);
+
+    mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
+    mWebInst->setup();
 
     resetSystem();
     loadDefaultConfig();
@@ -41,31 +44,34 @@ void app::setup(uint32_t timeout) {
     loadEEpconfig();
 
 #ifndef AP_ONLY
-    if(false == sysConfig.apActive)
-        sysConfig.apActive = setupStation(mWifiStationTimeout);
+    if(false == apActive)
+        apActive = setupStation(mWifiStationTimeout);
 #endif
 
-    //mWeb->on("/setup",          std::bind(&app::showSetup,      this));
-    //mWeb->on("/save",           std::bind(&app::showSave,       this));
-    mWeb->on("/cmdstat",        std::bind(&app::showStatistics, this));
+    /*mWeb->on("/cmdstat",        std::bind(&app::showStatistics, this));
     mWeb->on("/hoymiles",       std::bind(&app::showHoymiles,   this));
     mWeb->on("/livedata",       std::bind(&app::showLiveData,   this));
     mWeb->on("/json",           std::bind(&app::showJSON,       this));
-    mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));
+    mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));*/
 
 #ifndef AP_ONLY
     setupMqtt();
 #endif
 
-    mSys->setup(&config);
+    mSys->setup(&mConfig);
 
-    if(!mWifiSettingsValid)
+    if(!mWifiSettingsValid) {
         DPRINTLN(DBG_WARN, F("your settings are not valid! check [IP]/setup"));
+        apActive = true;
+        mApLastTick = millis();
+        mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
+        setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
+    }
     else {
         DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
         DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
         DPRINT(DBG_INFO, F("\npoint your browser to http://"));
-        if(sysConfig.apActive)
+        if(apActive)
             DBGPRINTLN(F("192.168.1.1"));
         else
             DBGPRINTLN(WiFi.localIP());
@@ -78,12 +84,12 @@ void app::setup(uint32_t timeout) {
 //-----------------------------------------------------------------------------
 void app::MainLoop(void) {
     //DPRINTLN(DBG_VERBOSE, F("M"));
-    if(sysConfig.apActive) {
+    if(apActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
         if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            sysConfig.apActive = setupStation(mWifiStationTimeout);
-            if(sysConfig.apActive) {
+            apActive = setupStation(mWifiStationTimeout);
+            if(apActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
                     DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
                 mApLastTick = millis();
@@ -95,7 +101,7 @@ void app::MainLoop(void) {
             if(millis() - mApLastTick > 10000) {
                 uint8_t cnt = WiFi.softAPgetStationNum();
                 if(cnt > 0) {
-                    DPRINTLN(DBG_INFO, String(cnt) + F(" clients connected, resetting AP timeout"));
+                    DPRINTLN(DBG_INFO, String(cnt) + F(" client connected, resetting AP timeout"));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
                 mApLastTick = millis();
@@ -104,27 +110,25 @@ void app::MainLoop(void) {
         }
 #endif
     }
-    mWeb->handleClient();
+
+    mWebInst->loop();
 
     if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
         mUptimeSecs++;
         if(0 != mTimestamp)
             mTimestamp++;
         else {
-            if(!sysConfig.apActive) {
+            if(!apActive) {
                 mTimestamp  = getNtpTime();
                 DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
-
-        /*if(++mHeapStatCnt >= 10) {
-            mHeapStatCnt = 0;
-            stats();
-        }*/
     }
-    if (WiFi.status() != WL_CONNECTED) {
-        DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
-        setupStation(mWifiStationTimeout);
+    if((WiFi.status() != WL_CONNECTED) && wifiWasEstablished) {
+        if(!apActive) {
+            DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
+            setupStation(mWifiStationTimeout);
+        }
     }
 }
 
@@ -140,7 +144,6 @@ void app::loop(void) {
     if(checkTicker(&mRxTicker, 5)) {
         //DPRINTLN(DBG_VERBOSE, F("app_loops =") + String(app_loops));
         app_loops=0;
-        DPRINT(DBG_VERBOSE, F("a"));
 
         bool rxRdy = mSys->Radio.switchRxCh();
 
@@ -150,7 +153,7 @@ void app::loop(void) {
 
             if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
                 // process buffer only on first occurrence
-                if(config.serialDebug) {
+                if(mConfig.serialDebug) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
@@ -257,7 +260,7 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
-        if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff)) {
+        if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true);
             char topic[30], val[10];
@@ -275,11 +278,11 @@ void app::loop(void) {
                 }
             }
             snprintf(val, 10, "%ld", millis()/1000);
-            
+
 #ifndef __MQTT_NO_DISCOVERCONFIG__
             // MQTTDiscoveryConfig nur wenn nicht abgeschaltet.
             sendMqttDiscoveryConfig();
-#endif            
+#endif
             mMqtt.sendMsg("uptime", val);
 
 #ifdef __MQTT_TEST__
@@ -288,8 +291,8 @@ void app::loop(void) {
 #endif
         }
 
-        if(config.serialShowIv) {
-            if(++mSerialTicker >= config.serialInterval) {
+        if(mConfig.serialShowIv) {
+            if(++mSerialTicker >= mConfig.serialInterval) {
                 mSerialTicker = 0;
                 char topic[30], val[10];
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -312,15 +315,15 @@ void app::loop(void) {
             }
         }
 
-        if(++mSendTicker >= config.sendInterval) {
+        if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
             if(0 != mTimestamp) {
-                if(config.serialDebug)
+                if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
                 if(!mSys->BufCtrl.empty()) {
-                    if(config.serialDebug)
+                    if(mConfig.serialDebug)
                         DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
                 }
 
@@ -339,7 +342,7 @@ void app::loop(void) {
 
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
-                        if(config.serialDebug) {
+                        if(mConfig.serialDebug) {
                             DPRINT(DBG_INFO, F("Inverter #") + String(iv->id) + " ");
                             DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
                         }
@@ -354,11 +357,11 @@ void app::loop(void) {
                     mPayload[iv->id].ts = mTimestamp;
 
                     yield();
-                    if(config.serialDebug)
+                    if(mConfig.serialDebug)
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     if(iv->devControlRequest && iv->powerLimit[0] > 0){ // prevent to "switch off"
-                        if(config.serialDebug)
+                        if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
                     } else {
@@ -367,7 +370,7 @@ void app::loop(void) {
                     }
                 }
             }
-            else if(config.serialDebug)
+            else if(mConfig.serialDebug)
                 DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
             yield();
         }
@@ -422,12 +425,12 @@ void app::processPayload(bool retransmit) {
                 if(!buildPayload(iv->id)) {
                     if(mPayload[iv->id].requested) {
                         if(retransmit) {
-                            if(mPayload[iv->id].retransmits < config.maxRetransPerPyld) {
+                            if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
                                 mPayload[iv->id].retransmits++;
                                 if(mPayload[iv->id].maxPackId != 0) {
                                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
                                         if(mPayload[iv->id].len[i] == 0) {
-                                            if(config.serialDebug)
+                                            if(mConfig.serialDebug)
                                                 DPRINTLN(DBG_ERROR, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
                                             mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME+i), true);
                                             break; // only retransmit one frame per loop
@@ -436,7 +439,7 @@ void app::processPayload(bool retransmit) {
                                     }
                                 }
                                 else {
-                                    if(config.serialDebug)
+                                    if(mConfig.serialDebug)
                                         DPRINTLN(DBG_ERROR, F("while retrieving data: last frame missing: Request Retransmit"));
                                     if(0x00 != mLastPacketId)
                                         mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
@@ -459,7 +462,7 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     offs-=2;
-                    if(config.serialDebug) {
+                    if(mConfig.serialDebug) {
                         DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
@@ -568,7 +571,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 
 
 //-----------------------------------------------------------------------------
-void app::showStatistics(void) {
+/*void app::showStatistics(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showStatistics"));
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
@@ -615,10 +618,11 @@ void app::showStatistics(void) {
     content += F("connected\n");
 
     mWeb->send(200, F("text/plain"), content);
-}
+}*/
+
 
 //-----------------------------------------------------------------------------
-void app::webapi(void) { // ToDo
+/*void app::webapi(void) { // ToDo
     DPRINTLN(DBG_VERBOSE, F("app::api"));
     DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
     const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
@@ -632,23 +636,23 @@ void app::webapi(void) { // ToDo
         DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
     }
     mWeb->send ( 200, "text/json", "{success:true}" );
-}
+}*/
 
 
 //-----------------------------------------------------------------------------
-void app::showHoymiles(void) {
+/*void app::showHoymiles(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
     String html = FPSTR(hoymiles_html);
-    html.replace(F("{DEVICE}"), sysConfig.deviceName);
+    html.replace(F("{DEVICE}"), mSysConfig.deviceName);
     html.replace(F("{VERSION}"), version);
     html.replace(F("{TS}"), String(config.sendInterval) + " ");
     html.replace(F("{JS_TS}"), String(config.sendInterval * 1000));
     mWeb->send(200, F("text/html"), html);
-}
+}*/
 
 
 //-----------------------------------------------------------------------------
-void app::showLiveData(void) {
+/*void app::showLiveData(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showLiveData"));
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -720,11 +724,11 @@ void app::showLiveData(void) {
         }
     }
     mWeb->send(200, F("text/html"), modHtml);
-}
+}*/
 
 
 //-----------------------------------------------------------------------------
-void app::showJSON(void) {
+/*void app::showJSON(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showJSON"));
     String modJson;
 
@@ -747,7 +751,7 @@ void app::showJSON(void) {
 
     // mWeb->send(200, F("text/json"), modJson);
     mWeb->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
-}
+}*/
 
 
 
@@ -772,7 +776,7 @@ void app::sendMqttDiscoveryConfig(void) {
                     } else {
                         snprintf(name, 32, "%s CH%d %s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     }
-                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", config.mqtt.topic, iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mConfig.mqtt.topic, iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, iv->assign[i].ch, iv->getFieldName(i));
                     snprintf(uniq_id, 32, "ch%d_%s", iv->assign[i].ch, iv->getFieldName(i));
                     const char* devCls = getFieldDeviceClass(iv->assign[i].fieldId);
@@ -839,14 +843,7 @@ void app::setupAp(const char *ssid, const char *pwd) {
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
     WiFi.softAP(ssid, pwd);
 
-    mDns->start(mDnsPort, "*", apIp);
-
-    /*mWeb->onNotFound([&]() {
-        showSetup();
-    });
-    mWeb->on("/", std::bind(&app::showSetup, this));
-
-    mWeb->begin();*/
+    mDns->start(53, "*", apIp);
 }
 
 
@@ -864,15 +861,15 @@ bool app::setupStation(uint32_t timeout) {
     }
 
     WiFi.mode(WIFI_STA);
-    WiFi.begin(sysConfig.stationSsid, sysConfig.stationPwd);
-    if(String(sysConfig.deviceName) != "")
-        WiFi.hostname(sysConfig.deviceName);
+    WiFi.begin(mSysConfig.stationSsid, mSysConfig.stationPwd);
+    if(String(mSysConfig.deviceName) != "")
+        WiFi.hostname(mSysConfig.deviceName);
 
     delay(2000);
-    DPRINTLN(DBG_INFO, F("connect to network '") + String(sysConfig.stationSsid) + F("' ..."));
+    DPRINTLN(DBG_INFO, F("connect to network '") + String(mSysConfig.stationSsid) + F("' ..."));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
-        if(cnt % 100 == 0)
+        if(cnt % 40 == 0)
             Serial.println(".");
         else
             Serial.print(".");
@@ -891,7 +888,7 @@ bool app::setupStation(uint32_t timeout) {
     Serial.println(".");
 
     if(false == startAp) {
-        mWeb->begin();
+        wifiWasEstablished = true;
     }
 
     delay(1000);
@@ -903,6 +900,7 @@ bool app::setupStation(uint32_t timeout) {
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     mWifiStationTimeout = 10;
+    wifiWasEstablished = false;
     mNextTryTs   = 0;
     mApLastTick  = 0;
 
@@ -942,36 +940,36 @@ void app::resetSystem(void) {
 
 //-----------------------------------------------------------------------------
 void app::loadDefaultConfig(void) {
-    memset(&sysConfig, 0, sizeof(sysConfig_t));
-    memset(&config, 0, sizeof(config_t));
-    snprintf(version, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    memset(&mSysConfig, 0, sizeof(sysConfig_t));
+    memset(&mConfig, 0, sizeof(config_t));
+    snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
-    snprintf(sysConfig.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
+    snprintf(mSysConfig.deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
 
     // wifi
-    snprintf(sysConfig.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
-    snprintf(sysConfig.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
-    sysConfig.apActive = false;
+    snprintf(mSysConfig.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
+    snprintf(mSysConfig.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
+    apActive = false;
 
     // nrf24
-    config.sendInterval      = SEND_INTERVAL;
-    config.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
+    mConfig.sendInterval      = SEND_INTERVAL;
+    mConfig.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
 
     // ntp
-    snprintf(config.ntpAddr, NTP_ADDR_LEN, "%s", NTP_SERVER_NAME);
-    config.ntpPort = NTP_LOCAL_PORT;
+    snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", NTP_SERVER_NAME);
+    mConfig.ntpPort = NTP_LOCAL_PORT;
 
     // mqtt
-    snprintf(config.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
-    config.mqtt.port = DEF_MQTT_PORT;
-    snprintf(config.mqtt.user, MQTT_USER_LEN, "%s", DEF_MQTT_USER);
-    snprintf(config.mqtt.pwd, MQTT_PWD_LEN, "%s", DEF_MQTT_PWD);
-    snprintf(config.mqtt.topic, MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
+    snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
+    mConfig.mqtt.port = DEF_MQTT_PORT;
+    snprintf(mConfig.mqtt.user, MQTT_USER_LEN, "%s", DEF_MQTT_USER);
+    snprintf(mConfig.mqtt.pwd, MQTT_PWD_LEN, "%s", DEF_MQTT_PWD);
+    snprintf(mConfig.mqtt.topic, MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
 
     // serial
-    config.serialInterval = SERIAL_INTERVAL;
-    config.serialShowIv   = true;
-    config.serialDebug    = false;
+    mConfig.serialInterval = SERIAL_INTERVAL;
+    mConfig.serialShowIv   = true;
+    mConfig.serialDebug    = false;
 }
 
 
@@ -980,11 +978,11 @@ void app::loadEEpconfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loadEEpconfig"));
 
     if(mWifiSettingsValid)
-        mEep->read(ADDR_CFG_SYS, (uint8_t*) &sysConfig, CFG_SYS_LEN);
+        mEep->read(ADDR_CFG_SYS, (uint8_t*) &mSysConfig, CFG_SYS_LEN);
     if(mSettingsValid) {
-        mEep->read(ADDR_CFG, (uint8_t*) &config, CFG_LEN);
+        mEep->read(ADDR_CFG, (uint8_t*) &mConfig, CFG_LEN);
 
-        mSendTicker   = config.sendInterval;
+        mSendTicker   = mConfig.sendInterval;
         mSerialTicker = 0;
 
         // inverter
@@ -1012,7 +1010,7 @@ void app::loadEEpconfig(void) {
                 }
 
                 // TODO: the original mqttinterval value is not needed any more
-                mMqttInterval += config.sendInterval;
+                mMqttInterval += mConfig.sendInterval;
             }
         }
     }
@@ -1022,7 +1020,7 @@ void app::loadEEpconfig(void) {
 //-----------------------------------------------------------------------------
 void app::setupMqtt(void) {
     if(mSettingsValid) {
-        if(config.mqtt.broker[0] > 0) {
+        if(mConfig.mqtt.broker[0] > 0) {
             mMqttActive = true;
             if(mMqttInterval < MIN_MQTT_INTERVAL)
                 mMqttInterval = MIN_MQTT_INTERVAL;
@@ -1031,14 +1029,14 @@ void app::setupMqtt(void) {
             mMqttInterval = 0xffff;
 
         mMqttTicker = 0;
-        mMqtt.setup(&config.mqtt, sysConfig.deviceName);
+        mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName);
         mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 
         if(mMqttActive) {
-            mMqtt.sendMsg("version", version);
+            mMqtt.sendMsg("version", mVersion);
             if(mMqtt.isConnected())
-                mMqtt.sendMsg("device", sysConfig.deviceName);
+                mMqtt.sendMsg("device", mSysConfig.deviceName);
 
             /*char topic[30];
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
@@ -1062,8 +1060,8 @@ void app::setupMqtt(void) {
 void app::saveValues(void) {
     DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
 
-    mEep->write(ADDR_CFG_SYS, (uint8_t*)&sysConfig, CFG_SYS_LEN);
-    mEep->write(ADDR_CFG, (uint8_t*)&config, CFG_LEN);
+    mEep->write(ADDR_CFG_SYS, (uint8_t*)&mSysConfig, CFG_SYS_LEN);
+    mEep->write(ADDR_CFG, (uint8_t*)&mConfig, CFG_LEN);
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         iv = mSys->getInverterByPos(i);
