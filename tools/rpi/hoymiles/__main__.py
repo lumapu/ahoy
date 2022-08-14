@@ -226,6 +226,11 @@ if __name__ == '__main__':
     mqtt_config = ahoy_config.get('mqtt', [])
     if not mqtt_config.get('disabled', False):
         mqtt_client = paho.mqtt.client.Client()
+        
+        if mqtt_config.get('useTLS',False):
+            mqtt_client.tls_set()
+            mqtt_client.tls_insecure_set(mqtt_config.get('insecureTLS',False))
+
         mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
         mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
         mqtt_client.loop_start()
