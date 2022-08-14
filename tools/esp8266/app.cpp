@@ -1153,6 +1153,8 @@ void app::sendMqttDiscoveryConfig(void) {
                 deviceDoc["name"] = iv->name;
                 deviceDoc["ids"] = String(iv->serial.u64, HEX);
                 deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
+                deviceDoc["mf"] = "Hoymiles";
+                deviceDoc["mdl"] = iv->name;
                 JsonObject deviceObj = deviceDoc.as<JsonObject>();
                 DynamicJsonDocument doc(384);
 
