@@ -5,7 +5,6 @@
 
 #include "app.h"
 
-#include "html/h/hoymiles_html.h"
 #include <ArduinoJson.h>
 
 
@@ -13,7 +12,6 @@
 app::app() {
     DPRINTLN(DBG_VERBOSE, F("app::app"));
     mDns = new DNSServer();
-    //mWeb = new ESP8266WebServer(80);
     mUdp = new WiFiUDP();
     mEep = new eep();
     Serial.begin(115200);
@@ -29,12 +27,6 @@ app::app() {
 
 
 //-----------------------------------------------------------------------------
-app::~app(void) {
-
-}
-
-
-//-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
     mWifiStationTimeout = timeout;
@@ -46,15 +38,6 @@ void app::setup(uint32_t timeout) {
 #ifndef AP_ONLY
     if(false == apActive)
         apActive = setupStation(mWifiStationTimeout);
-#endif
-
-    /*mWeb->on("/cmdstat",        std::bind(&app::showStatistics, this));
-    mWeb->on("/hoymiles",       std::bind(&app::showHoymiles,   this));
-    mWeb->on("/livedata",       std::bind(&app::showLiveData,   this));
-    mWeb->on("/json",           std::bind(&app::showJSON,       this));
-    mWeb->on("/api",HTTP_POST,  std::bind(&app::webapi,         this));*/
-
-#ifndef AP_ONLY
     setupMqtt();
 #endif
 
@@ -569,10 +552,26 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 }
 
 
+//-----------------------------------------------------------------------------
+/*void app::webapi(void) { // ToDo
+    DPRINTLN(DBG_VERBOSE, F("app::api"));
+    const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
+    DynamicJsonDocument payload(capacity);
+
+   // Parse JSON object
+    deserializeJson(payload, mWeb->arg("plain"));
+    // ToDo: error handling for payload
+    if (payload["tx_request"] == TX_REQ_INFO){
+        mSys->InfoCmd = payload["cmd"];
+        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
+    }
+    mWeb->send ( 200, "text/json", "{success:true}" );
+}*/
+
+
 
 //-----------------------------------------------------------------------------
-/*void app::showStatistics(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showStatistics"));
+String app::getStatistics(void) {
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
     content += F("Frames received: ") + String(mFrameCnt) + "\n";
@@ -617,43 +616,13 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
         content += F("not ");
     content += F("connected\n");
 
-    mWeb->send(200, F("text/plain"), content);
-}*/
+    return content;
+}
 
-
-//-----------------------------------------------------------------------------
-/*void app::webapi(void) { // ToDo
-    DPRINTLN(DBG_VERBOSE, F("app::api"));
-    DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
-    const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-    DynamicJsonDocument payload(capacity);
-  
-   // Parse JSON object
-    deserializeJson(payload, mWeb->arg("plain"));
-    // ToDo: error handling for payload
-    if (payload["tx_request"] == TX_REQ_INFO){
-        mSys->InfoCmd = payload["cmd"];
-        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
-    }
-    mWeb->send ( 200, "text/json", "{success:true}" );
-}*/
 
 
 //-----------------------------------------------------------------------------
-/*void app::showHoymiles(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
-    String html = FPSTR(hoymiles_html);
-    html.replace(F("{DEVICE}"), mSysConfig.deviceName);
-    html.replace(F("{VERSION}"), version);
-    html.replace(F("{TS}"), String(config.sendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(config.sendInterval * 1000));
-    mWeb->send(200, F("text/html"), html);
-}*/
-
-
-//-----------------------------------------------------------------------------
-/*void app::showLiveData(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showLiveData"));
+String app::getLiveData(void) {
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
@@ -723,13 +692,13 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 #endif
         }
     }
-    mWeb->send(200, F("text/html"), modHtml);
-}*/
+    return modHtml;
+}
 
 
 //-----------------------------------------------------------------------------
-/*void app::showJSON(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showJSON"));
+String app::getJson(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::showJson"));
     String modJson;
 
     modJson = F("{\n");
@@ -749,12 +718,11 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
     }
     modJson += F("\"json_ts\": \"") + String(getDateTimeStr(mTimestamp)) + F("\"\n}\n");
 
-    // mWeb->send(200, F("text/json"), modJson);
-    mWeb->send(200, F("application/json"), modJson); // the preferred content-type (https://stackoverflow.com/questions/22406077/what-is-the-exact-difference-between-content-type-text-json-and-application-jso)
-}*/
+   return modJson;
+}
 
 
-
+//-----------------------------------------------------------------------------
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 
@@ -808,6 +776,8 @@ void app::sendMqttDiscoveryConfig(void) {
     }
 }
 
+
+//-----------------------------------------------------------------------------
 const char* app::getFieldDeviceClass(uint8_t fieldId) {
     uint8_t pos = 0;
     for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
@@ -817,6 +787,8 @@ const char* app::getFieldDeviceClass(uint8_t fieldId) {
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
 }
 
+
+//-----------------------------------------------------------------------------
 const char* app::getFieldStateClass(uint8_t fieldId) {
     uint8_t pos = 0;
     for(; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
@@ -954,6 +926,10 @@ void app::loadDefaultConfig(void) {
     // nrf24
     mConfig.sendInterval      = SEND_INTERVAL;
     mConfig.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
+    mConfig.pinCs             = DEF_RF24_CS_PIN;
+    mConfig.pinCe             = DEF_RF24_CE_PIN;
+    mConfig.pinIrq            = DEF_RF24_IRQ_PIN;
+    mConfig.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
 
     // ntp
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", NTP_SERVER_NAME);
@@ -968,7 +944,7 @@ void app::loadDefaultConfig(void) {
 
     // serial
     mConfig.serialInterval = SERIAL_INTERVAL;
-    mConfig.serialShowIv   = true;
+    mConfig.serialShowIv   = false;
     mConfig.serialDebug    = false;
 }
 
@@ -1080,7 +1056,6 @@ void app::saveValues(void) {
     updateCrc();
     mEep->commit();
 }
-
 
 
 //-----------------------------------------------------------------------------

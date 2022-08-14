@@ -38,7 +38,7 @@
 // #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
 
 typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
-typedef HmRadio<RF24_CE_PIN, RF24_CS_PIN, BufferType> RadioType;
+typedef HmRadio<DEF_RF24_CE_PIN, DEF_RF24_CS_PIN, BufferType> RadioType;
 typedef Inverter<float> InverterType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
 
@@ -72,13 +72,16 @@ class web;
 class app {
     public:
         app();
-        ~app();
+        ~app() {}
 
         void setup(uint32_t timeout);
         void loop(void);
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
+        String getStatistics(void);
+        String getLiveData(void);
+        String getJson(void);
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;

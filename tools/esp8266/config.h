@@ -31,6 +31,14 @@
 // default device name
 #define DEF_DEVICE_NAME         "AHOY-DTU"
 
+// default pinout
+#define DEF_RF24_CS_PIN         15
+#define DEF_RF24_CE_PIN         2
+#define DEF_RF24_IRQ_PIN        0
+
+// default NRF24 power, possible values (0 - 3)
+#define DEF_AMPLIFIERPOWER      2
+
 // number of packets hold in buffer
 #define PACKET_BUFFER_SIZE      30
 
@@ -38,13 +46,10 @@
 #define MAX_NUM_INVERTERS       3
 
 // default serial interval
-#define SERIAL_INTERVAL     5
+#define SERIAL_INTERVAL         5
 
 // default send interval
-#define SEND_INTERVAL       30
-
-// default mqtt interval
-#define MQTT_INTERVAL       60
+#define SEND_INTERVAL           30
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16
@@ -64,14 +69,14 @@
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
 
-// changes the style of "/setup" page, visualized = nicer
-#define LIVEDATA_VISUALIZED
-
 // default ntp server uri
-#define NTP_SERVER_NAME     "pool.ntp.org"
+#define NTP_SERVER_NAME         "pool.ntp.org"
 
 // default ntp server port
-#define NTP_LOCAL_PORT      8888
+#define NTP_LOCAL_PORT          8888
+
+// default mqtt interval
+#define MQTT_INTERVAL           60
 
 // default MQTT broker uri
 #define DEF_MQTT_BROKER         "\0"
@@ -86,6 +91,9 @@
 #define DEF_MQTT_PWD           "\0"
 
 // default MQTT topic
-#define DEF_MQTT_TOPIC          "inverter"
+#define DEF_MQTT_TOPIC         "inverter"
+
+// changes the style of "/setup" page, visualized = nicer
+#define LIVEDATA_VISUALIZED
 
 #endif /*__CONFIG_H__*/

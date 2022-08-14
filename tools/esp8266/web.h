@@ -33,6 +33,12 @@ class web {
         void showSetup(void);
         void showSave(void);
 
+        void showStatistics(void);
+        void showVisualization(void);
+        void showLiveData(void);
+        void showJson(void);
+        void showWebApi(void);
+
     private:
         ESP8266WebServer *mWeb;
         ESP8266HTTPUpdateServer *mUpdater;
