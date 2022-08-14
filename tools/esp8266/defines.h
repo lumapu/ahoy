@@ -9,19 +9,11 @@
 #include "config.h"
 
 //-------------------------------------
-// PINOUT (Default, can be changed in setup)
-//-------------------------------------
-#define RF24_CS_PIN         15
-#define RF24_CE_PIN         2
-#define RF24_IRQ_PIN        0
-
-
-//-------------------------------------
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       10
+#define VERSION_PATCH       11
 
 
 //-------------------------------------
@@ -111,18 +103,58 @@ typedef enum {
 #define SER_INTERVAL_LEN        2 // uint16_t
 
 
+typedef struct {
+    char broker[MQTT_ADDR_LEN];
+    uint16_t port;
+    char user[MQTT_USER_LEN];
+    char pwd[MQTT_PWD_LEN];
+    char topic[MQTT_TOPIC_LEN];
+} mqttConfig_t;
+
+typedef struct {
+    char deviceName[DEVNAME_LEN];
+
+    // wifi
+    char stationSsid[SSID_LEN];
+    char stationPwd[PWD_LEN];
+} sysConfig_t;
+
+typedef struct {
+    // nrf24
+    uint16_t sendInterval;
+    uint8_t maxRetransPerPyld;
+    uint8_t pinCs;
+    uint8_t pinCe;
+    uint8_t pinIrq;
+    uint8_t amplifierPower;
+
+    // ntp
+    char ntpAddr[NTP_ADDR_LEN];
+    uint16_t ntpPort;
+
+    // mqtt
+    mqttConfig_t mqtt;
+
+    // serial
+    uint16_t serialInterval;
+    bool serialShowIv;
+    bool serialDebug;
+} config_t;
+
+
+#define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
+#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1
+#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 4
+
 #define ADDR_START              0
-#define ADDR_SSID               ADDR_START
-#define ADDR_PWD                ADDR_SSID          + SSID_LEN
-#define ADDR_DEVNAME            ADDR_PWD           + PWD_LEN
-#define ADDR_WIFI_CRC           ADDR_DEVNAME       + DEVNAME_LEN
-#define ADDR_START_SETTINGS     ADDR_WIFI_CRC      + CRC_LEN
+#define ADDR_CFG_SYS            ADDR_START
+#define ADDR_WIFI_CRC           ADDR_CFG_SYS  + CFG_SYS_LEN
+#define ADDR_START_SETTINGS     ADDR_WIFI_CRC + CRC_LEN
 
-#define ADDR_PINOUT             ADDR_START_SETTINGS
+#define ADDR_CFG                ADDR_START_SETTINGS
+#define ADDR_CFG_INVERTER       ADDR_CFG + CFG_LEN
 
-#define ADDR_RF24_AMP_PWR       ADDR_PINOUT        + PINOUT_LEN
-
-#define ADDR_INV_ADDR           ADDR_RF24_AMP_PWR  + RF24_AMP_PWR_LEN
+#define ADDR_INV_ADDR           ADDR_CFG_INVERTER
 #define ADDR_INV_NAME           ADDR_INV_ADDR      + INV_ADDR_LEN
 #define ADDR_INV_CH_PWR         ADDR_INV_NAME      + INV_NAME_LEN
 #define ADDR_INV_CH_NAME        ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
@@ -130,31 +162,20 @@ typedef enum {
 #define ADDR_INV_MAX_RTRY       ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
 #define ADDR_INV_PWR_LIM        ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
 
-#define ADDR_NTP_ADDR           ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN //Bugfix #125
-#define ADDR_NTP_PORT           ADDR_NTP_ADDR      + NTP_ADDR_LEN
+#define ADDR_NEXT               ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
 
-#define ADDR_MQTT_ADDR          ADDR_NTP_PORT      + NTP_PORT_LEN
-#define ADDR_MQTT_USER          ADDR_MQTT_ADDR     + MQTT_ADDR_LEN
-#define ADDR_MQTT_PWD           ADDR_MQTT_USER     + MQTT_USER_LEN
-#define ADDR_MQTT_TOPIC         ADDR_MQTT_PWD      + MQTT_PWD_LEN
-#define ADDR_MQTT_INTERVAL      ADDR_MQTT_TOPIC    + MQTT_TOPIC_LEN
-#define ADDR_MQTT_PORT          ADDR_MQTT_INTERVAL + MQTT_INTERVAL_LEN
 
-#define ADDR_SER_ENABLE         ADDR_MQTT_PORT     + MQTT_PORT_LEN
-#define ADDR_SER_DEBUG          ADDR_SER_ENABLE    + SER_ENABLE_LEN
-#define ADDR_SER_INTERVAL       ADDR_SER_DEBUG     + SER_DEBUG_LEN
-#define ADDR_NEXT               ADDR_SER_INTERVAL  + SER_INTERVAL_LEN
-
-// #define ADDR_SETTINGS_CRC   950
 #define ADDR_SETTINGS_CRC       ADDR_NEXT + 2
 
 #if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
-#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")" 
+#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")"
 #endif
 
 #if(ADDR_SETTINGS_CRC >= 4096 - CRC_LEN)
-#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")" 
-#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")" 
+#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")"
+#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")"
 #endif
+
+
 
 #endif /*__DEFINES_H__*/

@@ -19,3 +19,4 @@ tools/esp8266/binaries
 *.ipch
 tools/esp8266/.vscode/extensions.json
 .DS_Store
+.vscode
