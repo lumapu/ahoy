@@ -9,13 +9,6 @@
 #include "dbg.h"
 #include "Arduino.h"
 
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-
-// NTP
-#include <WiFiUdp.h>
-#include <TimeLib.h>
-#include <DNSServer.h>
 
 #include <RF24.h>
 #include <RF24_config.h>
@@ -28,6 +21,7 @@
 #include "CircularBuffer.h"
 #include "hmSystem.h"
 #include "mqtt.h"
+#include "wifi.h"
 #include "web.h"
 
 //  hier läst sich das Verhalten der app in Bezug auf MQTT
@@ -61,12 +55,8 @@ typedef struct {
     bool requested;
 } invPayload_t;
 
-const byte mDnsPort = 53;
 
-/* NTP TIMESERVER CONFIG */
-#define NTP_PACKET_SIZE     48
-#define TIMEZONE            1 // Central European time +1
-
+class wifi;
 class web;
 
 class app {
@@ -82,6 +72,7 @@ class app {
         String getStatistics(void);
         String getLiveData(void);
         String getJson(void);
+        bool getWifiApActive(void);
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;
@@ -135,35 +126,34 @@ class app {
             mEep->commit();
         }
 
-        uint8_t app_loops;
+        inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
+            uint32_t mil = millis();
+            if(mil >= *ticker) {
+                *ticker = mil + interval;
+                return true;
+            }
+            else if(mil < (*ticker - interval)) {
+                *ticker = mil + interval;
+                return true;
+            }
+
+            return false;
+        }
+
         HmSystemType *mSys;
-        ESP8266WebServer *mWeb;
-        bool apActive;
-        bool wifiWasEstablished;
 
     private:
-        void MainLoop(void);
-        void setupAp(const char *ssid, const char *pwd);
-        bool setupStation(uint32_t timeout);
-
         void resetSystem(void);
         void loadDefaultConfig(void);
         void loadEEpconfig(void);
         void setupMqtt(void);
 
-        time_t getNtpTime(void);
-        void sendNTPpacket(IPAddress& address);
-        time_t offsetDayLightSaving (uint32_t local_t);
+        bool buildPayload(uint8_t id);
+        void processPayload(bool retransmit);
 
-        uint32_t mUptimeTicker;
-        uint16_t mUptimeInterval;
-        uint32_t mUptimeSecs;
-        uint8_t mHeapStatCnt;
-
-        DNSServer *mDns;
-
-        WiFiUDP *mUdp; // for time server
-
+        void sendMqttDiscoveryConfig(void);
+        const char* getFieldDeviceClass(uint8_t fieldId);
+        const char* getFieldStateClass(uint8_t fieldId);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
             DPRINTLN(DBG_VERBOSE, F("main.h:buildEEpCrc"));
@@ -206,21 +196,6 @@ class app {
             return (crcCheck == crcRd);
         }
 
-        inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
-            //DPRINTLN(DBG_VERBOSE, F("c"));
-            uint32_t mil = millis();
-            if(mil >= *ticker) {
-                *ticker = mil + interval;
-                return true;
-            }
-            else if(mil < (*ticker - interval)) {
-                *ticker = mil + interval;
-                return true;
-            }
-
-            return false;
-        }
-
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
             uint32_t free;
@@ -232,32 +207,22 @@ class app {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
+
+        uint32_t mUptimeTicker;
+        uint16_t mUptimeInterval;
+        uint32_t mUptimeSecs;
+        uint8_t mHeapStatCnt;
+
+
         bool mWifiSettingsValid;
         bool mSettingsValid;
 
         eep *mEep;
         uint32_t mTimestamp;
-        uint32_t mWifiStationTimeout;
-        uint32_t mNextTryTs;
-        uint32_t mApLastTick;
-
-
-        bool buildPayload(uint8_t id);
-        void processPayload(bool retransmit);
-
-        void showStatistics(void);
-        void showHoymiles(void);
-        void showLiveData(void);
-        void showJSON(void);
-        void webapi(void);
-
-
-        void sendMqttDiscoveryConfig(void);
-        const char* getFieldDeviceClass(uint8_t fieldId);
-        const char* getFieldStateClass(uint8_t fieldId);
 
         bool mShowRebootRequest;
 
+        wifi *mWifi;
         web *mWebInst;
         sysConfig_t mSysConfig;
         config_t mConfig;

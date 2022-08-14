@@ -4,17 +4,16 @@
 //-----------------------------------------------------------------------------
 
 #include "app.h"
-
 #include <ArduinoJson.h>
 
 
 //-----------------------------------------------------------------------------
 app::app() {
     DPRINTLN(DBG_VERBOSE, F("app::app"));
-    mDns = new DNSServer();
-    mUdp = new WiFiUDP();
     mEep = new eep();
     Serial.begin(115200);
+
+    mWifi = new wifi(this, &mSysConfig, &mConfig);
 
     mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
     mWebInst->setup();
@@ -29,71 +28,24 @@ app::app() {
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
-    mWifiStationTimeout = timeout;
 
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
     mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT)-(ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
     loadEEpconfig();
 
-#ifndef AP_ONLY
-    if(false == apActive)
-        apActive = setupStation(mWifiStationTimeout);
-    setupMqtt();
-#endif
+    mWifi->setup(timeout, mWifiSettingsValid);
 
+    #ifndef AP_ONLY
+        setupMqtt();
+    #endif
     mSys->setup(&mConfig);
-
-    if(!mWifiSettingsValid) {
-        DPRINTLN(DBG_WARN, F("your settings are not valid! check [IP]/setup"));
-        apActive = true;
-        mApLastTick = millis();
-        mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
-        setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
-    }
-    else {
-        DPRINTLN(DBG_INFO, F("\n\n----------------------------------------"));
-        DPRINTLN(DBG_INFO, F("Welcome to AHOY!"));
-        DPRINT(DBG_INFO, F("\npoint your browser to http://"));
-        if(apActive)
-            DBGPRINTLN(F("192.168.1.1"));
-        else
-            DBGPRINTLN(WiFi.localIP());
-        DPRINTLN(DBG_INFO, F("to configure your device"));
-        DPRINTLN(DBG_INFO, F("----------------------------------------\n"));
-    }
 }
 
-
 //-----------------------------------------------------------------------------
-void app::MainLoop(void) {
-    //DPRINTLN(DBG_VERBOSE, F("M"));
-    if(apActive) {
-        mDns->processNextRequest();
-#ifndef AP_ONLY
-        if(checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            apActive = setupStation(mWifiStationTimeout);
-            if(apActive) {
-                if(strlen(WIFI_AP_PWD) < 8)
-                    DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
-                mApLastTick = millis();
-                mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
-                setupAp(WIFI_AP_SSID, WIFI_AP_PWD);
-            }
-        }
-        else {
-            if(millis() - mApLastTick > 10000) {
-                uint8_t cnt = WiFi.softAPgetStationNum();
-                if(cnt > 0) {
-                    DPRINTLN(DBG_INFO, String(cnt) + F(" client connected, resetting AP timeout"));
-                    mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
-                }
-                mApLastTick = millis();
-                DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
-            }
-        }
-#endif
-    }
+void app::loop(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::loop"));
 
+    bool apActive = mWifi->loop();
     mWebInst->loop();
 
     if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
@@ -102,32 +54,18 @@ void app::MainLoop(void) {
             mTimestamp++;
         else {
             if(!apActive) {
-                mTimestamp  = getNtpTime();
+                mTimestamp  = mWifi->getNtpTime();
                 DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
     }
-    if((WiFi.status() != WL_CONNECTED) && wifiWasEstablished) {
-        if(!apActive) {
-            DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
-            setupStation(mWifiStationTimeout);
-        }
-    }
-}
 
-//-----------------------------------------------------------------------------
-void app::loop(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::loop"));
-    MainLoop();
     
     mSys->Radio.loop();
 
     yield();
 
     if(checkTicker(&mRxTicker, 5)) {
-        //DPRINTLN(DBG_VERBOSE, F("app_loops =") + String(app_loops));
-        app_loops=0;
-
         bool rxRdy = mSys->Radio.switchRxCh();
 
         if(!mSys->BufCtrl.empty()) {
@@ -553,24 +491,6 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 
 
 //-----------------------------------------------------------------------------
-/*void app::webapi(void) { // ToDo
-    DPRINTLN(DBG_VERBOSE, F("app::api"));
-    const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-    DynamicJsonDocument payload(capacity);
-
-   // Parse JSON object
-    deserializeJson(payload, mWeb->arg("plain"));
-    // ToDo: error handling for payload
-    if (payload["tx_request"] == TX_REQ_INFO){
-        mSys->InfoCmd = payload["cmd"];
-        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
-    }
-    mWeb->send ( 200, "text/json", "{success:true}" );
-}*/
-
-
-
-//-----------------------------------------------------------------------------
 String app::getStatistics(void) {
     String content = F("Receive success: ") + String(mRxSuccess) + "\n";
     content += F("Receive fail: ") + String(mRxFailed) + "\n";
@@ -723,6 +643,12 @@ String app::getJson(void) {
 
 
 //-----------------------------------------------------------------------------
+bool app::getWifiApActive(void) {
+    return mWifi->getApActive();
+}
+
+
+//-----------------------------------------------------------------------------
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 
@@ -800,82 +726,7 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 
 
 //-----------------------------------------------------------------------------
-void app::setupAp(const char *ssid, const char *pwd) {
-    DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
-    IPAddress apIp(192, 168, 1, 1);
-
-    DPRINTLN(DBG_INFO, F("\n---------\nAP MODE\nSSID: ")
-        + String(ssid) + F("\nPWD: ")
-        + String(pwd) + F("\nActive for: ")
-        + String(WIFI_AP_ACTIVE_TIME) + F(" seconds")
-        + F("\n---------\n"));
-    DPRINTLN(DBG_DEBUG, String(mNextTryTs));
-
-    WiFi.mode(WIFI_AP);
-    WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(ssid, pwd);
-
-    mDns->start(53, "*", apIp);
-}
-
-
-//-----------------------------------------------------------------------------
-bool app::setupStation(uint32_t timeout) {
-    DPRINTLN(DBG_VERBOSE, F("app::setupStation"));
-    int32_t cnt;
-    bool startAp = false;
-
-    if(timeout >= 3)
-        cnt = (timeout - 3) / 2 * 10;
-    else {
-        timeout = 1;
-        cnt = 1;
-    }
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(mSysConfig.stationSsid, mSysConfig.stationPwd);
-    if(String(mSysConfig.deviceName) != "")
-        WiFi.hostname(mSysConfig.deviceName);
-
-    delay(2000);
-    DPRINTLN(DBG_INFO, F("connect to network '") + String(mSysConfig.stationSsid) + F("' ..."));
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(100);
-        if(cnt % 40 == 0)
-            Serial.println(".");
-        else
-            Serial.print(".");
-
-        if(timeout > 0) { // limit == 0 -> no limit
-            if(--cnt <= 0) {
-                if(WiFi.status() != WL_CONNECTED) {
-                    startAp = true;
-                    WiFi.disconnect();
-                }
-                delay(100);
-                break;
-            }
-        }
-    }
-    Serial.println(".");
-
-    if(false == startAp) {
-        wifiWasEstablished = true;
-    }
-
-    delay(1000);
-
-    return startAp;
-}
-
-
-//-----------------------------------------------------------------------------
 void app::resetSystem(void) {
-    mWifiStationTimeout = 10;
-    wifiWasEstablished = false;
-    mNextTryTs   = 0;
-    mApLastTick  = 0;
-
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
     mUptimeInterval = 1000;
@@ -921,7 +772,7 @@ void app::loadDefaultConfig(void) {
     // wifi
     snprintf(mSysConfig.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
     snprintf(mSysConfig.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
-    apActive = false;
+
 
     // nrf24
     mConfig.sendInterval      = SEND_INTERVAL;
@@ -932,8 +783,8 @@ void app::loadDefaultConfig(void) {
     mConfig.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
 
     // ntp
-    snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", NTP_SERVER_NAME);
-    mConfig.ntpPort = NTP_LOCAL_PORT;
+    snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
+    mConfig.ntpPort = DEF_NTP_PORT;
 
     // mqtt
     snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
@@ -994,6 +845,32 @@ void app::loadEEpconfig(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::saveValues(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
+
+    mEep->write(ADDR_CFG_SYS, (uint8_t*)&mSysConfig, CFG_SYS_LEN);
+    mEep->write(ADDR_CFG, (uint8_t*)&mConfig, CFG_LEN);
+    Inverter<> *iv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        iv = mSys->getInverterByPos(i);
+        if(NULL != iv) {
+            mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
+            mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
+            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
+            // max channel power / name
+            for(uint8_t j = 0; j < 4; j++) {
+                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
+                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
+            }
+        }
+    }
+
+    updateCrc();
+    mEep->commit();
+}
+
+
+//-----------------------------------------------------------------------------
 void app::setupMqtt(void) {
     if(mSettingsValid) {
         if(mConfig.mqtt.broker[0] > 0) {
@@ -1029,108 +906,4 @@ void app::setupMqtt(void) {
             }*/
         }
     }
-}
-
-
-//-----------------------------------------------------------------------------
-void app::saveValues(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::saveValues"));
-
-    mEep->write(ADDR_CFG_SYS, (uint8_t*)&mSysConfig, CFG_SYS_LEN);
-    mEep->write(ADDR_CFG, (uint8_t*)&mConfig, CFG_LEN);
-    Inverter<> *iv;
-    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        iv = mSys->getInverterByPos(i);
-        if(NULL != iv) {
-            mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
-            mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
-            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
-            // max channel power / name
-            for(uint8_t j = 0; j < 4; j++) {
-                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
-                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
-            }
-        }
-    }
-
-    updateCrc();
-    mEep->commit();
-}
-
-
-//-----------------------------------------------------------------------------
-time_t app::getNtpTime(void) {
-    //DPRINTLN(DBG_VERBOSE, F("app::getNtpTime"));
-    time_t date = 0;
-    IPAddress timeServer;
-    uint8_t buf[NTP_PACKET_SIZE];
-    uint8_t retry = 0;
-
-    WiFi.hostByName(NTP_SERVER_NAME, timeServer);
-    mUdp->begin(NTP_LOCAL_PORT);
-
-
-    sendNTPpacket(timeServer);
-
-    while(retry++ < 5) {
-        int wait = 150;
-        while(--wait) {
-            if(NTP_PACKET_SIZE <= mUdp->parsePacket()) {
-                uint64_t secsSince1900;
-                mUdp->read(buf, NTP_PACKET_SIZE);
-                secsSince1900  = (buf[40] << 24);
-                secsSince1900 |= (buf[41] << 16);
-                secsSince1900 |= (buf[42] <<  8);
-                secsSince1900 |= (buf[43]      );
-
-                date = secsSince1900 - 2208988800UL; // UTC time
-                date += (TIMEZONE + offsetDayLightSaving(date)) * 3600;
-                break;
-            }
-            else
-                delay(10);
-        }
-    }
-
-    return date;
-}
-
-
-//-----------------------------------------------------------------------------
-void app::sendNTPpacket(IPAddress& address) {
-    //DPRINTLN(DBG_VERBOSE, F("app::sendNTPpacket"));
-    uint8_t buf[NTP_PACKET_SIZE] = {0};
-
-    buf[0] = B11100011; // LI, Version, Mode
-    buf[1] = 0;         // Stratum
-    buf[2] = 6;         // Max Interval between messages in seconds
-    buf[3] = 0xEC;      // Clock Precision
-    // bytes 4 - 11 are for Root Delay and Dispersion and were set to 0 by memset
-    buf[12] = 49;       // four-byte reference ID identifying
-    buf[13] = 0x4E;
-    buf[14] = 49;
-    buf[15] = 52;
-
-    mUdp->beginPacket(address, 123); // NTP request, port 123
-    mUdp->write(buf, NTP_PACKET_SIZE);
-    mUdp->endPacket();
-}
-
-
-//-----------------------------------------------------------------------------
-// calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
-// from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
-time_t app::offsetDayLightSaving (uint32_t local_t) {
-    //DPRINTLN(DBG_VERBOSE, F("app::offsetDayLightSaving"));
-    int m = month (local_t);
-    if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
-    if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
-    int y = year (local_t);
-    int h = hour (local_t);
-    int hToday = (h + 24 * day(local_t));
-    if((m == 3  && hToday >= (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 4) % 7)))
-        || (m == 10 && hToday <  (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 1) % 7))) )
-        return 1;
-    else
-        return 0;
 }

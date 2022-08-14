@@ -70,10 +70,10 @@
 #define INACT_PWR_THRESH        3
 
 // default ntp server uri
-#define NTP_SERVER_NAME         "pool.ntp.org"
+#define DEF_NTP_SERVER_NAME     "pool.ntp.org"
 
 // default ntp server port
-#define NTP_LOCAL_PORT          8888
+#define DEF_NTP_PORT            8888
 
 // default mqtt interval
 #define MQTT_INTERVAL           60

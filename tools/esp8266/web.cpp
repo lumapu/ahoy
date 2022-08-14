@@ -158,7 +158,7 @@ void web::showSetup(void) {
     // -> the PWD will only be changed if it does not match the default "{PWD}"
     html.replace(F("{DEVICE}"), String(mSysCfg->deviceName));
     html.replace(F("{VERSION}"), String(mVersion));
-    if(mMain->apActive)
+    if(mMain->getWifiApActive())
         html.replace("{IP}", String(F("http://192.168.1.1")));
     else
         html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
