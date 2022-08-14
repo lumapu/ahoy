@@ -27,7 +27,7 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
-const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
+const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
 //-----------------------------------------------------------------------------
@@ -55,7 +55,7 @@ const char* const rf24AmpPower[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t CE_PIN, uint8_t CS_PIN, uint8_t IRQ_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
+template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -73,11 +73,6 @@ class HmRadio {
             mRxChIdx    = 0; // Start RX with 03
             mRxLoopCnt  = RF_LOOP_CNT;
 
-            pinCs  = CS_PIN;
-            pinCe  = CE_PIN;
-            pinIrq = IRQ_PIN;
-
-            AmplifierPower = 1;
             mSendCnt       = 0;
 
             mSerialDebug = false;
@@ -85,13 +80,13 @@ class HmRadio {
         }
         ~HmRadio() {}
 
-        void setup(BUFFER *ctrl) {
+        void setup(config_t *config, BUFFER *ctrl) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
-            pinMode(pinIrq, INPUT_PULLUP);
+            pinMode(config->pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
 
-            mNrf24.begin(pinCe, pinCs);
+            mNrf24.begin(config->pinCe, config->pinCs);
             mNrf24.setRetries(0, 0);
 
             mNrf24.setChannel(DEFAULT_RECV_CHANNEL);
@@ -106,8 +101,8 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            DPRINTLN(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_") + String(rf24AmpPower[AmplifierPower]));
-            mNrf24.setPALevel(AmplifierPower & 0x03);
+            DPRINTLN(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_") + String(rf24AmpPowerNames[config->amplifierPower]));
+            mNrf24.setPALevel(config->amplifierPower & 0x03);
             mNrf24.startListening();
 
             DPRINTLN(DBG_INFO, F("Radio Config:"));
@@ -277,11 +272,8 @@ class HmRadio {
             return mNrf24.isChipConnected();
         }
 
-        uint8_t pinCs;
-        uint8_t pinCe;
-        uint8_t pinIrq;
 
-        uint8_t AmplifierPower;
+
         uint32_t mSendCnt;
 
         bool mSerialDebug;

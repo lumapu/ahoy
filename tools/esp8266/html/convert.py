@@ -34,5 +34,5 @@ def convert2Header(inFile):
 
 convert2Header("index.html")
 convert2Header("setup.html")
-convert2Header("hoymiles.html")
+convert2Header("visualization.html")
 convert2Header("style.css")
