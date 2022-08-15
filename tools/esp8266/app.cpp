@@ -539,48 +539,10 @@ String app::getStatistics(void) {
     return content;
 }
 
-//-----------------------------------------------------------------------------
-void app::webapi(void) { // ToDo
-    DPRINTLN(DBG_VERBOSE, F("app::api"));
-    DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
-    const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-    DynamicJsonDocument payload(capacity);
-  
-   // Parse JSON object
-    deserializeJson(payload, mWeb->arg("plain"));
-    // ToDo: error handling for payload
-    if (payload["tx_request"] == TX_REQ_INFO){
-        mSys->InfoCmd = payload["cmd"];
-        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mSys->InfoCmd));
-    }
-    mWeb->send ( 200, "text/json", "{success:true}" );
-}
 
 
 //-----------------------------------------------------------------------------
-void app::showHoymiles(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showHoymiles"));
-    String html = FPSTR(hoymiles_html);
-    html.replace(F("{DEVICE}"), mDeviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mSendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mSendInterval * 1000));
-    mWeb->send(200, F("text/html"), html);
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showFavicon(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showFavicon"));
-    static const char favicon_type[] PROGMEM = "image/x-icon";
-    static const char favicon_content[] PROGMEM = FAVICON_PANEL_16;
-    mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
-}
-
-
-//-----------------------------------------------------------------------------
-void app::showLiveData(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showLiveData"));
+String app::getLiveData(void) {
     String modHtml;
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);

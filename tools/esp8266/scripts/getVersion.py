@@ -1,9 +1,5 @@
 import os
 from datetime import date
-import subprocess
-def get_git_revision_short_hash() -> str:
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
-
 
 def readVersion(path, infile):
     f = open(path + infile, "r")
@@ -22,15 +18,14 @@ def readVersion(path, infile):
     
     os.mkdir(path + ".pio/build/out/")
     
-    versionout = version[:-1] + "_esp8266_debug_g" + get_git_revision_short_hash() + ".bin"
-    src = path + ".pio/build/esp8266-debug/firmware.bin"
+    versionout = version[:-1] + "_esp8266_release.bin"
+    src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
     
-    versionout = version[:-1] + "_esp8266_release_g" + get_git_revision_short_hash() + ".bin"
-    src = path + ".pio/build/esp8266-release/firmware.bin"
+    versionout = version[:-1] + "_esp8266_debug.bin"
+    src = path + ".pio/build/esp8266-debug/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
 
 readVersion("../", "defines.h")
-
