@@ -57,6 +57,13 @@ typedef enum {
     Init = 0xff
 } DevControlCmdType;
 
+typedef enum { // ToDo: to be verified by field tests
+    AbsolutNonPersistent = 0x0000, // 0
+    RelativNonPersistent = 0x0001, // 1
+    AbsolutPersistent = 0x0100,    // 256
+    RelativPersistent = 0x0101  // 257
+} PowerLimitControlType;
+
 // minimum serial interval
 #define MIN_SERIAL_INTERVAL     5
 
@@ -161,8 +168,9 @@ typedef struct {
 #define ADDR_INV_INTERVAL       ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
 #define ADDR_INV_MAX_RTRY       ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
 #define ADDR_INV_PWR_LIM        ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
+#define ADDR_INV_PWR_LIM_CON    ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
 
-#define ADDR_NEXT               ADDR_INV_PWR_LIM   + INV_PWR_LIM_LEN
+#define ADDR_NEXT               ADDR_INV_PWR_LIM_CON   + INV_PWR_LIM_LEN
 
 
 #define ADDR_SETTINGS_CRC       ADDR_NEXT + 2

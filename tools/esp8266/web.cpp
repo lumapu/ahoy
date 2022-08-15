@@ -169,24 +169,41 @@ void web::showSetup(void) {
         iv = mMain->mSys->getInverterByPos(i);
 
         inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
-        inv += F("<label for=\"inv") + String(i) + F("Addr\">Address</label>");
+        inv += F("<label for=\"inv") + String(i) + F("Addr\">Address*</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
         if(NULL != iv)
             inv += String(iv->serial.u64, HEX);
         inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
 
-        inv += F("<label for=\"inv") + String(i) + F("Name\">Name</label>");
+        inv += F("<label for=\"inv") + String(i) + F("Name\">Name*</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
         if(NULL != iv)
             inv += String(iv->name);
         inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
 
-        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit (W)</label>");
+        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
         if(NULL != iv)
             inv += String(iv->powerLimit[0]);
         inv += F("\"/ maxlength=\"") + String(6) + "\">";
 
+        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
+        inv += F("<select name=\"inv") + String(i);
+        // UGLY! But I do not know it a better way 
+        // ToDo: Need Cookies, IndexDB or PWA for that or in general client browser storage
+        if(NULL != iv){
+        if(iv->powerLimit[1] == AbsolutNonPersistent)
+            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
+        if(iv->powerLimit[1] == RelativNonPersistent)
+            inv += F("PowerLimitControl\"><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
+        if(iv->powerLimit[1] == AbsolutPersistent)
+            inv += F("PowerLimitControl\"><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
+        if(iv->powerLimit[1] == RelativPersistent)
+            inv += F("PowerLimitControl\"><option value=\"257\">relativ in percent persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option></select>");
+        } else
+            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
+        // UGLY! But I do not know it a better way --//
+        
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label>");
         for(uint8_t j = 0; j < 4; j++) {
@@ -285,9 +302,26 @@ void web::showSave(void) {
 
             // active power limit
             uint16_t actPwrLimit = mWeb->arg("inv" + String(i) + "ActivePowerLimit").toInt();
-            if (actPwrLimit != 0xffff && actPwrLimit > 0)
+            uint16_t actPwrLimitControl = mWeb->arg("inv" + String(i) + "PowerLimitControl").toInt();
+            if (actPwrLimit != 0xffff && actPwrLimit > 0){
                 iv->powerLimit[0] = actPwrLimit;
-
+                iv->powerLimit[1] = actPwrLimitControl;
+                iv->devControlCmd = ActivePowerContr;
+                iv->devControlRequest = true;
+                if (iv->powerLimit[1] & 0x0001)
+                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
+                else
+                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                    DPRINTLN(DBG_INFO, F("Power Limit Control Setting ") + String(iv->powerLimit[1]));
+            }
+            if (actPwrLimit == 0xffff){ // set to 100%
+                iv->powerLimit[0] = 100;
+                iv->powerLimit[1] = RelativPersistent;
+                iv->devControlCmd = ActivePowerContr;
+                iv->devControlRequest = true;
+                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to unlimted"));
+            }
+                
             // name
             mWeb->arg("inv" + String(i) + "Name").toCharArray(iv->name, MAX_NAME_LENGTH);
 
@@ -337,6 +371,8 @@ void web::showSave(void) {
 
             mConfig->serialDebug  = (mWeb->arg("serEn") == "on");
             mConfig->serialShowIv = (mWeb->arg("serDbg") == "on");
+            // Needed to log TX buffers to serial console
+            mMain->mSys->Radio.mSerialDebug = mConfig->serialDebug;
         }
 
         mMain->saveValues();
@@ -396,6 +432,31 @@ void web::showWebApi(void) {
     if (payload["tx_request"] == TX_REQ_INFO) {
         mMain->mSys->InfoCmd = payload["cmd"];
         DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd));
+    }
+    if (payload["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL){
+        if(payload["cmd"] == (uint8_t)ActivePowerContr){
+            uint8_t iv_id = payload["inverter"];
+            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
+                Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
+                uint16_t webapiPayload = payload["payload"];
+                uint16_t webapiPayload2 = payload["payload2"];
+                if (webapiPayload > 0 && webapiPayload < 10000){
+                    iv->devControlCmd = ActivePowerContr;
+                    iv->powerLimit[0] = webapiPayload;
+                    if (webapiPayload2 > 0){ 
+                        iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
+                    } else { // if not set, set it to 0x0000 default
+                        iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporay in Watt absolut
+                    }
+                    if (iv->powerLimit[1] & 0x0001 ){
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API") );    
+                    } else {
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API") );
+                    }
+                    iv->devControlRequest = true; // queue it in the request loop
+                }
+            }
+        }
     }
     mWeb->send ( 200, "text/json", "{success:true}" );
 }

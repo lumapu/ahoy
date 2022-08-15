@@ -146,11 +146,12 @@ void app::loop(void) {
                             if (iv->devControlCmd >= ActivePowerContr && iv->devControlCmd <= PFSet){ // ok inverter accepted the set point copy it to dtu eeprom
                                 if (iv->powerLimit[1]>0){ // User want to have it persistent
                                     mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit[0]);
+                                    mEep->write(ADDR_INV_PWR_LIM_CON + iv->id * 2,iv->powerLimit[1]);
                                     updateCrc();
                                     mEep->commit();
-                                    DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point, written to dtu eeprom"));    
+                                    DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]) + F(", written to dtu eeprom"));    
                                 } else {
-                                    DPRINTLN(DBG_INFO, F("Inverter has accepted power limit set point"));
+                                    DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
                                 }
                                 iv->devControlCmd = Init;
                             }
@@ -159,6 +160,7 @@ void app::loop(void) {
                             if (iv->devControlCmd == ActivePowerContr){
                             //case inverter did not accept the sent limit; set back to last stored limit
                             mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, (uint16_t *)&(iv->powerLimit[0]));
+                            mEep->read(ADDR_INV_PWR_LIM_CON + iv->id * 2, (uint16_t *)&(iv->powerLimit[1]));
                             DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));    
                             }
                             iv->devControlCmd = Init;
@@ -430,6 +432,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
         if (std::strcmp(token,"devcontrol")==0){
             token = strtok(NULL, "/");
             uint8_t iv_id = std::stoi(token);
+            uint8_t powerLimitControl = 0;
             if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
                 Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
                 if(NULL != iv) {
@@ -437,11 +440,24 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                         token = strtok(NULL, "/");
                         switch ( std::stoi(token) ){
                             case ActivePowerContr:  // Active Power Control
+                                token = strtok(NULL, "/"); // get ControlMode aka "PowerPF.Desc" in DTU-Pro Code from topic string
+                                if (token == NULL) // default via mqtt ommit the LimitControlMode
+                                    powerLimitControl = AbsolutNonPersistent;
+                                else
+                                    powerLimitControl = std::stoi(token);
+                                    // 0x0001 -> relativ limit in percent
+                                    // 0x0000 -> absolut limit in Watt
+                                    // 0x0101 -> persisten limit in percent (?)
+                                    // ...
                                 if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
                                     iv->devControlCmd = ActivePowerContr;
                                     iv->powerLimit[0] = std::stoi((char*)payload);
-                                    iv->powerLimit[1] = 0x0000; // if power limit is set via external interface --> set it temporay
-                                    DPRINTLN(DBG_DEBUG, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                                    if (powerLimitControl >= AbsolutNonPersistent && powerLimitControl <= RelativNonPersistent)
+                                        iv->powerLimit[1] = powerLimitControl;
+                                    if (iv->powerLimit[1] & 0x0001)
+                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
+                                    else
+                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
                                 }
                                 iv->devControlRequest = true;
                                 break;
@@ -557,7 +573,12 @@ String app::getLiveData(void) {
             }
 
             modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]) + F(" W</span>");
+                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]);
+            if (iv->powerLimit[1] & 0x0001){
+                modHtml += F(" %</span>");
+            } else {
+                modHtml += F(" W</span>");
+            }
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
 
             for(uint8_t fld = 0; fld < 12; fld++) {
@@ -825,13 +846,19 @@ void app::loadEEpconfig(void) {
             mEep->read(ADDR_INV_CH_PWR + (i * 2 * 4),         modPwr, 4);
             if(0ULL != invSerial) {
                 iv = mSys->addInverter(name, invSerial, modPwr);
-                if(NULL != iv) {
+                if(NULL != iv) { // will run once on every dtu boot
                     mEep->read(ADDR_INV_PWR_LIM + (i * 2),(uint16_t *)&(iv->powerLimit[0]));
-                    if (iv->powerLimit[0] != 0xffff) { // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
-                        iv->powerLimit[1] = 0x0001; // set the limit as persistent
+                    mEep->read(ADDR_INV_PWR_LIM_CON + (i * 2),(uint16_t *)&(iv->powerLimit[1]));
+                    // only set it, if it is changed by user. Default value in the html setup page is -1 = 0xffff
+                    // it is "doppelt-gemoppelt" because the inverter shall remember the setting if the dtu makes a power cycle / reboot
+                    if (iv->powerLimit[0] != 0xffff) { 
                         iv->devControlCmd = ActivePowerContr; // set active power limit
                         iv->devControlRequest = true; // set to true to update the active power limit from setup html page
-                        DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]));
+                        if (iv->powerLimit[1] & 0x0001){
+                            DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]) + " in %");    
+                        } else {
+                            DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]) + " in Watt");
+                        }
                     }
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
@@ -858,6 +885,7 @@ void app::saveValues(void) {
         if(NULL != iv) {
             mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
             mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
+            mEep->write(ADDR_INV_PWR_LIM_CON + i * 2, iv->powerLimit[1]);
             mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
             // max channel power / name
             for(uint8_t j = 0; j < 4; j++) {
