@@ -213,7 +213,7 @@ class HmRadio {
             uint16_t crc = Hoymiles::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
-            mTxBuf[26] = crc8(mTxBuf, 26);
+            mTxBuf[26] = Hoymiles::crc8(mTxBuf, 26);
 
             sendPacket(invId, mTxBuf, 27, true);
         }
@@ -226,7 +226,7 @@ class HmRadio {
             CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
-                mTxBuf[10] = crc8(mTxBuf, 10);
+                mTxBuf[10] = Hoymiles::crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
@@ -240,7 +240,7 @@ class HmRadio {
                 buf[i-1] = (buf[i] << 1) | (buf[i+1] >> 7);
             }
 
-            uint8_t crc = crc8(buf, *len-1);
+            uint8_t crc = Hoymiles::crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
             return valid;
