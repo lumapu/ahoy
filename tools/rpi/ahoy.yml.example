@@ -16,6 +16,8 @@ ahoy:
     port: 1883
     user: 'username'
     password: 'password'
+    useTLS: False
+    insecureTLS: False #set True for e.g. self signed certificates. 
 
   # Influx2 output
   influxdb:
