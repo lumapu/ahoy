@@ -91,7 +91,7 @@ class HmSystem {
 
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
-            if((mInverter[pos].serial.u64 != 0ULL) || false == check)
+            if((mInverter[pos].initialized && mInverter[pos].serial.u64 != 0ULL) || false == check)
                 return &mInverter[pos];
             else
                 return NULL;

@@ -80,6 +80,7 @@ class Inverter {
         RECORDTYPE    *record;  // pointer for values
         uint16_t      chMaxPwr[4]; // maximum power of the modules (Wp)
         char          chName[4][MAX_NAME_LENGTH]; // human readable name for channel
+        bool          initialized; // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
 
         Inverter() {
             ts = 0;
@@ -87,6 +88,7 @@ class Inverter {
             powerLimit[1] = 0x0000; // 
             devControlRequest = false;
             devControlCmd = 0xff;
+            initialized = false;
         }
 
         ~Inverter() {
@@ -101,6 +103,7 @@ class Inverter {
             memset(name, 0, MAX_NAME_LENGTH);
             memset(chName, 0, MAX_NAME_LENGTH * 4);
             memset(record, 0, sizeof(RECORDTYPE) * listLen);
+            initialized = true;
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId) {
