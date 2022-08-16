@@ -432,7 +432,6 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
         if (std::strcmp(token,"devcontrol")==0){
             token = strtok(NULL, "/");
             uint8_t iv_id = std::stoi(token);
-            uint8_t powerLimitControl = 0;
             if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
                 Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
                 if(NULL != iv) {
@@ -442,24 +441,24 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                             case ActivePowerContr:  // Active Power Control
                                 token = strtok(NULL, "/"); // get ControlMode aka "PowerPF.Desc" in DTU-Pro Code from topic string
                                 if (token == NULL) // default via mqtt ommit the LimitControlMode
-                                    powerLimitControl = AbsolutNonPersistent;
+                                    iv->powerLimit[1] = AbsolutNonPersistent;
                                 else
-                                    powerLimitControl = std::stoi(token);
-                                    // 0x0001 -> relativ limit in percent
-                                    // 0x0000 -> absolut limit in Watt
-                                    // 0x0101 -> persisten limit in percent (?)
-                                    // ...
-                                if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
-                                    iv->devControlCmd = ActivePowerContr;
-                                    iv->powerLimit[0] = std::stoi((char*)payload);
-                                    if (powerLimitControl >= AbsolutNonPersistent && powerLimitControl <= RelativNonPersistent)
-                                        iv->powerLimit[1] = powerLimitControl;
-                                    if (iv->powerLimit[1] & 0x0001)
-                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
-                                    else
-                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                                    iv->powerLimit[1] = std::stoi(token);
+                                DPRINTLN(DBG_VERBOSE, F("iv->powerLimit[1]=") + String(iv->powerLimit[1]));
+                                DPRINTLN(DBG_VERBOSE, F("length=") + String(length));
+                                if (length<=5){ // if (std::stoi((char*)payload) > 0) more error handling powerlimit needed?
+                                    if (iv->powerLimit[1] >= AbsolutNonPersistent && iv->powerLimit[1] <= RelativPersistent){
+                                        iv->devControlCmd = ActivePowerContr;
+                                        iv->powerLimit[0] = std::stoi((char*)payload);
+                                        if (iv->powerLimit[1] & 0x0001)
+                                            DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
+                                        else
+                                            DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                                    }
+                                    iv->devControlRequest = true;
+                                } else {
+                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char*)payload));
                                 }
-                                iv->devControlRequest = true;
                                 break;
                             case TurnOn: // Turn On
                                 iv->devControlCmd = TurnOn;
