@@ -189,7 +189,7 @@ void web::showSetup(void) {
 
         inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
         inv += F("<select name=\"inv") + String(i);
-        // UGLY! But I do not know it a better way 
+        // UGLY! But I do not know it a better way
         // ToDo: Need Cookies, IndexDB or PWA for that or in general client browser storage
         if(NULL != iv){
         if(iv->powerLimit[1] == AbsolutNonPersistent)
@@ -269,8 +269,7 @@ void web::showSetup(void) {
     html.replace(F("{MQTT_USER}"),  String(mConfig->mqtt.user));
     html.replace(F("{MQTT_PWD}"),   String(mConfig->mqtt.pwd));
     html.replace(F("{MQTT_TOPIC}"), String(mConfig->mqtt.topic));
-    html.replace(F("{MQTT_INTVL}"), String("0"));
-
+    
     mWeb->send(200, F("text/html"), html);
 }
 
@@ -334,7 +333,7 @@ void web::showSave(void) {
         if(mWeb->arg("invInterval") != "")
             mConfig->sendInterval = mWeb->arg("invInterval").toInt();
         if(mWeb->arg("invRetry") != "")
-            mConfig->sendInterval = mWeb->arg("invRetry").toInt();
+            mConfig->maxRetransPerPyld = mWeb->arg("invRetry").toInt();
 
         // pinout
         uint8_t pin;
@@ -369,8 +368,8 @@ void web::showSave(void) {
         if(mWeb->arg("serIntvl") != "") {
             mConfig->serialInterval = mWeb->arg("serIntvl").toInt() & 0xffff;
 
-            mConfig->serialDebug  = (mWeb->arg("serEn") == "on");
-            mConfig->serialShowIv = (mWeb->arg("serDbg") == "on");
+            mConfig->serialDebug  = (mWeb->arg("serDbg") == "on");
+            mConfig->serialShowIv = (mWeb->arg("serEn") == "on");
             // Needed to log TX buffers to serial console
             mMain->mSys->Radio.mSerialDebug = mConfig->serialDebug;
         }
@@ -424,22 +423,28 @@ void web::showWebApi(void) {
     DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
     DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
     const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-    DynamicJsonDocument payload(capacity);
+    DynamicJsonDocument response(capacity);
 
-   // Parse JSON object
-    deserializeJson(payload, mWeb->arg("plain"));
+    // Parse JSON object
+    deserializeJson(response, mWeb->arg("plain"));
     // ToDo: error handling for payload
-    if (payload["tx_request"] == TX_REQ_INFO) {
-        mMain->mSys->InfoCmd = payload["cmd"];
-        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd));
+    uint8_t iv_id = response["inverter"];
+    if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
+        mMain->mSys->InfoCmd = response["cmd"];
+        if (mMain->mSys->InfoCmd == AlarmData){
+            Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
+            if (NULL != iv){
+                iv->alarmMesIndex = response["payload"];
+            }
+        }
+        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
     }
-    if (payload["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL){
-        if(payload["cmd"] == (uint8_t)ActivePowerContr){
-            uint8_t iv_id = payload["inverter"];
+    if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL){
+        if(response["cmd"] == (uint8_t)ActivePowerContr){
             if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
                 Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
-                uint16_t webapiPayload = payload["payload"];
-                uint16_t webapiPayload2 = payload["payload2"];
+                uint16_t webapiPayload = response["payload"];
+                uint16_t webapiPayload2 = response["payload2"];
                 if (webapiPayload > 0 && webapiPayload < 10000){
                     iv->devControlCmd = ActivePowerContr;
                     iv->powerLimit[0] = webapiPayload;
