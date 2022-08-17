@@ -317,12 +317,12 @@ bool app::buildPayload(uint8_t id) {
     for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
         if(mPayload[id].len[i] > 0) {
             if(i == (mPayload[id].maxPackId-1)) {
-                crc = crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crc = Hoymiles::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
                 crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
                     | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
             else
-                crc = crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
+                crc = Hoymiles::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
         yield();
     }

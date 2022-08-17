@@ -59,7 +59,12 @@ template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADI
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: ") + String(CE_PIN) + F(", CS_PIN: ") + String(CS_PIN) + F(", SPI_SPEED: ") + String(SPI_SPEED) + ")");
+            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+            DPRINT(DBG_VERBOSE, String(CE_PIN));
+            DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
+            DPRINT(DBG_VERBOSE, String(CS_PIN));
+            DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
+            DPRINTLN(DBG_VERBOSE, String(SPI_SPEED) + ")");
 
             // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
             // Channel List      2403, 2423, 2440, 2461, 2475MHz
@@ -101,7 +106,8 @@ class HmRadio {
             // enable only receiving interrupts
             mNrf24.maskIRQ(true, true, false);
 
-            DPRINTLN(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_") + String(rf24AmpPowerNames[config->amplifierPower]));
+            DPRINT(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_"));
+            DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[config->amplifierPower]));
             mNrf24.setPALevel(config->amplifierPower & 0x03);
             mNrf24.startListening();
 
@@ -170,12 +176,12 @@ class HmRadio {
                 mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
             }
             // crc control data
-            uint16_t crc = crc16(&mTxBuf[10], cnt+1);
+            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], cnt+1);
             mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
             mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
             // crc over all
             cnt +=1;
-            mTxBuf[10 + cnt] = crc8(mTxBuf, 10 + cnt);
+            mTxBuf[10 + cnt] = Hoymiles::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
         }
@@ -194,10 +200,10 @@ class HmRadio {
                 mTxBuf[18] = 0x00;
                 mTxBuf[19] = 0x00;
             }
-            uint16_t crc = crc16(&mTxBuf[10], 14);
+            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
-            mTxBuf[26] = crc8(mTxBuf, 26);
+            mTxBuf[26] = Hoymiles::crc8(mTxBuf, 26);
 
             sendPacket(invId, mTxBuf, 27, true);
         }
@@ -210,7 +216,7 @@ class HmRadio {
             CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
-                mTxBuf[10] = crc8(mTxBuf, 10);
+                mTxBuf[10] = Hoymiles::crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
@@ -224,7 +230,7 @@ class HmRadio {
                 buf[i-1] = (buf[i] << 1) | (buf[i+1] >> 7);
             }
 
-            uint8_t crc = crc8(buf, *len-1);
+            uint8_t crc = Hoymiles::crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
             return valid;
