@@ -84,6 +84,29 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv && p->packet[0] == (TX_REQ_INFO + 0x80)) { // response from get information command
                         DPRINTLN(DBG_DEBUG, F("Response from info request received"));
+                        uint8_t *pid = &p->packet[9];
+                        if (*pid == 0x00)
+                        {
+                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
+                        }
+                        else
+                        {
+                            if ((*pid & 0x7F) < 5)
+                            {
+                                memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len - 11);
+                                mPayload[iv->id].len[(*pid & 0x7F) - 1] = len - 11;
+                            }
+
+                            if ((*pid & 0x80) == 0x80)
+                            { // Last packet
+                                if ((*pid & 0x7f) > mPayload[iv->id].maxPackId)
+                                {
+                                    mPayload[iv->id].maxPackId = (*pid & 0x7f);
+                                    if (*pid > 0x81)
+                                        mLastPacketId = *pid;
+                                }
+                            }
+                        }
                         switch (mSys->InfoCmd){
                             case InverterDevInform_Simple:
                             {
@@ -94,7 +117,6 @@ void app::loop(void) {
                             case InverterDevInform_All:
                             {
                                 DPRINT(DBG_INFO, "Response from inform all\n");
-                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
                             case GetLossRate:
@@ -117,23 +139,6 @@ void app::loop(void) {
                             }
                             case RealTimeRunData_Debug:
                             {
-                                uint8_t *pid = &p->packet[9];
-                                if (*pid == 0x00) {
-                                    DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
-                                } else {
-                                    if((*pid & 0x7F) < 5) {
-                                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len-11);
-                                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = len-11;
-                                    }
-
-                                    if((*pid & 0x80) == 0x80) { // Last packet
-                                        if((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
-                                            mPayload[iv->id].maxPackId = (*pid & 0x7f);
-                                            if(*pid > 0x81)
-                                                mLastPacketId = *pid;
-                                        }
-                                    }
-                                }
                                 break;
                             }
                         }
@@ -175,7 +180,7 @@ void app::loop(void) {
 
 
         if(rxRdy) {
-            processPayload(true);
+            processPayload(true,mSys->InfoCmd);
         }
     }
 
@@ -261,7 +266,7 @@ void app::loop(void) {
 
                 if(NULL != iv) {
                     if(!mPayload[iv->id].complete)
-                        processPayload(false);
+                        processPayload(false,mSys->InfoCmd);
 
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
@@ -271,13 +276,7 @@ void app::loop(void) {
                         }
                     }
 
-                    // reset payload data
-                    memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
-                    mPayload[iv->id].retransmits = 0;
-                    mPayload[iv->id].maxPackId = 0;
-                    mPayload[iv->id].complete  = false;
-                    mPayload[iv->id].requested = true;
-                    mPayload[iv->id].ts = mTimestamp;
+                    resetPayload(iv);
 
                     yield();
                     if(mConfig.serialDebug)
@@ -335,6 +334,9 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
+    processPayload(retransmit, RealTimeRunData_Debug);
+}
+void app::processPayload(bool retransmit, uint8_t cmd = RealTimeRunData_Debug) { // cmd value decides which parser is used to decode payload
 
 #ifdef __MQTT_AFTER_RX__
     boolean doMQTT = false;
@@ -390,12 +392,14 @@ void app::processPayload(bool retransmit) {
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
+                    mSys->InfoCmd = RealTimeRunData_Debug; // On success set back to default
 
+                    iv->getAssignment(cmd); // choose the parser
                     for(uint8_t i = 0; i < iv->listLen; i++) {
-                        iv->addValue(i, payload);
+                        iv->addValue(i, payload,cmd); // cmd value decides which parser is used to decode payload
                         yield();
                     }
-                    iv->doCalculations();
+                    iv->doCalculations(cmd); // cmd value decides which parser is used to decode payload
 
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
@@ -444,12 +448,10 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                     iv->powerLimit[1] = AbsolutNonPersistent;
                                 else
                                     iv->powerLimit[1] = std::stoi(token);
-                                DPRINTLN(DBG_VERBOSE, F("iv->powerLimit[1]=") + String(iv->powerLimit[1]));
-                                DPRINTLN(DBG_VERBOSE, F("length=") + String(length));
                                 if (length<=5){ // if (std::stoi((char*)payload) > 0) more error handling powerlimit needed?
                                     if (iv->powerLimit[1] >= AbsolutNonPersistent && iv->powerLimit[1] <= RelativPersistent){
                                         iv->devControlCmd = ActivePowerContr;
-                                        iv->powerLimit[0] = std::stoi((char*)payload);
+                                        iv->powerLimit[0] = std::stoi(std::string((char*)payload, (unsigned int)length)); // THX to @silversurfer
                                         if (iv->powerLimit[1] & 0x0001)
                                             DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
                                         else
@@ -517,7 +519,7 @@ String app::getStatistics(void) {
         iv = mSys->getInverterByPos(i);
         if(NULL != iv) {
             bool avail = true;
-            content += F("Inverter '") + String(iv->name) + F("' is ");
+            content += F("Inverter '") + String(iv->name) + F(" (FW-Version: ") + String(iv->fwVersion) +F(")") + F("' is ");
             if(!iv->isAvailable(mTimestamp)) {
                 content += F("not ");
                 avail = false;
@@ -935,4 +937,16 @@ void app::setupMqtt(void) {
             }*/
         }
     }
+}
+
+//-----------------------------------------------------------------------------
+void app::resetPayload(Inverter<>* iv)
+{
+    // reset payload data
+    memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
+    mPayload[iv->id].retransmits = 0;
+    mPayload[iv->id].maxPackId = 0;
+    mPayload[iv->id].complete = false;
+    mPayload[iv->id].requested = true;
+    mPayload[iv->id].ts = mTimestamp;
 }

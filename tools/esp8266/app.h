@@ -69,6 +69,7 @@ class app {
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
+        void resetPayload(Inverter<>* iv);
         String getStatistics(void);
         String getLiveData(void);
         String getJson(void);
@@ -147,9 +148,10 @@ class app {
         void loadDefaultConfig(void);
         void loadEEpconfig(void);
         void setupMqtt(void);
-
+        
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
+        void processPayload(bool retransmit, uint8_t cmd);
 
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);

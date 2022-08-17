@@ -417,9 +417,9 @@ void web::showJson(void) {
     mWeb->send(200, F("application/json"), mMain->getJson());
 }
 
-
 //-----------------------------------------------------------------------------
-void web::showWebApi(void) {
+void web::showWebApi(void)
+{
     DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
     DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
     const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
@@ -429,39 +429,50 @@ void web::showWebApi(void) {
     deserializeJson(response, mWeb->arg("plain"));
     // ToDo: error handling for payload
     uint8_t iv_id = response["inverter"];
-    if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
-        mMain->mSys->InfoCmd = response["cmd"];
-        if (mMain->mSys->InfoCmd == AlarmData){
-            Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
-            if (NULL != iv){
+    Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
+    if (NULL != iv)
+    {
+        if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
+        {
+            mMain->mSys->InfoCmd = response["cmd"];
+            mMain->resetPayload(iv); // start request from new
+            // process payload from web request corresponding to the cmd
+            if (mMain->mSys->InfoCmd == AlarmData)
                 iv->alarmMesIndex = response["payload"];
-            }
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
         }
-        DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
-    }
-    if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL){
-        if(response["cmd"] == (uint8_t)ActivePowerContr){
-            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
-                Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
+        
+
+        if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL)
+        {
+            if (response["cmd"] == (uint8_t)ActivePowerContr)
+            {
                 uint16_t webapiPayload = response["payload"];
                 uint16_t webapiPayload2 = response["payload2"];
-                if (webapiPayload > 0 && webapiPayload < 10000){
+                if (webapiPayload > 0 && webapiPayload < 10000)
+                {
                     iv->devControlCmd = ActivePowerContr;
                     iv->powerLimit[0] = webapiPayload;
-                    if (webapiPayload2 > 0){ 
+                    if (webapiPayload2 > 0)
+                    {
                         iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
-                    } else { // if not set, set it to 0x0000 default
+                    }
+                    else
+                    {                                             // if not set, set it to 0x0000 default
                         iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporay in Watt absolut
                     }
-                    if (iv->powerLimit[1] & 0x0001 ){
-                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API") );    
-                    } else {
-                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API") );
+                    if (iv->powerLimit[1] & 0x0001)
+                    {
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API"));
+                    }
+                    else
+                    {
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API"));
                     }
                     iv->devControlRequest = true; // queue it in the request loop
                 }
             }
         }
     }
-    mWeb->send ( 200, "text/json", "{success:true}" );
+    mWeb->send(200, "text/json", "{success:true}");
 }
