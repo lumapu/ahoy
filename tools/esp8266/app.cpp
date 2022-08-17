@@ -145,7 +145,7 @@ void app::loop(void) {
                         switch (p->packet[12]){
                         case ActivePowerContr:
                             if (iv->devControlCmd >= ActivePowerContr && iv->devControlCmd <= PFSet){ // ok inverter accepted the set point copy it to dtu eeprom
-                                if (iv->powerLimit[1]>0){ // User want to have it persistent
+                                if ((iv->powerLimit[1] & 0xff00) >0){ // User want to have it persistent
                                     mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit[0]);
                                     mEep->write(ADDR_INV_PWR_LIM_CON + iv->id * 2,iv->powerLimit[1]);
                                     updateCrc();
