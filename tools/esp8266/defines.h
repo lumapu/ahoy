@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       12
+#define VERSION_PATCH       14
 
 
 //-------------------------------------
@@ -58,10 +58,10 @@ typedef enum {
 } DevControlCmdType;
 
 typedef enum { // ToDo: to be verified by field tests
-    AbsolutNonPersistent = 0x0000, // 0
-    RelativNonPersistent = 0x0001, // 1
-    AbsolutPersistent = 0x0100,    // 256
-    RelativPersistent = 0x0101  // 257
+    AbsolutNonPersistent    = 0UL,  // 0x0000
+    RelativNonPersistent    = 1UL,  // 0x0001
+    AbsolutPersistent       = 256UL, // 0x0100
+    RelativPersistent       = 257UL // 0x0101
 } PowerLimitControlType;
 
 // minimum serial interval

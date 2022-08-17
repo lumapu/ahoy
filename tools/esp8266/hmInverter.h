@@ -70,6 +70,7 @@ class Inverter {
         byteAssign_t* assign;   // type of inverter
         uint8_t       listLen;  // length of assignments
         uint16_t      alarmMesIndex; // Last recorded Alarm Message Index
+        uint16_t      fwVersion; // Firmware Version from Info Command Request
         uint16_t      powerLimit[2];  // limit power output
         uint8_t       devControlCmd;  // carries the requested cmd
         bool          devControlRequest; // true if change needed
@@ -89,6 +90,7 @@ class Inverter {
             devControlRequest = false;
             devControlCmd = 0xff;
             initialized = false;
+            fwVersion = 0;
         }
 
         ~Inverter() {
@@ -131,7 +133,7 @@ class Inverter {
             return assign[pos].ch;
         }
 
-        void addValue(uint8_t pos, uint8_t buf[]) {
+        void addValue(uint8_t pos, uint8_t buf[],uint8_t cmd) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:addValue"));
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
@@ -145,9 +147,18 @@ class Inverter {
 
                 record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
             }
-            // get last alarm message index and save it in the inverter instance
-            if (getPosByChFld(0, FLD_ALARM_MES_ID) == pos){ 
-                alarmMesIndex = record[pos];
+            if (cmd == RealTimeRunData_Debug) {
+                // get last alarm message index and save it in the inverter object
+                if (getPosByChFld(0, FLD_ALARM_MES_ID) == pos){ 
+                    alarmMesIndex = record[pos];
+                }
+            }
+            if (cmd == InverterDevInform_All) {
+                // get at least the firmware version and save it to the inverter object
+                if (getPosByChFld(0, FLD_FW_VERSION) == pos){ 
+                    fwVersion = record[pos];
+                    DPRINT(DBG_DEBUG, F("Inverter FW-Version: ") + String(fwVersion));
+                }
             }
         }
 
@@ -156,13 +167,16 @@ class Inverter {
             return record[pos];
         }
 
-        void doCalculations(void) {
+        void doCalculations(uint8_t cmd=RealTimeRunData_Debug) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:doCalculations"));
-            for(uint8_t i = 0; i < listLen; i++) {
-                if(CMD_CALC == assign[i].div) {
-                    record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
+            getAssignment(cmd);
+            if (cmd == RealTimeRunData_Debug){
+                for(uint8_t i = 0; i < listLen; i++) {
+                    if(CMD_CALC == assign[i].div) {
+                        record[i] = calcFunctions<RECORDTYPE>[assign[i].start].func(this, assign[i].num);
+                    }
+                    yield();
                 }
-                yield();
             }
         }
 
@@ -185,6 +199,36 @@ class Inverter {
             return ts;
         }
 
+        void getAssignment(uint8_t cmd=RealTimeRunData_Debug) {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getAssignment"));
+            if(cmd == RealTimeRunData_Debug){
+                if(INV_TYPE_1CH == type) {
+                    listLen  = (uint8_t)(HM1CH_LIST_LEN);
+                    assign   = (byteAssign_t*)hm1chAssignment;
+                    channels = 1;
+                }
+                else if(INV_TYPE_2CH == type) {
+                    listLen  = (uint8_t)(HM2CH_LIST_LEN);
+                    assign   = (byteAssign_t*)hm2chAssignment;
+                    channels = 2;
+                }
+                else if(INV_TYPE_4CH == type) {
+                    listLen  = (uint8_t)(HM4CH_LIST_LEN);
+                    assign   = (byteAssign_t*)hm4chAssignment;
+                    channels = 4;
+                }
+                else {
+                    listLen  = 0;
+                    channels = 0;
+                    assign   = NULL;
+                }
+            }
+            if(cmd == InverterDevInform_All){
+                listLen  = (uint8_t)(HMINFO_LIST_LEN);
+                assign   = (byteAssign_t*)InfoAssignment;
+            }
+        }
+
     private:
         void toRadioId(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:toRadioId"));
@@ -194,30 +238,6 @@ class Inverter {
             radioId.b[2] = serial.b[2];
             radioId.b[1] = serial.b[3];
             radioId.b[0] = 0x01;
-        }
-
-        void getAssignment(void) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getAssignment"));
-            if(INV_TYPE_1CH == type) {
-                listLen  = (uint8_t)(HM1CH_LIST_LEN);
-                assign   = (byteAssign_t*)hm1chAssignment;
-                channels = 1;
-            }
-            else if(INV_TYPE_2CH == type) {
-                listLen  = (uint8_t)(HM2CH_LIST_LEN);
-                assign   = (byteAssign_t*)hm2chAssignment;
-                channels = 2;
-            }
-            else if(INV_TYPE_4CH == type) {
-                listLen  = (uint8_t)(HM4CH_LIST_LEN);
-                assign   = (byteAssign_t*)hm4chAssignment;
-                channels = 4;
-            }
-            else {
-                listLen  = 0;
-                channels = 0;
-                assign   = NULL;
-            }
         }
 };
 
