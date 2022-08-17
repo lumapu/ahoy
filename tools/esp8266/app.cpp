@@ -459,7 +459,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                     }
                                     iv->devControlRequest = true;
                                 } else {
-                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String(std::string((char*)payload, (unsigned int)length));
+                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char*)payload));
                                 }
                                 break;
                             case TurnOn: // Turn On
