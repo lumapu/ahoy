@@ -18,7 +18,7 @@ class eep {
             
             #ifdef ESP32
                 if(!EEPROM.begin(4096)) {
-                    Serial.println(nvs_flash_init());
+                    nvs_flash_init();
                     EEPROM.begin(4096);
                 }
             #else
