@@ -130,3 +130,12 @@ typedef enum { // ToDo: to be verified by field tests
     RelativPersistent = 0x0101  // 257
 } PowerLimitControlType;
 ```
+    
+## Firmware Version collection
+Gather user inverter information here to understand what differs between some inverters.
+
+| Name             | FWVersion   | FWBuildYe     | FWBuildMo     | HWPartId     |
+| -----------------| ----------- | ----------- | ----------- | ----------- |
+| DanielR92        | 10016.000 | 2021.000 | 1012.000 | 100.000 |
+| isdor            | 10014.000 | 2021.000 | 1209.000 | 102.000 |
+| aschiffler       | 10012.000 | 2020.000 | 624.000 | 100.000 |
