@@ -134,8 +134,9 @@ typedef enum { // ToDo: to be verified by field tests
 ## Firmware Version collection
 Gather user inverter information here to understand what differs between some inverters.
 
-| Name             | FWVersion   | FWBuildYe     | FWBuildMo     | HWPartId     |
+| Name             | Inverter Typ | FWVersion   | FWBuildYe     | FWBuildMo     | HWPartId     |
 | -----------------| ----------- | ----------- | ----------- | ----------- |
-| DanielR92        | 10016.000 | 2021.000 | 1012.000 | 100.000 |
-| isdor            | 10014.000 | 2021.000 | 1209.000 | 102.000 |
-| aschiffler       | 10012.000 | 2020.000 | 624.000 | 100.000 |
+| DanielR92        | HM-1500 |  10016.000 | 2021.000 | 1012.000 | 100.000 |
+| isdor            | HM-300 | 10014.000 | 2021.000 | 1209.000 | 102.000 |
+| aschiffler       | HM-??? | 10012.000 | 2020.000 | 624.000 | 100.000 |
+| klahus1 | HM-300 | 10010.000 | 2020.000 | 707.000  | 102.000 |
