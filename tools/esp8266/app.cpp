@@ -459,7 +459,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                     }
                                     iv->devControlRequest = true;
                                 } else {
-                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char*)payload));
+                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String(std::string((char*)payload, (unsigned int)length));
                                 }
                                 break;
                             case TurnOn: // Turn On
@@ -481,7 +481,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                 iv->devControlCmd = ReactivePowerContr;
                                 if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
                                     iv->devControlCmd = ReactivePowerContr;
-                                    iv->powerLimit[0] = std::stoi((char*)payload);
+                                    iv->powerLimit[0] = std::stoi(std::string((char*)payload, (unsigned int)length));
                                     iv->powerLimit[1] = 0x0000; // if reactivepower limit is set via external interface --> set it temporay
                                     DPRINTLN(DBG_DEBUG, F("Reactivepower limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
                                     iv->devControlRequest = true;
