@@ -6,7 +6,16 @@
 #ifndef __MQTT_H__
 #define __MQTT_H__
 
-#include <ESP8266WiFi.h>
+#ifdef ESP8266
+    #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+    #include <WiFi.h>
+#endif
+
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
 #include <PubSubClient.h>
 #include "defines.h"
 
@@ -70,7 +79,9 @@ class mqtt {
         void reconnect(void) {
             DPRINTLN(DBG_DEBUG, F("mqtt.h:reconnect"));
             DPRINTLN(DBG_DEBUG, F("MQTT mClient->_state ") + String(mClient->state()) );
-            DPRINTLN(DBG_DEBUG, F("WIFI mEspClient.status ") + String(mEspClient.status()) );
+            #ifdef ESP8266
+                DPRINTLN(DBG_DEBUG, F("WIFI mEspClient.status ") + String(mEspClient.status()) );
+            #endif
             if(!mClient->connected()) {
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden, 

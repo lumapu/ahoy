@@ -3,6 +3,11 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 #include "web.h"
 
 #include "html/h/index_html.h"
@@ -17,15 +22,22 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
     mSysCfg  = sysCfg;
     mConfig  = config;
     mVersion = version;
-    mWeb = new ESP8266WebServer(80);
-    mUpdater = new ESP8266HTTPUpdateServer();
+    #ifdef ESP8266
+        mWeb     = new ESP8266WebServer(80);
+        mUpdater = new ESP8266HTTPUpdateServer();
+    #elif defined(ESP32)
+        mWeb     = new WebServer(80);
+        mUpdater = new HTTPUpdateServer();
+    #endif
     mUpdater->setup(mWeb);
 }
 
 
 //-----------------------------------------------------------------------------
 void web::setup(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
+        DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
     mWeb->on("/",               std::bind(&web::showIndex,         this));
     mWeb->on("/style.css",      std::bind(&web::showCss,           this));
     mWeb->on("/favicon.ico",    std::bind(&web::showFavicon,       this));
@@ -439,7 +451,9 @@ void web::showWebApi(void)
             // process payload from web request corresponding to the cmd
             if (mMain->mSys->InfoCmd == AlarmData)
                 iv->alarmMesIndex = response["payload"];
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String((uint16_t) response["payload"]));
+            //DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload "));
+        
         }
         
 

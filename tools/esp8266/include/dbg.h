@@ -5,6 +5,10 @@
 
 #ifndef __DBG_H__
 #define __DBG_H__
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
 
 //-----------------------------------------------------------------------------
 // available levels
@@ -17,7 +21,7 @@
 
 //-----------------------------------------------------------------------------
 // globally used level
-#define DEBUG_LEVEL DBG_INFO
+#define DEBUG_LEVEL DBG_VERBOSE
 
 #ifdef ARDUINO
   #include "Arduino.h"

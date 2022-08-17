@@ -28,4 +28,14 @@ def readVersion(path, infile):
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
 
+    versionout = version[:-1] + "_esp32_release.bin"
+    src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
+    dst = path + ".pio/build/out/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_esp32_debug.bin"
+    src = path + ".pio/build/esp32-wroom32-debug/firmware.bin"
+    dst = path + ".pio/build/out/" + versionout
+    os.rename(src, dst)
+    
 readVersion("../", "defines.h")

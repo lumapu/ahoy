@@ -3,22 +3,29 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 #include "app.h"
 #include <ArduinoJson.h>
 
 
 //-----------------------------------------------------------------------------
 app::app() {
+    Serial.begin(115200);
     DPRINTLN(DBG_VERBOSE, F("app::app"));
     mEep = new eep();
-    Serial.begin(115200);
-
-    mWifi = new wifi(this, &mSysConfig, &mConfig);
-
+    DPRINTLN(DBG_VERBOSE, F("app::wifi"));
+    mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
+DPRINTLN(DBG_VERBOSE, F("app::web"));
     mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
-    mWebInst->setup();
-
+    DPRINTLN(DBG_VERBOSE, F("app::setup"));
+    //mWebInst->setup();
+DPRINTLN(DBG_VERBOSE, F("app::reset"));
     resetSystem();
+    DPRINTLN(DBG_VERBOSE, F("app::config"));
     loadDefaultConfig();
 
     mSys = new HmSystemType();
@@ -433,7 +440,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
     const char *token = strtok(topic, "/");
     while (token != NULL)
     {   
-        if (std::strcmp(token,"devcontrol")==0){
+        if (strcmp(token,"devcontrol")==0){
             token = strtok(NULL, "/");
             uint8_t iv_id = std::stoi(token);
             if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){

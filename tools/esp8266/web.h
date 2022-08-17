@@ -7,8 +7,13 @@
 #define __WEB_H__
 
 #include "dbg.h"
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPUpdateServer.h>
+#ifdef ESP8266
+    #include <ESP8266WebServer.h>
+    #include <ESP8266HTTPUpdateServer.h>
+#elif defined(ESP32)
+    #include <WebServer.h>
+    #include <HTTPUpdateServer.h>
+#endif
 
 #include "app.h"
 
@@ -40,8 +45,13 @@ class web {
         void showWebApi(void);
 
     private:
-        ESP8266WebServer *mWeb;
-        ESP8266HTTPUpdateServer *mUpdater;
+        #ifdef ESP8266
+            ESP8266WebServer *mWeb;
+            ESP8266HTTPUpdateServer *mUpdater;
+        #elif defined(ESP32)
+            WebServer *mWeb;
+            HTTPUpdateServer *mUpdater;
+        #endif
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
