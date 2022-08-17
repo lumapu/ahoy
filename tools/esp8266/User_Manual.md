@@ -10,7 +10,7 @@ In the initial case or after click "erase settings" the fields for the inverter 
 Set at least the serial number and a name for each inverter, check the "reboot after save" and click the "Save" button.
 
 ## Active Power Limit via Setup Page
-I you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu a value of 65535 will be filled in.
+If you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu a value of 65535 will be filled in.
 That is the value you have to fill in case you want to operate the inverter without a active power limit.
 If the value is 65535 or -1 after another reboot the value will be set automatically to "100" and in the drop-down menu "relative in percent persistent" will be set. Of course you can do this also by your self.
 
@@ -32,12 +32,12 @@ The ahoy-dtu subscribes on the topic <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/# if 
 To set the absolut active power limit you have four options.
 
 
-| topic                                                           | payload     | note                                         |
-| --------------------------------------------------------------- | ----------- | -------------------------------------------- |
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11 OR <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/0 | [0..65535]  | active power limit in Watt, not persistent   |
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/256                                                         | [0...65535] | active power limit in Watt, persistent       |
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/1                                                           | [2...100]   | active power limit in percent not persistent |
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/257                                                         | [2...100]   | active power limit in percent persistent                                             |
+| topic                                                           | payload     | active power limit in                            | Condition      |
+| --------------------------------------------------------------- | ----------- | -------------------------------------------- | -------------- |
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11 OR <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/0 | [0..65535]  | Watt | not persistent 
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/256                                                         | [0...65535] | Watt       | persistent
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/1                                                           | [2...100]   | %  | not persistent
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/257                                                         | [2...100]   | % |  persistent
 
 ### Developer Information MQTT Interface
 <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/<DevControlCmdType>/<DATA2>
