@@ -22,7 +22,7 @@ app::app() {
 DPRINTLN(DBG_VERBOSE, F("app::web"));
     mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
-    //mWebInst->setup();
+    mWebInst->setup();
 DPRINTLN(DBG_VERBOSE, F("app::reset"));
     resetSystem();
     DPRINTLN(DBG_VERBOSE, F("app::config"));

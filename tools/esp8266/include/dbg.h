@@ -21,7 +21,7 @@
 
 //-----------------------------------------------------------------------------
 // globally used level
-#define DEBUG_LEVEL DBG_VERBOSE
+#define DEBUG_LEVEL DBG_INFO
 
 #ifdef ARDUINO
   #include "Arduino.h"
