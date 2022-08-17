@@ -434,10 +434,10 @@ void web::showWebApi(void)
     {
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
-            mMain->mSys->InfoCmd = response["cmd"];
-            mMain->resetPayload(iv); // start request from new
+            //mMain->resetPayload(iv); // start request from new
+            mMain->mSys->NextInfoCmd = response["cmd"];
             // process payload from web request corresponding to the cmd
-            if (mMain->mSys->InfoCmd == AlarmData)
+            if (mMain->mSys->NextInfoCmd == AlarmData)
                 iv->alarmMesIndex = response["payload"];
             DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
         }

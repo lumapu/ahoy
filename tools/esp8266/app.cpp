@@ -111,7 +111,6 @@ void app::loop(void) {
                             case InverterDevInform_Simple:
                             {
                                 DPRINT(DBG_INFO, "Response from inform simple\n");
-                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
                             case InverterDevInform_All:
@@ -122,19 +121,16 @@ void app::loop(void) {
                             case GetLossRate:
                             {
                                 DPRINT(DBG_INFO, "Response from get loss rate\n");
-                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
                             case AlarmData:
                             {
                                 DPRINT(DBG_INFO, "Response from AlarmData\n");
-                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
                             case AlarmUpdate:
                             {
                                 DPRINT(DBG_INFO, "Response from AlarmUpdate\n");
-                                mSys->InfoCmd = RealTimeRunData_Debug; // Set back to default
                                 break;
                             }
                             case RealTimeRunData_Debug:
@@ -392,7 +388,8 @@ void app::processPayload(bool retransmit, uint8_t cmd = RealTimeRunData_Debug) {
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
-                    mSys->InfoCmd = RealTimeRunData_Debug; // On success set back to default
+                    mSys->InfoCmd = mSys->NextInfoCmd; // On success set next
+                    mSys->NextInfoCmd = RealTimeRunData_Debug; // Set next to default. Can/will be overwritten by REST API
 
                     iv->getAssignment(cmd); // choose the parser
                     for(uint8_t i = 0; i < iv->listLen; i++) {

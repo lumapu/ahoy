@@ -58,7 +58,7 @@
 #define MAX_RF_PAYLOAD_SIZE     32
 
 // maximum total payload buffers (must be greater than the number of received frame fragments)
-#define MAX_PAYLOAD_ENTRIES     4
+#define MAX_PAYLOAD_ENTRIES     10
 
 // maximum requests for retransmits per payload (per inverter)
 #define DEF_MAX_RETRANS_PER_PYLD 5

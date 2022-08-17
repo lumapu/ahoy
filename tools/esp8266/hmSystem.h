@@ -19,7 +19,8 @@ class HmSystem {
         RadioType Radio;
         typedef BUFFER BufferType;
         BufferType BufCtrl;
-        InfoCmdType InfoCmd;
+        InfoCmdType NextInfoCmd; // For cmd-queue FIFO with one place
+        InfoCmdType InfoCmd;     // For cmd-queue FIFO with one place
         //DevControlCmdType DevControlCmd;        
 
         HmSystem() {
