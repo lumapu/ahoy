@@ -52,7 +52,10 @@ class HmSystem {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x41: p->type = INV_TYPE_2CH; break;
                     case 0x61: p->type = INV_TYPE_4CH; break;
-                    default: DPRINTLN(DBG_ERROR, F("unknown inverter type: 11") + String(p->serial.b[4], HEX)); break;
+                    default: 
+                        DPRINT(DBG_ERROR, F("unknown inverter type: 11"));
+                        DPRINTLN(DBG_ERROR, String(p->serial.b[4], HEX)); 
+                        break;
                 }
             }
             else
@@ -88,7 +91,7 @@ class HmSystem {
 
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
-            if((mInverter[pos].serial.u64 != 0ULL) || false == check)
+            if((mInverter[pos].initialized && mInverter[pos].serial.u64 != 0ULL) || false == check)
                 return &mInverter[pos];
             else
                 return NULL;
