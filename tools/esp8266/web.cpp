@@ -329,6 +329,7 @@ void web::showSave(void) {
                 iv->chMaxPwr[j] = mWeb->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                 mWeb->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
             }
+            iv->initialized = true;
         }
         if(mWeb->arg("invInterval") != "")
             mConfig->sendInterval = mWeb->arg("invInterval").toInt();
