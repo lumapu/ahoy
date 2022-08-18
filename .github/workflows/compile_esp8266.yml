@@ -1,4 +1,4 @@
-name: ESP8266
+name: Ahoy Release for ESP8266
 
 on:
   push:
@@ -13,33 +13,63 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: main
-    - name: Cache pip
+    - uses: benjlevesque/short-sha@v1.2
+      id: short-sha
+      with:
+        length: 7
+    - name: cache-pip
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Cache PlatformIO
+    - name: cache-platformio
       uses: actions/cache@v3
       with:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
-    - name: Set up Python
+    - name: setup-python
       uses: actions/setup-python@v3
-    - name: Install PlatformIO
+    - name: install-platformio
       run: |
         python -m pip install --upgrade pip
         pip install --upgrade platformio
-    - name: Update html
+    - name: update-html
       working-directory: tools/esp8266/html
       run: python convert.py
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266
-    - name: rename
+      run: pio run -d tools/esp8266 --environment esp8266-release
+    - name: rename-binary-files
+      id: rename-binary-files
       working-directory: tools/esp8266/scripts
       run: python getVersion.py
-    - uses: actions/upload-artifact@v3
+    - name: create-release
+      id: create-release
+      uses: actions/create-release@v1
       with:
-        name: esp8266_ahoy
-        path: tools/esp8266/.pio/build/out/*.bin
+        draft: false
+        prerelease: false
+        release_name: ${{ steps.rename-binary-files.outputs.name }}
+        tag_name: ${{ github.ref }}
+        body_path: tools/esp8266/CHANGES.md
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: set-version
+      uses: cschleiden/replace-tokens@v1
+      with:
+        files: tools/esp8266/User_Manual.md
+      env:
+          VERSION: ${{ steps.rename-binary-files.outputs.name }}
+    - name: create-artifact
+      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip tools/esp8266/.pio/build/out/* tools/esp8266/User_Manual.md
+    - name: upload-release
+      id: upload-release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ./${{ steps.rename-binary-files.outputs.name }}.zip
+        asset_name: ${{ steps.rename-binary-files.outputs.name }}.zip
+        asset_content_type: application/zip
