@@ -109,15 +109,16 @@ typedef enum { // ToDo: to be verified by field tests
 #define SER_DEBUG_LEN           1 // uint8_t
 #define SER_INTERVAL_LEN        2 // uint16_t
 
-
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
     char broker[MQTT_ADDR_LEN];
     uint16_t port;
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
-} mqttConfig_t;
-
+} /*__attribute__((__packed__))*/ mqttConfig_t;
+#pragma pack(pop)   // restore original alignment from stack
 typedef struct {
     char deviceName[DEVNAME_LEN];
 
@@ -126,6 +127,8 @@ typedef struct {
     char stationPwd[PWD_LEN];
 } sysConfig_t;
 
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
     // nrf24
     uint16_t sendInterval;
@@ -146,7 +149,8 @@ typedef struct {
     uint16_t serialInterval;
     bool serialShowIv;
     bool serialDebug;
-} config_t;
+} /*__attribute__((__packed__))*/ config_t;
+#pragma pack(pop)   // restore original alignment from stack
 
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
