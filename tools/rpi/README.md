@@ -80,6 +80,21 @@ python3 getting_started.py # to test and see whether RF24 class can be loaded as
 
 If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
 
+Required python modules
+-----------------------
+
+Some modules are not installed by default on a RaspberryPi, therefore add them manually:
+
+```
+pip install crcmod pyyaml paho-mqtt
+```
+
+Configuration
+-------------
+
+Local settings are read from ahoy.yml  
+An example is provided as ahoy.yml.example
+
 
 Example Run
 -----------
@@ -98,7 +113,7 @@ Python parameters
 
 The application describes itself
 ```
-python -m hoymiles --help
+python3 -m hoymiles --help
 usage: hoymiles [-h] -c [CONFIG_FILE] [--log-transactions] [--verbose]
 
 Ahoy - Hoymiles solar inverter gateway
@@ -156,13 +171,6 @@ Use basic command line tools to get an idea what you recorded. For example:
 
 A brief example log is supplied in the `example-logs` folder.
 
-
-
-Configuration
--------------
-
-Local settings are read from ahoy.yml  
-An example is provided as ahoy.yml.example
 
 
 
