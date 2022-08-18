@@ -17,16 +17,10 @@ app::app() {
     Serial.begin(115200);
     DPRINTLN(DBG_VERBOSE, F("app::app"));
     mEep = new eep();
-    DPRINTLN(DBG_VERBOSE, F("app::wifi"));
     mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
-DPRINTLN(DBG_VERBOSE, F("app::web"));
-    mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
-    DPRINTLN(DBG_VERBOSE, F("app::setup"));
-    mWebInst->setup();
-DPRINTLN(DBG_VERBOSE, F("app::reset"));
+
     resetSystem();
-    DPRINTLN(DBG_VERBOSE, F("app::config"));
-    loadDefaultConfig();
+   loadDefaultConfig();
 
     mSys = new HmSystemType();
 }
@@ -34,8 +28,7 @@ DPRINTLN(DBG_VERBOSE, F("app::reset"));
 
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
-    DPRINTLN(DBG_VERBOSE, F("app::setup"));
-
+ 
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
     mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT)-(ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
     loadEEpconfig();
@@ -46,6 +39,9 @@ void app::setup(uint32_t timeout) {
         setupMqtt();
     #endif
     mSys->setup(&mConfig);
+
+    mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
+    mWebInst->setup();
 }
 
 //-----------------------------------------------------------------------------
