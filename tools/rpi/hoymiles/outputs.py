@@ -240,7 +240,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
 
         data = response.__dict__()
 
-        ts = int(round(time.time() * 1000))
+        ts = int(round(data['time'].timestamp() * 1000))
 
         # AC Data
         phase_id = 0
