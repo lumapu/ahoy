@@ -100,6 +100,9 @@ def poll_inverter(inverter, retries=4):
                 if influx_client:
                     influx_client.store_status(result)
 
+                if volkszaehler_client:
+                    volkszaehler_client.store_status(result)
+
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
     Publish StatusResponse object
@@ -246,6 +249,13 @@ if __name__ == '__main__':
                 org=influx_config.get('org', ''),
                 bucket=influx_config.get('bucket', None),
                 measurement=influx_config.get('measurement', 'hoymiles'))
+
+    volkszaehler_client = None
+    volkszaehler_config = ahoy_config.get('volkszaehler', {})
+    if volkszaehler_config and not volkszaehler_config.get('disabled', False):
+        from .outputs import VolkszaehlerOutputPlugin
+        volkszaehler_client = VolkszaehlerOutputPlugin(
+                volkszaehler_config)
 
     g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
     for g_inverter in ahoy_config.get('inverters', []):

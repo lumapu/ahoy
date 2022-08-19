@@ -201,3 +201,78 @@ class MqttOutputPlugin(OutputPluginFactory):
             self.client.publish(f'{topic}/pf', data['powerfactor'])
         self.client.publish(f'{topic}/frequency', data['frequency'])
         self.client.publish(f'{topic}/temperature', data['temperature'])
+
+try:
+    import requests
+    import time
+except ModuleNotFoundError:
+    pass
+
+class VolkszaehlerOutputPlugin(OutputPluginFactory):
+    def __init__(self, config, **params):
+        """
+        Initialize VolkszaehlerOutputPlugin
+        """
+        super().__init__(**params)
+
+        self.baseurl = config.get('url', 'http://localhost/middleware/')
+        self.channels = dict()
+        for channel in config.get('channels', []):
+            uid = channel.get('uid')
+            ctype = channel.get('type')
+            if uid and ctype:
+                self.channels[ctype] = uid
+
+    def store_status(self, response, **params):
+        """
+        Publish StatusResponse object
+
+        :param hoymiles.decoders.StatusResponse response: StatusResponse object
+
+        :raises ValueError: when response is not instance of StatusResponse
+        """
+
+        if not isinstance(response, StatusResponse):
+            raise ValueError('Data needs to be instance of StatusResponse')
+
+        if len(self.channels) == 0:
+            return
+
+        data = response.__dict__()
+
+        ts = int(round(data['time'].timestamp() * 1000))
+
+        # AC Data
+        phase_id = 0
+        for phase in data['phases']:
+            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
+            self.try_publish(ts, f'ac_voltage{phase_id}', phase['voltage'])
+            self.try_publish(ts, f'ac_current{phase_id}', phase['current'])
+            phase_id = phase_id + 1
+
+        # DC Data
+        string_id = 0
+        for string in data['strings']:
+            self.try_publish(ts, f'dc_power{string_id}', string['power'])
+            self.try_publish(ts, f'dc_voltage{string_id}', string['voltage'])
+            self.try_publish(ts, f'dc_current{string_id}', string['current'])
+            self.try_publish(ts, f'dc_total{string_id}', string['energy_total'])
+            self.try_publish(ts, f'dc_daily{string_id}', string['energy_daily'])
+            string_id = string_id + 1
+        # Global
+        if data['powerfactor'] is not None:
+            self.try_publish(ts, f'powerfactor', data['powerfactor'])
+        self.try_publish(ts, f'frequency', data['frequency'])
+        self.try_publish(ts, f'temperature', data['temperature'])
+
+    def try_publish(self, ts, ctype, value):
+        if not ctype in self.channels:
+            return
+        uid = self.channels[ctype]
+        url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
+        try:
+            r = requests.get(url)
+            if r.status_code != 200:
+                raise ValueError('Could not send request (%s)' % url)
+        except ConnectionError as e:
+            raise ValueError('Could not send request (%s)' % e)

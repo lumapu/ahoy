@@ -28,6 +28,33 @@ ahoy:
     bucket: 'telegraf/autogen'
     measurement: 'hoymiles'
 
+  volkszaehler:
+    disabled: true
+    url: 'http://localhost/middleware/'
+    channels:
+      - type: 'temperature'
+        uid:  'ad578a40-1d97-11ed-8e8b-fda01a416575'
+      - type: 'frequency'
+        uid:  ''
+      - type: 'ac_power0'
+        uid:  '7ca5ac50-1e41-11ed-927f-610c4cb2c69e'
+      - type: 'ac_voltage0'
+        uid:  '9a38e2e0-1d94-11ed-b539-25f8607ac030'
+      - type: 'ac_current0'
+        uid:  'a9a4daf0-1e41-11ed-b68c-eb73eef3d21d'
+      - type: 'dc_power0'
+        uid:  '38eb3ca0-1e53-11ed-b830-792e70a592fa'
+      - type: 'dc_voltage0'
+        uid:  ''
+      - type: 'dc_current0'
+        uid:  ''
+      - type: 'dc_power1'
+        uid:  '51c0e9d0-1e53-11ed-b574-8bc81547eb8f'
+      - type: 'dc_voltage1'
+        uid:  ''
+      - type: 'dc_current1'
+        uid:  ''
+
   dtu:
     serial: 99978563001
 
