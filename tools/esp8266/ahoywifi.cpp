@@ -3,7 +3,11 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#include "wifi.h"
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
+#include "ahoywifi.h"
 
 
 // NTP CONFIG
@@ -12,7 +16,7 @@
 
 
 //-----------------------------------------------------------------------------
-wifi::wifi(app *main, sysConfig_t *sysCfg, config_t *config) {
+ahoywifi::ahoywifi(app *main, sysConfig_t *sysCfg, config_t *config) {
     mMain    = main;
     mSysCfg  = sysCfg;
     mConfig  = config;
@@ -29,7 +33,7 @@ wifi::wifi(app *main, sysConfig_t *sysCfg, config_t *config) {
 
 
 //-----------------------------------------------------------------------------
-void wifi::setup(uint32_t timeout, bool settingValid) {
+void ahoywifi::setup(uint32_t timeout, bool settingValid) {
     mWifiStationTimeout = timeout;
     #ifndef AP_ONLY
         if(false == mApActive)
@@ -58,7 +62,7 @@ void wifi::setup(uint32_t timeout, bool settingValid) {
 
 
 //-----------------------------------------------------------------------------
-bool wifi::loop(void) {
+bool ahoywifi::loop(void) {
     if(mApActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
@@ -98,7 +102,7 @@ bool wifi::loop(void) {
 
 
 //-----------------------------------------------------------------------------
-void wifi::setupAp(const char *ssid, const char *pwd) {
+void ahoywifi::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
     IPAddress apIp(192, 168, 1, 1);
 
@@ -118,7 +122,7 @@ void wifi::setupAp(const char *ssid, const char *pwd) {
 
 
 //-----------------------------------------------------------------------------
-bool wifi::setupStation(uint32_t timeout) {
+bool ahoywifi::setupStation(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setupStation"));
     int32_t cnt;
     bool startAp = false;
@@ -166,12 +170,12 @@ bool wifi::setupStation(uint32_t timeout) {
 
 
 //-----------------------------------------------------------------------------
-bool wifi::getApActive(void) {
+bool ahoywifi::getApActive(void) {
     return mApActive;
 }
 
 //-----------------------------------------------------------------------------
-time_t wifi::getNtpTime(void) {
+time_t ahoywifi::getNtpTime(void) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::getNtpTime"));
     time_t date = 0;
     IPAddress timeServer;
@@ -209,7 +213,7 @@ time_t wifi::getNtpTime(void) {
 
 
 //-----------------------------------------------------------------------------
-void wifi::sendNTPpacket(IPAddress& address) {
+void ahoywifi::sendNTPpacket(IPAddress& address) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};
 
@@ -232,7 +236,7 @@ void wifi::sendNTPpacket(IPAddress& address) {
 //-----------------------------------------------------------------------------
 // calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
 // from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
-time_t wifi::offsetDayLightSaving (uint32_t local_t) {
+time_t ahoywifi::offsetDayLightSaving (uint32_t local_t) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::offsetDayLightSaving"));
     int m = month (local_t);
     if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez

@@ -6,6 +6,11 @@
 #ifndef __HM_INVERTER_H__
 #define __HM_INVERTER_H__
 
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 #include "hmDefines.h"
 
 /**
