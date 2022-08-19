@@ -21,7 +21,7 @@
 #include "CircularBuffer.h"
 #include "hmSystem.h"
 #include "mqtt.h"
-#include "wifi.h"
+#include "ahoywifi.h"
 #include "web.h"
 
 //  hier läst sich das Verhalten der app in Bezug auf MQTT
@@ -56,7 +56,7 @@ typedef struct {
 } invPayload_t;
 
 
-class wifi;
+class ahoywifi;
 class web;
 
 class app {
@@ -200,10 +200,19 @@ class app {
 
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
-            uint32_t free;
-            uint16_t max;
-            uint8_t frag;
-            ESP.getHeapStats(&free, &max, &frag);
+            #ifdef ESP8266
+                uint32_t free;
+                uint16_t max;
+                uint8_t frag;
+                ESP.getHeapStats(&free, &max, &frag);
+            #elif defined(ESP32)
+                uint32_t free;
+                uint32_t max;
+                uint8_t frag;
+                free = ESP.getFreeHeap();
+                max = ESP.getMaxAllocHeap();
+                frag = 0;
+            #endif
             DPRINT(DBG_VERBOSE, F("free: ") + String(free));
             DPRINT(DBG_VERBOSE, F(" - max: ") + String(max) + "%");
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
@@ -224,7 +233,7 @@ class app {
 
         bool mShowRebootRequest;
 
-        wifi *mWifi;
+        ahoywifi *mWifi;
         web *mWebInst;
         sysConfig_t mSysConfig;
         config_t mConfig;

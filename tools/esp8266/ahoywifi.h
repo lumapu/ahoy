@@ -3,12 +3,17 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#ifndef __WIFI_H__
-#define __WIFI_H__
+#ifndef __AHOYWIFI_H__
+#define __AHOYWIFI_H__
 
 #include "dbg.h"
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#ifdef ESP8266
+    #include <ESP8266WebServer.h>
+    #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+    #include <WebServer.h>
+    #include <WiFi.h>
+#endif
 
 // NTP
 #include <WiFiUdp.h>
@@ -21,10 +26,10 @@
 
 class app;
 
-class wifi {
+class ahoywifi {
     public:
-        wifi(app *main, sysConfig_t *sysCfg, config_t *config);
-        ~wifi() {}
+        ahoywifi(app *main, sysConfig_t *sysCfg, config_t *config);
+        ~ahoywifi() {}
 
         void setup(uint32_t timeout, bool settingValid);
         bool loop(void);
@@ -32,7 +37,7 @@ class wifi {
         bool setupStation(uint32_t timeout);
         bool getApActive(void);
         time_t getNtpTime(void);
-
+        
     private:
         void sendNTPpacket(IPAddress& address);
         time_t offsetDayLightSaving (uint32_t local_t);
@@ -52,4 +57,4 @@ class wifi {
         bool wifiWasEstablished;
 };
 
-#endif /*__WIFI_H__*/
+#endif /*__AHOYWIFI_H__*/

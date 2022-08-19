@@ -5,6 +5,10 @@
 
 #ifndef __DBG_H__
 #define __DBG_H__
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
 
 //-----------------------------------------------------------------------------
 // available levels

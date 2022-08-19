@@ -8,11 +8,23 @@
 
 #include "Arduino.h"
 #include <EEPROM.h>
+#ifdef ESP32
+    #include <nvs_flash.h>
+#endif
 
 class eep {
     public:
         eep() {
-            EEPROM.begin(4096);
+            
+            #ifdef ESP32
+                if(!EEPROM.begin(4096)) {
+                    nvs_flash_init();
+                    EEPROM.begin(4096);
+                }
+            #else
+                EEPROM.begin(4096);
+            #endif
+
         }
         ~eep() {
             EEPROM.end();
