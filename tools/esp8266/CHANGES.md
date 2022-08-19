@@ -1,12 +1,19 @@
 # Changelog
 
 - v0.5.15
+    * Bug fix: mqtt payload handling (thx @klahus1, silverserver)
+    * Bug fix: eeprom alignment fixed (thx @klahus1)
+    * mqtt reconnect improvements (thx @tastendruecker123 , @HorstG-57 )
+    * simple command scheduler (one place fifo)
+    * InverterDevInform_All Command parser and output to mqtt
+    * New workflow to build github release
+    * Added User_Manual.md
+
 - v0.5.14
 - v0.5.13
 - v0.5.12
 - v0.5.11
 - v0.5.10
-(*) EEPROM changes require settings to be changed, your settings will be overwritten and need to be set again!
 - v0.5.9 *fix PowerLimit PowerPFDev.Desc=0x0001 for permanent
 - v0.5.8 *fix #146 device name in setup
 - v0.5.7 *add collapsible setup
@@ -63,3 +70,4 @@
 - v0.3.2 compile of merge, binary published on https://www.mikrocontroller.net/topic/525778?goto=7051413#7051413
 - v0.3.1 fix: doCalculations was not called
 - v0.3.0 version 0.3.0, added unit test
+(*) EEPROM changes require settings to be changed, your settings will be overwritten and need to be set again!
