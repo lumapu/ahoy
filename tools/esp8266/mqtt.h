@@ -54,7 +54,7 @@ class mqtt {
 
         bool isConnected(bool doRecon = false) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:isConnected"));
-            if(doRecon)
+            if(doRecon && !mClient->connected())
                 reconnect();
             return mClient->connected();
         }
@@ -71,6 +71,7 @@ class mqtt {
             DPRINTLN(DBG_DEBUG, F("mqtt.h:reconnect"));
             DPRINTLN(DBG_DEBUG, F("MQTT mClient->_state ") + String(mClient->state()) );
             DPRINTLN(DBG_DEBUG, F("WIFI mEspClient.status ") + String(mEspClient.status()) );
+            boolean resub = false;
             if(!mClient->connected()) {
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden, 
@@ -78,16 +79,18 @@ class mqtt {
                     mClient->setServer(mCfg->broker, mCfg->port);
                     mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
                     if((strlen(mCfg->user) > 0) && (strlen(mCfg->pwd) > 0))
-                        mClient->connect(mDevName, mCfg->user, mCfg->pwd);
+                        resub = mClient->connect(mDevName, mCfg->user, mCfg->pwd);
                     else
-                        mClient->connect(mDevName);
+                        resub = mClient->connect(mDevName);
                 }
                 // ein Subscribe ist nur nach einem connect notwendig
-                char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
-                // ToDo: "/devcontrol/#" is hardcoded 
-                snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg->topic);
-                DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
-                mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
+                if(resub) {
+                    char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
+                    // ToDo: "/devcontrol/#" is hardcoded 
+                    snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg->topic);
+                    DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
+                    mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
+                }
             }
         }
 
