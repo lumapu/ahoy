@@ -186,7 +186,7 @@ void app::loop(void) {
     if(checkTicker(&mTicker, 1000)) {
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
-            mMqtt.isConnected(true);
+            mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
             char topic[30], val[10];
             for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
