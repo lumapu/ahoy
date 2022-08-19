@@ -37,7 +37,6 @@ p.lic, p.lic a {
 .s_content {
     display: none;
     overflow: hidden;
-    margin-bottom: 20px;
 
 }
 
@@ -86,7 +85,6 @@ a.erase {
     padding: 7px;
     display: inline-block;
     margin-top: 30px;
-    float: right;
 }
 
 #content {
@@ -149,7 +147,12 @@ label {
     display: inline-block;
     font-size: 12pt;
     padding-right: 10px;
-    margin-left: 15px;
+    margin: 10px 0px 0px 15px;
+    vertical-align: top;
+}
+
+fieldset {
+    margin-bottom: 15px;
 }
 
 .left {
@@ -179,7 +182,7 @@ div.ch {
     padding-bottom: 20px;
 }
 
-div.ch .value, div.ch .info, div.ch .head, div.ch-iv  .value, div.ch-iv .info, div.ch-iv .head {
+div.ch .value, div.ch .info, div.ch .head, div.ch-iv .value, div.ch-iv .info, div.ch-iv .head {
     color: #fff;
     display: block;
     width: 100%;
@@ -226,6 +229,11 @@ div.ts {
     background-color: #ddd;
     border-top: 7px solid #999;
     padding: 7px;
+}
+
+div.modpwr, div.modname {
+  width:70%;
+  display: inline-block;
 }
 
 #note {

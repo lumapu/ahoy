@@ -205,21 +205,22 @@ void web::showSetup(void) {
         // UGLY! But I do not know it a better way --//
         
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
-        inv += F("ModPwr\">Max Module Power (Wp)</label>");
+        inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
         for(uint8_t j = 0; j < 4; j++) {
             inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
             if(NULL != iv)
                 inv += String(iv->chMaxPwr[j]);
             inv += F("\"/ maxlength=\"4\">");
         }
-        inv += F("<br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
-        inv += F("ModName\">Module Name</label>");
+        inv += F("</div><br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
+        inv += F("ModName\">Module Name</label><div class=\"modname\">");
         for(uint8_t j = 0; j < 4; j++) {
             inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
             if(NULL != iv)
                 inv += String(iv->chName[j]);
             inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
         }
+        inv += F("</div>");
     }
     html.replace(F("{INVERTERS}"), String(inv));
 

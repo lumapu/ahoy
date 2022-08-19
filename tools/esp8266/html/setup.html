@@ -55,9 +55,11 @@
                 <a class="erase" href="/erase">ERASE SETTINGS (not WiFi)</a>
 
                 <form method="post" action="{IP}/save">
-                    <p class="des">Device Host Name</p>
-                    <label for="device">Device Name</label>
-                    <input type="text" class="text" name="device" value="{DEVICE}"/>
+                    <fieldset>
+                        <legend class="des">Device Host Name</legend>
+                        <label for="device">Device Name</label>
+                        <input type="text" class="text" name="device" value="{DEVICE}"/>
+                    </fieldset>
                 
                     <button type="button" class="s_collapsible">WiFi</button>
                     <div class="s_content">
@@ -133,7 +135,6 @@
                     </fieldset>
                     </div>
 
-                    <p class="des">&nbsp;</p>
                     <label for="reboot">Reboot device after successful save</label>
                     <input type="checkbox" class="cb" name="reboot"/>
                     <input type="submit" value="save" class="btn" />
