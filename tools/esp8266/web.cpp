@@ -443,19 +443,19 @@ void web::showWebApi(void)
     deserializeJson(response, mWeb->arg("plain"));
     // ToDo: error handling for payload
     uint8_t iv_id = response["inverter"];
+    uint8_t cmd = response["cmd"];
     Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
     if (NULL != iv)
     {
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
-            //mMain->resetPayload(iv); // start request from new
-            mMain->mSys->NextInfoCmd = response["cmd"];
-            // process payload from web request corresponding to the cmd
-            if (mMain->mSys->NextInfoCmd == AlarmData)
+            // if the AlarmData is requested set the Alarm Index to the requested one
+            if (cmd == AlarmData){
                 iv->alarmMesIndex = response["payload"];
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String((uint16_t) response["payload"]));
-            //DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload "));
-        
+            }
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String(response["payload"]));
+            // process payload from web request corresponding to the cmd
+            iv->enqueCommand<InfoCommand>(cmd);
         }
         
 

@@ -111,37 +111,6 @@ void app::loop(void) {
                                 }
                             }
                         }
-                        switch (mSys->InfoCmd){
-                            case InverterDevInform_Simple:
-                            {
-                                DPRINT(DBG_INFO, "Response from inform simple\n");
-                                break;
-                            }
-                            case InverterDevInform_All:
-                            {
-                                DPRINT(DBG_INFO, "Response from inform all\n");
-                                break;
-                            }
-                            case GetLossRate:
-                            {
-                                DPRINT(DBG_INFO, "Response from get loss rate\n");
-                                break;
-                            }
-                            case AlarmData:
-                            {
-                                DPRINT(DBG_INFO, "Response from AlarmData\n");
-                                break;
-                            }
-                            case AlarmUpdate:
-                            {
-                                DPRINT(DBG_INFO, "Response from AlarmUpdate\n");
-                                break;
-                            }
-                            case RealTimeRunData_Debug:
-                            {
-                                break;
-                            }
-                        }
                     }
                     if(NULL != iv && p->packet[0] == (TX_REQ_DEVCONTROL + 0x80)) { // response from dev control command
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
@@ -180,7 +149,7 @@ void app::loop(void) {
 
 
         if(rxRdy) {
-            processPayload(true,mSys->InfoCmd);
+            processPayload(true);
         }
     }
 
@@ -266,7 +235,7 @@ void app::loop(void) {
 
                 if(NULL != iv) {
                     if(!mPayload[iv->id].complete)
-                        processPayload(false,mSys->InfoCmd);
+                        processPayload(false);
 
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
@@ -286,8 +255,9 @@ void app::loop(void) {
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
+                        iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     } else {
-                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts,iv->alarmMesIndex);
+                        mSys->Radio.sendTimePacket(iv->radioId.u64,iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
                         mRxTicker = 0;
                     }
                 }
@@ -333,10 +303,7 @@ bool app::buildPayload(uint8_t id) {
 
 
 //-----------------------------------------------------------------------------
-void app::processPayload(bool retransmit) {
-    processPayload(retransmit, RealTimeRunData_Debug);
-}
-void app::processPayload(bool retransmit, uint8_t cmd = RealTimeRunData_Debug) { // cmd value decides which parser is used to decode payload
+void app::processPayload(bool retransmit) { 
 
 #ifdef __MQTT_AFTER_RX__
     boolean doMQTT = false;
@@ -369,7 +336,7 @@ void app::processPayload(bool retransmit, uint8_t cmd = RealTimeRunData_Debug) {
                                     if(0x00 != mLastPacketId)
                                         mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
                                     else
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mSys->InfoCmd, mPayload[iv->id].ts,iv->alarmMesIndex);
+                                        mSys->Radio.sendTimePacket(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
                                 }
                                 mSys->Radio.switchRxCh(100);
                             }
@@ -392,20 +359,18 @@ void app::processPayload(bool retransmit, uint8_t cmd = RealTimeRunData_Debug) {
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
                     mRxSuccess++;
-                    mSys->InfoCmd = mSys->NextInfoCmd; // On success set next
-                    mSys->NextInfoCmd = RealTimeRunData_Debug; // Set next to default. Can/will be overwritten by REST API
-
-                    iv->getAssignment(cmd); // choose the parser
+                    
+                    iv->getAssignment(); // choose the parser
                     for(uint8_t i = 0; i < iv->listLen; i++) {
-                        iv->addValue(i, payload,cmd); // cmd value decides which parser is used to decode payload
+                        iv->addValue(i, payload); // cmd value decides which parser is used to decode payload
                         yield();
                     }
-                    iv->doCalculations(cmd); // cmd value decides which parser is used to decode payload
+                    iv->doCalculations(); // cmd value decides which parser is used to decode payload
 
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
 #endif
-
+                    iv->setQueuedCmdFinished();
                 }
             }
             yield();
@@ -560,32 +525,48 @@ String app::getStatistics(void) {
 
 
 //-----------------------------------------------------------------------------
-String app::getLiveData(void) {
+String app::getLiveData(void)
+{   
     String modHtml;
-    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+    for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
+    {
         Inverter<> *iv = mSys->getInverterByPos(id);
-        if(NULL != iv) {
+        if (NULL != iv)
+        {
 #ifdef LIVEDATA_VISUALIZED
             uint8_t modNum, pos;
-            switch(iv->type) {
-                default:
-                case INV_TYPE_1CH: modNum = 1; break;
-                case INV_TYPE_2CH: modNum = 2; break;
-                case INV_TYPE_4CH: modNum = 4; break;
+            switch (iv->type)
+            {
+            default:
+            case INV_TYPE_1CH:
+                modNum = 1;
+                break;
+            case INV_TYPE_2CH:
+                modNum = 2;
+                break;
+            case INV_TYPE_4CH:
+                modNum = 4;
+                break;
             }
 
             modHtml += F("<div class=\"iv\">"
-                    "<div class=\"ch-iv\"><span class=\"head\">") + String(iv->name) + F(" Limit ") + String(iv->powerLimit[0]);
-            if (iv->powerLimit[1] & 0x0001){
+                         "<div class=\"ch-iv\"><span class=\"head\">") +
+                       String(iv->name) + F(" Limit ") + String(iv->actPowerLimit);
+            if (true)
+            { // live Power Limit from inverter is always in %
                 modHtml += F(" %</span>");
-            } else {
+            }
+            else
+            {
                 modHtml += F(" W</span>");
             }
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
 
-            for(uint8_t fld = 0; fld < 12; fld++) {
+            for (uint8_t fld = 0; fld < 12; fld++)
+            {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
-                if(0xff != pos) {
+                if (0xff != pos)
+                {
                     modHtml += F("<div class=\"subgrp\">");
                     modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
                     modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
@@ -595,23 +576,39 @@ String app::getLiveData(void) {
             }
             modHtml += "</div>";
 
-            for(uint8_t ch = 1; ch <= modNum; ch ++) {
+            for (uint8_t ch = 1; ch <= modNum; ch++)
+            {
                 modHtml += F("<div class=\"ch\"><span class=\"head\">");
-                if(iv->chName[ch-1][0] == 0)
+                if (iv->chName[ch - 1][0] == 0)
                     modHtml += F("CHANNEL ") + String(ch);
                 else
-                    modHtml += String(iv->chName[ch-1]);
+                    modHtml += String(iv->chName[ch - 1]);
                 modHtml += F("</span>");
-                for(uint8_t j = 0; j < 6; j++) {
-                    switch(j) {
-                        default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
-                        case 1:  pos = (iv->getPosByChFld(ch, FLD_IDC)); break;
-                        case 2:  pos = (iv->getPosByChFld(ch, FLD_PDC)); break;
-                        case 3:  pos = (iv->getPosByChFld(ch, FLD_YD));  break;
-                        case 4:  pos = (iv->getPosByChFld(ch, FLD_YT));  break;
-                        case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR));  break;
+                for (uint8_t j = 0; j < 6; j++)
+                {
+                    switch (j)
+                    {
+                    default:
+                        pos = (iv->getPosByChFld(ch, FLD_UDC));
+                        break;
+                    case 1:
+                        pos = (iv->getPosByChFld(ch, FLD_IDC));
+                        break;
+                    case 2:
+                        pos = (iv->getPosByChFld(ch, FLD_PDC));
+                        break;
+                    case 3:
+                        pos = (iv->getPosByChFld(ch, FLD_YD));
+                        break;
+                    case 4:
+                        pos = (iv->getPosByChFld(ch, FLD_YT));
+                        break;
+                    case 5:
+                        pos = (iv->getPosByChFld(ch, FLD_IRR));
+                        break;
                     }
-                    if(0xff != pos) {
+                    if (0xff != pos)
+                    {
                         modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
                         modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
                         modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
@@ -626,7 +623,8 @@ String app::getLiveData(void) {
             // dump all data to web frontend
             modHtml = F("<pre>");
             char topic[30], val[10];
-            for(uint8_t i = 0; i < iv->listLen; i++) {
+            for (uint8_t i = 0; i < iv->listLen; i++)
+            {
                 snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
                 snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
                 modHtml += String(topic) + ": " + String(val) + "\n";
@@ -637,7 +635,6 @@ String app::getLiveData(void) {
     }
     return modHtml;
 }
-
 
 //-----------------------------------------------------------------------------
 String app::getJson(void) {

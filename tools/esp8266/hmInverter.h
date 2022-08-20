@@ -12,6 +12,8 @@
 #endif
 
 #include "hmDefines.h"
+#include <memory>
+#include <queue>
 
 /**
  * For values which are of interest and not transmitted by the inverter can be
@@ -51,8 +53,34 @@ template<class T=float>
 struct calcFunc_t {
     uint8_t funcId; // unique id
     func_t<T>*  func;   // function pointer
-} ;
+};
 
+
+class CommandAbstract {
+    public:
+        CommandAbstract(uint8_t txType = 0, uint8_t cmd = 0){
+            _TxType = txType;
+            _Cmd = cmd;
+        };
+        virtual ~CommandAbstract() {};
+
+        const uint8_t getCmd()
+        {       
+            return _Cmd;
+        }
+
+    protected:
+        uint8_t _TxType;
+        uint8_t _Cmd;
+};
+
+class InfoCommand : public CommandAbstract {
+public:
+    InfoCommand(uint8_t cmd){
+        _TxType = 0x15;
+        _Cmd = cmd;
+    }
+};
 
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
@@ -77,6 +105,7 @@ class Inverter {
         uint16_t      alarmMesIndex; // Last recorded Alarm Message Index
         uint16_t      fwVersion; // Firmware Version from Info Command Request
         uint16_t      powerLimit[2];  // limit power output
+        uint16_t      actPowerLimit; //
         uint8_t       devControlCmd;  // carries the requested cmd
         bool          devControlRequest; // true if change needed
         serial_u      serial;   // serial number as on barcode
@@ -92,6 +121,7 @@ class Inverter {
             ts = 0;
             powerLimit[0] = 0xffff; // 65535 W Limit -> unlimited
             powerLimit[1] = 0x0000; // 
+            actPowerLimit = 0xffff; // init feedback from inverter to -1
             devControlRequest = false;
             devControlCmd = 0xff;
             initialized = false;
@@ -102,6 +132,30 @@ class Inverter {
             // TODO: cleanup
         }
 
+        template <typename T>
+        void enqueCommand(uint8_t cmd)
+        {
+           _commandQueue.push(std::make_shared<T>(cmd));
+           DPRINTLN(DBG_INFO, "enqueuedCmd: " + String(cmd));
+        }
+
+        void setQueuedCmdFinished(){
+            if (!_commandQueue.empty()){
+                _commandQueue.pop(); // Will destroy CommandAbstract Class Object (?)
+            }
+        }
+
+    	uint8_t getQueuedCmd()
+        {
+            if (_commandQueue.empty()){
+                // Fill with default commands
+                enqueCommand<InfoCommand>(RealTimeRunData_Debug);
+                //enqueCommand<InfoCommand>(SystemConfigPara);
+            }
+            return _commandQueue.front().get()->getCmd();
+        }
+
+
         void init(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:init"));
             getAssignment();
@@ -110,6 +164,8 @@ class Inverter {
             memset(name, 0, MAX_NAME_LENGTH);
             memset(chName, 0, MAX_NAME_LENGTH * 4);
             memset(record, 0, sizeof(RECORDTYPE) * listLen);
+            enqueCommand<InfoCommand>(InverterDevInform_All);
+            enqueCommand<InfoCommand>(SystemConfigPara);
             initialized = true;
         }
 
@@ -138,8 +194,9 @@ class Inverter {
             return assign[pos].ch;
         }
 
-        void addValue(uint8_t pos, uint8_t buf[],uint8_t cmd) {
+        void addValue(uint8_t pos, uint8_t buf[]) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:addValue"));
+            uint8_t cmd = getQueuedCmd();
             uint8_t ptr  = assign[pos].start;
             uint8_t end  = ptr + assign[pos].num;
             uint16_t div = assign[pos].div;
@@ -149,8 +206,7 @@ class Inverter {
                     val <<= 8;
                     val |= buf[ptr];
                 } while(++ptr != end);
-
-                record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);
+                record[pos] = (RECORDTYPE)(val) / (RECORDTYPE)(div);                
             }
             if (cmd == RealTimeRunData_Debug) {
                 // get last alarm message index and save it in the inverter object
@@ -165,6 +221,13 @@ class Inverter {
                     DPRINT(DBG_DEBUG, F("Inverter FW-Version: ") + String(fwVersion));
                 }
             }
+            if (cmd == SystemConfigPara) {
+                // get at least the firmware version and save it to the inverter object
+                if (getPosByChFld(0, FLD_ACT_PWR_LIMIT) == pos){ 
+                    actPowerLimit = record[pos];
+                    DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit));
+                }
+            }
         }
 
         RECORDTYPE getValue(uint8_t pos) {
@@ -172,9 +235,10 @@ class Inverter {
             return record[pos];
         }
 
-        void doCalculations(uint8_t cmd=RealTimeRunData_Debug) {
+        void doCalculations() {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:doCalculations"));
-            getAssignment(cmd);
+            uint8_t cmd = getQueuedCmd();
+            getAssignment();
             if (cmd == RealTimeRunData_Debug){
                 for(uint8_t i = 0; i < listLen; i++) {
                     if(CMD_CALC == assign[i].div) {
@@ -204,37 +268,52 @@ class Inverter {
             return ts;
         }
 
-        void getAssignment(uint8_t cmd=RealTimeRunData_Debug) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getAssignment"));
-            if(cmd == RealTimeRunData_Debug){
-                if(INV_TYPE_1CH == type) {
-                    listLen  = (uint8_t)(HM1CH_LIST_LEN);
-                    assign   = (byteAssign_t*)hm1chAssignment;
+        void getAssignment() {
+            DPRINTLN(DBG_DEBUG, F("hmInverter.h:getAssignment"));
+            uint8_t cmd = getQueuedCmd();
+            switch (cmd)
+            {
+            case RealTimeRunData_Debug:
+                if (INV_TYPE_1CH == type)
+                {
+                    listLen = (uint8_t)(HM1CH_LIST_LEN);
+                    assign = (byteAssign_t *)hm1chAssignment;
                     channels = 1;
                 }
-                else if(INV_TYPE_2CH == type) {
-                    listLen  = (uint8_t)(HM2CH_LIST_LEN);
-                    assign   = (byteAssign_t*)hm2chAssignment;
+                else if (INV_TYPE_2CH == type)
+                {
+                    listLen = (uint8_t)(HM2CH_LIST_LEN);
+                    assign = (byteAssign_t *)hm2chAssignment;
                     channels = 2;
                 }
-                else if(INV_TYPE_4CH == type) {
-                    listLen  = (uint8_t)(HM4CH_LIST_LEN);
-                    assign   = (byteAssign_t*)hm4chAssignment;
+                else if (INV_TYPE_4CH == type)
+                {
+                    listLen = (uint8_t)(HM4CH_LIST_LEN);
+                    assign = (byteAssign_t *)hm4chAssignment;
                     channels = 4;
                 }
-                else {
-                    listLen  = 0;
+                else
+                {
+                    listLen = 0;
                     channels = 0;
-                    assign   = NULL;
+                    assign = NULL;
                 }
-            }
-            if(cmd == InverterDevInform_All){
-                listLen  = (uint8_t)(HMINFO_LIST_LEN);
-                assign   = (byteAssign_t*)InfoAssignment;
+                break;
+            case InverterDevInform_All:
+                listLen = (uint8_t)(HMINFO_LIST_LEN);
+                assign = (byteAssign_t *)InfoAssignment;
+                break;
+            case SystemConfigPara:
+                listLen = (uint8_t)(HMSYSTEM_LIST_LEN);
+                assign = (byteAssign_t *)SystemConfigParaAssignment;
+                break;
+            default:
+                DPRINTLN(DBG_INFO, "Parser not implemented"); 
             }
         }
 
     private:
+        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
         void toRadioId(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:toRadioId"));
             radioId.u64  = 0ULL;

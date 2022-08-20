@@ -5,11 +5,6 @@
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript">
-            document.addEventListener('DOMContentLoaded', function(){
-                document.getElementById("btn_req_fw").addEventListener("click", function(){
-                    getInverterInfo(`{"inverter":0,"tx_request": 21,"cmd": 1}`);
-                });
-            });
             getAjax('/uptime', 'uptime');
             getAjax('/cmdstat', 'cmds');
             window.setInterval("getAjax('/uptime', 'uptime')", {JS_TS});
@@ -53,7 +48,6 @@
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">Statistics: </span><pre id="cmds"></pre></p>
             <p>Every {TS}seconds the values are updated</p>
-            <p><input type="button" id="btn_req_fw" value="Get FW-Info"/></p>
 
             <div id="note">
                 This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a><br/>
