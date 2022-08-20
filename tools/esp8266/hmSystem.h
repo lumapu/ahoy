@@ -19,12 +19,10 @@ class HmSystem {
         RadioType Radio;
         typedef BUFFER BufferType;
         BufferType BufCtrl;
-        InfoCmdType InfoCmd;
         //DevControlCmdType DevControlCmd;        
 
         HmSystem() {
             mNumInv = 0;
-            InfoCmd = RealTimeRunData_Debug; // default case
         }
         ~HmSystem() {
             // TODO: cleanup

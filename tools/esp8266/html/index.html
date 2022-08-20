@@ -25,6 +25,16 @@
                     }
                 }
             }
+            function getInverterInfo(data){
+                var http = null;
+                http = new XMLHttpRequest();
+                if(http != null) {
+                   http.open("POST", "/api");
+                   http.setRequestHeader("Accept", "application/json");
+                   http.setRequestHeader("Content-Type", "application/json");
+                   http.send(data);
+                }
+            }
         </script>
     </head>
     <body>

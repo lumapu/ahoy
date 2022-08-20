@@ -3,6 +3,11 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
+#if defined(ESP32) && defined(F)
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 #include "web.h"
 
 #include "html/h/index_html.h"
@@ -17,15 +22,22 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
     mSysCfg  = sysCfg;
     mConfig  = config;
     mVersion = version;
-    mWeb = new ESP8266WebServer(80);
-    mUpdater = new ESP8266HTTPUpdateServer();
+    #ifdef ESP8266
+        mWeb     = new ESP8266WebServer(80);
+        mUpdater = new ESP8266HTTPUpdateServer();
+    #elif defined(ESP32)
+        mWeb     = new WebServer(80);
+        mUpdater = new HTTPUpdateServer();
+    #endif
     mUpdater->setup(mWeb);
 }
 
 
 //-----------------------------------------------------------------------------
 void web::setup(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
+        DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
     mWeb->on("/",               std::bind(&web::showIndex,         this));
     mWeb->on("/style.css",      std::bind(&web::showCss,           this));
     mWeb->on("/favicon.ico",    std::bind(&web::showFavicon,       this));
@@ -205,21 +217,22 @@ void web::showSetup(void) {
         // UGLY! But I do not know it a better way --//
         
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
-        inv += F("ModPwr\">Max Module Power (Wp)</label>");
+        inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
         for(uint8_t j = 0; j < 4; j++) {
             inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
             if(NULL != iv)
                 inv += String(iv->chMaxPwr[j]);
             inv += F("\"/ maxlength=\"4\">");
         }
-        inv += F("<br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
-        inv += F("ModName\">Module Name</label>");
+        inv += F("</div><br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
+        inv += F("ModName\">Module Name</label><div class=\"modname\">");
         for(uint8_t j = 0; j < 4; j++) {
             inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
             if(NULL != iv)
                 inv += String(iv->chName[j]);
             inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
         }
+        inv += F("</div>");
     }
     html.replace(F("{INVERTERS}"), String(inv));
 
@@ -329,6 +342,7 @@ void web::showSave(void) {
                 iv->chMaxPwr[j] = mWeb->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                 mWeb->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
             }
+            iv->initialized = true;
         }
         if(mWeb->arg("invInterval") != "")
             mConfig->sendInterval = mWeb->arg("invInterval").toInt();
@@ -429,17 +443,19 @@ void web::showWebApi(void)
     deserializeJson(response, mWeb->arg("plain"));
     // ToDo: error handling for payload
     uint8_t iv_id = response["inverter"];
+    uint8_t cmd = response["cmd"];
     Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
     if (NULL != iv)
     {
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
-            mMain->mSys->InfoCmd = response["cmd"];
-            mMain->resetPayload(iv); // start request from new
-            // process payload from web request corresponding to the cmd
-            if (mMain->mSys->InfoCmd == AlarmData)
+            // if the AlarmData is requested set the Alarm Index to the requested one
+            if (cmd == AlarmData){
                 iv->alarmMesIndex = response["payload"];
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(mMain->mSys->InfoCmd) + F(" and payload ") + String(response["payload"]));
+            }
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String(response["payload"]));
+            // process payload from web request corresponding to the cmd
+            iv->enqueCommand<InfoCommand>(cmd);
         }
         
 

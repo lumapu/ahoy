@@ -20,3 +20,4 @@ tools/esp8266/binaries
 tools/esp8266/.vscode/extensions.json
 .DS_Store
 .vscode
+tools/esp8266/platformio-device-monitor-*.log

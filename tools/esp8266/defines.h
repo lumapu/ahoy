@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       14
+#define VERSION_PATCH       15
 
 
 //-------------------------------------
@@ -25,22 +25,22 @@ typedef struct {
 typedef enum {
     InverterDevInform_Simple = 0,   // 0x00
     InverterDevInform_All = 1,      // 0x01
-    //GridOnProFilePara = 2,        // 0x02
-    //HardWareConfig = 3,           // 0x03
-    //SimpleCalibrationPara = 4,    // 0x04
-    //SystemConfigPara = 5,         // 0x05
+    GridOnProFilePara = 2,        // 0x02
+    HardWareConfig = 3,           // 0x03
+    SimpleCalibrationPara = 4,    // 0x04
+    SystemConfigPara = 5,           // 0x05
     RealTimeRunData_Debug = 11,     // 0x0b
-    //RealTimeRunData_Reality = 12, // 0x0c
-    //RealTimeRunData_A_Phase = 13, // 0x0d
-    //RealTimeRunData_B_Phase = 14, // 0x0e
-    //RealTimeRunData_C_Phase = 15, // 0x0f
+    RealTimeRunData_Reality = 12, // 0x0c
+    RealTimeRunData_A_Phase = 13, // 0x0d
+    RealTimeRunData_B_Phase = 14, // 0x0e
+    RealTimeRunData_C_Phase = 15, // 0x0f
     AlarmData = 17,                 // 0x11, Alarm data - all unsent alarms
     AlarmUpdate = 18,               // 0x12, Alarm data - all pending alarms
-    //RecordData = 19,              // 0x13
-    //InternalData = 20,            // 0x14
+    RecordData = 19,              // 0x13
+    InternalData = 20,            // 0x14
     GetLossRate = 21,               // 0x15
-    //GetSelfCheckState = 30,       // 0x1e
-    //InitDataState = 0xff
+    GetSelfCheckState = 30,       // 0x1e
+    InitDataState = 0xff
 } InfoCmdType;
 
 typedef enum {
@@ -109,15 +109,16 @@ typedef enum { // ToDo: to be verified by field tests
 #define SER_DEBUG_LEN           1 // uint8_t
 #define SER_INTERVAL_LEN        2 // uint16_t
 
-
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
     char broker[MQTT_ADDR_LEN];
     uint16_t port;
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
-} mqttConfig_t;
-
+} /*__attribute__((__packed__))*/ mqttConfig_t;
+#pragma pack(pop)   // restore original alignment from stack
 typedef struct {
     char deviceName[DEVNAME_LEN];
 
@@ -126,6 +127,8 @@ typedef struct {
     char stationPwd[PWD_LEN];
 } sysConfig_t;
 
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
     // nrf24
     uint16_t sendInterval;
@@ -146,7 +149,8 @@ typedef struct {
     uint16_t serialInterval;
     bool serialShowIv;
     bool serialDebug;
-} config_t;
+} /*__attribute__((__packed__))*/ config_t;
+#pragma pack(pop)   // restore original alignment from stack
 
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
