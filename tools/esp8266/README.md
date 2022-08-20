@@ -69,3 +69,23 @@ For now the following inverters should work out of the box:
 - `RF24` 1.4.5
 - `PubSubClient` 2.8
 - `ArduinoJson` 6.19.4
+
+ ## Todo's [See this post](https://github.com/grindylow/ahoy/issues/142)
+
+- [ ]  Wechsel zu AsyncWebServer und ElegantOTA für Stabilität
+- [ ]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
+- [x]  Device Info Kommandos (Firmware Version, etc.) über das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
+- [ ]  AlarmData & AlarmUpdate Parsen und auf eigener Seite darstellen
+
+------------------ SWIM LANE ---------------------------
+
+- [ ]  Device Control Kommandos aus dem Setup ermöglichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
+- [ ]  Settings exportieren / importieren (API/UI)
+- [ ]  Settings in settings.ini speichern (LittleFS statt EEPROM) [Settings in settings.ini speichern (LittleFS statt EEPROM) #164](https://github.com/grindylow/ahoy/issues/164)
+- [ ]  Homepage aufräumen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
+- [ ]  app.cpp aufräumen und in hmRadio / hmProtokollGen3 auslagern
+- [ ]  MI Wechselrichter unterstützen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
+- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek ständig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
+- [ ]  Debug Level im Setup änderbar -auch Livedata Visualisierung abschalten ?
+- [ ]  MQTT Discovery (HomeAssistant) im Setup optional machen
+- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgeführt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
