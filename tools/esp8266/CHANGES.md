@@ -7,6 +7,12 @@
     * simple command scheduler (one place fifo)
     * InverterDevInform_All Command parser and output to mqtt
     * New workflow to build github release
+    * Introduction of a command queue (like OpenDTU)
+    * Feedback from inverter for actual power limit via InfoCmd -> SystemConfigPara (0x05) placed in visualization
+    * REST API will enqueue a new info command (all commands supported)
+    * Change in power limit will (Setup, MQTT or REST API) enqueues a new infocmd request to get actual power limit
+    * Actual power limit is available under MQTT topic <TOPIC>/<INVERTER-NAME>/ch0/PowerLimit ALWAYS in percent
+    * Firmware information will be requested automatically up on start of dtu
     * Added User_Manual.md
 
 - v0.5.14
@@ -26,14 +32,14 @@
 - v0.5.4 + added Github report text with a URL (aschiffler)
          + added auto_firmware_version.py for GIT_HASH
          + added switch case AlarmData/AlarmUpdate
-- v0.5.3 #Bugfix #125 PowerLimit 
+- v0.5.3 #Bugfix #125 PowerLimit
          + prototype webapi to get info, improved pwr limit  (aschiffler)
-         + Merge remote-tracking branch 'upstream/main' into pwrlimit 
-- v0.5.2 add #114 ntp_server_name and port to eeprom 
+         + Merge remote-tracking branch 'upstream/main' into pwrlimit
+- v0.5.2 add #114 ntp_server_name and port to eeprom
          + stefan123t added some functions (devcontrol/cbMqtt/...)
-- v0.5.1 *Merge branch 'upstream/HEAD' into control 
+- v0.5.1 *Merge branch 'upstream/HEAD' into control
          *update revision  (0.4.26 -> 0.5.1)
-- v0.4.26 first poc for power set via mqtt 
+- v0.4.26 first poc for power set via mqtt
 - v0.4.25 added default SERIAL/MQTT/SEND_INTERVAL #100, fixed env:node_mcu_v2 build #101
 - v0.4.24 added fixes for #63, #88, #93. revert #36 (*) EEPROM changes
 - v0.4.23 added workflow, fix index.html to load inverter info immediately, changed timestamp to 1 for stand alone ESP #90, Implement MQTT discovery for Home Assistant
