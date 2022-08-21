@@ -185,7 +185,7 @@ void web::showSetup(void) {
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
         if(NULL != iv)
             inv += String(iv->serial.u64, HEX);
-        inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
+        inv += F("\"/ maxlength=\"12\">");
 
         inv += F("<label for=\"inv") + String(i) + F("Name\">Name*</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
