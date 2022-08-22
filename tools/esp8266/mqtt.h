@@ -85,7 +85,8 @@ class mqtt {
             #endif
 
             boolean resub = false;
-            if(!mClient->connected()) {
+            if(!mClient->connected() && (millis() - lastReconnect) > MQTT_RECONNECT_DELAY ) {
+                lastReconnect = millis();
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden, 
                     // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
@@ -95,14 +96,14 @@ class mqtt {
                         resub = mClient->connect(mDevName, mCfg->user, mCfg->pwd);
                     else
                         resub = mClient->connect(mDevName);
-                }
-                // ein Subscribe ist nur nach einem connect notwendig
-                if(resub) {
-                    char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
-                    // ToDo: "/devcontrol/#" is hardcoded 
-                    snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg->topic);
-                    DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
-                    mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
+                                // ein Subscribe ist nur nach einem connect notwendig
+                    if(resub) {
+                        char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
+                        // ToDo: "/devcontrol/#" is hardcoded 
+                        snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg->topic);
+                        DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
+                        mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
+                    }
                 }
             }
         }
@@ -113,6 +114,7 @@ class mqtt {
         bool mAddressSet;
         mqttConfig_t *mCfg;
         char mDevName[DEVNAME_LEN];
+        unsigned long lastReconnect = 0;
 };
 
 #endif /*__MQTT_H_*/
