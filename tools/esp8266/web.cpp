@@ -453,7 +453,7 @@ void web::showWebApi(void)
             if (cmd == AlarmData){
                 iv->alarmMesIndex = response["payload"];
             }
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String(response["payload"]));
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
             // process payload from web request corresponding to the cmd
             iv->enqueCommand<InfoCommand>(cmd);
         }
