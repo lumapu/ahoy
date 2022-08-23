@@ -488,6 +488,14 @@ void web::showWebApi(void)
                     iv->devControlRequest = true; // queue it in the request loop
                 }
             }
+            if (response["cmd"] == (uint8_t)TurnOff){
+                iv->devControlCmd = TurnOff;
+                iv->devControlRequest = true; // queue it in the request loop
+            }
+            if (response["cmd"] == (uint8_t)TurnOn){
+                iv->devControlCmd = TurnOn;
+                iv->devControlRequest = true; // queue it in the request loop
+            }
         }
     }
     mWeb->send(200, "text/json", "{success:true}");

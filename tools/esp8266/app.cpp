@@ -239,6 +239,10 @@ void app::loop(void) {
 
                     if(!mPayload[iv->id].complete) {
                         mRxFailed++;
+                        iv->setQueuedCmdFinished(); // command failed
+                        if(mConfig.serialDebug) {
+                            DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                        }
                         if(mConfig.serialDebug) {
                             DPRINT(DBG_INFO, F("Inverter #") + String(iv->id) + " ");
                             DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
@@ -551,18 +555,12 @@ String app::getLiveData(void)
 
             modHtml += F("<div class=\"iv\">"
                          "<div class=\"ch-iv\"><span class=\"head\">") +
-                       String(iv->name) + F(" Limit ") + String(iv->actPowerLimit);
-            if (true)
-            { // live Power Limit from inverter is always in %
-                modHtml += F(" %</span>");
-            }
-            else
-            {
-                modHtml += F(" W</span>");
-            }
+                       String(iv->name) + F(" Limit ") + String(iv->actPowerLimit)
+                       + F("% | last Alarm: ") + iv->lastAlarmMsg + F("</span>");
+            
             uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
 
-            for (uint8_t fld = 0; fld < 12; fld++)
+            for (uint8_t fld = 0; fld < 11; fld++)
             {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
                 if (0xff != pos)
