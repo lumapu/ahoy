@@ -54,6 +54,8 @@ This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The
 
 X. configure your WiFi settings, save, repower
 Y. check your router or serial console for the IP address of the module. You can try ping the configured device name as well.
+  
+! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!
 
 ## pages
 | page | output |
