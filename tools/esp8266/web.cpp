@@ -450,8 +450,9 @@ void web::showWebApi(void)
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
             // if the AlarmData is requested set the Alarm Index to the requested one
-            if (cmd == AlarmData){
-                iv->alarmMesIndex = response["payload"];
+            if (cmd == AlarmData || cmd == AlarmUpdate){
+                // set the AlarmMesIndex for the request from user input
+                iv->alarmMesIndex = response["payload"]; 
             }
             DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
             // process payload from web request corresponding to the cmd

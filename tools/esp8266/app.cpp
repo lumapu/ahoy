@@ -160,6 +160,7 @@ void app::loop(void) {
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
+            /*
             char topic[30], val[10];
             for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
@@ -174,6 +175,8 @@ void app::loop(void) {
                     }
                 }
             }
+            */
+            char val[10];
             snprintf(val, 10, "%ld", millis()/1000);
 
 #ifndef __MQTT_NO_DISCOVERCONFIG__
@@ -370,11 +373,32 @@ void app::processPayload(bool retransmit) {
                         yield();
                     }
                     iv->doCalculations(); // cmd value decides which parser is used to decode payload
+                    
+                    iv->setQueuedCmdFinished();
+
+                    // send out
+                    char topic[30], val[10];
+                    for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
+                    {
+                        Inverter<> *iv = mSys->getInverterByPos(id);
+                        if (NULL != iv)
+                        {
+                            if (iv->isAvailable(mTimestamp))
+                            {
+                                for (uint8_t i = 0; i < iv->listLen; i++)
+                                {
+                                    snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                                    snprintf(val, 10, "%.3f", iv->getValue(i));
+                                    mMqtt.sendMsg(topic, val);
+                                    yield();
+                                }
+                            }
+                        }
+                    }
 
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
 #endif
-                    iv->setQueuedCmdFinished();
                 }
             }
             yield();

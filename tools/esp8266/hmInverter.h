@@ -144,7 +144,8 @@ class Inverter {
 
         void setQueuedCmdFinished(){
             if (!_commandQueue.empty()){
-                _commandQueue.pop(); // Will destroy CommandAbstract Class Object (?)
+                // Will destroy CommandAbstract Class Object (?)
+                _commandQueue.pop(); 
             }
         }
 
@@ -153,7 +154,14 @@ class Inverter {
             if (_commandQueue.empty()){
                 // Fill with default commands
                 enqueCommand<InfoCommand>(RealTimeRunData_Debug);
-                //enqueCommand<InfoCommand>(SystemConfigPara);
+                if (fwVersion == 0)
+                { // info needed maybe after "one nigth" (=> DC>0 to DC=0 and to DC>0) or reboot
+                    enqueCommand<InfoCommand>(InverterDevInform_All);
+                }
+                if (actPowerLimit == 0xffff)
+                { // info needed maybe after "one nigth" (=> DC>0 to DC=0 and to DC>0) or reboot
+                    enqueCommand<InfoCommand>(SystemConfigPara);
+                }
             }
             return _commandQueue.front().get()->getCmd();
         }
@@ -167,8 +175,6 @@ class Inverter {
             memset(name, 0, MAX_NAME_LENGTH);
             memset(chName, 0, MAX_NAME_LENGTH * 4);
             memset(record, 0, sizeof(RECORDTYPE) * listLen);
-            enqueCommand<InfoCommand>(SystemConfigPara);
-            enqueCommand<InfoCommand>(InverterDevInform_All);
             initialized = true;
         }
 
@@ -222,7 +228,7 @@ class Inverter {
                 if (getPosByChFld(0, FLD_ALARM_MES_ID) == pos){ 
                     if (alarmMesIndex < record[pos]){
                         alarmMesIndex = record[pos];
-                        enqueCommand<InfoCommand>(AlarmUpdate);
+                        //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
                         enqueCommand<InfoCommand>(AlarmData);
                     }
                     else {
@@ -284,41 +290,46 @@ class Inverter {
             return false;
         }
 
-        uint32_t getLastTs(void) {
+        uint32_t getLastTs(void)
+        {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getLastTs"));
             return ts;
         }
 
-        void getAssignment() {
+        void getAssignment()
+        {
             DPRINTLN(DBG_DEBUG, F("hmInverter.h:getAssignment"));
+            // Default assignment;
+            if (INV_TYPE_1CH == type)
+            {
+                listLen = (uint8_t)(HM1CH_LIST_LEN);
+                assign = (byteAssign_t *)hm1chAssignment;
+                channels = 1;
+            }
+            else if (INV_TYPE_2CH == type)
+            {
+                listLen = (uint8_t)(HM2CH_LIST_LEN);
+                assign = (byteAssign_t *)hm2chAssignment;
+                channels = 2;
+            }
+            else if (INV_TYPE_4CH == type)
+            {
+                listLen = (uint8_t)(HM4CH_LIST_LEN);
+                assign = (byteAssign_t *)hm4chAssignment;
+                channels = 4;
+            }
+            else
+            {
+                listLen = 0;
+                channels = 0;
+                assign = NULL;
+            }
+
             uint8_t cmd = getQueuedCmd();
             switch (cmd)
             {
             case RealTimeRunData_Debug:
-                if (INV_TYPE_1CH == type)
-                {
-                    listLen = (uint8_t)(HM1CH_LIST_LEN);
-                    assign = (byteAssign_t *)hm1chAssignment;
-                    channels = 1;
-                }
-                else if (INV_TYPE_2CH == type)
-                {
-                    listLen = (uint8_t)(HM2CH_LIST_LEN);
-                    assign = (byteAssign_t *)hm2chAssignment;
-                    channels = 2;
-                }
-                else if (INV_TYPE_4CH == type)
-                {
-                    listLen = (uint8_t)(HM4CH_LIST_LEN);
-                    assign = (byteAssign_t *)hm4chAssignment;
-                    channels = 4;
-                }
-                else
-                {
-                    listLen = 0;
-                    channels = 0;
-                    assign = NULL;
-                }
+                // Do nothing will use default
                 break;
             case InverterDevInform_All:
                 listLen = (uint8_t)(HMINFO_LIST_LEN);
@@ -333,7 +344,7 @@ class Inverter {
                 assign = (byteAssign_t *)AlarmDataAssignment;
                 break;
             default:
-                DPRINTLN(DBG_INFO, "Parser not implemented"); 
+                DPRINTLN(DBG_INFO, "Parser not implemented");
             }
         }
         String getAlarmStr(u_int16_t alarmCode)
