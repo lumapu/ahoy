@@ -376,21 +376,23 @@ void app::processPayload(bool retransmit) {
                     
                     iv->setQueuedCmdFinished();
 
-                    // send out
-                    char topic[30], val[10];
-                    for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
-                    {
-                        Inverter<> *iv = mSys->getInverterByPos(id);
-                        if (NULL != iv)
+                    // MQTT send out
+                    if(mMqttActive) {
+                        char topic[30], val[10];
+                        for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
                         {
-                            if (iv->isAvailable(mTimestamp))
+                            Inverter<> *iv = mSys->getInverterByPos(id);
+                            if (NULL != iv)
                             {
-                                for (uint8_t i = 0; i < iv->listLen; i++)
+                                if (iv->isAvailable(mTimestamp))
                                 {
-                                    snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                                    snprintf(val, 10, "%.3f", iv->getValue(i));
-                                    mMqtt.sendMsg(topic, val);
-                                    yield();
+                                    for (uint8_t i = 0; i < iv->listLen; i++)
+                                    {
+                                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
+                                        snprintf(val, 10, "%.3f", iv->getValue(i));
+                                        mMqtt.sendMsg(topic, val);
+                                        yield();
+                                    }
                                 }
                             }
                         }
