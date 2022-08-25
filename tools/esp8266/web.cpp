@@ -55,6 +55,10 @@ void web::setup(void) {
     mWeb->on("/livedata",       std::bind(&web::showLiveData,      this));
     mWeb->on("/json",           std::bind(&web::showJson,          this));
     mWeb->on("/api", HTTP_POST, std::bind(&web::showWebApi,        this));
+
+    mWeb->on("/on",             std::bind(&web::control_on,        this));
+    mWeb->on("/off",            std::bind(&web::control_off,       this));
+    mWeb->on("/restart",        std::bind(&web::control_restart,   this));
 }
 
 
@@ -233,6 +237,12 @@ void web::showSetup(void) {
             inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
         }
         inv += F("</div>");
+
+        String ip = F("http://") + String(WiFi.localIP().toString());
+
+        inv += "<a href=\"" + ip + "/on/" + String(i) + "\" class=\"\">TurnOn</a>";
+        inv += "<a href=\"" + ip + "/off/" + String(i) + "\" class=\"\">TurnOff</a>";
+        inv += "<a href=\"" + ip + "/restart/" + String(i) + "\" class=\"\">Restart</a>";
     }
     html.replace(F("{INVERTERS}"), String(inv));
 
@@ -491,4 +501,44 @@ void web::showWebApi(void)
         }
     }
     mWeb->send(200, "text/json", "{success:true}");
+}
+
+//-----------------------------------------------------------------------------
+void web::control_on(void)
+{
+    Inverter<> *iv;
+    for(int i = 0; i < mWeb->args(); i++)
+    {  
+        int x = mWeb->arg(i).toInt();
+        if(x > MAX_NUM_INVERTERS || x < 0) {return;}
+        iv = mMain->mSys->getInverterByPos(x, false);
+        iv->power_on();
+    }
+    mWeb->send(200, F("text/html"), F("Power On ..."));
+}
+
+void web::control_off(void)
+{
+    Inverter<> *iv;
+    for(int i = 0; i < mWeb->args(); i++)
+    {  
+        int x = mWeb->arg(i).toInt();
+        if(x > MAX_NUM_INVERTERS || x < 0) {return;}
+        iv = mMain->mSys->getInverterByPos(x, false);
+        iv->power_off();
+    }
+    mWeb->send(200, F("text/html"), F("Power Off ..."));
+}
+
+void web::control_restart(void)
+{
+    Inverter<> *iv;
+    for(int i = 0; i < mWeb->args(); i++)
+    {  
+        int x = mWeb->arg(i).toInt();
+        if(x > MAX_NUM_INVERTERS || x < 0) {return;}
+        iv = mMain->mSys->getInverterByPos(x, false);
+        iv->power_restart();
+    }
+    mWeb->send(200, F("text/html"), F("Rebooting ..."));
 }

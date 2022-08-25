@@ -230,6 +230,18 @@ class Inverter {
             }
         }
 
+        void power_on() {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:PowerOn"));
+        }
+
+        void power_off() {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:PowerOff"));
+        }
+
+        void power_restart() {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:Restart"));
+        }
+
         RECORDTYPE getValue(uint8_t pos) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getValue"));
             return record[pos];

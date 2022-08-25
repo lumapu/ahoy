@@ -44,6 +44,10 @@ class web {
         void showJson(void);
         void showWebApi(void);
 
+        void control_on(void);
+        void control_off(void);
+        void control_restart(void);
+
     private:
         #ifdef ESP8266
             ESP8266WebServer *mWeb;

@@ -227,7 +227,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     buf[14] = 49;
     buf[15] = 52;
 
-    mUdp->beginPacket(address, 123); // NTP request, port 123
+    mUdp->beginPacket(address, mConfig->ntpPort); // NTP request, port 123
     mUdp->write(buf, NTP_PACKET_SIZE);
     mUdp->endPacket();
 }
