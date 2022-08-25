@@ -20,9 +20,10 @@ app::app() {
     mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
 
     resetSystem();
-   loadDefaultConfig();
+    loadDefaultConfig();
 
     mSys = new HmSystemType();
+    mShouldReboot = false;
 }
 
 
@@ -62,6 +63,11 @@ void app::loop(void) {
                 DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
             }
         }
+    }
+
+    if(mShouldReboot) {
+        DPRINTLN(DBG_INFO, F("Rebooting..."));
+        ESP.restart();
     }
 
     

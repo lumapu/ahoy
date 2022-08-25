@@ -142,6 +142,7 @@ class app {
         }
 
         HmSystemType *mSys;
+        bool mShouldReboot;
 
     private:
         void resetSystem(void);

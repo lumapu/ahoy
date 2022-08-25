@@ -1,9 +1,8 @@
 import re
-import sys
 import os
 
 def convert2Header(inFile):
-    fileType      = inFile.split(".")[1]
+    fileType = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
     inFileVarName = inFile.replace(".", "_")
@@ -21,18 +20,22 @@ def convert2Header(inFile):
     if fileType == "html":
         data = re.sub(r"\>\s+\<", '><', data)           # whitespaces between xml tags
         data = re.sub(r"(\;|\}|\>|\{)\s+", r'\1', data) # whitespaces inner javascript
+        length = len(data)                              # get unescaped length
         data = re.sub(r"\"", '\\\"', data)              # escape quotation marks
     else:
         data = re.sub(r"(\;|\}|\:|\{)\s+", r'\1', data) # whitespaces inner css
+        length = len(data)                              # get unescaped length
 
     f = open(outName, "w")
     f.write("#ifndef __{}_{}_H__\n".format(define, define2))
     f.write("#define __{}_{}_H__\n".format(define, define2))
     f.write("const char {}[] PROGMEM = \"{}\";\n".format(inFileVarName, data))
+    f.write("const uint32_t {}_len = {};\n".format(inFileVarName, length))
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
 convert2Header("index.html")
 convert2Header("setup.html")
 convert2Header("visualization.html")
+convert2Header("update.html")
 convert2Header("style.css")

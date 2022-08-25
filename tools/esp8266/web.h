@@ -7,15 +7,10 @@
 #define __WEB_H__
 
 #include "dbg.h"
-#ifdef ESP8266
-    #include <ESP8266WebServer.h>
-    #include <ESP8266HTTPUpdateServer.h>
-#elif defined(ESP32)
-    #include <WebServer.h>
-    #include <HTTPUpdateServer.h>
-#endif
-
+#include "ESPAsyncTCP.h"
+#include "ESPAsyncWebServer.h"
 #include "app.h"
+#include "tmplProc.h"
 
 class app;
 
@@ -27,31 +22,33 @@ class web {
         void setup(void);
         void loop(void);
 
-        void showIndex(void);
-        void showCss(void);
-        void showFavicon(void);
-        void showNotFound(void);
-        void showUptime(void);
-        void showReboot(void);
-        void showErase();
-        void showFactoryRst(void);
-        void showSetup(void);
-        void showSave(void);
+        void showIndex(AsyncWebServerRequest *request);
+        void showCss(AsyncWebServerRequest *request);
+        void showFavicon(AsyncWebServerRequest *request);
+        void showNotFound(AsyncWebServerRequest *request);
+        void showUptime(AsyncWebServerRequest *request);
+        void showReboot(AsyncWebServerRequest *request);
+        void showErase(AsyncWebServerRequest *request);
+        void showFactoryRst(AsyncWebServerRequest *request);
+        void showSetup(AsyncWebServerRequest *request);
+        void showSave(AsyncWebServerRequest *request);
 
-        void showStatistics(void);
-        void showVisualization(void);
-        void showLiveData(void);
-        void showJson(void);
-        void showWebApi(void);
+        void showStatistics(AsyncWebServerRequest *request);
+        void showVisualization(AsyncWebServerRequest *request);
+        void showLiveData(AsyncWebServerRequest *request);
+        void showJson(AsyncWebServerRequest *request);
+        void showWebApi(AsyncWebServerRequest *request);
+
+        void showUpdateForm(AsyncWebServerRequest *request);
+        void showUpdate(AsyncWebServerRequest *request);
+        void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 
     private:
-        #ifdef ESP8266
-            ESP8266WebServer *mWeb;
-            ESP8266HTTPUpdateServer *mUpdater;
-        #elif defined(ESP32)
-            WebServer *mWeb;
-            HTTPUpdateServer *mUpdater;
-        #endif
+        String replaceHtmlGenericKeys(char *key);
+        String showSetupCb(char* key);
+        String showUpdateFormCb(char* key);
+
+        AsyncWebServer *mWeb;
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;

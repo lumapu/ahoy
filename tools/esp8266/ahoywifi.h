@@ -7,13 +7,6 @@
 #define __AHOYWIFI_H__
 
 #include "dbg.h"
-#ifdef ESP8266
-    #include <ESP8266WebServer.h>
-    #include <ESP8266WiFi.h>
-#elif defined(ESP32)
-    #include <WebServer.h>
-    #include <WiFi.h>
-#endif
 
 // NTP
 #include <WiFiUdp.h>
