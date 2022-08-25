@@ -73,7 +73,7 @@
 #define DEF_NTP_SERVER_NAME     "pool.ntp.org"
 
 // default ntp server port
-#define DEF_NTP_PORT            8888
+#define DEF_NTP_PORT            123
 
 // default mqtt interval
 #define MQTT_INTERVAL           60
