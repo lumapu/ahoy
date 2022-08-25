@@ -16,6 +16,21 @@
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
 
+
+const uint16_t pwrLimitOptionValues[] {
+    AbsolutNonPersistent,
+    AbsolutPersistent,
+    RelativNonPersistent,
+    RelativPersistent
+};
+
+const char* const pwrLimitOptions[] {
+    "absolute in Watt non persistent",
+    "absolute in Watt persistent",
+    "relativ in percent non persistent",
+    "relativ in percent persistent"
+};
+
 //-----------------------------------------------------------------------------
 web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
     mMain    = main;
@@ -204,21 +219,16 @@ void web::showSetup(void) {
         inv += F("\"/ maxlength=\"") + String(6) + "\">";
 
         inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
-        inv += F("<select name=\"inv") + String(i);
-        // UGLY! But I do not know it a better way
-        // ToDo: Need Cookies, IndexDB or PWA for that or in general client browser storage
-        if(NULL != iv){
-        if(iv->powerLimit[1] == AbsolutNonPersistent)
-            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == RelativNonPersistent)
-            inv += F("PowerLimitControl\"><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == AbsolutPersistent)
-            inv += F("PowerLimitControl\"><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == RelativPersistent)
-            inv += F("PowerLimitControl\"><option value=\"257\">relativ in percent persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option></select>");
-        } else
-            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        // UGLY! But I do not know it a better way --//
+        inv += F("<select name=\"inv") + String(i) + F("PowerLimitControl\">");
+        for(uint8_t j = 0; j < 4; j++) {
+            inv += F("<option value=\"") + String(pwrLimitOptionValues[j]) + F("\"");
+            if(NULL != iv) {
+                if(iv->powerLimit[1] == pwrLimitOptionValues[j])
+                    inv += F(" selected");
+            }
+            inv += F(">") + String(pwrLimitOptions[j]) + F("</option>");
+        }
+        inv += F("</select>");
         
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
@@ -460,10 +470,11 @@ void web::showWebApi(void)
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
             // if the AlarmData is requested set the Alarm Index to the requested one
-            if (cmd == AlarmData){
-                iv->alarmMesIndex = response["payload"];
+            if (cmd == AlarmData || cmd == AlarmUpdate){
+                // set the AlarmMesIndex for the request from user input
+                iv->alarmMesIndex = response["payload"]; 
             }
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String(response["payload"]));
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
             // process payload from web request corresponding to the cmd
             iv->enqueCommand<InfoCommand>(cmd);
         }
@@ -497,6 +508,14 @@ void web::showWebApi(void)
                     }
                     iv->devControlRequest = true; // queue it in the request loop
                 }
+            }
+            if (response["cmd"] == (uint8_t)TurnOff){
+                iv->devControlCmd = TurnOff;
+                iv->devControlRequest = true; // queue it in the request loop
+            }
+            if (response["cmd"] == (uint8_t)TurnOn){
+                iv->devControlCmd = TurnOn;
+                iv->devControlRequest = true; // queue it in the request loop
             }
         }
     }

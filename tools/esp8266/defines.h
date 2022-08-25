@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       15
+#define VERSION_PATCH       16
 
 
 //-------------------------------------
@@ -104,6 +104,7 @@ typedef enum { // ToDo: to be verified by field tests
 #define MQTT_PORT_LEN           2 // uint16_t
 #define MQTT_DISCOVERY_PREFIX   "homeassistant"
 #define MQTT_MAX_PACKET_SIZE    384
+#define MQTT_RECONNECT_DELAY    5000
 
 #define SER_ENABLE_LEN          1 // uint8_t
 #define SER_DEBUG_LEN           1 // uint8_t

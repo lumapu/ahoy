@@ -54,6 +54,8 @@ This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The
 
 X. configure your WiFi settings, save, repower
 Y. check your router or serial console for the IP address of the module. You can try ping the configured device name as well.
+  
+! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!
 
 ## pages
 | page | output |
@@ -79,11 +81,14 @@ The webinterface has the following abilities:
 - some statistics about communication (debug)
 
 The serial console will print the converted values which were read out of the inverter(s)
+  
+### MQTT command to set the DTU without webinterface
+ [Read here](https://github.com/grindylow/ahoy/blob/development02/tools/esp8266/User_Manual.md)
 
  ## Todo's [See this post](https://github.com/grindylow/ahoy/issues/142)
 
 - [ ]  Wechsel zu AsyncWebServer und ElegantOTA für Stabilität
-- [ ]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
+- [x]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
 - [x]  Device Info Kommandos (Firmware Version, etc.) über das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
 - [ ]  AlarmData & AlarmUpdate Parsen und auf eigener Seite darstellen
 
