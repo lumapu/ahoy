@@ -60,6 +60,11 @@ void app::loop(void) {
             if(!apActive) {
                 mTimestamp  = mWifi->getNtpTime();
                 DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
+              
+                if(!mTimestamp) // if mTimestamp is 0
+                {
+                    // Todo: when no connection, then use standard ntp
+                }
             }
         }
     }
