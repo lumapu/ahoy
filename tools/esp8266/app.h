@@ -80,9 +80,10 @@ class app {
         }
 
         uint64_t Serial2u64(const char *val) {
-            char tmp[3] = {0};
+            char tmp[3];
             uint64_t ret = 0ULL;
             uint64_t u64;
+            memset(tmp, 0, 3);
             for(uint8_t i = 0; i < 6; i++) {
                 tmp[0] = val[i*2];
                 tmp[1] = val[i*2 + 1];
@@ -95,7 +96,7 @@ class app {
         }
 
         String getDateTimeStr(time_t t) {
-            char str[20] = {0};
+            char str[20];
             if(0 == t)
                 sprintf(str, "n/a");
             else
@@ -113,9 +114,11 @@ class app {
 
         void eraseSettings(bool all = false) {
             //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
-            uint8_t buf[64] = {0};
+            uint8_t buf[64];
             uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
             uint16_t end;
+
+            memset(buf, 0xff, 64);
             do {
                 end = addr + 64;
                 if(end > (ADDR_SETTINGS_CRC + 2))

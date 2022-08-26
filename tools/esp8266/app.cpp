@@ -353,8 +353,11 @@ void app::processPayload(bool retransmit) {
                 else {
                     mPayload[iv->id].complete = true;
                     iv->ts = mPayload[iv->id].ts;
-                    uint8_t payload[128] = {0};
+                    uint8_t payload[128];
                     uint8_t offs = 0;
+
+                    memset(payload, 0, 128);
+
                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
                         memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
                         offs += (mPayload[iv->id].len[i]);
@@ -903,17 +906,15 @@ void app::saveValues(void) {
     mEep->write(ADDR_CFG, (uint8_t*)&mConfig, CFG_LEN);
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        iv = mSys->getInverterByPos(i);
-        if(NULL != iv) {
-            mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
-            mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
-            mEep->write(ADDR_INV_PWR_LIM_CON + i * 2, iv->powerLimit[1]);
-            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
-            // max channel power / name
-            for(uint8_t j = 0; j < 4; j++) {
-                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
-                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
-            }
+        iv = mSys->getInverterByPos(i, false);
+        mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
+        mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
+        mEep->write(ADDR_INV_PWR_LIM_CON + i * 2, iv->powerLimit[1]);
+        mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
+        // max channel power / name
+        for(uint8_t j = 0; j < 4; j++) {
+            mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
+            mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
         }
     }
 
