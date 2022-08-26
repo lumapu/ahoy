@@ -20,7 +20,7 @@ app::app() {
     mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
 
     resetSystem();
-   loadDefaultConfig();
+    loadDefaultConfig();
 
     mSys = new HmSystemType();
 }
@@ -64,7 +64,7 @@ void app::loop(void) {
         }
     }
 
-    
+
     mSys->Radio.loop();
 
     yield();
@@ -114,31 +114,31 @@ void app::loop(void) {
                     }
                     if(NULL != iv && p->packet[0] == (TX_REQ_DEVCONTROL + 0x80)) { // response from dev control command
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
-                        iv->devControlRequest = false; 
-                        switch (p->packet[12]){
-                        case ActivePowerContr:
-                            if (iv->devControlCmd >= ActivePowerContr && iv->devControlCmd <= PFSet){ // ok inverter accepted the set point copy it to dtu eeprom
-                                if ((iv->powerLimit[1] & 0xff00) >0){ // User want to have it persistent
-                                    mEep->write(ADDR_INV_PWR_LIM + iv->id * 2,iv->powerLimit[0]);
-                                    mEep->write(ADDR_INV_PWR_LIM_CON + iv->id * 2,iv->powerLimit[1]);
-                                    updateCrc();
-                                    mEep->commit();
-                                    DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]) + F(", written to dtu eeprom"));    
-                                } else {
-                                    DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
+                        iv->devControlRequest = false;
+                        switch (p->packet[12]) {
+                            case ActivePowerContr:
+                                if (iv->devControlCmd >= ActivePowerContr && iv->devControlCmd <= PFSet) { // ok inverter accepted the set point copy it to dtu eeprom
+                                    if ((iv->powerLimit[1] & 0xff00) > 0) { // User want to have it persistent
+                                        mEep->write(ADDR_INV_PWR_LIM + iv->id * 2, iv->powerLimit[0]);
+                                        mEep->write(ADDR_INV_PWR_LIM_CON + iv->id * 2, iv->powerLimit[1]);
+                                        updateCrc();
+                                        mEep->commit();
+                                        DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]) + F(", written to dtu eeprom"));
+                                    } else
+                                        DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
+                                    iv->devControlCmd = Init;
+                                }
+                                break;
+
+                            default:
+                                if (iv->devControlCmd == ActivePowerContr) {
+                                    //case inverter did not accept the sent limit; set back to last stored limit
+                                    mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, (uint16_t *)&(iv->powerLimit[0]));
+                                    mEep->read(ADDR_INV_PWR_LIM_CON + iv->id * 2, (uint16_t *)&(iv->powerLimit[1]));
+                                    DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));
                                 }
                                 iv->devControlCmd = Init;
-                            }
-                            break;
-                        default:
-                            if (iv->devControlCmd == ActivePowerContr){
-                            //case inverter did not accept the sent limit; set back to last stored limit
-                            mEep->read(ADDR_INV_PWR_LIM + iv->id * 2, (uint16_t *)&(iv->powerLimit[0]));
-                            mEep->read(ADDR_INV_PWR_LIM_CON + iv->id * 2, (uint16_t *)&(iv->powerLimit[1]));
-                            DPRINTLN(DBG_INFO, F("Inverter has not accepted power limit set point"));    
-                            }
-                            iv->devControlCmd = Init;
-                            break;
+                                break;
                         }
                     }
                 }
@@ -160,22 +160,6 @@ void app::loop(void) {
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
-            /*
-            char topic[30], val[10];
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    if(iv->isAvailable(mTimestamp)) {
-                        for(uint8_t i = 0; i < iv->listLen; i++) {
-                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                            snprintf(val, 10, "%.3f", iv->getValue(i));
-                            mMqtt.sendMsg(topic, val);
-                            yield();
-                        }
-                    }
-                }
-            }
-            */
             char val[10];
             snprintf(val, 10, "%ld", millis()/1000);
 
@@ -256,12 +240,12 @@ void app::loop(void) {
 
                     yield();
                     if(mConfig.serialDebug)
-                        DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()) );
-                        DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
-                    if(iv->devControlRequest && iv->powerLimit[0] > 0){ // prevent to "switch off"
+                        DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
+                    DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
+                    if(iv->devControlRequest && (iv->powerLimit[0] > 0) && (NoPowerLimit != iv->powerLimit[1])) { // prevent to "switch off"
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
-                        mSys->Radio.sendControlPacket(iv->radioId.u64,iv->devControlCmd ,iv->powerLimit);
+                        mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd ,iv->powerLimit);
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     } else {
                         mSys->Radio.sendTimePacket(iv->radioId.u64,iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
@@ -516,9 +500,10 @@ String app::getStatistics(void) {
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         iv = mSys->getInverterByPos(i);
+        content += F("Inverter #") + String(i) + F(": ");
         if(NULL != iv) {
             bool avail = true;
-            content += F("Inverter '") + String(iv->name) + F(" (FW-Version: ") + String(iv->fwVersion) +F(")") + F("' is ");
+            content += String(iv->name) + F(" (v") + String(iv->fwVersion) +F(")") + F(" is ");
             if(!iv->isAvailable(mTimestamp)) {
                 content += F("not ");
                 avail = false;
@@ -533,9 +518,8 @@ String app::getStatistics(void) {
                     content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
             }
         }
-        else {
-            content += F("Inverter ") + String(i) + F(" not (correctly) configured\n");
-        }
+        else
+            content += F("n/a\n");
     }
 
     if(!mSys->Radio.isChipConnected())
@@ -555,113 +539,6 @@ String app::getStatistics(void) {
     return content;
 }
 
-
-
-//-----------------------------------------------------------------------------
-String app::getLiveData(void)
-{   
-    String modHtml;
-    for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
-    {
-        Inverter<> *iv = mSys->getInverterByPos(id);
-        if (NULL != iv)
-        {
-#ifdef LIVEDATA_VISUALIZED
-            uint8_t modNum, pos;
-            switch (iv->type)
-            {
-            default:
-            case INV_TYPE_1CH:
-                modNum = 1;
-                break;
-            case INV_TYPE_2CH:
-                modNum = 2;
-                break;
-            case INV_TYPE_4CH:
-                modNum = 4;
-                break;
-            }
-
-            modHtml += F("<div class=\"iv\">"
-                         "<div class=\"ch-iv\"><span class=\"head\">") +
-                       String(iv->name) + F(" Limit ") + String(iv->actPowerLimit)
-                       + F("% | last Alarm: ") + iv->lastAlarmMsg + F("</span>");
-            
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
-
-            for (uint8_t fld = 0; fld < 11; fld++)
-            {
-                pos = (iv->getPosByChFld(CH0, list[fld]));
-                if (0xff != pos)
-                {
-                    modHtml += F("<div class=\"subgrp\">");
-                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    modHtml += F("</div>");
-                }
-            }
-            modHtml += "</div>";
-
-            for (uint8_t ch = 1; ch <= modNum; ch++)
-            {
-                modHtml += F("<div class=\"ch\"><span class=\"head\">");
-                if (iv->chName[ch - 1][0] == 0)
-                    modHtml += F("CHANNEL ") + String(ch);
-                else
-                    modHtml += String(iv->chName[ch - 1]);
-                modHtml += F("</span>");
-                for (uint8_t j = 0; j < 6; j++)
-                {
-                    switch (j)
-                    {
-                    default:
-                        pos = (iv->getPosByChFld(ch, FLD_UDC));
-                        break;
-                    case 1:
-                        pos = (iv->getPosByChFld(ch, FLD_IDC));
-                        break;
-                    case 2:
-                        pos = (iv->getPosByChFld(ch, FLD_PDC));
-                        break;
-                    case 3:
-                        pos = (iv->getPosByChFld(ch, FLD_YD));
-                        break;
-                    case 4:
-                        pos = (iv->getPosByChFld(ch, FLD_YT));
-                        break;
-                    case 5:
-                        pos = (iv->getPosByChFld(ch, FLD_IRR));
-                        break;
-                    }
-                    if (0xff != pos)
-                    {
-                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    }
-                }
-                modHtml += "</div>";
-                yield();
-            }
-            modHtml += F("<div class=\"ts\">Last received data requested at: ") + getDateTimeStr(iv->ts) + F("</div>");
-            modHtml += F("</div>");
-#else
-            // dump all data to web frontend
-            modHtml = F("<pre>");
-            char topic[30], val[10];
-            for (uint8_t i = 0; i < iv->listLen; i++)
-            {
-                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                modHtml += String(topic) + ": " + String(val) + "\n";
-            }
-            modHtml += F("</pre>");
-#endif
-        }
-    }
-    return modHtml;
-}
 
 //-----------------------------------------------------------------------------
 String app::getJson(void) {
@@ -879,11 +756,16 @@ void app::loadEEpconfig(void) {
                     // it is "doppelt-gemoppelt" because the inverter shall remember the setting if the dtu makes a power cycle / reboot
                     if (iv->powerLimit[0] != 0xffff) { 
                         iv->devControlCmd = ActivePowerContr; // set active power limit
-                        if (iv->powerLimit[1] & 0x0001){
-                            DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]) + " in %");    
-                        } else {
-                            DPRINTLN(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX) + ", Power Limit: " + String(iv->powerLimit[0]) + " in Watt");
+                        DPRINT(DBG_INFO, F("add inverter: ") + String(name) + ", SN: " + String(invSerial, HEX));
+                        if(iv->powerLimit[1] != NoPowerLimit) {
+                            DBGPRINT(F(", Power Limit: ") + String(iv->powerLimit[0]));
+                            if ((iv->powerLimit[1] & 0x0001) == 0x0001)
+                                DBGPRINTLN(F(" in %"));
+                            else
+                                DBGPRINTLN(F(" in Watt"));
                         }
+                        else
+                            DBGPRINTLN(F(" "));
                     }
                     for(uint8_t j = 0; j < 4; j++) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);

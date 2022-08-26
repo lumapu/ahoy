@@ -121,10 +121,10 @@ class Inverter {
         Inverter() {
             ts = 0;
             powerLimit[0] = 0xffff; // 65535 W Limit -> unlimited
-            powerLimit[1] = 0x0000; // 
+            powerLimit[1] = NoPowerLimit; //
             actPowerLimit = 0xffff; // init feedback from inverter to -1
             devControlRequest = false;
-            devControlCmd = 0xff;
+            devControlCmd = InitDataState;
             initialized = false;
             fwVersion = 0;
             lastAlarmMsg =  "nothing";
@@ -155,7 +155,7 @@ class Inverter {
                 // Fill with default commands
                 enqueCommand<InfoCommand>(RealTimeRunData_Debug);
                 if (fwVersion == 0)
-                { // info needed maybe after "one nigth" (=> DC>0 to DC=0 and to DC>0) or reboot
+                { // info needed maybe after "one night" (=> DC>0 to DC=0 and to DC>0) or reboot
                     enqueCommand<InfoCommand>(InverterDevInform_All);
                 }
                 if (actPowerLimit == 0xffff)
@@ -325,26 +325,25 @@ class Inverter {
                 assign = NULL;
             }
 
-            uint8_t cmd = getQueuedCmd();
-            switch (cmd)
-            {
-            case RealTimeRunData_Debug:
-                // Do nothing will use default
-                break;
-            case InverterDevInform_All:
-                listLen = (uint8_t)(HMINFO_LIST_LEN);
-                assign = (byteAssign_t *)InfoAssignment;
-                break;
-            case SystemConfigPara:
-                listLen = (uint8_t)(HMSYSTEM_LIST_LEN);
-                assign = (byteAssign_t *)SystemConfigParaAssignment;
-                break;
-            case AlarmData:
-                listLen = (uint8_t)(HMALARMDATA_LIST_LEN);
-                assign = (byteAssign_t *)AlarmDataAssignment;
-                break;
-            default:
-                DPRINTLN(DBG_INFO, "Parser not implemented");
+            switch (getQueuedCmd()) {
+                case RealTimeRunData_Debug:
+                    // Do nothing will use default
+                    break;
+                case InverterDevInform_All:
+                    listLen = (uint8_t)(HMINFO_LIST_LEN);
+                    assign = (byteAssign_t *)InfoAssignment;
+                    break;
+                case SystemConfigPara:
+                    listLen = (uint8_t)(HMSYSTEM_LIST_LEN);
+                    assign = (byteAssign_t *)SystemConfigParaAssignment;
+                    break;
+                case AlarmData:
+                    listLen = (uint8_t)(HMALARMDATA_LIST_LEN);
+                    assign = (byteAssign_t *)AlarmDataAssignment;
+                    break;
+                default:
+                    DPRINTLN(DBG_INFO, "Parser not implemented");
+                    break;
             }
         }
         String getAlarmStr(u_int16_t alarmCode)

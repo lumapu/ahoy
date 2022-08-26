@@ -58,6 +58,7 @@ typedef enum {
 } DevControlCmdType;
 
 typedef enum { // ToDo: to be verified by field tests
+    NoPowerLimit            = 0xffff, // ahoy internal value, no hoymiles value!
     AbsolutNonPersistent    = 0UL,  // 0x0000
     RelativNonPersistent    = 1UL,  // 0x0001
     AbsolutPersistent       = 256UL, // 0x0100

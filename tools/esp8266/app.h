@@ -71,7 +71,6 @@ class app {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         String getStatistics(void);
-        String getLiveData(void);
         String getJson(void);
         bool getWifiApActive(void);
 
