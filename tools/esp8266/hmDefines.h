@@ -23,9 +23,13 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","VAr",
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
-        FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PCT, FLD_EFF, FLD_IRR, FLD_PRA,FLD_ALARM_MES_ID,FLD_FW_VERSION,FLD_FW_BUILD_YEAR,FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT};
+        FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PCT, FLD_EFF,
+        FLD_IRR, FLD_PRA,FLD_ALARM_MES_ID,FLD_FW_VERSION,FLD_FW_BUILD_YEAR,
+        FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT,FLD_LAST_ALARM_CODE};
+        
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
-        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Efficiency", "Irradiation","P_ACr","ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","HWPartId","PowerLimit"};
+        "U_AC", "I_AC", "P_AC", "Freq", "Temp", "Pct", "Efficiency", "Irradiation","P_ACr",
+        "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","HWPartId","PowerLimit","LastAlarmCode"};
 
 // mqtt discovery device classes
 enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
@@ -97,6 +101,10 @@ const byteAssign_t SystemConfigParaAssignment[] = {
 };
 #define HMSYSTEM_LIST_LEN     (sizeof(SystemConfigParaAssignment) / sizeof(byteAssign_t))
 
+const byteAssign_t AlarmDataAssignment[] = {
+    { FLD_LAST_ALARM_CODE,           UNIT_NONE,   CH0,  0, 2, 1 }
+};
+#define HMALARMDATA_LIST_LEN     (sizeof(AlarmDataAssignment) / sizeof(byteAssign_t))
 
 
 
