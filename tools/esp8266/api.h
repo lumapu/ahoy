@@ -20,6 +20,10 @@ class api {
         void onSystem(AsyncWebServerRequest *request);
         void onInverterList(AsyncWebServerRequest *request);
         void onMqtt(AsyncWebServerRequest *request);
+        void onNtp(AsyncWebServerRequest *request);
+        void onPinout(AsyncWebServerRequest *request);
+        void onRadio(AsyncWebServerRequest *request);
+        void onSerial(AsyncWebServerRequest *request);
 
         AsyncWebServer *mSrv;
         app *mApp;

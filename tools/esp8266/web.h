@@ -49,7 +49,6 @@ class web {
 
     private:
         String replaceHtmlGenericKeys(char *key);
-        String showSetupCb(char* key);
         String showUpdateFormCb(char* key);
 
         AsyncWebServer *mWeb;

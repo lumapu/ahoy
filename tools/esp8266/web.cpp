@@ -17,22 +17,7 @@
 #include "html/h/visualization_html.h"
 #include "html/h/update_html.h"
 
-
-const uint16_t pwrLimitOptionValues[] {
-    NoPowerLimit,
-    AbsolutNonPersistent,
-    AbsolutPersistent,
-    RelativNonPersistent,
-    RelativPersistent
-};
-
-const char* const pwrLimitOptions[] {
-    "no power limit",
-    "absolute in Watt non persistent",
-    "absolute in Watt persistent",
-    "relativ in percent non persistent",
-    "relativ in percent persistent"
-};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
 //-----------------------------------------------------------------------------
 web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
@@ -211,8 +196,6 @@ void web::showFactoryRst(AsyncWebServerRequest *request) {
 void web::showSetup(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
 
-    //tmplProc *proc = new tmplProc(request, 11000);
-    //proc->process(setup_html, setup_html_len, std::bind(&web::showSetupCb, this, std::placeholders::_1));
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
@@ -306,7 +289,8 @@ void web::showSave(AsyncWebServerRequest *request) {
         if(request->arg("mqttAddr") != "") {
             request->arg("mqttAddr").toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
             request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
-            request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
+            if(request->arg("mqttPwd") != "{PWD}")
+                request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
         }
@@ -572,61 +556,6 @@ String web::replaceHtmlGenericKeys(char *key) {
     }
 
     return "";
-}
-
-
-//-----------------------------------------------------------------------------
-String web::showSetupCb(char* key) {
-    // PWD will be left at the default value (for protection)
-    // -> the PWD will only be changed if it does not match the placeholder "{PWD}"
-
-    String generic = replaceHtmlGenericKeys(key);
-    if(generic.length() == 0) {
-        if(0 == strncmp(key, "SSID", 4)) return mSysCfg->stationSsid;
-        else if(0 == strncmp(key, "PWD", 3)) return F("{PWD}");
-        else if(0 == strncmp(key, "PINOUT", 6)) {
-            String pinout = "";
-            for(uint8_t i = 0; i < 3; i++) {
-                pinout += F("<label for=\"") + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + F("</label>");
-                pinout += F("<select name=\"") + String(pinArgNames[i]) + "\">";
-                for(uint8_t j = 0; j <= 16; j++) {
-                    pinout += F("<option value=\"") + String(j) + "\"";
-                    switch(i) {
-                        default: if(j == mConfig->pinCs)  pinout += F(" selected"); break;
-                        case 1:  if(j == mConfig->pinCe)  pinout += F(" selected"); break;
-                        case 2:  if(j == mConfig->pinIrq) pinout += F(" selected"); break;
-                    }
-                    pinout += ">" + String(wemosPins[j]) + F("</option>");
-                }
-                pinout += F("</select>");
-            }
-            return pinout;
-        }
-        else if(0 == strncmp(key, "RF24", 4)) {
-            String rf24 = "";
-            for(uint8_t i = 0; i <= 3; i++) {
-                rf24 += F("<option value=\"") + String(i) + "\"";
-                if(i == mConfig->amplifierPower)
-                    rf24 += F(" selected");
-                rf24 += ">" + String(rf24AmpPowerNames[i]) + F("</option>");
-            }
-            return rf24;
-        }
-        else if(0 == strncmp(key, "INV_INTVL", 9)) return String(mConfig->sendInterval);
-        else if(0 == strncmp(key, "INV_RETRIES", 11)) return String(mConfig->maxRetransPerPyld);
-        else if(0 == strncmp(key, "SER_INTVL", 9)) return String(mConfig->serialInterval);
-        else if(0 == strncmp(key, "SER_VAL_CB", 10)) return (mConfig->serialShowIv) ? "checked" : "";
-        else if(0 == strncmp(key, "SER_DBG_CB", 10)) return (mConfig->serialDebug) ? "checked" : "";
-        else if(0 == strncmp(key, "NTP_ADDR", 8)) return String(mConfig->ntpAddr);
-        else if(0 == strncmp(key, "NTP_PORT", 8)) return String(mConfig->ntpPort);
-        else if(0 == strncmp(key, "MQTT_ADDR", 9)) return String(mConfig->mqtt.broker);
-        else if(0 == strncmp(key, "MQTT_PORT", 9)) return String(mConfig->mqtt.port);
-        else if(0 == strncmp(key, "MQTT_USER", 9)) return String(mConfig->mqtt.user);
-        else if(0 == strncmp(key, "MQTT_PWD", 8))    return String(mConfig->mqtt.pwd);
-        else if(0 == strncmp(key, "MQTT_TOPIC", 10)) return String(mConfig->mqtt.topic);
-    }
-
-    return generic;
 }
 
 

@@ -21,7 +21,7 @@ def convert2Header(inFile, compress):
     if False == compress:
         if fileType == "html":
             data = re.sub(r"\>\s+\<", '><', data)           # whitespaces between xml tags
-            data = re.sub(r"(\;|\}|\>|\{)\s+", r'\1', data) # whitespaces inner javascript
+            data = re.sub(r"(\s?\;|\}|\>|\{|\=)\s+", r'\1', data) # whitespaces inner javascript
             length = len(data)                              # get unescaped length
             data = re.sub(r"\"", '\\\"', data)              # escape quotation marks
         else:

@@ -26,6 +26,10 @@ void api::setup(void) {
     mSrv->on("/api/system",        HTTP_GET, std::bind(&api::onSystem,       this, std::placeholders::_1));
     mSrv->on("/api/inverter/list", HTTP_GET, std::bind(&api::onInverterList, this, std::placeholders::_1));
     mSrv->on("/api/mqtt",          HTTP_GET, std::bind(&api::onMqtt,         this, std::placeholders::_1));
+    mSrv->on("/api/ntp",           HTTP_GET, std::bind(&api::onNtp,          this, std::placeholders::_1));
+    mSrv->on("/api/pinout",        HTTP_GET, std::bind(&api::onPinout,       this, std::placeholders::_1));
+    mSrv->on("/api/radio",         HTTP_GET, std::bind(&api::onRadio,        this, std::placeholders::_1));
+    mSrv->on("/api/serial",        HTTP_GET, std::bind(&api::onSerial,       this, std::placeholders::_1));
 }
 
 
@@ -72,12 +76,13 @@ void api::onInverterList(AsyncWebServerRequest *request) {
                 obj[F("ch_name")][j] = iv->chName[j];
             }
 
-            obj[F("power_limit")][F("limit")] = iv->powerLimit[0];
-            obj[F("power_limit")][F("limit_option")] = iv->powerLimit[1];
+            obj[F("power_limit")]        = iv->powerLimit[0];
+            obj[F("power_limit_option")] = iv->powerLimit[1];
         }
     }
     root[F("interval")] = String(mConfig->sendInterval);
     root[F("retries")]  = String(mConfig->maxRetransPerPyld);
+    root[F("max_num_inverters")] = MAX_NUM_INVERTERS;
 
     response->setLength();
     request->send(response);
@@ -92,8 +97,63 @@ void api::onMqtt(AsyncWebServerRequest *request) {
     root[F("broker")] = String(mConfig->mqtt.broker);
     root[F("port")]   = String(mConfig->mqtt.port);
     root[F("user")]   = String(mConfig->mqtt.user);
-    root[F("pwd")]    = String(mConfig->mqtt.pwd); // TODO: not that nice!
+    root[F("pwd")]    = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
     root[F("topic")]  = String(mConfig->mqtt.topic);
+
+    response->setLength();
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void api::onNtp(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    JsonObject root = response->getRoot();
+
+    root[F("addr")] = String(mConfig->ntpAddr);
+    root[F("port")] = String(mConfig->ntpPort);
+
+    response->setLength();
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void api::onPinout(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    JsonObject root = response->getRoot();
+
+    root[F("cs")]  = mConfig->pinCs;
+    root[F("ce")]  = mConfig->pinCe;
+    root[F("irq")] = mConfig->pinIrq;
+
+    response->setLength();
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void api::onRadio(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    JsonObject root = response->getRoot();
+
+    root[F("power_level")] = mConfig->amplifierPower;
+
+    response->setLength();
+    request->send(response);
+}
+
+
+
+//-----------------------------------------------------------------------------
+void api::onSerial(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    JsonObject root = response->getRoot();
+
+    // next line cause a chrash but why?
+    //root[F("interval")] = mConfig->serialInterval;
+    root[F("show_live_data")] = mConfig->serialShowIv;
+    root[F("debug")] = mConfig->serialDebug;
 
     response->setLength();
     request->send(response);

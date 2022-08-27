@@ -36,13 +36,6 @@ typedef HmRadio<DEF_RF24_CE_PIN, DEF_RF24_CS_PIN, BufferType> RadioType;
 typedef Inverter<float> InverterType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
 
-const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (GPIO3)",
-                                "D2 (GPIO4)", "D1 (GPIO5)", "GPIO6", "GPIO7", "GPIO8",
-                                "GPIO9", "GPIO10", "GPIO11", "D6 (GPIO12)", "D7 (GPIO13)",
-                                "D5 (GPIO14)", "D8 (GPIO15)", "D0 (GPIO16 - no IRQ!)"};
-const char* const pinNames[] = {"CS", "CE", "IRQ"};
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
-
 
 typedef struct {
     uint8_t invId;
