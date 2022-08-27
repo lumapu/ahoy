@@ -10,9 +10,11 @@
 #include "ESPAsyncTCP.h"
 #include "ESPAsyncWebServer.h"
 #include "app.h"
+#include "api.h"
 #include "tmplProc.h"
 
 class app;
+class api;
 
 class web {
     public:
@@ -21,6 +23,8 @@ class web {
 
         void setup(void);
         void loop(void);
+
+        void onConnect(AsyncEventSourceClient *client);
 
         void showIndex(AsyncWebServerRequest *request);
         void showCss(AsyncWebServerRequest *request);
@@ -49,11 +53,13 @@ class web {
         String showUpdateFormCb(char* key);
 
         AsyncWebServer *mWeb;
+        AsyncEventSource *mEvts;
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
         char *mVersion;
         app *mMain;
+        api *mApi;
 };
 
 #endif /*__WEB_H__*/

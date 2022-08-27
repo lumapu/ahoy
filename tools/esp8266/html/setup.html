@@ -54,11 +54,11 @@
             <div id="content">
                 <a class="erase" href="/erase">ERASE SETTINGS (not WiFi)</a>
 
-                <form method="post" action="{#IP}/save">
+                <form method="post" action="/save">
                     <fieldset>
                         <legend class="des">Device Host Name</legend>
                         <label for="device">Device Name</label>
-                        <input type="text" class="text" name="device" value="{#DEVICE}"/>
+                        <input type="text" name="device" class="text"/>
                     </fieldset>
                 
                     <button type="button" class="s_collapsible">WiFi</button>
@@ -67,7 +67,7 @@
                             <legend class="des">WiFi</legend>
                             <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
                             <label for="ssid">SSID</label>
-                            <input type="text" class="text" name="ssid" value="{#SSID}"/>
+                            <input type="text" name="ssid" class="text"/>
                             <label for="pwd">Password</label>
                             <input type="password" class="text" name="pwd" value="{#PWD}"/>
                         </fieldset>
@@ -77,12 +77,12 @@
                     <div class="s_content">
                     <fieldset>
                     <legend class="des">Inverter</legend>
-                        {#INVERTERS}<br/>
+                        <div id="inverter"></div><br/>
                         <p class="subdes">General</p>
                         <label for="invInterval">Interval [s]</label>
-                        <input type="text" class="text" name="invInterval" value="{#INV_INTVL}"/>
+                        <input type="text" class="text" name="invInterval"/>
                         <label for="invRetry">Max retries per Payload</label>
-                        <input type="text" class="text" name="invRetry" value="{#INV_RETRIES}"/>
+                        <input type="text" class="text" name="invRetry"/>
                     </fieldset>
                     </div>
 
@@ -102,15 +102,15 @@
                     <fieldset>
                     <legend class="des">MQTT</legend>
                         <label for="mqttAddr">Broker / Server IP</label>
-                        <input type="text" class="text" name="mqttAddr" value="{#MQTT_ADDR}"/>
+                        <input type="text" class="text" name="mqttAddr"/>
                         <label for="mqttPort">Port</label>
-                        <input type="text" class="text" name="mqttPort" value="{#MQTT_PORT}"/>
+                        <input type="text" class="text" name="mqttPort"/>
                         <label for="mqttUser">Username (optional)</label>
-                        <input type="text" class="text" name="mqttUser" value="{#MQTT_USER}"/>
+                        <input type="text" class="text" name="mqttUser"/>
                         <label for="mqttPwd">Password (optional)</label>
-                        <input type="text" class="text" name="mqttPwd" value="{#MQTT_PWD}"/>
+                        <input type="text" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic" value="{#MQTT_TOPIC}"/>
+                        <input type="text" class="text" name="mqttTopic"/>
                     </fieldset>
                     </div>
 
@@ -143,11 +143,11 @@
         </div>
 
         <div id="footer">
-            <p class="left"><a href="{#IP}/">Home</a></p>
-            <p class="left"><a href="{#IP}/update">Update Firmware</a></p>
+            <p class="left"><a href="/">Home</a></p>
+            <p class="left"><a href="/update">Update Firmware</a></p>
             <p class="right">AHOY - {#VERSION}</p>
-            <p class="right"><a href="{#IP}/factory">Factory Reset</a></p>
-            <p class="right"><a href="{#IP}/reboot">Reboot</a></p>
+            <p class="right"><a href="/factory">Factory Reset</a></p>
+            <p class="right"><a href="/reboot">Reboot</a></p>
         </div>
 
         <script type="text/javascript">
@@ -160,6 +160,141 @@
                     content.style.display = (content.style.display === "block") ? "none" : "block";
                 });
             }
+
+            function getAjax(url, ptr) {
+                var http = null;
+                http = new XMLHttpRequest();
+                if(http != null) {
+                   http.open("GET", url, true);
+                   http.onreadystatechange = p;
+                   http.send(null);
+                }
+                function p() {
+                    if(http.readyState == 4)
+                        ptr(http.responseText);
+                }
+            }
+
+            function des(val) {
+                e = document.createElement('p');
+                e.classList.add("subdes");
+                e.innerHTML = val;
+                return e;
+            }
+
+            function lbl(id, val) {
+                e = document.createElement('label');
+                e.htmlFor = id;
+                e.innerHTML = val;
+                return e;
+            }
+
+            function inp(name, val, max=32, cl=["text"]) {
+                e = document.createElement('input');
+
+                e.classList.add(...cl);
+                e.name = name;
+                e.value = val;
+                e.maxLength = max;
+                return e;
+            }
+
+            function sel(name, opt, selId) {
+                e = document.createElement('select');
+                e.name = name;
+                for(i = 0; i < opt.length; i++) {
+                    o = document.createElement('option');
+                    o.value = opt[i][0];
+                    o.innerHTML = opt[i][1];
+                    if(opt[i][0] == selId)
+                        o.selected = true;
+                    e.appendChild(o);
+                }
+                return e;
+            }
+
+            function div(cl) {
+                e = document.createElement('div');
+                e.classList.add(cl);
+                return e;
+            }
+
+            function ivHtml(obj, id) {
+                iv = document.getElementById("inverter");
+                id = "inv" + id;
+                iv.appendChild(des("Inverter " + id));
+
+                iv.appendChild(lbl(id + "Addr", "Adress*"));
+                iv.appendChild(inp(id + "Addr", obj.serial, 12));
+
+                iv.appendChild(lbl(id + "Name", "Name*"));
+                iv.appendChild(inp(id + "Name", obj.name));
+
+                iv.appendChild(lbl(id + "ActivePowerLimit", "Active Power Limit"));
+                iv.appendChild(inp(id + "ActivePowerLimit", obj.power_limit.limit, 5));
+
+                iv.appendChild(lbl(id + "ActivePowerLimitConType", "Active Power Limit Control Type"));
+                iv.appendChild(sel(id + "ActivePowerLimitConType", [
+                    [65535, "no power limit"],
+                    [0, "absolute in Watt non persistent"],
+                    [1, "absolute in Watt persistent"],
+                    [256, "relativ in percent non persistent"],
+                    [257, "relativ in percent persistent"]
+                ], obj.power_limit.limit_option));
+
+                iv.appendChild(lbl(id + "ModPwr", "Max Module Power (Wp)"));
+                d = div("modpwr");
+                for(i = 0; i < obj.channels; i++) {
+                    d.appendChild(inp(id + "ModPwr" + i, obj.ch_max_power[i], 4, ["text", "sh"]))
+                }
+                iv.appendChild(d);
+
+                iv.appendChild(lbl(id + "ModName", "Module Name"));
+                d = div("modname");
+                for(i = 0; i < obj.channels; i++) {
+                    d.appendChild(inp(id + "ModName" + i, obj.ch_name[i], 4, ["text", "sh"]))
+                }
+                iv.appendChild(d);
+            }
+
+            function ivGlob(obj) {
+                e = document.getElementsByName("invInterval");
+                e[0].value = obj["interval"];
+                e = document.getElementsByName("invRetry");
+                e[0].value = obj["retries"];
+            }
+
+            function parseSys(json) {
+                obj = JSON.parse(json);
+                e = document.getElementsByName("device");
+                e[0].value = obj.device_name;
+                e = document.getElementsByName("ssid");
+                e[0].value = obj.ssid;
+            }
+
+            function parseIv(json) {
+                obj = JSON.parse(json);
+                ivHtml(obj.inverter[0], 0);
+                ivGlob(obj);
+            }
+
+            function parseMqtt(json) {
+                obj = JSON.parse(json);
+                e = document.getElementsByName("mqttAddr");
+                e[0].value = obj["broker"];
+                e = document.getElementsByName("mqttPort");
+                e[0].value = obj["port"];
+                e = document.getElementsByName("mqttUser");
+                e[0].value = obj["user"];
+                e = document.getElementsByName("mqttPwd");
+                e[0].value = obj["pwd"];
+                e = document.getElementsByName("mqttTopic");
+                e[0].value = obj["topic"];
+            }
+
+            getAjax("/api/system", parseSys);
+            getAjax("/api/inverter/list", parseIv);
+            getAjax("/api/mqtt", parseMqtt);
         </script>
     </body>
 </html>

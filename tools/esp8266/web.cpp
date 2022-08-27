@@ -41,6 +41,9 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
     mConfig  = config;
     mVersion = version;
     mWeb     = new AsyncWebServer(80);
+    //mEvts    = new AsyncEventSource("/events");
+
+    mApi     = new api(mWeb, main, sysCfg, config, version);
 }
 
 
@@ -48,7 +51,7 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
 void web::setup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
-        DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
+    DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
     mWeb->on("/",               HTTP_ANY,  std::bind(&web::showIndex,         this, std::placeholders::_1));
     mWeb->on("/style.css",      HTTP_ANY,  std::bind(&web::showCss,           this, std::placeholders::_1));
     mWeb->on("/favicon.ico",    HTTP_ANY,  std::bind(&web::showFavicon,       this, std::placeholders::_1));
@@ -71,13 +74,29 @@ void web::setup(void) {
     mWeb->on("/update",         HTTP_GET,  std::bind(&web::showUpdateForm,    this, std::placeholders::_1));
     mWeb->on("/update",         HTTP_POST, std::bind(&web::showUpdate,        this, std::placeholders::_1),
                                            std::bind(&web::showUpdate2,       this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+
+    //mEvts->onConnect(std::bind(&web::onConnect, this, std::placeholders::_1));
+    //mWeb->addHandler(mEvts);
+
+    mApi->setup();
 }
 
 
 //-----------------------------------------------------------------------------
 void web::loop(void) {
-
+    mApi->loop();
 }
+
+
+//-----------------------------------------------------------------------------
+/*void web::onConnect(AsyncEventSourceClient *client) {
+    DPRINTLN(DBG_INFO, "onConnect");
+
+    if(client->lastId())
+        DPRINTLN(DBG_INFO, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
+
+    client->send("hello!", NULL, millis(), 1000);
+}*/
 
 
 //-----------------------------------------------------------------------------
@@ -192,8 +211,11 @@ void web::showFactoryRst(AsyncWebServerRequest *request) {
 void web::showSetup(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
 
-    tmplProc *proc = new tmplProc(request, 11000);
-    proc->process(setup_html, setup_html_len, std::bind(&web::showSetupCb, this, std::placeholders::_1));
+    //tmplProc *proc = new tmplProc(request, 11000);
+    //proc->process(setup_html, setup_html_len, std::bind(&web::showSetupCb, this, std::placeholders::_1));
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
@@ -391,7 +413,6 @@ void web::showLiveData(AsyncWebServerRequest *request) {
                     }
                 }
                 modHtml += "</div>";
-                yield();
             }
             modHtml += F("<div class=\"ts\">Last received data requested at: ") + mMain->getDateTimeStr(iv->ts) + F("</div>");
             modHtml += F("</div>");
@@ -563,64 +584,6 @@ String web::showSetupCb(char* key) {
     if(generic.length() == 0) {
         if(0 == strncmp(key, "SSID", 4)) return mSysCfg->stationSsid;
         else if(0 == strncmp(key, "PWD", 3)) return F("{PWD}");
-        else if(0 == strncmp(key, "INVERTERS", 9)) {
-            String inv = "";
-            Inverter<> *iv;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                iv = mMain->mSys->getInverterByPos(i);
-
-                inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
-                inv += F("<label for=\"inv") + String(i) + F("Addr\">Address*</label>");
-                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
-                if(NULL != iv)
-                    inv += String(iv->serial.u64, HEX);
-                inv += F("\"/ maxlength=\"12\">");
-
-                inv += F("<label for=\"inv") + String(i) + F("Name\">Name*</label>");
-                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
-                if(NULL != iv)
-                    inv += String(iv->name);
-                inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
-
-                inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit</label>");
-                inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
-                if(NULL != iv)
-                    inv += String(iv->powerLimit[0]);
-                inv += F("\"/ maxlength=\"") + String(6) + "\">";
-
-                inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
-                inv += F("<select name=\"inv") + String(i) + F("PowerLimitControl\">");
-                for(uint8_t j = 0; j < 5; j++) {
-                    inv += F("<option value=\"") + String(pwrLimitOptionValues[j]) + F("\"");
-                    if(NULL != iv) {
-                        if(iv->powerLimit[1] == pwrLimitOptionValues[j])
-                            inv += F(" selected");
-                    }
-                    inv += F(">") + String(pwrLimitOptions[j]) + F("</option>");
-                }
-                inv += F("</select>");
-
-                inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
-                inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
-                for(uint8_t j = 0; j < 4; j++) {
-                    inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
-                    if(NULL != iv)
-                        inv += String(iv->chMaxPwr[j]);
-                    inv += F("\"/ maxlength=\"4\">");
-                }
-                inv += F("</div><br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
-                inv += F("ModName\">Module Name</label><div class=\"modname\">");
-                for(uint8_t j = 0; j < 4; j++) {
-                    inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
-                    if(NULL != iv)
-                        inv += String(iv->chName[j]);
-                    inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
-                }
-                inv += F("</div>");
-            }
-            DPRINTLN(DBG_INFO, inv);
-            return inv;
-        }
         else if(0 == strncmp(key, "PINOUT", 6)) {
             String pinout = "";
             for(uint8_t i = 0; i < 3; i++) {
@@ -661,7 +624,6 @@ String web::showSetupCb(char* key) {
         else if(0 == strncmp(key, "MQTT_USER", 9)) return String(mConfig->mqtt.user);
         else if(0 == strncmp(key, "MQTT_PWD", 8))    return String(mConfig->mqtt.pwd);
         else if(0 == strncmp(key, "MQTT_TOPIC", 10)) return String(mConfig->mqtt.topic);
-        //else if(0 == strncmp(key, "MQTT_INTVL", 10)) return String(mMqttInterval);
     }
 
     return generic;
