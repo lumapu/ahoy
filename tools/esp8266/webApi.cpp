@@ -8,39 +8,41 @@
   #define F(sl) (sl)
 #endif
 
-#include "api.h"
+#include "webApi.h"
 #include "AsyncJson.h"
 
 //-----------------------------------------------------------------------------
-api::api(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, char version[]) {
+webApi::webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
     mSrv = srv;
     mApp = app;
     mSysCfg  = sysCfg;
     mConfig  = config;
+    mStat    = stat;
     mVersion = version;
 }
 
 
 //-----------------------------------------------------------------------------
-void api::setup(void) {
-    mSrv->on("/api/system",        HTTP_GET, std::bind(&api::onSystem,       this, std::placeholders::_1));
-    mSrv->on("/api/inverter/list", HTTP_GET, std::bind(&api::onInverterList, this, std::placeholders::_1));
-    mSrv->on("/api/mqtt",          HTTP_GET, std::bind(&api::onMqtt,         this, std::placeholders::_1));
-    mSrv->on("/api/ntp",           HTTP_GET, std::bind(&api::onNtp,          this, std::placeholders::_1));
-    mSrv->on("/api/pinout",        HTTP_GET, std::bind(&api::onPinout,       this, std::placeholders::_1));
-    mSrv->on("/api/radio",         HTTP_GET, std::bind(&api::onRadio,        this, std::placeholders::_1));
-    mSrv->on("/api/serial",        HTTP_GET, std::bind(&api::onSerial,       this, std::placeholders::_1));
+void webApi::setup(void) {
+    mSrv->on("/api/system",        HTTP_GET, std::bind(&webApi::onSystem,       this, std::placeholders::_1));
+    mSrv->on("/api/statistics",    HTTP_GET, std::bind(&webApi::onStatistics,   this, std::placeholders::_1));
+    mSrv->on("/api/inverter/list", HTTP_GET, std::bind(&webApi::onInverterList, this, std::placeholders::_1));
+    mSrv->on("/api/mqtt",          HTTP_GET, std::bind(&webApi::onMqtt,         this, std::placeholders::_1));
+    mSrv->on("/api/ntp",           HTTP_GET, std::bind(&webApi::onNtp,          this, std::placeholders::_1));
+    mSrv->on("/api/pinout",        HTTP_GET, std::bind(&webApi::onPinout,       this, std::placeholders::_1));
+    mSrv->on("/api/radio",         HTTP_GET, std::bind(&webApi::onRadio,        this, std::placeholders::_1));
+    mSrv->on("/api/serial",        HTTP_GET, std::bind(&webApi::onSerial,       this, std::placeholders::_1));
 }
 
 
 //-----------------------------------------------------------------------------
-void api::loop(void) {
+void webApi::loop(void) {
 
 }
 
 
 //-----------------------------------------------------------------------------
-void api::onSystem(AsyncWebServerRequest *request) {
+void webApi::onSystem(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
@@ -59,7 +61,22 @@ void api::onSystem(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onInverterList(AsyncWebServerRequest *request) {
+void webApi::onStatistics(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse();
+    JsonObject root = response->getRoot();
+
+    root[F("rx_success")] = mStat->rxSuccess;
+    root[F("rx_fail")]    = mStat->rxFail;
+    root[F("frame_cnt")]  = mStat->frmCnt;
+    root[F("tx_cnt")]     = mApp->mSys->Radio.mSendCnt;
+
+    response->setLength();
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::onInverterList(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
     JsonArray invArr = root.createNestedArray("inverter");
@@ -94,7 +111,7 @@ void api::onInverterList(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onMqtt(AsyncWebServerRequest *request) {
+void webApi::onMqtt(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
@@ -110,7 +127,7 @@ void api::onMqtt(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onNtp(AsyncWebServerRequest *request) {
+void webApi::onNtp(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
@@ -123,7 +140,7 @@ void api::onNtp(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onPinout(AsyncWebServerRequest *request) {
+void webApi::onPinout(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
@@ -137,7 +154,7 @@ void api::onPinout(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onRadio(AsyncWebServerRequest *request) {
+void webApi::onRadio(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
@@ -150,7 +167,7 @@ void api::onRadio(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void api::onSerial(AsyncWebServerRequest *request) {
+void webApi::onSerial(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 

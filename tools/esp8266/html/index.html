@@ -1,44 +1,13 @@
 <!doctype html>
 <html>
     <head>
-        <title>Index - {DEVICE}</title>
+        <title>Index</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript">
-            getAjax('/uptime', 'uptime');
-            getAjax('/cmdstat', 'cmds');
-            window.setInterval("getAjax('/uptime', 'uptime')", {JS_TS});
-            window.setInterval("getAjax('/cmdstat', 'cmds')", {JS_TS});
-
-            function getAjax(url, resid) {
-                var http = null;
-                http = new XMLHttpRequest();
-                if(http != null) {
-                   http.open("GET", url, true);
-                   http.onreadystatechange = print;
-                   http.send(null);
-                }
-
-                function print() {
-                    if(http.readyState == 4) {
-                        document.getElementById(resid).innerHTML = http.responseText;
-                    }
-                }
-            }
-            function getInverterInfo(data){
-                var http = null;
-                http = new XMLHttpRequest();
-                if(http != null) {
-                   http.open("POST", "/api");
-                   http.setRequestHeader("Accept", "application/json");
-                   http.setRequestHeader("Content-Type", "application/json");
-                   http.send(data);
-                }
-            }
-        </script>
+        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY - {DEVICE}</h1>
+        <h1>AHOY</h1>
         <div id="content" class="content">
             <p>
                 <a href="/visualization">Visualization</a><br/>
@@ -46,7 +15,7 @@
                 <a href="/setup">Setup</a><br/>
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
-            <p><span class="des">Statistics: </span><pre id="cmds"></pre></p>
+            <p><span class="des">Statistics: </span><pre id="stat"></pre></p>
             <p>Every {TS}seconds the values are updated</p>
 
             <div id="note">
@@ -64,9 +33,40 @@
         <div id="footer">
             <p class="left">&copy 2022</p>
             <p class="left"><a href="/update">Update Firmware</a></p>
-            <p class="right">AHOY :: {VERSION}</p>
+            <p class="right" id="version"></p>
             <p class="right"><a href="/reboot">Reboot</a></p>
-            <p class="right">Git SHA: {BUILD}</p>
         </div>
+        <script type="text/javascript">
+            function parseSys(obj) {
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+
+                var date = new Date(obj["ts_now"] * 1000);
+                var up = obj["ts_uptime"];
+                var days = parseInt(up / 86400) % 365;
+                var hrs  = parseInt(up / 3600) % 24;
+                var min  = parseInt(up / 60) % 60;
+                var sec  = up % 60;
+                document.getElementById("uptime").innerHTML = days + " Days, "
+                    + ("0"+hrs).substr(-2) + ":"
+                    + ("0"+min).substr(-2) + ":"
+                    + ("0"+sec).substr(-2) + "; now: "
+                    + ("0"+date.getHours()).substr(-2) + ":"
+                    + ("0"+date.getMinutes()).substr(-2) + ":"
+                    + ("0"+date.getSeconds()).substr(-2);
+            }
+
+            function parseStat(obj) {
+                document.getElementById("stat").innerHTML = "RX success: " + obj["rx_success"]
+                    + "\nRX fail: " + obj["rx_fail"]
+                    + "\nFrames received: " + obj["frame_cnt"]
+                    + "\nTX Cnt: " + obj["tx_cnt"];
+            }
+
+            window.setInterval("getAjax('/api/system', parseSys)", 30000);
+            window.setInterval("getAjax('/api/system', parseStat)", 30000);
+
+            getAjax("/api/system", parseSys);
+            getAjax("/api/statistics", parseStat);
+        </script>
     </body>
 </html>

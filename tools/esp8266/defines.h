@@ -154,6 +154,12 @@ typedef struct {
 } /*__attribute__((__packed__))*/ config_t;
 #pragma pack(pop)   // restore original alignment from stack
 
+typedef struct {
+    uint32_t rxFail;
+    uint32_t rxSuccess;
+    uint32_t frmCnt;
+} statistics_t;
+
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
 #define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1

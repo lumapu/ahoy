@@ -48,7 +48,6 @@ typedef struct {
     bool requested;
 } invPayload_t;
 
-
 class ahoywifi;
 class web;
 
@@ -239,9 +238,7 @@ class app {
         uint8_t mSendLastIvId;
 
         invPayload_t mPayload[MAX_NUM_INVERTERS];
-        uint32_t mRxFailed;
-        uint32_t mRxSuccess;
-        uint32_t mFrameCnt;
+        statistics_t mStat;
         uint8_t mLastPacketId;
 
         // timer

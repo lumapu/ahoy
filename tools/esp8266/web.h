@@ -10,15 +10,15 @@
 #include "ESPAsyncTCP.h"
 #include "ESPAsyncWebServer.h"
 #include "app.h"
-#include "api.h"
+#include "webApi.h"
 #include "tmplProc.h"
 
 class app;
-class api;
+class webApi;
 
 class web {
     public:
-        web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]);
+        web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]);
         ~web() {}
 
         void setup(void);
@@ -26,15 +26,15 @@ class web {
 
         void onConnect(AsyncEventSourceClient *client);
 
-        void showIndex(AsyncWebServerRequest *request);
-        void showCss(AsyncWebServerRequest *request);
-        void showFavicon(AsyncWebServerRequest *request);
+        void onIndex(AsyncWebServerRequest *request);
+        void onCss(AsyncWebServerRequest *request);
+        void onApiJs(AsyncWebServerRequest *request);
+        void onFavicon(AsyncWebServerRequest *request);
         void showNotFound(AsyncWebServerRequest *request);
-        void showUptime(AsyncWebServerRequest *request);
         void showReboot(AsyncWebServerRequest *request);
         void showErase(AsyncWebServerRequest *request);
         void showFactoryRst(AsyncWebServerRequest *request);
-        void showSetup(AsyncWebServerRequest *request);
+        void onSetup(AsyncWebServerRequest *request);
         void showSave(AsyncWebServerRequest *request);
 
         void showStatistics(AsyncWebServerRequest *request);
@@ -56,9 +56,10 @@ class web {
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
+        statistics_t *mStat;
         char *mVersion;
         app *mMain;
-        api *mApi;
+        webApi *mApi;
 };
 
 #endif /*__WEB_H__*/

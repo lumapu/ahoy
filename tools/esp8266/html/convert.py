@@ -7,30 +7,36 @@ def convert2Header(inFile, compress):
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
     inFileVarName = inFile.replace(".", "_")
+    print(inFile + ", compress: " + str(compress))
 
     if os.getcwd()[-4:] != "html":
-        print("ok")
         outName = "html/" + "h/" + inFileVarName + ".h"
         inFile  = "html/" + inFile
     else:
         outName = "h/" + inFileVarName + ".h"
 
     f = open(inFile, "r")
-    data = f.read().replace('\n', '')
+    data = f.read()
     f.close()
-    if False == compress:
-        if fileType == "html":
+
+    if fileType == "html":
+        if False == compress:
+            data = data.replace('\n', '')
             data = re.sub(r"\>\s+\<", '><', data)           # whitespaces between xml tags
-            data = re.sub(r"(\s?\;|\}|\>|\{|\=)\s+", r'\1', data) # whitespaces inner javascript
-            length = len(data)                              # get unescaped length
-            data = re.sub(r"\"", '\\\"', data)              # escape quotation marks
-        else:
-            data = re.sub(r"(\;|\}|\:|\{)\s+", r'\1', data) # whitespaces inner css
-            length = len(data)                              # get unescaped length
-    else:
-        data = re.sub(r"\>\s+\<", '><', data)           # whitespaces between xml tags
-        data = re.sub(r"(\;|\}|\>|\{)\s+", r'\1', data) # whitespaces inner javascript
+            data = re.sub(r"(\r\n|\r|\n)(\s+|\s?)", '', data)     # whitespaces inner javascript
         length = len(data)                              # get unescaped length
+        if False == compress:
+            data = re.sub(r"\"", '\\\"', data)          # escape quotation marks
+    elif fileType == "js":
+        #data = re.sub(r"(\r\n|\r|\n)(\s+|\s?)", '', data)     # whitespaces inner javascript
+        #data = re.sub(r"\s?(\=|\!\=|\{|,)+\s?", r'\1', data) # whitespaces inner javascript
+        length = len(data)                              # get unescaped length
+        if False == compress:
+            data = re.sub(r"\"", '\\\"', data)          # escape quotation marks
+    else:
+        data = data.replace('\n', '')
+        data = re.sub(r"(\;|\}|\:|\{)\s+", r'\1', data) # whitespaces inner css
+        length = len(data)                              # get unescaped length                           # get unescaped length
 
     f = open(outName, "w")
     f.write("#ifndef __{}_{}_H__\n".format(define, define2))
@@ -52,8 +58,9 @@ def convert2Header(inFile, compress):
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
-convert2Header("index.html", False)
+convert2Header("index.html", True)
 convert2Header("setup.html", True)
 convert2Header("visualization.html", False)
 convert2Header("update.html", False)
-convert2Header("style.css", False)
+convert2Header("style.css", True)
+convert2Header("api.js", True)

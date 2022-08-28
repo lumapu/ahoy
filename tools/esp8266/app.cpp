@@ -42,7 +42,7 @@ void app::setup(uint32_t timeout) {
     #endif
     mSys->setup(&mConfig);
 
-    mWebInst = new web(this, &mSysConfig, &mConfig, mVersion);
+    mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
 }
 
@@ -88,7 +88,7 @@ void app::loop(void) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
-                mFrameCnt++;
+                mStat.frmCnt++;
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
@@ -231,7 +231,7 @@ void app::loop(void) {
                         processPayload(false);
 
                     if(!mPayload[iv->id].complete) {
-                        mRxFailed++;
+                        mStat.rxFail++;
                         iv->setQueuedCmdFinished(); // command failed
                         if(mConfig.serialDebug) {
                             DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
@@ -358,7 +358,7 @@ void app::processPayload(bool retransmit) {
                         DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
-                    mRxSuccess++;
+                    mStat.rxSuccess++;
                     
                     iv->getAssignment(); // choose the parser
                     for(uint8_t i = 0; i < iv->listLen; i++) {
@@ -498,9 +498,9 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 
 //-----------------------------------------------------------------------------
 String app::getStatistics(void) {
-    String content = F("Receive success: ") + String(mRxSuccess) + "\n";
-    content += F("Receive fail: ") + String(mRxFailed) + "\n";
-    content += F("Frames received: ") + String(mFrameCnt) + "\n";
+    String content = F("Receive success: ") + String(mStat.rxSuccess) + "\n";
+    content += F("Receive fail: ") + String(mStat.rxFail) + "\n";
+    content += F("Frames received: ") + String(mStat.frmCnt) + "\n";
     content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
 
     Inverter<> *iv;
@@ -686,9 +686,7 @@ void app::resetSystem(void) {
 
 
     memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
-    mRxFailed     = 0;
-    mRxSuccess    = 0;
-    mFrameCnt     = 0;
+    memset(&mStat, 0, sizeof(statistics_t));
     mLastPacketId = 0x00;
 }
 

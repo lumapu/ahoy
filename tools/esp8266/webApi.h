@@ -1,5 +1,5 @@
-#ifndef __API_H__
-#define __API_H__
+#ifndef __WEB_API_H__
+#define __WEB_API_H__
 
 #include "dbg.h"
 #include "ESPAsyncTCP.h"
@@ -9,15 +9,16 @@
 
 class app;
 
-class api {
+class webApi {
     public: 
-        api(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, char version[]);
+        webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]);
 
         void setup(void);
         void loop(void);
 
     private:
         void onSystem(AsyncWebServerRequest *request);
+        void onStatistics(AsyncWebServerRequest *request);
         void onInverterList(AsyncWebServerRequest *request);
         void onMqtt(AsyncWebServerRequest *request);
         void onNtp(AsyncWebServerRequest *request);
@@ -30,7 +31,8 @@ class api {
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
+        statistics_t *mStat;
         char *mVersion;
 };
 
-#endif /*__API_H__*/
+#endif /*__WEB_API_H__*/

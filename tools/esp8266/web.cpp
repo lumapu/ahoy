@@ -12,6 +12,7 @@
 
 #include "html/h/index_html.h"
 #include "html/h/style_css.h"
+#include "html/h/api_js.h"
 #include "html/h/favicon_ico_gz.h"
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
@@ -20,15 +21,16 @@
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
 //-----------------------------------------------------------------------------
-web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
+web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
     mMain    = main;
     mSysCfg  = sysCfg;
     mConfig  = config;
+    mStat    = stat;
     mVersion = version;
     mWeb     = new AsyncWebServer(80);
     //mEvts    = new AsyncEventSource("/events");
 
-    mApi     = new api(mWeb, main, sysCfg, config, version);
+    mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
 }
 
 
@@ -37,16 +39,16 @@ void web::setup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
     DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-    mWeb->on("/",               HTTP_ANY,  std::bind(&web::showIndex,         this, std::placeholders::_1));
-    mWeb->on("/style.css",      HTTP_ANY,  std::bind(&web::showCss,           this, std::placeholders::_1));
-    mWeb->on("/favicon.ico",    HTTP_ANY,  std::bind(&web::showFavicon,       this, std::placeholders::_1));
+    mWeb->on("/",               HTTP_GET,  std::bind(&web::onIndex,           this, std::placeholders::_1));
+    mWeb->on("/style.css",      HTTP_GET,  std::bind(&web::onCss,             this, std::placeholders::_1));
+    mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,           this, std::placeholders::_1));
+    mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,         this, std::placeholders::_1));
     mWeb->onNotFound (                     std::bind(&web::showNotFound,      this, std::placeholders::_1));
-    mWeb->on("/uptime",         HTTP_ANY,  std::bind(&web::showUptime,        this, std::placeholders::_1));
     mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::showReboot,        this, std::placeholders::_1));
     mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,         this, std::placeholders::_1));
     mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst,    this, std::placeholders::_1));
 
-    mWeb->on("/setup",          HTTP_ANY,  std::bind(&web::showSetup,         this, std::placeholders::_1));
+    mWeb->on("/setup",          HTTP_GET,  std::bind(&web::onSetup,           this, std::placeholders::_1));
     mWeb->on("/save",           HTTP_ANY,  std::bind(&web::showSave,          this, std::placeholders::_1));
 
     mWeb->on("/cmdstat",        HTTP_ANY,  std::bind(&web::showStatistics,    this, std::placeholders::_1));
@@ -85,26 +87,41 @@ void web::loop(void) {
 
 
 //-----------------------------------------------------------------------------
-void web::showIndex(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("showIndex"));
-    String html = FPSTR(index_html);
-    html.replace(F("{DEVICE}"), mSysCfg->deviceName);
-    html.replace(F("{VERSION}"), mVersion);
+void web::onIndex(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onIndex"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), index_html, index_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+
+    /*
     html.replace(F("{TS}"), String(mConfig->sendInterval) + " ");
     html.replace(F("{JS_TS}"), String(mConfig->sendInterval * 1000));
-    html.replace(F("{BUILD}"), String(AUTO_GIT_HASH));
-    request->send(200, "text/html", html);
+    request->send(200, "text/html", html);*/
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showCss(AsyncWebServerRequest *request) {
-    request->send(200, "text/css", FPSTR(style_css));
+void web::onCss(AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+
+//-----------------------------------------------------------------------------
+void web::onApiJs(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onApiJs"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/javascript"), api_js, api_js_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showFavicon(AsyncWebServerRequest *request) {
+void web::onFavicon(AsyncWebServerRequest *request) {
     static const char favicon_type[] PROGMEM = "image/x-icon";
     AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico_gz, favicon_ico_gz_len);
     response->addHeader(F("Content-Encoding"), "gzip");
@@ -128,22 +145,6 @@ void web::showNotFound(AsyncWebServerRequest *request) {
     }
 
     request->send(404, F("text/plain"), msg);
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showUptime(AsyncWebServerRequest *request) {
-    char time[21] = {0};
-    uint32_t uptime = mMain->getUptime();
-
-    uint32_t upTimeSc = uint32_t((uptime) % 60);
-    uint32_t upTimeMn = uint32_t((uptime / (60)) % 60);
-    uint32_t upTimeHr = uint32_t((uptime / (60 * 60)) % 24);
-    uint32_t upTimeDy = uint32_t((uptime / (60 * 60 * 24)) % 365);
-
-    snprintf(time, 20, "%d Days, %02d:%02d:%02d", upTimeDy, upTimeHr, upTimeMn, upTimeSc);
-
-    request->send(200, "text/plain", String(time) + "; now: " + mMain->getDateTimeStr(mMain->getTimestamp()));
 }
 
 
@@ -193,8 +194,8 @@ void web::showFactoryRst(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void web::showSetup(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("app::showSetup"));
+void web::onSetup(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
