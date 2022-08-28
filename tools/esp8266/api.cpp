@@ -44,8 +44,12 @@ void api::onSystem(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
-    root[F("ssid")] = mSysCfg->stationSsid;
+    root[F("ssid")]        = mSysCfg->stationSsid;
     root[F("device_name")] = mSysCfg->deviceName;
+    root[F("version")]     = String(mVersion);
+    root[F("build")]       = String(AUTO_GIT_HASH);
+    root[F("ts_uptime")]   = mApp->getUptime();
+    root[F("ts_now")]      = mApp->getTimestamp();
 
     response->setLength();
     //response->addHeader("Access-Control-Allow-Origin", "*");
@@ -80,8 +84,8 @@ void api::onInverterList(AsyncWebServerRequest *request) {
             obj[F("power_limit_option")] = iv->powerLimit[1];
         }
     }
-    root[F("interval")] = String(mConfig->sendInterval);
-    root[F("retries")]  = String(mConfig->maxRetransPerPyld);
+    root[F("interval")]          = String(mConfig->sendInterval);
+    root[F("retries")]           = String(mConfig->maxRetransPerPyld);
     root[F("max_num_inverters")] = MAX_NUM_INVERTERS;
 
     response->setLength();
@@ -150,8 +154,7 @@ void api::onSerial(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse();
     JsonObject root = response->getRoot();
 
-    // next line cause a chrash but why?
-    //root[F("interval")] = mConfig->serialInterval;
+    root[F("interval")] = (uint16_t)mConfig->serialInterval;
     root[F("show_live_data")] = mConfig->serialShowIv;
     root[F("debug")] = mConfig->serialDebug;
 

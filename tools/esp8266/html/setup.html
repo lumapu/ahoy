@@ -145,7 +145,7 @@
         <div id="footer">
             <p class="left"><a href="/">Home</a></p>
             <p class="left"><a href="/update">Update Firmware</a></p>
-            <p class="right">AHOY - {#VERSION}</p>
+            <p class="right" id="version"></p>
             <p class="right"><a href="/factory">Factory Reset</a></p>
             <p class="right"><a href="/reboot">Reboot</a></p>
         </div>
@@ -265,6 +265,7 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
             }
 
             function parseIv(obj) {
@@ -322,12 +323,19 @@
                 ], obj["power_level"]));
             }
 
+            function parseSerial(obj) {
+                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"]])
+                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                document.getElementsByName("serIntvl")[0].value = obj["interval"];
+            }
+
             getAjax("/api/system", parseSys);
             getAjax("/api/inverter/list", parseIv);
             getAjax("/api/mqtt", parseMqtt);
             getAjax("/api/ntp", parseNtp);
             getAjax("/api/pinout", parsePinout);
             getAjax("/api/radio", parseRadio);
+            getAjax("/api/serial", parseSerial);
         </script>
     </body>
 </html>
