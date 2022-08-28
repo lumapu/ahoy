@@ -63,7 +63,7 @@
             }
 
             window.setInterval("getAjax('/api/system', parseSys)", 30000);
-            window.setInterval("getAjax('/api/system', parseStat)", 30000);
+            window.setInterval("getAjax('/api/statistics', parseStat)", 30000);
 
             getAjax("/api/system", parseSys);
             getAjax("/api/statistics", parseStat);
