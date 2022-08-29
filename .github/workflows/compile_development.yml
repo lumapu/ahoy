@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        ref: main
+        ref: development02
     - uses: benjlevesque/short-sha@v1.2
       id: short-sha
       with:
