@@ -51,6 +51,7 @@ The serial console will print the converted values which were read out of the in
 
 For now the following inverters should work out of the box:
 
+- HM300
 - HM350
 - HM400
 - HM600
