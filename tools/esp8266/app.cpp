@@ -64,6 +64,13 @@ void app::loop(void) {
         }
     }
 
+    if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
+        if(!apActive) {
+            mTimestamp  = mWifi->getNtpTime();
+            DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
+        }
+    }
+
 
     mSys->Radio.loop();
 
@@ -655,7 +662,10 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 void app::resetSystem(void) {
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
-    mUptimeInterval = 1000;
+    mUptimeInterval = 1000; // [ms]
+
+    mNtpRefreshTicker   = 0xffffffff;
+    mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]
 
 #ifdef AP_ONLY
     mTimestamp = 1;

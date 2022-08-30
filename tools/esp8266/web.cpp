@@ -384,7 +384,9 @@ void web::showSave(void) {
 
         // mqtt
         if(mWeb->arg("mqttAddr") != "") {
-            mWeb->arg("mqttAddr").toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
+            String addr = mWeb->arg("mqttAddr");
+            addr.trim();
+            addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
             mWeb->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
             mWeb->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             mWeb->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
