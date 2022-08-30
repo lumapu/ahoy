@@ -36,6 +36,9 @@
 #define DEF_RF24_CE_PIN         2
 #define DEF_RF24_IRQ_PIN        0
 
+// default radio ID
+#define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
+
 // default NRF24 power, possible values (0 - 3)
 #define DEF_AMPLIFIERPOWER      2
 
@@ -95,5 +98,9 @@
 
 // changes the style of "/setup" page, visualized = nicer
 #define LIVEDATA_VISUALIZED
+
+#if __has_include("config_override.h")
+    #include "config_override.h"
+#endif
 
 #endif /*__CONFIG_H__*/

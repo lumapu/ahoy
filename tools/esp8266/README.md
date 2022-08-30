@@ -34,9 +34,11 @@ This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The
 ### Optional Configuration before compilation
 
 - number of supported inverters (set to 3 by default) `config.h`
-- DTU radio id `hmRadio.h` (default = 1234567801
+- DTU radio id `config.h` (default = 1234567801)
 - unformated list in webbrowser `/livedata` `config.h`, `LIVEDATA_VISUALIZED`
 
+Alternativly, instead of modifying `config.h`, `config_override_example.h` can be copied to `config_override.h` and customized.
+config_override.h is excluded from version control and stays local.
 
 ## Flash ESP with firmware
 
