@@ -4,6 +4,7 @@
 #include "dbg.h"
 #include "ESPAsyncTCP.h"
 #include "ESPAsyncWebServer.h"
+#include "AsyncJson.h"
 #include "app.h"
 
 
@@ -17,14 +18,18 @@ class webApi {
         void loop(void);
 
     private:
-        void onSystem(AsyncWebServerRequest *request);
-        void onStatistics(AsyncWebServerRequest *request);
-        void onInverterList(AsyncWebServerRequest *request);
-        void onMqtt(AsyncWebServerRequest *request);
-        void onNtp(AsyncWebServerRequest *request);
-        void onPinout(AsyncWebServerRequest *request);
-        void onRadio(AsyncWebServerRequest *request);
-        void onSerial(AsyncWebServerRequest *request);
+        void onApi(AsyncWebServerRequest *request);
+
+        void getSystem(JsonObject obj);
+        void getStatistics(JsonObject obj);
+        void getInverterList(JsonObject obj);
+        void getMqtt(JsonObject obj);
+        void getNtp(JsonObject obj);
+        void getPinout(JsonObject obj);
+        void getRadio(JsonObject obj);
+        void getSerial(JsonObject obj);
+
+        void getSetup(JsonObject obj);
 
         AsyncWebServer *mSrv;
         app *mApp;

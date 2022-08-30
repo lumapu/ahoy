@@ -261,13 +261,17 @@
                 document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
-            getAjax("/api/system", parseSys);
-            getAjax("/api/inverter/list", parseIv);
-            getAjax("/api/mqtt", parseMqtt);
-            getAjax("/api/ntp", parseNtp);
-            getAjax("/api/pinout", parsePinout);
-            getAjax("/api/radio", parseRadio);
-            getAjax("/api/serial", parseSerial);
+            function parse(root) {
+                parseSys(root["system"]);
+                parseIv(root["inverter"]);
+                parseMqtt(root["mqtt"]);
+                parseNtp(root["ntp"]);
+                parsePinout(root["pinout"]);
+                parseRadio(root["radio"]);
+                parseSerial(root["serial"]);
+            }
+
+            getAjax("/api/setup", parse);
         </script>
     </body>
 </html>

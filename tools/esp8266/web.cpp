@@ -55,7 +55,7 @@ void web::setup(void) {
     mWeb->on("/visualization",  HTTP_ANY,  std::bind(&web::showVisualization, this, std::placeholders::_1));
     mWeb->on("/livedata",       HTTP_ANY,  std::bind(&web::showLiveData,      this, std::placeholders::_1));
     mWeb->on("/json",           HTTP_ANY,  std::bind(&web::showJson,          this, std::placeholders::_1));
-    mWeb->on("/api",            HTTP_POST, std::bind(&web::showWebApi,        this, std::placeholders::_1));
+    mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,        this, std::placeholders::_1));
 
 
     mWeb->on("/update",         HTTP_GET,  std::bind(&web::showUpdateForm,    this, std::placeholders::_1));
@@ -288,7 +288,7 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // mqtt
         if(request->arg("mqttAddr") != "") {
-            String addr = mWeb->arg("mqttAddr");
+            String addr = request->arg("mqttAddr");
             addr.trim();
             addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
             request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
