@@ -1,3 +1,5 @@
+![actions/workflows/compile_esp8266.yml](../../actions/workflows/compile_esp8266.yml/badge.svg) ![actions/workflows/compile_development.yml](../../actions/workflows/compile_development.yml/badge.svg)
+
 ![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
 # ahoy
@@ -9,7 +11,7 @@ Click on the link below you are interested in.
 There you will find further explanations on how to proceed. (*Note: It is still under construction!*)
 
 ##### Most updated section
-- [ESP8266](tools/esp8266/) that includes an web interface ![](../../actions/workflows/compile_esp8266.yml/badge.svg)
+- [ESP8266](tools/esp8266/) that includes an web interface
 
 ##### will be updated as needed
 - [Arduino Nano](tools/nano/NRF24_SendRcv/)
