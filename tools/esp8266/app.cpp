@@ -53,14 +53,11 @@ void app::loop(void) {
     mWebInst->loop();
 
     if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
-        mUptimeSecs++;
-        if(0 != mTimestamp)
-            mTimestamp++;
-        else {
-            if(!apActive) {
-                mTimestamp  = mWifi->getNtpTime();
-                DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
-            }
+        if(millis() - mPrevMillis >= 1000) {
+            mPrevMillis += 1000;
+            mUptimeSecs++;
+            if(0 != mTimestamp)
+                mTimestamp++;
         }
     }
 
@@ -662,9 +659,10 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 void app::resetSystem(void) {
     mUptimeSecs     = 0;
     mUptimeTicker   = 0xffffffff;
-    mUptimeInterval = 1000; // [ms]
+    mUptimeInterval = 500; // [ms]
+    mPrevMillis     = 0;
 
-    mNtpRefreshTicker   = 0xffffffff;
+    mNtpRefreshTicker   = 0;
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]
 
 #ifdef AP_ONLY
