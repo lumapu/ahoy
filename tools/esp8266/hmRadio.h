@@ -16,7 +16,6 @@
 #define DEFAULT_RECV_CHANNEL    3
 #define SPI_SPEED               1000000
 
-#define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 #define RF_CHANNELS             5
