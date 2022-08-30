@@ -16,6 +16,23 @@
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
 
+
+const uint16_t pwrLimitOptionValues[] {
+    NoPowerLimit,
+    AbsolutNonPersistent,
+    AbsolutPersistent,
+    RelativNonPersistent,
+    RelativPersistent
+};
+
+const char* const pwrLimitOptions[] {
+    "no power limit",
+    "absolute in Watt non persistent",
+    "absolute in Watt persistent",
+    "relativ in percent non persistent",
+    "relativ in percent persistent"
+};
+
 //-----------------------------------------------------------------------------
 web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
     mMain    = main;
@@ -185,7 +202,7 @@ void web::showSetup(void) {
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
         if(NULL != iv)
             inv += String(iv->serial.u64, HEX);
-        inv += F("\"/ maxlength=\"12\" onkeyup=\"checkSerial()\">");
+        inv += F("\"/ maxlength=\"12\">");
 
         inv += F("<label for=\"inv") + String(i) + F("Name\">Name*</label>");
         inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
@@ -200,21 +217,16 @@ void web::showSetup(void) {
         inv += F("\"/ maxlength=\"") + String(6) + "\">";
 
         inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
-        inv += F("<select name=\"inv") + String(i);
-        // UGLY! But I do not know it a better way
-        // ToDo: Need Cookies, IndexDB or PWA for that or in general client browser storage
-        if(NULL != iv){
-        if(iv->powerLimit[1] == AbsolutNonPersistent)
-            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == RelativNonPersistent)
-            inv += F("PowerLimitControl\"><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == AbsolutPersistent)
-            inv += F("PowerLimitControl\"><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        if(iv->powerLimit[1] == RelativPersistent)
-            inv += F("PowerLimitControl\"><option value=\"257\">relativ in percent persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"0\">absolute in Watt non persistent</option></select>");
-        } else
-            inv += F("PowerLimitControl\"><option value=\"0\">absolute in Watt non persistent</option><option value=\"1\">relativ in percent non persistent</option><option value=\"256\">absolute in Watt persistent</option><option value=\"257\">relativ in percent persistent</option></select>");
-        // UGLY! But I do not know it a better way --//
+        inv += F("<select name=\"inv") + String(i) + F("PowerLimitControl\">");
+        for(uint8_t j = 0; j < 5; j++) {
+            inv += F("<option value=\"") + String(pwrLimitOptionValues[j]) + F("\"");
+            if(NULL != iv) {
+                if(iv->powerLimit[1] == pwrLimitOptionValues[j])
+                    inv += F(" selected");
+            }
+            inv += F(">") + String(pwrLimitOptions[j]) + F("</option>");
+        }
+        inv += F("</select>");
         
         inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
         inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
@@ -320,13 +332,14 @@ void web::showSave(void) {
                 iv->powerLimit[1] = actPwrLimitControl;
                 iv->devControlCmd = ActivePowerContr;
                 iv->devControlRequest = true;
-                if (iv->powerLimit[1] & 0x0001)
+                if ((iv->powerLimit[1] & 0x0001) == 0x0001)
                     DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
-                else
+                else {
                     DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
                     DPRINTLN(DBG_INFO, F("Power Limit Control Setting ") + String(iv->powerLimit[1]));
+                }
             }
-            if (actPwrLimit == 0xffff){ // set to 100%
+            if (actPwrLimit == 0xffff) { // set to 100%
                 iv->powerLimit[0] = 100;
                 iv->powerLimit[1] = RelativPersistent;
                 iv->devControlCmd = ActivePowerContr;
@@ -421,7 +434,84 @@ void web::showVisualization(void) {
 //-----------------------------------------------------------------------------
 void web::showLiveData(void) {
     DPRINTLN(DBG_VERBOSE, F("web::showLiveData"));
-    mWeb->send(200, F("text/html"), mMain->getLiveData());
+
+    String modHtml;
+    for (uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mMain->mSys->getInverterByPos(id);
+        if (NULL != iv) {
+#ifdef LIVEDATA_VISUALIZED
+            uint8_t modNum, pos;
+            switch (iv->type) {
+                default:
+                case INV_TYPE_1CH: modNum = 1; break;
+                case INV_TYPE_2CH: modNum = 2; break;
+                case INV_TYPE_4CH: modNum = 4; break;
+            }
+
+            modHtml += F("<div class=\"iv\">"
+                         "<div class=\"ch-iv\"><span class=\"head\">")
+                    + String(iv->name) + F(" Limit ")
+                    + String(iv->actPowerLimit) + F("%");
+            if(NoPowerLimit == iv->powerLimit[1])
+                modHtml += F(" (not controlled)");
+            modHtml += F(" | last Alarm: ") + iv->lastAlarmMsg + F("</span>");
+
+            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
+
+            for (uint8_t fld = 0; fld < 11; fld++) {
+                pos = (iv->getPosByChFld(CH0, list[fld]));
+                if (0xff != pos) {
+                    modHtml += F("<div class=\"subgrp\">");
+                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
+                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
+                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
+                    modHtml += F("</div>");
+                }
+            }
+            modHtml += "</div>";
+
+            for (uint8_t ch = 1; ch <= modNum; ch++) {
+                modHtml += F("<div class=\"ch\"><span class=\"head\">");
+                if (iv->chName[ch - 1][0] == 0)
+                    modHtml += F("CHANNEL ") + String(ch);
+                else
+                    modHtml += String(iv->chName[ch - 1]);
+                modHtml += F("</span>");
+                for (uint8_t j = 0; j < 6; j++) {
+                    switch (j) {
+                        default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
+                        case 1:  pos = (iv->getPosByChFld(ch, FLD_IDC)); break;
+                        case 2:  pos = (iv->getPosByChFld(ch, FLD_PDC)); break;
+                        case 3:  pos = (iv->getPosByChFld(ch, FLD_YD));  break;
+                        case 4:  pos = (iv->getPosByChFld(ch, FLD_YT));  break;
+                        case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR)); break;
+                    }
+                    if (0xff != pos) {
+                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
+                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
+                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
+                    }
+                }
+                modHtml += "</div>";
+                yield();
+            }
+            modHtml += F("<div class=\"ts\">Last received data requested at: ") + mMain->getDateTimeStr(iv->ts) + F("</div>");
+            modHtml += F("</div>");
+#else
+            // dump all data to web frontend
+            modHtml = F("<pre>");
+            char topic[30], val[10];
+            for (uint8_t i = 0; i < iv->listLen; i++) {
+                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                modHtml += String(topic) + ": " + String(val) + "\n";
+            }
+            modHtml += F("</pre>");
+#endif
+        }
+    }
+
+    mWeb->send(200, F("text/html"), modHtml);
 }
 
 
@@ -450,10 +540,11 @@ void web::showWebApi(void)
         if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
         {
             // if the AlarmData is requested set the Alarm Index to the requested one
-            if (cmd == AlarmData){
-                iv->alarmMesIndex = response["payload"];
+            if (cmd == AlarmData || cmd == AlarmUpdate){
+                // set the AlarmMesIndex for the request from user input
+                iv->alarmMesIndex = response["payload"]; 
             }
-            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String(response["payload"]));
+            DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
             // process payload from web request corresponding to the cmd
             iv->enqueCommand<InfoCommand>(cmd);
         }
@@ -487,6 +578,14 @@ void web::showWebApi(void)
                     }
                     iv->devControlRequest = true; // queue it in the request loop
                 }
+            }
+            if (response["cmd"] == (uint8_t)TurnOff){
+                iv->devControlCmd = TurnOff;
+                iv->devControlRequest = true; // queue it in the request loop
+            }
+            if (response["cmd"] == (uint8_t)TurnOn){
+                iv->devControlCmd = TurnOn;
+                iv->devControlRequest = true; // queue it in the request loop
             }
         }
     }
