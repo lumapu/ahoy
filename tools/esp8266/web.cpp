@@ -288,7 +288,9 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // mqtt
         if(request->arg("mqttAddr") != "") {
-            request->arg("mqttAddr").toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
+            String addr = mWeb->arg("mqttAddr");
+            addr.trim();
+            addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
             request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
             if(request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);

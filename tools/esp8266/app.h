@@ -217,7 +217,10 @@ class app {
         uint32_t mUptimeTicker;
         uint16_t mUptimeInterval;
         uint32_t mUptimeSecs;
+        uint32_t mPrevMillis;
         uint8_t mHeapStatCnt;
+        uint32_t mNtpRefreshTicker;
+        uint32_t mNtpRefreshInterval;
 
 
         bool mWifiSettingsValid;

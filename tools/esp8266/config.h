@@ -72,11 +72,14 @@
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
 
-// default ntp server uri
+// default NTP server uri
 #define DEF_NTP_SERVER_NAME     "pool.ntp.org"
 
-// default ntp server port
+// default NTP server port
 #define DEF_NTP_PORT            8888
+
+// NTP refresh interval in ms (default 12h)
+#define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
 
 // default mqtt interval
 #define MQTT_INTERVAL           60
