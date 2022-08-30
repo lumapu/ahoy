@@ -89,20 +89,21 @@ The serial console will print the converted values which were read out of the in
 
  ## Todo's [See this post](https://github.com/grindylow/ahoy/issues/142)
 
-- [ ]  Wechsel zu AsyncWebServer und ElegantOTA fÃ¼r StabilitÃ¤t
+- [ ]  Wechsel zu AsyncWebServer und ElegantOTA für Stabilität
 - [x]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
-- [x]  Device Info Kommandos (Firmware Version, etc.) Ã¼ber das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
+- [x]  Device Info Kommandos (Firmware Version, etc.) über das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
 - [ ]  AlarmData & AlarmUpdate Parsen und auf eigener Seite darstellen
 
 ------------------ SWIM LANE ---------------------------
 
-- [ ]  Device Control Kommandos aus dem Setup ermÃ¶glichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
+- HM300
+- [ ]  Device Control Kommandos aus dem Setup ermöglichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
 - [ ]  Settings exportieren / importieren (API/UI)
 - [ ]  Settings in settings.ini speichern (LittleFS statt EEPROM) [Settings in settings.ini speichern (LittleFS statt EEPROM) #164](https://github.com/grindylow/ahoy/issues/164)
-- [ ]  Homepage aufrÃ¤umen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
-- [ ]  app.cpp aufrÃ¤umen und in hmRadio / hmProtokollGen3 auslagern
-- [ ]  MI Wechselrichter unterstÃ¼tzen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
-- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek stÃ¤ndig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
-- [ ]  Debug Level im Setup Ã¤nderbar -auch Livedata Visualisierung abschalten ?
+- [ ]  Homepage aufräumen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
+- [ ]  app.cpp aufräumen und in hmRadio / hmProtokollGen3 auslagern
+- [ ]  MI Wechselrichter unterstützen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
+- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek ständig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
+- [ ]  Debug Level im Setup änderbar -auch Livedata Visualisierung abschalten ?
 - [ ]  MQTT Discovery (HomeAssistant) im Setup optional machen
-- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgefÃ¼hrt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
+- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgeführt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
