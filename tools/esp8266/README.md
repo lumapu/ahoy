@@ -1,8 +1,31 @@
-## OVERVIEW
+## Table of Contents
+
+- [Overview](#overview)
+- [Compile](#compile)
+  * [Optional Configuration before compilation](#optional-configuration-before-compilation)
+- [Flash ESP with Firmware](#flash-esp-with-firmware)
+- [Usage](#usage)
+- [Compatiblity](#compatiblity)
+- [Used Libraries](#used-libraries)
+- [Contact](#contact)
+
+***
+
+## Overview
 
 This code is intended to run on a Wemos D1mini or similar. The code is based on 'Hubi's code, which can be found here: <https://www.mikrocontroller.net/topic/525778?page=3#7033371>
 
-The NRF24L01+ radio module is connected to the standard SPI pins. Additional there are 3 pins, which can be set individual: CS, CE and IRQ
+The NRF24L01+ radio module is connected to the
+standard SPI pins:
+- SCLK (Signal Clock),
+- MISO (Master In Slave Out) and
+- MOSI (Master Out Slave In)
+
+Additional there are 3 pins, which can be set individual:
+- CS (Chip Select),
+- CE (Chip Enable) and
+- IRQ (Interrupt)
+
 These pins can be changed from the /setup URL
 
 
@@ -11,7 +34,7 @@ These pins can be changed from the /setup URL
 This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The settings were:
 
 - Board: Generic ESP8266 Module
-- Flash-Size: 1MB (FS: none, OTA: 502kB)
+- Flash-Size: 4MB
 - Install libraries (not included in the Arduino IDE 1.8.19):
   - Time            Arduino Time library (TimeLib.h)
   - RF24            Optimized high speed nRF24L01+ driver class documentation
@@ -25,7 +48,7 @@ This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The
 - unformated list in webbrowser `/livedata` `config.h`, `LIVEDATA_VISUALIZED`
 
 
-## Flash ESP with firmware
+## Flash ESP with Firmware
 
 1. flash the ESP with the compiled firmware using the UART pins or any preinstalled firmware with OTA capabilities
 2. repower the ESP
@@ -60,7 +83,7 @@ For now the following inverters should work out of the box:
 - HM1200
 - HM1500
 
-## USED LIBRARIES
+## Used Libraries 
 
 - `ESP8266WiFi` 1.0
 - `DNSServer` 1.1.0
@@ -70,3 +93,8 @@ For now the following inverters should work out of the box:
 - `RF24` 1.4.5
 - `PubSubClient` 2.8
 - `ArduinoJson` 6.19.4
+
+## Contact
+We run a Discord Server that can be used to get in touch with the Developers and Users.
+
+https://discord.gg/WzhxEY62mB
