@@ -37,7 +37,6 @@ class web {
         void onSetup(AsyncWebServerRequest *request);
         void showSave(AsyncWebServerRequest *request);
 
-        void showStatistics(AsyncWebServerRequest *request);
         void showVisualization(AsyncWebServerRequest *request);
         void showLiveData(AsyncWebServerRequest *request);
         void showJson(AsyncWebServerRequest *request);

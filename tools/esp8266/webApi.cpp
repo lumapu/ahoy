@@ -46,13 +46,14 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     else if(path == "pinout")        getPinout(root);
     else if(path == "radio")         getRadio(root);
     else if(path == "serial")        getSerial(root);
+    else if(path == "index")         getIndex(root);
     else if(path == "setup")         getSetup(root);
     else
-        root["info"] = "not found"; //root["url"] = request->url();
+        getNotFound(root, F("http://") + request->host() + F("/api/"));
 
     response->setLength();
-    //response->addHeader("Access-Control-Allow-Origin", "*");
-    //response->addHeader("Access-Control-Allow-Headers", "content-type");
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Headers", "content-type");
     request->send(response);
 }
 
@@ -79,7 +80,7 @@ void webApi::getStatistics(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getInverterList(JsonObject obj) {
-    JsonArray invArr = obj.createNestedArray("inverter");
+    JsonArray invArr = obj.createNestedArray(F("inverter"));
 
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
@@ -147,12 +148,65 @@ void webApi::getSerial(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
+void webApi::getNotFound(JsonObject obj, String url) {
+    JsonObject ep = obj.createNestedObject("avail_endpoints");
+    ep[F("system")]        = url + F("system");
+    ep[F("statistics")]    = url + F("statistics");
+    ep[F("inverter/list")] = url + F("inverter/list");
+    ep[F("mqtt")]          = url + F("mqtt");
+    ep[F("ntp")]           = url + F("ntp");
+    ep[F("pinout")]        = url + F("pinout");
+    ep[F("radio")]         = url + F("radio");
+    ep[F("serial")]        = url + F("serial");
+    ep[F("index")]         = url + F("index");
+    ep[F("setup")]         = url + F("setup");
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getIndex(JsonObject obj) {
+    getSystem(obj.createNestedObject(F("system")));
+    getStatistics(obj.createNestedObject(F("statistics")));
+    obj["refresh_interval"] = SEND_INTERVAL;
+
+    JsonArray inv = obj.createNestedArray(F("inverter"));
+    Inverter<> *iv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        iv = mApp->mSys->getInverterByPos(i);
+        if(NULL != iv) {
+            JsonObject invObj = inv.createNestedObject();
+            invObj[F("id")]              = i;
+            invObj[F("name")]            = String(iv->name);
+            invObj[F("version")]         = String(iv->fwVersion);
+            invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp());
+            invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp());
+            invObj[F("ts_last_success")] = iv->getLastTs();
+        }
+    }
+
+    JsonArray warn = obj.createNestedArray(F("warnings"));
+    if(!mApp->mSys->Radio.isChipConnected())
+        warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
+    if(!mApp->mqttIsConnected())
+        warn.add(F("MQTT is not connected"));
+
+    JsonArray info = obj.createNestedArray(F("infos"));
+    if(mApp->getRebootRequestState())
+        info.add(F("reboot your ESP to apply all your configuration changes!"));
+    if(!mApp->getSettingsValid())
+        info.add(F("your settings are invalid"));
+    if(mApp->mqttIsConnected())
+        info.add(F("MQTT is connected"));
+}
+
+
+//-----------------------------------------------------------------------------
 void webApi::getSetup(JsonObject obj) {
-    getSystem(obj.createNestedObject("system"));
-    getInverterList(obj.createNestedObject("inverter"));
-    getMqtt(obj.createNestedObject("mqtt"));
-    getNtp(obj.createNestedObject("ntp"));
-    getPinout(obj.createNestedObject("pinout"));
-    getRadio(obj.createNestedObject("radio"));
-    getSerial(obj.createNestedObject("serial"));
+    getSystem(obj.createNestedObject(F("system")));
+    getInverterList(obj.createNestedObject(F("inverter")));
+    getMqtt(obj.createNestedObject(F("mqtt")));
+    getNtp(obj.createNestedObject(F("ntp")));
+    getPinout(obj.createNestedObject(F("pinout")));
+    getRadio(obj.createNestedObject(F("radio")));
+    getSerial(obj.createNestedObject(F("serial")));
 }

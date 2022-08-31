@@ -62,7 +62,6 @@ class app {
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
-        String getStatistics(void);
         String getJson(void);
         bool getWifiApActive(void);
 
@@ -134,6 +133,10 @@ class app {
 
             return false;
         }
+
+        inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
+        inline bool getSettingsValid(void) { return mSettingsValid; }
+        inline bool getRebootRequestState(void) { return mShowRebootRequest; }
 
         HmSystemType *mSys;
         bool mShouldReboot;
@@ -214,8 +217,6 @@ class app {
         }
 
 
-        uint32_t mUptimeTicker;
-        uint16_t mUptimeInterval;
         uint32_t mUptimeSecs;
         uint32_t mPrevMillis;
         uint8_t mHeapStatCnt;

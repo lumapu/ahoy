@@ -29,6 +29,8 @@ class webApi {
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
 
+        void getNotFound(JsonObject obj, String url);
+        void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
 
         AsyncWebServer *mSrv;

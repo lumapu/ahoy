@@ -15,8 +15,14 @@
                 <a href="/setup">Setup</a><br/>
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
-            <p><span class="des">Statistics: </span><pre id="stat"></pre></p>
-            <p>Every {TS}seconds the values are updated</p>
+            <p><span class="des">ESP-Time: </span><span id="date"></span></p>
+            <p>
+                <span class="des">Statistics: </span>
+                <pre id="stat"></pre>
+                <pre id="iv"></pre>
+                <pre id="warn_info"></pre>
+            </p>
+            <p>Every <span id="refresh"></span> seconds the values are updated</p>
 
             <div id="note">
                 This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a><br/>
@@ -35,8 +41,10 @@
             <p class="left"><a href="/update">Update Firmware</a></p>
             <p class="right" id="version"></p>
             <p class="right"><a href="/reboot">Reboot</a></p>
+            <p class="right"><a href="/api">REST API</a></p>
         </div>
         <script type="text/javascript">
+            var intervalSet = false;
             function parseSys(obj) {
                 document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
 
@@ -49,10 +57,8 @@
                 document.getElementById("uptime").innerHTML = days + " Days, "
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
-                    + ("0"+sec).substr(-2) + "; now: "
-                    + ("0"+date.getHours()).substr(-2) + ":"
-                    + ("0"+date.getMinutes()).substr(-2) + ":"
-                    + ("0"+date.getSeconds()).substr(-2);
+                    + ("0"+sec).substr(-2);
+                document.getElementById("date").innerHTML = date.toLocaleString('de-DE', {timeZone: 'UTC'});
             }
 
             function parseStat(obj) {
@@ -62,11 +68,48 @@
                     + "\nTX Cnt: " + obj["tx_cnt"];
             }
 
-            window.setInterval("getAjax('/api/system', parseSys)", 30000);
-            window.setInterval("getAjax('/api/statistics', parseStat)", 30000);
+            function parseIv(obj) {
+                var html = "";
+                for(var i of obj) {
+                    html += "Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is ";
+                    if(false == i["is_avail"])
+                        html += "not ";
+                    html += "available and is ";
+                    if(false == i["is_producing"])
+                        html += "not ";
+                    html += "producing\n";
 
-            getAjax("/api/system", parseSys);
-            getAjax("/api/statistics", parseStat);
+                    if(false == i["is_avail"]) {
+                        var date = new Date(i["ts_last_succes"] * 1000);
+                        html += "-> last successful transmission: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                    }
+
+                }
+                document.getElementById("iv").innerHTML = html;
+            }
+
+            function parseWarnInfo(warn, info) {
+                var html = "";
+                for(var w of warn) {
+                    html += "WARN: " + w + "\n";
+                }
+                for(var i of info) {
+                    html += "INFO: " + i + "\n";
+                }
+                document.getElementById("warn_info").innerHTML = html;
+            }
+
+            function parse(obj) {
+                parseSys(obj["system"]);
+                parseStat(obj["statistics"]);
+                parseIv(obj["inverter"]);
+                parseWarnInfo(obj["warnings"], obj["infos"]);
+                document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                if(false == intervalSet)
+                    window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+            }
+
+            getAjax("/api/index", parse);
         </script>
     </body>
 </html>

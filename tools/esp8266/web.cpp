@@ -51,7 +51,6 @@ void web::setup(void) {
     mWeb->on("/setup",          HTTP_GET,  std::bind(&web::onSetup,           this, std::placeholders::_1));
     mWeb->on("/save",           HTTP_ANY,  std::bind(&web::showSave,          this, std::placeholders::_1));
 
-    mWeb->on("/cmdstat",        HTTP_ANY,  std::bind(&web::showStatistics,    this, std::placeholders::_1));
     mWeb->on("/visualization",  HTTP_ANY,  std::bind(&web::showVisualization, this, std::placeholders::_1));
     mWeb->on("/livedata",       HTTP_ANY,  std::bind(&web::showLiveData,      this, std::placeholders::_1));
     mWeb->on("/json",           HTTP_ANY,  std::bind(&web::showJson,          this, std::placeholders::_1));
@@ -316,13 +315,6 @@ void web::showSave(AsyncWebServerRequest *request) {
             request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>"));
     }
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showStatistics(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("web::showStatistics"));
-    request->send(200, F("text/plain"), mMain->getStatistics());
 }
 
 

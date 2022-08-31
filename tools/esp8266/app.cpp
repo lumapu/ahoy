@@ -53,13 +53,11 @@ void app::loop(void) {
     bool apActive = mWifi->loop();
     mWebInst->loop();
 
-    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
-        if(millis() - mPrevMillis >= 1000) {
-            mPrevMillis += 1000;
-            mUptimeSecs++;
-            if(0 != mTimestamp)
-                mTimestamp++;
-        }
+    if(millis() - mPrevMillis >= 1000) {
+        mPrevMillis += 1000;
+        mUptimeSecs++;
+        if(0 != mTimestamp)
+            mTimestamp++;
     }
 
     if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
@@ -501,56 +499,6 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 
 
 //-----------------------------------------------------------------------------
-String app::getStatistics(void) {
-    String content = F("Receive success: ") + String(mStat.rxSuccess) + "\n";
-    content += F("Receive fail: ") + String(mStat.rxFail) + "\n";
-    content += F("Frames received: ") + String(mStat.frmCnt) + "\n";
-    content += F("Send Cnt: ") + String(mSys->Radio.mSendCnt) + String("\n\n");
-
-    Inverter<> *iv;
-    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-        iv = mSys->getInverterByPos(i);
-        content += F("Inverter #") + String(i) + F(": ");
-        if(NULL != iv) {
-            bool avail = true;
-            content += String(iv->name) + F(" (v") + String(iv->fwVersion) +F(")") + F(" is ");
-            if(!iv->isAvailable(mTimestamp)) {
-                content += F("not ");
-                avail = false;
-            }
-            content += F("available and is ");
-            if(!iv->isProducing(mTimestamp))
-                content += F("not ");
-            content += F("producing\n");
-
-            if(!avail) {
-                if(iv->getLastTs() > 0)
-                    content += F("-> last successful transmission: ") + getDateTimeStr(iv->getLastTs()) + "\n";
-            }
-        }
-        else
-            content += F("n/a\n");
-        }
-
-    if(!mSys->Radio.isChipConnected())
-        content += F("WARNING! your NRF24 module can't be reached, check the wiring and pinout (<a href=\"/setup\">setup</a>)\n");
-
-    if(mShowRebootRequest)
-        content += F("INFO: reboot your ESP to apply all your configuration changes!\n");
-
-    if(!mSettingsValid)
-        content += F("INFO: your settings are invalid, please switch to <a href=\"/setup\">Setup</a> to correct this.\n");
-
-    content += F("MQTT: ");
-    if(!mMqtt.isConnected())
-        content += F("not ");
-    content += F("connected\n");
-
-    return content;
-}
-
-
-//-----------------------------------------------------------------------------
 String app::getJson(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showJson"));
     String modJson;
@@ -664,8 +612,6 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     mUptimeSecs     = 0;
-    mUptimeTicker   = 0xffffffff;
-    mUptimeInterval = 500; // [ms]
     mPrevMillis     = 0;
 
     mNtpRefreshTicker   = 0;
