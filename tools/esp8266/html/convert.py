@@ -2,6 +2,8 @@ import re
 import sys
 import os
 
+from pathlib import Path
+
 def convert2Header(inFile):
     fileType      = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
@@ -12,8 +14,10 @@ def convert2Header(inFile):
         print("ok")
         outName = "html/" + "h/" + inFileVarName + ".h"
         inFile  = "html/" + inFile
+        Path("html/h").mkdir(exist_ok=True)
     else:
         outName = "h/" + inFileVarName + ".h"
+        Path("h").mkdir(exist_ok=True)
 
     f = open(inFile, "r")
     data = f.read().replace('\n', '')

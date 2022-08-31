@@ -16,7 +16,6 @@
 #define DEFAULT_RECV_CHANNEL    3
 #define SPI_SPEED               1000000
 
-#define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 #define DUMMY_RADIO_ID          ((uint64_t)0xDEADBEEF01ULL)
 
 #define RF_CHANNELS             5
@@ -192,10 +191,9 @@ class HmRadio {
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug || cmd == AlarmData || cmd == AlarmUpdate ){
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ){
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-                //mTxBuf[19] = 0x05; // ToDo: Shall be the last received Alarm Index Number
             } else {
                 mTxBuf[18] = 0x00;
                 mTxBuf[19] = 0x00;
