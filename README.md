@@ -20,4 +20,9 @@ There you will find further explanations on how to proceed. (*Note: It is still 
 
 If errors occur or you have suggestions for ideas, please feel free to contact us [here](https://github.com/grindylow/ahoy/issues).
 
+## Contact
+We run a Discord Server that can be used to get in touch with the Developers and Users.
+
+https://discord.gg/WzhxEY62mB
+
 **Contributors are always welcome!**

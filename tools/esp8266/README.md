@@ -1,9 +1,36 @@
-## OVERVIEW
+## Table of Contents
+
+- [Overview](#overview)
+- [Compile](#compile)
+  * [Optional Configuration before compilation](#optional-configuration-before-compilation)
+- [Flash ESP with Firmware](#flash-esp-with-firmware)
+- [Usage](#usage)
+- [Compatiblity](#compatiblity)
+- [Used Libraries](#used-libraries)
+- [Contact](#contact)
+
+***
+
+## Overview
 
 This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module, flashed and how the further steps are to communicate with the WR HM series.
 
+The NRF24L01+ radio module is connected to the
+standard SPI pins:
+- SCLK (Signal Clock),
+- MISO (Master In Slave Out) and
+- MOSI (Master Out Slave In)
+
+Additional there are 3 pins, which can be set individual:
+- CS (Chip Select),
+- CE (Chip Enable) and
+- IRQ (Interrupt)
+
+These pins can be changed from the /setup URL
+
 #### Compatiblity
 For now the following inverters should work out of the box:
+- HM300
 - HM350
 - HM400
 - HM600
@@ -24,12 +51,23 @@ These pins can be changed in the http://<ip-adress>/setup URL or with a click on
 This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The settings were:
 
 - Board: Generic ESP8266 Module
-- Flash-Size: 1MB (FS: none, OTA: 502kB)
+- Flash-Size: 4MB
 - Install libraries (not included in the Arduino IDE 1.8.19):
   - `Time` 1.6.1
   - `RF24` 1.4.5
   - `PubSubClient` 2.8
   - `ArduinoJson` 6.19.4
+  
+## Used Libraries 
+
+- `ESP8266WiFi` 1.0
+- `DNSServer` 1.1.0
+- `Ticker` 1.0
+- `ESP8266HTTPUpdateServer` 1.0
+- `Time` 1.6.1
+- `RF24` 1.4.5
+- `PubSubClient` 2.8
+- `ArduinoJson` 6.19.4
 
 ### Optional Configuration before compilation
 
@@ -40,7 +78,7 @@ This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The
 Alternativly, instead of modifying `config.h`, `config_override_example.h` can be copied to `config_override.h` and customized.
 config_override.h is excluded from version control and stays local.
 
-## Flash ESP with firmware
+## Flash ESP with Firmware
 
 #### nodemcu-pyflasher (easy way)
 1. download the flash-tool [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher)
@@ -89,21 +127,23 @@ The serial console will print the converted values which were read out of the in
 
  ## Todo's [See this post](https://github.com/grindylow/ahoy/issues/142)
 
-- [ ]  Wechsel zu AsyncWebServer und ElegantOTA für Stabilität
+- [ ]  Wechsel zu AsyncWebServer und ElegantOTA fÃ¼r StabilitÃ¤t
 - [x]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
-- [x]  Device Info Kommandos (Firmware Version, etc.) über das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
+- [x]  Device Info Kommandos (Firmware Version, etc.) Ã¼ber das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
 - [ ]  AlarmData & AlarmUpdate Parsen und auf eigener Seite darstellen
-
 ------------------ SWIM LANE ---------------------------
-
-- HM300
-- [ ]  Device Control Kommandos aus dem Setup ermöglichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
+- [ ]  Device Control Kommandos aus dem Setup ermÃ¶glichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
 - [ ]  Settings exportieren / importieren (API/UI)
 - [ ]  Settings in settings.ini speichern (LittleFS statt EEPROM) [Settings in settings.ini speichern (LittleFS statt EEPROM) #164](https://github.com/grindylow/ahoy/issues/164)
-- [ ]  Homepage aufräumen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
-- [ ]  app.cpp aufräumen und in hmRadio / hmProtokollGen3 auslagern
-- [ ]  MI Wechselrichter unterstützen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
-- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek ständig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
-- [ ]  Debug Level im Setup änderbar -auch Livedata Visualisierung abschalten ?
+- [ ]  Homepage aufrÃ¤umen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
+- [ ]  app.cpp aufrÃ¤umen und in hmRadio / hmProtokollGen3 auslagern
+- [ ]  MI Wechselrichter unterstÃ¼tzen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
+- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek stÃ¤ndig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
+- [ ]  Debug Level im Setup Ã¤nderbar -auch Livedata Visualisierung abschalten ?
 - [ ]  MQTT Discovery (HomeAssistant) im Setup optional machen
-- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgeführt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
+- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgefÃ¼hrt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
+
+## Contact
+We run a Discord Server that can be used to get in touch with the Developers and Users.
+
+https://discord.gg/WzhxEY62mB

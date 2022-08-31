@@ -1,5 +1,5 @@
 # User Manual Ahoy DTU (on ESP8266)
-16.08.2022
+Version #{VERSION}#
 ## Introduction
 See the repository [here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/README.md)
 
