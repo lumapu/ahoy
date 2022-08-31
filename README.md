@@ -15,3 +15,8 @@ In particular:
   * An [implementation for Raspberry Pi](tools/rpi/) that polls an inverter and archives results as log files/stdout as well as posting them to an MQTT broker.
 
 Contributors are always welcome!
+
+## Contact
+We run a Discord Server that can be used to get in touch with the Developers and Users.
+
+https://discord.gg/WzhxEY62mB
