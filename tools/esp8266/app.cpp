@@ -52,13 +52,11 @@ void app::loop(void) {
     bool apActive = mWifi->loop();
     mWebInst->loop();
 
-    if(checkTicker(&mUptimeTicker, mUptimeInterval)) {
-        if(millis() - mPrevMillis >= 1000) {
-            mPrevMillis += 1000;
-            mUptimeSecs++;
-            if(0 != mTimestamp)
-                mTimestamp++;
-        }
+    if(millis() - mPrevMillis >= 1000) {
+        mPrevMillis += 1000;
+        mUptimeSecs++;
+        if(0 != mTimestamp)
+            mTimestamp++;
     }
 
     if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
@@ -658,8 +656,6 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     mUptimeSecs     = 0;
-    mUptimeTicker   = 0xffffffff;
-    mUptimeInterval = 500; // [ms]
     mPrevMillis     = 0;
 
     mNtpRefreshTicker   = 0;

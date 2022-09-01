@@ -36,6 +36,7 @@ For now the following inverters should work out of the box:
 - HM600
 - HM700
 - HM800
+- HM1000?
 - HM1200
 - HM1500
 
@@ -48,15 +49,7 @@ These pins can be changed in the http://<ip-adress>/setup URL or with a click on
 
 ## Compile
 
-This code can be compiled using Visual Studio Code and **PlatformIO** Addon. The settings were:
-
-- Board: Generic ESP8266 Module
-- Flash-Size: 4MB
-- Install libraries (not included in the Arduino IDE 1.8.19):
-  - `Time` 1.6.1
-  - `RF24` 1.4.5
-  - `PubSubClient` 2.8
-  - `ArduinoJson` 6.19.4
+This code can be compiled using Visual Studio Code and **PlatformIO** Addon.
   
 ## Used Libraries 
 
