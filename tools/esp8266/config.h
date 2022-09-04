@@ -85,7 +85,7 @@
 #define DEF_NTP_SERVER_NAME     "pool.ntp.org"
 
 // default NTP server port
-#define DEF_NTP_PORT            8888
+#define DEF_NTP_PORT            123
 
 // NTP refresh interval in ms (default 12h)
 #define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
