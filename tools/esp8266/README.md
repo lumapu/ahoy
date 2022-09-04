@@ -23,7 +23,7 @@
 ## Overview
 
 This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
-Further information will help you to communicate to the compatible converters.
+Further information will help you to communicate to the compatible inverters.
 
 ## Compatiblity
 For now the following Inverters should work out of the box:
@@ -105,7 +105,7 @@ This information suits you if you just want to use an easy way.
 
 1. download the flash-tool [nodemcu-pyflasher](https://github.com/marcelstoer/nodemcu-pyflasher)
 2. download latest release bin-file from [ahoy_](https://github.com/grindylow/ahoy/releases)
-3. open flash-tool and connect the target device with your pc.
+3. open flash-tool and connect the target device to your computer.
 4. Set the correct serial port and select the correct *.bin file 
 5. click on "Flash NodeMCU"
 6. flash the ESP with the compiled firmware using the UART pins or
@@ -116,7 +116,7 @@ This information suits you if you just want to use an easy way.
 11. check your router or serial console for the IP address of the module. You can try ping the configured device name as well.
   
   
-Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities to update ypur firmware.
+Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities to update your firmware.
 
   
 ! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!
@@ -130,19 +130,19 @@ Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities t
 When everything is wired up and the firmware is flashed, it is time to connect to your Ahoy DTU.
 
 
-#### Your Ahoy DTO is very verbose using the Serial Console
+#### Your Ahoy DTU is very verbose using the Serial Console
  When connected to your computer, you can open a Serial Console to obtain additional information.
  This might be useful in case of any troubles that might occur as well as to simply obtain information about the converted values which were read out of the inverter(s).
  
  
 #### Connect to the Ahoy DTU Webinterface using your Browser
  After you have sucessfully flashed and powered your Ahoy DTU, you can access it via your Browser.
- If your Ahoy DTU was able to log into the configured WiFi Network, it will try to obtain an IP-Adress from your local DHCP Server (in most cases thats your Router).
- In case it could not connect to your configured Network, it will provide its own WiFi Network that you can connect to for furter configuration. The WiFi SSID ("Name") and Passwort is configured in the config.h and defaults to the SSID "AHOY-DTU" with the Passwort "esp_8266".
- The Ahox DTU will keep that Network open for a certain amount of time (also configurable in the config.h and defaults to 60secs). If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.
+ If your Ahoy DTU was able to log into the configured WiFi Network, it will try to obtain an IP-Address from your local DHCP Server (in most cases thats your Router).
+ In case it could not connect to your configured Network, it will provide its own WiFi Network that you can connect to for furter configuration. The WiFi SSID *(the WiFi Name)* and Passwort is configured in the config.h and defaults to the SSID "AHOY-DTU" with the Passwort "esp_8266".
+ The Ahoy DTU will keep that Network open for a certain amount of time (also configurable in the config.h and defaults to 60secs). If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.
  
- If yonnected to your local Network, you just have to find out the used IP Address. In must cases your Router will give you a hint.
- If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is 192.168.0.1.
+ If connected to your local Network, you just have to find out the used IP Address. In most cases your Router will give you a hint.
+ If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is 192.168.1.1.
  Just open the IP-Address in your browser.
  
  The webinterface has the following abilities:
@@ -153,7 +153,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  
  
 ##### HTTP based Pages
- To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. http://192.168.0.1/setup ).
+ To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. http://192.168.1.1/setup ).
  
 | page | use | output |
 | ---- | ------ | ------ |
@@ -198,19 +198,3 @@ https://discord.gg/WzhxEY62mB
 ## ToDo
 
 [See this post](https://github.com/grindylow/ahoy/issues/142)
-
-- [ ]  Wechsel zu AsyncWebServer und ElegantOTA für Stabilität
-- [x]  klarer Scheduler / Task manager, der ggf. den Receive Task priorisieren kann
-- [x]  Device Info Kommandos (Firmware Version, etc.) über das Dashboard anzeigen [Device Information ( `0x15` `REQ_ARW_DAT_ALL` ) SubCmd Kommandos #145](https://github.com/grindylow/ahoy/issues/145)
-- [ ]  AlarmData & AlarmUpdate Parsen und auf eigener Seite darstellen
------------------- SWIM LANE ---------------------------
-- [ ]  Device Control Kommandos aus dem Setup ermöglichen (TurnOn, TurnOff, Restart, ActivePower Limit, ReactivePower Limit, SetPowerFactor, etc.)
-- [ ]  Settings exportieren / importieren (API/UI)
-- [ ]  Settings in settings.ini speichern (LittleFS statt EEPROM) [Settings in settings.ini speichern (LittleFS statt EEPROM) #164](https://github.com/grindylow/ahoy/issues/164)
-- [ ]  Homepage aufräumen nur ein Status (aktuell drei AJAX Calls /uptime, /time, /cmdstat)
-- [ ]  app.cpp aufräumen und in hmRadio / hmProtokollGen3 auslagern
-- [ ]  MI Wechselrichter unterstützen (miSystem, miInverter, miDefines, miProtokollGen2 etc.)
-- [ ]  nRF24 Interrupt Handling sinnvoll oder warum macht die nRF24 Bibliothek ständig `0x07` Statusabfragen [NRF24 polling trotz aktiviertem IRQ #83](https://github.com/grindylow/ahoy/issues/83)
-- [ ]  Debug Level im Setup änderbar -auch Livedata Visualisierung abschalten ?
-- [ ]  MQTT Discovery (HomeAssistant) im Setup optional machen
-- [x]  MQTT Subscribe nur beim Reconnect [Das subscribe in der Reconnect Procedure sollte doch nur nach einem conect ausgeführt werden und nicht bei jedem Duchlauf #139](https://github.com/grindylow/ahoy/issues/139)
