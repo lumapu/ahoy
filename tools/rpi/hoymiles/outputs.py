@@ -215,6 +215,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
         """
         super().__init__(**params)
 
+        self.session = requests.Session()
         self.baseurl = config.get('url', 'http://localhost/middleware/')
         self.channels = dict()
         for channel in config.get('channels', []):
@@ -271,7 +272,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
         uid = self.channels[ctype]
         url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
         try:
-            r = requests.get(url)
+            r = self.session.get(url)
             if r.status_code != 200:
                 raise ValueError('Could not send request (%s)' % url)
         except ConnectionError as e:
