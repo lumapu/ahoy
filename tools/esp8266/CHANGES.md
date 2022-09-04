@@ -1,5 +1,14 @@
 # Changelog
 
+- v0.5.16
+    * Add alarm messages dictonary in the hminverter class
+    * show last alarm message in the overview after receiving the message id from the AlarmData command
+    * Added No-PowerLimit function/setting (thx @lumapu)
+    * Bug fix #195 trailing and leading spaces in setup parameters (thx @lumapu)
+    * Added parametric CAD model for a case (thx @cubinet-code)
+    * Code styling improvements (eg. dynamic creation of html code) (thx @stefan123t, @lumapu)
+    * Mqtt publish action is now after successful parse a payload, no own ticker
+    * Fixes/improvements #183, #184, #216, #213, #196, #176, #171
 - v0.5.15
     * Bug fix: mqtt payload handling (thx @klahus1, silverserver)
     * Bug fix: eeprom alignment fixed (thx @klahus1)
