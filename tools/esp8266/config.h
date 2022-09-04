@@ -6,21 +6,30 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-// fallback WiFi info
+
+//-------------------------------------
+// WIFI CONFIGURATION
+//-------------------------------------
+
+// Fallback WiFi Info
 #define FB_WIFI_SSID    "YOUR_WIFI_SSID"
 #define FB_WIFI_PWD     "YOUR_WIFI_PWD"
 
 
-// access point info
+// Access Point Info
+// In case there is no WiFi Network or Ahoy can not connect to it, it will act as an Access Point
+
 #define WIFI_AP_SSID    "AHOY-DTU"
 #define WIFI_AP_PWD     "esp_8266"
-// stay in access point mode all the time
+
+// If the next line is uncommented, Ahoy will stay in access point mode all the time
 //#define AP_ONLY
 
 
 //-------------------------------------
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
+
 // time in seconds how long the station info (ssid + pwd) will be tried
 #define WIFI_TRY_CONNECT_TIME   30
 
@@ -31,7 +40,7 @@
 // default device name
 #define DEF_DEVICE_NAME         "AHOY-DTU"
 
-// default pinout
+// default pinout (GPIO Number)
 #define DEF_RF24_CS_PIN         15
 #define DEF_RF24_CE_PIN         2
 #define DEF_RF24_IRQ_PIN        0
