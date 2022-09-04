@@ -1,8 +1,8 @@
-name: Ahoy Release for ESP8266
+name: Ahoy Dev-Build for ESP8266/ESP32
 
 on:
   push:
-    branches: main
+    branches: development*
     paths-ignore:
     - '**.md' # Do no build on *.md changes
 jobs:
@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        ref: main
+        ref: development02
     - uses: benjlevesque/short-sha@v1.2
       id: short-sha
       with:
@@ -44,17 +44,6 @@ jobs:
       id: rename-binary-files
       working-directory: tools/esp8266/scripts
       run: python getVersion.py
-    - name: create-release
-      id: create-release
-      uses: actions/create-release@v1
-      with:
-        draft: false
-        prerelease: false
-        release_name: ${{ steps.rename-binary-files.outputs.name }}
-        tag_name: ${{ github.ref }}
-        body_path: tools/esp8266/CHANGES.md
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
     - name: set-version
       uses: cschleiden/replace-tokens@v1
       with:
@@ -63,13 +52,7 @@ jobs:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
     - name: create-artifact
       run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip tools/esp8266/.pio/build/out/* tools/esp8266/User_Manual.md
-    - name: upload-release
-      id: upload-release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/upload-artifact@v3
       with:
-        upload_url: ${{ steps.create-release.outputs.upload_url }}
-        asset_path: ./${{ steps.rename-binary-files.outputs.name }}.zip
-        asset_name: ${{ steps.rename-binary-files.outputs.name }}.zip
-        asset_content_type: application/zip
+        name: ${{ steps.rename-binary-files.outputs.name }}_dev_build
+        path: ./${{ steps.rename-binary-files.outputs.name }}.zip

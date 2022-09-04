@@ -24,6 +24,12 @@ def readVersion(path, infile):
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + ".pio/build/out/" + versionout
     os.rename(src, dst)
+
+    versionout = version[:-1] + "_esp32_" + sha + ".bin"
+    src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
+    dst = path + ".pio/build/out/" + versionout
+    os.rename(src, dst)
+
     print("::set-output name=name::" + versionnumber[:-1] )
     
     

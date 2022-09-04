@@ -1,17 +1,28 @@
+![actions/workflows/compile_esp8266.yml](../../actions/workflows/compile_esp8266.yml/badge.svg) ![actions/workflows/compile_development.yml](../../actions/workflows/compile_development.yml/badge.svg)
+
 ![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
 # ahoy
-Various tools, examples, and documentation for communicating with Hoymiles microinverters.
+Ahoi is a project to bypass the original Hoymiles cloud solution.
+In order to use this project, it is important what the area of ​​​​application looks like.
+With each version it is necessary to have an NRF24L01+.
 
-In particular:
+Click on the link below you are interested in. 
+There you will find further explanations on how to proceed. (*Note: It is still under construction!*)
 
-* `doc/hoymiles-format-description.txt` is a [detailed description of the communications format](doc/hoymiles-format-description.md) and the history of this project
-* `doc/getting-started-ESP8266.md` shows the [hardware setup for an ESP8266-based system](doc/getting-started-ESP8266.md)
-* The `tools` folder contains various software tools for RaspberryPi, Arduino and ESP8266/ESP32:
-  * A [version for ESP8266](tools/esp8266/) that includes an web interface ![](../../actions/workflows/compile_esp8266.yml/badge.svg)
-  * A [version for Arduino Nano](tools/nano/NRF24_SendRcv/)
-  * An [alternative Version of the above](tools/NRF24_SendRcv/)
-  * A [different implementation](tools/HoyDtuSim/)
-  * An [implementation for Raspberry Pi](tools/rpi/) that polls an inverter and archives results as log files/stdout as well as posting them to an MQTT broker.
+##### Most updated section
+- [ESP8266](tools/esp8266/) that includes an web interface
 
-Contributors are always welcome!
+##### will be updated as needed
+- [Arduino Nano](tools/nano/NRF24_SendRcv/)
+- [Raspberry Pi](tools/rpi/)
+- [others](tools/nano/NRF24_SendRcv/)
+
+If errors occur or you have suggestions for ideas, please feel free to contact us [here](https://github.com/grindylow/ahoy/issues).
+
+## Contact
+We run a Discord Server that can be used to get in touch with the Developers and Users.
+
+https://discord.gg/WzhxEY62mB
+
+**Contributors are always welcome!**
