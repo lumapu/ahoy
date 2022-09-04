@@ -172,7 +172,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  
 
 ## MQTT command to set the DTU without webinterface
- [Read here](https://github.com/grindylow/ahoy/blob/development02/tools/esp8266/User_Manual.md)
+ [Read here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/User_Manual.md)
 
 
 
