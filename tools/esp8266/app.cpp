@@ -89,6 +89,7 @@ void app::loop(void) {
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
                     if(NULL != iv && p->packet[0] == (TX_REQ_INFO + 0x80)) { // response from get information command
+                        mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                         uint8_t *pid = &p->packet[9];
                         if (*pid == 0x00)
@@ -115,6 +116,7 @@ void app::loop(void) {
                         }
                     }
                     if(NULL != iv && p->packet[0] == (TX_REQ_DEVCONTROL + 0x80)) { // response from dev control command
+                        mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
                         iv->devControlRequest = false;
                         switch (p->packet[12]) {
@@ -248,6 +250,7 @@ void app::loop(void) {
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd ,iv->powerLimit);
+                        iv->clearCmdQueue();
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     } else {
                         mSys->Radio.sendTimePacket(iv->radioId.u64,iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
@@ -306,7 +309,11 @@ void app::processPayload(bool retransmit) {
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            if(!mPayload[iv->id].complete) {
+            if(mPayload[iv->id].txId != (TX_REQ_INFO + 0x80)) {
+                // no processing needed if txId is not 0x95
+                mPayload[iv->id].complete = true;
+            }
+            if(!mPayload[iv->id].complete ) {
                 if(!buildPayload(iv->id)) {
                     if(mPayload[iv->id].requested) {
                         if(retransmit) {
