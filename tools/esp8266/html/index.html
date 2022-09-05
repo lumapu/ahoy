@@ -80,7 +80,7 @@
                     html += "producing\n";
 
                     if(false == i["is_avail"]) {
-                        var date = new Date(i["ts_last_succes"] * 1000);
+                        var date = new Date(i["ts_last_success"] * 1000);
                         html += "-> last successful transmission: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
                     }
 

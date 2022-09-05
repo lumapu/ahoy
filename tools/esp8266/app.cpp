@@ -499,32 +499,6 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
 
 
 //-----------------------------------------------------------------------------
-String app::getJson(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::showJson"));
-    String modJson;
-
-    modJson = F("{\n");
-    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-        Inverter<> *iv = mSys->getInverterByPos(id);
-        if(NULL != iv) {
-            char topic[40], val[25];
-            snprintf(topic, 30, "\"%s\": {\n", iv->name);
-            modJson += String(topic);
-            for(uint8_t i = 0; i < iv->listLen; i++) {
-                snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
-                snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
-                modJson += String(topic) + ": " + String(val) + F(",\n");
-            }
-            modJson += F("\t\"last_msg\": \"") + getDateTimeStr(iv->ts) + F("\"\n\t},\n");
-        }
-    }
-    modJson += F("\"json_ts\": \"") + String(getDateTimeStr(mTimestamp)) + F("\"\n}\n");
-
-   return modJson;
-}
-
-
-//-----------------------------------------------------------------------------
 bool app::getWifiApActive(void) {
     return mWifi->getApActive();
 }

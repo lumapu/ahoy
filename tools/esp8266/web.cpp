@@ -53,7 +53,6 @@ void web::setup(void) {
 
     mWeb->on("/visualization",  HTTP_ANY,  std::bind(&web::showVisualization, this, std::placeholders::_1));
     mWeb->on("/livedata",       HTTP_ANY,  std::bind(&web::showLiveData,      this, std::placeholders::_1));
-    mWeb->on("/json",           HTTP_ANY,  std::bind(&web::showJson,          this, std::placeholders::_1));
     mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,        this, std::placeholders::_1));
 
 
@@ -410,13 +409,6 @@ void web::showLiveData(AsyncWebServerRequest *request) {
     }
 
     request->send(200, F("text/html"), modHtml);
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showJson(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("web::showJson"));
-    request->send(200, F("application/json"), mMain->getJson());
 }
 
 

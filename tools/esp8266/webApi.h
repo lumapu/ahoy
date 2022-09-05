@@ -32,6 +32,7 @@ class webApi {
         void getNotFound(JsonObject obj, String url);
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
+        void getLive(JsonObject obj);
 
         AsyncWebServer *mSrv;
         app *mApp;

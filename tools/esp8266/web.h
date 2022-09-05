@@ -39,7 +39,6 @@ class web {
 
         void showVisualization(AsyncWebServerRequest *request);
         void showLiveData(AsyncWebServerRequest *request);
-        void showJson(AsyncWebServerRequest *request);
         void showWebApi(AsyncWebServerRequest *request);
 
         void showUpdateForm(AsyncWebServerRequest *request);

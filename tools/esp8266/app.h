@@ -62,7 +62,6 @@ class app {
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
-        String getJson(void);
         bool getWifiApActive(void);
 
         uint8_t getIrqPin(void) {
