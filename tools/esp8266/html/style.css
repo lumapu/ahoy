@@ -182,7 +182,16 @@ div.ch {
     padding-bottom: 20px;
 }
 
-div.ch .value, div.ch .info, div.ch .head, div.ch-iv .value, div.ch-iv .info, div.ch-iv .head {
+div.ch-all {
+    width: 100%;
+    background-color: #b06e04;
+    display: inline-block;
+    margin-bottom: 15px;
+    padding-bottom: 20px;
+    overflow: auto;
+}
+
+div.ch .value, div.ch .info, div.ch .head, div.ch-iv .value, div.ch-iv .info, div.ch-iv .head, div.ch-all .value, div.ch-all .info, div.ch-all .head {
     color: #fff;
     display: block;
     width: 100%;
@@ -194,23 +203,28 @@ div.ch .value, div.ch .info, div.ch .head, div.ch-iv .value, div.ch-iv .info, di
     width: 220px;
 }
 
-div.ch .unit, div.ch-iv .unit {
+div.ch .unit, div.ch-iv .unit, div.ch-all .unit {
     font-size: 19px;
     margin-left: 10px;
 }
 
-div.ch .value, div.ch-iv .value {
+div.ch .value, div.ch-iv .value, div.ch-all .value {
     margin-top: 20px;
     font-size: 24px;
 }
 
-div.ch .info, div.ch-iv .info {
+div.ch .info, div.ch-iv .info, div.ch-all .info {
     margin-top: 3px;
     font-size: 10px;
 }
 
 div.ch .head {
     background-color: #003c80;
+    padding: 10px 0 10px 0;
+}
+
+div.ch-all .head {
+    background-color: #8e5903;
     padding: 10px 0 10px 0;
 }
 

@@ -149,6 +149,12 @@ class Inverter {
             }
         }
 
+        void clearCmdQueue(){
+            while (!_commandQueue.empty()){
+                // Will destroy CommandAbstract Class Object (?)
+                _commandQueue.pop(); 
+            }
+        }
     	uint8_t getQueuedCmd()
         {
             if (_commandQueue.empty()){
