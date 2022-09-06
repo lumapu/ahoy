@@ -9,6 +9,42 @@ In the initial case or after click "erase settings" the fields for the inverter 
 
 Set at least the serial number and a name for each inverter, check the "reboot after save" and click the "Save" button.
 
+##  MQTT Output
+The ahoy dtu will publish on the following topics
+``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/#``
+| Topic | Example Value | Remarks |
+|---|---|---|
+|U_AC | 233.300|actual AC Voltage in Volt|
+|I_AC | 0.300 | actual AC Current in Ampere|
+|P_AC | 71.000| actual AC Power in Watt|
+|P_ACr | 21.200| actual AC reactive power in VAr|
+|Freq | 49.990|actual AC Frequency in 1/s|
+|Pct | 95.800|actual AC Power factor in %|
+|Temp | 19.800|Temperature of inverter in Celsius|
+|LARM_MES_ID | 9.000|Last Alarm Message Id|
+|YieldDay | 51.000|Energy converted to AC per day in Watt hours (measured on DC)|
+|YieldTotal | 465.294|Energy converted to AC since reset Watt hours (measured on DC)|
+|P_DC | 74.600|actual DC Power in Watt|
+|Efficiency | 95.174|actual ration AC Power over DC Power in percent|
+|FWVersion | 10012.000| Firmware version eg. 1.00.12|
+|FWBuildYear | 2020.000| Firmware build date|
+|FWBuildMonthDay | 624.000| Firmware build month and day eg. 24th of june|
+|HWPartId | 100.000| Hardware Id|
+|PowerLimit | 80.000|actual set point for power limit control AC active power in percent|
+|LastAlarmCode | 1.000| Last Alarm Code eg. "inverter start"|
+
+``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#``
+
+``<CHANNEL_NUMBER>`` is in the range 1 to 4 depending on the inverter type
+| Topic | Example Value | Remarks |
+|---|---|---|
+|U_DC | 38.900| actual DC Voltage in Volt|
+|I_DC | 0.640 | actual DC current in Ampere|
+|P_DC | 25.000 | actual DC power in Watt|
+|YieldDay | 17.000 | Energy converted to AC per day Watt hours per module/channel (measured on DC) |
+|YieldTotal | 110.819 | Energy converted to AC since reset Watt hours per module/channel (measured on DC) |
+|Irradiation |5.65 | ratio DC Power over set maximum power per module/channel in percent | 
+
 ## Active Power Limit via Setup Page
 If you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu will set a value of 65535 in the setup.
 That is the value you have to fill in case you want to operate the inverter without a active power limit.
@@ -38,6 +74,12 @@ To set the active power limit (controled value is the AC Power of the inverter) 
 | <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/256                                                         | [0...65535] | Watt       | persistent
 | <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/1                                                           | [2...100]   | %  | not persistent
 | <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/257                                                         | [2...100]   | % |  persistent
+
+👆 ``<INVERTER_ID>`` is the number of the specific inverter in the setup page.
+
+* First inverter --> ``<INVERTER_ID>`` = 0
+* Second inverter --> ``<INVERTER_ID>`` = 1
+* ...
 
 ### Developer Information MQTT Interface
 ``<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/<DevControlCmdType>/<DATA2>``
@@ -143,6 +185,10 @@ In the same approach as for MQTT any other SubCmd and also MainCmd can be applie
 }
 ```
 
+## Zero Export Control
+* You can use the mqtt topic ``<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11`` with a number as payload (eg. 300 -> 300 Watt) to set the power limit to the published number in Watt. (In regular cases the inverter will use the new set point within one intervall period; to verify this see next bullet)
+* You can check the inverter set point for the power limit control on the topic ``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/PowerLimit`` 👆 This value is ALWAYS in percent of the maximum power limit of the inverter. In regular cases this value will be updated within approx. 15 seconds. (depends on request intervall)
+* You can monitor the actual AC power by subscribing to the topic ``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/P_AC`` 👆 This value is ALWAYS in Watt
 
 ## Issues and Debuging for active power limit settings
 Turn on the serial debugging in the setup. Try to have find out if the behavior is deterministic. That means can you reproduce the behavior. Be patient and wait on inverter reactions at least some minutes and beware that the DC-Power is sufficient.
@@ -154,7 +200,9 @@ In case of issues please report:
 
 
 **Developer Information General for Active Power Limit**
-⚡Was verified by field tests and feedback from three users
+
+⚡The following was verified by field tests and feedback from users
+
 Internally this values will be set for the second two bytes for MainCmd: 0x51 SubCmd: 0x0b --> DevControl set ActivePowerLimit
 ```C
 typedef enum {
@@ -181,3 +229,18 @@ Gather user inverter information here to understand what differs between some in
 |            |              |               |           |                |                 |           |          |           |
 |            |              |               |           |                |                 |           |          |           |
 |            |              |               |           |                |                 |           |          |           |
+
+## Developer Information about Command Queue
+After reboot or startup the ahoy firmware it will enque three commands in the following sequence:
+1. Get active power limit in percent ( ```SystemConfigPara = 5 // 0x05```)
+2. Get firmware version (```InverterDevInform_All = 1 // 0x01```)
+3. Get data (```RealTimeRunData_Debug = 11 // 0x0b```)
+
+With the command get data (```RealTimeRunData_Debug = 11 // 0x0b```) the alarm message counter will be updated. In the initial case then aonther command is queued to get the alarm code (``` AlarmData = 17 // 0x11```).
+
+This command (``` AlarmData = 17 // 0x11```) will enqued in any operation phase if alarm message counter is raised by one or greater compared to the last request with command get data (```RealTimeRunData_Debug = 11 // 0x0b```)
+
+In case all commands are processed (```_commandQueue.empty() == true```) then as a default command the get data (```RealTimeRunData_Debug = 11 // 0x0b```) will be enqueued.
+
+In case a Device Control command (Power Limit, Off, On) is requested via MQTT or REST API this request will be send before any other enqueued command.
+In case of a accepted change in power limit the command  get active power limit in percent ( ```SystemConfigPara = 5 // 0x05```) will be enqueued. The acceptance is checked by the reponse packets on the devive control commands (tx id 0x51 --> rx id 0xD1) if in byte 12 the requested sub-command (eg. power limit) is present.
