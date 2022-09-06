@@ -3,7 +3,7 @@
 ![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
 # ahoy
-Ahoi is a project to bypass the original Hoymiles cloud solution.
+Ahoy is a project to bypass the original Hoymiles cloud solution.
 In order to use this project, it is important what the area of ​​​​application looks like.
 With each version it is necessary to have an NRF24L01+.
 
