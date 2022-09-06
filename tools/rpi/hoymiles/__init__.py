@@ -647,7 +647,7 @@ class InverterTransaction:
             self.time_rx = end_frame.time_rx
             tr_len = end_frame.seq - 0x80
         except StopIteration:
-            seq_last = max(frames, key=lambda frame:frame.seq).seq
+            seq_last = max(frames, key=lambda frame:frame.seq).seq if len(frames) else 0
             self.__retransmit_frame(seq_last + 1)
             raise BufferError(f'Missing packet: Last packet {len(self.scratch)}')
 
