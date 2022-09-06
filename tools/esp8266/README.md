@@ -3,6 +3,7 @@
 - [Overview](#overview)
 - [Compatiblity](#compatiblity)
 - [Things needed](#things-needed)
+    + [Faked Modules Warning](#there-are-fake-nrf24l01-modules-out-there)
 - [Wiring things up](#wiring-things-up)
     + [ESP8266 wiring example](#esp8266-wiring-example)
 - [Flash the Firmware on your Ahoy DTU Hardware](#flash-the-firmware-on-your-ahoy-dtu-hardware)
@@ -53,11 +54,13 @@ We suggest to use a WEMOS D1 mini Board as well as a NRF24L01+ Breakout Board.<b
 Make sure it has the "+" in its name as we depend on some features provided with the plus-variant.<br/>
 Any other ESP8266 Board with at least 4MBytes of ROM could work as well, depending on your skills.
 
+#### There are fake NRF24L01+ Modules out there
+Whatch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
+An example can be found in [Issue #230](https://github.com/grindylow/ahoy/issues/230).<br/>
+You are welcome to add more examples of faked chips. We will that information here.<br/>
 
 ## Wiring things up
-
-The NRF24L01+ radio module is connected to the
-standard SPI pins:
+The NRF24L01+ radio module is connected to the standard SPI pins:
 - SCLK (Signal Clock),
 - MISO (Master In Slave Out) and
 - MOSI (Master Out Slave In)
@@ -132,20 +135,25 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 
 
 #### Your Ahoy DTU is very verbose using the Serial Console
- When connected to your computer, you can open a Serial Console to obtain additional information.
- This might be useful in case of any troubles that might occur as well as to simply obtain information about the converted values which were read out of the inverter(s).
+ When connected to your computer, you can open a Serial Console to obtain additional information.<br/>
+ This might be useful in case of any troubles that might occur as well as to simply<br/>
+ obtain information about the converted values which were read out of the inverter(s).
  
  
 #### Connect to the Ahoy DTU Webinterface using your Browser
- After you have sucessfully flashed and powered your Ahoy DTU, you can access it via your Browser.
- If your Ahoy DTU was able to log into the configured WiFi Network, it will try to obtain an IP-Address from your local DHCP Server (in most cases thats your Router).
- In case it could not connect to your configured Network, it will provide its own WiFi Network that you can connect to for furter configuration. The WiFi SSID *(the WiFi Name)* and Passwort is configured in the config.h and defaults to the SSID "AHOY-DTU" with the Passwort "esp_8266".
- The Ahoy DTU will keep that Network open for a certain amount of time (also configurable in the config.h and defaults to 60secs). If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.
- 
- If connected to your local Network, you just have to find out the used IP Address. In most cases your Router will give you a hint.
- If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is 192.168.1.1.
- Just open the IP-Address in your browser.
- 
+ After you have sucessfully flashed and powered your Ahoy DTU, you can access it via your Browser.<br/>
+ If your Ahoy DTU was able to log into the configured WiFi Network, it will try to obtain an IP-Address<br/>
+ from your local DHCP Server (in most cases thats your Router).<br/><br/>
+ In case it could not connect to your configured Network, it will provide its own WiFi Network that you can<br/>
+ connect to for furter configuration.<br/>
+ The WiFi SSID *(the WiFi Name)* and Passwort is configured in the config.h and defaults to the SSID "AHOY-DTU" with the Passwort "esp_8266".<br/>
+ The Ahoy DTU will keep that Network open for a certain amount of time (also configurable in the config.h and defaults to 60secs).<br/>
+ If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.<br/>
+ <br/>
+ If connected to your local Network, you just have to find out the used IP Address. In most cases your Router will give you a hint.<br/>
+ If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is 192.168.1.1.<br/>
+ Just open the IP-Address in your browser.<br/>
+ <br/>
  The webinterface has the following abilities:
 - OTA Update (Over The Air Update)
 - Configuration (Wifi, inverter(s), NTP Server, Pinout, MQTT, Amplifier Power Level, Debug)
@@ -154,7 +162,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  
  
 ##### HTTP based Pages
- To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. http://192.168.1.1/setup ).
+ To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. http://192.168.1.1/setup ).<br/>
  
 | page | use | output |
 | ---- | ------ | ------ |

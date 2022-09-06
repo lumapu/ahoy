@@ -179,4 +179,4 @@ Gather user inverter information here to understand what differs between some in
 | fila612    | HM-700       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
 | tfhcm      | TSUN-350     |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
 | Groobi     | TSOL-M400    |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
-|            |              |               |           |                |                 |           |          |           |
+| setje      | HM-600       |               | 1.0.08    | 2020           | 07-10           | 104       |          |           |
