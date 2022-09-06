@@ -75,8 +75,9 @@ Additional, there are 3 pins, which can be set individual:
 *These pins can be changed from the /setup URL.*
 
 #### ESP8266 wiring example
-ToDo: (this one needs to be reworked - also a generified one would be helpful)<br/>
-<img src="https://github.com/grindylow/ahoy/blob/main/doc/ESP8266_nRF24L01%2B_bb.png" width="300">
+This is an example wiring using a Wemos D1 mini.<br>
+<img src="https://github.com/grindylow/ahoy/blob/main/doc/AhoyWemos_Steckplatine.jpg" width="300">
+<img src="https://github.com/grindylow/ahoy/blob/main/doc/AhoyWemos_Schaltplan.jpg" width="300">
 
 
 
