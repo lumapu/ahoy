@@ -51,7 +51,7 @@ jobs:
         draft: false
         prerelease: false
         release_name: ${{ steps.rename-binary-files.outputs.name }}
-        tag_name: ${{ github.ref }}
+        tag_name: ${{ steps.rename-binary-files.outputs.name }}
         body_path: tools/esp8266/CHANGES.md
       env:
         GITHUB_TOKEN: ${{ github.token }}

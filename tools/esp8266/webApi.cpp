@@ -226,7 +226,6 @@ void webApi::getLive(JsonObject obj) {
         iv = mApp->mSys->getInverterByPos(i);
         if(NULL != iv) {
             JsonObject obj2 = invArr.createNestedObject();
-            obj2[F("id")]                 = i;
             obj2[F("name")]               = String(iv->name);
             obj2[F("channels")]           = iv->channels;
             obj2[F("power_limit_read")]   = iv->actPowerLimit;
@@ -246,8 +245,8 @@ void webApi::getLive(JsonObject obj) {
                 }
             }
 
-            for(uint8_t j = 0; j < iv->channels; j ++) {
-                obj2[F("ch_names")][j] = iv->chName[j];
+            for(uint8_t j = 1; j <= iv->channels; j ++) {
+                obj2[F("ch_names")][j-1] = iv->chName[j];
                 JsonArray cur = ch.createNestedArray();
                 for (uint8_t k = 0; k < 6; k++) {
                     switch(k) {
@@ -258,8 +257,8 @@ void webApi::getLive(JsonObject obj) {
                         case 4:  pos = (iv->getPosByChFld(j, FLD_YT));  break;
                         case 5:  pos = (iv->getPosByChFld(j, FLD_IRR)); break;
                     }
-                    cur[k] = (0xff != pos) ? iv->getValue(pos) : 0;
-                    if(0xff != pos) {
+                    cur[k] = (0xff != pos) ? iv->getValue(pos) : 0.0;
+                    if((0 == j) && (0xff != pos)) {
                         obj2[F("fld_units")][k] = String(iv->getUnit(pos));
                         obj2[F("fld_names")][k] = String(iv->getFieldName(pos));
                     }

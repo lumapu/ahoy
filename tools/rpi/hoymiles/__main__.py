@@ -72,7 +72,8 @@ def poll_inverter(inverter, retries=4):
         # Handle the response data if any
         if response:
             c_datetime = datetime.now()
-            print(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
+            if hoymiles.HOYMILES_DEBUG_LOGGING:
+                print(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
                     inverter_ser=inverter_ser

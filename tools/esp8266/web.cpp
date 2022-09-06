@@ -333,8 +333,13 @@ void web::showVisualization(AsyncWebServerRequest *request) {
 void web::showLiveData(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("web::showLiveData"));
 
-    String modHtml;
+    String modHtml, totalModHtml;
+    float totalYield = 0, totalYieldToday = 0, totalActual = 0;
+    uint8_t count = 0;
+
     for (uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
+        count++;
+
         Inverter<> *iv = mMain->mSys->getInverterByPos(id);
         if (NULL != iv) {
 #ifdef LIVEDATA_VISUALIZED
@@ -358,6 +363,19 @@ void web::showLiveData(AsyncWebServerRequest *request) {
 
             for (uint8_t fld = 0; fld < 11; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld]));
+
+                if(fld == 6){
+                    totalYield += iv->getValue(pos);
+                }
+
+                if(fld == 7){
+                    totalYieldToday += iv->getValue(pos);
+                }
+
+                if(fld == 2){
+                    totalActual += iv->getValue(pos);
+                }
+
                 if (0xff != pos) {
                     modHtml += F("<div class=\"subgrp\">");
                     modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
@@ -408,7 +426,35 @@ void web::showLiveData(AsyncWebServerRequest *request) {
         }
     }
 
-    request->send(200, F("text/html"), modHtml);
+    if(count > 1){
+        totalModHtml += F("<div class=\"iv\">"
+                        "<div class=\"ch-all\"><span class=\"head\">Gesamt</span>");
+
+        totalModHtml += F("<div class=\"subgrp\">");
+        totalModHtml += F("<span class=\"value\">") + String(totalActual);
+        totalModHtml += F("<span class=\"unit\">W</span></span>");
+        totalModHtml += F("<span class=\"info\">P_AC All</span>");
+        totalModHtml += F("</div>");
+
+        totalModHtml += F("<div class=\"subgrp\">");
+        totalModHtml += F("<span class=\"value\">") + String(totalYieldToday);
+        totalModHtml += F("<span class=\"unit\">Wh</span></span>");
+        totalModHtml += F("<span class=\"info\">YieldDayAll</span>");
+        totalModHtml += F("</div>");
+
+        totalModHtml += F("<div class=\"subgrp\">");
+        totalModHtml += F("<span class=\"value\">") + String(totalYield);
+        totalModHtml += F("<span class=\"unit\">kWh</span></span>");
+        totalModHtml += F("<span class=\"info\">YieldTotalAll</span>");
+        totalModHtml += F("</div>");
+
+        totalModHtml += F("</div>");
+        totalModHtml += F("</div>");
+        request->send(200, F("text/html"), modHtml);
+    } else {
+        request->send(200, F("text/html"), modHtml);
+    
+    }
 }
 
 
