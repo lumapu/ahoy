@@ -10,6 +10,7 @@
   #define F(sl) (sl)
 #endif
 
+#include <functional>
 //-----------------------------------------------------------------------------
 // available levels
 #define DBG_ERROR       1
@@ -32,14 +33,22 @@
     #define DBGPRINTLN(str)
 #else
     #ifdef ARDUINO
+        #define DBG_CB std::function<void(String)>
+        extern DBG_CB mCb;
+        //static DBG_CB mCb;
+
+        inline void registerDebugCb(DBG_CB cb) {
+            mCb = cb;
+        }
+
         #ifndef DSERIAL
             #define DSERIAL Serial
         #endif
 
-        template <class T>
-        inline void DBGPRINT(T str) { DSERIAL.print(str); }
-        template <class T>
-        inline void DBGPRINTLN(T str) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
+        //template <class T>
+        inline void DBGPRINT(String str) { DSERIAL.print(str); if(NULL != mCb) mCb(str); }
+        //template <class T>
+        inline void DBGPRINTLN(String str) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
         inline void DHEX(uint8_t b) {
             if( b<0x10 ) DSERIAL.print('0');
             DSERIAL.print(b,HEX);
@@ -60,6 +69,8 @@
             else if( b<0x10000000 ) DSERIAL.print(F("0"));
             DSERIAL.print(b,HEX);
         }
+
+
     #endif
 #endif
 

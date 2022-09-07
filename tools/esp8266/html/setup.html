@@ -262,13 +262,15 @@
             }
 
             function parse(root) {
-                parseSys(root["system"]);
-                parseIv(root["inverter"]);
-                parseMqtt(root["mqtt"]);
-                parseNtp(root["ntp"]);
-                parsePinout(root["pinout"]);
-                parseRadio(root["radio"]);
-                parseSerial(root["serial"]);
+                if(null != root) {
+                    parseSys(root["system"]);
+                    parseIv(root["inverter"]);
+                    parseMqtt(root["mqtt"]);
+                    parseNtp(root["ntp"]);
+                    parsePinout(root["pinout"]);
+                    parseRadio(root["radio"]);
+                    parseSerial(root["serial"]);
+                }
             }
 
             getAjax("/api/setup", parse);

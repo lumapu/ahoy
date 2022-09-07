@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Serial Console</title>
+        <link rel="stylesheet" type="text/css" href="style.css"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="text/javascript" src="api.js"></script>
+    </head>
+    <body>
+        <h1>Serial Console</h1>
+        <div id="content" class="content">
+            <textarea rows="20" cols="90" id="serial" readonly></textarea>
+        </div>
+        <div id="footer">
+            <p class="left">&copy 2022</p>
+            <p class="left"><a href="/">Home</a></p>
+            <p class="right" id="version"></p>
+        </div>
+        <script type="text/javascript">
+            function parseSys(obj) {
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+            }
+            var con = document.getElementById("serial");
+            if (!!window.EventSource) {
+                var source = new EventSource('/events');
+
+                source.addEventListener('open', function(e) {
+                    //console.log("Events Connected");
+                }, false);
+
+                source.addEventListener('error', function(e) {
+                    if (e.target.readyState != EventSource.OPEN) {
+                        //console.log("Events Disconnected");
+                    }
+                }, false);
+
+                source.addEventListener('serial', function(e) {
+                    //var ascii = "";
+                    //for(i = 0; i < e.data.length; i++)
+                    //    ascii += e.data.charCodeAt(i).toString(16) + " ";
+                    //console.log(ascii);
+                    con.value += e.data.replace(/\<rn\>/g, '\r\n');
+                    con.scrollTop = con.scrollHeight;
+                }, false);
+            }
+
+            getAjax("/api/system", parseSys);
+        </script>
+    </body>
+</html>

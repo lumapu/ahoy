@@ -64,7 +64,8 @@ def convert2Header(inFile, compress):
 
 convert2Header("index.html", True)
 convert2Header("setup.html", True)
-convert2Header("visualization.html", False)
-convert2Header("update.html", False)
+convert2Header("visualization.html", True)
+convert2Header("update.html", True)
+convert2Header("serial.html", True)
 convert2Header("style.css", True)
 convert2Header("api.js", True)

@@ -19,6 +19,7 @@ class webApi {
 
     private:
         void onApi(AsyncWebServerRequest *request);
+        void getNotFound(JsonObject obj, String url);
 
         void getSystem(JsonObject obj);
         void getStatistics(JsonObject obj);
@@ -29,7 +30,6 @@ class webApi {
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
 
-        void getNotFound(JsonObject obj, String url);
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
         void getLive(JsonObject obj);

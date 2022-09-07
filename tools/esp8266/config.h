@@ -108,9 +108,6 @@
 // default MQTT topic
 #define DEF_MQTT_TOPIC         "inverter"
 
-// changes the style of "/setup" page, visualized = nicer
-#define LIVEDATA_VISUALIZED
-
 #if __has_include("config_override.h")
     #include "config_override.h"
 #endif

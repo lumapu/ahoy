@@ -17,6 +17,7 @@
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
 #include "html/h/update_html.h"
+#include "html/h/serial_html.h"
 
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
@@ -28,7 +29,7 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, c
     mStat    = stat;
     mVersion = version;
     mWeb     = new AsyncWebServer(80);
-    //mEvts    = new AsyncEventSource("/events");
+    mEvts    = new AsyncEventSource("/events");
 
     mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
 }
@@ -39,31 +40,34 @@ void web::setup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
     DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-    mWeb->on("/",               HTTP_GET,  std::bind(&web::onIndex,           this, std::placeholders::_1));
-    mWeb->on("/style.css",      HTTP_GET,  std::bind(&web::onCss,             this, std::placeholders::_1));
-    mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,           this, std::placeholders::_1));
-    mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,         this, std::placeholders::_1));
-    mWeb->onNotFound (                     std::bind(&web::showNotFound,      this, std::placeholders::_1));
-    mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::showReboot,        this, std::placeholders::_1));
-    mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,         this, std::placeholders::_1));
-    mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst,    this, std::placeholders::_1));
+    mWeb->on("/",               HTTP_GET,  std::bind(&web::onIndex,        this, std::placeholders::_1));
+    mWeb->on("/style.css",      HTTP_GET,  std::bind(&web::onCss,          this, std::placeholders::_1));
+    mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,        this, std::placeholders::_1));
+    mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,      this, std::placeholders::_1));
+    mWeb->onNotFound (                     std::bind(&web::showNotFound,   this, std::placeholders::_1));
+    mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::showReboot,     this, std::placeholders::_1));
+    mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,      this, std::placeholders::_1));
+    mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst, this, std::placeholders::_1));
 
-    mWeb->on("/setup",          HTTP_GET,  std::bind(&web::onSetup,           this, std::placeholders::_1));
-    mWeb->on("/save",           HTTP_ANY,  std::bind(&web::showSave,          this, std::placeholders::_1));
+    mWeb->on("/setup",          HTTP_GET,  std::bind(&web::onSetup,        this, std::placeholders::_1));
+    mWeb->on("/save",           HTTP_ANY,  std::bind(&web::showSave,       this, std::placeholders::_1));
 
-    mWeb->on("/visualization",  HTTP_ANY,  std::bind(&web::showVisualization, this, std::placeholders::_1));
-    mWeb->on("/livedata",       HTTP_ANY,  std::bind(&web::showLiveData,      this, std::placeholders::_1));
-    mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,        this, std::placeholders::_1));
+    mWeb->on("/live",           HTTP_ANY,  std::bind(&web::onLive,         this, std::placeholders::_1));
+    mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,     this, std::placeholders::_1));
 
 
-    mWeb->on("/update",         HTTP_GET,  std::bind(&web::showUpdateForm,    this, std::placeholders::_1));
-    mWeb->on("/update",         HTTP_POST, std::bind(&web::showUpdate,        this, std::placeholders::_1),
-                                           std::bind(&web::showUpdate2,       this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+    mWeb->on("/update",         HTTP_GET,  std::bind(&web::onUpdate,       this, std::placeholders::_1));
+    mWeb->on("/update",         HTTP_POST, std::bind(&web::showUpdate,     this, std::placeholders::_1),
+                                           std::bind(&web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+    mWeb->on("/serial",         HTTP_GET,  std::bind(&web::onSerial,       this, std::placeholders::_1));
 
-    //mEvts->onConnect(std::bind(&web::onConnect, this, std::placeholders::_1));
-    //mWeb->addHandler(mEvts);
+
+    mEvts->onConnect(std::bind(&web::onConnect, this, std::placeholders::_1));
+    mWeb->addHandler(mEvts);
 
     mApi->setup();
+
+    registerDebugCb(std::bind(&web::serialCb, this, std::placeholders::_1));
 }
 
 
@@ -74,14 +78,14 @@ void web::loop(void) {
 
 
 //-----------------------------------------------------------------------------
-/*void web::onConnect(AsyncEventSourceClient *client) {
-    DPRINTLN(DBG_INFO, "onConnect");
+void web::onConnect(AsyncEventSourceClient *client) {
+    DPRINTLN(DBG_VERBOSE, "onConnect");
 
     if(client->lastId())
-        DPRINTLN(DBG_INFO, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
+        DPRINTLN(DBG_VERBOSE, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
 
     client->send("hello!", NULL, millis(), 1000);
-}*/
+}
 
 
 //-----------------------------------------------------------------------------
@@ -91,11 +95,6 @@ void web::onIndex(AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), index_html, index_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
-
-    /*
-    html.replace(F("{TS}"), String(mConfig->sendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mConfig->sendInterval * 1000));
-    request->send(200, "text/html", html);*/
 }
 
 
@@ -318,149 +317,17 @@ void web::showSave(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void web::showVisualization(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("web::showVisualization"));
-    String html = FPSTR(visualization_html);
-    html.replace(F("{DEVICE}"), mSysCfg->deviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mConfig->sendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mConfig->sendInterval * 1000));
-    request->send(200, F("text/html"), html);
+void web::onLive(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onLive"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), visualization_html, visualization_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showLiveData(AsyncWebServerRequest *request) {
-    DPRINTLN(DBG_VERBOSE, F("web::showLiveData"));
-
-    String modHtml, totalModHtml;
-    float totalYield = 0, totalYieldToday = 0, totalActual = 0;
-    uint8_t count = 0;
-
-    for (uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
-        count++;
-
-        Inverter<> *iv = mMain->mSys->getInverterByPos(id);
-        if (NULL != iv) {
-#ifdef LIVEDATA_VISUALIZED
-            uint8_t modNum, pos;
-            switch (iv->type) {
-                default:
-                case INV_TYPE_1CH: modNum = 1; break;
-                case INV_TYPE_2CH: modNum = 2; break;
-                case INV_TYPE_4CH: modNum = 4; break;
-            }
-
-            modHtml += F("<div class=\"iv\">"
-                         "<div class=\"ch-iv\"><span class=\"head\">")
-                    + String(iv->name) + F(" Limit ")
-                    + String(iv->actPowerLimit) + F("%");
-            if(NoPowerLimit == iv->powerLimit[1])
-                modHtml += F(" (not controlled)");
-            modHtml += F(" | last Alarm: ") + iv->lastAlarmMsg + F("</span>");
-
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
-
-            for (uint8_t fld = 0; fld < 11; fld++) {
-                pos = (iv->getPosByChFld(CH0, list[fld]));
-
-                if(fld == 6){
-                    totalYield += iv->getValue(pos);
-                }
-
-                if(fld == 7){
-                    totalYieldToday += iv->getValue(pos);
-                }
-
-                if(fld == 2){
-                    totalActual += iv->getValue(pos);
-                }
-
-                if (0xff != pos) {
-                    modHtml += F("<div class=\"subgrp\">");
-                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    modHtml += F("</div>");
-                }
-            }
-            modHtml += "</div>";
-
-            for (uint8_t ch = 1; ch <= modNum; ch++) {
-                modHtml += F("<div class=\"ch\"><span class=\"head\">");
-                if (iv->chName[ch - 1][0] == 0)
-                    modHtml += F("CHANNEL ") + String(ch);
-                else
-                    modHtml += String(iv->chName[ch - 1]);
-                modHtml += F("</span>");
-                for (uint8_t j = 0; j < 6; j++) {
-                    switch (j) {
-                        default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
-                        case 1:  pos = (iv->getPosByChFld(ch, FLD_IDC)); break;
-                        case 2:  pos = (iv->getPosByChFld(ch, FLD_PDC)); break;
-                        case 3:  pos = (iv->getPosByChFld(ch, FLD_YD));  break;
-                        case 4:  pos = (iv->getPosByChFld(ch, FLD_YT));  break;
-                        case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR)); break;
-                    }
-                    if (0xff != pos) {
-                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    }
-                }
-                modHtml += "</div>";
-            }
-            modHtml += F("<div class=\"ts\">Last received data requested at: ") + mMain->getDateTimeStr(iv->ts) + F("</div>");
-            modHtml += F("</div>");
-#else
-            // dump all data to web frontend
-            modHtml = F("<pre>");
-            char topic[30], val[10];
-            for (uint8_t i = 0; i < iv->listLen; i++) {
-                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                modHtml += String(topic) + ": " + String(val) + "\n";
-            }
-            modHtml += F("</pre>");
-#endif
-        }
-    }
-
-    if(count > 1){
-        totalModHtml += F("<div class=\"iv\">"
-                        "<div class=\"ch-all\"><span class=\"head\">Gesamt</span>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalActual);
-        totalModHtml += F("<span class=\"unit\">W</span></span>");
-        totalModHtml += F("<span class=\"info\">P_AC All</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalYieldToday);
-        totalModHtml += F("<span class=\"unit\">Wh</span></span>");
-        totalModHtml += F("<span class=\"info\">YieldDayAll</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalYield);
-        totalModHtml += F("<span class=\"unit\">kWh</span></span>");
-        totalModHtml += F("<span class=\"info\">YieldTotalAll</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("</div>");
-        totalModHtml += F("</div>");
-        request->send(200, F("text/html"), modHtml);
-    } else {
-        request->send(200, F("text/html"), modHtml);
-    
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showWebApi(AsyncWebServerRequest *request)
-{
+void web::showWebApi(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
     DPRINTLN(DBG_DEBUG, request->arg("plain"));
     const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
@@ -531,9 +398,13 @@ void web::showWebApi(AsyncWebServerRequest *request)
 
 
 //-----------------------------------------------------------------------------
-void web::showUpdateForm(AsyncWebServerRequest *request) {
-    tmplProc *proc = new tmplProc(request, 850);
-    proc->process(update_html, update_html_len, std::bind(&web::showUpdateFormCb, this, std::placeholders::_1));
+void web::onUpdate(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onUpdate"));
+
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), update_html, update_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
@@ -580,27 +451,17 @@ void web::showUpdate2(AsyncWebServerRequest *request, String filename, size_t in
 
 
 //-----------------------------------------------------------------------------
-String web::replaceHtmlGenericKeys(char *key) {
-    if(0 == strncmp(key, "VERSION", 7)) return mVersion;
-    else if(0 == strncmp(key, "DEVICE", 6))  return mSysCfg->deviceName;
-    else if(0 == strncmp(key, "IP", 2)) {
-        if(mMain->getWifiApActive()) return F("http://192.168.1.1");
-        else          return (F("http://") + String(WiFi.localIP().toString()));
-    }
+void web::onSerial(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onSerial"));
 
-    return "";
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), serial_html, serial_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-String web::showUpdateFormCb(char *key) {
-    String generic = replaceHtmlGenericKeys(key);
-    if(generic.length() == 0) {
-        if(0 == strncmp(key, "CONTENT", 7))
-            return F("<form method='POST' action='/update' enctype='multipart/form-data'><input type='file' name='update'><input type='submit' value='Update'></form>");
-        else if(0 == strncmp(key, "HEAD", 4))
-            return "";
-    }
-
-    return generic;
+void web::serialCb(String msg) {
+    msg.replace("\r\n", "<rn>");
+    mEvts->send(msg.c_str(), "serial", millis());
 }

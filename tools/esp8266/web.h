@@ -11,7 +11,6 @@
 #include "ESPAsyncWebServer.h"
 #include "app.h"
 #include "webApi.h"
-#include "tmplProc.h"
 
 class app;
 class webApi;
@@ -37,17 +36,17 @@ class web {
         void onSetup(AsyncWebServerRequest *request);
         void showSave(AsyncWebServerRequest *request);
 
-        void showVisualization(AsyncWebServerRequest *request);
-        void showLiveData(AsyncWebServerRequest *request);
+        void onLive(AsyncWebServerRequest *request);
         void showWebApi(AsyncWebServerRequest *request);
 
-        void showUpdateForm(AsyncWebServerRequest *request);
+        void onUpdate(AsyncWebServerRequest *request);
         void showUpdate(AsyncWebServerRequest *request);
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 
+        void serialCb(String msg);
+
     private:
-        String replaceHtmlGenericKeys(char *key);
-        String showUpdateFormCb(char* key);
+        void onSerial(AsyncWebServerRequest *request);
 
         AsyncWebServer *mWeb;
         AsyncEventSource *mEvts;

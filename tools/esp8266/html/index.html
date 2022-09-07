@@ -10,9 +10,10 @@
         <h1>AHOY</h1>
         <div id="content" class="content">
             <p>
-                <a href="/visualization">Visualization</a><br/>
+                <a href="/live">Visualization</a><br/>
                 <br/>
                 <a href="/setup">Setup</a><br/>
+                <a href="/serial">Serial Console</a><br/>
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">ESP-Time: </span><span id="date"></span></p>
@@ -80,8 +81,10 @@
                     html += "producing\n";
 
                     if(false == i["is_avail"]) {
-                        var date = new Date(i["ts_last_success"] * 1000);
-                        html += "-> last successful transmission: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                        if(i["ts_last_success"] > 0) {
+                            var date = new Date(i["ts_last_success"] * 1000);
+                            html += "-> last successful transmission: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                        }
                     }
 
                 }
@@ -100,13 +103,19 @@
             }
 
             function parse(obj) {
-                parseSys(obj["system"]);
-                parseStat(obj["statistics"]);
-                parseIv(obj["inverter"]);
-                parseWarnInfo(obj["warnings"], obj["infos"]);
-                document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                if(false == intervalSet)
-                    window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+                if(null != obj) {
+                    parseSys(obj["system"]);
+                    parseStat(obj["statistics"]);
+                    parseIv(obj["inverter"]);
+                    parseWarnInfo(obj["warnings"], obj["infos"]);
+                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                    if(false == intervalSet) {
+                        window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+                        intervalSet = true;
+                    }
+                }
+                else
+                    document.getElementById("refresh").innerHTML = "n/a";
             }
 
             getAjax("/api/index", parse);

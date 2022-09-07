@@ -16,8 +16,10 @@ function getAjax(url, ptr) {
        http.send(null);
     }
     function p() {
-        if(http.readyState == 4)
-            ptr(JSON.parse(http.responseText));
+        if(http.readyState == 4) {
+            if(null != http.responseText)
+                ptr(JSON.parse(http.responseText));
+        }
     }
 }
 
@@ -60,6 +62,13 @@ function sel(name, opt, selId) {
 
 function div(cl) {
     e = document.createElement('div');
-    e.classList.add(cl);
+    e.classList.add(...cl);
+    return e;
+}
+
+function span(val, cl) {
+    e = document.createElement('span');
+    e.innerHTML = val;
+    e.classList.add(...cl);
     return e;
 }

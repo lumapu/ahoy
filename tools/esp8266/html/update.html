@@ -4,7 +4,7 @@
         <title>Update</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        {#HEAD}
+        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
         <h1>Update</h1>
@@ -13,13 +13,21 @@
                 Make sure that you have noted all or settings before starting an update. New versions maybe changed their memory layout which remains in default settings.
             </div>
             <br/><br/>
-            {#CONTENT}
+            <form method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
+                <input type="file" name="update"><input type="submit" value="Update">
+            </form>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
-            <p class="left"><a href="{#IP}/">Home</a></p>
-            <p class="right">AHOY :: {#VERSION}</p>
-            <p class="right"><a href="/reboot">Reboot</a></p>
+            <p class="left"><a href="/">Home</a></p>
+            <p class="right" id="version"></p>
         </div>
+        <script type="text/javascript">
+            function parseSys(obj) {
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+            }
+
+            getAjax("/api/system", parseSys);
+        </script>
     </body>
 </html>
