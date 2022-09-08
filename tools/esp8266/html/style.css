@@ -134,8 +134,14 @@ input.btn {
     color: #fff;
     border: 0px;
     float: right;
-    margin: 10px 0 30px;
+    margin: 10px 0px 30px 10px;
+    padding: 7px 20px 7px 20px;
     text-transform: uppercase;
+    cursor: pointer;
+}
+
+input.btn:hover {
+    background-color: #044e86;
 }
 
 input.cb {
@@ -270,4 +276,21 @@ div.ModPwr, div.ModName {
     .subgrp {
         width: 180px;
     }
+}
+
+#serial {
+    width: 100%;
+}
+
+#content .serial {
+    max-width: 1000px;
+}
+
+.dot {
+    height: 15px;
+    width: 15px;
+    background-color: #f00;
+    border-radius: 50%;
+    display: inline-block;
+    margin-top: 15px;
 }

@@ -289,12 +289,12 @@ bool app::buildPayload(uint8_t id) {
     for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
         if(mPayload[id].len[i] > 0) {
             if(i == (mPayload[id].maxPackId-1)) {
-                crc = Hoymiles::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
                 crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
                     | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
             else
-                crc = Hoymiles::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
+                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
         yield();
     }
@@ -728,19 +728,18 @@ void app::saveValues(void) {
     Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         iv = mSys->getInverterByPos(i, false);
-            mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
-            mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
-            mEep->write(ADDR_INV_PWR_LIM_CON + i * 2, iv->powerLimit[1]);
-            mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
-            // max channel power / name
-            for(uint8_t j = 0; j < 4; j++) {
-                mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
-                mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
-            }
+        mEep->write(ADDR_INV_ADDR + (i * 8), iv->serial.u64);
+        mEep->write(ADDR_INV_PWR_LIM + i * 2, iv->powerLimit[0]);
+        mEep->write(ADDR_INV_PWR_LIM_CON + i * 2, iv->powerLimit[1]);
+        mEep->write(ADDR_INV_NAME + (i * MAX_NAME_LENGTH), iv->name, MAX_NAME_LENGTH);
+        // max channel power / name
+        for(uint8_t j = 0; j < 4; j++) {
+            mEep->write(ADDR_INV_CH_PWR + (i * 2 * 4) + (j*2), iv->chMaxPwr[j]);
+            mEep->write(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
         }
+    }
 
     updateCrc();
-    mEep->commit();
 }
 
 

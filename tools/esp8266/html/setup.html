@@ -168,8 +168,8 @@
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
 
-                iv.appendChild(lbl(id + "ActivePowerLimitConType", "Active Power Limit Control Type"));
-                iv.appendChild(sel(id + "ActivePowerLimitConType", [
+                iv.appendChild(lbl(id + "PowerLimitControl", "Active Power Limit Control Type"));
+                iv.appendChild(sel(id + "PowerLimitControl", [
                     [65535, "no power limit"],
                     [0, "absolute in Watt non persistent"],
                     [1, "absolute in Watt persistent"],
@@ -179,7 +179,7 @@
 
                 for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)"], ["ModName", "ch_name", "Module Name"]]) {
                     iv.appendChild(lbl(id + j[0], j[2]));
-                    d = div(j[0]);
+                    d = div([j[0]]);
                     i = 0;
                     for(it of obj[j[1]]) {
                         d.appendChild(inp(id + j[0] + i, it, 4, ["text", "sh"]));

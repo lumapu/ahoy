@@ -35,7 +35,6 @@
     #ifdef ARDUINO
         #define DBG_CB std::function<void(String)>
         extern DBG_CB mCb;
-        //static DBG_CB mCb;
 
         inline void registerDebugCb(DBG_CB cb) {
             mCb = cb;

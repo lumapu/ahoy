@@ -9,7 +9,10 @@
     <body>
         <h1>Serial Console</h1>
         <div id="content" class="content">
-            <textarea rows="20" cols="90" id="serial" readonly></textarea>
+            <div class="serial">
+                <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
+                conntected: <span class="dot" id="connected"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
+            </div>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
@@ -17,34 +20,43 @@
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
-            var printTime = true;
+            var mPrintTime = true;
+            var mAutoScroll = true;
+            var con = document.getElementById("serial");
 
             function parseSys(obj) {
                 document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
             }
-            var con = document.getElementById("serial");
+
+            document.getElementById("clear").addEventListener("click", function() {
+                con.value = "";
+            });
+            document.getElementById("scroll").addEventListener("click", function() {
+                mAutoScroll = !mAutoScroll;
+                this.value = (mAutoScroll) ? "autoscroll" : "manual scoll";
+            });
+
             if (!!window.EventSource) {
                 var source = new EventSource('/events');
-
                 source.addEventListener('open', function(e) {
-                    //console.log("Events Connected");
+                    document.getElementById("connected").style.backgroundColor = "#0c0";
                 }, false);
 
                 source.addEventListener('error', function(e) {
                     if (e.target.readyState != EventSource.OPEN) {
-                        //console.log("Events Disconnected");
+                        document.getElementById("connected").style.backgroundColor = "#f00";
                     }
                 }, false);
 
                 source.addEventListener('serial', function(e) {
-                    if(printTime) {
+                    if(mPrintTime) {
                         var d = new Date();
                         con.value += d.toLocaleTimeString() + ": ";
-                        printTime = false;
+                        mPrintTime = false;
                     }
 
                     if(e.data.includes('<rn>'))
-                        printTime = true;
+                        mPrintTime = true;
 
                     con.value += e.data.replace(/\<rn\>/g, '\r\n');
                     con.scrollTop = con.scrollHeight;
