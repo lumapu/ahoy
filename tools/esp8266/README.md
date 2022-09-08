@@ -76,11 +76,29 @@ Additional, there are 3 pins, which can be set individual:
 
 #### ESP8266 wiring example
 This is an example wiring using a Wemos D1 mini.<br>
-<img src="https://github.com/grindylow/ahoy/blob/main/doc/AhoyWemos_Steckplatine.jpg" width="300">
-<img src="https://github.com/grindylow/ahoy/blob/main/doc/AhoyWemos_Schaltplan.jpg" width="300">
+##### Schematic
+![Schematic](../../doc/AhoyWemos_Schaltplan.jpg)
 
+##### Symbolic view
+![Symbolic](../../doc/AhoyWemos_Steckplatine.jpg)
 
+#### ESP32 wiring example
+Example wiring for a 38pin ESP32 module
 
+##### Schematic
+![Schematic](../../doc/Wiring_ESP32_Schematic.png)
+
+##### Symbolic view
+![Symbolic](../../doc/Wiring_ESP32_Symbol.png)
+
+##### ESP32 GPIO settings
+For this wiring, set the 3 individual GPIOs under the /setup URL:
+
+```
+CS   D1 (GPIO5)
+CE   D2 (GPIO4)
+IRQ  D0 (GPIO16 - no IRQ!)
+```
 
 ## Flash the Firmware on your Ahoy DTU Hardware
 Once your Hardware is ready to run, you need to flash the Ahoy DTU Firmware to your Board.
