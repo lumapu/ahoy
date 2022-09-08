@@ -17,6 +17,8 @@
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
+            var printTime = true;
+
             function parseSys(obj) {
                 document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
             }
@@ -35,10 +37,15 @@
                 }, false);
 
                 source.addEventListener('serial', function(e) {
-                    //var ascii = "";
-                    //for(i = 0; i < e.data.length; i++)
-                    //    ascii += e.data.charCodeAt(i).toString(16) + " ";
-                    //console.log(ascii);
+                    if(printTime) {
+                        var d = new Date();
+                        con.value += d.toLocaleTimeString() + ": ";
+                        printTime = false;
+                    }
+
+                    if(e.data.includes('<rn>'))
+                        printTime = true;
+
                     con.value += e.data.replace(/\<rn\>/g, '\r\n');
                     con.scrollTop = con.scrollHeight;
                 }, false);
