@@ -59,7 +59,8 @@
                         mPrintTime = true;
 
                     con.value += e.data.replace(/\<rn\>/g, '\r\n');
-                    con.scrollTop = con.scrollHeight;
+                    if(mAutoScroll)
+                        con.scrollTop = con.scrollHeight;
                 }, false);
             }
 
