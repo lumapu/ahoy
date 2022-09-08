@@ -1,17 +1,18 @@
 # User Manual Ahoy DTU (on ESP8266)
 Version #{VERSION}#
 ## Introduction
-See the repository [here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/README.md)
+See the repository [README.md](README.md)
 
 ## Setup
 Assuming you have a running ahoy-dtu and you can access the setup page.
 In the initial case or after click "erase settings" the fields for the inverter setup are empty.
 
-Set at least the serial number and a name for each inverter, check the "reboot after save" and click the "Save" button.
+Set at least the serial number and a name for each inverter, check "reboot after save" and click the "Save" button.
 
 ##  MQTT Output
 The ahoy dtu will publish on the following topics
-``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/#``
+`<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/#`
+
 | Topic | Example Value | Remarks |
 |---|---|---|
 |U_AC | 233.300|actual AC Voltage in Volt|
@@ -33,9 +34,10 @@ The ahoy dtu will publish on the following topics
 |PowerLimit | 80.000|actual set point for power limit control AC active power in percent|
 |LastAlarmCode | 1.000| Last Alarm Code eg. "inverter start"|
 
-``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#``
+`<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#`
 
-``<CHANNEL_NUMBER>`` is in the range 1 to 4 depending on the inverter type
+`<CHANNEL_NUMBER>` is in the range 1 to 4 depending on the inverter type
+
 | Topic | Example Value | Remarks |
 |---|---|---|
 |U_DC | 38.900| actual DC Voltage in Volt|
@@ -43,7 +45,7 @@ The ahoy dtu will publish on the following topics
 |P_DC | 25.000 | actual DC power in Watt|
 |YieldDay | 17.000 | Energy converted to AC per day Watt hours per module/channel (measured on DC) |
 |YieldTotal | 110.819 | Energy converted to AC since reset Watt hours per module/channel (measured on DC) |
-|Irradiation |5.65 | ratio DC Power over set maximum power per module/channel in percent | 
+|Irradiation |5.65 | ratio DC Power over set maximum power per module/channel in percent |
 
 ## Active Power Limit via Setup Page
 If you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu will set a value of 65535 in the setup.
@@ -52,41 +54,44 @@ If the value is 65535 or -1 after another reboot the value will be set automatic
 
 You can change the setting in the following manner.
 Decide if you want to set
+
 - an absolute value in Watt
 - an relative value in percent based on the maximum Power capabilities of the inverter
+
 and if this settings shall be
+
 - persistent
 - not persistent
+
 after a power cycle of the inverter (P_DC=0 and P_AC=0 for at least 10 seconds)
 
 The user has to ensure correct settings. Remember that for the inverters of 3rd generation the relative active power limit is in the range of 2% up to 100%.
 Also an absolute active power limit below approx. 30 Watt seems to be not meanful because of the control capabilities and reactive power load.
 
 ## Active Power Limit via MQTT
-The ahoy-dtu subscribes on the topic ``<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/#`` if the mqtt broker is set-up correctly. The default topic is ``inverter/devcontrol/#``.
+The ahoy-dtu subscribes on the topic `<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/#` if the mqtt broker is set-up correctly. The default topic is `inverter/devcontrol/#`.
 
 To set the active power limit (controled value is the AC Power of the inverter) you have four options. (Only single phase inverters are actually in focus).
 
-
 | topic                                                           | payload     | active power limit in                            | Condition      |
 | --------------------------------------------------------------- | ----------- | -------------------------------------------- | -------------- |
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11 OR <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/0 | [0..65535]  | Watt | not persistent 
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/256                                                         | [0...65535] | Watt       | persistent
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/1                                                           | [2...100]   | %  | not persistent
-| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/257                                                         | [2...100]   | % |  persistent
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11 OR <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/0 | [0..65535] | Watt | not persistent |
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/256                                                         | [0..65535] | Watt | persistent |
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/1                                                           | [2..100]   | %    | not persistent |
+| <CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11/257                                                         | [2..100]   | %    | persistent |
 
-👆 ``<INVERTER_ID>`` is the number of the specific inverter in the setup page.
+👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
-* First inverter --> ``<INVERTER_ID>`` = 0
-* Second inverter --> ``<INVERTER_ID>`` = 1
+* First inverter --> `<INVERTER_ID>` = 0
+* Second inverter --> `<INVERTER_ID>` = 1
 * ...
 
 ### Developer Information MQTT Interface
-``<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/<DevControlCmdType>/<DATA2>``
+`<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/<DevControlCmdType>/<DATA2>`
 
-The implementation allows to set any of the available ``<DevControlCmdType>`` Commands:
+The implementation allows to set any of the available `<DevControlCmdType>` Commands:
 ```C
-    typedef enum {
+typedef enum {
     TurnOn = 0,                   // 0x00
     TurnOff = 1,                  // 0x01
     Restart = 2,                  // 0x02
@@ -100,34 +105,34 @@ The implementation allows to set any of the available ``<DevControlCmdType>`` Co
     Init = 0xff
 } DevControlCmdType;
 ```
-The MQTT payload will be set on first to bytes and ``<DATA2>``, which is taken from the topic path will be set on the second two bytes if the corresponding DevControlCmdType supports 4 byte data.
+The MQTT payload will be set on first to bytes and `<DATA2>`, which is taken from the topic path will be set on the second two bytes if the corresponding DevControlCmdType supports 4 byte data.
 See here the actual implementation to set the send buffer bytes.
 ```C
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); 
-            int cnt = 0;
-            // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
-            mTxBuf[10] = cmd; 
-            mTxBuf[10 + (++cnt)] = 0x00;
-            if (cmd >= ActivePowerContr && cmd <= PFSet){
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10) >> 8) & 0xff; // power limit || high byte from MQTT payload
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10)     ) & 0xff; // power limit || low byte from MQTT payload
-                mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // high byte from MQTT topic value <DATA2>
-                mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // low byte from MQTT topic value <DATA2>
-            }
-            // crc control data
-            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], cnt+1);
-            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
-            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
-            // crc over all
-            cnt +=1;
-            mTxBuf[10 + cnt] = Hoymiles::crc8(mTxBuf, 10 + cnt);
+void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
+    sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false);
+    int cnt = 0;
+    // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
+    mTxBuf[10] = cmd;
+    mTxBuf[10 + (++cnt)] = 0x00;
+    if (cmd >= ActivePowerContr && cmd <= PFSet){
+        mTxBuf[10 + (++cnt)] = ((data[0] * 10) >> 8) & 0xff; // power limit || high byte from MQTT payload
+        mTxBuf[10 + (++cnt)] = ((data[0] * 10)     ) & 0xff; // power limit || low byte from MQTT payload
+        mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // high byte from MQTT topic value <DATA2>
+        mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // low byte from MQTT topic value <DATA2>
+    }
+    // crc control data
+    uint16_t crc = Hoymiles::crc16(&mTxBuf[10], cnt+1);
+    mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
+    mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
+    // crc over all
+    cnt +=1;
+    mTxBuf[10 + cnt] = Hoymiles::crc8(mTxBuf, 10 + cnt);
 
-            sendPacket(invId, mTxBuf, 10 + (++cnt), true);
-        }
+    sendPacket(invId, mTxBuf, 10 + (++cnt), true);
+}
 ```
 
-So as example sending any payload on ``inverter/devcontrol/0/1`` will switch off the inverter.
+So as example sending any payload on `inverter/devcontrol/0/1` will switch off the inverter.
 
 ## Active Power Limit via REST API
 It is also implemented to set the power limit via REST API call. Therefore send a POST request to the endpoint /api.
@@ -186,18 +191,20 @@ In the same approach as for MQTT any other SubCmd and also MainCmd can be applie
 ```
 
 ## Zero Export Control
-* You can use the mqtt topic ``<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11`` with a number as payload (eg. 300 -> 300 Watt) to set the power limit to the published number in Watt. (In regular cases the inverter will use the new set point within one intervall period; to verify this see next bullet)
-* You can check the inverter set point for the power limit control on the topic ``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/PowerLimit`` 👆 This value is ALWAYS in percent of the maximum power limit of the inverter. In regular cases this value will be updated within approx. 15 seconds. (depends on request intervall)
-* You can monitor the actual AC power by subscribing to the topic ``<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/P_AC`` 👆 This value is ALWAYS in Watt
+* You can use the mqtt topic `<CHOOSEN_TOPIC_FROM_SETUP>/devcontrol/<INVERTER_ID>/11` with a number as payload (eg. 300 -> 300 Watt) to set the power limit to the published number in Watt. (In regular cases the inverter will use the new set point within one intervall period; to verify this see next bullet)
+* You can check the inverter set point for the power limit control on the topic `<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/PowerLimit` 👆 This value is ALWAYS in percent of the maximum power limit of the inverter. In regular cases this value will be updated within approx. 15 seconds. (depends on request intervall)
+* You can monitor the actual AC power by subscribing to the topic `<CHOOSEN_TOPIC_FROM_SETUP>/<INVERTER_NAME_FROM_SETUP>/ch0/P_AC` 👆 This value is ALWAYS in Watt
 
 ## Issues and Debuging for active power limit settings
+
 Turn on the serial debugging in the setup. Try to have find out if the behavior is deterministic. That means can you reproduce the behavior. Be patient and wait on inverter reactions at least some minutes and beware that the DC-Power is sufficient.
+
 In case of issues please report:
+
 1. Version of firmware
 2. The output of the serial debug esp. the TX messages starting with "0x51" and the RX messages starting with "0xD1" or "0xF1"
 3. Which case you have tried: Setup-Page, MQTT, REST API and at what was shown on the "Visualization Page" at the Location "Limit"
 4. The setting means payload, relative, absolute, persistent, not persistent (see tables above)
-
 
 **Developer Information General for Active Power Limit**
 
@@ -212,7 +219,7 @@ typedef enum {
     RelativPersistent       = 0x0101     // 257
 } PowerLimitControlType;
 ```
-    
+
 ## Firmware Version collection
 Gather user inverter information here to understand what differs between some inverters.
 
@@ -234,15 +241,16 @@ Gather user inverter information here to understand what differs between some in
 
 ## Developer Information about Command Queue
 After reboot or startup the ahoy firmware it will enque three commands in the following sequence:
-1. Get active power limit in percent ( ```SystemConfigPara = 5 // 0x05```)
-2. Get firmware version (```InverterDevInform_All = 1 // 0x01```)
-3. Get data (```RealTimeRunData_Debug = 11 // 0x0b```)
 
-With the command get data (```RealTimeRunData_Debug = 11 // 0x0b```) the alarm message counter will be updated. In the initial case then aonther command is queued to get the alarm code (``` AlarmData = 17 // 0x11```).
+1. Get active power limit in percent (`SystemConfigPara = 5 // 0x05`)
+2. Get firmware version (`InverterDevInform_All = 1 // 0x01`)
+3. Get data (`RealTimeRunData_Debug = 11 // 0x0b`)
 
-This command (``` AlarmData = 17 // 0x11```) will enqued in any operation phase if alarm message counter is raised by one or greater compared to the last request with command get data (```RealTimeRunData_Debug = 11 // 0x0b```)
+With the command get data (`RealTimeRunData_Debug = 11 // 0x0b`) the alarm message counter will be updated. In the initial case then aonther command is queued to get the alarm code (`AlarmData = 17 // 0x11`).
 
-In case all commands are processed (```_commandQueue.empty() == true```) then as a default command the get data (```RealTimeRunData_Debug = 11 // 0x0b```) will be enqueued.
+This command (`AlarmData = 17 // 0x11`) will enqued in any operation phase if alarm message counter is raised by one or greater compared to the last request with command get data (`RealTimeRunData_Debug = 11 // 0x0b`)
+
+In case all commands are processed (`_commandQueue.empty() == true`) then as a default command the get data (`RealTimeRunData_Debug = 11 // 0x0b`) will be enqueued.
 
 In case a Device Control command (Power Limit, Off, On) is requested via MQTT or REST API this request will be send before any other enqueued command.
-In case of a accepted change in power limit the command  get active power limit in percent ( ```SystemConfigPara = 5 // 0x05```) will be enqueued. The acceptance is checked by the reponse packets on the devive control commands (tx id 0x51 --> rx id 0xD1) if in byte 12 the requested sub-command (eg. power limit) is present.
+In case of a accepted change in power limit the command  get active power limit in percent (`SystemConfigPara = 5 // 0x05`) will be enqueued. The acceptance is checked by the reponse packets on the devive control commands (tx id 0x51 --> rx id 0xD1) if in byte 12 the requested sub-command (eg. power limit) is present.
