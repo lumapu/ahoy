@@ -1,28 +1,35 @@
 ![actions/workflows/compile_esp8266.yml](../../actions/workflows/compile_esp8266.yml/badge.svg) ![actions/workflows/compile_development.yml](../../actions/workflows/compile_development.yml/badge.svg)
 
+# 🖐 Ahoy!
 ![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
-# ahoy
-Ahoy is a project to bypass the original Hoymiles cloud solution.
-In order to use this project, it is important what the area of ​​​​application looks like.
-With each version it is necessary to have an NRF24L01+.
+**Communicate with Hoymiles inverters via radio**. Get actual values like power, current, daily energy and set parameters like the power limit via web interface or MQTT. In this repository you will find different approaches means Hardware / Software to realize the described functionalities.
 
-Click on the link below you are interested in. 
-There you will find further explanations on how to proceed. (*Note: It is still under construction!*)
+List of approaches
 
-##### Most updated section
-- [ESP8266](tools/esp8266/) that includes an web interface
+- [ESP8266/ESP32, C++](tools/esp8266/) 👈 the most effort is spent here
+- [Arduino Nano, C++](tools/nano/NRF24_SendRcv/)
+- [Raspberry Pi, Python](tools/rpi/)
+- [Others, C/C++](tools/nano/NRF24_SendRcv/)
 
-##### will be updated as needed
-- [Arduino Nano](tools/nano/NRF24_SendRcv/)
-- [Raspberry Pi](tools/rpi/)
-- [others](tools/nano/NRF24_SendRcv/)
+## Quick Start with ESP8266
+- [Go here ✨](https://github.com/grindylow/ahoy/blob/ahoy_v0.5.16/tools/esp8266/README.md#things-needed)
 
-If errors occur or you have suggestions for ideas, please feel free to contact us [here](https://github.com/grindylow/ahoy/issues).
 
-## Contact
-We run a Discord Server that can be used to get in touch with the Developers and Users.
+## Success Stories
+- [Getting the data into influxDB and visualize them in a Grafana Dashboard](https://grafana.com/grafana/dashboards/16850-pv-power-ahoy/) (thx @Carl)
 
-https://discord.gg/WzhxEY62mB
+## Support, Feedback, Information and Discussion
+- [Discord Server (~ 300 Users)](https://discord.gg/WzhxEY62mB)
+- [The root of development](https://www.mikrocontroller.net/topic/525778)
+
+### Development
+If you encounter issues use the issues here on github.
+
+Please try to describe your issues as precise as possible and think about if this is a issue with the software here in the repository or other software components.
 
 **Contributors are always welcome!**
+
+### Related Projects
+- [OpenDTU](https://github.com/tbnobody/OpenDTU)
+- [DTU Simulator](https://github.com/Ziyatoe/DTUsimMI1x00-Hoymiles)
