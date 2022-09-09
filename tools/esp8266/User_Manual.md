@@ -236,7 +236,7 @@ Gather user inverter information here to understand what differs between some in
 | Groobi     | TSOL-M400    |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
 | setje      | HM-600       |               | 1.0.08    | 2020           | 07-10           | 104       |          |           |
 | madmartin  | HM-600       | 0.1.4         | 1.0.10    | 2021           | 11-01           | 104       |          |           |
-|            |              |               |           |                |                 |           |          |           |
+| lumapu     | HM-1200      | 0.1.0         | 1.0.12    | 2020           | 06-24           |           |          |           |
 |            |              |               |           |                |                 |           |          |           |
 |            |              |               |           |                |                 |           |          |           |
 
