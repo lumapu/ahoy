@@ -1,7 +1,7 @@
 ![actions/workflows/compile_esp8266.yml](../../actions/workflows/compile_esp8266.yml/badge.svg) ![actions/workflows/compile_development.yml](../../actions/workflows/compile_development.yml/badge.svg)
 
 # 🖐 Ahoy!
-![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
+![Logo](doc/logo1_small.png?raw=true)
 
 **Communicate with Hoymiles inverters via radio**. Get actual values like power, current, daily energy and set parameters like the power limit via web interface or MQTT. In this repository you will find different approaches means Hardware / Software to realize the described functionalities.
 
@@ -13,7 +13,7 @@ List of approaches
 - [Others, C/C++](tools/nano/NRF24_SendRcv/)
 
 ## Quick Start with ESP8266
-- [Go here ✨](https://github.com/grindylow/ahoy/blob/ahoy_v0.5.16/tools/esp8266/README.md#things-needed)
+- [Go here ✨](tools/esp8266/README.md#things-needed)
 
 
 ## Success Stories
