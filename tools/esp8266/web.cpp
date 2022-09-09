@@ -30,8 +30,13 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, c
     mVersion = version;
     mWeb     = new AsyncWebServer(80);
     mEvts    = new AsyncEventSource("/events");
-
     mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
+
+    memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+    mSerialBufFill     = 0;
+    mWebSerialTicker   = 0;
+    mWebSerialInterval = 1000; // [ms]
+    mSerialAddTime     = true;
 }
 
 
@@ -45,7 +50,7 @@ void web::setup(void) {
     mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,        this, std::placeholders::_1));
     mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,      this, std::placeholders::_1));
     mWeb->onNotFound (                     std::bind(&web::showNotFound,   this, std::placeholders::_1));
-    mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::showReboot,     this, std::placeholders::_1));
+    mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::onReboot,       this, std::placeholders::_1));
     mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,      this, std::placeholders::_1));
     mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst, this, std::placeholders::_1));
 
@@ -74,6 +79,14 @@ void web::setup(void) {
 //-----------------------------------------------------------------------------
 void web::loop(void) {
     mApi->loop();
+
+    if(mMain->checkTicker(&mWebSerialTicker, mWebSerialInterval)) {
+        if(mSerialBufFill > 0) {
+            mEvts->send(mSerialBuf, "serial", millis());
+            memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+            mSerialBufFill = 0;
+        }
+    }
 }
 
 
@@ -146,10 +159,9 @@ void web::showNotFound(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void web::showReboot(AsyncWebServerRequest *request) {
+void web::onReboot(AsyncWebServerRequest *request) {
     request->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
-    delay(1000);
-    ESP.restart();
+    mMain->mShouldReboot = true;
 }
 
 
@@ -157,7 +169,7 @@ void web::showReboot(AsyncWebServerRequest *request) {
 void web::showErase(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("showErase"));
     mMain->eraseSettings();
-    showReboot(request);
+    onReboot(request);
 }
 
 
@@ -308,7 +320,7 @@ void web::showSave(AsyncWebServerRequest *request) {
         mMain->saveValues();
 
         if(request->arg("reboot") == "on")
-            showReboot(request);
+            onReboot(request);
         else
             request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>"));
@@ -463,5 +475,25 @@ void web::onSerial(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void web::serialCb(String msg) {
     msg.replace("\r\n", "<rn>");
-    mEvts->send(msg.c_str(), "serial", millis());
+    if(mSerialAddTime) {
+        if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+            strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr().c_str(), 9);
+            mSerialBufFill += 9;
+        }
+        else
+            mEvts->send("webSerial, buffer overflow!", "serial", millis());
+        mSerialAddTime = false;
+    }
+
+    if(msg.endsWith("<rn>"))
+        mSerialAddTime = true;
+
+    uint16_t length = msg.length();
+    if((length + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+        strncpy(&mSerialBuf[mSerialBufFill], msg.c_str(), length);
+        mSerialBufFill += length;
+    }
+    else
+        mEvts->send("webSerial, buffer overflow!", "serial", millis());
+
 }

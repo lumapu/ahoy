@@ -11,7 +11,7 @@
         <div id="content" class="content">
             <div class="serial">
                 <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
-                conntected: <span class="dot" id="connected"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                conntected: <span class="dot" id="connected"></span> Uptime: <span id="uptime"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
             </div>
         </div>
         <div id="footer">
@@ -20,12 +20,26 @@
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
-            var mPrintTime = true;
             var mAutoScroll = true;
             var con = document.getElementById("serial");
+            var mIntervalSet = false;
 
             function parseSys(obj) {
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                var up = obj["ts_uptime"];
+                var days = parseInt(up / 86400) % 365;
+                var hrs  = parseInt(up / 3600) % 24;
+                var min  = parseInt(up / 60) % 60;
+                var sec  = up % 60;
+                document.getElementById("uptime").innerHTML = days + " Days, "
+                    + ("0"+hrs).substr(-2) + ":"
+                    + ("0"+min).substr(-2) + ":"
+                    + ("0"+sec).substr(-2);
+
+                if(false == mIntervalSet) {
+                    document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                    window.setInterval("getAjax('/api/system', parseSys)", 10000);
+                    mIntervalSet = true;
+                }
             }
 
             document.getElementById("clear").addEventListener("click", function() {
@@ -49,15 +63,6 @@
                 }, false);
 
                 source.addEventListener('serial', function(e) {
-                    if(mPrintTime) {
-                        var d = new Date();
-                        con.value += d.toLocaleTimeString() + ": ";
-                        mPrintTime = false;
-                    }
-
-                    if(e.data.includes('<rn>'))
-                        mPrintTime = true;
-
                     con.value += e.data.replace(/\<rn\>/g, '\r\n');
                     if(mAutoScroll)
                         con.scrollTop = con.scrollHeight;

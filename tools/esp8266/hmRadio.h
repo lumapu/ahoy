@@ -89,6 +89,7 @@ class HmRadio {
             pinMode(config->pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
+            mSerialDebug = config->serialDebug;
 
             mNrf24.begin(config->pinCe, config->pinCs);
             mNrf24.setRetries(0, 0);

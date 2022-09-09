@@ -45,7 +45,7 @@
             <p class="right"><a href="/api">REST API</a></p>
         </div>
         <script type="text/javascript">
-            var intervalSet = false;
+            var mIntervalSet = false;
             function parseSys(obj) {
                 document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
 
@@ -109,9 +109,9 @@
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(false == intervalSet) {
+                    if(false == mIntervalSet) {
                         window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
-                        intervalSet = true;
+                        mIntervalSet = true;
                     }
                 }
                 else

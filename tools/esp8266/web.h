@@ -12,6 +12,8 @@
 #include "app.h"
 #include "webApi.h"
 
+#define WEB_SERIAL_BUF_SIZE 1024
+
 class app;
 class webApi;
 
@@ -30,7 +32,7 @@ class web {
         void onApiJs(AsyncWebServerRequest *request);
         void onFavicon(AsyncWebServerRequest *request);
         void showNotFound(AsyncWebServerRequest *request);
-        void showReboot(AsyncWebServerRequest *request);
+        void onReboot(AsyncWebServerRequest *request);
         void showErase(AsyncWebServerRequest *request);
         void showFactoryRst(AsyncWebServerRequest *request);
         void onSetup(AsyncWebServerRequest *request);
@@ -57,6 +59,12 @@ class web {
         char *mVersion;
         app *mMain;
         webApi *mApi;
+
+        bool mSerialAddTime;
+        char mSerialBuf[WEB_SERIAL_BUF_SIZE];
+        uint16_t mSerialBufFill;
+        uint32_t mWebSerialTicker;
+        uint32_t mWebSerialInterval;
 };
 
 #endif /*__WEB_H__*/

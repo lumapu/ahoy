@@ -94,6 +94,15 @@ class app {
             return String(str);
         }
 
+        String getTimeStr(void) {
+            char str[20];
+            if(0 == mTimestamp)
+                sprintf(str, "n/a");
+            else
+                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp), minute(mTimestamp), second(mTimestamp));
+            return String(str);
+        }
+
         inline uint32_t getUptime(void) {
             return mUptimeSecs;
         }
