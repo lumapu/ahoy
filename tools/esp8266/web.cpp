@@ -351,12 +351,10 @@ void web::showWebApi(AsyncWebServerRequest *request) {
     uint8_t iv_id = response["inverter"];
     uint8_t cmd = response["cmd"];
     Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
-    if (NULL != iv)
-    {
-        if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
-        {
+    if (NULL != iv) {
+        if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
             // if the AlarmData is requested set the Alarm Index to the requested one
-            if (cmd == AlarmData || cmd == AlarmUpdate){
+            if (cmd == AlarmData || cmd == AlarmUpdate) {
                 // set the AlarmMesIndex for the request from user input
                 iv->alarmMesIndex = response["payload"]; 
             }
@@ -366,43 +364,32 @@ void web::showWebApi(AsyncWebServerRequest *request) {
         }
         
 
-        if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL)
-        {
-            if (response["cmd"] == (uint8_t)ActivePowerContr)
-            {
+        if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL) {
+            if (response["cmd"] == (uint8_t)ActivePowerContr) {
                 uint16_t webapiPayload = response["payload"];
                 uint16_t webapiPayload2 = response["payload2"];
-                if (webapiPayload > 0 && webapiPayload < 10000)
-                {
+                if (webapiPayload > 0 && webapiPayload < 10000) {
                     iv->devControlCmd = ActivePowerContr;
                     iv->powerLimit[0] = webapiPayload;
                     if (webapiPayload2 > 0)
-                    {
                         iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
-                    }
-                    else
-                    {                                             // if not set, set it to 0x0000 default
-                        iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporay in Watt absolut
-                    }
+                    else                                            // if not set, set it to 0x0000 default
+                        iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporary in Watt absolut
                     if (iv->powerLimit[1] & 0x0001)
-                    {
                         DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API"));
-                    }
                     else
-                    {
                         DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API"));
-                    }
                     iv->devControlRequest = true; // queue it in the request loop
                 }
             }
-            if (response["cmd"] == (uint8_t)TurnOff){
+            if (response["cmd"] == (uint8_t)TurnOff) {
                 iv->devControlCmd = TurnOff;
                 iv->devControlRequest = true; // queue it in the request loop
-        }
-            if (response["cmd"] == (uint8_t)TurnOn){
+            }
+            if (response["cmd"] == (uint8_t)TurnOn) {
                 iv->devControlCmd = TurnOn;
                 iv->devControlRequest = true; // queue it in the request loop
-    }
+            }
         }
     }
     request->send(200, "text/json", "{success:true}");
@@ -480,8 +467,10 @@ void web::serialCb(String msg) {
             strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr().c_str(), 9);
             mSerialBufFill += 9;
         }
-        else
+        else {
+            mSerialBufFill = 0;
             mEvts->send("webSerial, buffer overflow!", "serial", millis());
+        }
         mSerialAddTime = false;
     }
 
@@ -493,7 +482,9 @@ void web::serialCb(String msg) {
         strncpy(&mSerialBuf[mSerialBufFill], msg.c_str(), length);
         mSerialBufFill += length;
     }
-    else
+    else {
+        mSerialBufFill = 0;
         mEvts->send("webSerial, buffer overflow!", "serial", millis());
+    }
 
 }

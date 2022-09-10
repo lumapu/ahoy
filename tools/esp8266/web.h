@@ -12,7 +12,7 @@
 #include "app.h"
 #include "webApi.h"
 
-#define WEB_SERIAL_BUF_SIZE 1024
+#define WEB_SERIAL_BUF_SIZE 2048
 
 class app;
 class webApi;

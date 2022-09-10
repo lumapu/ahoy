@@ -8,17 +8,19 @@ function toggle(name, hide) {
         elm.classList.remove('hide');
 }
 
-function getAjax(url, ptr) {
-    var http = new XMLHttpRequest();
-    if(http != null) {
-       http.open("GET", url, true);
-       http.onreadystatechange = p;
-       http.send(null);
+function getAjax(url, ptr, method="GET", json=null) {
+    var xhr = new XMLHttpRequest();
+    if(xhr != null) {
+       xhr.open(method, url, true);
+       xhr.onreadystatechange = p;
+       if("POST" == method)
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+       xhr.send(json);
     }
     function p() {
-        if(http.readyState == 4) {
-            if(null != http.responseText)
-                ptr(JSON.parse(http.responseText));
+        if(xhr.readyState == 4) {
+            if(null != xhr.responseText)
+                ptr(JSON.parse(xhr.responseText));
         }
     }
 }

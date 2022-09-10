@@ -92,17 +92,17 @@ To set the active power limit (controled value is the AC Power of the inverter) 
 The implementation allows to set any of the available `<DevControlCmdType>` Commands:
 ```C
 typedef enum {
-    TurnOn = 0,                   // 0x00
-    TurnOff = 1,                  // 0x01
-    Restart = 2,                  // 0x02
-    Lock = 3,                     // 0x03
-    Unlock = 4,                   // 0x04
-    ActivePowerContr = 11,        // 0x0b
-    ReactivePowerContr = 12,      // 0x0c
-    PFSet = 13,                   // 0x0d
+    TurnOn                  = 0,  // 0x00
+    TurnOff                 = 1,  // 0x01
+    Restart                 = 2,  // 0x02
+    Lock                    = 3,  // 0x03
+    Unlock                  = 4,  // 0x04
+    ActivePowerContr        = 11, // 0x0b
+    ReactivePowerContr      = 12, // 0x0c
+    PFSet                   = 13, // 0x0d
     CleanState_LockAndAlarm = 20, // 0x14
-    SelfInspection = 40,          // 0x28, self-inspection of grid-connected protection files
-    Init = 0xff
+    SelfInspection          = 40, // 0x28, self-inspection of grid-connected protection files
+    Init                    = 0xff
 } DevControlCmdType;
 ```
 The MQTT payload will be set on first to bytes and `<DATA2>`, which is taken from the topic path will be set on the second two bytes if the corresponding DevControlCmdType supports 4 byte data.
@@ -215,8 +215,8 @@ Internally this values will be set for the second two bytes for MainCmd: 0x51 Su
 typedef enum {
     AbsolutNonPersistent    = 0x0000, // 0
     RelativNonPersistent    = 0x0001, // 1
-    AbsolutPersistent       = 0x0100,    // 256
-    RelativPersistent       = 0x0101     // 257
+    AbsolutPersistent       = 0x0100, // 256
+    RelativPersistent       = 0x0101  // 257
 } PowerLimitControlType;
 ```
 

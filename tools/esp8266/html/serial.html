@@ -12,6 +12,19 @@
             <div class="serial">
                 <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
                 conntected: <span class="dot" id="connected"></span> Uptime: <span id="uptime"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
+
+                <br/>
+                <br/>
+                <br/>
+                <br/>
+                <hr>
+                <h3>handle next buttons with care - test / debug only!!</h3>
+                <br/>
+                <input type="button" value="power limit 100%" class="btn" id="pwrlim2"/>
+                <input type="button" value="power limit 10%" class="btn" id="pwrlim"/>
+                <input type="button" value="Turn Off" class="btn" id="turnoff"/>
+                <input type="button" value="Turn On" class="btn" id="turnon"/><br/>
+                Ctrl result: <span id="result">n/a</span>
             </div>
         </div>
         <div id="footer">
@@ -70,6 +83,45 @@
             }
 
             getAjax("/api/system", parseSys);
+
+            // only for test
+            function ctrlCb(obj) {
+                var e = document.getElementById("result");
+                if(obj["success"])
+                    e.innerHTML = "ok";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            document.getElementById("turnon").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 0;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("turnoff").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 1;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [10, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim2").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [2000, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
         </script>
     </body>
 </html>

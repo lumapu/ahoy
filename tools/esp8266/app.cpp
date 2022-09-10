@@ -381,21 +381,45 @@ void app::processPayload(bool retransmit) {
                     // MQTT send out
                     if(mMqttActive) {
                         char topic[30], val[10];
-                        for (uint8_t id = 0; id < mSys->getNumInverters(); id++)
-                        {
+                        float total[4];
+                        memset(total, 0, sizeof(float) * 4);
+                        for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                             Inverter<> *iv = mSys->getInverterByPos(id);
-                            if (NULL != iv)
-                            {
-                                if (iv->isAvailable(mTimestamp))
-                                {
-                                    for (uint8_t i = 0; i < iv->listLen; i++)
-                                    {
+                            if (NULL != iv) {
+                                if (iv->isAvailable(mTimestamp)) {
+                                    for (uint8_t i = 0; i < iv->listLen; i++) {
                                         snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
                                         snprintf(val, 10, "%.3f", iv->getValue(i));
                                         mMqtt.sendMsg(topic, val);
+                                        if(iv->isLiveDataAssignment()) {
+                                            if(CH0 == iv->assign[i].ch) {
+                                                switch(iv->assign[i].fieldId) {
+                                                    case FLD_PAC: total[0] += iv->getValue(i); break;
+                                                    case FLD_YT:  total[1] += iv->getValue(i); break;
+                                                    case FLD_YD:  total[2] += iv->getValue(i); break;
+                                                    case FLD_PDC: total[3] += iv->getValue(i); break;
+                                                }
+                                            }
+                                        }
                                         yield();
                                     }
                                 }
+                            }
+                        }
+
+                        // total values (sum of all inverters)
+                        if(mSys->getNumInverters() > 1) {
+                            uint8_t fieldId = 0;
+                            for (uint8_t i = 0; i < 4; i++) {
+                                switch(i) {
+                                    case 0: fieldId = FLD_PAC; break;
+                                    case 1: fieldId = FLD_YT;  break;
+                                    case 2: fieldId = FLD_YD;  break;
+                                    case 3: fieldId = FLD_PDC; break;
+                                }
+                                snprintf(topic, 30, "total/%s", fields[fieldId]);
+                                snprintf(val, 10, "%.3f", total[i]);
+                                mMqtt.sendMsg(topic, val);
                             }
                         }
                     }

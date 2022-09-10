@@ -136,27 +136,26 @@ class Inverter {
         }
 
         template <typename T>
-        void enqueCommand(uint8_t cmd)
-        {
+        void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
            DPRINTLN(DBG_INFO, "enqueuedCmd: " + String(cmd));
         }
 
-        void setQueuedCmdFinished(){
-            if (!_commandQueue.empty()){
+        void setQueuedCmdFinished() {
+            if (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop(); 
             }
         }
 
-        void clearCmdQueue(){
-            while (!_commandQueue.empty()){
+        void clearCmdQueue() {
+            while (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop(); 
             }
         }
-    	uint8_t getQueuedCmd()
-        {
+
+    	uint8_t getQueuedCmd() {
             if (_commandQueue.empty()){
                 // Fill with default commands
                 enqueCommand<InfoCommand>(RealTimeRunData_Debug);
@@ -296,36 +295,30 @@ class Inverter {
             return false;
         }
 
-        uint32_t getLastTs(void)
-        {
+        uint32_t getLastTs(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getLastTs"));
             return ts;
         }
 
-        void getAssignment()
-        {
+        void getAssignment()  {
             DPRINTLN(DBG_DEBUG, F("hmInverter.h:getAssignment"));
             // Default assignment;
-            if (INV_TYPE_1CH == type)
-            {
+            if (INV_TYPE_1CH == type) {
                 listLen = (uint8_t)(HM1CH_LIST_LEN);
                 assign = (byteAssign_t *)hm1chAssignment;
                 channels = 1;
             }
-            else if (INV_TYPE_2CH == type)
-            {
+            else if (INV_TYPE_2CH == type) {
                 listLen = (uint8_t)(HM2CH_LIST_LEN);
                 assign = (byteAssign_t *)hm2chAssignment;
                 channels = 2;
             }
-            else if (INV_TYPE_4CH == type)
-            {
+            else if (INV_TYPE_4CH == type) {
                 listLen = (uint8_t)(HM4CH_LIST_LEN);
                 assign = (byteAssign_t *)hm4chAssignment;
                 channels = 4;
             }
-            else
-            {
+            else {
                 listLen = 0;
                 channels = 0;
                 assign = NULL;
@@ -352,217 +345,89 @@ class Inverter {
                     break;
             }
         }
-        String getAlarmStr(u_int16_t alarmCode)
-        {
-            switch (alarmCode)
-            {
-            case 1:
-                return String(F("Inverter start"));
-                break;
-            case 2:
-                return String(F("DTU command failed"));
-                break;
-            case 121:
-                return String(F("Over temperature protection"));
-                break;
-            case 125:
-                return String(F("Grid configuration parameter error"));
-                break;
-            case 126:
-                return String(F("Software error code 126"));
-                break;
-            case 127:
-                return String(F("Firmware error"));
-                break;
-            case 128:
-                return String(F("Software error code 128"));
-                break;
-            case 129:
-                return String(F("Software error code 129"));
-                break;
-            case 130:
-                return String(F("Offline"));
-                break;
-            case 141:
-                return String(F("Grid overvoltage"));
-                break;
-            case 142:
-                return String(F("Average grid overvoltage"));
-                break;
-            case 143:
-                return String(F("Grid undervoltage"));
-                break;
-            case 144:
-                return String(F("Grid overfrequency"));
-                break;
-            case 145:
-                return String(F("Grid underfrequency"));
-                break;
-            case 146:
-                return String(F("Rapid grid frequency change"));
-                break;
-            case 147:
-                return String(F("Power grid outage"));
-                break;
-            case 148:
-                return String(F("Grid disconnection"));
-                break;
-            case 149:
-                return String(F("Island detected"));
-                break;
-            case 205:
-                return String(F("Input port 1 & 2 overvoltage"));
-                break;
-            case 206:
-                return String(F("Input port 3 & 4 overvoltage"));
-                break;
-            case 207:
-                return String(F("Input port 1 & 2 undervoltage"));
-                break;
-            case 208:
-                return String(F("Input port 3 & 4 undervoltage"));
-                break;
-            case 209:
-                return String(F("Port 1 no input"));
-                break;
-            case 210:
-                return String(F("Port 2 no input"));
-                break;
-            case 211:
-                return String(F("Port 3 no input"));
-                break;
-            case 212:
-                return String(F("Port 4 no input"));
-                break;
-            case 213:
-                return String(F("PV-1 & PV-2 abnormal wiring"));
-                break;
-            case 214:
-                return String(F("PV-3 & PV-4 abnormal wiring"));
-                break;
-            case 215:
-                return String(F("PV-1 Input overvoltage"));
-                break;
-            case 216:
-                return String(F("PV-1 Input undervoltage"));
-                break;
-            case 217:
-                return String(F("PV-2 Input overvoltage"));
-                break;
-            case 218:
-                return String(F("PV-2 Input undervoltage"));
-                break;
-            case 219:
-                return String(F("PV-3 Input overvoltage"));
-                break;
-            case 220:
-                return String(F("PV-3 Input undervoltage"));
-                break;
-            case 221:
-                return String(F("PV-4 Input overvoltage"));
-                break;
-            case 222:
-                return String(F("PV-4 Input undervoltage"));
-                break;
-            case 301:
-                return String(F("Hardware error code 301"));
-                break;
-            case 302:
-                return String(F("Hardware error code 302"));
-                break;
-            case 303:
-                return String(F("Hardware error code 303"));
-                break;
-            case 304:
-                return String(F("Hardware error code 304"));
-                break;
-            case 305:
-                return String(F("Hardware error code 305"));
-                break;
-            case 306:
-                return String(F("Hardware error code 306"));
-                break;
-            case 307:
-                return String(F("Hardware error code 307"));
-                break;
-            case 308:
-                return String(F("Hardware error code 308"));
-                break;
-            case 309:
-                return String(F("Hardware error code 309"));
-                break;
-            case 310:
-                return String(F("Hardware error code 310"));
-                break;
-            case 311:
-                return String(F("Hardware error code 311"));
-                break;
-            case 312:
-                return String(F("Hardware error code 312"));
-                break;
-            case 313:
-                return String(F("Hardware error code 313"));
-                break;
-            case 314:
-                return String(F("Hardware error code 314"));
-                break;
-            case 5041:
-                return String(F("Error code-04 Port 1"));
-                break;
-            case 5042:
-                return String(F("Error code-04 Port 2"));
-                break;
-            case 5043:
-                return String(F("Error code-04 Port 3"));
-                break;
-            case 5044:
-                return String(F("Error code-04 Port 4"));
-                break;
-            case 5051:
-                return String(F("PV Input 1 Overvoltage/Undervoltage"));
-                break;
-            case 5052:
-                return String(F("PV Input 2 Overvoltage/Undervoltage"));
-                break;
-            case 5053:
-                return String(F("PV Input 3 Overvoltage/Undervoltage"));
-                break;
-            case 5054:
-                return String(F("PV Input 4 Overvoltage/Undervoltage"));
-                break;
-            case 5060:
-                return String(F("Abnormal bias"));
-                break;
-            case 5070:
-                return String(F("Over temperature protection"));
-                break;
-            case 5080:
-                return String(F("Grid Overvoltage/Undervoltage"));
-                break;
-            case 5090:
-                return String(F("Grid Overfrequency/Underfrequency"));
-                break;
-            case 5100:
-                return String(F("Island detected"));
-                break;
-            case 5120:
-                return String(F("EEPROM reading and writing error"));
-                break;
-            case 5150:
-                return String(F("10 min value grid overvoltage"));
-                break;
-            case 5200:
-                return String(F("Firmware error"));
-                break;
-            case 8310:
-                return String(F("Shut down"));
-                break;
-            case 9000:
-                return String(F("Microinverter is suspected of being stolen"));
-                break;
-            default:
-                return String(F("Unknown"));
-                break;
+
+        bool isLiveDataAssignment(void) {
+            if(assign == (byteAssign_t *)hm1chAssignment)
+                return true;
+            else if(assign == (byteAssign_t *)hm2chAssignment)
+                return true;
+            else if(assign == (byteAssign_t *)hm4chAssignment)
+                return true;
+            else
+                return false;
+        }
+
+        String getAlarmStr(u_int16_t alarmCode) {
+            switch (alarmCode) { // breaks are intentionally missing!
+                case 1:    return String(F("Inverter start"));
+                case 2:    return String(F("DTU command failed"));
+                case 121:  return String(F("Over temperature protection"));
+                case 125:  return String(F("Grid configuration parameter error"));
+                case 126:  return String(F("Software error code 126"));
+                case 127:  return String(F("Firmware error"));
+                case 128:  return String(F("Software error code 128"));
+                case 129:  return String(F("Software error code 129"));
+                case 130:  return String(F("Offline"));
+                case 141:  return String(F("Grid overvoltage"));
+                case 142:  return String(F("Average grid overvoltage"));
+                case 143:  return String(F("Grid undervoltage"));
+                case 144:  return String(F("Grid overfrequency"));
+                case 145:  return String(F("Grid underfrequency"));
+                case 146:  return String(F("Rapid grid frequency change"));
+                case 147:  return String(F("Power grid outage"));
+                case 148:  return String(F("Grid disconnection"));
+                case 149:  return String(F("Island detected"));
+                case 205:  return String(F("Input port 1 & 2 overvoltage"));
+                case 206:  return String(F("Input port 3 & 4 overvoltage"));
+                case 207:  return String(F("Input port 1 & 2 undervoltage"));
+                case 208:  return String(F("Input port 3 & 4 undervoltage"));
+                case 209:  return String(F("Port 1 no input"));
+                case 210:  return String(F("Port 2 no input"));
+                case 211:  return String(F("Port 3 no input"));
+                case 212:  return String(F("Port 4 no input"));
+                case 213:  return String(F("PV-1 & PV-2 abnormal wiring"));
+                case 214:  return String(F("PV-3 & PV-4 abnormal wiring"));
+                case 215:  return String(F("PV-1 Input overvoltage"));
+                case 216:  return String(F("PV-1 Input undervoltage"));
+                case 217:  return String(F("PV-2 Input overvoltage"));
+                case 218:  return String(F("PV-2 Input undervoltage"));
+                case 219:  return String(F("PV-3 Input overvoltage"));
+                case 220:  return String(F("PV-3 Input undervoltage"));
+                case 221:  return String(F("PV-4 Input overvoltage"));
+                case 222:  return String(F("PV-4 Input undervoltage"));
+                case 301:  return String(F("Hardware error code 301"));
+                case 302:  return String(F("Hardware error code 302"));
+                case 303:  return String(F("Hardware error code 303"));
+                case 304:  return String(F("Hardware error code 304"));
+                case 305:  return String(F("Hardware error code 305"));
+                case 306:  return String(F("Hardware error code 306"));
+                case 307:  return String(F("Hardware error code 307"));
+                case 308:  return String(F("Hardware error code 308"));
+                case 309:  return String(F("Hardware error code 309"));
+                case 310:  return String(F("Hardware error code 310"));
+                case 311:  return String(F("Hardware error code 311"));
+                case 312:  return String(F("Hardware error code 312"));
+                case 313:  return String(F("Hardware error code 313"));
+                case 314:  return String(F("Hardware error code 314"));
+                case 5041: return String(F("Error code-04 Port 1"));
+                case 5042: return String(F("Error code-04 Port 2"));
+                case 5043: return String(F("Error code-04 Port 3"));
+                case 5044: return String(F("Error code-04 Port 4"));
+                case 5051: return String(F("PV Input 1 Overvoltage/Undervoltage"));
+                case 5052: return String(F("PV Input 2 Overvoltage/Undervoltage"));
+                case 5053: return String(F("PV Input 3 Overvoltage/Undervoltage"));
+                case 5054: return String(F("PV Input 4 Overvoltage/Undervoltage"));
+                case 5060: return String(F("Abnormal bias"));
+                case 5070: return String(F("Over temperature protection"));
+                case 5080: return String(F("Grid Overvoltage/Undervoltage"));
+                case 5090: return String(F("Grid Overfrequency/Underfrequency"));
+                case 5100: return String(F("Island detected"));
+                case 5120: return String(F("EEPROM reading and writing error"));
+                case 5150: return String(F("10 min value grid overvoltage"));
+                case 5200: return String(F("Firmware error"));
+                case 8310: return String(F("Shut down"));
+                case 9000: return String(F("Microinverter is suspected of being stolen"));
+                default:   return String(F("Unknown"));
             }
         }
 

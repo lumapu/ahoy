@@ -21,7 +21,7 @@
 #define RF_CHANNELS             5
 #define RF_LOOP_CNT             300
 
-#define TX_REQ_INFO         0X15
+#define TX_REQ_INFO         0x15
 #define TX_REQ_DEVCONTROL   0x51
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81

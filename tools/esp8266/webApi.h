@@ -19,6 +19,8 @@ class webApi {
 
     private:
         void onApi(AsyncWebServerRequest *request);
+        void onApiPost(AsyncWebServerRequest *request);
+        void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
         void getNotFound(JsonObject obj, String url);
 
         void getSystem(JsonObject obj);
@@ -33,6 +35,10 @@ class webApi {
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
         void getLive(JsonObject obj);
+
+        bool setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut);
+
+        Inverter<> *getInverter(DynamicJsonDocument jsonIn, JsonObject jsonOut);
 
         AsyncWebServer *mSrv;
         app *mApp;
