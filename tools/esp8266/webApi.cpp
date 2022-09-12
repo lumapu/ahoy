@@ -43,11 +43,6 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     if(path == "system")             getSystem(root);
     else if(path == "statistics")    getStatistics(root);
     else if(path == "inverter/list") getInverterList(root);
-    else if(path == "mqtt")          getMqtt(root);
-    else if(path == "ntp")           getNtp(root);
-    else if(path == "pinout")        getPinout(root);
-    else if(path == "radio")         getRadio(root);
-    else if(path == "serial")        getSerial(root);
     else if(path == "index")         getIndex(root);
     else if(path == "setup")         getSetup(root);
     else if(path == "live")          getLive(root);
@@ -105,11 +100,6 @@ void webApi::getNotFound(JsonObject obj, String url) {
     ep[F("system")]        = url + F("system");
     ep[F("statistics")]    = url + F("statistics");
     ep[F("inverter/list")] = url + F("inverter/list");
-    ep[F("mqtt")]          = url + F("mqtt");
-    ep[F("ntp")]           = url + F("ntp");
-    ep[F("pinout")]        = url + F("pinout");
-    ep[F("radio")]         = url + F("radio");
-    ep[F("serial")]        = url + F("serial");
     ep[F("index")]         = url + F("index");
     ep[F("setup")]         = url + F("setup");
     ep[F("live")]          = url + F("live");
@@ -216,13 +206,14 @@ void webApi::getIndex(JsonObject obj) {
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         iv = mApp->mSys->getInverterByPos(i);
         if(NULL != iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             JsonObject invObj = inv.createNestedObject();
             invObj[F("id")]              = i;
             invObj[F("name")]            = String(iv->name);
             invObj[F("version")]         = String(iv->fwVersion);
-            invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp());
-            invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp());
-            invObj[F("ts_last_success")] = iv->getLastTs();
+            invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp(), rec);
+            invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp(), rec);
+            invObj[F("ts_last_success")] = iv->getLastTs(rec);
         }
     }
 
@@ -267,42 +258,41 @@ void webApi::getLive(JsonObject obj) {
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
         iv = mApp->mSys->getInverterByPos(i);
         if(NULL != iv) {
-            if(iv->isLiveDataAssignment()) {
-                JsonObject obj2 = invArr.createNestedObject();
-                obj2[F("name")]               = String(iv->name);
-                obj2[F("channels")]           = iv->channels;
-                obj2[F("power_limit_read")]   = iv->actPowerLimit;
-                obj2[F("power_limit_active")] = NoPowerLimit != iv->powerLimit[1];
-                obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
-                obj2[F("ts_last_success")]    = iv->ts;
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            JsonObject obj2 = invArr.createNestedObject();
+            obj2[F("name")]               = String(iv->name);
+            obj2[F("channels")]           = iv->channels;
+            obj2[F("power_limit_read")]   = iv->actPowerLimit;
+            obj2[F("power_limit_active")] = NoPowerLimit != iv->powerLimit[1];
+            obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
+            obj2[F("ts_last_success")]    = rec->ts;
 
-                JsonArray ch = obj2.createNestedArray("ch");
-                JsonArray ch0 = ch.createNestedArray();
-                obj2[F("ch_names")][0] = "AC";
-                for (uint8_t fld = 0; fld < 11; fld++) {
-                    pos = (iv->getPosByChFld(CH0, list[fld]));
-                    ch0[fld] = (0xff != pos) ? iv->getValue(pos) : 0.0;
-                    obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos)) : F("n/a");
-                    obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos)) : F("n/a");
-                }
+            JsonArray ch = obj2.createNestedArray("ch");
+            JsonArray ch0 = ch.createNestedArray();
+            obj2[F("ch_names")][0] = "AC";
+            for (uint8_t fld = 0; fld < 11; fld++) {
+                pos = (iv->getPosByChFld(CH0, list[fld], rec));
+                ch0[fld] = (0xff != pos) ? iv->getValue(pos, rec) : 0.0;
+                obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
+                obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
+            }
 
-                for(uint8_t j = 1; j <= iv->channels; j ++) {
-                    obj2[F("ch_names")][j] = String(iv->chName[j-1]);
-                    JsonArray cur = ch.createNestedArray();
-                    for (uint8_t k = 0; k < 6; k++) {
-                        switch(k) {
-                            default: pos = (iv->getPosByChFld(j, FLD_UDC)); break;
-                            case 1:  pos = (iv->getPosByChFld(j, FLD_IDC)); break;
-                            case 2:  pos = (iv->getPosByChFld(j, FLD_PDC)); break;
-                            case 3:  pos = (iv->getPosByChFld(j, FLD_YD));  break;
-                            case 4:  pos = (iv->getPosByChFld(j, FLD_YT));  break;
-                            case 5:  pos = (iv->getPosByChFld(j, FLD_IRR)); break;
-                        }
-                        cur[k] = (0xff != pos) ? iv->getValue(pos) : 0.0;
-                        if(1 == j) {
-                            obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos)) : F("n/a");
-                            obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos)) : F("n/a");
-                        }
+            for(uint8_t j = 1; j <= iv->channels; j ++) {
+                obj2[F("ch_names")][j] = String(iv->chName[j-1]);
+                JsonArray cur = ch.createNestedArray();
+                for (uint8_t k = 0; k < 6; k++) {
+                    switch(k) {
+                        default: pos = (iv->getPosByChFld(j, FLD_UDC, rec)); break;
+                        case 1:  pos = (iv->getPosByChFld(j, FLD_IDC, rec)); break;
+                        case 2:  pos = (iv->getPosByChFld(j, FLD_PDC, rec)); break;
+                        case 3:  pos = (iv->getPosByChFld(j, FLD_YD, rec));  break;
+                        case 4:  pos = (iv->getPosByChFld(j, FLD_YT, rec));  break;
+                        case 5:  pos = (iv->getPosByChFld(j, FLD_IRR, rec)); break;
+                    }
+                    cur[k] = (0xff != pos) ? iv->getValue(pos, rec) : 0.0;
+                    if(1 == j) {
+                        obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
+                        obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
                     }
                 }
             }

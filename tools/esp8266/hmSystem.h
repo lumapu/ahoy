@@ -63,14 +63,8 @@ class HmSystem {
             uint8_t len   = (uint8_t)strlen(name);
             strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
 
-            if(NULL == p->assign) {
-                DPRINT(DBG_ERROR, F("no assignment for type found!"));
-                return NULL;
-            }
-            else {
-                mNumInv ++;
-                return p;
-            }
+            mNumInv ++;
+            return p;
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {

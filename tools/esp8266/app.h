@@ -38,6 +38,7 @@ typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSyste
 
 
 typedef struct {
+    uint8_t txCmd;
     uint8_t txId;
     uint8_t invId;
     uint32_t ts;

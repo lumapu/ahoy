@@ -164,7 +164,7 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
+            DPRINTLN(DBG_INFO, F("sendControlPacket"));
             sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
             int cnt = 0;
             mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
@@ -187,17 +187,14 @@ class HmRadio {
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
+            DPRINTLN(DBG_INFO, F("sendTimePacket"));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ){
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ) {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            } else {
-                mTxBuf[18] = 0x00;
-                mTxBuf[19] = 0x00;
             }
             uint16_t crc = Ahoy::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
@@ -208,7 +205,7 @@ class HmRadio {
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendCmdPacket"));
+            DPRINTLN(DBG_INFO, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -221,7 +218,7 @@ class HmRadio {
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:checkPaketCrc"));
+            //DPRINTLN(DBG_INFO, F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -237,8 +234,6 @@ class HmRadio {
 
         bool switchRxCh(uint16_t addLoop = 0) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:switchRxCh"));
-            //DPRINTLN(DBG_VERBOSE, F("R"));
-
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;

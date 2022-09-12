@@ -192,12 +192,13 @@ void app::loop(void) {
                 for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
-                        if(iv->isAvailable(mTimestamp)) {
+                        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                        if(iv->isAvailable(mTimestamp, rec)) {
                             DPRINTLN(DBG_INFO, "Inverter: " + String(id));
-                            for(uint8_t i = 0; i < iv->listLen; i++) {
-                                if(0.0f != iv->getValue(i)) {
-                                    snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                                    snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
+                            for(uint8_t i = 0; i < rec->length; i++) {
+                                if(0.0f != iv->getValue(i, rec)) {
+                                    snprintf(topic, 30, "%s/ch%d/%s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                                    snprintf(val, 10, "%.3f %s", iv->getValue(i, rec), iv->getUnit(i, rec));
                                     DPRINTLN(DBG_INFO, String(topic) + ": " + String(val));
                                 }
                                 yield();
@@ -249,17 +250,21 @@ void app::loop(void) {
                     resetPayload(iv);
 
                     yield();
-                    if(mConfig.serialDebug)
+                    if(mConfig.serialDebug) {
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
+                    }
                     if(iv->devControlRequest && (iv->powerLimit[0] > 0) && (NoPowerLimit != iv->powerLimit[1])) { // prevent to "switch off"
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
-                        mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd ,iv->powerLimit);
+                        mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
+                        mPayload[iv->id].txCmd = iv->devControlCmd;
                         iv->clearCmdQueue();
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     } else {
-                        mSys->Radio.sendTimePacket(iv->radioId.u64,iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
+                        uint8_t cmd = iv->getQueuedCmd();
+                        mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex);
+                        mPayload[iv->id].txCmd = cmd;
                         mRxTicker = 0;
                     }
                 }
@@ -320,7 +325,7 @@ void app::processPayload(bool retransmit) {
                 mPayload[iv->id].complete = true;
             }
             if(!mPayload[iv->id].complete ) {
-                if(!buildPayload(iv->id)) {
+                if(!buildPayload(iv->id)) { // payload not complete
                     if(mPayload[iv->id].requested) {
                         if(retransmit) {
                             if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
@@ -339,19 +344,26 @@ void app::processPayload(bool retransmit) {
                                 else {
                                     if(mConfig.serialDebug)
                                         DPRINTLN(DBG_ERROR, F("while retrieving data: last frame missing: Request Retransmit"));
-                                    if(0x00 != mLastPacketId)
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
-                                    else
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts,iv->alarmMesIndex);
+                                    //if(0x00 != mLastPacketId)
+                                    //    mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
+                                    //else
+                                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                                 }
                                 mSys->Radio.switchRxCh(100);
                             }
                         }
                     }
                 }
-                else {
+                else { // payload complete
+                    DPRINTLN(DBG_INFO, F("procPyld: cmd:  ") + String(mPayload[iv->id].txCmd));
+                    DPRINTLN(DBG_INFO, F("procPyld: txid: ") + String(mPayload[iv->id].txId));
+                    DPRINTLN(DBG_INFO, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
+                    record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd); // choose the parser
+                    if(NULL == rec)
+                        DPRINTLN(DBG_ERROR, F("record is NULL!"));
                     mPayload[iv->id].complete = true;
-                    iv->ts = mPayload[iv->id].ts;
+                    rec->ts = mPayload[iv->id].ts;
+                    mStat.rxSuccess++;
                     uint8_t payload[128];
                     uint8_t offs = 0;
 
@@ -367,14 +379,12 @@ void app::processPayload(bool retransmit) {
                         DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
-                    mStat.rxSuccess++;
-                    
-                    iv->getAssignment(); // choose the parser
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        iv->addValue(i, payload); // cmd value decides which parser is used to decode payload
+
+                    for(uint8_t i = 0; i < rec->length; i++) {
+                        iv->addValue(i, payload, rec);
                         yield();
                     }
-                    iv->doCalculations(); // cmd value decides which parser is used to decode payload
+                    iv->doCalculations();
                     
                     iv->setQueuedCmdFinished();
 
@@ -386,22 +396,22 @@ void app::processPayload(bool retransmit) {
                         for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                             Inverter<> *iv = mSys->getInverterByPos(id);
                             if (NULL != iv) {
-                                if (iv->isAvailable(mTimestamp)) {
-                                    for (uint8_t i = 0; i < iv->listLen; i++) {
-                                        snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, fields[iv->assign[i].fieldId]);
-                                        snprintf(val, 10, "%.3f", iv->getValue(i));
-                                        mMqtt.sendMsg(topic, val);
-                                        if(iv->isLiveDataAssignment()) {
-                                            if(CH0 == iv->assign[i].ch) {
-                                                switch(iv->assign[i].fieldId) {
-                                                    case FLD_PAC: total[0] += iv->getValue(i); break;
-                                                    case FLD_YT:  total[1] += iv->getValue(i); break;
-                                                    case FLD_YD:  total[2] += iv->getValue(i); break;
-                                                    case FLD_PDC: total[3] += iv->getValue(i); break;
+                                if(iv->getRecordStruct(RealTimeRunData_Debug) == rec) {
+                                    if (iv->isAvailable(mTimestamp, rec)) {
+                                        for (uint8_t i = 0; i < rec->length; i++) {
+                                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                                            snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                                            mMqtt.sendMsg(topic, val);
+                                            if(CH0 == rec->assign[i].ch) {
+                                                switch(rec->assign[i].fieldId) {
+                                                    case FLD_PAC: total[0] += iv->getValue(i, rec); break;
+                                                    case FLD_YT:  total[1] += iv->getValue(i, rec); break;
+                                                    case FLD_YD:  total[2] += iv->getValue(i, rec); break;
+                                                    case FLD_PDC: total[3] += iv->getValue(i, rec); break;
                                                 }
                                             }
+                                            yield();
                                         }
-                                        yield();
                                     }
                                 }
                             }
@@ -423,6 +433,8 @@ void app::processPayload(bool retransmit) {
                             }
                         }
                     }
+
+                    resetPayload(iv);
 
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
@@ -543,7 +555,8 @@ void app::sendMqttDiscoveryConfig(void) {
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            if(iv->isAvailable(mTimestamp) && mMqttConfigSendState[id] != true) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            if(iv->isAvailable(mTimestamp, rec) && mMqttConfigSendState[id] != true) {
                 DynamicJsonDocument deviceDoc(128);
                 deviceDoc["name"] = iv->name;
                 deviceDoc["ids"] = String(iv->serial.u64, HEX);
@@ -553,21 +566,21 @@ void app::sendMqttDiscoveryConfig(void) {
                 JsonObject deviceObj = deviceDoc.as<JsonObject>();
                 DynamicJsonDocument doc(384);
 
-                for(uint8_t i = 0; i < iv->listLen; i++) {
-                    if (iv->assign[i].ch == CH0) {
-                        snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i));
+                for(uint8_t i = 0; i < rec->length; i++) {
+                    if (rec->assign[i].ch == CH0) {
+                        snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i, rec));
                     } else {
-                        snprintf(name, 32, "%s CH%d %s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
+                        snprintf(name, 32, "%s CH%d %s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                     }
-                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mConfig.mqtt.topic, iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                    snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                    snprintf(uniq_id, 32, "ch%d_%s", iv->assign[i].ch, iv->getFieldName(i));
-                    const char* devCls = getFieldDeviceClass(iv->assign[i].fieldId);
-                    const char* stateCls = getFieldStateClass(iv->assign[i].fieldId);
+                    snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mConfig.mqtt.topic, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
+                    const char* devCls = getFieldDeviceClass(rec->assign[i].fieldId);
+                    const char* stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
                     doc["name"] = name;
                     doc["stat_t"]  = stateTopic;
-                    doc["unit_of_meas"] = iv->getUnit(i);
+                    doc["unit_of_meas"] = iv->getUnit(i, rec);
                     doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
                     doc["dev"] = deviceObj;
                     doc["exp_aft"] = mMqttInterval + 5; // add 5 sec if connection is bad or ESP too slow
@@ -644,7 +657,12 @@ void app::resetSystem(void) {
     mShowRebootRequest = false;
 
 
-    memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
+    Inverter<> *iv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+        iv = mSys->getInverterByPos(i, false);
+        if(NULL != iv)
+            resetPayload(iv);
+    }
     memset(&mStat, 0, sizeof(statistics_t));
     mLastPacketId = 0x00;
 }
@@ -806,13 +824,12 @@ void app::setupMqtt(void) {
 }
 
 //-----------------------------------------------------------------------------
-void app::resetPayload(Inverter<>* iv)
-{
-    // reset payload data
+void app::resetPayload(Inverter<>* iv) {
     memset(mPayload[iv->id].len, 0, MAX_PAYLOAD_ENTRIES);
+    mPayload[iv->id].txCmd       = 0;
     mPayload[iv->id].retransmits = 0;
-    mPayload[iv->id].maxPackId = 0;
-    mPayload[iv->id].complete = false;
-    mPayload[iv->id].requested = true;
-    mPayload[iv->id].ts = mTimestamp;
+    mPayload[iv->id].maxPackId   = 0;
+    mPayload[iv->id].complete    = false;
+    mPayload[iv->id].requested   = true;
+    mPayload[iv->id].ts          = mTimestamp;
 }
