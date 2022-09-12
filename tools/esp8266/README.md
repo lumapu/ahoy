@@ -26,6 +26,8 @@
 This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
 Further information will help you to communicate to the compatible inverters.
 
+You find the full [User_Manual here](tools/esp8266/User_Manual.md)
+
 ## Compatiblity
 For now the following Inverters should work out of the box:
 
@@ -56,7 +58,7 @@ Any other ESP8266 Board with at least 4MBytes of ROM could work as well, dependi
 
 #### There are fake NRF24L01+ Modules out there
 Whatch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
-An example can be found in [Issue #230](https://github.com/grindylow/ahoy/issues/230).<br/>
+An example can be found in [Issue #230](https://github.com/lumapu/ahoy/issues/230).<br/>
 You are welcome to add more examples of faked chips. We will that information here.<br/>
 
 ## Wiring things up
@@ -199,7 +201,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  
 
 ## MQTT command to set the DTU without webinterface
- [Read here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/User_Manual.md)
+ [Read here](tools/esp8266/User_Manual.md)
 
 
 
@@ -224,4 +226,4 @@ https://discord.gg/WzhxEY62mB
 
 ## ToDo
 
-[See this post](https://github.com/grindylow/ahoy/issues/142)
+[See this post](https://github.com/lumapu/ahoy/issues/142)
