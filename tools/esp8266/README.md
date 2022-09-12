@@ -26,6 +26,8 @@
 This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
 Further information will help you to communicate to the compatible inverters.
 
+You find the full [User_Manual here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/User_Manual.md)
+
 ## Compatiblity
 For now the following Inverters should work out of the box:
 
