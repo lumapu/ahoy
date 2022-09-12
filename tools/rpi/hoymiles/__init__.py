@@ -482,7 +482,7 @@ def compose_esb_packet(packet, mtu=17, **params):
         fragment = compose_esb_fragment(packet[i:i+mtu], **params)
         yield fragment
 
-def compose_send_time_payload(cmdId):
+def compose_send_time_payload(cmdId, alarm_id=0):
     """
     Build set time request packet
 
@@ -493,9 +493,13 @@ def compose_send_time_payload(cmdId):
     """
     timestamp = int(time.time())
 
-    payload = struct.pack('>B', cmdId) + b'\x00'
-    payload = payload + struct.pack('>L', timestamp)  # big-endian: msb at low address
-    payload = payload + b'\x00\x00\x00\x00\x00\x00\x00\x00'
+    # indices from esp8266 hmRadio.h / sendTimePacket()
+    payload = struct.pack('>B', cmdId)                # 10
+    payload = payload + b'\x00'                       # 11
+    payload = payload + struct.pack('>L', timestamp)  # 12..15 big-endian: msb at low address
+    payload = payload + b'\x00\x00'                   # 16..17
+    payload = payload + struct.pack('>H', alarm_id)   # 18..19
+    payload = payload + b'\x00\x00\x00\x00'           # 20..23
 
     return frame_payload(payload)
 
