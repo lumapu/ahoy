@@ -482,21 +482,20 @@ def compose_esb_packet(packet, mtu=17, **params):
         fragment = compose_esb_fragment(packet[i:i+mtu], **params)
         yield fragment
 
-def compose_set_time_payload(timestamp=None):
+def compose_send_time_payload(cmdId):
     """
     Build set time request packet
 
-    :param timestamp: time to set (default: int(time.time()) )
-    :type timestamp: int
+    :param cmd to request
+    :type cmd: uint8
     :return: payload
     :rtype: bytes
     """
-    if not timestamp:
-        timestamp = int(time.time())
+    timestamp = int(time.time())
 
-    payload = b'\x0b\x00'
+    payload = struct.pack('>B', cmdId) + b'\x00'
     payload = payload + struct.pack('>L', timestamp)  # big-endian: msb at low address
-    payload = payload + b'\x00\x00\x00\x05\x00\x00\x00\x00'
+    payload = payload + b'\x00\x00\x00\x00\x00\x00\x00\x00'
 
     return frame_payload(payload)
 
@@ -649,7 +648,7 @@ class InverterTransaction:
         except StopIteration:
             seq_last = max(frames, key=lambda frame:frame.seq).seq if len(frames) else 0
             self.__retransmit_frame(seq_last + 1)
-            raise BufferError(f'Missing packet: Last packet {len(self.scratch)}')
+            raise BufferError(f'Missing packet: Last packet {seq_last + 1}')
 
         # Rebuild payload from unordered frames
         payload = b''
