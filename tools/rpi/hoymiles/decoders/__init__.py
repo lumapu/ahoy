@@ -294,10 +294,12 @@ class EventsResponse(UnknownResponse):
 
         crc_valid = self.validate_crc_m()
         if crc_valid:
-            print(' payload has valid modbus crc')
+            #print(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
-        status = self.response[:2]
+        status = struct.unpack('>H', self.response[:2])[0]
+        a_text = self.alarm_codes.get(status, 'N/A')
+        print (f' Inverter status: {a_text} ({status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):

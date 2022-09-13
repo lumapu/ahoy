@@ -120,6 +120,11 @@ def poll_inverter(inverter, do_init, retries=4):
                         string_id = string_id + 1
                     print()
 
+                if 'event_count' in data:
+                    if event_message_index[inv_str] < data['event_count']:
+                        event_message_index[inv_str] = data['event_count']
+                        command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
+
                 if mqtt_client:
                     mqtt_send_status(mqtt_client, inverter_ser, data,
                             topic=inverter.get('mqtt', {}).get('topic', None))
@@ -244,6 +249,7 @@ if __name__ == '__main__':
 
     mqtt_client = None
 
+    event_message_index = {}
     command_queue = {}
     mqtt_command_topic_subs = []
 
@@ -286,7 +292,9 @@ if __name__ == '__main__':
     g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
     for g_inverter in ahoy_config.get('inverters', []):
         g_inverter_ser = g_inverter.get('serial')
-        command_queue[str(g_inverter_ser)] = []
+        inv_str = str(g_inverter_ser)
+        command_queue[inv_str] = []
+        event_message_index[inv_str] = 0
 
         #
         # Enables and subscribe inverter to mqtt /command-Topic
