@@ -164,7 +164,7 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            DPRINTLN(DBG_INFO, F("sendControlPacket"));
+            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: ") + String(cmd));
             sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
             int cnt = 0;
             mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
@@ -205,7 +205,7 @@ class HmRadio {
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
-            DPRINTLN(DBG_INFO, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
+            DPRINTLN(DBG_VERBOSE, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));

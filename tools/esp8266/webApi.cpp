@@ -39,6 +39,7 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     AsyncJsonResponse* response = new AsyncJsonResponse(false, 2048);
     JsonObject root = response->getRoot();
 
+    Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
     String path = request->url().substring(5);
     if(path == "system")             getSystem(root);
     else if(path == "statistics")    getStatistics(root);
@@ -46,6 +47,10 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     else if(path == "index")         getIndex(root);
     else if(path == "setup")         getSetup(root);
     else if(path == "live")          getLive(root);
+    else if(path == "record/info")   getRecord(root, iv->getRecordStruct(InverterDevInform_All));
+    else if(path == "record/alarm")  getRecord(root, iv->getRecordStruct(AlarmData));
+    else if(path == "record/config") getRecord(root, iv->getRecordStruct(SystemConfigPara));
+    else if(path == "record/live")   getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
     else
         getNotFound(root, F("http://") + request->host() + F("/api/"));
 
@@ -295,6 +300,28 @@ void webApi::getLive(JsonObject obj) {
                         obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
                     }
                 }
+            }
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getRecord(JsonObject obj, record_t<> *rec) {
+    JsonArray invArr = obj.createNestedArray(F("inverter"));
+
+    Inverter<> *iv;
+    uint8_t pos;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        iv = mApp->mSys->getInverterByPos(i);
+        if(NULL != iv) {
+            JsonArray obj2 = invArr.createNestedArray();
+            for(uint8_t j = 0; j < rec->length; j++) {
+                byteAssign_t *assign = iv->getByteAssign(j, rec);
+                pos = (iv->getPosByChFld(assign->ch, assign->fieldId, rec));
+                obj2[j]["fld"]  = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
+                obj2[j]["unit"] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
+                obj2[j]["val"]  = (0xff != pos) ? String(iv->getValue(pos, rec)) : F("n/a");
             }
         }
     }

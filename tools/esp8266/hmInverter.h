@@ -203,6 +203,10 @@ class Inverter {
                 return 0xff;
         }
 
+        byteAssign_t *getByteAssign(uint8_t pos, record_t<> *rec) {
+            return &rec->assign[pos];
+        }
+
         const char *getFieldName(uint8_t pos, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getFieldName"));
             if(NULL != rec)
@@ -230,7 +234,8 @@ class Inverter {
                 uint8_t  ptr = rec->assign[pos].start;
                 uint8_t  end = ptr + rec->assign[pos].num;
                 uint16_t div = rec->assign[pos].div;
-                if(rec == &recordMeas) {
+
+                if(NULL != rec) {
                     if(CMD_CALC != div) {
                         uint32_t val = 0;
                         do {
@@ -242,6 +247,11 @@ class Inverter {
                         else
                             rec->record[pos] = (REC_TYP)(val);
                     }
+                }
+
+                if(rec == &recordMeas) {
+                    DPRINTLN(DBG_VERBOSE, "add real time");
+
                     // get last alarm message index and save it in the inverter object
                     if (getPosByChFld(0, FLD_ALARM_MES_ID, rec) == pos){
                         if (alarmMesIndex < rec->record[pos]){
@@ -254,25 +264,30 @@ class Inverter {
                         }
                     }
                 }
-                if (rec == &recordInfo) {
+                else if (rec->assign == InfoAssignment) {
+                    DPRINTLN(DBG_INFO, "add info");
                     // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_FW_VERSION, rec) == pos){
                         fwVersion = rec->record[pos];
                         DPRINT(DBG_DEBUG, F("Inverter FW-Version: ") + String(fwVersion));
                     }
                 }
-                if (rec == &recordConfig) {
+                else if (rec->assign == SystemConfigParaAssignment) {
+                    DPRINTLN(DBG_INFO, "add config");
                     // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_ACT_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
                         DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit));
                     }
                 }
-                if (rec == &recordAlarm){
+                else if (rec->assign == AlarmDataAssignment) {
+                    DPRINTLN(DBG_INFO, "add alarm");
                     if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
                         lastAlarmMsg = getAlarmStr(rec->record[pos]);
                     }
                 }
+                else
+                    DPRINTLN(DBG_WARN, F("add with unknown assginment"));
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
