@@ -1,0 +1,4 @@
+mqtt:
+  broker: http://<IP des Brokers>
+  discovery: true
+  discovery_prefix: inverter
