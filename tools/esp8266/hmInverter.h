@@ -265,7 +265,7 @@ class Inverter {
                     }
                 }
                 else if (rec->assign == InfoAssignment) {
-                    DPRINTLN(DBG_INFO, "add info");
+                    DPRINTLN(DBG_DEBUG, "add info");
                     // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_FW_VERSION, rec) == pos){
                         fwVersion = rec->record[pos];
@@ -273,7 +273,7 @@ class Inverter {
                     }
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
-                    DPRINTLN(DBG_INFO, "add config");
+                    DPRINTLN(DBG_DEBUG, "add config");
                     // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_ACT_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
@@ -281,7 +281,7 @@ class Inverter {
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {
-                    DPRINTLN(DBG_INFO, "add alarm");
+                    DPRINTLN(DBG_DEBUG, "add alarm");
                     if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
                         lastAlarmMsg = getAlarmStr(rec->record[pos]);
                     }

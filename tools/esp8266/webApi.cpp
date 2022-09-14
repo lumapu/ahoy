@@ -108,6 +108,10 @@ void webApi::getNotFound(JsonObject obj, String url) {
     ep[F("index")]         = url + F("index");
     ep[F("setup")]         = url + F("setup");
     ep[F("live")]          = url + F("live");
+    ep[F("record/info")]   = url + F("record/info");
+    ep[F("record/alarm")]  = url + F("record/alarm");
+    ep[F("record/config")] = url + F("record/config");
+    ep[F("record/live")]   = url + F("record/live");
 }
 
 
