@@ -1,23 +1,30 @@
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Overview](#overview)
 - [Compatiblity](#compatiblity)
 - [Things needed](#things-needed)
-    + [Faked Modules Warning](#there-are-fake-nrf24l01-modules-out-there)
+    - [There are fake NRF24L01+ Modules out there](#there-are-fake-nrf24l01-modules-out-there)
 - [Wiring things up](#wiring-things-up)
-    + [ESP8266 wiring example](#esp8266-wiring-example)
+    - [ESP8266 wiring example](#esp8266-wiring-example)
+      - [Schematic](#schematic)
+      - [Symbolic view](#symbolic-view)
+    - [ESP32 wiring example](#esp32-wiring-example)
+      - [Schematic](#schematic-1)
+      - [Symbolic view](#symbolic-view-1)
+      - [ESP32 GPIO settings](#esp32-gpio-settings)
 - [Flash the Firmware on your Ahoy DTU Hardware](#flash-the-firmware-on-your-ahoy-dtu-hardware)
-    + [Compiling your own Version (the geek way)](#compiling-your-own-version)
+    - [Compiling your own Version](#compiling-your-own-version)
       - [Optional Configuration before compilation](#optional-configuration-before-compilation)
-    + [Using a ready-to-flash binary using nodemcu-pyflasher (the easy way)](#using-a-ready-to-flash-binary-using-nodemcu-pyflasher)
+    - [Using a ready-to-flash binary using nodemcu-pyflasher](#using-a-ready-to-flash-binary-using-nodemcu-pyflasher)
 - [Connect to your Ahoy DTU](#connect-to-your-ahoy-dtu)
-    + [Your Ahoy DTO is very verbose using the Serial Console](#your-ahoy-dto-is-very-verbose-using-the-serial-console)
-    + [Connect to the Ahoy DTU Webinterface using your Browser](#connect-to-the-ahoy-dtu-webinterface-using-your-browser)
+    - [Your Ahoy DTU is very verbose using the Serial Console](#your-ahoy-dtu-is-very-verbose-using-the-serial-console)
+    - [Connect to the Ahoy DTU Webinterface using your Browser](#connect-to-the-ahoy-dtu-webinterface-using-your-browser)
       - [HTTP based Pages](#http-based-pages)
 - [MQTT command to set the DTU without webinterface](#mqtt-command-to-set-the-dtu-without-webinterface)
 - [Used Libraries](#used-libraries)
 - [Contact](#contact)
-- [ToDo's - remove when done](#todo)
+- [ToDo](#todo)
 
 ***
 
@@ -50,12 +57,28 @@ TSun Inverters:
 In order to build your own Ahoy DTU, you will need some things.<br/>
 This list is not closing as the Maker Community offers more Boards than we could cover in this Readme.<br/><br/>
 
-We suggest to use a WEMOS D1 mini Board as well as a NRF24L01+ Breakout Board.<br/>
-Make sure it has the "+" in its name as we depend on some features provided with the plus-variant.<br/>
-Any other ESP8266 Board with at least 4MBytes of ROM could work as well, depending on your skills.
+We suggest to use a WEMOS D1 mini Board as well as a NRF24L01+ Breakout Board as a bare minimum.<br/>
+Any other ESP8266 Board with at least 4MBytes of ROM could work as well, depending on your skills and goals.<br/>
+Make sure the NRF24L01+ module has the "+" in its name as we depend on the 250kbps features provided only with the plus-variant.
+
+| **Parts** | **Price** |
+| --- | --- |
+| D1 ESP8266 Mini WLAN Board Mikrokontroller | 4,40 Euro |
+| NRF24L01+ SMD Modul 2,4 GHz Wi-Fi Funkmodul | 3,45 Euro |
+| Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
+| **Total costs** | **10,34 Euro** |
+
+To also run our sister project OpenDTU and be upwards compatible for the future we would recommend to spend some more money on an ESP32 board which has two CPU cores and a NRF24L01+ module with external antenna.
+
+| **Parts** | **Price** |
+| --- | --- |
+| ESP32 Dev Board NodeMCU WROOM32 WiFi | 7,90 Euro |
+| NRF24L01+ PA LNA SMA mit Antenne Long | 4,50 Euro |
+| Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
+| **Total costs** | **14,89 Euro** |
 
 #### There are fake NRF24L01+ Modules out there
-Whatch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
+Watch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
 An example can be found in [Issue #230](https://github.com/grindylow/ahoy/issues/230).<br/>
 You are welcome to add more examples of faked chips. We will that information here.<br/>
 
