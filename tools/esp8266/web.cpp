@@ -240,24 +240,26 @@ void web::showSave(AsyncWebServerRequest *request) {
             // active power limit
             uint16_t actPwrLimit = request->arg("inv" + String(i) + "ActivePowerLimit").toInt();
             uint16_t actPwrLimitControl = request->arg("inv" + String(i) + "PowerLimitControl").toInt();
-            if (actPwrLimit != 0xffff && actPwrLimit > 0){
-                iv->powerLimit[0] = actPwrLimit;
-                iv->powerLimit[1] = actPwrLimitControl;
-                iv->devControlCmd = ActivePowerContr;
-                iv->devControlRequest = true;
-                if ((iv->powerLimit[1] & 0x0001) == 0x0001)
-                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
-                else {
-                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
-                    DPRINTLN(DBG_INFO, F("Power Limit Control Setting ") + String(iv->powerLimit[1]));
-            }
-            }
-            if (actPwrLimit == 0xffff) { // set to 100%
-                iv->powerLimit[0] = 100;
-                iv->powerLimit[1] = RelativPersistent;
-                iv->devControlCmd = ActivePowerContr;
-                iv->devControlRequest = true;
-                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to unlimted"));
+            if(NoPowerLimit != actPwrLimitControl) {
+                if (actPwrLimit != 0xffff && actPwrLimit > 0){
+                    iv->powerLimit[0] = actPwrLimit;
+                    iv->powerLimit[1] = actPwrLimitControl;
+                    iv->devControlCmd = ActivePowerContr;
+                    iv->devControlRequest = true;
+                    if ((iv->powerLimit[1] & 0x0001) == 0x0001)
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );
+                    else {
+                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
+                        DPRINTLN(DBG_INFO, F("Power Limit Control Setting ") + String(iv->powerLimit[1]));
+                    }
+                }
+                if (actPwrLimit == 0xffff) { // set to 100%
+                    iv->powerLimit[0] = 100;
+                    iv->powerLimit[1] = RelativPersistent;
+                    iv->devControlCmd = ActivePowerContr;
+                    iv->devControlRequest = true;
+                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to unlimted"));
+                }
             }
                 
             // name
