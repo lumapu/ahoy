@@ -294,10 +294,12 @@ class EventsResponse(UnknownResponse):
 
         crc_valid = self.validate_crc_m()
         if crc_valid:
-            print(' payload has valid modbus crc')
+            #print(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
-        status = self.response[:2]
+        status = struct.unpack('>H', self.response[:2])[0]
+        a_text = self.alarm_codes.get(status, 'N/A')
+        print (f' Inverter status: {a_text} ({status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):
@@ -313,6 +315,28 @@ class EventsResponse(UnknownResponse):
             for fmt in ['BBHHHHH']:
                 print(f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk)))
             print(end='', flush=True)
+
+class HardwareInfoResponse(UnknownResponse):
+    def __init__(self, *args, **params):
+        super().__init__(*args, **params)
+        """
+        const byteAssign_t InfoAssignment[] = {
+            { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
+            { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
+            { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
+            { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
+        };
+        self.response = bytes('\x27\x1a\x07\xe5\x04\x4d\x03\x4a\x00\x68\x00\x00\x00\x00\xe6\xfb', 'latin1')
+        """
+        fw_version, fw_build_yyyy, fw_build_mmdd, unknown, hw_id = struct.unpack('>HHHHH', self.response[0:10])
+
+        fw_version_maj = int((fw_version / 10000))
+        fw_version_min = int((fw_version % 10000) / 100)
+        fw_version_pat = int((fw_version %   100))
+        fw_build_mm = int(fw_build_mmdd / 100)
+        fw_build_dd = int(fw_build_mmdd % 100)
+        print()
+        print(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
 
 class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
@@ -359,6 +383,9 @@ class DebugDecodeAny(UnknownResponse):
 
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase
+class Hm300Decode01(HardwareInfoResponse):
+    """ Firmware version / date """
+
 class Hm300Decode02(EventsResponse):
     """ Inverter generic events log """
 
@@ -407,6 +434,9 @@ class Hm300Decode0B(StatusResponse):
         """ Inverter temperature in °C """
         return self.unpack('>H', 26)[0]/10
 
+class Hm300Decode0C(Hm300Decode0B):
+    """ 1121-series mirco-inverters status data """
+
 class Hm300Decode11(EventsResponse):
     """ Inverter generic events log """
 
@@ -415,6 +445,9 @@ class Hm300Decode12(EventsResponse):
 
 
 # 1141-Series Inverters, 2 MPPT, 1 Phase
+class Hm600Decode01(HardwareInfoResponse):
+    """ Firmware version / date """
+
 class Hm600Decode02(EventsResponse):
     """ Inverter generic events log """
 
@@ -492,6 +525,9 @@ class Hm600Decode0B(StatusResponse):
         """ Event counter """
         return self.unpack('>H', 40)[0]
 
+class Hm600Decode0C(Hm600Decode0B):
+    """ 1141-series mirco-inverters status data """
+
 class Hm600Decode11(EventsResponse):
     """ Inverter generic events log """
 
@@ -500,6 +536,9 @@ class Hm600Decode12(EventsResponse):
 
 
 # 1161-Series Inverters, 2 MPPT, 1 Phase
+class Hm1200Decode01(HardwareInfoResponse):
+    """ Firmware version / date """
+
 class Hm1200Decode02(EventsResponse):
     """ Inverter generic events log """
 
@@ -618,6 +657,9 @@ class Hm1200Decode0B(StatusResponse):
     def event_count(self):
         """ Event counter """
         return self.unpack('>H', 60)[0]
+
+class Hm1200Decode0C(Hm1200Decode0B):
+    """ 1161-series mirco-inverters status data """
 
 class Hm1200Decode11(EventsResponse):
     """ Inverter generic events log """

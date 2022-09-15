@@ -33,6 +33,8 @@
 This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
 Further information will help you to communicate to the compatible inverters.
 
+You find the full [User_Manual here](User_Manual.md)
+
 ## Compatiblity
 
 For now the following Inverters should work out of the box:
@@ -232,7 +234,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 
 ## MQTT command to set the DTU without webinterface
 
- [Read here](https://github.com/grindylow/ahoy/blob/main/tools/esp8266/User_Manual.md)
+[Read here](tools/esp8266/User_Manual.md)
 
 ## Used Libraries
 
@@ -258,4 +260,4 @@ We run a Discord Server that can be used to get in touch with the Developers and
 
 ## ToDo
 
-[See this post](https://github.com/grindylow/ahoy/issues/142)
+[See this post](https://github.com/lumapu/ahoy/issues/142)

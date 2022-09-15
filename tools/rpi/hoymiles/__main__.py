@@ -7,6 +7,7 @@ Hoymiles micro-inverters main application
 
 import sys
 import struct
+from enum import IntEnum
 import re
 import time
 from datetime import datetime
@@ -16,7 +17,7 @@ from yaml.loader import SafeLoader
 import paho.mqtt.client
 import hoymiles
 
-def main_loop():
+def main_loop(do_init):
     """Main loop"""
     inverters = [
             inverter for inverter in ahoy_config.get('inverters', [])
@@ -25,9 +26,29 @@ def main_loop():
     for inverter in inverters:
         if hoymiles.HOYMILES_DEBUG_LOGGING:
             print(f'Poll inverter {inverter["serial"]}')
-        poll_inverter(inverter)
+        poll_inverter(inverter, do_init)
 
-def poll_inverter(inverter, retries=4):
+class InfoCommands(IntEnum):
+    InverterDevInform_Simple = 0  # 0x00
+    InverterDevInform_All = 1     # 0x01
+    GridOnProFilePara = 2         # 0x02
+    HardWareConfig = 3            # 0x03
+    SimpleCalibrationPara = 4     # 0x04
+    SystemConfigPara = 5          # 0x05
+    RealTimeRunData_Debug = 11    # 0x0b
+    RealTimeRunData_Reality = 12  # 0x0c
+    RealTimeRunData_A_Phase = 13  # 0x0d
+    RealTimeRunData_B_Phase = 14  # 0x0e
+    RealTimeRunData_C_Phase = 15  # 0x0f
+    AlarmData = 17                # 0x11, Alarm data - all unsent alarms
+    AlarmUpdate = 18              # 0x12, Alarm data - all pending alarms
+    RecordData = 19               # 0x13
+    InternalData = 20             # 0x14
+    GetLossRate = 21              # 0x15
+    GetSelfCheckState = 30        # 0x1e
+    InitDataState = 0xff
+
+def poll_inverter(inverter, do_init, retries=4):
     """
     Send/Receive command_queue, initiate status poll on inverter
 
@@ -39,11 +60,15 @@ def poll_inverter(inverter, retries=4):
     dtu_ser = ahoy_config.get('dtu', {}).get('serial')
 
     # Queue at least status data request
-    command_queue[str(inverter_ser)].append(hoymiles.compose_set_time_payload())
+    inv_str = str(inverter_ser)
+    if do_init:
+      command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.InverterDevInform_All))
+#      command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.SystemConfigPara))
+    command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.RealTimeRunData_Debug))
 
-    # Putt all queued commands for current inverter on air
-    while len(command_queue[str(inverter_ser)]) > 0:
-        payload = command_queue[str(inverter_ser)].pop(0)
+    # Put all queued commands for current inverter on air
+    while len(command_queue[inv_str]) > 0:
+        payload = command_queue[inv_str].pop(0)
 
         # Send payload {ttl}-times until we get at least one reponse
         payload_ttl = retries
@@ -94,6 +119,11 @@ def poll_inverter(inverter, retries=4):
                         print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
                         string_id = string_id + 1
                     print()
+
+                if 'event_count' in data:
+                    if event_message_index[inv_str] < data['event_count']:
+                        event_message_index[inv_str] = data['event_count']
+                        command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
                     mqtt_send_status(mqtt_client, inverter_ser, data,
@@ -219,6 +249,7 @@ if __name__ == '__main__':
 
     mqtt_client = None
 
+    event_message_index = {}
     command_queue = {}
     mqtt_command_topic_subs = []
 
@@ -261,7 +292,9 @@ if __name__ == '__main__':
     g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
     for g_inverter in ahoy_config.get('inverters', []):
         g_inverter_ser = g_inverter.get('serial')
-        command_queue[str(g_inverter_ser)] = []
+        inv_str = str(g_inverter_ser)
+        command_queue[inv_str] = []
+        event_message_index[inv_str] = 0
 
         #
         # Enables and subscribe inverter to mqtt /command-Topic
@@ -276,10 +309,13 @@ if __name__ == '__main__':
 
     loop_interval = ahoy_config.get('interval', 1)
     try:
+        do_init = True
         while True:
             t_loop_start = time.time()
 
-            main_loop()
+            main_loop(do_init)
+
+            do_init = False
 
             print('', end='', flush=True)
 
