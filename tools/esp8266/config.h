@@ -55,7 +55,7 @@
 #define PACKET_BUFFER_SIZE      30
 
 // number of configurable inverters
-#define MAX_NUM_INVERTERS       3
+#define MAX_NUM_INVERTERS       4
 
 // default serial interval
 #define SERIAL_INTERVAL         5

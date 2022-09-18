@@ -36,7 +36,7 @@ void webApi::loop(void) {
 
 //-----------------------------------------------------------------------------
 void webApi::onApi(AsyncWebServerRequest *request) {
-    AsyncJsonResponse* response = new AsyncJsonResponse(false, 2048);
+    AsyncJsonResponse* response = new AsyncJsonResponse(false, 4096);
     JsonObject root = response->getRoot();
 
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
@@ -54,9 +54,9 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     else
         getNotFound(root, F("http://") + request->host() + F("/api/"));
 
-    response->setLength();
     response->addHeader("Access-Control-Allow-Origin", "*");
     response->addHeader("Access-Control-Allow-Headers", "content-type");
+    response->setLength();
     request->send(response);
 }
 
