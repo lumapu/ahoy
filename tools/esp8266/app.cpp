@@ -390,7 +390,7 @@ void app::processPayload(bool retransmit) {
                         // MQTT send out
                         if(mMqttActive) {
                             record_t<> *recRealtime = iv->getRecordStruct(RealTimeRunData_Debug);
-                            char topic[30], val[10];
+                            char topic[32 + MAX_NAME_LENGTH], val[10];
                             float total[4];
                             memset(total, 0, sizeof(float) * 4);
                             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -398,7 +398,7 @@ void app::processPayload(bool retransmit) {
                                 if (NULL != iv) {
                                     if (iv->isAvailable(mTimestamp, rec)) {
                                         for (uint8_t i = 0; i < rec->length; i++) {
-                                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
                                             snprintf(val, 10, "%.3f", iv->getValue(i, rec));
                                             mMqtt.sendMsg(topic, val);
                                             if(recRealtime == rec) {
@@ -428,7 +428,7 @@ void app::processPayload(bool retransmit) {
                                             case 2: fieldId = FLD_YD;  break;
                                             case 3: fieldId = FLD_PDC; break;
                                         }
-                                        snprintf(topic, 30, "total/%s", fields[fieldId]);
+                                        snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                                         snprintf(val, 10, "%.3f", total[i]);
                                         mMqtt.sendMsg(topic, val);
                                     }
