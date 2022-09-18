@@ -390,7 +390,7 @@ void app::processPayload(bool retransmit) {
                         // MQTT send out
                         if(mMqttActive) {
                             record_t<> *recRealtime = iv->getRecordStruct(RealTimeRunData_Debug);
-                            char topic[32 + MAX_NAME_LENGTH], val[10];
+                            char topic[32 + MAX_NAME_LENGTH], val[32];
                             float total[4];
                             memset(total, 0, sizeof(float) * 4);
                             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -411,10 +411,31 @@ void app::processPayload(bool retransmit) {
                                                     }
                                                 }
                                             }
+                                           
+                                            if(iv->isProducing(mTimestamp, rec)){
+                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                                                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
+                                                mMqtt.sendMsg(topic, val);
+                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                                                snprintf(val, 32, "2");
+                                                mMqtt.sendMsg(topic, val);
+                                            } else {
+                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                                                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED);
+                                                mMqtt.sendMsg(topic, val);
+                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                                                snprintf(val, 32, "1");
+                                                mMqtt.sendMsg(topic, val);
+                                            }
+
+                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
+                                            snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
+                                            mMqtt.sendMsg(topic, val);
+                                            
                                             yield();
                                         }
-                                    }
-                                }
+                                    } 
+                                } 
                             }
 
                             // total values (sum of all inverters)
@@ -446,6 +467,20 @@ void app::processPayload(bool retransmit) {
 #endif
                 }
             }
+
+            if(mMqttActive) {
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                char topic[32 + MAX_NAME_LENGTH], val[32];
+                if (!iv->isAvailable(mTimestamp, rec) && !iv->isProducing(mTimestamp, rec)){
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                    snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
+                    mMqtt.sendMsg(topic, val);
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                    snprintf(val, 32, "0");
+                    mMqtt.sendMsg(topic, val);
+                }
+            }
+
             yield();
         }
     }
