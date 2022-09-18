@@ -86,13 +86,13 @@ def poll_inverter(inverter, do_init, retries=4):
                         dst=inverter_ser
                         )))
             response = None
-            while com.rxtx():
-                try:
+            try:
+                while com.rxtx():
                     response = com.get_payload()
                     payload_ttl = 0
-                except Exception as e_all:
-                    print(f'Error while retrieving data: {e_all}')
-                    pass
+            except Exception as e_all:
+                print(f'Error while retrieving data: {e_all}')
+                pass
 
         # Handle the response data if any
         if response:

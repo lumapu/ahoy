@@ -203,7 +203,7 @@ class InverterPacketFragment:
 
         # check crc8
         if f_crc8(payload[:-1]) != payload[-1]:
-            raise BufferError('Frame kaputt')
+            raise BufferError('Frame corrupted - crc8 check failed')
 
         self.ch_rx = ch_rx
         self.ch_tx = ch_tx
