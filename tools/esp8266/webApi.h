@@ -41,6 +41,10 @@ class webApi {
 
         Inverter<> *getInverter(DynamicJsonDocument jsonIn, JsonObject jsonOut);
 
+        double round3(double value) {
+           return (int)(value * 1000 + 0.5) / 1000.0;
+        }
+
         AsyncWebServer *mSrv;
         app *mApp;
 
