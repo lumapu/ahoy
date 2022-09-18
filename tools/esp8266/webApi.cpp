@@ -260,7 +260,7 @@ void webApi::getLive(JsonObject obj) {
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;
 
-    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
+    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PFC, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
 
     Inverter<> *iv;
     uint8_t pos;
