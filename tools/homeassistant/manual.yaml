@@ -1,0 +1,23 @@
+sensor:
+  - platform: mqtt
+    state_topic: "inverter/Terrasse/ch0/P_AC"
+    name: "Aktuelle Produktion HM-600"
+    device_class: energy
+    unit_of_measurement: "Watt"
+    value_template: >
+        {{value|round(2)}}
+    state_class: total_increasing
+    unique_id: "current_hm600"
+    last_reset_topic: "inverter/Terrasse/ch0/P_AC"
+    last_reset_value_template: "1970-01-01T00:00:00+00:00"
+  - platform: mqtt
+    state_topic: "inverter/Terrasse/ch0/YieldTotal"
+    name: "Gesamtproduktion HM-600"
+    device_class: energy
+    unit_of_measurement: "KW/H"
+    value_template: >
+        {{value|round(2)}}
+    state_class: total_increasing
+    unique_id: "total_hm600"
+    last_reset_topic: "inverter/Terrasse/ch0/YieldTotal"
+    last_reset_value_template: "1970-01-01T00:00:00+00:00"

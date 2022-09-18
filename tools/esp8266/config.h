@@ -108,6 +108,11 @@
 // default MQTT topic
 #define DEF_MQTT_TOPIC         "inverter"
 
+//default MQTT Message Inverter Status
+#define DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED          "not available and not producing"   // STATUS 0
+#define DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED     "available and not producing"       // STATUS 1
+#define DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED         "available and producing"           // STATUS 2
+
 #if __has_include("config_override.h")
     #include "config_override.h"
 #endif

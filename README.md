@@ -13,7 +13,7 @@ List of approaches
 - [Others, C/C++](tools/nano/NRF24_SendRcv/)
 
 ## Quick Start with ESP8266
-- [Go here ✨](https://github.com/grindylow/ahoy/blob/ahoy_v0.5.16/tools/esp8266/README.md#things-needed)
+- [Go here ✨](tools/esp8266/README.md#things-needed)
 
 
 ## Success Stories
