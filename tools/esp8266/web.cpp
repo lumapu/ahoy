@@ -431,7 +431,9 @@ void web::showUpdate(AsyncWebServerRequest *request) {
 void web::showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
     if(!index) {
         Serial.printf("Update Start: %s\n", filename.c_str());
+#ifndef ESP32   
         Update.runAsync(true);
+#endif
         if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
             Update.printError(Serial);
         }

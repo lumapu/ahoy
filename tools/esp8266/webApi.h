@@ -2,7 +2,11 @@
 #define __WEB_API_H__
 
 #include "dbg.h"
-#include "ESPAsyncTCP.h"
+#ifdef ESP32
+    #include "AsyncTCP.h"
+#else
+    #include "ESPAsyncTCP.h"
+#endif
 #include "ESPAsyncWebServer.h"
 #include "AsyncJson.h"
 #include "app.h"
