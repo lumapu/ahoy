@@ -7,7 +7,12 @@
 #define __WEB_H__
 
 #include "dbg.h"
-#include "ESPAsyncTCP.h"
+#ifdef ESP32
+    #include "AsyncTCP.h"
+    #include "Update.h"
+#else
+    #include "ESPAsyncTCP.h"
+#endif
 #include "ESPAsyncWebServer.h"
 #include "app.h"
 #include "webApi.h"
