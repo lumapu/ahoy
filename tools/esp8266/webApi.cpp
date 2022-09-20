@@ -123,6 +123,7 @@ void webApi::getSystem(JsonObject obj) {
     obj[F("build")]       = String(AUTO_GIT_HASH);
     obj[F("ts_uptime")]   = mApp->getUptime();
     obj[F("ts_now")]      = mApp->getTimestamp();
+    obj[F("wifi_rssi")]   = WiFi.RSSI();
 }
 
 
