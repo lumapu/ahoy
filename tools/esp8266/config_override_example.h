@@ -25,6 +25,6 @@
 #define DEF_RF24_IRQ_PIN        16
 
 #undef DTU_RADIO_ID
-#define DTU_RADIO_ID            ((uint64_t)0x1234567802ULL)
+#define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 
 #endif /*__CONFIG_OVERRIDE_H__*/
