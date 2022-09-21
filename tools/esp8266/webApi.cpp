@@ -283,8 +283,8 @@ void webApi::getLive(JsonObject obj) {
             for (uint8_t fld = 0; fld < 11; fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld], rec));
                 ch0[fld] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
-                obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
-                obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
+                obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
+                obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
             }
 
             for(uint8_t j = 1; j <= iv->channels; j ++) {
@@ -301,8 +301,8 @@ void webApi::getLive(JsonObject obj) {
                     }
                     cur[k] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
                     if(1 == j) {
-                        obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
-                        obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
+                        obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
+                        obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
                     }
                 }
             }
@@ -324,9 +324,9 @@ void webApi::getRecord(JsonObject obj, record_t<> *rec) {
             for(uint8_t j = 0; j < rec->length; j++) {
                 byteAssign_t *assign = iv->getByteAssign(j, rec);
                 pos = (iv->getPosByChFld(assign->ch, assign->fieldId, rec));
-                obj2[j]["fld"]  = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : F("n/a");
-                obj2[j]["unit"] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
-                obj2[j]["val"]  = (0xff != pos) ? String(iv->getValue(pos, rec)) : F("n/a");
+                obj2[j]["fld"]  = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
+                obj2[j]["unit"] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
+                obj2[j]["val"]  = (0xff != pos) ? String(iv->getValue(pos, rec)) : notAvail;
             }
         }
     }
