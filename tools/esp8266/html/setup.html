@@ -89,7 +89,15 @@
                         <label for="serDbg">Serial Debug</label>
                         <input type="checkbox" class="cb" name="serDbg"/><br/>
                         <label for="serIntvl">Interval [s]</label>
-                        <input type="text" class="text" name="serIntvl"/>
+                        <input type="text" class="text" name="serIntvl"/><br/><br/>
+
+                        <label for="lvl">Debug Level:</label>
+                        Off<input type="radio" id="lvl" name="dbg_lvl0" value="0">
+                        Error<input type="radio" id="lvl" name="dbg_lvl1" value="1">
+                        Warn<input type="radio" id="lvl" name="dbg_lvl2" value="2">
+                        Info<input type="radio" id="lvl" name="dbg_lvl3" value="3">
+                        Debug<input type="radio" id="lvl" name="dbg_lvl4" value="4">
+                        All<input type="radio" id="lvl" name="dbg_lvl5" value="5">
                     </fieldset>
                     </div>
 
@@ -261,6 +269,12 @@
                 document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
+            function parseSDebugLvl(obj) {
+                for(var i of ["dbg_lvl0", "dbg_lvl1", "dbg_lvl2", "dbg_lvl3", "dbg_lvl4", "dbg_lvl5"])
+                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+            }
+            
+
             function parse(root) {
                 if(null != root) {
                     parseSys(root["system"]);
@@ -270,6 +284,7 @@
                     parsePinout(root["pinout"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
+                    parseSDebugLvl(root["dbg_lvl"]);
                 }
             }
 

@@ -723,6 +723,7 @@ void app::loadDefaultConfig(void) {
     mConfig.pinCe             = DEF_RF24_CE_PIN;
     mConfig.pinIrq            = DEF_RF24_IRQ_PIN;
     mConfig.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
+    mConfig.DebugLvl          = 0;
 
     // ntp
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);

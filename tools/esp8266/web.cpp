@@ -288,6 +288,9 @@ void web::showSave(AsyncWebServerRequest *request) {
             }
         }
 
+        // debug level
+        mConfig->DebugLvl = request->arg("lvl").toInt();
+
         // nrf24 amplifier power
         mConfig->amplifierPower = request->arg("rf24Power").toInt() & 0x03;
 
@@ -317,6 +320,11 @@ void web::showSave(AsyncWebServerRequest *request) {
             mConfig->serialShowIv = (request->arg("serEn") == "on");
             // Needed to log TX buffers to serial console
             mMain->mSys->Radio.mSerialDebug = mConfig->serialDebug;
+        }
+
+        // debug level
+        if(request->arg("lvl") != "") {
+            mConfig->DebugLvl = request->arg("lvl").toInt();
         }
 
         mMain->saveValues();

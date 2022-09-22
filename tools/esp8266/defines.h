@@ -126,6 +126,9 @@ typedef struct {
     uint8_t pinIrq;
     uint8_t amplifierPower;
 
+    // Debug Level
+    uint8_t DebugLvl;
+
     // ntp
     char ntpAddr[NTP_ADDR_LEN];
     uint16_t ntpPort;
