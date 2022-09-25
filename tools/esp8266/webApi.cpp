@@ -280,7 +280,7 @@ void webApi::getLive(JsonObject obj) {
             JsonArray ch = obj2.createNestedArray("ch");
             JsonArray ch0 = ch.createNestedArray();
             obj2[F("ch_names")][0] = "AC";
-            for (uint8_t fld = 0; fld < 11; fld++) {
+            for (uint8_t fld = 0; fld < sizeof(list); fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld], rec));
                 ch0[fld] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
                 obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : F("n/a");
