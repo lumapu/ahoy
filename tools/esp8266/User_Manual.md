@@ -229,6 +229,7 @@ Gather user inverter information here to understand what differs between some in
 | isdor      | HM-300       |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
 | aschiffler | HM-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
 | klahus1    | HM-300       |               | 1.0.10    | 2020           | 07-07           | 102       |          |           |
+| roku133    | HM-400       |               | 1.0.10    | 2020           | 07-07           | 102       |          |           |
 | eeprom23   | HM-1200      | 0.1.0         | 1.0.18    | 2021           | 12-24           | 269619201 | 18:21:00 | HWRev 256 |
 | eeprom23   | HM-1200 2t   | 0.1.0         | 1.0.16    | 2021           | 10-12           | 269619207 | 17:06:00 | HWRev 256 |
 | fila612    | HM-700       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
