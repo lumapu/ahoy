@@ -189,6 +189,13 @@ class HmRadio {
             mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
+
+            // Is required to prevent retransmissions without answer.
+            if (cmd == CleanState_LockAndAlarm || cmd == Restart)
+            {
+                DPRINTLN(DBG_INFO, F("Rebooting after send CleanState_LockAndAlarm..."));
+                ESP.restart();
+            } 
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
