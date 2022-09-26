@@ -177,12 +177,13 @@ class HmRadio {
                     mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
                     mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
                 }
-                // crc control data
-                uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt+1);
-                mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
-                mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
             }
             
+            // crc control data
+            uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt+1);
+            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
+            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
+        
             // crc over all
             cnt++;
             mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);

@@ -18,8 +18,7 @@ union serial_u {
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VA, UNIT_NONE};
-const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","VAr",""};
-
+const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","Var",""};
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
@@ -125,10 +124,9 @@ const byteAssign_t hm1chAssignment[] = {
     { FLD_PAC, UNIT_W,   CH0, 18, 2, 10   },
     { FLD_Q,   UNIT_VA,  CH0, 20, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, 16, 2, 100  },
-    { FLD_PF,  UNIT_NONE,CH0, 24, 2, 1000 },
-    { FLD_PFC, UNIT_PCT, CH0, 24, 2, 10   },
     { FLD_T,   UNIT_C,   CH0, 26, 2, 10   },
-    { FLD_ALARM_MES_ID,   UNIT_NONE,   CH0, 28, 2, 1 },
+    { FLD_PF,  UNIT_NONE,CH0, 24, 2, 1000 },
+    { FLD_ALARM_MES_CNT,   UNIT_NONE,   CH0, 28, 2, 1 },
     { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,  0, CMD_CALC },
     { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0,  0, CMD_CALC },
     { FLD_PDC, UNIT_W,   CH0, CALC_PDC_CH0, 0, CMD_CALC },
