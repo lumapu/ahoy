@@ -20,6 +20,14 @@
                 <hr>
                 <h3>handle next buttons with care - test / debug only!!</h3>
                 <br/>
+                <label for="iv">Choose ur Inverter:</label>
+                <select name="iv" id="iv">
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
+                <br/>
                 <input type="button" value="power limit 100%" class="btn" id="pwrlim2"/>
                 <input type="button" value="power limit 10%" class="btn" id="pwrlim"/>
                 <input type="button" value="Turn Off" class="btn" id="turnoff"/>
@@ -98,6 +106,7 @@
                 var obj = new Object();
                 obj.cmd = 20;
                 obj.tx_request = 81;
+                obj.inverter = get_selected_iv();
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 
@@ -130,6 +139,12 @@
                 obj.payload = [2000, 1];
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
+
+            function get_selected_iv()
+            {
+                var e = document.getElementById("iv");
+                return  e.value;
+            }
         </script>
     </body>
 </html>

@@ -336,8 +336,12 @@ void webApi::getRecord(JsonObject obj, record_t<> *rec) {
 //-----------------------------------------------------------------------------
 bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
     uint8_t cmd = jsonIn[F("cmd")];
+
+    // Todo: num is the inverter number 0-3. For better display in DPRINTLN
+    uint8_t num = jsonIn[F("inverter")]; 
+
     if(TX_REQ_DEVCONTROL == jsonIn[F("tx_request")]) {
-        DPRINTLN(DBG_INFO, F("devcontrol, cmd: 0x") + String(cmd, HEX));
+        DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
         if(ActivePowerContr == cmd) {
             Inverter<> *iv = getInverter(jsonIn, jsonOut);
             if(NULL != iv) {
