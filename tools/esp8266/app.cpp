@@ -566,6 +566,11 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                 // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
                                 DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
                                 break;
+                            case CleanState_LockAndAlarm: // Clean lock & alarm (+ reboot)
+                                 iv->devControlCmd = CleanState_LockAndAlarm;
+                                 DPRINTLN(DBG_INFO, F("Clean lock & alarm (+ reboot) for inverter ") + String(iv->id) );
+                                 iv->devControlRequest = true;
+                                 break;    
                             default:
                                 DPRINTLN(DBG_INFO, "Not implemented");
                                 break;

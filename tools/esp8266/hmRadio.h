@@ -165,22 +165,26 @@ class HmRadio {
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
             DPRINTLN(DBG_INFO, F("sendControlPacket cmd: ") + String(cmd));
-            sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
+            sendCmdPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME, false); // 0x80 implementation as original DTU code???
             int cnt = 0;
-            mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
-            mTxBuf[10 + (++cnt)] = 0x00;
-            if (cmd >= ActivePowerContr && cmd <= PFSet){
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10)     ) & 0xff; // power limit
-                mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+            mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor, 20 CleanState_LockAndAlarm
+            if (cmd != CleanState_LockAndAlarm)
+            {
+                mTxBuf[10 + (++cnt)] = 0x00;
+                if (cmd >= ActivePowerContr && cmd <= PFSet){
+                    mTxBuf[10 + (++cnt)] = ((data[0] * 10) >> 8) & 0xff; // power limit
+                    mTxBuf[10 + (++cnt)] = ((data[0] * 10)     ) & 0xff; // power limit
+                    mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
+                    mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+                }
+                // crc control data
+                uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt+1);
+                mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
+                mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
             }
-            // crc control data
-            uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt+1);
-            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
-            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
+            
             // crc over all
-            cnt +=1;
+            cnt++;
             mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);

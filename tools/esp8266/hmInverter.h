@@ -253,7 +253,7 @@ class Inverter {
                     DPRINTLN(DBG_VERBOSE, "add real time");
 
                     // get last alarm message index and save it in the inverter object
-                    if (getPosByChFld(0, FLD_ALARM_MES_ID, rec) == pos){
+                    if (getPosByChFld(0, FLD_ALARM_MES_CNT, rec) == pos){
                         if (alarmMesIndex < rec->record[pos]){
                             alarmMesIndex = rec->record[pos];
                             //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?

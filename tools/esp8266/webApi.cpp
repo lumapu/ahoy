@@ -261,7 +261,7 @@ void webApi::getLive(JsonObject obj) {
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;
 
-    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PFC, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
+    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 
     Inverter<> *iv;
     uint8_t pos;
@@ -359,6 +359,15 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = getInverter(jsonIn, jsonOut);
             if(NULL != iv) {
                 iv->devControlCmd = TurnOff;
+                iv->devControlRequest = true;
+            }
+            else
+                return false;
+        }
+        else if(CleanState_LockAndAlarm == cmd) {
+            Inverter<> *iv = getInverter(jsonIn, jsonOut);
+            if(NULL != iv) {
+                iv->devControlCmd = CleanState_LockAndAlarm;
                 iv->devControlRequest = true;
             }
             else
