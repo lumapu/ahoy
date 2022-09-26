@@ -24,7 +24,7 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","Var",
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PF, FLD_EFF,
         FLD_IRR, FLD_Q,FLD_ALARM_MES_CNT,FLD_FW_VERSION,FLD_FW_BUILD_YEAR,
-        FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT,FLD_LAST_ALARM_CODE};    
+        FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT,FLD_LAST_ALARM_CODE};
         
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "I_AC", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
@@ -124,8 +124,8 @@ const byteAssign_t hm1chAssignment[] = {
     { FLD_PAC, UNIT_W,   CH0, 18, 2, 10   },
     { FLD_Q,   UNIT_VA,  CH0, 20, 2, 10   },
     { FLD_F,   UNIT_HZ,  CH0, 16, 2, 100  },
-    { FLD_T,   UNIT_C,   CH0, 26, 2, 10   },
     { FLD_PF,  UNIT_NONE,CH0, 24, 2, 1000 },
+    { FLD_T,   UNIT_C,   CH0, 26, 2, 10   },
     { FLD_ALARM_MES_CNT,   UNIT_NONE,   CH0, 28, 2, 1 },
     { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,  0, CMD_CALC },
     { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0,  0, CMD_CALC },

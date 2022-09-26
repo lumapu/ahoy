@@ -570,7 +570,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                  iv->devControlCmd = CleanState_LockAndAlarm;
                                  DPRINTLN(DBG_INFO, F("Clean lock & alarm (+ reboot) for inverter ") + String(iv->id) );
                                  iv->devControlRequest = true;
-                                 break;    
+                                 break;
                             default:
                                 DPRINTLN(DBG_INFO, "Not implemented");
                                 break;
