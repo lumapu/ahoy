@@ -18,7 +18,7 @@ union serial_u {
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VA, UNIT_NONE};
-const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","Var",""};
+const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","var",""};
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
