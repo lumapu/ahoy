@@ -206,7 +206,7 @@ const byteAssign_t hm4chAssignment[] = {
     { FLD_PAC, UNIT_W,   CH0, 50, 2, 10   },
     { FLD_Q,   UNIT_VAR,  CH0, 52, 2, 10  },
     { FLD_F,   UNIT_HZ,  CH0, 48, 2, 100  },
-    { FLD_PF,  UNIT_PCT, CH0, 56, 2, 1000 },
+    { FLD_PF,  UNIT_NONE, CH0, 56, 2, 1000 },
     { FLD_T,   UNIT_C,   CH0, 58, 2, 10   },
     { FLD_ALARM_MES_CNT,  UNIT_NONE,   CH0, 60, 2, 1   },
     { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,  0, CMD_CALC },
