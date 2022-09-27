@@ -160,7 +160,6 @@ const byteAssign_t hm2chAssignment[] = {
     { FLD_F,   UNIT_HZ,  CH0, 28, 2, 100  },
     { FLD_PF,  UNIT_NONE,CH0, 36, 2, 1000 },
     { FLD_T,   UNIT_C,   CH0, 38, 2, 10   },
-    { FLD_PF,  UNIT_NONE,CH0, 56, 2, 1000   },
     { FLD_ALARM_MES_CNT,   UNIT_NONE,   CH0, 40, 2, 1   },
     { FLD_YD,  UNIT_WH,  CH0, CALC_YD_CH0,  0, CMD_CALC },
     { FLD_YT,  UNIT_KWH, CH0, CALC_YT_CH0,  0, CMD_CALC },
