@@ -227,19 +227,25 @@ void webApi::getIndex(JsonObject obj) {
         }
     }
 
-    JsonArray warn = obj.createNestedArray(F("warnings"));
+    JsonArray data = obj.createNestedArray(F("warnings"));
     if(!mApp->mSys->Radio.isChipConnected())
-        warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
+        data.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
     if(!mApp->mqttIsConnected())
-        warn.add(F("MQTT is not connected"));
+        data.add(F("MQTT is not connected"));
 
-    JsonArray info = obj.createNestedArray(F("infos"));
+    // When WiFi is in AP mode, then show Disclaimer!
+    if(WiFi.getMode() == WIFI_AP) {
+        data = obj.createNestedArray(F("disclaimer"));
+        data.add(true);
+    }
+
+    data = obj.createNestedArray(F("infos"));
     if(mApp->getRebootRequestState())
-        info.add(F("reboot your ESP to apply all your configuration changes!"));
+        data.add(F("reboot your ESP to apply all your configuration changes!"));
     if(!mApp->getSettingsValid())
-        info.add(F("your settings are invalid"));
+        data.add(F("your settings are invalid"));
     if(mApp->mqttIsConnected())
-        info.add(F("MQTT is connected"));
+        data.add(F("MQTT is connected"));
 }
 
 
