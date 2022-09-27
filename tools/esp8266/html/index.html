@@ -129,6 +129,9 @@
                 }
                 else
                     document.getElementById("refresh").innerHTML = "n/a";
+                
+                // Disclaimer
+                if(obj["disclaimer"]) promptFunction();
             }
 
             getAjax("/api/index", parse);
