@@ -17,7 +17,7 @@ union serial_u {
 
 
 // units
-enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VA, UNIT_NONE};
+enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_VAR, UNIT_VA, UNIT_NONE};
 const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","var",""};
 
 // field types
@@ -97,7 +97,7 @@ const byteAssign_t InfoAssignment[] = {
 #define HMINFO_LIST_LEN     (sizeof(InfoAssignment) / sizeof(byteAssign_t))
 
 const byteAssign_t SystemConfigParaAssignment[] = {
-    { FLD_ACT_PWR_LIMIT,           UNIT_PCT,   CH0,  2, 2, 10 }
+    { FLD_ACT_PWR_LIMIT,           UNIT_VAR,   CH0,  2, 2, 10 }
 };
 #define HMSYSTEM_LIST_LEN     (sizeof(SystemConfigParaAssignment) / sizeof(byteAssign_t))
 
