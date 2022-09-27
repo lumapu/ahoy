@@ -24,7 +24,7 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%","var",
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PF, FLD_EFF,
         FLD_IRR, FLD_Q,FLD_ALARM_MES_CNT,FLD_FW_VERSION,FLD_FW_BUILD_YEAR,
-        FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT,FLD_LAST_ALARM_CODE};        
+        FLD_FW_BUILD_MONTH_DAY,FLD_HW_ID,FLD_ACT_PWR_LIMIT,FLD_LAST_ALARM_CODE};
         
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "I_AC", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
