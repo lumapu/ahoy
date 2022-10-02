@@ -1,23 +1,318 @@
-sensor:
-  - platform: mqtt
-    state_topic: "inverter/Terrasse/ch0/P_AC"
-    name: "Aktuelle Produktion HM-600"
-    device_class: energy
-    unit_of_measurement: "Watt"
-    value_template: >
-        {{value|round(2)}}
-    state_class: total_increasing
-    unique_id: "current_hm600"
-    last_reset_topic: "inverter/Terrasse/ch0/P_AC"
-    last_reset_value_template: "1970-01-01T00:00:00+00:00"
-  - platform: mqtt
-    state_topic: "inverter/Terrasse/ch0/YieldTotal"
-    name: "Gesamtproduktion HM-600"
-    device_class: energy
-    unit_of_measurement: "KW/H"
-    value_template: >
-        {{value|round(2)}}
-    state_class: total_increasing
-    unique_id: "total_hm600"
-    last_reset_topic: "inverter/Terrasse/ch0/YieldTotal"
-    last_reset_value_template: "1970-01-01T00:00:00+00:00"
+mqtt:
+  sensor:
+    - state_topic: "inverter/uptime"
+      icon: mdi:clock-start
+      name: "Inverter Uptime"
+      unique_id: "ahoy_ch0_uptime"
+      value_template: >
+        {% set time = value|int %}
+        {% set minutes = ((time % 3600) / 60) | int %}
+        {% set hours = ((time % 86400) / 3600) | int %}
+        {% set days = (time / 86400) | int %}
+        {%- if time < 60 -%}
+          Less than a minute
+        {%- else -%}
+          {%- if days > 0 -%}
+            {%- if days == 1 -%}
+              1 day
+            {%- else -%}
+              {{ days }} days
+            {%- endif -%}
+          {%- endif -%}
+          {%- if hours > 0 -%}
+            {%- if days > 0 -%}
+              {{ ', ' }}
+            {%- endif -%}
+            {%- if hours == 1 -%}
+              1 hour
+            {%- else -%}
+              {{ hours }} hours
+            {%- endif -%}
+          {%- endif -%}
+          {%- if minutes > 0 -%}
+            {%- if days > 0 or hours > 0 -%}
+              {{ ', ' }}
+            {%- endif -%}
+            {%- if minutes == 1 -%}
+              1 minute
+            {%- else -%}
+              {{ minutes }} minutes
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+
+    - state_topic: "inverter/GardenShed/ch0/Efficiency"
+      icon: "mdi:trending-up"
+      name: "Inverter Efficiency"
+      unique_id: "ahoy_ch0_efficiency"
+      unit_of_measurement: "%"
+    - state_topic: "inverter/GardenShed/ch0/P_DC"
+      device_class: "power"
+      name: "Inverter DC Power"
+      unique_id: "ahoy_ch0_p_dc"
+      unit_of_measurement: "W"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/YieldTotal"
+      device_class: "energy"
+      icon: "mdi:lightning-bolt-outline"
+      name: "Inverter Total Yield"
+      unique_id: "ahoy_ch0_yield_total"
+      unit_of_measurement: "kWh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/YieldDay"
+      device_class: "energy"
+      name: "Inverter Day Yield"
+      unique_id: "ahoy_ch0_yield_day"
+      unit_of_measurement: "Wh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/ALARM_MES_ID"
+      name: "Inverter Alarm Message ID"
+      unique_id: "ahoy_ch0_alarm_mes_id"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/LastAlarmCode"
+      icon: "mdi:message-alert"
+      name: "Inverter Last Alarm"
+      unique_id: "ahoy_ch0_last_alarm"
+      value_template: >
+        {% set value = value|round(0) %}
+        {% set mapper = {
+          0: "Nothing",
+          1: 'Inverter start',
+          2: 'DTU command failed',
+          121: 'Over temperature protection',
+          125: 'Grid configuration parameter error',
+          126: 'Software error code 126',
+          127: 'Firmware error',
+          128: 'Software error code 128',
+          129: 'Software error code 129',
+          130: 'Offline',
+          141: 'Grid overvoltage',
+          142: 'Average grid overvoltage',
+          143: 'Grid undervoltage',
+          144: 'Grid overfrequency',
+          145: 'Grid underfrequency',
+          146: 'Rapid grid frequency change',
+          147: 'Power grid outage',
+          148: 'Grid disconnection',
+          149: 'Island detected',
+          205: 'Input port 1 & 2 overvoltage',
+          206: 'Input port 3 & 4 overvoltage',
+          207: 'Input port 1 & 2 undervoltage',
+          208: 'Input port 3 & 4 undervoltage',
+          209: 'Port 1 no input',
+          210: 'Port 2 no input',
+          211: 'Port 3 no input',
+          212: 'Port 4 no input',
+          213: 'PV-1 & PV-2 abnormal wiring',
+          214: 'PV-3 & PV-4 abnormal wiring',
+          215: 'PV-1 Input overvoltage',
+          216: 'PV-1 Input undervoltage',
+          217: 'PV-2 Input overvoltage',
+          218: 'PV-2 Input undervoltage',
+          219: 'PV-3 Input overvoltage',
+          220: 'PV-3 Input undervoltage',
+          221: 'PV-4 Input overvoltage',
+          222: 'PV-4 Input undervoltage',
+          301: 'Hardware error code 301',
+          302: 'Hardware error code 302',
+          303: 'Hardware error code 303',
+          304: 'Hardware error code 304',
+          305: 'Hardware error code 305',
+          306: 'Hardware error code 306',
+          307: 'Hardware error code 307',
+          308: 'Hardware error code 308',
+          309: 'Hardware error code 309',
+          310: 'Hardware error code 310',
+          311: 'Hardware error code 311',
+          312: 'Hardware error code 312',
+          313: 'Hardware error code 313',
+          314: 'Hardware error code 314',
+          5041: 'Error code-04 Port 1',
+          5042: 'Error code-04 Port 2',
+          5043: 'Error code-04 Port 3',
+          5044: 'Error code-04 Port 4',
+          5051: 'PV Input 1 Overvoltage/Undervoltage',
+          5052: 'PV Input 2 Overvoltage/Undervoltage',
+          5053: 'PV Input 3 Overvoltage/Undervoltage',
+          5054: 'PV Input 4 Overvoltage/Undervoltage',
+          5060: 'Abnormal bias',
+          5070: 'Over temperature protection',
+          5080: 'Grid Overvoltage/Undervoltage',
+          5090: 'Grid Overfrequency/Underfrequency',
+          5100: 'Island detected',
+          5120: 'EEPROM reading and writing error',
+          5150: '10 min value grid overvoltage',
+          5200: 'Firmware error',
+          8310: 'Shut down',
+          9000: 'Microinverter is suspected of being stolen' } %}
+        {{ mapper[value] if value in mapper else "value is unknon" }}
+    - state_topic: "inverter/GardenShed/ch0/Temp"
+      device_class: "temperature"
+      name: "Inverter Temperature"
+      unique_id: "ahoy_ch0_temp"
+      unit_of_measurement: "°C"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/Freq"
+      device_class: "frequency"
+      name: "Inverter Frequency"
+      unique_id: "ahoy_ch0_freq"
+      unit_of_measurement: "Hz"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/P_ACr"
+      device_class: "power"
+      name: "Inverter AC Reactive Power"
+      unique_id: "ahoy_ch0_p_acr"
+      unit_of_measurement: "VA"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/P_AC"
+      device_class: "power"
+      name: "Inverter AC Power"
+      unique_id: "ahoy_ch0_p_ac"
+      unit_of_measurement: "W"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/I_AC"
+      device_class: "current"
+      name: "Inverter AC Current"
+      unique_id: "ahoy_ch0_i_ac"
+      unit_of_measurement: "A"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/U_AC"
+      device_class: "voltage"
+      icon: "mdi:current-ac"
+      name: "Inverter AC Voltage"
+      unique_id: "ahoy_ch0_u_ac"
+      unit_of_measurement: "V"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch0/Pct"
+      device_class: "power_factor"
+      name: "Inverter Power Factor"
+      unique_id: "ahoy_ch0_pct"
+    - state_topic: "inverter/GardenShed/ch0/FWVersion"
+      icon: "mdi:numeric"
+      name: "Inverter Firmware Version"
+      unique_id: "ahoy_ch0_fw_version"
+      value_template: >
+        {{ value | round(0) | regex_replace('([0-9]+)([0-9]{2})([0-9]{2})$', '\\1.\\2.\\3') }}
+    - state_topic: "inverter/GardenShed/ch0/FWBuildYear"
+      icon: "mdi:calendar-blank"
+      name: "Inverter Firmware build year"
+      unique_id: "ahoy_ch0_fw_builid_year"
+      value_template: >
+        {{value|round(0)}}
+    - state_topic: "inverter/GardenShed/ch0/FWBuildMonthDay"
+      icon: "mdi:calendar-clock"
+      name: "Inverter Firmware build month and day"
+      unique_id: "ahoy_ch0_fw_builid_month_day"
+    - state_topic: "inverter/GardenShed/ch0/HWPartId"
+      icon: "mdi:identifier"
+      name: "Inverter Hardware ID"
+      unique_id: "ahoy_ch0_hw_part_id"
+      value_template: >
+        {{value|round(0)}}
+    - state_topic: "inverter/GardenShed/ch0/PowerLimit"
+      icon: "mdi:speedometer"
+      name: "Inverter Power Limit"
+      unique_id: "ahoy_ch0_power_limit"
+      unit_of_measurement: "%"
+      value_template: >
+        {{value|round(0)}}
+    - state_topic: "inverter/GardenShed/ch1/Irradiation"
+      icon: "mdi:weather-partly-cloudy"
+      name: "Inverter Channel 1 Irradiation"
+      unique_id: "ahoy_ch1_irradiation"
+      unit_of_measurement: "%"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch1/YieldTotal"
+      device_class: "energy"
+      icon: "mdi:lightning-bolt-outline"
+      name: "Inverter Channel 1 Total Yield"
+      unique_id: "ahoy_ch1_yield_total"
+      unit_of_measurement: "kWh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch1/YieldDay"
+      device_class: "energy"
+      name: "Inverter Channel 1 Day Yield"
+      unique_id: "ahoy_ch1_yield_day"
+      unit_of_measurement: "Wh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch1/P_DC"
+      device_class: "power"
+      name: "Inverter Channel 1 AC Power"
+      unique_id: "ahoy_ch1_p_dc"
+      unit_of_measurement: "W"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch1/I_DC"
+      device_class: "current"
+      icon: "mdi:current-dc"
+      name: "Inverter Channel 1 AC Current"
+      unique_id: "ahoy_ch1_i_dc"
+      unit_of_measurement: "A"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch1/U_DC"
+      device_class: "voltage"
+      icon: "mdi:current-dc"
+      name: "Inverter Channel 1 AC Voltage"
+      unique_id: "ahoy_ch1_u_dc"
+      unit_of_measurement: "V"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/Irradiation"
+      icon: "mdi:weather-partly-cloudy"
+      name: "Inverter Channel 2 Irradiation"
+      unique_id: "ahoy_ch2_irradiation"
+      unit_of_measurement: "%"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/YieldTotal"
+      device_class: "energy"
+      icon: "mdi:lightning-bolt-outline"
+      name: "Inverter Channel 2 Total Yield"
+      unique_id: "ahoy_ch2_yield_total"
+      unit_of_measurement: "kWh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/YieldDay"
+      device_class: "energy"
+      name: "Inverter Channel 2 Day Yield"
+      unique_id: "ahoy_ch2_yield_day"
+      unit_of_measurement: "Wh"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/P_DC"
+      device_class: "power"
+      name: "Inverter Channel 2 AC Power"
+      unique_id: "ahoy_ch2_p_dc"
+      unit_of_measurement: "W"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/I_DC"
+      device_class: "current"
+      icon: "mdi:current-dc"
+      name: "Inverter Channel 2 AC Current"
+      unique_id: "ahoy_ch2_i_dc"
+      unit_of_measurement: "A"
+      value_template: >
+        {{value|round(3)}}
+    - state_topic: "inverter/GardenShed/ch2/U_DC"
+      device_class: "voltage"
+      icon: "mdi:current-dc"
+      name: "Inverter Channel 2 AC Voltage"
+      unique_id: "ahoy_ch2_u_dc"
+      unit_of_measurement: "V"
+      value_template: >
+        {{value|round(3)}}
