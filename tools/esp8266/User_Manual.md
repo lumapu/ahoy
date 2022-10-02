@@ -240,6 +240,7 @@ Gather user inverter information here to understand what differs between some in
 | lumapu     | HM-1200      | 0.1.0         | 1.0.12    | 2020           | 06-24           |           |          |           |
 | chehrlic   | HM-600       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
 | chehrlic   | TSOL-M800de  |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
+| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |          |           |
 |            |              |               |           |                |                 |           |          |           |
 |            |              |               |           |                |                 |           |          |           |
 
