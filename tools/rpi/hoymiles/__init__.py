@@ -598,6 +598,9 @@ class InverterTransaction:
                 wait = True
         except TimeoutError:
             pass
+        except BufferError as e:
+            print(f'Buffer error {e}')
+            pass
 
         return wait
 

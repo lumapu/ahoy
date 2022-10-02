@@ -86,13 +86,13 @@ def poll_inverter(inverter, do_init, retries=4):
                         dst=inverter_ser
                         )))
             response = None
-            try:
-                while com.rxtx():
+            while com.rxtx():
+                try:
                     response = com.get_payload()
                     payload_ttl = 0
-            except Exception as e_all:
-                print(f'Error while retrieving data: {e_all}')
-                pass
+                except Exception as e_all:
+                    print(f'Error while retrieving data: {e_all}')
+                    pass
 
         # Handle the response data if any
         if response:
@@ -324,3 +324,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         sys.exit()
+    except Exception as e:
+        print ('Exception catched: %s' % e)
+        raise

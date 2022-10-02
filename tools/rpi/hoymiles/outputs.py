@@ -265,7 +265,7 @@ class VzInverterOutput:
             r = self.session.get(url)
             if r.status_code != 200:
                 raise ValueError('Could not send request (%s)' % url)
-        except ConnectionError as e:
+        except requests.exceptions.ConnectionError as e:
             raise ValueError('Could not send request (%s)' % e)
 
 class VolkszaehlerOutputPlugin(OutputPluginFactory):
@@ -300,4 +300,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
         serial = data["inverter_ser"]
         if serial in self.inverters:
             output = self.inverters[serial]
-            output.store_status(data, self.session)
+            try:
+                output.store_status(data, self.session)
+            except ValueError as e:
+                print('Could not send data to volkszaehler instance: %s' % e)
