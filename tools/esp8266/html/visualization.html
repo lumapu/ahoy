@@ -1,43 +1,119 @@
 <!doctype html>
 <html>
     <head>
-        <title>Index - {DEVICE}</title>
+        <title>Live</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <script type="text/javascript">
-            getAjax('/livedata', 'livedata');
-            window.setInterval("getAjax('/livedata', 'livedata')", {JS_TS});
-
-            function getAjax(url, resid) {
-                var http = null;
-                http = new XMLHttpRequest();
-                if(http != null) {
-                   http.open("GET", url, true);
-                   http.onreadystatechange = print;
-                   http.send(null);
-                }
-
-                function print() {
-                    if(http.readyState == 4) {
-                        document.getElementById(resid).innerHTML = http.responseText;
-                    }
-                }
-            }
-        </script>
-        <style type="text/css">
-        </style>
+        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY - {DEVICE}</h1>
+        <h1>AHOY</h1>
         <div id="content" class="content">
-            <div id="livedata"></div>
-            <p>Every {TS}seconds the values are updated</p>
+            <div id="live"></div>
+            <p>Every <span id="refresh"></span> seconds the values are updated</p>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
             <p class="left"><a href="/">Home</a></p>
-            <p class="right">AHOY :: {VERSION}</p>
+            <p class="right" id="version"></p>
         </div>
+        <script type="text/javascript">
+            var intervalSet = false;
+            function parseSys(obj) {
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+            }
+
+            function parseIv(obj, root) {
+                var ivHtml = [];
+
+                var tDiv = div(["ch-all", "iv"]);
+                tDiv.appendChild(span("Total", ["head"]));
+                var total = new Array(root.ch0_fld_names.length).fill(0);
+                if(obj.length > 1)
+                    ivHtml.push(tDiv);
+
+                for(var iv of obj) {
+                    main = div(["iv"]);
+                    var ch0 = div(["ch-iv"]);
+                    var limit = iv["power_limit_read"] + "%";
+                    if(limit == "65535%")
+                        limit = "n/a";
+                    var ctrl = (iv["power_limit_active"]) ? "" : " (not controlled)";
+                    ch0.appendChild(span(iv["name"] + " Limit " + limit + ctrl + " | last Alarm: " + iv["last_alarm"], ["head"]));
+
+                    for(var j = 0; j < root.ch0_fld_names.length; j++) {
+                        var val = Math.round(iv["ch"][0][j] * 100) / 100;
+                        if(val > 0) {
+                            var sub = div(["subgrp"]);
+                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
+                            ch0.appendChild(sub);
+
+                            switch(j) {
+                                case 2:  total[j] += val; break; // P_AC
+                                case 6:  total[j] += val; break; // YieldTotal
+                                case 7:  total[j] += val; break; // YieldDay
+                                case 8:  total[j] += val; break; // P_DC
+                                case 10: total[j] += val; break; // P_ACr
+                            }
+                        }
+                    }
+                    main.appendChild(ch0);
+
+
+                    for(var i = 1; i < (iv["channels"] + 1); i++) {
+                        var ch = div(["ch"]);
+                        ch.appendChild(span(("" == iv["ch_names"][i]) ? ("CHANNEL " + i) : iv["ch_names"][i], ["head"]));
+
+                        for(var j = 0; j < root.fld_names.length; j++) {
+                            var val = Math.round(iv["ch"][i][j] * 100) / 100;
+                            if(val > 0) {
+                                ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                                ch.appendChild(span(root["fld_names"][j], ["info"]));
+                            }
+                        }
+                        main.appendChild(ch);
+                    }
+
+                    var ts = div(["ts"]);
+                    var date = new Date(iv["ts_last_success"] * 1000);
+                    ts.innerHTML = "Last received data requested at: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                    main.appendChild(ts);
+                    ivHtml.push(main);
+                }
+
+                // total
+                if(obj.length > 1) {
+                    for(var j = 0; j < root.ch0_fld_names.length; j++) {
+                        var val = total[j];
+                        if(val > 0) {
+                            var sub = div(["subgrp"]);
+                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
+                            tDiv.appendChild(sub);
+                        }
+                    }
+                }
+
+                document.getElementById("live").replaceChildren(...ivHtml);
+            }
+
+            function parse(obj) {
+                if(null != obj) {
+                    parseSys(obj["system"]);
+                    parseIv(obj["inverter"], obj);
+                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                    if(false == intervalSet) {
+                        window.setInterval("getAjax('/api/live', parse)", obj["refresh_interval"] * 1000);
+                        intervalSet = true;
+                    }
+                }
+                else
+                    document.getElementById("refresh").innerHTML = "n/a";
+            }
+
+            getAjax("/api/live", parse);
+        </script>
     </body>
 </html>

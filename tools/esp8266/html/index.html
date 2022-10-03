@@ -1,72 +1,126 @@
 <!doctype html>
 <html>
     <head>
-        <title>Index - {DEVICE}</title>
+        <title>Index</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript">
-            getAjax('/uptime', 'uptime');
-            getAjax('/cmdstat', 'cmds');
-            window.setInterval("getAjax('/uptime', 'uptime')", {JS_TS});
-            window.setInterval("getAjax('/cmdstat', 'cmds')", {JS_TS});
-
-            function getAjax(url, resid) {
-                var http = null;
-                http = new XMLHttpRequest();
-                if(http != null) {
-                   http.open("GET", url, true);
-                   http.onreadystatechange = print;
-                   http.send(null);
-                }
-
-                function print() {
-                    if(http.readyState == 4) {
-                        document.getElementById(resid).innerHTML = http.responseText;
-                    }
-                }
-            }
-            function getInverterInfo(data){
-                var http = null;
-                http = new XMLHttpRequest();
-                if(http != null) {
-                   http.open("POST", "/api");
-                   http.setRequestHeader("Accept", "application/json");
-                   http.setRequestHeader("Content-Type", "application/json");
-                   http.send(data);
-                }
-            }
-        </script>
+        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY - {DEVICE}</h1>
+        <h1>AHOY</h1>
         <div id="content" class="content">
             <p>
-                <a href="/visualization">Visualization</a><br/>
+                <a href="/live">Visualization</a><br/>
                 <br/>
                 <a href="/setup">Setup</a><br/>
+                <a href="/serial">Serial Console</a><br/>
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
-            <p><span class="des">Statistics: </span><pre id="cmds"></pre></p>
-            <p>Every {TS}seconds the values are updated</p>
+            <p><span class="des">ESP-Time: </span><span id="date"></span></p>
+            <p><span class="des">RSSI: </span><span id="wifi_rssi"></span>dBm</p>
+            <p>
+                <span class="des">Statistics: </span>
+                <pre id="stat"></pre>
+                <pre id="iv"></pre>
+                <pre id="warn_info"></pre>
+            </p>
+            <p>Every <span id="refresh"></span> seconds the values are updated</p>
 
             <div id="note">
                 This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a><br/>
-                New updates can be found on Github: <a href="https://github.com/grindylow/ahoy" target="_blank">https://github.com/grindylow/ahoy</a><br/>
+                New updates can be found on Github: <a href="https://github.com/lumapu/ahoy" target="_blank">https://github.com/lumapu/ahoy</a><br/>
                 <br/>
-                Please report issues using the feature provided by <a href="https://github.com/grindylow/ahoy/issues">Github</a><br/>
+                Please report issues using the feature provided by <a href="https://github.com/lumapu/ahoy/issues">Github</a><br/>
                 <br/>
                 Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a>
                 <br/>
                 <p class="lic"><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de">Creative Commons - https://creativecommons.org/licenses/by-nc-sa/3.0/de/</a><br/>
-                Check the licenses which are published on <a href="https://github.com/grindylow/ahoy">https://github.com/grindylow/ahoy</a> as well</p>
+                Check the licenses which are published on <a href="https://github.com/lumapu/ahoy">https://github.com/lumapu/ahoy</a> as well</p>
             </div>
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
             <p class="left"><a href="/update">Update Firmware</a></p>
-            <p class="right">AHOY :: {VERSION}</p>
+            <p class="right" id="version"></p>
             <p class="right"><a href="/reboot">Reboot</a></p>
-            <p class="right">Git SHA: {BUILD}</p>
+            <p class="right"><a href="/api">REST API</a></p>
         </div>
+        <script type="text/javascript">
+            var mIntervalSet = false;
+            function parseSys(obj) {
+                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];;
+
+                var date = new Date(obj["ts_now"] * 1000);
+                var up = obj["ts_uptime"];
+                var days = parseInt(up / 86400) % 365;
+                var hrs  = parseInt(up / 3600) % 24;
+                var min  = parseInt(up / 60) % 60;
+                var sec  = up % 60;
+                document.getElementById("uptime").innerHTML = days + " Days, "
+                    + ("0"+hrs).substr(-2) + ":"
+                    + ("0"+min).substr(-2) + ":"
+                    + ("0"+sec).substr(-2);
+                document.getElementById("date").innerHTML = date.toLocaleString('de-DE', {timeZone: 'UTC'});
+            }
+
+            function parseStat(obj) {
+                document.getElementById("stat").innerHTML = "RX success: " + obj["rx_success"]
+                    + "\nRX fail: " + obj["rx_fail"]
+                    + "\nFrames received: " + obj["frame_cnt"]
+                    + "\nTX Cnt: " + obj["tx_cnt"];
+            }
+
+            function parseIv(obj) {
+                var html = "";
+                for(var i of obj) {
+                    html += "Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is ";
+                    if(false == i["is_avail"])
+                        html += "not ";
+                    html += "available and is ";
+                    if(false == i["is_producing"])
+                        html += "not ";
+                    html += "producing\n";
+
+                    if(false == i["is_avail"]) {
+                        if(i["ts_last_success"] > 0) {
+                            var date = new Date(i["ts_last_success"] * 1000);
+                            html += "-> last successful transmission: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                        }
+                    }
+
+                }
+                document.getElementById("iv").innerHTML = html;
+            }
+
+            function parseWarnInfo(warn, info) {
+                var html = "";
+                for(var w of warn) {
+                    html += "WARN: " + w + "\n";
+                }
+                for(var i of info) {
+                    html += "INFO: " + i + "\n";
+                }
+                document.getElementById("warn_info").innerHTML = html;
+            }
+
+            function parse(obj) {
+                if(null != obj) {
+                    parseSys(obj["system"]);
+                    parseStat(obj["statistics"]);
+                    parseIv(obj["inverter"]);
+                    parseWarnInfo(obj["warnings"], obj["infos"]);
+                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                    if(false == mIntervalSet) {
+                        window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+                        mIntervalSet = true;
+                    }
+                }
+                else
+                    document.getElementById("refresh").innerHTML = "n/a";
+            }
+
+            getAjax("/api/index", parse);
+        </script>
     </body>
 </html>

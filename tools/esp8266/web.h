@@ -7,56 +7,69 @@
 #define __WEB_H__
 
 #include "dbg.h"
-#ifdef ESP8266
-    #include <ESP8266WebServer.h>
-    #include <ESP8266HTTPUpdateServer.h>
-#elif defined(ESP32)
-    #include <WebServer.h>
-    #include <HTTPUpdateServer.h>
+#ifdef ESP32
+    #include "AsyncTCP.h"
+    #include "Update.h"
+#else
+    #include "ESPAsyncTCP.h"
 #endif
-
+#include "ESPAsyncWebServer.h"
 #include "app.h"
+#include "webApi.h"
+
+#define WEB_SERIAL_BUF_SIZE 2048
 
 class app;
+class webApi;
 
 class web {
     public:
-        web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]);
+        web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]);
         ~web() {}
 
         void setup(void);
         void loop(void);
 
-        void showIndex(void);
-        void showCss(void);
-        void showFavicon(void);
-        void showNotFound(void);
-        void showUptime(void);
-        void showReboot(void);
-        void showErase();
-        void showFactoryRst(void);
-        void showSetup(void);
-        void showSave(void);
+        void onConnect(AsyncEventSourceClient *client);
 
-        void showStatistics(void);
-        void showVisualization(void);
-        void showLiveData(void);
-        void showJson(void);
-        void showWebApi(void);
+        void onIndex(AsyncWebServerRequest *request);
+        void onCss(AsyncWebServerRequest *request);
+        void onApiJs(AsyncWebServerRequest *request);
+        void onFavicon(AsyncWebServerRequest *request);
+        void showNotFound(AsyncWebServerRequest *request);
+        void onReboot(AsyncWebServerRequest *request);
+        void showErase(AsyncWebServerRequest *request);
+        void showFactoryRst(AsyncWebServerRequest *request);
+        void onSetup(AsyncWebServerRequest *request);
+        void showSave(AsyncWebServerRequest *request);
+
+        void onLive(AsyncWebServerRequest *request);
+        void showWebApi(AsyncWebServerRequest *request);
+
+        void onUpdate(AsyncWebServerRequest *request);
+        void showUpdate(AsyncWebServerRequest *request);
+        void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
+
+        void serialCb(String msg);
 
     private:
-        #ifdef ESP8266
-            ESP8266WebServer *mWeb;
-            ESP8266HTTPUpdateServer *mUpdater;
-        #elif defined(ESP32)
-            WebServer *mWeb;
-            HTTPUpdateServer *mUpdater;
-        #endif
+        void onSerial(AsyncWebServerRequest *request);
+
+        AsyncWebServer *mWeb;
+        AsyncEventSource *mEvts;
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
+        statistics_t *mStat;
         char *mVersion;
         app *mMain;
+        webApi *mApi;
+
+        bool mSerialAddTime;
+        char mSerialBuf[WEB_SERIAL_BUF_SIZE];
+        uint16_t mSerialBufFill;
+        uint32_t mWebSerialTicker;
+        uint32_t mWebSerialInterval;
 };
 
 #endif /*__WEB_H__*/

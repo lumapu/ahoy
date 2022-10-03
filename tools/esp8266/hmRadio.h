@@ -21,7 +21,7 @@
 #define RF_CHANNELS             5
 #define RF_LOOP_CNT             300
 
-#define TX_REQ_INFO         0X15
+#define TX_REQ_INFO         0x15
 #define TX_REQ_DEVCONTROL   0x51
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
@@ -89,6 +89,7 @@ class HmRadio {
             pinMode(config->pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
+            mSerialDebug = config->serialDebug;
 
             mNrf24.begin(config->pinCe, config->pinCs);
             mNrf24.setRetries(0, 0);
@@ -163,7 +164,7 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
+            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: ") + String(cmd));
             sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
             int cnt = 0;
             mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
@@ -175,52 +176,49 @@ class HmRadio {
                 mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
             }
             // crc control data
-            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], cnt+1);
+            uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt+1);
             mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
             mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
             // crc over all
             cnt +=1;
-            mTxBuf[10 + cnt] = Hoymiles::crc8(mTxBuf, 10 + cnt);
+            mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
+            DPRINTLN(DBG_INFO, F("sendTimePacket"));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ){
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ) {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            } else {
-                mTxBuf[18] = 0x00;
-                mTxBuf[19] = 0x00;
             }
-            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], 14);
+            uint16_t crc = Ahoy::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
-            mTxBuf[26] = Hoymiles::crc8(mTxBuf, 26);
+            mTxBuf[26] = Ahoy::crc8(mTxBuf, 26);
 
             sendPacket(invId, mTxBuf, 27, true);
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendCmdPacket"));
+            DPRINTLN(DBG_VERBOSE, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
             CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
-                mTxBuf[10] = Hoymiles::crc8(mTxBuf, 10);
+                mTxBuf[10] = Ahoy::crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:checkPaketCrc"));
+            //DPRINTLN(DBG_INFO, F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -228,7 +226,7 @@ class HmRadio {
                 buf[i-1] = (buf[i] << 1) | (buf[i+1] >> 7);
             }
 
-            uint8_t crc = Hoymiles::crc8(buf, *len-1);
+            uint8_t crc = Ahoy::crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
             return valid;
@@ -236,8 +234,6 @@ class HmRadio {
 
         bool switchRxCh(uint16_t addLoop = 0) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:switchRxCh"));
-            //DPRINTLN(DBG_VERBOSE, F("R"));
-
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;

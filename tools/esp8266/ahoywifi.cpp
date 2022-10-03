@@ -54,7 +54,7 @@ void ahoywifi::setup(uint32_t timeout, bool settingValid) {
         if(mApActive)
             DBGPRINTLN(F("192.168.1.1"));
         else
-            DBGPRINTLN(WiFi.localIP());
+            DBGPRINTLN(WiFi.localIP().toString());
         DPRINTLN(DBG_INFO, F("to configure your device"));
         DPRINTLN(DBG_INFO, F("----------------------------------------\n"));
     }

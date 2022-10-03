@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Serial Console</title>
+        <link rel="stylesheet" type="text/css" href="style.css"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="text/javascript" src="api.js"></script>
+    </head>
+    <body>
+        <h1>Serial Console</h1>
+        <div id="content" class="content">
+            <div class="serial">
+                <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
+                conntected: <span class="dot" id="connected"></span> Uptime: <span id="uptime"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
+
+                <br/>
+                <br/>
+                <br/>
+                <br/>
+                <hr>
+                <h3>handle next buttons with care - test / debug only!!</h3>
+                <br/>
+                <input type="button" value="power limit 100%" class="btn" id="pwrlim2"/>
+                <input type="button" value="power limit 10%" class="btn" id="pwrlim"/>
+                <input type="button" value="Turn Off" class="btn" id="turnoff"/>
+                <input type="button" value="Turn On" class="btn" id="turnon"/><br/>
+                Ctrl result: <span id="result">n/a</span>
+            </div>
+        </div>
+        <div id="footer">
+            <p class="left">&copy 2022</p>
+            <p class="left"><a href="/">Home</a></p>
+            <p class="right" id="version"></p>
+        </div>
+        <script type="text/javascript">
+            var mAutoScroll = true;
+            var con = document.getElementById("serial");
+            var mIntervalSet = false;
+
+            function parseSys(obj) {
+                var up = obj["ts_uptime"];
+                var days = parseInt(up / 86400) % 365;
+                var hrs  = parseInt(up / 3600) % 24;
+                var min  = parseInt(up / 60) % 60;
+                var sec  = up % 60;
+                document.getElementById("uptime").innerHTML = days + " Days, "
+                    + ("0"+hrs).substr(-2) + ":"
+                    + ("0"+min).substr(-2) + ":"
+                    + ("0"+sec).substr(-2);
+
+                if(false == mIntervalSet) {
+                    document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                    window.setInterval("getAjax('/api/system', parseSys)", 10000);
+                    mIntervalSet = true;
+                }
+            }
+
+            document.getElementById("clear").addEventListener("click", function() {
+                con.value = "";
+            });
+            document.getElementById("scroll").addEventListener("click", function() {
+                mAutoScroll = !mAutoScroll;
+                this.value = (mAutoScroll) ? "autoscroll" : "manual scoll";
+            });
+
+            if (!!window.EventSource) {
+                var source = new EventSource('/events');
+                source.addEventListener('open', function(e) {
+                    document.getElementById("connected").style.backgroundColor = "#0c0";
+                }, false);
+
+                source.addEventListener('error', function(e) {
+                    if (e.target.readyState != EventSource.OPEN) {
+                        document.getElementById("connected").style.backgroundColor = "#f00";
+                    }
+                }, false);
+
+                source.addEventListener('serial', function(e) {
+                    con.value += e.data.replace(/\<rn\>/g, '\r\n');
+                    if(mAutoScroll)
+                        con.scrollTop = con.scrollHeight;
+                }, false);
+            }
+
+            getAjax("/api/system", parseSys);
+
+            // only for test
+            function ctrlCb(obj) {
+                var e = document.getElementById("result");
+                if(obj["success"])
+                    e.innerHTML = "ok";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            document.getElementById("turnon").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 0;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("turnoff").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 1;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [10, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim2").addEventListener("click", function() {
+                var obj = new Object();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [2000, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+        </script>
+    </body>
+</html>
