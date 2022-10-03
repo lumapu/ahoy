@@ -190,14 +190,6 @@ class HmRadio {
             mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
-
-            // Is required to prevent retransmissions without answer.
-            if (cmd == CleanState_LockAndAlarm || cmd == Restart)
-            {
-                DPRINTLN(DBG_INFO, F("TODO: Prevent retransmit after Reboot / CleanState_LockAndAlarm..."));
-                // if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld)
-                //mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
-            }                         
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {

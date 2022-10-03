@@ -325,30 +325,36 @@ void app::processPayload(bool retransmit) {
                 if(!buildPayload(iv->id)) { // payload not complete
                     if(mPayload[iv->id].requested) {
                         if(retransmit) {
-                            if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
-                                mPayload[iv->id].retransmits++;
-                                if(mPayload[iv->id].maxPackId != 0) {
-                                    for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i++) {
-                                        if(mPayload[iv->id].len[i] == 0) {
-                                            if(mConfig.serialDebug)
-                                                DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
-                                            mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME+i), true);
-                                            break; // only retransmit one frame per loop
+                            if(iv->devControlCmd == Restart || CleanState_LockAndAlarm || iv->devControlCmd) {
+                                // This is required to prevent retransmissions without answer.
+                                DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
+                                mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
+                            } else {
+                                if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
+                                    mPayload[iv->id].retransmits++;
+                                    if(mPayload[iv->id].maxPackId != 0) {
+                                        for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i++) {
+                                            if(mPayload[iv->id].len[i] == 0) {
+                                                if(mConfig.serialDebug)
+                                                    DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
+                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME+i), true);
+                                                break; // only retransmit one frame per loop
+                                            }
+                                            yield();
                                         }
-                                        yield();
                                     }
-                                }
-                                else {
-                                    if(mConfig.serialDebug)
-                                        DPRINTLN(DBG_WARN, F("while retrieving data: last frame missing: Request Retransmit"));
-                                    if(0x00 != mLastPacketId)
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
                                     else {
-                                        mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
+                                        if(mConfig.serialDebug)
+                                            DPRINTLN(DBG_WARN, F("while retrieving data: last frame missing: Request Retransmit"));
+                                        if(0x00 != mLastPacketId)
+                                            mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
+                                        else {
+                                            mPayload[iv->id].txCmd = iv->getQueuedCmd();
+                                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
+                                        }
                                     }
+                                    mSys->Radio.switchRxCh(100);
                                 }
-                                mSys->Radio.switchRxCh(100);
                             }
                         }
                     }
