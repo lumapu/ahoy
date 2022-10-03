@@ -186,7 +186,8 @@ class HmRadio {
             }
 
             // crc8 over all
-            mTxBuf[10 + (++cnt)] = Ahoy::crc8(mTxBuf, 10 + cnt);
+            cnt++;
+            mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + (++cnt), true);
 
