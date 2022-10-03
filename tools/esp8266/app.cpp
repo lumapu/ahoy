@@ -328,7 +328,7 @@ void app::processPayload(bool retransmit) {
                             if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
                                 mPayload[iv->id].retransmits++;
                                 if(mPayload[iv->id].maxPackId != 0) {
-                                    for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i ++) {
+                                    for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i++) {
                                         if(mPayload[iv->id].len[i] == 0) {
                                             if(mConfig.serialDebug)
                                                 DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i+1) + F(" missing: Request Retransmit"));
@@ -566,6 +566,11 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                 // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
                                 DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
                                 break;
+                            case CleanState_LockAndAlarm: // CleanState lock & alarm
+                                 iv->devControlCmd = CleanState_LockAndAlarm;
+                                 DPRINTLN(DBG_INFO, F("CleanState lock & alarm for inverter ") + String(iv->id) );
+                                 iv->devControlRequest = true;
+                                 break;
                             default:
                                 DPRINTLN(DBG_INFO, "Not implemented");
                                 break;
