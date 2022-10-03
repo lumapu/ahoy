@@ -325,7 +325,7 @@ void app::processPayload(bool retransmit) {
                 if(!buildPayload(iv->id)) { // payload not complete
                     if(mPayload[iv->id].requested) {
                         if(retransmit) {
-                            if(iv->devControlCmd == Restart || CleanState_LockAndAlarm || iv->devControlCmd) {
+                            if(iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm ) {
                                 // This is required to prevent retransmissions without answer.
                                 DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
                                 mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
