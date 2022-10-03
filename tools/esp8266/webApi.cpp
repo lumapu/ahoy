@@ -261,7 +261,7 @@ void webApi::getLive(JsonObject obj) {
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;
 
-    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PFC, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
+    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_ALARM_MES_ID};
 
     Inverter<> *iv;
     uint8_t pos;
@@ -280,7 +280,7 @@ void webApi::getLive(JsonObject obj) {
             JsonArray ch = obj2.createNestedArray("ch");
             JsonArray ch0 = ch.createNestedArray();
             obj2[F("ch_names")][0] = "AC";
-            for (uint8_t fld = 0; fld < 11; fld++) {
+            for (uint8_t fld = 0; fld < sizeof(list); fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld], rec));
                 ch0[fld] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
                 obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
@@ -336,8 +336,12 @@ void webApi::getRecord(JsonObject obj, record_t<> *rec) {
 //-----------------------------------------------------------------------------
 bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
     uint8_t cmd = jsonIn[F("cmd")];
+
+    // Todo: num is the inverter number 0-3. For better display in DPRINTLN
+    uint8_t num = jsonIn[F("inverter")]; 
+
     if(TX_REQ_DEVCONTROL == jsonIn[F("tx_request")]) {
-        DPRINTLN(DBG_INFO, F("devcontrol, cmd: 0x") + String(cmd, HEX));
+        DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
         if(ActivePowerContr == cmd) {
             Inverter<> *iv = getInverter(jsonIn, jsonOut);
             if(NULL != iv) {
@@ -359,6 +363,15 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = getInverter(jsonIn, jsonOut);
             if(NULL != iv) {
                 iv->devControlCmd = TurnOff;
+                iv->devControlRequest = true;
+            }
+            else
+                return false;
+        }
+        else if(CleanState_LockAndAlarm == cmd) {
+            Inverter<> *iv = getInverter(jsonIn, jsonOut);
+            if(NULL != iv) {
+                iv->devControlCmd = CleanState_LockAndAlarm;
                 iv->devControlRequest = true;
             }
             else
