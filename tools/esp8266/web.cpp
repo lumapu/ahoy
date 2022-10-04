@@ -396,6 +396,10 @@ void web::showWebApi(AsyncWebServerRequest *request) {
                 iv->devControlCmd = CleanState_LockAndAlarm;
                 iv->devControlRequest = true; // queue it in the request loop
             }
+            if (response["cmd"] == (uint8_t)Restart) {
+                iv->devControlCmd = Restart;
+                iv->devControlRequest = true; // queue it in the request loop
+            }            
         }
     }
     request->send(200, "text/json", "{success:true}");

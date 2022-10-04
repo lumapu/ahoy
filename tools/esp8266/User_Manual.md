@@ -18,11 +18,11 @@ The ahoy dtu will publish on the following topics
 |U_AC | 233.300|actual AC Voltage in Volt|
 |I_AC | 0.300 | actual AC Current in Ampere|
 |P_AC | 71.000| actual AC Power in Watt|
-|P_ACr | 21.200| actual AC reactive power in VAr|
-|Freq | 49.990|actual AC Frequency in 1/s|
-|Pct | 95.800|actual AC Power factor in %|
+|Q_AC | 21.200| actual AC reactive power in Var|
+|F_AC | 49.990| actual AC Frequency in Hz|
+|PF_AC | 95.800| actual AC Power factor|
 |Temp | 19.800|Temperature of inverter in Celsius|
-|LARM_MES_ID | 9.000|Last Alarm Message Id|
+|EVT | 9.000|Last Event/Alarm Message Index|
 |YieldDay | 51.000|Energy converted to AC per day in Watt hours (measured on DC)|
 |YieldTotal | 465.294|Energy converted to AC since reset Watt hours (measured on DC)|
 |P_DC | 74.600|actual DC Power in Watt|

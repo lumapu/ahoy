@@ -20,7 +20,7 @@
                 <hr>
                 <h3>handle next buttons with care - test / debug only!!</h3>
                 <br/>
-                <label for="iv">Choose your Inverter:</label>
+                <label for="iv">Select Inverter:</label>
                 <select name="iv" id="iv">
                     <option value="0">0</option>
                     <option value="1">1</option>
@@ -30,9 +30,9 @@
                 <br/>
                 <input type="button" value="power limit 100%" class="btn" id="pwrlim2"/>
                 <input type="button" value="power limit 10%" class="btn" id="pwrlim"/>
+                <input type="button" value="Restart" class="btn" id="restart"/>
                 <input type="button" value="Turn Off" class="btn" id="turnoff"/>
                 <input type="button" value="Turn On" class="btn" id="turnon"/>
-                <input type="button" value="Clean &amp; Reboot" class="btn" id="clnstate"/>
                 <br/>
                 Ctrl result: <span id="result">n/a</span>
             </div>
@@ -103,53 +103,53 @@
                     e.innerHTML = "Error: " + obj["error"];
             }
 
-            document.getElementById("turnon").addEventListener("click", function() {
-                var obj = new Object();
-                obj.cmd = 0;
-                obj.tx_request = 81;
-                obj.inverter = get_selected_iv();
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
-            document.getElementById("turnoff").addEventListener("click", function() {
-                var obj = new Object();
-                obj.cmd = 1;
-                obj.tx_request = 81;
-                obj.inverter = get_selected_iv();
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
-            document.getElementById("pwrlim").addEventListener("click", function() {
-                var obj = new Object();
-                obj.cmd = 11;
-                obj.tx_request = 81;
-                obj.payload = [10, 1];
-                obj.inverter = get_selected_iv();
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
-            document.getElementById("pwrlim2").addEventListener("click", function() {
-                var obj = new Object();
-                obj.cmd = 11;
-                obj.tx_request = 81;
-                obj.payload = [2000, 1];
-                obj.inverter = get_selected_iv();
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
-            document.getElementById("clnstate").addEventListener("click", function() {
-                var obj = new Object();
-                obj.cmd = 20;
-                obj.tx_request = 81;
-                obj.inverter = get_selected_iv();
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
             function get_selected_iv()
             {
                 var e = document.getElementById("iv");
                 return  e.value;
             }
+
+            document.getElementById("turnon").addEventListener("click", function() {
+                var obj = new Object();
+                obj.inverter = get_selected_iv();
+                obj.cmd = 0;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("turnoff").addEventListener("click", function() {
+                var obj = new Object();
+                obj.inverter = get_selected_iv();
+                obj.cmd = 1;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("restart").addEventListener("click", function() {
+                var obj = new Object();
+                obj.inverter = get_selected_iv();
+                obj.cmd = 2;
+                obj.tx_request = 81;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim").addEventListener("click", function() {
+                var obj = new Object();
+                obj.inverter = get_selected_iv();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [10, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("pwrlim2").addEventListener("click", function() {
+                var obj = new Object();
+                obj.inverter = get_selected_iv();
+                obj.cmd = 11;
+                obj.tx_request = 81;
+                obj.payload = [2000, 1];
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
         </script>
     </body>
 </html>

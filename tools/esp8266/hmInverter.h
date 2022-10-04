@@ -109,7 +109,7 @@ class Inverter {
         uint16_t      alarmMesIndex;         // Last recorded Alarm Message Index
         uint16_t      fwVersion;             // Firmware Version from Info Command Request
         uint16_t      powerLimit[2];         // limit power output
-        uint16_t      actPowerLimit;         //
+        float         actPowerLimit;         // actual power limit
         uint8_t       devControlCmd;         // carries the requested cmd
         bool          devControlRequest;     // true if change needed
         serial_u      serial;                // serial number as on barcode
@@ -253,7 +253,7 @@ class Inverter {
                     DPRINTLN(DBG_VERBOSE, "add real time");
 
                     // get last alarm message index and save it in the inverter object
-                    if (getPosByChFld(0, FLD_ALARM_MES_ID, rec) == pos){
+                    if (getPosByChFld(0, FLD_EVT, rec) == pos){
                         if (alarmMesIndex < rec->record[pos]){
                             alarmMesIndex = rec->record[pos];
                             //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
@@ -275,9 +275,9 @@ class Inverter {
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
                     // get at least the firmware version and save it to the inverter object
-                    if (getPosByChFld(0, FLD_ACT_PWR_LIMIT, rec) == pos){
+                    if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit));
+                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {
