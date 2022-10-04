@@ -345,6 +345,8 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
         DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
         
         Inverter<> *iv = getInverter(jsonIn, jsonOut);
+        JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
+
         if(NULL != iv) 
         {
             switch (cmd)
@@ -366,7 +368,6 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
                     iv->devControlRequest = true;
                     break;
                 case ActivePowerContr:
-                    JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
                     iv->powerLimit[0] = payload[0];
                     iv->powerLimit[1] = payload[1];
                     break;
