@@ -18,7 +18,7 @@ The ahoy dtu will publish on the following topics
 |U_AC | 233.300|actual AC Voltage in Volt|
 |I_AC | 0.300 | actual AC Current in Ampere|
 |P_AC | 71.000| actual AC Power in Watt|
-|Q_AC | 21.200| actual AC reactive power in Var|
+|Q_AC | 21.200| actual AC reactive power in var|
 |F_AC | 49.990| actual AC Frequency in Hz|
 |PF_AC | 95.800| actual AC Power factor|
 |Temp | 19.800|Temperature of inverter in Celsius|
