@@ -30,7 +30,7 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "I_AC", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
         "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","HWPartId",
-        "active PowerLimit","reactive PowerLimit","Powerfactor","LastAlarmCode"};
+        "active PowerLimit", /*"reactive PowerLimit","Powerfactor",*/ "LastAlarmCode"};
 const char* const notAvail = "n/a";
 
 // mqtt discovery device classes
