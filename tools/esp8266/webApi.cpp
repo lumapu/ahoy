@@ -261,7 +261,7 @@ void webApi::getLive(JsonObject obj) {
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;
 
-    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_ALARM_MES_ID};
+    uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 
     Inverter<> *iv;
     uint8_t pos;
@@ -272,7 +272,7 @@ void webApi::getLive(JsonObject obj) {
             JsonObject obj2 = invArr.createNestedObject();
             obj2[F("name")]               = String(iv->name);
             obj2[F("channels")]           = iv->channels;
-            obj2[F("power_limit_read")]   = iv->actPowerLimit;
+            obj2[F("power_limit_read")]   = round3(iv->actPowerLimit);
             obj2[F("power_limit_active")] = NoPowerLimit != iv->powerLimit[1];
             obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
             obj2[F("ts_last_success")]    = rec->ts;
@@ -340,45 +340,42 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
     // Todo: num is the inverter number 0-3. For better display in DPRINTLN
     uint8_t num = jsonIn[F("inverter")]; 
 
-    if(TX_REQ_DEVCONTROL == jsonIn[F("tx_request")]) {
+    if(TX_REQ_DEVCONTROL == jsonIn[F("tx_request")]) 
+    {
         DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
-        if(ActivePowerContr == cmd) {
-            Inverter<> *iv = getInverter(jsonIn, jsonOut);
-            if(NULL != iv) {
-                JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
-                iv->powerLimit[0] = payload[0];
-                iv->powerLimit[1] = payload[1];
-            }
-        }
-        else if(TurnOn == cmd) {
-            Inverter<> *iv = getInverter(jsonIn, jsonOut);
-            if(NULL != iv) {
-                iv->devControlCmd = TurnOn;
-                iv->devControlRequest = true;
-            }
-            else
-                return false;
-        }
-        else if(TurnOff == cmd) {
-            Inverter<> *iv = getInverter(jsonIn, jsonOut);
-            if(NULL != iv) {
-                iv->devControlCmd = TurnOff;
-                iv->devControlRequest = true;
-            }
-            else
-                return false;
-        }
-        else if(CleanState_LockAndAlarm == cmd) {
-            Inverter<> *iv = getInverter(jsonIn, jsonOut);
-            if(NULL != iv) {
-                iv->devControlCmd = CleanState_LockAndAlarm;
-                iv->devControlRequest = true;
-            }
-            else
-                return false;
-        }
-        else {
-            jsonOut["error"] = "unknown 'cmd' = " + String(cmd);
+        
+        Inverter<> *iv = getInverter(jsonIn, jsonOut);
+        JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
+
+        if(NULL != iv) 
+        {
+            switch (cmd)
+            {
+                case TurnOn:
+                    iv->devControlCmd = TurnOn;
+                    iv->devControlRequest = true;
+                    break;
+                case TurnOff:
+                    iv->devControlCmd = TurnOff;
+                    iv->devControlRequest = true;
+                    break;
+                case CleanState_LockAndAlarm:
+                    iv->devControlCmd = CleanState_LockAndAlarm;
+                    iv->devControlRequest = true;
+                    break;
+                case Restart:
+                    iv->devControlCmd = Restart;
+                    iv->devControlRequest = true;
+                    break;
+                case ActivePowerContr:
+                    iv->powerLimit[0] = payload[0];
+                    iv->powerLimit[1] = payload[1];
+                    break;
+                default:
+                    jsonOut["error"] = "unknown 'cmd' = " + String(cmd);
+                    return false;
+            }            
+        } else {
             return false;
         }
     }

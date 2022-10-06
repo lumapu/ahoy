@@ -250,7 +250,7 @@ void app::loop(void) {
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     }
-                    if(iv->devControlRequest && (iv->powerLimit[0] > 0) && (NoPowerLimit != iv->powerLimit[1])) { // prevent to "switch off"
+                    if(iv->devControlRequest && ((iv->devControlCmd != ActivePowerContr) || ((iv->devControlCmd == ActivePowerContr) && (iv->powerLimit[0] > 0) && (iv->powerLimit[1] != NoPowerLimit)))) { // prevent to "switch off"
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
