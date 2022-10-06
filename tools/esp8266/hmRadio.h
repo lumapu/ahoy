@@ -54,7 +54,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
+template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -90,6 +90,24 @@ class HmRadio {
 
             mBufCtrl = ctrl;
             mSerialDebug = config->serialDebug;
+        
+            uint32_t DTU_SN = 0x87654321;
+            uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
+#ifdef ESP32
+            uint64_t MAC = ESP.getEfuseMac();
+            chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
+#else
+            chipID = ESP.getChipId();
+#endif
+            if(chipID) {
+                DTU_SN = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
+                for(int i = 0; i < 7; i++) {
+                    DTU_SN |= (chipID % 10) << (i * 4);
+                    chipID /= 10;
+                }
+            }
+            // change the byte order of the DTU serial number and append the required 0x01 at the end
+            DTU_RADIO_ID = ((uint64_t)(((DTU_SN >> 24) & 0xFF) | ((DTU_SN >> 8) & 0xFF00) | ((DTU_SN << 8) & 0xFF0000) | ((DTU_SN << 24) & 0xFF000000)) << 8) | 0x01;
 
             mNrf24.begin(config->pinCe, config->pinCs);
             mNrf24.setRetries(0, 0);
@@ -215,7 +233,7 @@ class HmRadio {
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
-            CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
+            CP_U32_BigEndian(&mTxBuf[5], (DTU_RADIO_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
                 mTxBuf[10] = Ahoy::crc8(mTxBuf, 10);
@@ -326,6 +344,8 @@ class HmRadio {
                 mRxChIdx = 0;
             return mRfChLst[mRxChIdx];
         }
+
+        uint64_t DTU_RADIO_ID;
 
         uint8_t mTxCh;
         uint8_t mTxChIdx;
