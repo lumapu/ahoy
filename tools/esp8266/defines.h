@@ -76,6 +76,7 @@ typedef enum {
 #define PWD_LEN                 64
 #define DEVNAME_LEN             16
 #define CRC_LEN                 2 // uint16_t
+#define DISCLAIMER              1
 
 #define INV_ADDR_LEN            MAX_NUM_INVERTERS * 8                   // uint64_t
 #define INV_NAME_LEN            MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
@@ -126,6 +127,9 @@ typedef struct {
     uint8_t pinIrq;
     uint8_t amplifierPower;
 
+    // Disclaimer
+    bool disclaimer;
+    
     // ntp
     char ntpAddr[NTP_ADDR_LEN];
     uint16_t ntpPort;
@@ -153,7 +157,8 @@ typedef struct {
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START
-#define ADDR_WIFI_CRC           ADDR_CFG_SYS  + CFG_SYS_LEN
+#define ADDR_DISCLAIMER         ADDR_CFG_SYS + DISCLAIMER
+#define ADDR_WIFI_CRC           ADDR_DISCLAIMER  + CFG_SYS_LEN
 #define ADDR_START_SETTINGS     ADDR_WIFI_CRC + CRC_LEN
 
 #define ADDR_CFG                ADDR_START_SETTINGS

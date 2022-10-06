@@ -17,6 +17,7 @@
                         <legend class="des">Device Host Name</legend>
                         <label for="device">Device Name</label>
                         <input type="text" name="device" class="text"/>
+                        <input type="hidden" name="disclaimer" value="false" id="disclaimer">
                     </fieldset>
 
                     <button type="button" class="s_collapsible">WiFi</button>
@@ -271,6 +272,9 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
+
+                hiddenInput = document.getElementById("disclaimer")
+                hiddenInput.value = sessionStorage.getItem("gDisclaimer");
             }
 
             getAjax("/api/setup", parse);

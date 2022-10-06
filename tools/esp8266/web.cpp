@@ -277,6 +277,10 @@ void web::showSave(AsyncWebServerRequest *request) {
         if(request->arg("invRetry") != "")
             mConfig->maxRetransPerPyld = request->arg("invRetry").toInt();
 
+        // Disclaimer
+        if(request->arg("disclaimer") != "")
+            mConfig->disclaimer = strcmp("true", request->arg("disclaimer").c_str())  == 0 ? true : false;            
+
         // pinout
         uint8_t pin;
         for(uint8_t i = 0; i < 3; i ++) {

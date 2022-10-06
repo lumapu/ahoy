@@ -739,6 +739,9 @@ void app::loadDefaultConfig(void) {
     mConfig.serialInterval = SERIAL_INTERVAL;
     mConfig.serialShowIv   = false;
     mConfig.serialDebug    = false;
+
+    // Disclaimer
+    mConfig.disclaimer = false;
 }
 
 
