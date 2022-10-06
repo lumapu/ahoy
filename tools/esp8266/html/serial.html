@@ -11,7 +11,10 @@
         <div id="content" class="content">
             <div class="serial">
                 <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
-                connected: <span class="dot" id="connected"></span> Uptime: <span id="uptime"></span><input type="button" value="clear" class="btn" id="clear"/> <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                connected: <span class="dot" id="connected"></span> 
+                Uptime: <span id="uptime"></span>
+                <input type="button" value="clear" class="btn" id="clear"/> 
+                <input type="button" value="autoscroll" class="btn" id="scroll"/>
 
                 <br/>
                 <br/>
@@ -21,11 +24,7 @@
                 <h3>handle next buttons with care - test / debug only!!</h3>
                 <br/>
                 <label for="iv">Select Inverter:</label>
-                <select name="iv" id="iv">
-                    <option value="0">0</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
+                <select name="iv" id="InvID">
                 </select>
                 <br/>
                 <input type="button" value="power limit 100%" class="btn" id="pwrlim2"/>
@@ -62,6 +61,21 @@
                     document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
                     mIntervalSet = true;
+                }
+            }
+
+            function parse(root) {
+                select = document.getElementById('InvID');
+
+                if(null == root) return;
+                root = root.inverter;
+                for(var i = 0; i < root.inverter.length; i++)
+                {
+                    inv = root.inverter[i];
+                    var opt = document.createElement('option');
+                    opt.value = inv.id;
+                    opt.innerHTML = inv.name;
+                    select.appendChild(opt);
                 }
             }
 
@@ -105,7 +119,7 @@
 
             function get_selected_iv()
             {
-                var e = document.getElementById("iv");
+                var e = document.getElementById("InvID");
                 return  e.value;
             }
 
@@ -150,6 +164,8 @@
                 obj.payload = [2000, 1];
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
+
+            getAjax("/api/setup", parse);
         </script>
     </body>
 </html>
