@@ -125,7 +125,7 @@
 
             document.getElementsByName("btnAdd")[0].addEventListener("click", function() {
                 if(highestId < (maxInv-1))
-                    ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""],"power_limit":1500,"power_limit_option":65535}'), highestId + 1);
+                    ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
             });
 
             function ivHtml(obj, id) {
@@ -163,19 +163,10 @@
                     }
                 });
 
-                for(var i of [["Name", "name", "Name*", 32], ["ActivePowerLimit", "power_limit", "Active Power Limit", 5]]) {
+                for(var i of [["Name", "name", "Name*", 32]]) { // so richtig?
                     iv.appendChild(lbl(id + i[0], i[2]));
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
-
-                iv.appendChild(lbl(id + "PowerLimitControl", "Active Power Limit Control Type"));
-                iv.appendChild(sel(id + "PowerLimitControl", [
-                    [65535, "no power limit"],
-                    [0, "absolute in Watt non persistent"],
-                    [1, "absolute in Watt persistent"],
-                    [256, "relativ in percent non persistent"],
-                    [257, "relativ in percent persistent"]
-                ], obj.power_limit_option));
 
                 for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4], ["ModName", "ch_name", "Module Name", 16]]) {
                     var cl = (re.test(obj["serial"])) ? null : ["hide"];
