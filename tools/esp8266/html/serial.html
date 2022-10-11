@@ -15,37 +15,41 @@
                 Uptime: <span id="uptime"></span>
                 <input type="button" value="clear" class="btn" id="clear"/> 
                 <input type="button" value="autoscroll" class="btn" id="scroll"/>
-
                 <br/>
                 <br/>
                 <br/>
                 <br/>
                 <hr>
-                <h3>handle next buttons with care - test / debug only!!</h3>
+                <h3>Commands</h3>
                 <br/>
                 <label for="iv">Select Inverter:</label>
                 <select name="iv" id="InvID">
                 </select>
                 <br/>
-                <div id='power'>
+                <div id="power">
                     <input type="button" value="Restart" class="btn" id="restart"/>
                     <input type="button" value="Turn Off" class="btn" id="power_off"/>
                     <input type="button" value="Turn On" class="btn" id="power_on"/>
                 </div>
                 <br/>
-                <label>Send Power Limit:</label>
-                <input type="number" class="text" name="pwrlimval" maxlength="4" size="20%"/>
-                <label></label>
+                <br/>
+                <br/>
+                <br/>
+                <br/>
+                <label>Send Power Limit: </label>
+                <input type="number" class="text" name="pwrlimval" maxlength="4"/>
+                <label> </label>
                 <select name="pwrlimcntrl" id="pwrlimcntrl">
-                    <option value="65535" selected disabled hidden>select the unit and persistence</option>
+                    <option value="" selected disabled hidden>select the unit and persistence</option>
                     <option value="0">absolute in Watt non persistent</option>
                     <option value="1">relativ in percent non persistent</option>
                     <option value="256">absolute in Watt persistent</option>
                     <option value="257">relativ in percent persistent</option>
                 </select>
-                <input type="button" value="Send PL" class="btn" id="sendpwrlim"/>
                 <br/>
-                Ctrl result: <span id="result">n/a</span>
+                <input type="button" value="Send Power Limit" class="btn" id="sendpwrlim"/>
+                <br/>
+                <p>Ctrl result: <span id="result">n/a</span></p>
             </div>
         </div>
         <div id="footer">
@@ -141,13 +145,17 @@
                 var power = event.target.value;
                 var obj = new Object();
 
-                if(power === "Restart") {
-                    obj.cmd = 0;
-                } else if(power === "Turn Off") {
-                    obj.cmd = 1;
-                } else {
-                    obj.cmd = 2;
-                }
+                switch (power)
+                {
+                    case "Turn On":
+                        obj.cmd = 0;
+                        break;
+                    case "Turn Off":
+                        obj.cmd = 1;
+                        break;
+                    default:
+                        obj.cmd = 2;
+                }            
 
                 obj.inverter = get_selected_iv();
                 obj.tx_request = 81;
@@ -155,16 +163,22 @@
             });
 
             document.getElementById("sendpwrlim").addEventListener("click", function() {
-                var power = parseInt(document.getElementsByName('pwrlimval')[0].value);
-                var type = parseInt(document.getElementsByName('pwrlimcntrl')[0].value);
+                var val = parseInt(document.getElementsByName('pwrlimval')[0].value);
+                var ctrl = parseInt(document.getElementsByName('pwrlimcntrl')[0].value);
                 
-                if((type == 1 || type == 257) && power < 2) power = 2;
+                if((ctrl == 1 || ctrl == 257) && unit < 2) unit = 2;
+                if(isNaN(val) || isNaN(ctrl)) 
+                {
+                    var tmp = (isNaN(val)) ? "Value" : "Unit";
+                    document.getElementById("result").textContent = tmp + " is missing";
+                    return;
+                }
                 
                 var obj = new Object();
                 obj.inverter = get_selected_iv();
                 obj.cmd = 11;
                 obj.tx_request = 81;
-                obj.payload = [power, type];
+                obj.payload = [val, ctrl];
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 
