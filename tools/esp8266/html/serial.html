@@ -33,6 +33,18 @@
                 <input type="button" value="Turn Off" class="btn" id="turnoff"/>
                 <input type="button" value="Turn On" class="btn" id="turnon"/>
                 <br/>
+                <label>Send Power Limit:</label>
+                <input type="text" class="text" name="pwrlimval" maxlength="4" size="20%"/>
+                <label></label>
+                <select name="pwrlimcntrl" id="pwrlimcntrl">
+                    <option value="65535">select the unit and persistence</option>
+                    <option value="0">absolute in Watt non persistent</option>
+                    <option value="1">relativ in percent non persistent</option>
+                    <option value="256">absolute in Watt persistent</option>
+                    <option value="257">relativ in percent persistent</option>
+                </select>
+                <input type="button" value="Send PL" class="btn" id="sendpwrlim"/>
+                <br/>
                 Ctrl result: <span id="result">n/a</span>
             </div>
         </div>
@@ -161,7 +173,7 @@
                 obj.inverter = get_selected_iv();
                 obj.cmd = 11;
                 obj.tx_request = 81;
-                obj.payload = [2000, 1];
+                obj.payload = [100, 1];
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 

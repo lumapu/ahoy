@@ -126,7 +126,7 @@ class Inverter {
 
         Inverter() {
             powerLimit[0] = 0xffff;       // 65535 W Limit -> unlimited
-            powerLimit[1] = NoPowerLimit; // default power limit setting
+            powerLimit[1] = AbsolutNonPersistent; // default power limit setting
             actPowerLimit = 0xffff;       // init feedback from inverter to -1
             devControlRequest = false;
             devControlCmd = InitDataState;

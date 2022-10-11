@@ -39,8 +39,7 @@
                     var limit = iv["power_limit_read"] + "%";
                     if(limit == "65535%")
                         limit = "n/a";
-                    var ctrl = (iv["power_limit_active"]) ? "" : " (not controlled)";
-                    ch0.appendChild(span(iv["name"] + " Limit " + limit + ctrl + " | last Alarm: " + iv["last_alarm"], ["head"]));
+                    ch0.appendChild(span(iv["name"] + " Limit " + limit + " | last Alarm: " + iv["last_alarm"], ["head"]));
 
                     for(var j = 0; j < root.ch0_fld_names.length; j++) {
                         var val = Math.round(iv["ch"][0][j] * 100) / 100;
