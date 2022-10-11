@@ -61,10 +61,14 @@ void app::loop(void) {
     }
 
     if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
-        if(!apActive) {
-            mTimestamp  = mWifi->getNtpTime();
-            DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
-        }
+        if(!apActive)
+            mUpdateNtp = true;
+    }
+
+    if(mUpdateNtp) {
+        mUpdateNtp = false;
+        mTimestamp = mWifi->getNtpTime();
+        DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
     }
 
     if(mShouldReboot) {
@@ -685,8 +689,9 @@ const char* app::getFieldStateClass(uint8_t fieldId) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
-    mUptimeSecs     = 0;
-    mPrevMillis     = 0;
+    mUptimeSecs = 0;
+    mPrevMillis = 0;
+    mUpdateNtp  = false;
 
     mNtpRefreshTicker   = 0;
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]

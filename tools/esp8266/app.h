@@ -112,6 +112,14 @@ class app {
             return mTimestamp;
         }
 
+        inline void setTimestamp(uint32_t newTime) {
+            DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
+            if(0 == newTime)
+                mUpdateNtp = true;
+            else
+                mTimestamp = newTime;
+        }
+
         void eraseSettings(bool all = false) {
             //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
             uint8_t buf[64];
@@ -239,6 +247,7 @@ class app {
 
         eep *mEep;
         uint32_t mTimestamp;
+        bool mUpdateNtp;
 
         bool mShowRebootRequest;
 
@@ -257,7 +266,6 @@ class app {
 
         // timer
         uint32_t mTicker;
-
         uint32_t mRxTicker;
 
         // mqtt

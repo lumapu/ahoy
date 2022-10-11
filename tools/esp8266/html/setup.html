@@ -64,6 +64,10 @@
                         <input type="text" class="text" name="ntpAddr"/>
                         <label for="ntpPort">NTP Port</label>
                         <input type="text" class="text" name="ntpPort"/>
+                        <label for="ntpBtn">set system time</label>
+                        <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
+                        <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
+                        <span id="apiResult">n/a</span>
                     </fieldset>
                     </div>
 
@@ -106,7 +110,7 @@
 
                     <label for="reboot">Reboot device after successful save</label>
                     <input type="checkbox" class="cb" name="reboot"/>
-                    <input type="submit" value="save" class="btn"/>
+                    <input type="submit" value="save" class="btn right"/>
                 </form>
             </div>
         </div>
@@ -127,6 +131,28 @@
                 if(highestId < (maxInv-1))
                     ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""],"power_limit":1500,"power_limit_option":65535}'), highestId + 1);
             });
+
+            function apiCb(obj) {
+                var e = document.getElementById("apiResult");
+                if(obj["success"])
+                    e.innerHTML = "ok";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function setTime() {
+                var date = new Date();
+                var obj = new Object();
+                obj.cmd = "set_time";
+                obj.ts = parseInt(date.getTime() / 1000);
+                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+            }
+
+            function syncTime() {
+                var obj = new Object();
+                obj.cmd = "sync_ntp";
+                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+            }
 
             function ivHtml(obj, id) {
                 highestId = id;

@@ -42,6 +42,7 @@ class webApi {
         void getRecord(JsonObject obj, record_t<> *rec);
 
         bool setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut);
+        bool setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut);
 
         Inverter<> *getInverter(DynamicJsonDocument jsonIn, JsonObject jsonOut);
 

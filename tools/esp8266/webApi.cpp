@@ -80,6 +80,8 @@ void webApi::onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t
         String path = request->url().substring(5);
         if(path == "ctrl")
             root[F("success")] = setCtrl(json, root);
+        else if(path == "setup")
+            root[F("success")] = setSetup(json, root);
         else {
             root[F("success")] = false;
             root[F("error")]   = "Path not found: " + path;
@@ -381,7 +383,24 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
         }
     }
     else {
-        jsonOut["error"] = "unknown 'tx_request'";
+        jsonOut[F("error")] = F("unknown 'tx_request'");
+        return false;
+    }
+
+    return true;
+}
+
+
+//-----------------------------------------------------------------------------
+bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
+    if(F("set_time") == jsonIn[F("cmd")]) {
+        mApp->setTimestamp(jsonIn[F("ts")]);
+    }
+    else if(F("sync_ntp") == jsonIn[F("cmd")]) {
+        mApp->setTimestamp(0); // 0: update ntp flag
+    }
+    else {
+        jsonOut[F("error")] = F("unknown cmd");
         return false;
     }
 
@@ -394,6 +413,6 @@ Inverter<> *webApi::getInverter(DynamicJsonDocument jsonIn, JsonObject jsonOut) 
     uint8_t id = jsonIn[F("inverter")];
     Inverter<> *iv = mApp->mSys->getInverterByPos(id);
     if(NULL == iv)
-        jsonOut["error"] = F("inverter index to high: ") + String(id);
+        jsonOut[F("error")] = F("inverter index to high: ") + String(id);
     return iv;
 }
