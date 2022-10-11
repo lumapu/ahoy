@@ -158,9 +158,6 @@ void webApi::getInverterList(JsonObject obj) {
                 obj2[F("ch_max_power")][j] = iv->chMaxPwr[j];
                 obj2[F("ch_name")][j] = iv->chName[j];
             }
-
-            obj2[F("power_limit")]        = iv->powerLimit[0];
-            obj2[F("power_limit_option")] = iv->powerLimit[1];
         }
     }
     obj[F("interval")]          = String(mConfig->sendInterval);
@@ -276,7 +273,6 @@ void webApi::getLive(JsonObject obj) {
             obj2[F("name")]               = String(iv->name);
             obj2[F("channels")]           = iv->channels;
             obj2[F("power_limit_read")]   = round3(iv->actPowerLimit);
-            obj2[F("power_limit_active")] = NoPowerLimit != iv->powerLimit[1];
             obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
             obj2[F("ts_last_success")]    = rec->ts;
 
@@ -342,8 +338,9 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
     // Todo: num is the inverter number 0-3. For better display in DPRINTLN
     uint8_t num = jsonIn[F("inverter")]; 
+    uint8_t tx_request = jsonIn[F("tx_request")]; 
 
-    if(TX_REQ_DEVCONTROL == jsonIn[F("tx_request")]) 
+    if(TX_REQ_DEVCONTROL == tx_request) 
     {
         DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
         
@@ -371,6 +368,8 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
                     iv->devControlRequest = true;
                     break;
                 case ActivePowerContr:
+                    iv->devControlCmd = ActivePowerContr;
+                    iv->devControlRequest = true;
                     iv->powerLimit[0] = payload[0];
                     iv->powerLimit[1] = payload[1];
                     break;
