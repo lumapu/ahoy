@@ -67,6 +67,7 @@
             function parseStat(obj) {
                 document.getElementById("stat").innerHTML = "RX success: " + obj["rx_success"]
                     + "\nRX fail: " + obj["rx_fail"]
+                    + "\nRX no anwser: " + obj["rx_fail_answer"]
                     + "\nFrames received: " + obj["frame_cnt"]
                     + "\nTX Cnt: " + obj["tx_cnt"];
             }

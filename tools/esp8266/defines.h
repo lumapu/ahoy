@@ -142,6 +142,7 @@ typedef struct {
 
 typedef struct {
     uint32_t rxFail;
+    uint32_t rxFailNoAnser;
     uint32_t rxSuccess;
     uint32_t frmCnt;
 } statistics_t;

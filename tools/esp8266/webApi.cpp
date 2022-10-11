@@ -129,10 +129,11 @@ void webApi::getSystem(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getStatistics(JsonObject obj) {
-    obj[F("rx_success")] = mStat->rxSuccess;
-    obj[F("rx_fail")]    = mStat->rxFail;
-    obj[F("frame_cnt")]  = mStat->frmCnt;
-    obj[F("tx_cnt")]     = mApp->mSys->Radio.mSendCnt;
+    obj[F("rx_success")]     = mStat->rxSuccess;
+    obj[F("rx_fail")]        = mStat->rxFail;
+    obj[F("rx_fail_answer")] = mStat->rxFailNoAnser;
+    obj[F("frame_cnt")]      = mStat->frmCnt;
+    obj[F("tx_cnt")]         = mApp->mSys->Radio.mSendCnt;
 }
 
 

@@ -226,24 +226,28 @@ void app::loop(void) {
                     mSendLastIvId = ((MAX_NUM_INVERTERS-1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
                     iv = mSys->getInverterByPos(mSendLastIvId);
                 } while((NULL == iv) && ((maxLoop--) > 0));
-                resetPayload(iv);
-                mPayload[iv->id].requested = true;
 
                 if(NULL != iv) {
                     if(!mPayload[iv->id].complete)
                         processPayload(false);
 
                     if(!mPayload[iv->id].complete) {
-                        mStat.rxFail++;
+                        if(0 == mPayload[iv->id].maxPackId)
+                            mStat.rxFailNoAnser++;
+                        else
+                            mStat.rxFail++;
+
                         iv->setQueuedCmdFinished(); // command failed
-                        if(mConfig.serialDebug) {
+                        if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                        }
                         if(mConfig.serialDebug) {
                             DPRINT(DBG_INFO, F("Inverter #") + String(iv->id) + " ");
                             DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
                         }
                     }
+
+                    resetPayload(iv);
+                    mPayload[iv->id].requested = true;
 
                     yield();
                     if(mConfig.serialDebug) {
@@ -257,7 +261,8 @@ void app::loop(void) {
                         mPayload[iv->id].txCmd = iv->devControlCmd;
                         iv->clearCmdQueue();
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
-                    } else {
+                    }
+                    else {
                         uint8_t cmd = iv->getQueuedCmd();
                         mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                         mPayload[iv->id].txCmd = cmd;
@@ -316,11 +321,12 @@ void app::processPayload(bool retransmit) {
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            if(mPayload[iv->id].txId != (TX_REQ_INFO + 0x80)) {
+            if((mPayload[iv->id].txId != (TX_REQ_INFO + 0x80)) && (0 != mPayload[iv->id].txId)) {
                 // no processing needed if txId is not 0x95
-                DPRINTLN(DBG_DEBUG, F("processPayload - set complete"));
+                //DPRINTLN(DBG_INFO, F("processPayload - set complete, txId: ") + String(mPayload[iv->id].txId, HEX));
                 mPayload[iv->id].complete = true;
             }
+
             if(!mPayload[iv->id].complete ) {
                 if(!buildPayload(iv->id)) { // payload not complete
                     if(mPayload[iv->id].requested) {
@@ -365,7 +371,8 @@ void app::processPayload(bool retransmit) {
                     DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                     record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd); // choose the parser
                     mPayload[iv->id].complete = true;
-                    mStat.rxSuccess++;
+                    if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                        mStat.rxSuccess++;
 
                     uint8_t payload[128];
                     uint8_t offs = 0;
@@ -465,8 +472,6 @@ void app::processPayload(bool retransmit) {
                     }
 
                     iv->setQueuedCmdFinished();
-
-                    //resetPayload(iv);
 
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
