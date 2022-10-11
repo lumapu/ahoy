@@ -5,6 +5,17 @@
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript" src="api.js"></script>
+        <script type="text/javascript">
+            function load() {
+                for(it of document.getElementsByClassName("s_collapsible")) {
+                    it.addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        var content = this.nextElementSibling;
+                        content.style.display = (content.style.display === "block") ? "none" : "block";
+                    });
+                }
+            }
+        </script>
     </head>
     <body onload="load()">
         <h1>Setup</h1>
@@ -107,48 +118,10 @@
             <p class="right"><a href="/reboot">Reboot</a></p>
         </div>
         <script type="text/javascript">
-            function load() {
-                document.querySelectorAll('input[name^="inv"][name$="Addr"]').forEach(elm => {
-                    elm.addEventListener("keyup", (e) => {
-                        serial = elm.value.substring(0,4);
-                        iv = elm.name.substring(3,4);
-                        max = 0;
-                        for(i=0;i<4;i++) {
-                            toggle("inv"+iv+"ModPwr"+i, true);
-                            toggle("inv"+iv+"ModName"+i, true);
-                        }
-                        toggle("lbl"+iv+"ModPwr", true);
-                        toggle("lbl"+iv+"ModName", true);
-
-                        if(serial == "1161") max = 4;
-                        else if(serial == "1141") max = 2;
-                        else if(serial == "1121") max = 1;
-
-                        for(i=0;i<max;i++) {
-                            toggle("inv"+iv+"ModPwr"+i, false);
-                            toggle("inv"+iv+"ModName"+i, false);
-                        }
-                        if(max != 0) {
-                            toggle("lbl"+iv+"ModPwr", false);
-                            toggle("lbl"+iv+"ModName", false);
-                        }
-                    });
-                    evt = document.createEvent("HTMLEvents");
-                    evt.initEvent("keyup", false, true);
-                    elm.dispatchEvent(evt);
-                });
-
-                for(it of document.getElementsByClassName("s_collapsible")) {
-                    it.addEventListener("click", function() {
-                        this.classList.toggle("active");
-                        var content = this.nextElementSibling;
-                        content.style.display = (content.style.display === "block") ? "none" : "block";
-                    });
-                }
-            }
-
             var highestId = 0;
             var maxInv = 0;
+
+            const re = /11[2,4,6]1.*/;
 
             document.getElementsByName("btnAdd")[0].addEventListener("click", function() {
                 if(highestId < (maxInv-1))
@@ -163,7 +136,34 @@
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
 
-                for(var i of [["Addr", "serial", "Address*", 12], ["Name", "name", "Name*", 32], ["ActivePowerLimit", "power_limit", "Active Power Limit", 5]]) {
+                iv.appendChild(lbl(id + "Addr", "Address*"));
+                var addr = inp(id + "Addr", obj["serial"], 12)
+                iv.appendChild(addr);
+                addr.addEventListener("keyup", (e) => {
+                    var serial = addr.value.substring(0,4);
+                    var max = 0;
+                    for(var i=0;i<4;i++) {
+                        toggle(id+"ModPwr"+i, true);
+                        toggle(id+"ModName"+i, true);
+                    }
+                    toggle("lbl"+id+"ModPwr", true);
+                    toggle("lbl"+id+"ModName", true);
+
+                    if(serial == "1161") max = 4;
+                    else if(serial == "1141") max = 2;
+                    else if(serial == "1121") max = 1;
+
+                    for(var i=0;i<max;i++) {
+                        toggle(id+"ModPwr"+i, false);
+                        toggle(id+"ModName"+i, false);
+                    }
+                    if(max != 0) {
+                        toggle("lbl"+id+"ModPwr", false);
+                        toggle("lbl"+id+"ModName", false);
+                    }
+                });
+
+                for(var i of [["Name", "name", "Name*", 32], ["ActivePowerLimit", "power_limit", "Active Power Limit", 5]]) {
                     iv.appendChild(lbl(id + i[0], i[2]));
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
@@ -177,12 +177,14 @@
                     [257, "relativ in percent persistent"]
                 ], obj.power_limit_option));
 
-                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)"], ["ModName", "ch_name", "Module Name"]]) {
-                    iv.appendChild(lbl(id + j[0], j[2]));
+                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4], ["ModName", "ch_name", "Module Name", 16]]) {
+                    var cl = (re.test(obj["serial"])) ? null : ["hide"];
+                    iv.appendChild(lbl(null, j[2], cl, "lbl" + id + j[0]));
                     d = div([j[0]]);
                     i = 0;
+                    cl = (re.test(obj["serial"])) ? ["text", "sh"] : ["text", "sh", "hide"];
                     for(it of obj[j[1]]) {
-                        d.appendChild(inp(id + j[0] + i, it, 4, ["text", "sh"]));
+                        d.appendChild(inp(id + j[0] + i, it, j[3], cl, id + j[0] + i));
                         i++;
                     }
                     iv.appendChild(d);

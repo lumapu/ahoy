@@ -1,5 +1,5 @@
-function toggle(name, hide) {
-    var elm = document.getElementsByName(name)[0];
+function toggle(id, hide) {
+    var elm = document.getElementById(id);
     if(hide) {
         if(!elm.classList.contains("hide"))
             elm.classList.add("hide");
@@ -32,19 +32,22 @@ function des(val) {
     return e;
 }
 
-function lbl(id, val) {
+function lbl(htmlfor, val, cl=null, id=null) {
     e = document.createElement('label');
-    e.htmlFor = id;
+    e.htmlFor = htmlfor;
     e.innerHTML = val;
+    if(null != cl) e.classList.add(...cl);
+    if(null != id) e.id = id;
     return e;
 }
 
-function inp(name, val, max=32, cl=["text"]) {
+function inp(name, val, max=32, cl=["text"], id=null) {
     e = document.createElement('input');
     e.classList.add(...cl);
     e.name = name;
     e.value = val;
     e.maxLength = max;
+    if(null != id) e.id = id;
     return e;
 }
 
