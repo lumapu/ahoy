@@ -135,16 +135,17 @@
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
                 if(obj["success"])
-                    e.innerHTML = "ok";
+                    e.innerHTML = "command excuted";
                 else
                     e.innerHTML = "Error: " + obj["error"];
             }
 
             function setTime() {
                 var date = new Date();
+                var offset = date.getTimezoneOffset() * -60;
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(date.getTime() / 1000);
+                obj.ts = parseInt(offset + (date.getTime() / 1000));
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 

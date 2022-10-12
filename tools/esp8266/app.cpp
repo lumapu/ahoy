@@ -125,7 +125,7 @@ void app::loop(void) {
                         mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
                         iv->devControlRequest = false;
-                        if (p->packet[12] == ActivePowerContr && p->packet[13] == 0x00) {
+                        if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
                             if (p->packet[10] == 0x00 && p->packet[11] == 0x00)
                                 DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
                             else

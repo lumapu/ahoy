@@ -392,12 +392,10 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
 //-----------------------------------------------------------------------------
 bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
-    if(F("set_time") == jsonIn[F("cmd")]) {
+    if(F("set_time") == jsonIn[F("cmd")])
         mApp->setTimestamp(jsonIn[F("ts")]);
-    }
-    else if(F("sync_ntp") == jsonIn[F("cmd")]) {
+    else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag
-    }
     else {
         jsonOut[F("error")] = F("unknown cmd");
         return false;
