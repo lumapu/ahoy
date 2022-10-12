@@ -17,6 +17,8 @@
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">ESP-Time: </span><span id="date"></span></p>
+            <p><span class="des">Sunrise: </span><span id="sunrise"></span></p>
+            <p><span class="des">Sunset: </span><span id="sunset"></span></p>
             <p><span class="des">RSSI: </span><span id="wifi_rssi"></span>dBm</p>
             <p>
                 <span class="des">Statistics: </span>
@@ -57,11 +59,15 @@
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
+                var sunrise = new Date(obj["ts_sunrise"] * 1000);
+                var sunset = new Date(obj["ts_sunset"] * 1000);
                 document.getElementById("uptime").innerHTML = days + " Days, "
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
                 document.getElementById("date").innerHTML = date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                document.getElementById("sunrise").innerHTML = sunrise.toLocaleString('de-DE', {timeZone: 'UTC'});
+                document.getElementById("sunset").innerHTML = sunset.toLocaleString('de-DE', {timeZone: 'UTC'});
             }
 
             function parseStat(obj) {

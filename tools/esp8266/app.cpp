@@ -44,6 +44,8 @@ void app::setup(uint32_t timeout) {
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
+
+    mSun.setLocalization(52.6479, 13.6922); // ToDo: add lan/lon to setup, can also in app::loadEEpconfig or somewhere else in app.cpp
 }
 
 //-----------------------------------------------------------------------------
@@ -56,6 +58,8 @@ void app::loop(void) {
     if(millis() - mPrevMillis >= 1000) {
         mPrevMillis += 1000;
         mUptimeSecs++;
+        if(0 != mUtcTimestamp)
+            mUtcTimestamp++;
         if(0 != mTimestamp)
             mTimestamp++;
     }
@@ -67,7 +71,8 @@ void app::loop(void) {
 
     if(mUpdateNtp) {
         mUpdateNtp = false;
-        mTimestamp = mWifi->getNtpTime();
+        mUtcTimestamp = mWifi->getNtpTime();
+        mTimestamp = mUtcTimestamp + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
         DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
     }
 
@@ -149,6 +154,12 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
+        if(mTimestamp > 946684800 && mSun.LocalizationIsSet() && mTimestamp / 86400 > mLatestSunTimestamp / 86400) // update on reboot or new day
+        {
+            CalculateSunriseSunset(mTimestamp, &mSunrise, &mSunset);
+            mLatestSunTimestamp = mTimestamp;
+        }
+
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
@@ -195,7 +206,8 @@ void app::loop(void) {
         if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
-            if(0 != mTimestamp) {
+            bool DisableNightCommunication = false; // ToDo: Add option in setup to disable inverter communication at night
+            if(mUtcTimestamp > 946684800 && (!DisableNightCommunication || !mLatestSunTimestamp || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
                 if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
@@ -257,7 +269,7 @@ void app::loop(void) {
                 }
             }
             else if(mConfig.serialDebug)
-                DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
+                DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
             yield();
         }
     }
@@ -379,7 +391,7 @@ void app::processPayload(bool retransmit) {
                     if(NULL == rec)
                         DPRINTLN(DBG_ERROR, F("record is NULL!"));
                     else {
-                        rec->ts = mPayload[iv->id].ts;
+                        rec->ts = mPayload[iv->id].ts + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
                             yield();
@@ -679,8 +691,10 @@ void app::resetSystem(void) {
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]
 
 #ifdef AP_ONLY
+    mUtcTimestamp = 1;
     mTimestamp = 1;
 #else
+    mUtcTimestamp = 0;
     mTimestamp = 0;
 #endif
 
@@ -857,5 +871,35 @@ void app::resetPayload(Inverter<>* iv) {
     mPayload[iv->id].maxPackId   = 0;
     mPayload[iv->id].complete    = false;
     mPayload[iv->id].requested   = false;
-    mPayload[iv->id].ts          = mTimestamp;
+    mPayload[iv->id].ts          = mUtcTimestamp;
+}
+
+//-----------------------------------------------------------------------------
+// calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
+// from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
+uint8_t app::offsetDayLightSaving (uint32_t local_t) {
+    //DPRINTLN(DBG_VERBOSE, F("wifi::offsetDayLightSaving"));
+    int m = month (local_t);
+    if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
+    if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
+    int y = year (local_t);
+    int h = hour (local_t);
+    int hToday = (h + 24 * day(local_t));
+    if((m == 3  && hToday >= (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 4) % 7)))
+        || (m == 10 && hToday <  (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 1) % 7))) )
+        return 1;
+    else
+        return 0;
+}
+
+bool app::CalculateSunriseSunset(uint32_t localTimestamp, uint32_t *localSunrise, uint32_t *localSunset) { // true = day; false = night
+    uint32_t UTC_Timestamp_Sunrise, UTC_Timestamp_Sunset;
+    mSun.getRiseSet(localTimestamp, UTC_Timestamp_Sunrise, UTC_Timestamp_Sunset); // local timestamp is only used to calculate today's calendar day
+    *localSunrise = UTC_Timestamp_Sunrise + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunrise)) * 3600); // sunrise in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
+    *localSunset = UTC_Timestamp_Sunset + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunset)) * 3600); // sunset in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
+
+    if(localTimestamp >= *localSunrise && localTimestamp <= *localSunset)
+        return true; // it is day
+    else
+        return false; // it is night
 }

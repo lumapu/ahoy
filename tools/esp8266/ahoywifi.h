@@ -30,11 +30,9 @@ class ahoywifi {
         bool setupStation(uint32_t timeout);
         bool getApActive(void);
         time_t getNtpTime(void);
-        
+
     private:
         void sendNTPpacket(IPAddress& address);
-        time_t offsetDayLightSaving (uint32_t local_t);
-
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
