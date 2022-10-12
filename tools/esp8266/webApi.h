@@ -32,6 +32,7 @@ class webApi {
         void getInverterList(JsonObject obj);
         void getMqtt(JsonObject obj);
         void getNtp(JsonObject obj);
+        void getLatiLong(JsonObject obj);
         void getPinout(JsonObject obj);
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);

@@ -71,6 +71,23 @@
                     </fieldset>
                     </div>
 
+                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <div class="s_content">
+                    <fieldset>
+                    <legend class="des">Sunrise & Sunset</legend>
+                        <input id="clickMe" type="button" value="Get Location from Browser" onclick="getLocation();" /> Info: work only in SSL.
+                        <p id="demo"></p>
+                        <br>
+                        <label for="lat">Latitude</label>
+                        <input type="text" class="text" name="lat"/>
+                        <label for="lon">Longitude</label>
+                        <input type="text" class="text" name="lon"/>
+                        <br>
+                        <label for="disnightcom">disable night communication</label>
+                        <input type="checkbox" class="cb" name="disnightcom"/><br/>
+                    </fieldset>
+                    </div>
+
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
                     <fieldset>
@@ -237,6 +254,12 @@
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 
+            function parseLatLong(obj) {
+                for(var i of [["lat", "Latitude"], ["lon", "Longitude"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                document.getElementById("disnightcom").innerHTML = obj["obj"]
+            }
+
             function parsePinout(obj) {
                 var e = document.getElementById("pinout");
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
@@ -287,6 +310,7 @@
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
+                    parseLatLong(root["LatiLong"]);
                     parsePinout(root["pinout"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);

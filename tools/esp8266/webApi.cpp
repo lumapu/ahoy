@@ -185,6 +185,13 @@ void webApi::getNtp(JsonObject obj) {
     obj[F("port")] = String(mConfig->ntpPort);
 }
 
+//-----------------------------------------------------------------------------
+void webApi::getLatiLong(JsonObject obj) {
+    obj[F("lat")] = mConfig->lat;
+    obj[F("lon")] = mConfig->lon;
+    obj[F("disnightcom")] = mConfig->disnightcom;
+}
+
 
 //-----------------------------------------------------------------------------
 void webApi::getPinout(JsonObject obj) {
@@ -252,6 +259,7 @@ void webApi::getSetup(JsonObject obj) {
     getInverterList(obj.createNestedObject(F("inverter")));
     getMqtt(obj.createNestedObject(F("mqtt")));
     getNtp(obj.createNestedObject(F("ntp")));
+    getLatiLong(obj.createNestedObject(F("LatiLong")));
     getPinout(obj.createNestedObject(F("pinout")));
     getRadio(obj.createNestedObject(F("radio")));
     getSerial(obj.createNestedObject(F("serial")));

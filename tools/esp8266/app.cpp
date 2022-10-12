@@ -745,6 +745,11 @@ void app::loadDefaultConfig(void) {
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
     mConfig.ntpPort = DEF_NTP_PORT;
 
+    // Latitude + Longitude
+    mConfig.lat = 0;
+    mConfig.lon = 0;
+    mConfig.disnightcom    = false; // disable night communication
+
     // mqtt
     snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
     mConfig.mqtt.port = DEF_MQTT_PORT;

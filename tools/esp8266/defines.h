@@ -82,7 +82,6 @@ typedef enum {
 #define INV_CH_CH_NAME_LEN      MAX_NUM_INVERTERS * MAX_NAME_LENGTH * 4 // (4 channels)
 #define INV_INTERVAL_LEN        2                                       // uint16_t
 #define INV_MAX_RTRY_LEN        1                                       // uint8_t
-#define INV_PWR_LIM_LEN         MAX_NUM_INVERTERS * 2                   // uint16_t
 
 #define NTP_ADDR_LEN            32 // DNS Name
 
@@ -132,6 +131,11 @@ typedef struct {
     // mqtt
     mqttConfig_t mqtt;
 
+    // Latitude + Longitude
+    float lat;
+    float lon;
+    bool disnightcom;    
+
     // serial
     uint16_t serialInterval;
     bool serialShowIv;
@@ -148,8 +152,8 @@ typedef struct {
 
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
-#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1
-#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 4
+#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1 
+#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + (4 + 4 + 1) + 4 // in the brackets its needed for lon+lat+bool
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START

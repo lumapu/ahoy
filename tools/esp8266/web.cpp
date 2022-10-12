@@ -272,6 +272,13 @@ void web::showSave(AsyncWebServerRequest *request) {
             mConfig->ntpPort = request->arg("ntpPort").toInt() & 0xffff;
         }
 
+        // Latitude + Longitude
+        if(request->arg("lon") != "") {
+            mConfig->lat = request->arg("lat").toFloat();
+            mConfig->lon = request->arg("lon").toFloat();
+            mConfig->disnightcom  = (request->arg("disnightcom") == "on");
+        }
+
         // mqtt
         if(request->arg("mqttAddr") != "") {
             String addr = request->arg("mqttAddr");

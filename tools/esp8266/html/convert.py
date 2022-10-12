@@ -1,6 +1,7 @@
 import re
 import os
 import gzip
+import glob
 
 from pathlib import Path
 
@@ -62,10 +63,19 @@ def convert2Header(inFile, compress):
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
-convert2Header("index.html", True)
-convert2Header("setup.html", True)
-convert2Header("visualization.html", True)
-convert2Header("update.html", True)
-convert2Header("serial.html", True)
-convert2Header("style.css", True)
-convert2Header("api.js", True)
+# Todo: delete all, but ignore 'favicon_ico_gz.h'
+# delete all files in the 'h' dir
+#dir = './html/h'
+#for f in os.listdir(dir):
+#    os.remove(os.path.join(dir, f))
+
+# grab all files with following extensions
+os.chdir('./html')
+types = ('*.html', '*.css', '*.js') # the tuple of file types
+files_grabbed = []
+for files in types:
+    files_grabbed.extend(glob.glob(files))
+
+# go throw the array
+for val in files_grabbed:
+    convert2Header(val, True)
