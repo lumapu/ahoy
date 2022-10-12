@@ -9,26 +9,27 @@ assignees: ''
 
 Hardware
 Modelname: _
-[  ] ESP8266
-[  ] ESP32
-[  ] Raspberry Pi
+* [ ] ESP8266
+* [ ] ESP32
+* [ ] Raspberry Pi
 
 nRF24L01+ Module
-[  ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
-[  ] square dot indicates original Nordic Semicon chip 
-[  ] round dot indicates copy-cat / counterfeit SI labs chip
+* [ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
+* [ ] square dot indicates original Nordic Semicon chip 
+* [ ] round dot indicates copy-cat / counterfeit SI labs chip
 
 Antenna:
-[  ] circuit Board
-[  ] external Antenna
+* [ ] circuit Board
+* [ ] external Antenna
 
 Power Stabilization:
-[  ]  100uF Electrolytic Capacitor 
+* [ ]  100uF Electrolytic Capacitor 
 connected between +3.3V and GND (Pin 1 & 2) of the NRF Module
-[  ] Voltage stabilizing motherboard
+* [ ] Voltage stabilizing motherboard
 
 Connection diagram:
-[  ] Image of the your wiring attached
+* [ ] Image of the your wiring attached
+
 Connection diagram you used:
 | nRF24L01+ Pin | ESP8266/32 GPIO |
 | -----------------  | ---------------------- |
@@ -43,22 +44,22 @@ Connection diagram you used:
 Note: [] GND Pin 1 has a square mark on the nRF24L01+ module
 
 Software
-[  ] AhoyDTU
-[  ] OpenDTU
+* [ ] AhoyDTU
+* [ ] OpenDTU
 Version: 
 Github Hash: 
 
 Build & Flash Method:
-[  ] Platform IO
-[  ] Arduino
-[  ] ESP Tools
-Version: 
+* [ ] Platform IO
+* [ ] Arduino
+* [ ] ESP Tools
+Version / Git SHA: 
 
 Desktop OS:
-[  ] Linux
-[  ] Windows
-[  ] Mac OS
+* [ ] Linux
+* [ ] Windows
+* [ ] Mac OS
 
 Debugging:
-[  ] USB Serial Log (attached)
-[  ] Setup settings (use our templates ... to be added)
+* [ ] USB Serial Log (attached)
+* [ ] Setup settings (use our templates ... to be added)
