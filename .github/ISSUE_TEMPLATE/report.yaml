@@ -20,7 +20,7 @@ body:
     id: platform
     attributes:
       label: Platform
-      description: Which Hardware are you usning to run AhoyDTU on ?
+      description: Which Hardware are you using to run AhoyDTU on ?
       options:
         - ESP8266
         - ESP32
@@ -127,17 +127,17 @@ body:
     id: build-and-flash-method
     attributes:
       label: Build & Flash Method
-      description: What software do you use to build and flash our firmware images ?
+      description: What software do you use to flash / build & flash our firmware images ?
       options:
-        - ESP Tools
-        - Platform IO
+        - ESP Tools (flash)
+        - Platform IO (build & flash)
     validations:
       required: true
   - type: dropdown
     id: desktop-os
     attributes:
       label: Desktop
-      description: Which operating system are you using on your desktop ?
+      description: Which operating system are you using on your desktop to build & flash ?
       options:
         - Linux
         - Mac OS
@@ -147,7 +147,7 @@ body:
   - type: textarea
     id: debugging
     attributes:
-      label: Relevant log output
+      label: Debug Serial Log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       placeholder: |
         - USB Serial Log (attached)
