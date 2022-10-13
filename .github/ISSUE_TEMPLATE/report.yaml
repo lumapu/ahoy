@@ -1,51 +1,129 @@
-name: Bug Report
+name: AhoyDTU bug
 description: File a bug report
-title: "[Bug]: "
-labels: ["bug", "triage"]
+title: "[ESP8266/ESP32/RaspberryPi] Problem Description / Beschreibung"
+labels: ["bug", "needs-triage"]
 assignees:
-  - octocat
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
-  - type: input
-    id: contact
+        Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten.
+        Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
+
+        Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
+        We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
+  - type: markdown
     attributes:
-      label: Contact Details
-      description: How can we get in touch with you if we need more info?
-      placeholder: ex. email@example.com
+      value: "## Hardware"
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which Hardware are you usning to run AhoyDTU on ?
+      options:
+        - label: ESP8266
+        - label: ESP32
+        - label: RaspberryPi
+          required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model name
+      description: Please give us a precise description of your hardware and/or a link to the vendor
+      placeholder: 
     validations:
       required: false
-  - type: textarea
-    id: what-happened
-    attributes:
-      label: What happened?
-      description: Also tell us, what did you expect to happen?
-      placeholder: Tell us what you see!
-      value: "A bug happened!"
-    validations:
-      required: true
   - type: dropdown
-    id: version
+    id: nrf24l01-module
     attributes:
-      label: Version
-      description: What version of our software are you running?
-      options:
-        - 1.0.2 (Default)
-        - 1.0.3 (Edge)
-    validations:
-      required: true
-  - type: dropdown
-    id: browsers
-    attributes:
-      label: What browsers are you seeing the problem on?
+      label: nRF24L01+ Module
+      description: What type of nRF24L01+ chip is on your nRF24L01+ module ?
       multiple: true
       options:
-        - Firefox
-        - Chrome
-        - Safari
-        - Microsoft Edge
+        - [ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
+        - [ ] square dot indicates original Nordic Semicon chip 
+        - [ ] round dot indicates copy-cat / counterfeit SI labs chip
+  - type: dropdown
+    id: antenna
+    attributes:
+      label: Antenna
+      description: What type of antenna has your nRF24L01+ module ?
+      options:
+        - circuit Board
+        - external Antenna
+    validations:
+      required: true
+  - type: dropdown
+    id: power-stabilization
+    attributes:
+      label: Power Stabilization
+      description: What kind of power stabilization have you used for your nRF24L01+ module ?
+      options:
+        - [ ] noting (yet)
+        - [ ] ~100uF Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]
+        - [ ] Voltage stabilizing motherboard
+    validations:
+      required: true
+  - type: textarea
+    id: connection-diagram
+    attributes:
+      label: Connection diagram
+      description: Tell us which connection diagram you used?
+      placeholder: 
+      value: |
+        "## Connection diagram I used:"
+        "| nRF24L01+ Pin | ESP8266/32 GPIO |"
+        "| ------------- | --------------- |"
+        "| Pin 1 GND []  |  GND            |"
+        "| Pin 2 +3.3V   |  +3.3V          |"
+        "| Pin 3 CE      | GPIO_2/_4 CE    |"
+        "| Pin 4 CSN     | GPIO15/_5 CS    |"
+        "| Pin 5 SCK     | GPIO14/18 SCLK  |"
+        "| Pin 6 MOSI    | GPIO13/23 MOSI  |"
+        "| Pin 7 MISO    | GPIO12/19 MISO  |"
+        "| Pin 8 IRQ     | GPIO_0/0 IRQ    |"
+        "Note: [] GND Pin 1 has a square mark on the nRF24L01+ module"
+    validations:
+      required: true
+- type: input
+    id: software
+    attributes:
+      label: Software
+      description: What version of our software are you running?
+      placeholder: Version: 0.5.17 Github Hash: 5402e9b 
+      value: Version: _._.__ Github Hash: _______"
+    validations:
+      required: true
+  - type: dropdown
+    id: software
+    attributes:
+      label: Build & Flash Method
+      description: What software do you use to build and flash our firmware images ?
+      options:
+        - [ ] ESP Tools
+        - [ ] Platform IO
+    validations:
+      required: true
+  - type: dropdown
+    id: desktop-os
+    attributes:
+      label: Desktop
+      description: Which operating system are you using on your desktop?
+      options:
+        - [ ] Linux
+        - [ ] Mac OS
+        - [ ] Windows
+    validations:
+      required: true
+  - type: textarea
+    id: Debugging
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      placeholder: |
+        * [ ] USB Serial Log (attached)
+        * [ ] Setup settings (use our templates ... to be added)
+      render: shell
   - type: textarea
     id: logs
     attributes:
@@ -55,8 +133,9 @@ body:
   - type: checkboxes
     id: terms
     attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
+      label: Connection picture
+      description: 
       options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
+        - label: I will attach/upload an Image of my wiring
+    validations:
+      required: true
