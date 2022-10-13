@@ -8,11 +8,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        "Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten."
-        "Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!"
-        ""
-        "Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post."
-        "We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!"
+        Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten.
+        Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
+        
+        Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
+        We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
   - type: markdown
     attributes:
       value: "## Hardware"
