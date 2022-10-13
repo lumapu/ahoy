@@ -251,9 +251,9 @@
             }
 
             function parseSun(obj) {
-                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
                 document.getElementsByName("sunLat")[0].value = obj["lat"]; 
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
+                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
             }
 
             function parsePinout(obj) {
