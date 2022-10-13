@@ -273,9 +273,16 @@ void web::showSave(AsyncWebServerRequest *request) {
         }
 
         // sun
-        if(request->arg("sunDisNightCom") != "") mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
-        if(request->arg("sunLat") != "") mConfig->sunLat = request->arg("sunLat").toFloat();
-        if(request->arg("sunLon") != "") mConfig->sunLon = request->arg("sunLon").toFloat();
+        if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
+            mConfig->sunLat = 0.0;
+            mConfig->sunLon = 0.0;
+            mConfig->sunDisNightCom = false;
+        } else {
+            mConfig->sunLat = request->arg("sunLat").toFloat();
+            mConfig->sunLon = request->arg("sunLon").toFloat();
+            mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
+        }
+        
 
         // mqtt
         if(request->arg("mqttAddr") != "") {
