@@ -76,7 +76,7 @@ body:
     validations:
       required: true
   - type: dropdown
-    id: software
+    id: build-and-flash-method
     attributes:
       label: "Build & Flash Method"
       description: What software do you use to build and flash our firmware images ?
@@ -97,7 +97,7 @@ body:
     validations:
       required: true
   - type: textarea
-    id: Debugging
+    id: debugging
     attributes:
       label: Relevant log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
@@ -112,7 +112,7 @@ body:
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       render: shell
   - type: checkboxes
-    id: terms
+    id: connection-picture
     attributes:
       label: Connection picture
       description: 
