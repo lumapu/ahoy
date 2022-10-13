@@ -257,3 +257,20 @@ In case all commands are processed (`_commandQueue.empty() == true`) then as a d
 
 In case a Device Control command (Power Limit, Off, On) is requested via MQTT or REST API this request will be send before any other enqueued command.
 In case of a accepted change in power limit the command  get active power limit in percent (`SystemConfigPara = 5 // 0x05`) will be enqueued. The acceptance is checked by the reponse packets on the devive control commands (tx id 0x51 --> rx id 0xD1) if in byte 12 the requested sub-command (eg. power limit) is present.
+
+## How To
+### Sunrise & Sunset
+In order to display the sunrise and sunset on the start page, the location coordinates (latitude and longitude) must be set in decimal in the setup under Sunrise & Sunset. If the coordinates are set, the current sunrise and sunset are calculated and displayed daily.
+If this is set, you can also tick "disable night communication", then sending to the inverter is switched off outside of the day (i.e. at night), this avoids unnecessary communication attempts and thus also the incrementing of "RX no anwser".
+Here you can get easy your GeoLocation: [https://www.mapsdirections.info/en/gps-coordinates.html](https://www.mapsdirections.info/en/gps-coordinates.html)
+### Commands and informations
+Turn On - turns on the inverter/feeder (LED flashes green if there is no error)
+Turn Off - switches off the inverter/feeder (LED flashes fast red), can be switched on again with Turn On or by disconnecting and reconnecting the DC voltage
+Restart - restarts the microcontroller in the inverter, which deletes the error memory and the YieldDay values, feed-in stops briefly and starts with the last persistent limit
+Send Power Limit:
+- A limitation of the AC power can be sent in relative (in %) or in absolute (Watt).
+- It can be set to a different value non-persistently (temporarily) at any time (regardless of what you have set for persistent), this should be normal in order to limit the power (zero feed/battery control) and does not damage the EEPROM in the WR either.
+- With persistent you send a saving limit (only use it seldom, otherwise the EEPROM in the HM can break!), This is then used as the next switch-on limit when DC comes on, i.e. when the sun comes up early or the WR on batteries is switched on the limit is applied immediately when sending, like any other, but it is stored in the EEPROM of the WR.
+- A persistent limit is only needed if you want to throttle your inverter permanently or you can use it to set a start value on the battery, which is then always the switch-on limit when switching on, otherwise it would ramp up to 100% without regulation, which is continuous load is not healthy.
+- You can set a new limit in the turn-off state, which is then used for on (switching on again), otherwise the last limit from before the turn-off is used, but of course this only applies if DC voltage is applied the whole time.
+- If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
