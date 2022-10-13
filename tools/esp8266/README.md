@@ -23,6 +23,7 @@
       - [HTTP based Pages](#http-based-pages)
 - [MQTT command to set the DTU without webinterface](#mqtt-command-to-set-the-dtu-without-webinterface)
 - [Used Libraries](#used-libraries)
+- [How To](#how-to)
 - [Contact](#contact)
 - [ToDo](#todo)
 
@@ -219,7 +220,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.1.1/setup](http://192.168.1.1/setup) ).<br/>
 
 | page | use | output |
-| ---- | ------ | ------ |
+| ------ | ------ | ------ |
 | /uptime | displays the uptime of your Ahoy DTU | 0 Days, 01:37:34; now: 2022-08-21 11:13:53 |
 | /reboot | reboots the Ahoy DTU | |
 | /erase | erases the EEPROM |    |
@@ -257,6 +258,24 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 We run a Discord Server that can be used to get in touch with the Developers and Users.
 
 <https://discord.gg/WzhxEY62mB>
+
+
+## How To
+### Sunrise & Sunset
+In order to display the sunrise and sunset on the start page, the location coordinates (latitude and longitude) must be set in decimal in the setup under Sunrise & Sunset. If the coordinates are set, the current sunrise and sunset are calculated and displayed daily.
+If this is set, you can also tick "disable night communication", then sending to the inverter is switched off outside of the day (i.e. at night), this avoids unnecessary communication attempts and thus also the incrementing of "RX no anwser".
+Here you can get easy your GeoLocation: [https://www.mapsdirections.info/en/gps-coordinates.html](https://www.mapsdirections.info/en/gps-coordinates.html)
+### Commands and informations
+Turn On - turns on the inverter/feeder (LED flashes green if there is no error)
+Turn Off - switches off the inverter/feeder (LED flashes fast red), can be switched on again with Turn On or by disconnecting and reconnecting the DC voltage
+Restart - restarts the microcontroller in the inverter, which deletes the error memory and the YieldDay values, feed-in stops briefly and starts with the last persistent limit
+Send Power Limit:
+- A limitation of the AC power can be sent in relative (in %) or in absolute (Watt).
+- It can be set to a different value non-persistently (temporarily) at any time (regardless of what you have set for persistent), this should be normal in order to limit the power (zero feed/battery control) and does not damage the EEPROM in the WR either.
+- With persistent you send a saving limit (only use it seldom, otherwise the EEPROM in the HM can break!), This is then used as the next switch-on limit when DC comes on, i.e. when the sun comes up early or the WR on batteries is switched on the limit is applied immediately when sending, like any other, but it is stored in the EEPROM of the WR.
+- A persistent limit is only needed if you want to throttle your inverter permanently or you can use it to set a start value on the battery, which is then always the switch-on limit when switching on, otherwise it would ramp up to 100% without regulation, which is continuous load is not healthy.
+- You can set a new limit in the turn-off state, which is then used for on (switching on again), otherwise the last limit from before the turn-off is used, but of course this only applies if DC voltage is applied the whole time.
+- If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
 
 ## ToDo
 
