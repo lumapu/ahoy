@@ -27,7 +27,7 @@ body:
         - RaspberryPi
     validations:
       required: true
-  - type: textarea
+  - type: input
     id: model
     attributes:
       label: Model name
@@ -42,17 +42,20 @@ body:
       description: What type of nRF24L01+ chip is on your nRF24L01+ module ?
       multiple: true
       options:
-        - nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
-        - square dot indicates original Nordic Semicon chip
-        - round dot indicates copy-cat / counterfeit SI labs chip
+        - nRF24L01+ Plus 
+          - label: you verified this is a model capable of the required 256kBit/s mode
+        - square dot
+          - label: indicates original Nordic Semicon chip
+        - round dot
+          - label: indicates copy-cat / counterfeit SI labs chip
   - type: dropdown
     id: antenna
     attributes:
       label: Antenna
       description: What type of antenna has your nRF24L01+ module ?
       options:
-        - circuit Board
-        - external Antenna
+        - circuit board
+        - external antenna
     validations:
       required: true
   - type: dropdown
@@ -61,9 +64,11 @@ body:
       label: Power Stabilization
       description: What kind of power stabilization have you used for your nRF24L01+ module ?
       options:
-        - noting (yet)
-        - ~100uF Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]
-        - Voltage stabilizing motherboard
+        - nothing
+        - ~100uF Elko
+          - label: Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]
+        - board
+          - label: Voltage stabilizing motherboard
     validations:
       required: true
   - type: textarea
@@ -83,25 +88,42 @@ body:
         | Pin 6 MOSI    | GPIO13/23 MOSI  |
         | Pin 7 MISO    | GPIO12/19 MISO  |
         | Pin 8 IRQ     | GPIO_0/0 IRQ    |
+        
         Note: [] GND Pin 1 has a square mark on the nRF24L01+ module
+    validations:
+      required: true
+  - type: checkboxes
+    id: connection-picture
+    attributes:
+      label: Connection picture
+      description: 
+      options:
+        - label: I will attach/upload an Image of my wiring
     validations:
       required: true
   - type: markdown
     attributes:
       value: "## Software"
   - type: input
-    id: software
+    id: software-version
     attributes:
-      label: Software
+      label: Version
       description: What version of our software are you running ?
-      placeholder: "Version: 0.5.17 Github Hash: 5402e9b"
-      value: "Version: _._.__ Github Hash: _______"
+      placeholder: 0.5.17
+    validations:
+      required: true
+  - type: input
+    id: software-githash
+    attributes:
+      label: Github Hash
+      description: Which GitHub hash has the build of our software ?
+      placeholder: 5402e9b
     validations:
       required: true
   - type: dropdown
     id: build-and-flash-method
     attributes:
-      label: "Build & Flash Method"
+      label: Build & Flash Method
       description: What software do you use to build and flash our firmware images ?
       options:
         - ESP Tools
@@ -128,12 +150,3 @@ body:
         - USB Serial Log (attached)
         - Setup settings (use our templates ... to be added)
       render: shell
-  - type: checkboxes
-    id: connection-picture
-    attributes:
-      label: Connection picture
-      description: 
-      options:
-        - label: I will attach/upload an Image of my wiring
-    validations:
-      required: true
