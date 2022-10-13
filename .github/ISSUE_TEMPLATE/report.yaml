@@ -7,11 +7,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten.
-        Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
-
-        Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
-        We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
+        "Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten."
+        "Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!"
+        ""
+        "Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post."
+        "We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!"
   - type: markdown
     attributes:
       value: "## Hardware"
@@ -36,8 +36,8 @@ body:
   - type: dropdown
     id: nrf24l01-module
     attributes:
-      label: nRF24L01+ Module
-      description: What type of nRF24L01+ chip is on your nRF24L01+ module ?
+      label: "nRF24L01+ Module"
+      description: "What type of nRF24L01+ chip is on your nRF24L01+ module ?"
       multiple: true
       options:
         - "[ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode"
@@ -47,7 +47,7 @@ body:
     id: antenna
     attributes:
       label: Antenna
-      description: What type of antenna has your nRF24L01+ module ?
+      description: "What type of antenna has your nRF24L01+ module ?"
       options:
         - circuit Board
         - external Antenna
@@ -57,7 +57,7 @@ body:
     id: power-stabilization
     attributes:
       label: Power Stabilization
-      description: What kind of power stabilization have you used for your nRF24L01+ module ?
+      description: "What kind of power stabilization have you used for your nRF24L01+ module ?"
       options:
         - "[ ] noting (yet)"
         - "[ ] ~100uF Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]"
@@ -89,16 +89,16 @@ body:
     id: software
     attributes:
       label: Software
-      description: What version of our software are you running?
-      placeholder: Version: 0.5.17 Github Hash: 5402e9b 
-      value: Version: _._.__ Github Hash: _______"
+      description: "What version of our software are you running?"
+      placeholder: "Version: 0.5.17 Github Hash: 5402e9b"
+      value: "Version: _._.__ Github Hash: _______"
     validations:
       required: true
   - type: dropdown
     id: software
     attributes:
-      label: Build & Flash Method
-      description: What software do you use to build and flash our firmware images ?
+      label: "Build & Flash Method"
+      description: "What software do you use to build and flash our firmware images ?"
       options:
         - "[ ] ESP Tools"
         - "[ ] Platform IO"
@@ -108,7 +108,7 @@ body:
     id: desktop-os
     attributes:
       label: Desktop
-      description: Which operating system are you using on your desktop?
+      description: "Which operating system are you using on your desktop?"
       options:
         - "[ ] Linux"
         - "[ ] Mac OS"
@@ -136,6 +136,6 @@ body:
       label: Connection picture
       description: 
       options:
-        - label: I will attach/upload an Image of my wiring
+        - label: "I will attach/upload an Image of my wiring"
     validations:
       required: true
