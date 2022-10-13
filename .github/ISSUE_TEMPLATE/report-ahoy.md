@@ -7,59 +7,63 @@ assignees: ''
 
 ---
 
-Hardware
-Modelname: _
-* [ ] ESP8266
-* [ ] ESP32
-* [ ] Raspberry Pi
+## Hardware
+  * [ ] ESP8266
+  * [ ] ESP32
+  * [ ] Raspberry Pi
 
-nRF24L01+ Module
-* [ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
-* [ ] square dot indicates original Nordic Semicon chip 
-* [ ] round dot indicates copy-cat / counterfeit SI labs chip
+Modelname: ______
+Retailer URL: ______
 
-Antenna:
-* [ ] circuit Board
-* [ ] external Antenna
+### nRF24L01+ Module
+* [ ] nRF24L01+ you verified this is a **Plus model** capable of the required 256kBit/s mode
+* [ ] **square dot** indicates original Nordic Semicon chip 
+* [ ] **round dot** indicates copy-cat / counterfeit SI labs chip
 
-Power Stabilization:
+### Antenna:
+* [ ] circuit board
+* [ ] external antenna
+
+### Power Stabilization:
 * [ ]  100uF Electrolytic Capacitor 
 connected between +3.3V and GND (Pin 1 & 2) of the NRF Module
 * [ ] Voltage stabilizing motherboard
 
-Connection diagram:
+### Connection diagram:
 * [ ] Image of the your wiring attached
 
-Connection diagram you used:
+### Connection diagram I used:
 | nRF24L01+ Pin | ESP8266/32 GPIO |
-| -----------------  | ---------------------- |
-| Pin 1 GND []     |  GND                          |
-| Pin 2 +3.3V       |  +3.3V                        |
-| Pin 3 CE              | GPIO_2/_4 CE        |
-| Pin 4 CSN          | GPIO15/_5 CS         |
-| Pin 5 SCK           | GPIO14/18 SCLK    |
-| Pin 6 MOSI        | GPIO13/23 MOSI   |
-| Pin 7 MISO        | GPIO12/19 MISO   |
-| Pin 8 IRQ            | GPIO_0/0 IRQ     |
+| ------------- | --------------- |
+| Pin 1 GND []  |  GND            |
+| Pin 2 +3.3V   |  +3.3V          |
+| Pin 3 CE      | GPIO_2/_4 CE    |
+| Pin 4 CSN     | GPIO15/_5 CS    |
+| Pin 5 SCK     | GPIO14/18 SCLK  |
+| Pin 6 MOSI    | GPIO13/23 MOSI  |
+| Pin 7 MISO    | GPIO12/19 MISO  |
+| Pin 8 IRQ     | GPIO_0/0 IRQ    |
+
 Note: [] GND Pin 1 has a square mark on the nRF24L01+ module
 
-Software
+## Software
 * [ ] AhoyDTU
 * [ ] OpenDTU
-Version: 
-Github Hash: 
 
-Build & Flash Method:
-* [ ] Platform IO
+### Version / Git SHA: 
+Version: _._.__
+Github Hash: _______
+
+### Build & Flash Method:
 * [ ] Arduino
 * [ ] ESP Tools
-Version / Git SHA: 
+* [ ] Platform IO
 
-Desktop OS:
+### Desktop OS:
 * [ ] Linux
 * [ ] Windows
 * [ ] Mac OS
 
-Debugging:
+### Debugging:
 * [ ] USB Serial Log (attached)
 * [ ] Setup settings (use our templates ... to be added)
