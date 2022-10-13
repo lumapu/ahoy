@@ -3,6 +3,7 @@ description: "File a bug report"
 title: "[ESP8266/ESP32/RaspberryPi] Problem Description / Beschreibung"
 labels: ["bug", "needs-triage"]
 assignees:
+  - stefan123t
 body:
   - type: markdown
     attributes:
@@ -43,3 +44,13 @@ body:
         - "[ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode"
         - "[ ] square dot indicates original Nordic Semicon chip"
         - "[ ] round dot indicates copy-cat / counterfeit SI labs chip"
+  - type: dropdown
+    id: antenna
+    attributes:
+      label: Antenna
+      description: "What type of antenna has your nRF24L01+ module ?"
+      options:
+        - circuit Board
+        - external Antenna
+    validations:
+      required: true
