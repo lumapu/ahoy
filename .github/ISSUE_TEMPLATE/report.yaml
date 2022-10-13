@@ -39,15 +39,16 @@ body:
     id: nrf24l01-module
     attributes:
       label: nRF24L01+ Module
-      description: What type of nRF24L01+ chip is on your nRF24L01+ module ?
+      description: | 
+        What type of nRF24L01+ chip is on your nRF24L01+ module ?
+        * you verified this is a **nRF24L01+ plus** model capable of the required 256kBit/s mode ?
+        * **square dot** indicates original Nordic Semicon chip ?
+        * **round dot** indicates copy-cat / counterfeit SI labs chip
       multiple: true
       options:
-        - nRF24L01+ Plus 
-          - label: you verified this is a model capable of the required 256kBit/s mode
+        - nRF24L01+ plus 
         - square dot
-          - label: indicates original Nordic Semicon chip
         - round dot
-          - label: indicates copy-cat / counterfeit SI labs chip
   - type: dropdown
     id: antenna
     attributes:
@@ -62,13 +63,15 @@ body:
     id: power-stabilization
     attributes:
       label: Power Stabilization
-      description: What kind of power stabilization have you used for your nRF24L01+ module ?
+      description: |
+        What kind of voltage / power stabilization have you used for your nRF24L01+ module ?
+        * **~100uF Elko** (Electrolytic Capacitor) connected between +3.3V and GND (Pin 1 & 2) of the nRF24L01+ Module
+        * special **voltage stabilizing board**
+        * **nothing** (yet)
       options:
-        - nothing
         - ~100uF Elko
-          - label: Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]
         - board
-          - label: Voltage stabilizing motherboard
+        - nothing
     validations:
       required: true
   - type: textarea
