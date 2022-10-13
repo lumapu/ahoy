@@ -38,8 +38,8 @@ body:
   - type: dropdown
     id: nrf24l01-module
     attributes:
-      label: "nRF24L01+ Module"
-      description: "What type of nRF24L01+ chip is on your nRF24L01+ module ?"
+      label: nRF24L01+ Module
+      description: What type of nRF24L01+ chip is on your nRF24L01+ module ?
       multiple: true
       options:
         - nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
@@ -49,7 +49,7 @@ body:
     id: antenna
     attributes:
       label: Antenna
-      description: "What type of antenna has your nRF24L01+ module ?"
+      description: What type of antenna has your nRF24L01+ module ?
       options:
         - circuit Board
         - external Antenna
@@ -59,32 +59,41 @@ body:
     id: power-stabilization
     attributes:
       label: Power Stabilization
-      description: "What kind of power stabilization have you used for your nRF24L01+ module ?"
+      description: What kind of power stabilization have you used for your nRF24L01+ module ?
       options:
-        - "[ ] noting (yet)"
-        - "[ ] ~100uF Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]"
-        - "[ ] Voltage stabilizing motherboard"
+        - noting (yet)
+        - ~100uF Electrolytic Capacitor [connected between +3.3V and GND (Pin 1 & 2) of the NRF Module]
+        - Voltage stabilizing motherboard
+    validations:
+      required: true
+  - type: input
+    id: software
+    attributes:
+      label: Software
+      description: What version of our software are you running ?
+      placeholder: Version: 0.5.17 Github Hash: 5402e9b
+      value: Version: _._.__ Github Hash: _______
     validations:
       required: true
   - type: dropdown
     id: software
     attributes:
       label: "Build & Flash Method"
-      description: "What software do you use to build and flash our firmware images ?"
+      description: What software do you use to build and flash our firmware images ?
       options:
-        - "[ ] ESP Tools"
-        - "[ ] Platform IO"
+        - ESP Tools
+        - Platform IO
     validations:
       required: true
   - type: dropdown
     id: desktop-os
     attributes:
       label: Desktop
-      description: "Which operating system are you using on your desktop?"
+      description: Which operating system are you using on your desktop ?
       options:
-        - "[ ] Linux"
-        - "[ ] Mac OS"
-        - "[ ] Windows"
+        - Linux
+        - Mac OS
+        - Windows
     validations:
       required: true
   - type: textarea
@@ -93,8 +102,8 @@ body:
       label: Relevant log output
       description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
       placeholder: |
-        - "[ ] USB Serial Log (attached)"
-        - "[ ] Setup settings (use our templates ... to be added)"
+        - USB Serial Log (attached)
+        - Setup settings (use our templates ... to be added)
       render: shell
   - type: textarea
     id: logs
@@ -108,6 +117,6 @@ body:
       label: Connection picture
       description: 
       options:
-        - label: "I will attach/upload an Image of my wiring"
+        - label: I will attach/upload an Image of my wiring
     validations:
       required: true
