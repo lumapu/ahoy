@@ -3,6 +3,7 @@ description: File a bug report
 title: "[ESP8266/ESP32/RaspberryPi] Problem Description / Beschreibung"
 labels: ["bug", "needs-triage"]
 assignees:
+  - stefan123t
 body:
   - type: markdown
     attributes:
