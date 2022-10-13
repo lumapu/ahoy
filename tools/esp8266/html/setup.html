@@ -75,16 +75,13 @@
                     <div class="s_content">
                     <fieldset>
                     <legend class="des">Sunrise & Sunset</legend>
-                        <input id="clickMe" type="button" value="Get Location from Browser" onclick="getLocation();" /> Info: work only in SSL.
-                        <p id="demo"></p>
+                        <label for="sunLat">Latitude (decimal)</label>
+                        <input type="text" class="text" name="sunLat"/>
+                        <label for="sunLon">Longitude (decimal)</label>
+                        <input type="text" class="text" name="sunLon"/>
                         <br>
-                        <label for="lat">Latitude</label>
-                        <input type="text" class="text" name="lat"/>
-                        <label for="lon">Longitude</label>
-                        <input type="text" class="text" name="lon"/>
-                        <br>
-                        <label for="disnightcom">disable night communication</label>
-                        <input type="checkbox" class="cb" name="disnightcom"/><br/>
+                        <label for="sunDisNightCom">disable night communication</label>
+                        <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
                     </fieldset>
                     </div>
 
@@ -159,10 +156,9 @@
 
             function setTime() {
                 var date = new Date();
-                var offset = date.getTimezoneOffset() * -60;
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(offset + (date.getTime() / 1000));
+                obj.ts = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 
@@ -207,7 +203,7 @@
                     }
                 });
 
-                for(var i of [["Name", "name", "Name*", 32]]) { // so richtig?
+                for(var i of [["Name", "name", "Name*", 32]]) {
                     iv.appendChild(lbl(id + i[0], i[2]));
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
@@ -254,10 +250,10 @@
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 
-            function parseLatLong(obj) {
-                for(var i of [["lat", "Latitude"], ["lon", "Longitude"]])
-                    document.getElementsByName(i[0])[0].value = obj[i[1]];
-                document.getElementById("disnightcom").innerHTML = obj["obj"]
+            function parseSun(obj) {
+                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"] ? true : false;
+                document.getElementsByName("sunLat")[0].value = parseFloat(obj["lat"]);
+                document.getElementsByName("sunLon")[0].value = parseFloat(obj["lon"]);
             }
 
             function parsePinout(obj) {
@@ -310,7 +306,7 @@
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
-                    parseLatLong(root["LatiLong"]);
+                    parseSun(root["sun"]);
                     parsePinout(root["pinout"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);

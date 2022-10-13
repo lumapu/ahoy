@@ -131,10 +131,10 @@ typedef struct {
     // mqtt
     mqttConfig_t mqtt;
 
-    // Latitude + Longitude
-    float lat;
-    float lon;
-    bool disnightcom;    
+    // sun
+    float sunLat;
+    float sunLon;
+    bool sunDisNightCom; // disable night communication
 
     // serial
     uint16_t serialInterval;
@@ -153,7 +153,7 @@ typedef struct {
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
 #define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1 
-#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + (4 + 4 + 1) + 4 // in the brackets its needed for lon+lat+bool
+#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + 9 + 4
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START

@@ -272,12 +272,10 @@ void web::showSave(AsyncWebServerRequest *request) {
             mConfig->ntpPort = request->arg("ntpPort").toInt() & 0xffff;
         }
 
-        // Latitude + Longitude
-        if(request->arg("lon") != "") {
-            mConfig->lat = request->arg("lat").toFloat();
-            mConfig->lon = request->arg("lon").toFloat();
-            mConfig->disnightcom  = (request->arg("disnightcom") == "on");
-        }
+        // sun
+        if(request->arg("sunDisNightCom") != "") mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
+        if(request->arg("sunLat") != "") mConfig->sunLat = request->arg("sunLat").toFloat();
+        if(request->arg("sunLon") != "") mConfig->sunLon = request->arg("sunLon").toFloat();
 
         // mqtt
         if(request->arg("mqttAddr") != "") {

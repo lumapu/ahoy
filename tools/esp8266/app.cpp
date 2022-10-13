@@ -44,8 +44,6 @@ void app::setup(uint32_t timeout) {
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
-
-    mSun.setLocalization(52.6479, 13.6922); // ToDo: add lan/lon to setup, can also in app::loadEEpconfig or somewhere else in app.cpp
 }
 
 //-----------------------------------------------------------------------------
@@ -206,8 +204,7 @@ void app::loop(void) {
         if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
-            bool DisableNightCommunication = false; // ToDo: Add option in setup to disable inverter communication at night
-            if(mUtcTimestamp > 946684800 && (!DisableNightCommunication || !mLatestSunTimestamp || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
+            if(mUtcTimestamp > 946684800 && (!mConfig.sunDisNightCom || !mLatestSunTimestamp || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
                 if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
@@ -746,9 +743,9 @@ void app::loadDefaultConfig(void) {
     mConfig.ntpPort = DEF_NTP_PORT;
 
     // Latitude + Longitude
-    mConfig.lat = 0;
-    mConfig.lon = 0;
-    mConfig.disnightcom    = false; // disable night communication
+    mConfig.sunLat = 0.0;
+    mConfig.sunLon = 0.0;
+    mConfig.sunDisNightCom = false;
 
     // mqtt
     snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
@@ -803,6 +800,9 @@ void app::loadEEpconfig(void) {
             if(NULL != iv)
                 resetPayload(iv);
         }
+
+        // load sun localization
+        mSun.setLocalization(mConfig.sunLat, mConfig.sunLon);
     }
 }
 
@@ -826,6 +826,10 @@ void app::saveValues(void) {
     }
 
     updateCrc();
+
+    // update sun localization
+    mSun.setLocalization(mConfig.sunLat, mConfig.sunLon);
+    mLatestSunTimestamp = 0;
 }
 
 
