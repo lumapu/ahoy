@@ -66,36 +66,6 @@ body:
         - "[ ] Voltage stabilizing motherboard"
     validations:
       required: true
-  - type: textarea
-    id: connection-diagram
-    attributes:
-      label: Connection diagram
-      description: Tell us which connection diagram you used?
-      placeholder: 
-      value: |
-        "## Connection diagram I used:"
-        "| nRF24L01+ Pin | ESP8266/32 GPIO |"
-        "| ------------- | --------------- |"
-        "| Pin 1 GND []  |  GND            |"
-        "| Pin 2 +3.3V   |  +3.3V          |"
-        "| Pin 3 CE      | GPIO_2/_4 CE    |"
-        "| Pin 4 CSN     | GPIO15/_5 CS    |"
-        "| Pin 5 SCK     | GPIO14/18 SCLK  |"
-        "| Pin 6 MOSI    | GPIO13/23 MOSI  |"
-        "| Pin 7 MISO    | GPIO12/19 MISO  |"
-        "| Pin 8 IRQ     | GPIO_0/0 IRQ    |"
-        "Note: [] GND Pin 1 has a square mark on the nRF24L01+ module"
-    validations:
-      required: true
-- type: input
-    id: software
-    attributes:
-      label: Software
-      description: "What version of our software are you running?"
-      placeholder: "Version: 0.5.17 Github Hash: 5402e9b"
-      value: "Version: _._.__ Github Hash: _______"
-    validations:
-      required: true
   - type: dropdown
     id: software
     attributes:
