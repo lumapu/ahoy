@@ -22,9 +22,9 @@ body:
       label: Platform
       description: Which Hardware are you usning to run AhoyDTU on ?
       options:
-        - label: ESP8266
-        - label: ESP32
-        - label: RaspberryPi
+        - ESP8266
+        - ESP32
+        - RaspberryPi
           required: true
   - type: textarea
     id: model
@@ -41,9 +41,9 @@ body:
       description: "What type of nRF24L01+ chip is on your nRF24L01+ module ?"
       multiple: true
       options:
-        - "[ ] nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode"
-        - "[ ] square dot indicates original Nordic Semicon chip"
-        - "[ ] round dot indicates copy-cat / counterfeit SI labs chip"
+        - nRF24L01+ you verified this is a Plus model capable of the required 256kBit/s mode
+        - square dot indicates original Nordic Semicon chip
+        - round dot indicates copy-cat / counterfeit SI labs chip
   - type: dropdown
     id: antenna
     attributes:
