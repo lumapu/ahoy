@@ -72,7 +72,7 @@ body:
       label: Software
       description: What version of our software are you running ?
       placeholder: "Version: 0.5.17 Github Hash: 5402e9b"
-      value: Version: _._.__ Github Hash: _______
+      value: "Version: _._.__ Github Hash: _______"
     validations:
       required: true
   - type: dropdown
