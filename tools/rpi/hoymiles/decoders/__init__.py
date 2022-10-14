@@ -169,6 +169,11 @@ class StatusResponse(Response):
         data['powerfactor'] = self.powerfactor
         data['event_count'] = self.event_count
         data['time'] = self.time_rx
+
+        data['energy_total'] = 0.0
+        for string in data['strings']:
+            data['energy_total'] += string['energy_total']
+
         return data
 
 class UnknownResponse(Response):
