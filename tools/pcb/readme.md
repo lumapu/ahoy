@@ -5,4 +5,4 @@ Simple pcb to plug a nRF24L01+ together with a Wemos D1 Mini / Pro. Thos pcb als
 Download Target 3001 schematics [here](nRF24L01_ESP.T3001)
 
 ## 3D previev
-![img](https://github.com/pascaltippelt/ahoy/raw/main/tools/pcb/pcb_1.JPG)
+![img](https://github.com/pascaltippelt/ahoy/raw/main/tools/pcb/pcb_3.JPG)
