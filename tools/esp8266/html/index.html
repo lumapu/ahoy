@@ -17,7 +17,7 @@
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">ESP-Time: </span><span id="date"></span></p>
-            <p><span class="des">RSSI: </span><span id="wifi_rssi"></span>dBm</p>
+            <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
             <p>
                 <span class="des">Statistics: </span>
                 <pre id="stat"></pre>
@@ -67,7 +67,7 @@
             function parseStat(obj) {
                 document.getElementById("stat").innerHTML = "RX success: " + obj["rx_success"]
                     + "\nRX fail: " + obj["rx_fail"]
-                    + "\nRX no anwser: " + obj["rx_fail_answer"]
+                    + "\nRX no answer: " + obj["rx_fail_answer"]
                     + "\nFrames received: " + obj["frame_cnt"]
                     + "\nTX Cnt: " + obj["tx_cnt"];
             }
