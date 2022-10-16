@@ -41,13 +41,14 @@ function lbl(htmlfor, val, cl=null, id=null) {
     return e;
 }
 
-function inp(name, val, max=32, cl=["text"], id=null) {
+function inp(name, val, max=32, cl=["text"], id=null, type=null) {
     e = document.createElement('input');
     e.classList.add(...cl);
     e.name = name;
     e.value = val;
-    e.maxLength = max;
+    if(null != type) e.maxLength = max;
     if(null != id) e.id = id;
+    if(null != type) e.type = type;
     return e;
 }
 
@@ -71,9 +72,10 @@ function div(cl) {
     return e;
 }
 
-function span(val, cl) {
+function span(val, cl=null, id=null) {
     e = document.createElement('span');
     e.innerHTML = val;
-    e.classList.add(...cl);
+    if(null != cl) e.classList.add(...cl);
+    if(null != id) e.id = id;
     return e;
 }

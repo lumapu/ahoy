@@ -47,9 +47,29 @@
         </div>
         <script type="text/javascript">
             var mIntervalSet = false;
+
+            function apiCb(obj) {
+                var e = document.getElementById("apiResult");
+                if(obj["success"]) {
+                    e.innerHTML = " command excuted";
+                    getAjax("/api/index", parse);
+                }
+                else
+                    e.innerHTML = " Error: " + obj["error"];
+            }
+
+            function setTime() {
+                var date = new Date();
+                var offset = date.getTimezoneOffset() * -60;
+                var obj = new Object();
+                obj.cmd = "set_time";
+                obj.ts = parseInt(offset + (date.getTime() / 1000));
+                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+            }
+
             function parseSys(obj) {
                 document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
-                document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];;
+                document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
                 var date = new Date(obj["ts_now"] * 1000);
                 var up = obj["ts_uptime"];
@@ -61,7 +81,16 @@
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
-                document.getElementById("date").innerHTML = date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                var dSpan = document.getElementById("date")
+                if(0 != obj["ts_now"])
+                    dSpan.innerHTML = date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                else {
+                    var e = inp("set", "sync from browser", 0, ["btn"], "set", "button");
+                    dSpan.appendChild(span("NTP timeserver unreachable. "));
+                    dSpan.appendChild(e);
+                    dSpan.appendChild(span("", ["span"], "apiResult"));
+                    e.addEventListener("click", setTime);
+                }
             }
 
             function parseStat(obj) {
