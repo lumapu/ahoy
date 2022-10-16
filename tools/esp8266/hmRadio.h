@@ -21,7 +21,7 @@
 #define RF_CHANNELS             5
 #define RF_LOOP_CNT             300
 
-#define TX_REQ_INFO         0X15
+#define TX_REQ_INFO         0x15
 #define TX_REQ_DEVCONTROL   0x51
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
@@ -54,7 +54,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER, uint64_t DTU_ID=DTU_RADIO_ID>
+template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -89,6 +89,25 @@ class HmRadio {
             pinMode(config->pinIrq, INPUT_PULLUP);
 
             mBufCtrl = ctrl;
+            mSerialDebug = config->serialDebug;
+        
+            uint32_t DTU_SN = 0x87654321;
+            uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
+#ifdef ESP32
+            uint64_t MAC = ESP.getEfuseMac();
+            chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
+#else
+            chipID = ESP.getChipId();
+#endif
+            if(chipID) {
+                DTU_SN = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
+                for(int i = 0; i < 7; i++) {
+                    DTU_SN |= (chipID % 10) << (i * 4);
+                    chipID /= 10;
+                }
+            }
+            // change the byte order of the DTU serial number and append the required 0x01 at the end
+            DTU_RADIO_ID = ((uint64_t)(((DTU_SN >> 24) & 0xFF) | ((DTU_SN >> 8) & 0xFF00) | ((DTU_SN << 8) & 0xFF0000) | ((DTU_SN << 24) & 0xFF000000)) << 8) | 0x01;
 
             mNrf24.begin(config->pinCe, config->pinCs);
             mNrf24.setRetries(0, 0);
@@ -163,64 +182,62 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendControlPacket"));
-            sendCmdPacket(invId, TX_REQ_DEVCONTROL, ALL_FRAMES, false); // 0x80 implementation as original DTU code
-            int cnt = 0;
-            mTxBuf[10] = cmd; // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
-            mTxBuf[10 + (++cnt)] = 0x00;
-            if (cmd >= ActivePowerContr && cmd <= PFSet){
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                mTxBuf[10 + (++cnt)] = ((data[0] * 10)     ) & 0xff; // power limit
-                mTxBuf[10 + (++cnt)] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                mTxBuf[10 + (++cnt)] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: ") + String(cmd));
+            sendCmdPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME, false);
+            uint8_t cnt = 0;
+            mTxBuf[10 + cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
+            mTxBuf[10 + cnt++] = 0x00;
+            if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
+                mTxBuf[10 + cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
+                mTxBuf[10 + cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
+                mTxBuf[10 + cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
+                mTxBuf[10 + cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
             }
-            // crc control data
-            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], cnt+1);
-            mTxBuf[10 + (++cnt)] = (crc >> 8) & 0xff;
-            mTxBuf[10 + (++cnt)] = (crc     ) & 0xff;
-            // crc over all
-            cnt +=1;
-            mTxBuf[10 + cnt] = Hoymiles::crc8(mTxBuf, 10 + cnt);
 
-            sendPacket(invId, mTxBuf, 10 + (++cnt), true);
+            // crc control data
+            uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt);
+            mTxBuf[10 + cnt++] = (crc >> 8) & 0xff;
+            mTxBuf[10 + cnt++] = (crc     ) & 0xff;
+            
+            // crc over all
+            mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
+
+            sendPacket(invId, mTxBuf, 10 + cnt + 1, true);
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendTimePacket"));
+            DPRINTLN(DBG_INFO, F("sendTimePacket"));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ){
+            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ) {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            } else {
-                mTxBuf[18] = 0x00;
-                mTxBuf[19] = 0x00;
             }
-            uint16_t crc = Hoymiles::crc16(&mTxBuf[10], 14);
+            uint16_t crc = Ahoy::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
-            mTxBuf[26] = Hoymiles::crc8(mTxBuf, 26);
+            mTxBuf[26] = Ahoy::crc8(mTxBuf, 26);
 
             sendPacket(invId, mTxBuf, 27, true);
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendCmdPacket"));
+            DPRINTLN(DBG_VERBOSE, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
-            CP_U32_BigEndian(&mTxBuf[5], (DTU_ID >> 8));
+            CP_U32_BigEndian(&mTxBuf[5], (DTU_RADIO_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
-                mTxBuf[10] = Hoymiles::crc8(mTxBuf, 10);
+                mTxBuf[10] = Ahoy::crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
 
         bool checkPaketCrc(uint8_t buf[], uint8_t *len, uint8_t rxCh) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:checkPaketCrc"));
+            //DPRINTLN(DBG_INFO, F("hmRadio.h:checkPaketCrc"));
             *len = (buf[0] >> 2);
             if(*len > (MAX_RF_PAYLOAD_SIZE - 2))
                 *len = MAX_RF_PAYLOAD_SIZE - 2;
@@ -228,7 +245,7 @@ class HmRadio {
                 buf[i-1] = (buf[i] << 1) | (buf[i+1] >> 7);
             }
 
-            uint8_t crc = Hoymiles::crc8(buf, *len-1);
+            uint8_t crc = Ahoy::crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
             return valid;
@@ -236,8 +253,6 @@ class HmRadio {
 
         bool switchRxCh(uint16_t addLoop = 0) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:switchRxCh"));
-            //DPRINTLN(DBG_VERBOSE, F("R"));
-
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;
@@ -324,6 +339,8 @@ class HmRadio {
                 mRxChIdx = 0;
             return mRfChLst[mRxChIdx];
         }
+
+        uint64_t DTU_RADIO_ID;
 
         uint8_t mTxCh;
         uint8_t mTxChIdx;

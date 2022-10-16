@@ -14,10 +14,8 @@
 
 #define CRC16_MODBUS_POLYNOM    0xA001
 
-namespace Hoymiles {
-
+namespace Ahoy {
     uint8_t crc8(uint8_t buf[], uint8_t len);
     uint16_t crc16(uint8_t buf[], uint8_t len, uint16_t start = 0xffff);
-
 }
 #endif /*__CRC_H__*/

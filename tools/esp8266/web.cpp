@@ -12,41 +12,31 @@
 
 #include "html/h/index_html.h"
 #include "html/h/style_css.h"
-#include "favicon.h"
+#include "html/h/api_js.h"
+#include "html/h/favicon_ico_gz.h"
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
+#include "html/h/update_html.h"
+#include "html/h/serial_html.h"
 
-
-const uint16_t pwrLimitOptionValues[] {
-    NoPowerLimit,
-    AbsolutNonPersistent,
-    AbsolutPersistent,
-    RelativNonPersistent,
-    RelativPersistent
-};
-
-const char* const pwrLimitOptions[] {
-    "no power limit",
-    "absolute in Watt non persistent",
-    "absolute in Watt persistent",
-    "relativ in percent non persistent",
-    "relativ in percent persistent"
-};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
 //-----------------------------------------------------------------------------
-web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
+web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
     mMain    = main;
     mSysCfg  = sysCfg;
     mConfig  = config;
+    mStat    = stat;
     mVersion = version;
-    #ifdef ESP8266
-        mWeb     = new ESP8266WebServer(80);
-        mUpdater = new ESP8266HTTPUpdateServer();
-    #elif defined(ESP32)
-        mWeb     = new WebServer(80);
-        mUpdater = new HTTPUpdateServer();
-    #endif
-    mUpdater->setup(mWeb);
+    mWeb     = new AsyncWebServer(80);
+    mEvts    = new AsyncEventSource("/events");
+    mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
+
+    memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+    mSerialBufFill     = 0;
+    mWebSerialTicker   = 0;
+    mWebSerialInterval = 1000; // [ms]
+    mSerialAddTime     = true;
 }
 
 
@@ -54,108 +44,142 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, char version[]) {
 void web::setup(void) {
     DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
     mWeb->begin();
-        DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-    mWeb->on("/",               std::bind(&web::showIndex,         this));
-    mWeb->on("/style.css",      std::bind(&web::showCss,           this));
-    mWeb->on("/favicon.ico",    std::bind(&web::showFavicon,       this));
-    mWeb->onNotFound (          std::bind(&web::showNotFound,      this));
-    mWeb->on("/uptime",         std::bind(&web::showUptime,        this));
-    mWeb->on("/reboot",         std::bind(&web::showReboot,        this));
-    mWeb->on("/erase",          std::bind(&web::showErase,         this));
-    mWeb->on("/factory",        std::bind(&web::showFactoryRst,    this));
+    DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
+    mWeb->on("/",               HTTP_GET,  std::bind(&web::onIndex,        this, std::placeholders::_1));
+    mWeb->on("/style.css",      HTTP_GET,  std::bind(&web::onCss,          this, std::placeholders::_1));
+    mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,        this, std::placeholders::_1));
+    mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,      this, std::placeholders::_1));
+    mWeb->onNotFound (                     std::bind(&web::showNotFound,   this, std::placeholders::_1));
+    mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::onReboot,       this, std::placeholders::_1));
+    mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,      this, std::placeholders::_1));
+    mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst, this, std::placeholders::_1));
 
-    mWeb->on("/setup",          std::bind(&web::showSetup,         this));
-    mWeb->on("/save",           std::bind(&web::showSave,          this));
+    mWeb->on("/setup",          HTTP_GET,  std::bind(&web::onSetup,        this, std::placeholders::_1));
+    mWeb->on("/save",           HTTP_ANY,  std::bind(&web::showSave,       this, std::placeholders::_1));
 
-    mWeb->on("/cmdstat",        std::bind(&web::showStatistics,    this));
-    mWeb->on("/visualization",  std::bind(&web::showVisualization, this));
-    mWeb->on("/livedata",       std::bind(&web::showLiveData,      this));
-    mWeb->on("/json",           std::bind(&web::showJson,          this));
-    mWeb->on("/api", HTTP_POST, std::bind(&web::showWebApi,        this));
+    mWeb->on("/live",           HTTP_ANY,  std::bind(&web::onLive,         this, std::placeholders::_1));
+    mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,     this, std::placeholders::_1));
+
+
+    mWeb->on("/update",         HTTP_GET,  std::bind(&web::onUpdate,       this, std::placeholders::_1));
+    mWeb->on("/update",         HTTP_POST, std::bind(&web::showUpdate,     this, std::placeholders::_1),
+                                           std::bind(&web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+    mWeb->on("/serial",         HTTP_GET,  std::bind(&web::onSerial,       this, std::placeholders::_1));
+
+
+    mEvts->onConnect(std::bind(&web::onConnect, this, std::placeholders::_1));
+    mWeb->addHandler(mEvts);
+
+    mApi->setup();
+
+    registerDebugCb(std::bind(&web::serialCb, this, std::placeholders::_1));
 }
 
 
 //-----------------------------------------------------------------------------
 void web::loop(void) {
-    mWeb->handleClient();
+    mApi->loop();
+
+    if(mMain->checkTicker(&mWebSerialTicker, mWebSerialInterval)) {
+        if(mSerialBufFill > 0) {
+            mEvts->send(mSerialBuf, "serial", millis());
+            memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+            mSerialBufFill = 0;
+        }
+    }
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showIndex(void) {
-    DPRINTLN(DBG_VERBOSE, F("showIndex"));
-    String html = FPSTR(index_html);
-    html.replace(F("{DEVICE}"), mSysCfg->deviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mConfig->sendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mConfig->sendInterval * 1000));
-    html.replace(F("{BUILD}"), String(AUTO_GIT_HASH));
-    mWeb->send(200, "text/html", html);
+void web::onConnect(AsyncEventSourceClient *client) {
+    DPRINTLN(DBG_VERBOSE, "onConnect");
+
+    if(client->lastId())
+        DPRINTLN(DBG_VERBOSE, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
+
+    client->send("hello!", NULL, millis(), 1000);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showCss(void) {
-    mWeb->send(200, "text/css", FPSTR(style_css));
+void web::onIndex(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onIndex"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), index_html, index_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showFavicon(void) {
+void web::onCss(AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+
+//-----------------------------------------------------------------------------
+void web::onApiJs(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onApiJs"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/javascript"), api_js, api_js_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void web::onFavicon(AsyncWebServerRequest *request) {
     static const char favicon_type[] PROGMEM = "image/x-icon";
-    static const char favicon_content[] PROGMEM = FAVICON_PANEL_16;
-    mWeb->send_P(200, favicon_type, favicon_content, sizeof(favicon_content));
+    AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico_gz, favicon_ico_gz_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showNotFound(void) {
-    DPRINTLN(DBG_VERBOSE, F("showNotFound - ") + mWeb->uri());
-    String msg = F("File Not Found\n\nURI: ");
-    msg += mWeb->uri();
-    mWeb->send(404, F("text/plain"), msg);
+void web::showNotFound(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("showNotFound - ") + request->url());
+    String msg = F("File Not Found\n\nURL: ");
+    msg += request->url();
+    msg += F("\nMethod: ");
+    msg += ( request->method() == HTTP_GET ) ? "GET" : "POST";
+    msg += F("\nArguments: ");
+    msg += request->args();
+    msg += "\n";
+
+    for(uint8_t i = 0; i < request->args(); i++ ) {
+        msg += " " + request->argName(i) + ": " + request->arg(i) + "\n";
+    }
+
+    request->send(404, F("text/plain"), msg);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showUptime(void) {
-    char time[21] = {0};
-    uint32_t uptime = mMain->getUptime();
-
-    uint32_t upTimeSc = uint32_t((uptime) % 60);
-    uint32_t upTimeMn = uint32_t((uptime / (60)) % 60);
-    uint32_t upTimeHr = uint32_t((uptime / (60 * 60)) % 24);
-    uint32_t upTimeDy = uint32_t((uptime / (60 * 60 * 24)) % 365);
-
-    snprintf(time, 20, "%d Days, %02d:%02d:%02d", upTimeDy, upTimeHr, upTimeMn, upTimeSc);
-
-    mWeb->send(200, "text/plain", String(time) + "; now: " + mMain->getDateTimeStr(mMain->getTimestamp()));
+void web::onReboot(AsyncWebServerRequest *request) {
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
+    mMain->mShouldReboot = true;
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showReboot(void) {
-    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
-    delay(1000);
-    ESP.restart();
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showErase() {
+void web::showErase(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("showErase"));
     mMain->eraseSettings();
-    showReboot();
+    onReboot(request);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showFactoryRst(void) {
+void web::showFactoryRst(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
     String content = "";
     int refresh = 3;
-    if(mWeb->args() > 0) {
-        if(mWeb->arg("reset").toInt() == 1) {
+    if(request->args() > 0) {
+        if(request->arg("reset").toInt() == 1) {
             mMain->eraseSettings(true);
             content = F("factory reset: success\n\nrebooting ... ");
             refresh = 10;
@@ -170,7 +194,7 @@ void web::showFactoryRst(void) {
             "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
         refresh = 120;
     }
-    mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
     if(refresh == 10) {
         delay(1000);
         ESP.restart();
@@ -179,193 +203,59 @@ void web::showFactoryRst(void) {
 
 
 //-----------------------------------------------------------------------------
-void web::showSetup(void) {
-    DPRINTLN(DBG_VERBOSE, F("showSetup"));
-    String html = FPSTR(setup_html);
-    html.replace(F("{SSID}"), mSysCfg->stationSsid);
-    // PWD will be left at the default value (for protection)
-    // -> the PWD will only be changed if it does not match the default "{PWD}"
-    html.replace(F("{DEVICE}"), String(mSysCfg->deviceName));
-    html.replace(F("{VERSION}"), String(mVersion));
-    if(mMain->getWifiApActive())
-        html.replace("{IP}", String(F("http://192.168.1.1")));
-    else
-        html.replace("{IP}", (F("http://") + String(WiFi.localIP().toString())));
+void web::onSetup(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
-    String inv = "";
-    Inverter<> *iv;
-    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        iv = mMain->mSys->getInverterByPos(i);
-
-        inv += F("<p class=\"subdes\">Inverter ") + String(i) + "</p>";
-        inv += F("<label for=\"inv") + String(i) + F("Addr\">Address*</label>");
-        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Addr\" value=\"");
-        if(NULL != iv)
-            inv += String(iv->serial.u64, HEX);
-        inv += F("\"/ maxlength=\"12\">");
-
-        inv += F("<label for=\"inv") + String(i) + F("Name\">Name*</label>");
-        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("Name\" value=\"");
-        if(NULL != iv)
-            inv += String(iv->name);
-        inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
-
-        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimit\">Active Power Limit</label>");
-        inv += F("<input type=\"text\" class=\"text\" name=\"inv") + String(i) + F("ActivePowerLimit\" value=\"");
-        if(NULL != iv)
-            inv += String(iv->powerLimit[0]);
-        inv += F("\"/ maxlength=\"") + String(6) + "\">";
-
-        inv += F("<label for=\"inv") + String(i) + F("ActivePowerLimitConType\">Active Power Limit Control Type</label>");
-        inv += F("<select name=\"inv") + String(i) + F("PowerLimitControl\">");
-        for(uint8_t j = 0; j < 5; j++) {
-            inv += F("<option value=\"") + String(pwrLimitOptionValues[j]) + F("\"");
-            if(NULL != iv) {
-                if(iv->powerLimit[1] == pwrLimitOptionValues[j])
-                    inv += F(" selected");
-            }
-            inv += F(">") + String(pwrLimitOptions[j]) + F("</option>");
-        }
-        inv += F("</select>");
-        
-        inv += F("<label for=\"inv") + String(i) + F("ModPwr0\" name=\"lbl") + String(i);
-        inv += F("ModPwr\">Max Module Power (Wp)</label><div class=\"modpwr\">");
-        for(uint8_t j = 0; j < 4; j++) {
-            inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModPwr") + String(j) + F("\" value=\"");
-            if(NULL != iv)
-                inv += String(iv->chMaxPwr[j]);
-            inv += F("\"/ maxlength=\"4\">");
-        }
-        inv += F("</div><br/><label for=\"inv") + String(i) + F("ModName0\" name=\"lbl") + String(i);
-        inv += F("ModName\">Module Name</label><div class=\"modname\">");
-        for(uint8_t j = 0; j < 4; j++) {
-            inv += F("<input type=\"text\" class=\"text sh\" name=\"inv") + String(i) + F("ModName") + String(j) + F("\" value=\"");
-            if(NULL != iv)
-                inv += String(iv->chName[j]);
-            inv += F("\"/ maxlength=\"") + String(MAX_NAME_LENGTH) + "\">";
-        }
-        inv += F("</div>");
-    }
-    html.replace(F("{INVERTERS}"), String(inv));
-
-
-    // pinout
-    String pinout;
-    for(uint8_t i = 0; i < 3; i++) {
-        pinout += F("<label for=\"") + String(pinArgNames[i]) + "\">" + String(pinNames[i]) + F("</label>");
-        pinout += F("<select name=\"") + String(pinArgNames[i]) + "\">";
-        for(uint8_t j = 0; j <= 16; j++) {
-            pinout += F("<option value=\"") + String(j) + "\"";
-            switch(i) {
-                default: if(j == mConfig->pinCs)  pinout += F(" selected"); break;
-                case 1:  if(j == mConfig->pinCe)  pinout += F(" selected"); break;
-                case 2:  if(j == mConfig->pinIrq) pinout += F(" selected"); break;
-            }
-            pinout += ">" + String(wemosPins[j]) + F("</option>");
-        }
-        pinout += F("</select>");
-    }
-    html.replace(F("{PINOUT}"), String(pinout));
-
-
-    // nrf24l01+
-    String rf24;
-    for(uint8_t i = 0; i <= 3; i++) {
-        rf24 += F("<option value=\"") + String(i) + "\"";
-        if(i == mConfig->amplifierPower)
-            rf24 += F(" selected");
-        rf24 += ">" + String(rf24AmpPowerNames[i]) + F("</option>");
-    }
-    html.replace(F("{RF24}"), String(rf24));
-
-
-    html.replace(F("{INV_INTVL}"), String(mConfig->sendInterval));
-    html.replace(F("{INV_RETRIES}"), String(mConfig->maxRetransPerPyld));
-
-    html.replace(F("{SER_INTVL}"), String(mConfig->serialInterval));
-    html.replace(F("{SER_VAL_CB}"), (mConfig->serialShowIv) ? "checked" : "");
-    html.replace(F("{SER_DBG_CB}"), (mConfig->serialDebug) ? "checked" : "");
-
-    html.replace(F("{NTP_ADDR}"),  String(mConfig->ntpAddr));
-    html.replace(F("{NTP_PORT}"),  String(mConfig->ntpPort));
-
-    html.replace(F("{MQTT_ADDR}"),  String(mConfig->mqtt.broker));
-    html.replace(F("{MQTT_PORT}"),  String(mConfig->mqtt.port));
-    html.replace(F("{MQTT_USER}"),  String(mConfig->mqtt.user));
-    html.replace(F("{MQTT_PWD}"),   String(mConfig->mqtt.pwd));
-    html.replace(F("{MQTT_TOPIC}"), String(mConfig->mqtt.topic));
-    
-    mWeb->send(200, F("text/html"), html);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showSave(void) {
+void web::showSave(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("showSave"));
 
-    if(mWeb->args() > 0) {
+    if(request->args() > 0) {
         char buf[20] = {0};
 
         // general
-        if(mWeb->arg("ssid") != "")
-            mWeb->arg("ssid").toCharArray(mSysCfg->stationSsid, SSID_LEN);
-        if(mWeb->arg("pwd") != "{PWD}")
-            mWeb->arg("pwd").toCharArray(mSysCfg->stationPwd, PWD_LEN);
-        if(mWeb->arg("device") != "")
-            mWeb->arg("device").toCharArray(mSysCfg->deviceName, DEVNAME_LEN);
+        if(request->arg("ssid") != "")
+            request->arg("ssid").toCharArray(mSysCfg->stationSsid, SSID_LEN);
+        if(request->arg("pwd") != "{PWD}")
+            request->arg("pwd").toCharArray(mSysCfg->stationPwd, PWD_LEN);
+        if(request->arg("device") != "")
+            request->arg("device").toCharArray(mSysCfg->deviceName, DEVNAME_LEN);
 
         // inverter
         Inverter<> *iv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             iv = mMain->mSys->getInverterByPos(i, false);
             // address
-            mWeb->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+            request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
             if(strlen(buf) == 0)
                 memset(buf, 0, 20);
             iv->serial.u64 = mMain->Serial2u64(buf);
 
-            // active power limit
-            uint16_t actPwrLimit = mWeb->arg("inv" + String(i) + "ActivePowerLimit").toInt();
-            uint16_t actPwrLimitControl = mWeb->arg("inv" + String(i) + "PowerLimitControl").toInt();
-            if (actPwrLimit != 0xffff && actPwrLimit > 0){
-                iv->powerLimit[0] = actPwrLimit;
-                iv->powerLimit[1] = actPwrLimitControl;
-                iv->devControlCmd = ActivePowerContr;
-                iv->devControlRequest = true;
-                if ((iv->powerLimit[1] & 0x0001) == 0x0001)
-                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%") );    
-                else {
-                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W") );
-                    DPRINTLN(DBG_INFO, F("Power Limit Control Setting ") + String(iv->powerLimit[1]));
-                }
-            }
-            if (actPwrLimit == 0xffff) { // set to 100%
-                iv->powerLimit[0] = 100;
-                iv->powerLimit[1] = RelativPersistent;
-                iv->devControlCmd = ActivePowerContr;
-                iv->devControlRequest = true;
-                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to unlimted"));
-            }
-                
             // name
-            mWeb->arg("inv" + String(i) + "Name").toCharArray(iv->name, MAX_NAME_LENGTH);
+            request->arg("inv" + String(i) + "Name").toCharArray(iv->name, MAX_NAME_LENGTH);
 
             // max channel power / name
             for(uint8_t j = 0; j < 4; j++) {
-                iv->chMaxPwr[j] = mWeb->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
-                mWeb->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
+                iv->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
+                request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
             }
             iv->initialized = true;
         }
-        if(mWeb->arg("invInterval") != "")
-            mConfig->sendInterval = mWeb->arg("invInterval").toInt();
-        if(mWeb->arg("invRetry") != "")
-            mConfig->maxRetransPerPyld = mWeb->arg("invRetry").toInt();
+        if(request->arg("invInterval") != "")
+            mConfig->sendInterval = request->arg("invInterval").toInt();
+        if(request->arg("invRetry") != "")
+            mConfig->maxRetransPerPyld = request->arg("invRetry").toInt();
 
         // pinout
         uint8_t pin;
         for(uint8_t i = 0; i < 3; i ++) {
-            pin = mWeb->arg(String(pinArgNames[i])).toInt();
+            pin = request->arg(String(pinArgNames[i])).toInt();
             switch(i) {
                 default: mConfig->pinCs  = pin; break;
                 case 1:  mConfig->pinCe  = pin; break;
@@ -374,220 +264,74 @@ void web::showSave(void) {
         }
 
         // nrf24 amplifier power
-        mConfig->amplifierPower = mWeb->arg("rf24Power").toInt() & 0x03;
+        mConfig->amplifierPower = request->arg("rf24Power").toInt() & 0x03;
 
         // ntp
-        if(mWeb->arg("ntpAddr") != "") {
-            mWeb->arg("ntpAddr").toCharArray(mConfig->ntpAddr, NTP_ADDR_LEN);
-            mConfig->ntpPort = mWeb->arg("ntpPort").toInt() & 0xffff;
+        if(request->arg("ntpAddr") != "") {
+            request->arg("ntpAddr").toCharArray(mConfig->ntpAddr, NTP_ADDR_LEN);
+            mConfig->ntpPort = request->arg("ntpPort").toInt() & 0xffff;
         }
 
         // mqtt
-        if(mWeb->arg("mqttAddr") != "") {
-            String addr = mWeb->arg("mqttAddr");
+        if(request->arg("mqttAddr") != "") {
+            String addr = request->arg("mqttAddr");
             addr.trim();
             addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
-            mWeb->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
-            mWeb->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
-            mWeb->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
-            mConfig->mqtt.port = mWeb->arg("mqttPort").toInt();
+            request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
+            if(request->arg("mqttPwd") != "{PWD}")
+                request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
+            request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+            mConfig->mqtt.port = request->arg("mqttPort").toInt();
         }
 
         // serial console
-        if(mWeb->arg("serIntvl") != "") {
-            mConfig->serialInterval = mWeb->arg("serIntvl").toInt() & 0xffff;
+        if(request->arg("serIntvl") != "") {
+            mConfig->serialInterval = request->arg("serIntvl").toInt() & 0xffff;
 
-            mConfig->serialDebug  = (mWeb->arg("serDbg") == "on");
-            mConfig->serialShowIv = (mWeb->arg("serEn") == "on");
+            mConfig->serialDebug  = (request->arg("serDbg") == "on");
+            mConfig->serialShowIv = (request->arg("serEn") == "on");
             // Needed to log TX buffers to serial console
             mMain->mSys->Radio.mSerialDebug = mConfig->serialDebug;
         }
 
         mMain->saveValues();
 
-        if(mWeb->arg("reboot") == "on")
-            showReboot();
+        if(request->arg("reboot") == "on")
+            onReboot(request);
         else
-            mWeb->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
+            request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
                 "<p>saved</p></body></html>"));
     }
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showStatistics(void) {
-    DPRINTLN(DBG_VERBOSE, F("web::showStatistics"));
-    mWeb->send(200, F("text/plain"), mMain->getStatistics());
+void web::onLive(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onLive"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), visualization_html, visualization_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
-void web::showVisualization(void) {
-    DPRINTLN(DBG_VERBOSE, F("web::showVisualization"));
-    String html = FPSTR(visualization_html);
-    html.replace(F("{DEVICE}"), mSysCfg->deviceName);
-    html.replace(F("{VERSION}"), mVersion);
-    html.replace(F("{TS}"), String(mConfig->sendInterval) + " ");
-    html.replace(F("{JS_TS}"), String(mConfig->sendInterval * 1000));
-    mWeb->send(200, F("text/html"), html);
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showLiveData(void) {
-    DPRINTLN(DBG_VERBOSE, F("web::showLiveData"));
-
-    String modHtml, totalModHtml;
-    float totalYield = 0, totalYieldToday = 0, totalActual = 0;
-    uint8_t count = 0;
-
-    for (uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
-        count++;
-
-        Inverter<> *iv = mMain->mSys->getInverterByPos(id);
-        if (NULL != iv) {
-#ifdef LIVEDATA_VISUALIZED
-            uint8_t modNum, pos;
-            switch (iv->type) {
-                default:
-                case INV_TYPE_1CH: modNum = 1; break;
-                case INV_TYPE_2CH: modNum = 2; break;
-                case INV_TYPE_4CH: modNum = 4; break;
-            }
-
-            modHtml += F("<div class=\"iv\">"
-                         "<div class=\"ch-iv\"><span class=\"head\">")
-                    + String(iv->name) + F(" Limit ")
-                    + String(iv->actPowerLimit) + F("%");
-            if(NoPowerLimit == iv->powerLimit[1])
-                modHtml += F(" (not controlled)");
-            modHtml += F(" | last Alarm: ") + iv->lastAlarmMsg + F("</span>");
-
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PCT, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_PRA, FLD_ALARM_MES_ID};
-
-            for (uint8_t fld = 0; fld < 11; fld++) {
-                pos = (iv->getPosByChFld(CH0, list[fld]));
-
-                if(fld == 6){
-                    totalYield += iv->getValue(pos);
-                }
-
-                if(fld == 7){
-                    totalYieldToday += iv->getValue(pos);
-                }
-
-                if(fld == 2){
-                    totalActual += iv->getValue(pos);
-                }
-
-                if (0xff != pos) {
-                    modHtml += F("<div class=\"subgrp\">");
-                    modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                    modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                    modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    modHtml += F("</div>");
-                }
-            }
-            modHtml += "</div>";
-
-            for (uint8_t ch = 1; ch <= modNum; ch++) {
-                modHtml += F("<div class=\"ch\"><span class=\"head\">");
-                if (iv->chName[ch - 1][0] == 0)
-                    modHtml += F("CHANNEL ") + String(ch);
-                else
-                    modHtml += String(iv->chName[ch - 1]);
-                modHtml += F("</span>");
-                for (uint8_t j = 0; j < 6; j++) {
-                    switch (j) {
-                        default: pos = (iv->getPosByChFld(ch, FLD_UDC)); break;
-                        case 1:  pos = (iv->getPosByChFld(ch, FLD_IDC)); break;
-                        case 2:  pos = (iv->getPosByChFld(ch, FLD_PDC)); break;
-                        case 3:  pos = (iv->getPosByChFld(ch, FLD_YD));  break;
-                        case 4:  pos = (iv->getPosByChFld(ch, FLD_YT));  break;
-                        case 5:  pos = (iv->getPosByChFld(ch, FLD_IRR)); break;
-                    }
-                    if (0xff != pos) {
-                        modHtml += F("<span class=\"value\">") + String(iv->getValue(pos));
-                        modHtml += F("<span class=\"unit\">") + String(iv->getUnit(pos)) + F("</span></span>");
-                        modHtml += F("<span class=\"info\">") + String(iv->getFieldName(pos)) + F("</span>");
-                    }
-                }
-                modHtml += "</div>";
-                yield();
-            }
-            modHtml += F("<div class=\"ts\">Last received data requested at: ") + mMain->getDateTimeStr(iv->ts) + F("</div>");
-            modHtml += F("</div>");
-#else
-            // dump all data to web frontend
-            modHtml = F("<pre>");
-            char topic[30], val[10];
-            for (uint8_t i = 0; i < iv->listLen; i++) {
-                snprintf(topic, 30, "%s/ch%d/%s", iv->name, iv->assign[i].ch, iv->getFieldName(i));
-                snprintf(val, 10, "%.3f %s", iv->getValue(i), iv->getUnit(i));
-                modHtml += String(topic) + ": " + String(val) + "\n";
-            }
-            modHtml += F("</pre>");
-#endif
-        }
-    }
-
-    if(count > 1){
-        totalModHtml += F("<div class=\"iv\">"
-                        "<div class=\"ch-all\"><span class=\"head\">Gesamt</span>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalActual);
-        totalModHtml += F("<span class=\"unit\">W</span></span>");
-        totalModHtml += F("<span class=\"info\">P_AC All</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalYieldToday);
-        totalModHtml += F("<span class=\"unit\">Wh</span></span>");
-        totalModHtml += F("<span class=\"info\">YieldDayAll</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("<div class=\"subgrp\">");
-        totalModHtml += F("<span class=\"value\">") + String(totalYield);
-        totalModHtml += F("<span class=\"unit\">kWh</span></span>");
-        totalModHtml += F("<span class=\"info\">YieldTotalAll</span>");
-        totalModHtml += F("</div>");
-
-        totalModHtml += F("</div>");
-        totalModHtml += F("</div>");
-        mWeb->send(200, F("text/html"), totalModHtml + modHtml);
-    } else {
-        mWeb->send(200, F("text/html"), modHtml);
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-void web::showJson(void) {
-    DPRINTLN(DBG_VERBOSE, F("web::showJson"));
-    mWeb->send(200, F("application/json"), mMain->getJson());
-}
-
-//-----------------------------------------------------------------------------
-void web::showWebApi(void)
-{
+void web::showWebApi(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
-    DPRINTLN(DBG_DEBUG, mWeb->arg("plain"));
+    DPRINTLN(DBG_DEBUG, request->arg("plain"));
     const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
     DynamicJsonDocument response(capacity);
 
     // Parse JSON object
-    deserializeJson(response, mWeb->arg("plain"));
+    deserializeJson(response, request->arg("plain"));
     // ToDo: error handling for payload
     uint8_t iv_id = response["inverter"];
     uint8_t cmd = response["cmd"];
     Inverter<> *iv = mMain->mSys->getInverterByPos(iv_id);
-    if (NULL != iv)
-    {
-        if (response["tx_request"] == (uint8_t)TX_REQ_INFO)
-        {
+    if (NULL != iv) {
+        if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
             // if the AlarmData is requested set the Alarm Index to the requested one
-            if (cmd == AlarmData || cmd == AlarmUpdate){
+            if (cmd == AlarmData || cmd == AlarmUpdate) {
                 // set the AlarmMesIndex for the request from user input
                 iv->alarmMesIndex = response["payload"]; 
             }
@@ -597,44 +341,137 @@ void web::showWebApi(void)
         }
         
 
-        if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL)
-        {
-            if (response["cmd"] == (uint8_t)ActivePowerContr)
-            {
+        if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL) {
+            if (response["cmd"] == (uint8_t)ActivePowerContr) {
                 uint16_t webapiPayload = response["payload"];
                 uint16_t webapiPayload2 = response["payload2"];
-                if (webapiPayload > 0 && webapiPayload < 10000)
-                {
+                if (webapiPayload > 0 && webapiPayload < 10000) {
                     iv->devControlCmd = ActivePowerContr;
                     iv->powerLimit[0] = webapiPayload;
                     if (webapiPayload2 > 0)
-                    {
                         iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
-                    }
-                    else
-                    {                                             // if not set, set it to 0x0000 default
-                        iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporay in Watt absolut
-                    }
+                    else                                            // if not set, set it to 0x0000 default
+                        iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporary in Watt absolut
                     if (iv->powerLimit[1] & 0x0001)
-                    {
                         DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API"));
-                    }
                     else
-                    {
                         DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API"));
-                    }
                     iv->devControlRequest = true; // queue it in the request loop
                 }
             }
-            if (response["cmd"] == (uint8_t)TurnOff){
+            if (response["cmd"] == (uint8_t)TurnOff) {
                 iv->devControlCmd = TurnOff;
                 iv->devControlRequest = true; // queue it in the request loop
             }
-            if (response["cmd"] == (uint8_t)TurnOn){
+            if (response["cmd"] == (uint8_t)TurnOn) {
                 iv->devControlCmd = TurnOn;
                 iv->devControlRequest = true; // queue it in the request loop
             }
+            if (response["cmd"] == (uint8_t)CleanState_LockAndAlarm) {
+                iv->devControlCmd = CleanState_LockAndAlarm;
+                iv->devControlRequest = true; // queue it in the request loop
+            }
+            if (response["cmd"] == (uint8_t)Restart) {
+                iv->devControlCmd = Restart;
+                iv->devControlRequest = true; // queue it in the request loop
+            }            
         }
     }
-    mWeb->send(200, "text/json", "{success:true}");
+    request->send(200, "text/json", "{success:true}");
+}
+
+
+//-----------------------------------------------------------------------------
+void web::onUpdate(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onUpdate"));
+
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), update_html, update_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void web::showUpdate(AsyncWebServerRequest *request) {
+    bool reboot = !Update.hasError();
+
+    String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
+    if(reboot)
+        html += "success";
+    else
+        html += "failed";
+    html += F("<br/><br/>rebooting ... auto reload after 20s</body></html>");
+
+    AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), html);
+    response->addHeader("Connection", "close");
+    request->send(response);
+    mMain->mShouldReboot = reboot;
+}
+
+
+//-----------------------------------------------------------------------------
+void web::showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    if(!index) {
+        Serial.printf("Update Start: %s\n", filename.c_str());
+#ifndef ESP32   
+        Update.runAsync(true);
+#endif
+        if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
+            Update.printError(Serial);
+        }
+    }
+    if(!Update.hasError()) {
+        if(Update.write(data, len) != len){
+            Update.printError(Serial);
+        }
+    }
+    if(final) {
+        if(Update.end(true)) {
+            Serial.printf("Update Success: %uB\n", index+len);
+        } else {
+            Update.printError(Serial);
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void web::onSerial(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onSerial"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), serial_html, serial_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void web::serialCb(String msg) {
+    msg.replace("\r\n", "<rn>");
+    if(mSerialAddTime) {
+        if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+            strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr().c_str(), 9);
+            mSerialBufFill += 9;
+        }
+        else {
+            mSerialBufFill = 0;
+            mEvts->send("webSerial, buffer overflow!", "serial", millis());
+        }
+        mSerialAddTime = false;
+    }
+
+    if(msg.endsWith("<rn>"))
+        mSerialAddTime = true;
+
+    uint16_t length = msg.length();
+    if((length + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+        strncpy(&mSerialBuf[mSerialBufFill], msg.c_str(), length);
+        mSerialBufFill += length;
+    }
+    else {
+        mSerialBufFill = 0;
+        mEvts->send("webSerial, buffer overflow!", "serial", millis());
+    }
+
 }

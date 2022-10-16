@@ -36,15 +36,9 @@ typedef HmRadio<DEF_RF24_CE_PIN, DEF_RF24_CS_PIN, BufferType> RadioType;
 typedef Inverter<float> InverterType;
 typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
 
-const char* const wemosPins[] = {"D3 (GPIO0)", "TX (GPIO1)", "D4 (GPIO2)", "RX (GPIO3)",
-                                "D2 (GPIO4)", "D1 (GPIO5)", "GPIO6", "GPIO7", "GPIO8",
-                                "GPIO9", "GPIO10", "GPIO11", "D6 (GPIO12)", "D7 (GPIO13)",
-                                "D5 (GPIO14)", "D8 (GPIO15)", "D0 (GPIO16 - no IRQ!)"};
-const char* const pinNames[] = {"CS", "CE", "IRQ"};
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
-
 
 typedef struct {
+    uint8_t txCmd;
     uint8_t txId;
     uint8_t invId;
     uint32_t ts;
@@ -55,7 +49,6 @@ typedef struct {
     uint8_t retransmits;
     bool requested;
 } invPayload_t;
-
 
 class ahoywifi;
 class web;
@@ -71,8 +64,6 @@ class app {
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
-        String getStatistics(void);
-        String getJson(void);
         bool getWifiApActive(void);
 
         uint8_t getIrqPin(void) {
@@ -104,12 +95,29 @@ class app {
             return String(str);
         }
 
+        String getTimeStr(void) {
+            char str[20];
+            if(0 == mTimestamp)
+                sprintf(str, "n/a");
+            else
+                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp), minute(mTimestamp), second(mTimestamp));
+            return String(str);
+        }
+
         inline uint32_t getUptime(void) {
             return mUptimeSecs;
         }
 
         inline uint32_t getTimestamp(void) {
             return mTimestamp;
+        }
+
+        inline void setTimestamp(uint32_t newTime) {
+            DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
+            if(0 == newTime)
+                mUpdateNtp = true;
+            else
+                mTimestamp = newTime;
         }
 
         void eraseSettings(bool all = false) {
@@ -144,7 +152,12 @@ class app {
             return false;
         }
 
+        inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
+        inline bool getSettingsValid(void) { return mSettingsValid; }
+        inline bool getRebootRequestState(void) { return mShowRebootRequest; }
+
         HmSystemType *mSys;
+        bool mShouldReboot;
 
     private:
         void resetSystem(void);
@@ -169,7 +182,7 @@ class app {
             while(length > 0) {
                 len = (length < 32) ? length : 32;
                 mEep->read(start, buf, len);
-                crc = Hoymiles::crc16(buf, len, crc);
+                crc = Ahoy::crc16(buf, len, crc);
                 start += len;
                 length -= len;
             }
@@ -234,6 +247,7 @@ class app {
 
         eep *mEep;
         uint32_t mTimestamp;
+        bool mUpdateNtp;
 
         bool mShowRebootRequest;
 
@@ -247,14 +261,11 @@ class app {
         uint8_t mSendLastIvId;
 
         invPayload_t mPayload[MAX_NUM_INVERTERS];
-        uint32_t mRxFailed;
-        uint32_t mRxSuccess;
-        uint32_t mFrameCnt;
+        statistics_t mStat;
         uint8_t mLastPacketId;
 
         // timer
         uint32_t mTicker;
-
         uint32_t mRxTicker;
 
         // mqtt
