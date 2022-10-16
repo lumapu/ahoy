@@ -26,6 +26,7 @@ class webApi {
         void onApiPost(AsyncWebServerRequest *request);
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total);
         void getNotFound(JsonObject obj, String url);
+        void onDwnldSetup(AsyncWebServerRequest *request);
 
         void getSystem(JsonObject obj);
         void getStatistics(JsonObject obj);
@@ -35,6 +36,7 @@ class webApi {
         void getPinout(JsonObject obj);
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
+
 
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);

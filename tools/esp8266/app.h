@@ -156,20 +156,23 @@ class app {
         inline bool getSettingsValid(void) { return mSettingsValid; }
         inline bool getRebootRequestState(void) { return mShowRebootRequest; }
 
+
         HmSystemType *mSys;
         bool mShouldReboot;
+        bool mFlagSendDiscoveryConfig;
 
     private:
         void resetSystem(void);
         void loadDefaultConfig(void);
         void loadEEpconfig(void);
         void setupMqtt(void);
+
+        void sendMqttDiscoveryConfig(void);
         
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
         void processPayload(bool retransmit, uint8_t cmd);
 
-        void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);
         const char* getFieldStateClass(uint8_t fieldId);
 

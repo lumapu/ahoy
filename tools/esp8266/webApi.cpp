@@ -26,6 +26,8 @@ void webApi::setup(void) {
     mSrv->on("/api", HTTP_GET,  std::bind(&webApi::onApi,         this, std::placeholders::_1));
     mSrv->on("/api", HTTP_POST, std::bind(&webApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                 std::bind(&webApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+
+    mSrv->on("/get_setup", HTTP_GET,  std::bind(&webApi::onDwnldSetup,   this, std::placeholders::_1));
 }
 
 
@@ -114,6 +116,21 @@ void webApi::getNotFound(JsonObject obj, String url) {
     ep[F("record/alarm")]  = url + F("record/alarm");
     ep[F("record/config")] = url + F("record/config");
     ep[F("record/live")]   = url + F("record/live");
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::onDwnldSetup(AsyncWebServerRequest *request) {
+    AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
+    JsonObject root = response->getRoot();
+
+    getSetup(root);
+
+    response->setLength();
+    response->addHeader("Content-Type", "application/octet-stream");
+    response->addHeader("Content-Description", "File Transfer");
+    response->addHeader("Content-Disposition", "attachment; filename=ahoy_setup.json");
+    request->send(response);
 }
 
 
@@ -396,6 +413,8 @@ bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
         mApp->setTimestamp(jsonIn[F("ts")]);
     else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag
+    else if(F("discovery_cfg") == jsonIn[F("cmd")])
+        mApp->mFlagSendDiscoveryConfig = true; // for homeassistant
     else {
         jsonOut[F("error")] = F("unknown cmd");
         return false;

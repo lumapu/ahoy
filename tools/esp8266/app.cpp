@@ -71,6 +71,11 @@ void app::loop(void) {
         DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
     }
 
+    if(mFlagSendDiscoveryConfig) {
+        mFlagSendDiscoveryConfig = false;
+        sendMqttDiscoveryConfig();
+    }
+
     if(mShouldReboot) {
         DPRINTLN(DBG_INFO, F("Rebooting..."));
         ESP.restart();
@@ -155,10 +160,6 @@ void app::loop(void) {
             char val[10];
             snprintf(val, 10, "%ld", millis()/1000);
 
-#ifndef __MQTT_NO_DISCOVERCONFIG__
-            // MQTTDiscoveryConfig nur wenn nicht abgeschaltet.
-            sendMqttDiscoveryConfig();
-#endif
             mMqtt.sendMsg("uptime", val);
 
 #ifdef __MQTT_TEST__
@@ -598,13 +599,14 @@ void app::sendMqttDiscoveryConfig(void) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            if(iv->isAvailable(mTimestamp, rec) && mMqttConfigSendState[id] != true) {
+            // TODO: next line makes no sense if discovery config is send manually by button
+            //if(iv->isAvailable(mTimestamp, rec) && mMqttConfigSendState[id] != true) {
                 DynamicJsonDocument deviceDoc(128);
                 deviceDoc["name"] = iv->name;
-                deviceDoc["ids"] = String(iv->serial.u64, HEX);
-                deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
-                deviceDoc["mf"] = "Hoymiles";
-                deviceDoc["mdl"] = iv->name;
+                deviceDoc["ids"]  = String(iv->serial.u64, HEX);
+                deviceDoc["cu"]   = F("http://") + String(WiFi.localIP().toString());
+                deviceDoc["mf"]   = "Hoymiles";
+                deviceDoc["mdl"]  = iv->name;
                 JsonObject deviceObj = deviceDoc.as<JsonObject>();
                 DynamicJsonDocument doc(384);
 
@@ -620,28 +622,28 @@ void app::sendMqttDiscoveryConfig(void) {
                     const char* devCls = getFieldDeviceClass(rec->assign[i].fieldId);
                     const char* stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
-                    doc["name"] = name;
-                    doc["stat_t"]  = stateTopic;
+                    doc["name"]         = name;
+                    doc["stat_t"]       = stateTopic;
                     doc["unit_of_meas"] = iv->getUnit(i, rec);
-                    doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
-                    doc["dev"] = deviceObj;
-                    doc["exp_aft"] = mMqttInterval + 5; // add 5 sec if connection is bad or ESP too slow
-                    if (devCls != NULL) {
+                    doc["uniq_id"]      = String(iv->serial.u64, HEX) + "_" + uniq_id;
+                    doc["dev"]          = deviceObj;
+                    doc["exp_aft"]      = mMqttInterval + 5; // add 5 sec if connection is bad or ESP too slow
+                    if (devCls != NULL)
                         doc["dev_cla"] = devCls;
-                    }
-                    if (stateCls != NULL) {
+                    if (stateCls != NULL)
                         doc["stat_cla"] = stateCls;
-                    }
 
                     serializeJson(doc, buffer);
                     mMqtt.sendMsg2(discoveryTopic, buffer, true);
+                    //DPRINTLN(DBG_INFO, F("mqtt sent"));
                     doc.clear();
-
-                    yield();
                 }
 
+                // TODO: remove this field, obsolete?
                 mMqttConfigSendState[id] = true;
-            }
+
+                yield();
+            //}
         }
     }
 }
@@ -674,6 +676,7 @@ void app::resetSystem(void) {
     mUptimeSecs = 0;
     mPrevMillis = 0;
     mUpdateNtp  = false;
+    mFlagSendDiscoveryConfig = false;
 
     mNtpRefreshTicker   = 0;
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]

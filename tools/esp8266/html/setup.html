@@ -67,7 +67,7 @@
                         <label for="ntpBtn">set system time</label>
                         <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
                         <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
-                        <span id="apiResult">n/a</span>
+                        <span id="apiResultNtp"></span>
                     </fieldset>
                     </div>
 
@@ -85,6 +85,9 @@
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
                         <input type="text" class="text" name="mqttTopic"/>
+                        <label for="mqttBtn">Discovery Config (homeassistant)</label>
+                        <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
+                        <span id="apiResultMqtt"></span>
                     </fieldset>
                     </div>
 
@@ -110,7 +113,9 @@
 
                     <label for="reboot">Reboot device after successful save</label>
                     <input type="checkbox" class="cb" name="reboot"/>
-                    <input type="submit" value="save" class="btn right"/>
+                    <input type="submit" value="save" class="btn right"/><br/>
+                    <br/>
+                    <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values)
                 </form>
             </div>
         </div>
@@ -132,8 +137,16 @@
                     ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
             });
 
-            function apiCb(obj) {
-                var e = document.getElementById("apiResult");
+            function apiCbNtp(obj) {
+                var e = document.getElementById("apiResultNtp");
+                if(obj["success"])
+                    e.innerHTML = "command excuted";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function apiCbMqtt(obj) {
+                var e = document.getElementById("apiResultMqtt");
                 if(obj["success"])
                     e.innerHTML = "command excuted";
                 else
@@ -146,13 +159,19 @@
                 var obj = new Object();
                 obj.cmd = "set_time";
                 obj.ts = parseInt(offset + (date.getTime() / 1000));
-                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
             }
 
             function syncTime() {
                 var obj = new Object();
                 obj.cmd = "sync_ntp";
-                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+            }
+
+            function sendDiscoveryConfig() {
+                var obj = new Object();
+                obj.cmd = "discovery_cfg";
+                getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
             function ivHtml(obj, id) {
