@@ -36,7 +36,7 @@ void webApi::loop(void) {
 
 //-----------------------------------------------------------------------------
 void webApi::onApi(AsyncWebServerRequest *request) {
-    AsyncJsonResponse* response = new AsyncJsonResponse(false, 4096);
+    AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
     JsonObject root = response->getRoot();
 
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
