@@ -1,0 +1,155 @@
+name: "AhoyDTU bug"
+description: "File a bug report"
+title: "[ESP8266/ESP32/RaspberryPi] Problem Description / Beschreibung"
+labels: ["bug", "needs-triage"]
+assignees:
+  - stefan123t
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten.
+        Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
+        
+        Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
+        We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
+  - type: markdown
+    attributes:
+      value: "## Hardware"
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Which Hardware are you using to run AhoyDTU on ?
+      options:
+        - ESP8266
+        - ESP32
+        - RaspberryPi
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model name
+      description: Please give us a precise description of your hardware and/or a link to the vendor
+      placeholder: 
+    validations:
+      required: false
+  - type: dropdown
+    id: nrf24l01-module
+    attributes:
+      label: nRF24L01+ Module
+      description: | 
+        What type of nRF24L01+ chip is on your nRF24L01+ module ?
+        * you verified this is a **nRF24L01+ plus** model capable of the required 256kBit/s mode ?
+        * **square dot** indicates original Nordic Semicon chip ?
+        * **round dot** indicates copy-cat / counterfeit SI labs chip
+      multiple: true
+      options:
+        - nRF24L01+ plus 
+        - square dot
+        - round dot
+  - type: dropdown
+    id: antenna
+    attributes:
+      label: Antenna
+      description: What type of antenna has your nRF24L01+ module ?
+      options:
+        - circuit board
+        - external antenna
+    validations:
+      required: true
+  - type: dropdown
+    id: power-stabilization
+    attributes:
+      label: Power Stabilization
+      description: |
+        What kind of voltage / power stabilization have you used for your nRF24L01+ module ?
+        * **~100uF Elko** (Electrolytic Capacitor) connected between +3.3V and GND (Pin 1 & 2) of the nRF24L01+ Module
+        * special **voltage stabilizing board**
+        * **nothing** (yet)
+      options:
+        - ~100uF Elko
+        - board
+        - nothing
+    validations:
+      required: true
+  - type: textarea
+    id: connection-diagram
+    attributes:
+      label: Connection diagram
+      description: Tell us which connection diagram you used?
+      value: |
+        ## Connection diagram I used:
+        | nRF24L01+ Pin | ESP8266/32 GPIO |
+        | ------------- | --------------- |
+        | Pin 1 GND []  |  GND            |
+        | Pin 2 +3.3V   |  +3.3V          |
+        | Pin 3 CE      | GPIO_2/_4 CE    |
+        | Pin 4 CSN     | GPIO15/_5 CS    |
+        | Pin 5 SCK     | GPIO14/18 SCLK  |
+        | Pin 6 MOSI    | GPIO13/23 MOSI  |
+        | Pin 7 MISO    | GPIO12/19 MISO  |
+        | Pin 8 IRQ     | GPIO_0/0 IRQ    |
+        
+        Note: [] GND Pin 1 has a square mark on the nRF24L01+ module
+    validations:
+      required: true
+  - type: checkboxes
+    id: connection-picture
+    attributes:
+      label: Connection picture
+      description: 
+      options:
+        - label: I will attach/upload an Image of my wiring
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "## Software"
+  - type: input
+    id: software-version
+    attributes:
+      label: Version
+      description: What version of our software are you running ?
+      placeholder: 0.5.17
+    validations:
+      required: true
+  - type: input
+    id: software-githash
+    attributes:
+      label: Github Hash
+      description: Which GitHub hash has the build of our software ?
+      placeholder: 5402e9b
+    validations:
+      required: true
+  - type: dropdown
+    id: build-and-flash-method
+    attributes:
+      label: Build & Flash Method
+      description: What software do you use to flash / build & flash our firmware images ?
+      options:
+        - ESP Tools (flash)
+        - Platform IO (build & flash)
+    validations:
+      required: true
+  - type: dropdown
+    id: desktop-os
+    attributes:
+      label: Desktop
+      description: Which operating system are you using on your desktop to build & flash ?
+      options:
+        - Linux
+        - Mac OS
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: debugging
+    attributes:
+      label: Debug Serial Log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      placeholder: |
+        - USB Serial Log (attached)
+        - Setup settings (use our templates ... to be added)
+      render: shell

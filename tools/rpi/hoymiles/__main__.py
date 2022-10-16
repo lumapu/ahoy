@@ -106,8 +106,9 @@ def poll_inverter(inverter, do_init, retries=4):
             result = decoder.decode()
             if isinstance(result, hoymiles.decoders.StatusResponse):
                 data = result.__dict__()
+
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'{c_datetime} Decoded: temp={data["temperature"]}', end='')
+                    print(f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}', end='')
                     if data['powerfactor'] is not None:
                         print(f', pf={data["powerfactor"]}', end='')
                     phase_id = 0
@@ -169,6 +170,8 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
         broker.publish(f'{topic}/pf', data['powerfactor'])
     broker.publish(f'{topic}/frequency', data['frequency'])
     broker.publish(f'{topic}/temperature', data['temperature'])
+    if data['energy_total'] is not None:
+        broker.publish(f'{topic}/total', data['energy_total']/1000)
 
 def mqtt_on_command(client, userdata, message):
     """
@@ -324,3 +327,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         sys.exit()
+    except Exception as e:
+        print ('Exception catched: %s' % e)
+        raise

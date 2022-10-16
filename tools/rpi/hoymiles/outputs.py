@@ -120,6 +120,8 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},type=pf value={data["powerfactor"]:f} {ctime}')
         data_stack.append(f'{measurement},type=frequency value={data["frequency"]:.3f} {ctime}')
         data_stack.append(f'{measurement},type=temperature value={data["temperature"]:.2f} {ctime}')
+        if data['energy_total'] is not None:
+            data_stack.append(f'{measurement},type=total value={data["energy_total"]/1000:.3f} {ctime}')
 
         self.api.write(self._bucket, self._org, data_stack)
 
@@ -201,6 +203,8 @@ class MqttOutputPlugin(OutputPluginFactory):
             self.client.publish(f'{topic}/pf', data['powerfactor'])
         self.client.publish(f'{topic}/frequency', data['frequency'])
         self.client.publish(f'{topic}/temperature', data['temperature'])
+        if data['energy_total'] is not None:
+            self.client.publish(f'{topic}/total', data['energy_total']/1000)
 
 try:
     import requests
@@ -256,6 +260,9 @@ class VzInverterOutput:
         self.try_publish(ts, f'frequency', data['frequency'])
         self.try_publish(ts, f'temperature', data['temperature'])
 
+        if data['energy_total'] is not None:
+            self.try_publish(ts, f'total', data['energy_total'])
+
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
             return
@@ -265,7 +272,7 @@ class VzInverterOutput:
             r = self.session.get(url)
             if r.status_code != 200:
                 raise ValueError('Could not send request (%s)' % url)
-        except ConnectionError as e:
+        except requests.exceptions.ConnectionError as e:
             raise ValueError('Could not send request (%s)' % e)
 
 class VolkszaehlerOutputPlugin(OutputPluginFactory):
@@ -300,4 +307,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
         serial = data["inverter_ser"]
         if serial in self.inverters:
             output = self.inverters[serial]
-            output.store_status(data, self.session)
+            try:
+                output.store_status(data, self.session)
+            except ValueError as e:
+                print('Could not send data to volkszaehler instance: %s' % e)

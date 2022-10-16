@@ -92,11 +92,15 @@ class mqtt {
                     // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
                     mClient->setServer(mCfg->broker, mCfg->port);
                     mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
+
+                    char lwt[MQTT_TOPIC_LEN + 7 ]; // "/uptime" --> + 7 byte
+                    snprintf(lwt, MQTT_TOPIC_LEN + 7, "%s/uptime", mCfg->topic);
+
                     if((strlen(mCfg->user) > 0) && (strlen(mCfg->pwd) > 0))
-                        resub = mClient->connect(mDevName, mCfg->user, mCfg->pwd);
+                        resub = mClient->connect(mDevName, mCfg->user, mCfg->pwd, lwt, 0, false, "offline");
                     else
-                        resub = mClient->connect(mDevName);
-                                // ein Subscribe ist nur nach einem connect notwendig
+                        resub = mClient->connect(mDevName, lwt, 0, false, "offline");
+                        // ein Subscribe ist nur nach einem connect notwendig
                     if(resub) {
                         char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
                         // ToDo: "/devcontrol/#" is hardcoded 

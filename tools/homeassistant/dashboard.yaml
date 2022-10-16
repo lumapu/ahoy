@@ -1,0 +1,99 @@
+views:
+  - title: Home
+    cards:
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            entity: sensor.inverter_ac_power
+            name: Inverter
+            max: 800
+            needle: false
+            severity:
+              green: 500
+              yellow: 100
+              red: 0
+          - type: gauge
+            entity: sensor.inverter_channel_1_ac_power
+            name: Channel 1
+            max: 460
+          - type: gauge
+            entity: sensor.inverter_channel_2_ac_power
+            name: Channel 2
+            max: 460
+      - show_name: false
+        show_icon: true
+        show_state: true
+        type: glance
+        entities:
+          - entity: sensor.inverter_ac_voltage
+            name: Voltage
+          - entity: sensor.inverter_frequency
+            name: Frequency
+          - entity: sensor.inverter_ac_current
+            name: Current
+          - entity: sensor.inverter_ac_power
+            name: Power
+          - entity: sensor.inverter_dc_power
+            name: DC Power
+          - entity: sensor.inverter_ac_reactive_power
+            name: Reactive Power
+          - entity: sensor.inverter_power_factor
+          - entity: sensor.inverter_day_yield
+            name: Day Yield
+          - entity: sensor.inverter_total_yield
+            name: Total Yield
+          - entity: sensor.inverter_efficiency
+            name: Efficiency
+          - entity: sensor.inverter_temperature
+            name: Temperature
+          - entity: sensor.inverter_uptime
+            name: Uptime
+          - entity: sensor.inverter_last_alarm
+            name: Status
+          - entity: sensor.inverter_power_limit
+          - entity: sensor.inverter_firmware_version
+          - entity: sensor.inverter_firmware_build_year
+          - entity: sensor.inverter_firmware_build_month_and_day
+          - entity: sensor.inverter_hardware_id
+        title: Inverter
+        columns: 4
+      - type: horizontal-stack
+        cards:
+          - show_name: false
+            show_icon: true
+            show_state: true
+            type: glance
+            entities:
+              - entity: sensor.inverter_channel_1_ac_voltage
+                name: Voltage
+              - entity: sensor.inverter_channel_1_ac_current
+                name: Current
+              - entity: sensor.inverter_channel_1_ac_power
+                name: Power
+              - entity: sensor.inverter_channel_1_day_yield
+                name: Day Yield
+              - entity: sensor.inverter_channel_1_total_yield
+                name: Total Yield
+              - entity: sensor.inverter_channel_1_irradiation
+                name: Irradiation
+            title: Channel 1
+            columns: 2
+          - show_name: false
+            show_icon: true
+            show_state: true
+            type: glance
+            entities:
+              - entity: sensor.inverter_channel_2_ac_voltage
+                name: Voltage
+              - entity: sensor.inverter_channel_2_ac_current
+                name: Current
+              - entity: sensor.inverter_channel_2_ac_power
+                name: Power
+              - entity: sensor.inverter_channel_2_day_yield
+                name: Day Yield
+              - entity: sensor.inverter_channel_2_total_yield
+                name: Total Yield
+              - entity: sensor.inverter_channel_2_irradiation
+                name: Irradiation
+            title: Channel 2
+            columns: 2

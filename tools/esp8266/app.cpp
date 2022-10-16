@@ -828,8 +828,10 @@ void app::setupMqtt(void) {
 
         if(mMqttActive) {
             mMqtt.sendMsg("version", mVersion);
-            if(mMqtt.isConnected())
+            if(mMqtt.isConnected()) {
                 mMqtt.sendMsg("device", mSysConfig.deviceName);
+                mMqtt.sendMsg("uptime", "0");
+            }
 
             /*char topic[30];
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {

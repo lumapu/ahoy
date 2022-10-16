@@ -3,8 +3,11 @@ name: Ahoy Release for ESP8266
 on:
   push:
     branches: main
-    paths-ignore:
-    - '**.md' # Do no build on *.md changes
+    paths:
+    - 'tools/esp8266/**' # build only when changes occur here
+    - '!tools/esp8266/README.md'
+    - '!tools/esp8266/CHANGES.md'
+    - '!tools/esp8266/User_Manual.md'
 jobs:
   build:
     runs-on: ubuntu-latest
