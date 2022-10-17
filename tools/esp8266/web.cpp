@@ -236,6 +236,12 @@ void web::showSave(AsyncWebServerRequest *request) {
             if(strlen(buf) == 0)
                 memset(buf, 0, 20);
             iv->serial.u64 = mMain->Serial2u64(buf);
+            switch(iv->serial.b[4]) {
+                case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
+                case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
+                case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
+                default:  break;
+            }
 
             // name
             request->arg("inv" + String(i) + "Name").toCharArray(iv->name, MAX_NAME_LENGTH);

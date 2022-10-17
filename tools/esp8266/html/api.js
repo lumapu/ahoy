@@ -79,3 +79,7 @@ function span(val, cl=null, id=null) {
     if(null != id) e.id = id;
     return e;
 }
+
+function br() {
+    return document.createElement('br');
+}

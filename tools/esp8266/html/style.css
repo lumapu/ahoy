@@ -129,6 +129,10 @@ input.sh {
     margin-right: 10px;
 }
 
+input.btnDel {
+    background-color: #c00 !important;
+}
+
 input.btn {
     background-color: #006ec0;
     color: #fff;
