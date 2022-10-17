@@ -42,8 +42,8 @@ class web {
         void showVisualization(void);
         void showLiveData(void);
         void showJson(void);
-        void showWebApi(void);
         void showMetrics(void);
+        void showWebApi(void);
 
     private:
         #ifdef ESP8266

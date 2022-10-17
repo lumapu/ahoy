@@ -576,7 +576,7 @@ String app::getJson(void) {
 
 //-----------------------------------------------------------------------------
 String app::getMetrics(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::getMetrics"));
+    DPRINTLN(DBG_VERBOSE, F("app::showMetrics"));
     String metrics;
     char headline[80];
     
