@@ -574,6 +574,32 @@ String app::getJson(void) {
    return modJson;
 }
 
+//-----------------------------------------------------------------------------
+String app::getMetrics(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::getMetrics"));
+    String metrics;
+    char headline[80];
+    
+    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mSysConfig.deviceName);
+    metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
+
+    for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            char type[40], topic[60], val[25];
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                uint8_t channel = iv->assign[i].ch;
+                if(channel == 0) {
+                    snprintf(type, 40, "# TYPE ahoy_solar_%s_ gauge", iv->getFieldName(i));
+                    snprintf(topic, 60, "ahoy_solar_%s_{inverter=\"%s\"}", iv->getFieldName(i), iv->name);
+                    snprintf(val, 25, "%.3f", iv->getValue(i));
+                    metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
+                }
+            }
+        }
+    }
+   return metrics;
+}
 
 //-----------------------------------------------------------------------------
 bool app::getWifiApActive(void) {

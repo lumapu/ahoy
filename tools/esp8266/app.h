@@ -73,7 +73,9 @@ class app {
         void resetPayload(Inverter<>* iv);
         String getStatistics(void);
         String getJson(void);
+        String getMetrics(void);
         bool getWifiApActive(void);
+        
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;

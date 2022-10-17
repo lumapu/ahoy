@@ -71,6 +71,7 @@ void web::setup(void) {
     mWeb->on("/visualization",  std::bind(&web::showVisualization, this));
     mWeb->on("/livedata",       std::bind(&web::showLiveData,      this));
     mWeb->on("/json",           std::bind(&web::showJson,          this));
+    mWeb->on("/metrics",        std::bind(&web::showMetrics,       this));
     mWeb->on("/api", HTTP_POST, std::bind(&web::showWebApi,        this));
 }
 
@@ -566,6 +567,12 @@ void web::showLiveData(void) {
 void web::showJson(void) {
     DPRINTLN(DBG_VERBOSE, F("web::showJson"));
     mWeb->send(200, F("application/json"), mMain->getJson());
+}
+
+//-----------------------------------------------------------------------------
+void web::showMetrics(void) {
+    DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
+    mWeb->send(200, F("application/metrics"), mMain->getMetrics());
 }
 
 //-----------------------------------------------------------------------------
