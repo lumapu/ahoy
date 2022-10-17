@@ -9,7 +9,6 @@
 #include "dbg.h"
 #include "Arduino.h"
 
-
 #include <RF24.h>
 #include <RF24_config.h>
 #include <ArduinoJson.h>
@@ -157,6 +156,8 @@ class app {
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
         void processPayload(bool retransmit, uint8_t cmd);
+
+        std::pair<String, String> convertToPromUnits(String shortUnit);
 
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);

@@ -575,6 +575,20 @@ String app::getJson(void) {
 }
 
 //-----------------------------------------------------------------------------
+std::pair<String, String> app::convertToPromUnits(String shortUnit) {
+
+    if(shortUnit == "A")    return {"amplere", "gauge"};
+    if(shortUnit == "V")    return {"volts", "gauge"};
+    if(shortUnit == "%")    return {"ratio", "gauge"};
+    if(shortUnit == "W")    return {"watts", "gauge"};
+    if(shortUnit == "Wh")   return {"watts_daily", "counter"};
+    if(shortUnit == "kWh")  return {"watts_total", "counter"};
+    if(shortUnit == "°C")   return {"celsius", "gauge"};
+
+    return {"", "gauge"};
+}
+
+
 String app::getMetrics(void) {
     DPRINTLN(DBG_VERBOSE, F("app::showMetrics"));
     String metrics;
@@ -586,12 +600,14 @@ String app::getMetrics(void) {
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            char type[40], topic[60], val[25];
+            char type[60], topic[60], val[25];
             for(uint8_t i = 0; i < iv->listLen; i++) {
                 uint8_t channel = iv->assign[i].ch;
                 if(channel == 0) {
-                    snprintf(type, 40, "# TYPE ahoy_solar_%s_ gauge", iv->getFieldName(i));
-                    snprintf(topic, 60, "ahoy_solar_%s_{inverter=\"%s\"}", iv->getFieldName(i), iv->name);
+                    String promUnit, promType;
+                    std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i) );
+                    snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i), promUnit.c_str(), promType.c_str());
+                    snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i), promUnit.c_str(), iv->name);
                     snprintf(val, 25, "%.3f", iv->getValue(i));
                     metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
                 }

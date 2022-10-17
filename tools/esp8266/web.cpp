@@ -572,7 +572,7 @@ void web::showJson(void) {
 //-----------------------------------------------------------------------------
 void web::showMetrics(void) {
     DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
-    mWeb->send(200, F("application/metrics"), mMain->getMetrics());
+    mWeb->send(200, F("text/plain"), mMain->getMetrics());
 }
 
 //-----------------------------------------------------------------------------
