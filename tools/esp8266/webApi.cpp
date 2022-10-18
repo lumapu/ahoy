@@ -143,6 +143,7 @@ void webApi::getSystem(JsonObject obj) {
     obj[F("ts_uptime")]   = mApp->getUptime();
     obj[F("ts_now")]      = mApp->getTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
+    obj[F("disclaimer")]  = mConfig->disclaimer;
 }
 
 
