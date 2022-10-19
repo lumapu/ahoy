@@ -412,21 +412,26 @@ void app::processPayload(bool retransmit) {
                                                 }
                                             }
                                            
-                                            if(iv->isProducing(mTimestamp, rec)){
-                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                                            // Todo: make this section nice to read.
+                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+
+                                            if(iv->isProducing(mTimestamp, rec))
+                                            {
                                                 snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
                                                 mMqtt.sendMsg(topic, val);
+
                                                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
                                                 snprintf(val, 32, "2");
-                                                mMqtt.sendMsg(topic, val);
                                             } else {
-                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                                                 snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED);
                                                 mMqtt.sendMsg(topic, val);
+
                                                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
                                                 snprintf(val, 32, "1");
-                                                mMqtt.sendMsg(topic, val);
                                             }
+
+                                            mMqtt.sendMsg(topic, val);
+
 
                                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
                                             snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
@@ -518,7 +523,7 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                     if (!iv->devControlRequest) // still pending
                     { 
                         token = strtok(NULL, "/");
-                        
+
                         switch ( std::stoi(token) )
                         {
                             // Active Power Control
