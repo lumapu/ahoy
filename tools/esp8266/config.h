@@ -78,6 +78,9 @@
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
 
+// Timezone
+#define TIMEZONE                1
+
 // default NTP server uri
 #define DEF_NTP_SERVER_NAME     "pool.ntp.org"
 

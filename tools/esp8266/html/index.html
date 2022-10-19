@@ -28,10 +28,15 @@
                 <a href="/live">Visualization</a><br/>
                 <br/>
                 <a href="/setup">Setup</a><br/>
+                <br/>
                 <a href="/serial">Webserial & Commands</a><br/>
             </p>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">ESP-Time: </span><span id="date"></span></p>
+            <div id="sun">
+                <span class="des">Sunrise: </span><span id="sunrise"></span><br>
+                <span class="des">Sunset: </span><span id="sunset"></span>
+            </div>
             <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
             <p>
                 <span class="des">Statistics: </span>
@@ -95,6 +100,8 @@
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
+                var sunrise = new Date(obj["ts_sunrise"] * 1000);
+                var sunset = new Date(obj["ts_sunset"] * 1000);
                 document.getElementById("uptime").innerHTML = days + " Days, "
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
@@ -109,6 +116,13 @@
                     dSpan.appendChild(span("", ["span"], "apiResult"));
                     e.addEventListener("click", setTime);
                 }
+                document.getElementById("sunrise").innerHTML = sunrise.toLocaleString('de-DE', {timeZone: 'UTC'});
+                document.getElementById("sunset").innerHTML = sunset.toLocaleString('de-DE', {timeZone: 'UTC'});
+                
+                if(!obj["ts_sun_upd"]) {
+                    var elem = document.getElementById("sun");
+                    elem.parentNode.removeChild(elem);
+                }
             }
 
             function parseStat(obj) {
@@ -116,7 +130,7 @@
                     + "\nRX fail: " + obj["rx_fail"]
                     + "\nRX no answer: " + obj["rx_fail_answer"]
                     + "\nFrames received: " + obj["frame_cnt"]
-                    + "\nTX Cnt: " + obj["tx_cnt"];
+                    + "\nTX cnt: " + obj["tx_cnt"];
             }
 
             function parseIv(obj) {

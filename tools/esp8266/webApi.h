@@ -33,10 +33,10 @@ class webApi {
         void getInverterList(JsonObject obj);
         void getMqtt(JsonObject obj);
         void getNtp(JsonObject obj);
+        void getSun(JsonObject obj);
         void getPinout(JsonObject obj);
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
-
 
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);

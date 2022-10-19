@@ -56,6 +56,8 @@ void app::loop(void) {
     if(millis() - mPrevMillis >= 1000) {
         mPrevMillis += 1000;
         mUptimeSecs++;
+        if(0 != mUtcTimestamp)
+            mUtcTimestamp++;
         if(0 != mTimestamp)
             mTimestamp++;
     }
@@ -67,7 +69,8 @@ void app::loop(void) {
 
     if(mUpdateNtp) {
         mUpdateNtp = false;
-        mTimestamp = mWifi->getNtpTime();
+        mUtcTimestamp = mWifi->getNtpTime();
+        mTimestamp = mUtcTimestamp + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
         DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
     }
 
@@ -154,6 +157,12 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
+        if(mTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && mTimestamp / 86400 > mLatestSunTimestamp / 86400) // update on reboot or new day
+        {
+            calculateSunriseSunset();
+            mLatestSunTimestamp = mTimestamp;
+        }
+
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
@@ -196,7 +205,7 @@ void app::loop(void) {
         if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
-            if(0 != mTimestamp) {
+            if(mUtcTimestamp > 946684800 && (!mConfig.sunDisNightCom || !mLatestSunTimestamp || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
                 if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
@@ -258,7 +267,7 @@ void app::loop(void) {
                 }
             }
             else if(mConfig.serialDebug)
-                DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
+                DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
             yield();
         }
     }
@@ -380,7 +389,7 @@ void app::processPayload(bool retransmit) {
                     if(NULL == rec)
                         DPRINTLN(DBG_ERROR, F("record is NULL!"));
                     else {
-                        rec->ts = mPayload[iv->id].ts;
+                        rec->ts = mPayload[iv->id].ts + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
                             yield();
@@ -682,8 +691,10 @@ void app::resetSystem(void) {
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]
 
 #ifdef AP_ONLY
+    mUtcTimestamp = 1;
     mTimestamp = 1;
 #else
+    mUtcTimestamp = 0;
     mTimestamp = 0;
 #endif
 
@@ -733,6 +744,11 @@ void app::loadDefaultConfig(void) {
     // ntp
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
     mConfig.ntpPort = DEF_NTP_PORT;
+
+    // Latitude + Longitude
+    mConfig.sunLat = 0.0;
+    mConfig.sunLon = 0.0;
+    mConfig.sunDisNightCom = false;
 
     // mqtt
     snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
@@ -813,6 +829,9 @@ void app::saveValues(void) {
     }
 
     updateCrc();
+
+    // update sun
+    mLatestSunTimestamp = 0;
 }
 
 
@@ -865,5 +884,53 @@ void app::resetPayload(Inverter<>* iv) {
     mPayload[iv->id].maxPackId   = 0;
     mPayload[iv->id].complete    = false;
     mPayload[iv->id].requested   = false;
-    mPayload[iv->id].ts          = mTimestamp;
+    mPayload[iv->id].ts          = mUtcTimestamp;
+}
+
+//-----------------------------------------------------------------------------
+// calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
+// from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
+uint8_t app::offsetDayLightSaving (uint32_t local_t) {
+    //DPRINTLN(DBG_VERBOSE, F("wifi::offsetDayLightSaving"));
+    int m = month (local_t);
+    if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
+    if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
+    int y = year (local_t);
+    int h = hour (local_t);
+    int hToday = (h + 24 * day(local_t));
+    if((m == 3  && hToday >= (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 4) % 7)))
+        || (m == 10 && hToday <  (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 1) % 7))) )
+        return 1;
+    else
+        return 0;
+}
+
+void app::calculateSunriseSunset() {
+    // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
+
+    // Julian day since 1.1.2000 12:00 + correction 69.12s
+    double n_JulianDay = mTimestamp / 86400 - 10957.0 + 0.0008;
+    // Mean solar time
+    double J = n_JulianDay - mConfig.sunLon / 360;
+    // Solar mean anomaly
+    double M = fmod((357.5291 + 0.98560028 * J), 360);
+    // Equation of the center
+    double C = 1.9148 * SIN(M) + 0.02 * SIN(2 * M) + 0.0003 * SIN(3 * M);
+    // Ecliptic longitude
+    double lambda = fmod((M + C + 180 + 102.9372), 360);
+    // Solar transit
+    double Jtransit = 2451545.0 + J + 0.0053 * SIN(M) - 0.0069 * SIN(2 * lambda);
+    // Declination of the sun
+    double delta = ASIN(SIN(lambda) * SIN(23.44));
+    // Hour angle
+    double omega = ACOS(SIN(-0.83) - SIN(mConfig.sunLat) * SIN(delta) / COS(mConfig.sunLat) * COS(delta));
+    // Calculate sunrise and sunset
+    double Jrise = Jtransit - omega / 360;
+    double Jset  = Jtransit + omega / 360;
+    // Julian sunrise/sunset to unix timestamp (days incl. fraction to seconds + unix offset 1.1.2000 12:00)
+    uint32_t UTC_Timestamp_Sunrise = (Jrise - 2451545.0) * 86400 + 946728000;
+    uint32_t UTC_Timestamp_Sunset  = (Jset  - 2451545.0) * 86400 + 946728000;
+
+    mSunrise = UTC_Timestamp_Sunrise + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunrise)) * 3600); // sunrise in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
+    mSunset  = UTC_Timestamp_Sunset  + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunset))  * 3600); // sunset  in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
 }

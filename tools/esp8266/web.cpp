@@ -283,6 +283,18 @@ void web::showSave(AsyncWebServerRequest *request) {
             mConfig->ntpPort = request->arg("ntpPort").toInt() & 0xffff;
         }
 
+        // sun
+        if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
+            mConfig->sunLat = 0.0;
+            mConfig->sunLon = 0.0;
+            mConfig->sunDisNightCom = false;
+        } else {
+            mConfig->sunLat = request->arg("sunLat").toFloat();
+            mConfig->sunLon = request->arg("sunLon").toFloat();
+            mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
+        }
+        
+
         // mqtt
         if(request->arg("mqttAddr") != "") {
             String addr = request->arg("mqttAddr");
