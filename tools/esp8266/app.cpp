@@ -314,18 +314,26 @@ void app::processPayload(bool retransmit) {
                 mPayload[iv->id].complete = true;
             }
 
-            if(!mPayload[iv->id].complete ) {
-                if(!buildPayload(iv->id)) { // payload not complete
-                    if(mPayload[iv->id].requested) {
-                        if(retransmit) {
+            if(!mPayload[iv->id].complete ) 
+            {
+                if(!buildPayload(iv->id)) // payload not complete
+                { 
+                    if(mPayload[iv->id].requested) 
+                    {
+                        if(retransmit) 
+                        {
                             if(iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm ) {
                                 // This is required to prevent retransmissions without answer.
                                 DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
                                 mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
-                            } else {
-                                if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
+                            } 
+                            else 
+                            {
+                                if(mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) 
+                                {
                                     mPayload[iv->id].retransmits++;
-                                    if(mPayload[iv->id].maxPackId != 0) {
+                                    if(mPayload[iv->id].maxPackId != 0) 
+                                    {
                                         for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId-1); i++) {
                                             if(mPayload[iv->id].len[i] == 0) {
                                                 if(mConfig.serialDebug)
@@ -336,7 +344,8 @@ void app::processPayload(bool retransmit) {
                                             yield();
                                         }
                                     }
-                                    else {
+                                    else 
+                                    {
                                         if(mConfig.serialDebug)
                                             DPRINTLN(DBG_WARN, F("while retrieving data: last frame missing: Request Retransmit"));
                                         if(0x00 != mLastPacketId)
@@ -352,7 +361,8 @@ void app::processPayload(bool retransmit) {
                         }
                     }
                 }
-                else { // payload complete
+                else 
+                { // payload complete
                     DPRINTLN(DBG_INFO, F("procPyld: cmd:  ") + String(mPayload[iv->id].txCmd));
                     DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                     DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
@@ -377,9 +387,11 @@ void app::processPayload(bool retransmit) {
                         mSys->Radio.dumpBuf(NULL, payload, offs);
                     }
 
-                    if(NULL == rec)
+                    if(NULL == rec) {
                         DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                    else {
+                    } 
+                    else 
+                    {
                         rec->ts = mPayload[iv->id].ts;
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
