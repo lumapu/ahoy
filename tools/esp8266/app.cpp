@@ -103,7 +103,7 @@ void app::loop(void) {
 
                 if(0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + 0x80))) { // response from get information command
+                    if((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES))) { // response from get information command
                         mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                         uint8_t *pid = &p->packet[9];
@@ -116,7 +116,7 @@ void app::loop(void) {
                                 mPayload[iv->id].len[(*pid & 0x7F) - 1] = len - 11;
                             }
 
-                            if ((*pid & 0x80) == 0x80) {
+                            if ((*pid & ALL_FRAMES) == ALL_FRAMES) {
                                 // Last packet
                                 if ((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
                                     mPayload[iv->id].maxPackId = (*pid & 0x7f);
@@ -126,7 +126,7 @@ void app::loop(void) {
                             }
                         }
                     }
-                    if((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + 0x80))) { // response from dev control command
+                    if((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES))) { // response from dev control command
                         mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
                         iv->devControlRequest = false;
@@ -308,7 +308,7 @@ void app::processPayload(bool retransmit) {
     for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if(NULL != iv) {
-            if((mPayload[iv->id].txId != (TX_REQ_INFO + 0x80)) && (0 != mPayload[iv->id].txId)) {
+            if((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
                 // no processing needed if txId is not 0x95
                 //DPRINTLN(DBG_INFO, F("processPayload - set complete, txId: ") + String(mPayload[iv->id].txId, HEX));
                 mPayload[iv->id].complete = true;
@@ -358,7 +358,7 @@ void app::processPayload(bool retransmit) {
                     DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                     record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd); // choose the parser
                     mPayload[iv->id].complete = true;
-                    if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                    if(mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
                         mStat.rxSuccess++;
 
                     uint8_t payload[128];
