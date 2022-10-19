@@ -821,11 +821,10 @@ void app::setupMqtt(void) {
     if(mSettingsValid) {
         if(mConfig.mqtt.broker[0] > 0) {
             mMqttActive = true;
-            if(mMqttInterval < MIN_MQTT_INTERVAL)
-                mMqttInterval = MIN_MQTT_INTERVAL;
-        }
-        else
+            if(mMqttInterval < MIN_MQTT_INTERVAL) mMqttInterval = MIN_MQTT_INTERVAL;
+        } else {
             mMqttInterval = 0xffff;
+        }
 
         mMqttTicker = 0;
         mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName);
@@ -838,20 +837,6 @@ void app::setupMqtt(void) {
                 mMqtt.sendMsg("device", mSysConfig.deviceName);
                 mMqtt.sendMsg("uptime", "0");
             }
-
-            /*char topic[30];
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    for(uint8_t i = 0; i < 4; i++) {
-                        if(0 != iv->chName[i][0]) {
-                            snprintf(topic, 30, "%s/ch%d/%s", iv->name, i+1, "name");
-                            mMqtt.sendMsg(topic, iv->chName[i]);
-                            yield();
-                        }
-                    }
-                }
-            }*/
         }
     }
 }
