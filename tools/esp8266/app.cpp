@@ -279,21 +279,24 @@ bool app::buildPayload(uint8_t id) {
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
 
-    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
-        if(mPayload[id].len[i] > 0) {
-            if(i == (mPayload[id].maxPackId-1)) {
+    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) 
+    {
+        if(mPayload[id].len[i] > 0) 
+        {
+            if(i == (mPayload[id].maxPackId-1)) 
+            {
                 crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
-                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
-                    | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
+                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8) | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
-            else
+            else 
+            {
                 crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
+            }
         }
         yield();
     }
-    if(crc == crcRcv)
-        return true;
-    return false;
+
+    return (crc == crcRcv) ? true : false;
 }
 
 
