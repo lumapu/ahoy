@@ -505,16 +505,24 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
     const char *token = strtok(topic, "/");
     while (token != NULL)
     {   
-        if (strcmp(token,"devcontrol")==0){
+        if (strcmp(token,"devcontrol")==0)
+        {
             token = strtok(NULL, "/");
             uint8_t iv_id = std::stoi(token);
-            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS){
+
+            if (iv_id >= 0  && iv_id <= MAX_NUM_INVERTERS)
+            {
                 Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
-                if(NULL != iv) {
-                    if (!iv->devControlRequest) { // still pending
+                if(NULL != iv) 
+                {
+                    if (!iv->devControlRequest) // still pending
+                    { 
                         token = strtok(NULL, "/");
-                        switch ( std::stoi(token) ){
-                            case ActivePowerContr:  // Active Power Control
+                        
+                        switch ( std::stoi(token) )
+                        {
+                            // Active Power Control
+                            case ActivePowerContr:  
                                 token = strtok(NULL, "/"); // get ControlMode aka "PowerPF.Desc" in DTU-Pro Code from topic string
                                 if (token == NULL) // default via mqtt ommit the LimitControlMode
                                     iv->powerLimit[1] = AbsolutNonPersistent;
@@ -534,22 +542,30 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                     DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char*)payload));
                                 }
                                 break;
-                            case TurnOn: // Turn On
+
+                            // Turn On
+                            case TurnOn: 
                                 iv->devControlCmd = TurnOn;
                                 DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case TurnOff: // Turn Off
+
+                            // Turn Off
+                            case TurnOff: 
                                 iv->devControlCmd = TurnOff;
                                 DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case Restart: // Restart
+
+                            // Restart
+                            case Restart: 
                                 iv->devControlCmd = Restart;
                                 DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id) );
                                 iv->devControlRequest = true;
                                 break;
-                            case ReactivePowerContr: // Reactive Power Control
+
+                            // Reactive Power Control
+                            case ReactivePowerContr: 
                                 iv->devControlCmd = ReactivePowerContr;
                                 if (true){ // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
                                     iv->devControlCmd = ReactivePowerContr;
@@ -559,16 +575,21 @@ void app::cbMqtt(char* topic, byte* payload, unsigned int length) {
                                     iv->devControlRequest = true;
                                 }
                                 break;
-                            case PFSet: // Set Power Factor
+
+                            // Set Power Factor
+                            case PFSet: 
                                 // iv->devControlCmd = PFSet;
                                 // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
                                 DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id) );
                                 break;
-                            case CleanState_LockAndAlarm: // CleanState lock & alarm
+
+                            // CleanState lock & alarm
+                            case CleanState_LockAndAlarm: 
                                  iv->devControlCmd = CleanState_LockAndAlarm;
                                  DPRINTLN(DBG_INFO, F("CleanState lock & alarm for inverter ") + String(iv->id) );
                                  iv->devControlRequest = true;
                                  break;
+
                             default:
                                 DPRINTLN(DBG_INFO, "Not implemented");
                                 break;
