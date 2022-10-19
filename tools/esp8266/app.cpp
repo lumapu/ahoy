@@ -86,37 +86,47 @@ void app::loop(void) {
 
     yield();
 
-    if(checkTicker(&mRxTicker, 5)) {
+    if(checkTicker(&mRxTicker, 5)) 
+    {
         bool rxRdy = mSys->Radio.switchRxCh();
 
-        if(!mSys->BufCtrl.empty()) {
+        if(!mSys->BufCtrl.empty()) 
+        {
             uint8_t len;
             packet_t *p = mSys->BufCtrl.getBack();
 
-            if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
+            if(mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) 
+            {
                 // process buffer only on first occurrence
                 if(mConfig.serialDebug) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
+
                 mStat.frmCnt++;
 
-                if(0 != len) {
+                if(0 != len) 
+                {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES))) { // response from get information command
+                    if((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)))  // response from get information command
+                    {
                         mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                         uint8_t *pid = &p->packet[9];
                         if (*pid == 0x00)
-                            DPRINT(DBG_DEBUG, "fragment number zero received and ignored");
-                        else {
+                        {
+                            DPRINT(DBG_DEBUG, F("fragment number zero received and ignored"));
+                        } 
+                        else 
+                        {
                             DPRINTLN(DBG_DEBUG, "PID: 0x" + String(*pid, HEX));
                             if ((*pid & 0x7F) < 5) {
                                 memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len - 11);
                                 mPayload[iv->id].len[(*pid & 0x7F) - 1] = len - 11;
                             }
 
-                            if ((*pid & ALL_FRAMES) == ALL_FRAMES) {
+                            if ((*pid & ALL_FRAMES) == ALL_FRAMES) 
+                            {
                                 // Last packet
                                 if ((*pid & 0x7f) > mPayload[iv->id].maxPackId) {
                                     mPayload[iv->id].maxPackId = (*pid & 0x7f);
@@ -126,15 +136,17 @@ void app::loop(void) {
                             }
                         }
                     }
-                    if((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES))) { // response from dev control command
-                        mPayload[iv->id].txId = p->packet[0];
+                    if((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES))) // response from dev control command
+                    {
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
+
+                        mPayload[iv->id].txId = p->packet[0];
                         iv->devControlRequest = false;
-                        if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
-                            if (p->packet[10] == 0x00 && p->packet[11] == 0x00)
-                                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
-                            else
-                                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has NOT accepted power limit set point") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));
+
+                        if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) 
+                        {
+                            String msg = (p->packet[10] == 0x00 && p->packet[11] == 0x00) ? "" : "NOT ";
+                            DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + msg + String(iv->powerLimit[0]) + F(" with PowerLimitControl ")  + String(iv->powerLimit[1]));  
                         }
                         iv->devControlCmd = Init;
                     }
@@ -241,7 +253,9 @@ void app::loop(void) {
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
                         DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
                     }
-                    if(iv->devControlRequest) {
+
+                    if(iv->devControlRequest) 
+                    {
                         if(mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
@@ -249,7 +263,8 @@ void app::loop(void) {
                         iv->clearCmdQueue();
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     }
-                    else {
+                    else 
+                    {
                         uint8_t cmd = iv->getQueuedCmd();
                         mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                         mPayload[iv->id].txCmd = cmd;
@@ -257,8 +272,9 @@ void app::loop(void) {
                     }
                 }
             }
-            else if(mConfig.serialDebug)
+            else if(mConfig.serialDebug) {
                 DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
+            }
             yield();
         }
     }
