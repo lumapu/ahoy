@@ -30,7 +30,7 @@ jobs:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
     - name: setup-python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4.3.0
     - name: install-platformio
       run: |
         python -m pip install --upgrade pip
