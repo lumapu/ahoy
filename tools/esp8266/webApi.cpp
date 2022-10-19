@@ -142,6 +142,9 @@ void webApi::getSystem(JsonObject obj) {
     obj[F("build")]       = String(AUTO_GIT_HASH);
     obj[F("ts_uptime")]   = mApp->getUptime();
     obj[F("ts_now")]      = mApp->getTimestamp();
+    obj[F("ts_sunrise")]  = mApp->getSunrise();
+    obj[F("ts_sunset")]   = mApp->getSunset();
+    obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
     obj[F("disclaimer")]  = mConfig->disclaimer;
 }
@@ -198,6 +201,13 @@ void webApi::getMqtt(JsonObject obj) {
 void webApi::getNtp(JsonObject obj) {
     obj[F("addr")] = String(mConfig->ntpAddr);
     obj[F("port")] = String(mConfig->ntpPort);
+}
+
+//-----------------------------------------------------------------------------
+void webApi::getSun(JsonObject obj) {
+    obj[F("lat")] = mConfig->sunLat ? String(mConfig->sunLat, 5) : "";
+    obj[F("lon")] = mConfig->sunLat ? String(mConfig->sunLon, 5) : "";
+    obj[F("disnightcom")] = mConfig->sunDisNightCom;
 }
 
 
@@ -267,6 +277,7 @@ void webApi::getSetup(JsonObject obj) {
     getInverterList(obj.createNestedObject(F("inverter")));
     getMqtt(obj.createNestedObject(F("mqtt")));
     getNtp(obj.createNestedObject(F("ntp")));
+    getSun(obj.createNestedObject(F("sun")));
     getPinout(obj.createNestedObject(F("pinout")));
     getRadio(obj.createNestedObject(F("radio")));
     getSerial(obj.createNestedObject(F("serial")));

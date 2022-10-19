@@ -24,6 +24,12 @@
 #include "ahoywifi.h"
 #include "web.h"
 
+// convert degrees and radians for sun calculation
+#define SIN(x) (sin(radians(x)))
+#define COS(x) (cos(radians(x)))
+#define ASIN(x) (degrees(asin(x)))
+#define ACOS(x) (degrees(acos(x)))
+
 //  hier läst sich das Verhalten der app in Bezug auf MQTT
 //  durch PER-Conpiler defines  anpassen
 //
@@ -117,7 +123,20 @@ class app {
             if(0 == newTime)
                 mUpdateNtp = true;
             else
-                mTimestamp = newTime;
+            {
+                mUtcTimestamp = newTime;
+                mTimestamp = mUtcTimestamp + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
+            }
+        }
+
+        inline uint32_t getSunrise(void) {
+            return mSunrise;
+        }
+        inline uint32_t getSunset(void) {
+            return mSunset;
+        }
+        inline uint32_t getLatestSunTimestamp(void) {
+            return mLatestSunTimestamp;
         }
 
         void eraseSettings(bool all = false) {
@@ -237,6 +256,8 @@ class app {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
+        uint8_t offsetDayLightSaving(uint32_t local_t);
+        void calculateSunriseSunset(void);
 
         uint32_t mUptimeSecs;
         uint32_t mPrevMillis;
@@ -249,6 +270,7 @@ class app {
         bool mSettingsValid;
 
         eep *mEep;
+        uint32_t mUtcTimestamp;
         uint32_t mTimestamp;
         bool mUpdateNtp;
 
@@ -280,6 +302,11 @@ class app {
 
         // serial
         uint16_t mSerialTicker;
+
+        // sun
+        uint32_t mSunrise;
+        uint32_t mSunset;
+        uint32_t mLatestSunTimestamp;
 };
 
 #endif /*__APP_H__*/

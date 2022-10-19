@@ -72,6 +72,20 @@
                     </fieldset>
                     </div>
 
+                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <div class="s_content">
+                    <fieldset>
+                    <legend class="des">Sunrise & Sunset</legend>
+                        <label for="sunLat">Latitude (decimal)</label>
+                        <input type="text" class="text" name="sunLat"/>
+                        <label for="sunLon">Longitude (decimal)</label>
+                        <input type="text" class="text" name="sunLon"/>
+                        <br>
+                        <label for="sunDisNightCom">disable night communication</label>
+                        <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
+                    </fieldset>
+                    </div>
+
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
                     <fieldset>
@@ -156,10 +170,9 @@
 
             function setTime() {
                 var date = new Date();
-                var offset = date.getTimezoneOffset() * -60;
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(offset + (date.getTime() / 1000));
+                obj.ts = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
             }
 
@@ -219,7 +232,7 @@
                     }
                 });
 
-                for(var i of [["Name", "name", "Name*", 32]]) { // so richtig?
+                for(var i of [["Name", "name", "Name*", 32]]) {
                     iv.appendChild(lbl(id + i[0], i[2]));
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
@@ -269,6 +282,12 @@
             function parseNtp(obj) {
                 for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
+            }
+
+            function parseSun(obj) {
+                document.getElementsByName("sunLat")[0].value = obj["lat"]; 
+                document.getElementsByName("sunLon")[0].value = obj["lon"];
+                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
             }
 
             function parsePinout(obj) {
@@ -321,6 +340,7 @@
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
+                    parseSun(root["sun"]);
                     parsePinout(root["pinout"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);

@@ -12,7 +12,6 @@
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
-#define TIMEZONE            1 // Central European time +1
 
 
 //-----------------------------------------------------------------------------
@@ -185,7 +184,6 @@ time_t ahoywifi::getNtpTime(void) {
     WiFi.hostByName(mConfig->ntpAddr, timeServer);
     mUdp->begin(mConfig->ntpPort);
 
-
     sendNTPpacket(timeServer);
 
     while(retry++ < 5) {
@@ -200,7 +198,6 @@ time_t ahoywifi::getNtpTime(void) {
                 secsSince1900 |= (buf[43]      );
 
                 date = secsSince1900 - 2208988800UL; // UTC time
-                date += (TIMEZONE + offsetDayLightSaving(date)) * 3600;
                 break;
             }
             else
@@ -230,23 +227,4 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     mUdp->beginPacket(address, 123); // NTP request, port 123
     mUdp->write(buf, NTP_PACKET_SIZE);
     mUdp->endPacket();
-}
-
-
-//-----------------------------------------------------------------------------
-// calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
-// from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
-time_t ahoywifi::offsetDayLightSaving (uint32_t local_t) {
-    //DPRINTLN(DBG_VERBOSE, F("wifi::offsetDayLightSaving"));
-    int m = month (local_t);
-    if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
-    if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
-    int y = year (local_t);
-    int h = hour (local_t);
-    int hToday = (h + 24 * day(local_t));
-    if((m == 3  && hToday >= (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 4) % 7)))
-        || (m == 10 && hToday <  (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 1) % 7))) )
-        return 1;
-    else
-        return 0;
 }
