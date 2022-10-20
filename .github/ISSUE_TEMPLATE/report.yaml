@@ -152,7 +152,7 @@ body:
         Which settings are configured under http://ahoy-dtu/setup ?
         Document any relevant setup values correctly.
         Copy and paste the Inverter Section if you have multiple Inverters.
-      placeholder: |
+      value: |
         - *Device Host Name*
           - Device Name: AHOY-DTU
         - *WiFi*
@@ -207,7 +207,7 @@ body:
     attributes:
       label: Error description
       description: Please describe what you expected and what happened instead.
-      placeholder: |
+      value: |
         1) Go to http://ahoy-dtu/setup
         2) configure above settings
         3) Reboot
