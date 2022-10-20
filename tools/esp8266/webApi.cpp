@@ -147,6 +147,11 @@ void webApi::getSystem(JsonObject obj) {
     obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
     obj[F("disclaimer")]  = mConfig->disclaimer;
+#if defined(ESP32)
+    obj[F("esp_type")]    = F("ESP32");
+#else
+    obj[F("esp_type")]    = F("ESP8266");
+#endif
 }
 
 

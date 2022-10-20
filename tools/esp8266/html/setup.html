@@ -290,30 +290,62 @@
                 document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
             }
 
-            function parsePinout(obj) {
+            function parsePinout(obj, type) {
                 var e = document.getElementById("pinout");
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
                 for(p of pins) {
                     e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    e.appendChild(sel(p[1], [
-                        [0, "D3 (GPIO0)"],
-                        [1, "TX (GPIO1)"],
-                        [2, "D4 (GPIO2)"],
-                        [3, "RX (GPIO3)"],
-                        [4, "D2 (GPIO4)"],
-                        [5, "D1 (GPIO5)"],
-                        [6, "GPIO6"],
-                        [7, "GPIO7"],
-                        [8, "GPIO8"],
-                        [9, "GPIO9"],
-                        [10, "GPIO10"],
-                        [11, "GPIO11"],
-                        [12, "D6 (GPIO12)"],
-                        [13, "D7 (GPIO13)"],
-                        [14, "D5 (GPIO14)"],
-                        [15, "D8 (GPIO15)"],
-                        [16, "D0 (GPIO16 - no IRQ!)"]
-                    ], obj[p[0]]));
+                    if("ESP8266" == type) {
+                        e.appendChild(sel(p[1], [
+                            [0, "D3 (GPIO0)"],
+                            [1, "TX (GPIO1)"],
+                            [2, "D4 (GPIO2)"],
+                            [3, "RX (GPIO3)"],
+                            [4, "D2 (GPIO4)"],
+                            [5, "D1 (GPIO5)"],
+                            [6, "GPIO6"],
+                            [7, "GPIO7"],
+                            [8, "GPIO8"],
+                            [9, "GPIO9"],
+                            [10, "GPIO10"],
+                            [11, "GPIO11"],
+                            [12, "D6 (GPIO12)"],
+                            [13, "D7 (GPIO13)"],
+                            [14, "D5 (GPIO14)"],
+                            [15, "D8 (GPIO15)"],
+                            [16, "D0 (GPIO16 - no IRQ!)"]
+                        ], obj[p[0]]));
+                    }
+                    else {
+                        e.appendChild(sel(p[1], [
+                            [0,  "GPIO0"],
+                            [1,  "TXD (GPIO1)"],
+                            [2,  "D2 (LED)"],
+                            [3,  "RXD (GPIO3)"],
+                            [4,  "D4"],
+                            [5,  "D5"],
+                            [12, "D12"],
+                            [13, "D13"],
+                            [14, "D14"],
+                            [15, "D15"],
+                            [16, "RX2 (GPIO16)"],
+                            [17, "TX2 (GPIO17)"],
+                            [18, "D18"],
+                            [19, "D19"],
+                            [21, "D21"],
+                            [22, "D22"],
+                            [23, "D23"],
+                            [25, "D25"],
+                            [26, "D26"],
+                            [27, "D27"],
+                            [32, "D32"],
+                            [33, "D33"],
+                            [34, "D34"],
+                            [35, "D35"],
+                            [36, "VP (GPIO36)"],
+                            [39, "VN (GPIO39)"]
+                        ], obj[p[0]]));
+                    }
                 }
             }
 
@@ -341,7 +373,7 @@
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
-                    parsePinout(root["pinout"]);
+                    parsePinout(root["pinout"], root["system"]["esp_type"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
