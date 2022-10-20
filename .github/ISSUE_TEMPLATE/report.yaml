@@ -153,42 +153,43 @@ body:
         Document any relevant setup values correctly.
         Copy and paste the Inverter Section if you have multiple Inverters.
       value: |
-        - *Device Host Name*
-          - Device Name: AHOY-DTU
-        - *WiFi*
-          - SSID: YOUR_WIFI_SSID *don't paste here*
-          - Password: YOUR_WIFI_PWD *don't paste here*
-        - *Inverter*
-          - *Inverter 0*
+        ### Device Host Name
+            - Device Name: AHOY-DTU
+        ### WiFi
+            - SSID: YOUR_WIFI_SSID *don't paste here*
+            - Password: YOUR_WIFI_PWD *don't paste here*
+        ### Inverter
+        #### Inverter 0
             - Address: 1141752123456
             - Name: HM-600
             - Active Power Limit: 65535
             - Active Power Limit Control Type: no powerlimit
             - Max Module Power (Wp): 375, 375
             - Module Name: link, rech
-        - *General*
-          - Interval [s]: 30
-          - Max retries per Payload: 5
-        - *NTP Server*
-          - NTP Server / IP: pool.ntp.org
-          - NTP Port: 123
-        - *MQTT*
-          - Broker / Server IP: 
-          - Port: 1883
-          - Username (optional): 
-          - Password (optional): 
-          - Topic: inverter
-        - *System Config*
-          - Pinout (Wemos)
+        ### General
+            - Interval [s]: 30
+            - Max retries per Payload: 5
+        ### NTP Server
+            - NTP Server / IP: pool.ntp.org
+            - NTP Port: 123
+        ### MQTT
+            - Broker / Server IP: 
+            - Port: 1883
+            - Username (optional): 
+            - Password (optional): 
+            - Topic: inverter
+        ### System Config
+        #### Pinout (Wemos)
             - CS: D8 (GPIO15)
             - CE: D4 (GPIO2)
             - IRQ: D3 (GPIO0)
-          - Radio (NRF24L01+)
+        #### Radio (NRF24L01+)
             - Amplifier Power Level: LOW
-          - Serial Console
+        #### Serial Console
             - print inverter data: [x]
             - Serial Debug: [x]
             - Interval [s]: 5
+
         - Reboot device after successful save: [x]
         - SAVE
     validations:
