@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: development03
-    - uses: benjlevesque/short-sha@v1.2
+    - uses: benjlevesque/short-sha@v2
       id: short-sha
       with:
         length: 7
@@ -30,7 +30,7 @@ jobs:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
     - name: setup-python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v4
     - name: install-platformio
       run: |
         python -m pip install --upgrade pip
