@@ -98,12 +98,12 @@ class app {
             return String(str);
         }
 
-        String getTimeStr(void) {
-            char str[20];
+        String getTimeStr(uint32_t offset = 0) {
+            char str[10];
             if(0 == mUtcTimestamp)
                 sprintf(str, "n/a");
             else
-                sprintf(str, "%02d:%02d:%02d UTC", hour(mUtcTimestamp), minute(mUtcTimestamp), second(mUtcTimestamp));
+                sprintf(str, "%02d:%02d:%02d ", hour(mUtcTimestamp + offset), minute(mUtcTimestamp + offset), second(mUtcTimestamp + offset));
             return String(str);
         }
 
@@ -115,7 +115,7 @@ class app {
             return mUtcTimestamp;
         }
 
-        inline void setTimestamp(uint32_t newTime) {
+        void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
             if(0 == newTime)
                 mUpdateNtp = true;

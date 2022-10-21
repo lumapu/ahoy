@@ -18,6 +18,8 @@ webApi::webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *con
     mConfig  = config;
     mStat    = stat;
     mVersion = version;
+
+    mTimezoneOffset = 0;
 }
 
 
@@ -430,6 +432,8 @@ bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
         mApp->setTimestamp(jsonIn[F("ts")]);
     else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag
+    else if(F("serial_utc_offset") == jsonIn[F("cmd")])
+        mTimezoneOffset = jsonIn[F("ts")];
     else if(F("discovery_cfg") == jsonIn[F("cmd")])
         mApp->mFlagSendDiscoveryConfig = true; // for homeassistant
     else {

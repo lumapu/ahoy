@@ -21,6 +21,10 @@ class webApi {
         void setup(void);
         void loop(void);
 
+        uint32_t getTimezoneOffset() {
+            return mTimezoneOffset;
+        }
+
     private:
         void onApi(AsyncWebServerRequest *request);
         void onApiPost(AsyncWebServerRequest *request);
@@ -59,6 +63,8 @@ class webApi {
         sysConfig_t *mSysCfg;
         statistics_t *mStat;
         char *mVersion;
+
+        uint32_t mTimezoneOffset;
 };
 
 #endif /*__WEB_API_H__*/

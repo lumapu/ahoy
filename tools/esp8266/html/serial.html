@@ -85,14 +85,19 @@
 
                 if(null == root) return;
                 root = root.inverter;
-                for(var i = 0; i < root.inverter.length; i++)
-                {
+                for(var i = 0; i < root.inverter.length; i++) {
                     inv = root.inverter[i];
                     var opt = document.createElement('option');
                     opt.value = inv.id;
                     opt.innerHTML = inv.name;
                     select.appendChild(opt);
                 }
+
+                // set time offset for serial console
+                var obj = new Object();
+                obj.cmd = "serial_utc_offset";
+                obj.ts  = new Date().getTimezoneOffset() * -60;
+                getAjax("/api/setup", null, "POST", JSON.stringify(obj));
             }
 
             document.getElementById("clear").addEventListener("click", function() {
@@ -133,8 +138,7 @@
                     e.innerHTML = "Error: " + obj["error"];
             }
 
-            function get_selected_iv()
-            {
+            function get_selected_iv() {
                 var e = document.getElementById("InvID");
                 return  parseInt(e.value);
             }

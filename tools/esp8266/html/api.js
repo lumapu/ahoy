@@ -19,8 +19,10 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
-            if(null != xhr.responseText)
-                ptr(JSON.parse(xhr.responseText));
+            if(null != xhr.responseText) {
+                if(null != ptr)
+                    ptr(JSON.parse(xhr.responseText));
+            }
         }
     }
 }

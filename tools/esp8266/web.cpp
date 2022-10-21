@@ -474,7 +474,7 @@ void web::serialCb(String msg) {
     msg.replace("\r\n", "<rn>");
     if(mSerialAddTime) {
         if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
-            strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr().c_str(), 9);
+            strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr(mApi->getTimezoneOffset()).c_str(), 9);
             mSerialBufFill += 9;
         }
         else {
