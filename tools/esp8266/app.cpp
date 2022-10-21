@@ -154,7 +154,7 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
-        if(mUtcTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 > (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) { // update on reboot or midnight
+        if(mUtcTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 != (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) { // update on reboot or midnight
             if (!mLatestSunTimestamp) { // first call: calculate time zone from longitude to refresh at local midnight
                 mCalculatedTimezoneOffset = (int8_t)((mConfig.sunLon >= 0 ? mConfig.sunLon + 7.5 : mConfig.sunLon - 7.5) / 15) * 3600;
             }

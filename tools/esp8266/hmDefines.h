@@ -106,7 +106,7 @@ const byteAssign_t SystemConfigParaAssignment[] = {
     { FLD_ACT_PF,                  UNIT_NONE,  CH0,  6, 2, 1000 }*/
 };
 #define HMSYSTEM_LIST_LEN     (sizeof(SystemConfigParaAssignment) / sizeof(byteAssign_t))
-#define HMSYSTEM_PAYLOAD_LEN  0 // 0: means check is off
+#define HMSYSTEM_PAYLOAD_LEN  14
 
 const byteAssign_t AlarmDataAssignment[] = {
     { FLD_LAST_ALARM_CODE,           UNIT_NONE,   CH0,  0, 2, 1 }
