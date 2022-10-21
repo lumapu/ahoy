@@ -58,8 +58,6 @@ void app::loop(void) {
         mUptimeSecs++;
         if(0 != mUtcTimestamp)
             mUtcTimestamp++;
-        if(0 != mTimestamp)
-            mTimestamp++;
     }
 
     if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
@@ -70,8 +68,7 @@ void app::loop(void) {
     if(mUpdateNtp) {
         mUpdateNtp = false;
         mUtcTimestamp = mWifi->getNtpTime();
-        mTimestamp = mUtcTimestamp + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
-        DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
+        DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
     }
 
     if(mFlagSendDiscoveryConfig) {
@@ -157,10 +154,12 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
-        if(mTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && mTimestamp / 86400 > mLatestSunTimestamp / 86400) // update on reboot or new day
-        {
+        if(mUtcTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 > (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) { // update on reboot or midnight
+            if (!mLatestSunTimestamp) { // first call: calculate time zone from longitude to refresh at local midnight
+                mCalculatedTimezoneOffset = (int8_t)((mConfig.sunLon >= 0 ? mConfig.sunLon + 7.5 : mConfig.sunLon - 7.5) / 15) * 3600;
+            }
             calculateSunriseSunset();
-            mLatestSunTimestamp = mTimestamp;
+            mLatestSunTimestamp = mUtcTimestamp;
         }
 
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
@@ -185,7 +184,7 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
                         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                        if(iv->isAvailable(mTimestamp, rec)) {
+                        if(iv->isAvailable(mUtcTimestamp, rec)) {
                             DPRINTLN(DBG_INFO, "Inverter: " + String(id));
                             for(uint8_t i = 0; i < rec->length; i++) {
                                 if(0.0f != iv->getValue(i, rec)) {
@@ -205,7 +204,7 @@ void app::loop(void) {
         if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
-            if(mUtcTimestamp > 946684800 && (!mConfig.sunDisNightCom || !mLatestSunTimestamp || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
+            if(mUtcTimestamp > 946684800 && (!mConfig.sunDisNightCom || !mLatestSunTimestamp || (mUtcTimestamp >= mSunrise && mUtcTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
                 if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
@@ -391,7 +390,7 @@ void app::processPayload(bool retransmit) {
                         if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
                             mStat.rxSuccess++;
 
-                        rec->ts = mPayload[iv->id].ts + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
+                        rec->ts = mPayload[iv->id].ts;
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
                             yield();
@@ -407,7 +406,7 @@ void app::processPayload(bool retransmit) {
                             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                                 Inverter<> *iv = mSys->getInverterByPos(id);
                                 if (NULL != iv) {
-                                    if (iv->isAvailable(mTimestamp, rec)) {
+                                    if (iv->isAvailable(mUtcTimestamp, rec)) {
                                         for (uint8_t i = 0; i < rec->length; i++) {
                                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
                                             snprintf(val, 10, "%.3f", iv->getValue(i, rec));
@@ -423,7 +422,7 @@ void app::processPayload(bool retransmit) {
                                                 }
                                             }
 
-                                            if(iv->isProducing(mTimestamp, rec)){
+                                            if(iv->isProducing(mUtcTimestamp, rec)){
                                                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                                                 snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
                                                 mMqtt.sendMsg(topic, val);
@@ -484,7 +483,7 @@ void app::processPayload(bool retransmit) {
             if(mMqttActive) {
                 record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 char topic[32 + MAX_NAME_LENGTH], val[32];
-                if (!iv->isAvailable(mTimestamp, rec) && !iv->isProducing(mTimestamp, rec)){
+                if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                     snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
                     mMqtt.sendMsg(topic, val);
@@ -615,7 +614,7 @@ void app::sendMqttDiscoveryConfig(void) {
         if(NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             // TODO: next line makes no sense if discovery config is send manually by button
-            //if(iv->isAvailable(mTimestamp, rec) && mMqttConfigSendState[id] != true) {
+            //if(iv->isAvailable(mUtcTimestamp, rec) && mMqttConfigSendState[id] != true) {
                 DynamicJsonDocument deviceDoc(128);
                 deviceDoc["name"] = iv->name;
                 deviceDoc["ids"]  = String(iv->serial.u64, HEX);
@@ -698,10 +697,8 @@ void app::resetSystem(void) {
 
 #ifdef AP_ONLY
     mUtcTimestamp = 1;
-    mTimestamp = 1;
 #else
     mUtcTimestamp = 0;
-    mTimestamp = 0;
 #endif
 
     mHeapStatCnt = 0;
@@ -893,29 +890,11 @@ void app::resetPayload(Inverter<>* iv) {
     mPayload[iv->id].ts          = mUtcTimestamp;
 }
 
-//-----------------------------------------------------------------------------
-// calculates the daylight saving time for middle Europe. Input: Unixtime in UTC
-// from: https://forum.arduino.cc/index.php?topic=172044.msg1278536#msg1278536
-uint8_t app::offsetDayLightSaving (uint32_t local_t) {
-    //DPRINTLN(DBG_VERBOSE, F("wifi::offsetDayLightSaving"));
-    int m = month (local_t);
-    if(m < 3 || m > 10) return 0; // no DSL in Jan, Feb, Nov, Dez
-    if(m > 3 && m < 10) return 1; // DSL in Apr, May, Jun, Jul, Aug, Sep
-    int y = year (local_t);
-    int h = hour (local_t);
-    int hToday = (h + 24 * day(local_t));
-    if((m == 3  && hToday >= (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 4) % 7)))
-        || (m == 10 && hToday <  (1 + TIMEZONE + 24 * (31 - (5 * y /4 + 1) % 7))) )
-        return 1;
-    else
-        return 0;
-}
-
 void app::calculateSunriseSunset() {
     // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
 
     // Julian day since 1.1.2000 12:00 + correction 69.12s
-    double n_JulianDay = mTimestamp / 86400 - 10957.0 + 0.0008;
+    double n_JulianDay = (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 - 10957.0 + 0.0008;
     // Mean solar time
     double J = n_JulianDay - mConfig.sunLon / 360;
     // Solar mean anomaly
@@ -933,10 +912,7 @@ void app::calculateSunriseSunset() {
     // Calculate sunrise and sunset
     double Jrise = Jtransit - omega / 360;
     double Jset  = Jtransit + omega / 360;
-    // Julian sunrise/sunset to unix timestamp (days incl. fraction to seconds + unix offset 1.1.2000 12:00)
-    uint32_t UTC_Timestamp_Sunrise = (Jrise - 2451545.0) * 86400 + 946728000;
-    uint32_t UTC_Timestamp_Sunset  = (Jset  - 2451545.0) * 86400 + 946728000;
-
-    mSunrise = UTC_Timestamp_Sunrise + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunrise)) * 3600); // sunrise in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
-    mSunset  = UTC_Timestamp_Sunset  + ((TIMEZONE + offsetDayLightSaving(UTC_Timestamp_Sunset))  * 3600); // sunset  in local time, OPTIONAL: Add an offset of +-seconds to the end of the line
+    // Julian sunrise/sunset to UTC unix timestamp (days incl. fraction to seconds + unix offset 1.1.2000 12:00)
+    mSunrise = (Jrise - 2451545.0) * 86400 + 946728000; // OPTIONAL: Add an offset of +-seconds to the end of the line
+    mSunset  = (Jset  - 2451545.0) * 86400 + 946728000; // OPTIONAL: Add an offset of +-seconds to the end of the line
 }

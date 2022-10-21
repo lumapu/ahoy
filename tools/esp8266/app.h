@@ -100,10 +100,10 @@ class app {
 
         String getTimeStr(void) {
             char str[20];
-            if(0 == mTimestamp)
+            if(0 == mUtcTimestamp)
                 sprintf(str, "n/a");
             else
-                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp), minute(mTimestamp), second(mTimestamp));
+                sprintf(str, "%02d:%02d:%02d UTC", hour(mUtcTimestamp), minute(mUtcTimestamp), second(mUtcTimestamp));
             return String(str);
         }
 
@@ -112,7 +112,7 @@ class app {
         }
 
         inline uint32_t getTimestamp(void) {
-            return mTimestamp;
+            return mUtcTimestamp;
         }
 
         inline void setTimestamp(uint32_t newTime) {
@@ -122,7 +122,6 @@ class app {
             else
             {
                 mUtcTimestamp = newTime;
-                mTimestamp = mUtcTimestamp + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
             }
         }
 
@@ -252,7 +251,6 @@ class app {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
-        uint8_t offsetDayLightSaving(uint32_t local_t);
         void calculateSunriseSunset(void);
 
         uint32_t mUptimeSecs;
@@ -267,7 +265,6 @@ class app {
 
         eep *mEep;
         uint32_t mUtcTimestamp;
-        uint32_t mTimestamp;
         bool mUpdateNtp;
 
         bool mShowRebootRequest;
@@ -300,6 +297,7 @@ class app {
         uint16_t mSerialTicker;
 
         // sun
+        int32_t mCalculatedTimezoneOffset;
         uint32_t mSunrise;
         uint32_t mSunset;
         uint32_t mLatestSunTimestamp;
