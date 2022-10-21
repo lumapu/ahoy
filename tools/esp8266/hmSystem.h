@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -7,12 +7,13 @@
 #define __HM_SYSTEM_H__
 
 #include "hmInverter.h"
-#ifndef NO_RADIO
 #include "hmRadio.h"
-#endif
+#include "CircularBuffer.h"
 
+typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
+typedef HmRadio<BufferType> RadioType;
 
-template <class RADIO, class BUFFER, uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
+template <uint8_t MAX_INVERTER=3, class RADIO = RadioType, class BUFFER = BufferType, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
     public:
         typedef RADIO RadioType;
@@ -28,9 +29,12 @@ class HmSystem {
             // TODO: cleanup
         }
 
-        void setup(config_t *config) {
-            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:setup"));
-            Radio.setup(config, &BufCtrl);
+        void setup() {
+            Radio.setup(&BufCtrl);
+        }
+
+        void setup(uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin) {
+            Radio.setup(&BufCtrl, ampPwr, irqPin, cePin, csPin);
         }
 
         INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
@@ -94,6 +98,10 @@ class HmSystem {
         uint8_t getNumInverters(void) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getNumInverters"));
             return mNumInv;
+        }
+
+        void enableDebug() {
+            Radio.enableDebug();
         }
 
     private:

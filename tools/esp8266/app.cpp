@@ -40,7 +40,7 @@ void app::setup(uint32_t timeout) {
     #ifndef AP_ONLY
         setupMqtt();
     #endif
-    mSys->setup(&mConfig);
+    mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
@@ -291,12 +291,12 @@ bool app::buildPayload(uint8_t id) {
     for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
         if(mPayload[id].len[i] > 0) {
             if(i == (mPayload[id].maxPackId-1)) {
-                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crc = ah::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
                 crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
                     | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
             else
-                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
+                crc = ah::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
         yield();
     }
@@ -367,28 +367,30 @@ void app::processPayload(bool retransmit) {
                     DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                     record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd); // choose the parser
                     mPayload[iv->id].complete = true;
-                    if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
-                        mStat.rxSuccess++;
 
                     uint8_t payload[128];
-                    uint8_t offs = 0;
+                    uint8_t payloadLen = 0;
 
                     memset(payload, 0, 128);
 
                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
-                        memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
-                        offs += (mPayload[iv->id].len[i]);
+                        memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                        payloadLen += (mPayload[iv->id].len[i]);
                         yield();
                     }
-                    offs-=2;
+                    payloadLen-=2;
+
                     if(mConfig.serialDebug) {
-                        DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
-                        mSys->Radio.dumpBuf(NULL, payload, offs);
+                        DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                        mSys->Radio.dumpBuf(NULL, payload, payloadLen);
                     }
 
                     if(NULL == rec)
                         DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                    else {
+                    else if((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
+                        if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                            mStat.rxSuccess++;
+
                         rec->ts = mPayload[iv->id].ts + ((TIMEZONE + offsetDayLightSaving(mUtcTimestamp)) * 3600);
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
@@ -420,7 +422,7 @@ void app::processPayload(bool retransmit) {
                                                     }
                                                 }
                                             }
-                                           
+
                                             if(iv->isProducing(mTimestamp, rec)){
                                                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                                                 snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
@@ -440,11 +442,11 @@ void app::processPayload(bool retransmit) {
                                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
                                             snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
                                             mMqtt.sendMsg(topic, val);
-                                            
+
                                             yield();
                                         }
-                                    } 
-                                } 
+                                    }
+                                }
                             }
 
                             // total values (sum of all inverters)
@@ -465,6 +467,10 @@ void app::processPayload(bool retransmit) {
                                 }
                             }
                         }
+                    }
+                    else {
+                        DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
+                        mStat.rxFail++;
                     }
 
                     iv->setQueuedCmdFinished();
@@ -736,9 +742,9 @@ void app::loadDefaultConfig(void) {
     // nrf24
     mConfig.sendInterval      = SEND_INTERVAL;
     mConfig.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
-    mConfig.pinCs             = DEF_RF24_CS_PIN;
-    mConfig.pinCe             = DEF_RF24_CE_PIN;
-    mConfig.pinIrq            = DEF_RF24_IRQ_PIN;
+    mConfig.pinCs             = DEF_CS_PIN;
+    mConfig.pinCe             = DEF_CE_PIN;
+    mConfig.pinIrq            = DEF_IRQ_PIN;
     mConfig.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
 
     // ntp

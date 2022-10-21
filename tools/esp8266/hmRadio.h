@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -8,9 +8,20 @@
 
 #include "dbg.h"
 #include <RF24.h>
-#include <RF24_config.h>
 #include "crc.h"
+#ifndef DISABLE_IRQ
+    #if defined(ESP8266) || defined(ESP32)
+        #define DISABLE_IRQ noInterrupts()
+        #define RESTORE_IRQ interrupts()
+    #else
+        #define DISABLE_IRQ       \
+            uint8_t sreg = SREG;    \
+            cli();
 
+        #define RESTORE_IRQ        \
+            SREG = sreg;
+    #endif
+#endif
 //#define CHANNEL_HOP // switch between channels or use static channel to send
 
 #define DEFAULT_RECV_CHANNEL    3
@@ -54,7 +65,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t CE_PIN, uint8_t CS_PIN, class BUFFER>
+template <class BUFFER, uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -84,32 +95,31 @@ class HmRadio {
         }
         ~HmRadio() {}
 
-        void setup(config_t *config, BUFFER *ctrl) {
+        void setup(BUFFER *ctrl, uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
-            pinMode(config->pinIrq, INPUT_PULLUP);
-
+            pinMode(irq, INPUT_PULLUP);
             mBufCtrl = ctrl;
-            mSerialDebug = config->serialDebug;
         
-            uint32_t DTU_SN = 0x87654321;
+
+            uint32_t dtuSn = 0x87654321;
             uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
-#ifdef ESP32
+            #ifdef ESP32
             uint64_t MAC = ESP.getEfuseMac();
             chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
-#else
+            #else
             chipID = ESP.getChipId();
-#endif
+            #endif
             if(chipID) {
-                DTU_SN = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
+                dtuSn = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
                 for(int i = 0; i < 7; i++) {
-                    DTU_SN |= (chipID % 10) << (i * 4);
+                    dtuSn |= (chipID % 10) << (i * 4);
                     chipID /= 10;
                 }
             }
             // change the byte order of the DTU serial number and append the required 0x01 at the end
-            DTU_RADIO_ID = ((uint64_t)(((DTU_SN >> 24) & 0xFF) | ((DTU_SN >> 8) & 0xFF00) | ((DTU_SN << 8) & 0xFF0000) | ((DTU_SN << 24) & 0xFF000000)) << 8) | 0x01;
+            DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
-            mNrf24.begin(config->pinCe, config->pinCs);
+            mNrf24.begin(ce, cs);
             mNrf24.setRetries(0, 0);
 
             mNrf24.setChannel(DEFAULT_RECV_CHANNEL);
@@ -125,8 +135,8 @@ class HmRadio {
             mNrf24.maskIRQ(true, true, false);
 
             DPRINT(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_"));
-            DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[config->amplifierPower]));
-            mNrf24.setPALevel(config->amplifierPower & 0x03);
+            DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[ampPwr]));
+            mNrf24.setPALevel(ampPwr & 0x03);
             mNrf24.startListening();
 
             DPRINTLN(DBG_INFO, F("Radio Config:"));
@@ -169,6 +179,10 @@ class HmRadio {
                 RESTORE_IRQ;
         }
 
+        void enableDebug() {
+            mSerialDebug = true;
+        }
+
         void handleIntr(void) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:handleIntr"));
             mIrqRcvd = true;
@@ -195,12 +209,12 @@ class HmRadio {
             }
 
             // crc control data
-            uint16_t crc = Ahoy::crc16(&mTxBuf[10], cnt);
+            uint16_t crc = ah::crc16(&mTxBuf[10], cnt);
             mTxBuf[10 + cnt++] = (crc >> 8) & 0xff;
             mTxBuf[10 + cnt++] = (crc     ) & 0xff;
             
             // crc over all
-            mTxBuf[10 + cnt] = Ahoy::crc8(mTxBuf, 10 + cnt);
+            mTxBuf[10 + cnt] = ah::crc8(mTxBuf, 10 + cnt);
 
             sendPacket(invId, mTxBuf, 10 + cnt + 1, true);
         }
@@ -215,10 +229,10 @@ class HmRadio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            uint16_t crc = Ahoy::crc16(&mTxBuf[10], 14);
+            uint16_t crc = ah::crc16(&mTxBuf[10], 14);
             mTxBuf[24] = (crc >> 8) & 0xff;
             mTxBuf[25] = (crc     ) & 0xff;
-            mTxBuf[26] = Ahoy::crc8(mTxBuf, 26);
+            mTxBuf[26] = ah::crc8(mTxBuf, 26);
 
             sendPacket(invId, mTxBuf, 27, true);
         }
@@ -231,7 +245,7 @@ class HmRadio {
             CP_U32_BigEndian(&mTxBuf[5], (DTU_RADIO_ID >> 8));
             mTxBuf[9]  = pid;
             if(calcCrc) {
-                mTxBuf[10] = Ahoy::crc8(mTxBuf, 10);
+                mTxBuf[10] = ah::crc8(mTxBuf, 10);
                 sendPacket(invId, mTxBuf, 11, false);
             }
         }
@@ -245,7 +259,7 @@ class HmRadio {
                 buf[i-1] = (buf[i] << 1) | (buf[i+1] >> 7);
             }
 
-            uint8_t crc = Ahoy::crc8(buf, *len-1);
+            uint8_t crc = ah::crc8(buf, *len-1);
             bool valid  = (crc == buf[*len-1]);
 
             return valid;

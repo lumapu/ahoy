@@ -1,11 +1,11 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
 #include "crc.h"
 
-namespace Ahoy {
+namespace ah {
     uint8_t crc8(uint8_t buf[], uint8_t len) {
         uint8_t crc = CRC8_INIT;
         for(uint8_t i = 0; i < len; i++) {

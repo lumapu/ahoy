@@ -37,10 +37,7 @@
 #define __MQTT_AFTER_RX__               // versendet die MQTT Daten sobald die WR daten Aufbereitet wurden  ( gehört eigentlich ins Setup )
 // #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
 
-typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
-typedef HmRadio<DEF_RF24_CE_PIN, DEF_RF24_CS_PIN, BufferType> RadioType;
-typedef Inverter<float> InverterType;
-typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
+typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 
 
 typedef struct {
@@ -190,7 +187,6 @@ class app {
         
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
-        void processPayload(bool retransmit, uint8_t cmd);
 
         const char* getFieldDeviceClass(uint8_t fieldId);
         const char* getFieldStateClass(uint8_t fieldId);
@@ -204,7 +200,7 @@ class app {
             while(length > 0) {
                 len = (length < 32) ? length : 32;
                 mEep->read(start, buf, len);
-                crc = Ahoy::crc16(buf, len, crc);
+                crc = ah::crc16(buf, len, crc);
                 start += len;
                 length -= len;
             }

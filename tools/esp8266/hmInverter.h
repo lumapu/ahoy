@@ -61,6 +61,7 @@ struct record_t {
     uint8_t length;       // length of the assignment list
     T *record;            // data pointer
     uint32_t ts;          // timestamp of last received payload
+    uint8_t pyldLen;      // expected payload length for plausibility check
 };
 
 class CommandAbstract {
@@ -242,10 +243,16 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
-                        if ((REC_TYP)(div) > 1)
-                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
-                        else
-                            rec->record[pos] = (REC_TYP)(val);
+                        if(FLD_T == rec->assign[pos].fieldId) {
+                            // temperature is a signed value!
+                            rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
+                        }
+                        else {
+                            if ((REC_TYP)(div) > 1)
+                                rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
+                            else
+                                rec->record[pos] = (REC_TYP)(val);
+                        }
                     }
                 }
 
@@ -348,37 +355,44 @@ class Inverter {
             switch (cmd) {
                 case RealTimeRunData_Debug:
                     if (INV_TYPE_1CH == type) {
-                        rec->length = (uint8_t)(HM1CH_LIST_LEN);
-                        rec->assign = (byteAssign_t *)hm1chAssignment;
-                        channels    = 1;
+                        rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                        rec->assign  = (byteAssign_t *)hm1chAssignment;
+                        rec->pyldLen = HM1CH_PAYLOAD_LEN;
+                        channels     = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
-                        rec->length = (uint8_t)(HM2CH_LIST_LEN);
-                        rec->assign = (byteAssign_t *)hm2chAssignment;
-                        channels    = 2;
+                        rec->length  = (uint8_t)(HM2CH_LIST_LEN);
+                        rec->assign  = (byteAssign_t *)hm2chAssignment;
+                        rec->pyldLen = HM2CH_PAYLOAD_LEN;
+                        channels     = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
-                        rec->length = (uint8_t)(HM4CH_LIST_LEN);
-                        rec->assign = (byteAssign_t *)hm4chAssignment;
-                        channels    = 4;
+                        rec->length  = (uint8_t)(HM4CH_LIST_LEN);
+                        rec->assign  = (byteAssign_t *)hm4chAssignment;
+                        rec->pyldLen = HM4CH_PAYLOAD_LEN;
+                        channels     = 4;
                     }
                     else {
-                        rec->length = 0;
-                        rec->assign = NULL;
-                        channels    = 0;
+                        rec->length  = 0;
+                        rec->assign  = NULL;
+                        rec->pyldLen = 0;
+                        channels     = 0;
                     }
                     break;
                 case InverterDevInform_All:
-                    rec->length = (uint8_t)(HMINFO_LIST_LEN);
-                    rec->assign = (byteAssign_t *)InfoAssignment;
+                    rec->length  = (uint8_t)(HMINFO_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)InfoAssignment;
+                    rec->pyldLen = HMINFO_PAYLOAD_LEN;
                     break;
                 case SystemConfigPara:
-                    rec->length = (uint8_t)(HMSYSTEM_LIST_LEN);
-                    rec->assign = (byteAssign_t *)SystemConfigParaAssignment;
+                    rec->length  = (uint8_t)(HMSYSTEM_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)SystemConfigParaAssignment;
+                    rec->pyldLen = HMSYSTEM_PAYLOAD_LEN;
                     break;
                 case AlarmData:
-                    rec->length = (uint8_t)(HMALARMDATA_LIST_LEN);
-                    rec->assign = (byteAssign_t *)AlarmDataAssignment;
+                    rec->length  = (uint8_t)(HMALARMDATA_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)AlarmDataAssignment;
+                    rec->pyldLen = HMALARMDATA_PAYLOAD_LEN;
                     break;
                 default:
                     DPRINTLN(DBG_INFO, F("initAssignment: Parser not implemented"));
