@@ -170,6 +170,23 @@ void app::loop(void) {
 
             mMqtt.sendMsg("uptime", val);
 
+            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if(NULL != iv) {
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    char topic[32 + MAX_NAME_LENGTH], val[32];
+                    if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                        snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
+                        mMqtt.sendMsg(topic, val);
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                        snprintf(val, 32, "0");
+                        mMqtt.sendMsg(topic, val);
+                    }
+                }
+            }
+
+
 #ifdef __MQTT_TEST__
             // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
             mMqttTicker = mMqttInterval -10;
@@ -477,19 +494,6 @@ void app::processPayload(bool retransmit) {
 #ifdef __MQTT_AFTER_RX__
                     doMQTT = true;
 #endif
-                }
-            }
-
-            if(mMqttActive) {
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                char topic[32 + MAX_NAME_LENGTH], val[32];
-                if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                    snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
-                    mMqtt.sendMsg(topic, val);
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                    snprintf(val, 32, "0");
-                    mMqtt.sendMsg(topic, val);
                 }
             }
 
