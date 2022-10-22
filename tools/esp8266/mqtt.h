@@ -25,6 +25,9 @@ class mqtt {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
 
+            mLastReconnect = 0;
+            mTxCnt = 0;
+
             memset(mDevName, 0, DEVNAME_LEN);
         }
 
@@ -50,6 +53,7 @@ class mqtt {
             char top[64];
             snprintf(top, 64, "%s/%s", mCfg->topic, topic);
             sendMsg2(top, msg, false);
+            mTxCnt++;
         }
 
         void sendMsg2(const char *topic, const char *msg, boolean retained) {
@@ -75,6 +79,10 @@ class mqtt {
             mClient->loop();
         }
 
+        uint32_t getTxCnt(void) {
+            return mTxCnt;
+        }
+
     private:
         void reconnect(void) {
             DPRINTLN(DBG_DEBUG, F("mqtt.h:reconnect"));
@@ -85,8 +93,8 @@ class mqtt {
             #endif
 
             boolean resub = false;
-            if(!mClient->connected() && (millis() - lastReconnect) > MQTT_RECONNECT_DELAY ) {
-                lastReconnect = millis();
+            if(!mClient->connected() && (millis() - mLastReconnect) > MQTT_RECONNECT_DELAY ) {
+                mLastReconnect = millis();
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden, 
                     // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
@@ -118,7 +126,8 @@ class mqtt {
         bool mAddressSet;
         mqttConfig_t *mCfg;
         char mDevName[DEVNAME_LEN];
-        unsigned long lastReconnect = 0;
+        uint32_t mLastReconnect;
+        uint32_t mTxCnt;
 };
 
 #endif /*__MQTT_H_*/

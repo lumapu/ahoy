@@ -275,7 +275,7 @@ void webApi::getIndex(JsonObject obj) {
     if(!mApp->getSettingsValid())
         info.add(F("your settings are invalid"));
     if(mApp->mqttIsConnected())
-        info.add(F("MQTT is connected"));
+        info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent"));
 }
 
 
