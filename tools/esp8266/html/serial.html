@@ -7,7 +7,16 @@
         <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>Serial Console</h1>
+        <div class="topnav">
+            <a href="/" class="active">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
+        <h2>Serial Console</h2>
         <div id="content" class="content">
             <div class="serial">
                 <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
@@ -54,13 +63,24 @@
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
-            <p class="left"><a href="/">Home</a></p>
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
             var mAutoScroll = true;
             var con = document.getElementById("serial");
-            var mIntervalSet = false;
+            var exeOnce = true;
+
+            function topnav() {
+                toggle("topnav");
+            }
+
+            function parseMenu(obj) {
+                var e = document.getElementById("topnav");
+                e.innerHTML = "";
+                for(var i = 0; i < obj["name"].length; i ++) {
+                    e.appendChild(link(obj["link"][i], obj["name"][i]));
+                }
+            }
 
             function parseSys(obj) {
                 var up = obj["ts_uptime"];
@@ -73,16 +93,17 @@
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
 
-                if(false == mIntervalSet) {
+                if(true == exeOnce) {
                     document.getElementById("version").appendChild(
                         link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
                     );
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
-                    mIntervalSet = true;
+                    exeOnce = false;
                 }
             }
 
             function parse(root) {
+                parseMenu(root["menu"]);
                 select = document.getElementById('InvID');
 
                 if(null == root) return;

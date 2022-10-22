@@ -7,9 +7,17 @@
         <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY</h1>
+        <div class="topnav">
+            <a href="/" class="active">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
         <div id="content" class="content">
-            <SCRIPT>
+            <script>
                 function promptFunction() {
                     var Text = prompt("This project was started from https://www.mikrocontroller.net/topic/525778 this discussion.\n\n" + 
                     "The Hoymiles protocol was decrypted through the voluntary efforts of many participants. ahoy, among others, was developed based on this work.\n" + 
@@ -21,15 +29,7 @@
                         return true;
     
                 }
-            </SCRIPT>
-
-            <p>
-                <a href="/live">Visualization</a><br/>
-                <br/>
-                <a href="/setup">Setup</a><br/>
-                <br/>
-                <a href="/serial">Webserial & Commands</a><br/>
-            </p>
+            </script>
             <p><span class="des">Uptime: </span><span id="uptime"></span></p>
             <p><span class="des">ESP-Time: </span><span id="date"></span></p>
             <div id="sun">
@@ -62,10 +62,7 @@
         </div>
         <div id="footer">
             <p class="left">&copy 2022</p>
-            <p class="left"><a href="/update">Update Firmware</a></p>
             <p class="right" id="version"></p>
-            <p class="right"><a href="/reboot">Reboot</a></p>
-            <p class="right"><a href="/api">REST API</a></p>
         </div>
         <script type="text/javascript">
             var exeOnce = true;
@@ -86,6 +83,20 @@
                 obj.cmd = "set_time";
                 obj.ts = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+            }
+
+            function topnav() {
+                toggle("topnav");
+            }
+
+            function parseMenu(obj) {
+                if(true == exeOnce) {
+                    var e = document.getElementById("topnav");
+                    e.innerHTML = "";
+                    for(var i = 0; i < obj["name"].length; i ++) {
+                        e.appendChild(link(obj["link"][i], obj["name"][i]));
+                    }
+                }
             }
 
             function parseSys(obj) {
@@ -176,6 +187,7 @@
 
             function parse(obj) {
                 if(null != obj) {
+                    parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);

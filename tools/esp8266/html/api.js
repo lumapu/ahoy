@@ -8,6 +8,15 @@ function toggle(id, hide) {
         elm.classList.remove('hide');
 }
 
+
+function toggle(id) {
+    var e = document.getElementById(id);
+    if(!e.classList.contains("hide"))
+        e.classList.add("hide");
+    else
+        e.classList.remove('hide');
+}
+
 function getAjax(url, ptr, method="GET", json=null) {
     var xhr = new XMLHttpRequest();
     if(xhr != null) {
@@ -98,7 +107,8 @@ function link(dst, text, target=null) {
     var a = document.createElement('a');
     var t = document.createTextNode(text);
     a.href = dst;
-    a.target = target;
+    if(null != target)
+        a.target = target;
     a.appendChild(t);
     return a;
 }

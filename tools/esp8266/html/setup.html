@@ -18,7 +18,15 @@
         </script>
     </head>
     <body onload="load()">
-        <h1>Setup</h1>
+        <div class="topnav">
+            <a href="/" class="active">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
         <div id="setup" class="content">
             <div id="content">
                 <a class="erase" href="/erase">ERASE SETTINGS (not WiFi)</a>
@@ -139,11 +147,9 @@
             </div>
         </div>
         <div id="footer">
-            <p class="left"><a href="/">Home</a></p>
-            <p class="left"><a href="/update">Update Firmware</a></p>
+            <p class="left">&copy 2022</p>
             <p class="right" id="version"></p>
             <p class="right"><a href="/factory">Factory Reset</a></p>
-            <p class="right"><a href="/reboot">Reboot</a></p>
         </div>
         <script type="text/javascript">
             var highestId = 0;
@@ -265,6 +271,18 @@
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 
+            function topnav() {
+                toggle("topnav");
+            }
+
+            function parseMenu(obj) {
+                var e = document.getElementById("topnav");
+                e.innerHTML = "";
+                for(var i = 0; i < obj["name"].length; i ++) {
+                    e.appendChild(link(obj["link"][i], obj["name"][i]));
+                }
+            }
+
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
@@ -374,6 +392,7 @@
 
             function parse(root) {
                 if(null != root) {
+                    parseMenu(root["menu"]);
                     parseSys(root["system"]);
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
@@ -383,7 +402,6 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
-                getAjax('/api/setup/networks', listNetworks);
                 window.setInterval("getAjax('/api/setup/networks', listNetworks)", 7000);
             }
 

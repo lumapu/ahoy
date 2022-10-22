@@ -48,6 +48,7 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     if(path == "system")              getSystem(root);
     else if(path == "statistics")     getStatistics(root);
     else if(path == "inverter/list")  getInverterList(root);
+    else if(path == "menu")           getMenu(root);
     else if(path == "index")          getIndex(root);
     else if(path == "setup")          getSetup(root);
     else if(path == "setup/networks") getNetworks(root);
@@ -242,7 +243,25 @@ void webApi::getSerial(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
+void webApi::getMenu(JsonObject obj) {
+    obj["name"][0] = "Live";
+    obj["link"][0] = "/live";
+    obj["name"][1] = "Serial Console";
+    obj["link"][1] = "/serial";
+    obj["name"][2] = "Setup";
+    obj["link"][2] = "/setup";
+    obj["name"][3] = "Update";
+    obj["link"][3] = "/update";
+    obj["name"][4] = "REST API";
+    obj["link"][4] = "/api";
+    obj["name"][5] = "Reboot";
+    obj["link"][5] = "/reboot";
+}
+
+
+//-----------------------------------------------------------------------------
 void webApi::getIndex(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
     getSystem(obj.createNestedObject(F("system")));
     getStatistics(obj.createNestedObject(F("statistics")));
     obj["refresh_interval"] = SEND_INTERVAL;
@@ -281,6 +300,7 @@ void webApi::getIndex(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getSetup(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
     getSystem(obj.createNestedObject(F("system")));
     getInverterList(obj.createNestedObject(F("inverter")));
     getMqtt(obj.createNestedObject(F("mqtt")));
@@ -300,6 +320,7 @@ void webApi::getNetworks(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getLive(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
     getSystem(obj.createNestedObject(F("system")));
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;

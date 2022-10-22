@@ -1,18 +1,62 @@
-h1 {
-    margin: 0;
-    padding: 20pt;
-    font-size: 22pt;
-    color: #fff;
-    background-color: #006ec0;
-    display: block;
-    text-transform: uppercase;
-}
-
 html, body {
     font-family: Arial;
     margin: 0;
     padding: 0;
 }
+
+h2 {
+    padding-left: 10px;
+}
+
+.topnav {
+    background-color: #333;
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+
+.topnav a {
+    color: white;
+    padding: 14px 14px;
+    text-decoration: none;
+    font-size: 17px;
+    display: block;
+    height: 20px;
+}
+
+#topnav a {
+    color: #fff;
+}
+
+.topnav a.icon {
+    background: #333;
+    display: block;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.topnav a:hover {
+    background-color: #006ec0;
+    color: #000;
+}
+
+.active {
+    background-color: #006ec0;
+    color: #fff !important;
+}
+
+.topnav span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    margin-bottom: 5px;
+    position: relative;
+    background: #fff;
+    border-radius: 2px;
+}
+
+/** old CSS below **/
 
 p {
     text-align: justify;
@@ -32,6 +76,7 @@ p.lic, p.lic a {
 
 .s_active, .s_collapsible:hover {
     background-color: #006ec0;
+    color: #fff;
 }
 
 .s_content {
@@ -88,7 +133,7 @@ a.erase {
 }
 
 #content {
-    padding: 15px 15px 60px 15px;
+    padding: 60px 15px 60px 15px;
 }
 
 #footer {
