@@ -74,7 +74,9 @@
                     + ("0"+sec).substr(-2);
 
                 if(false == mIntervalSet) {
-                    document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                    document.getElementById("version").appendChild(
+                        link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+                    );
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
                     mIntervalSet = true;
                 }

@@ -65,7 +65,7 @@
             <p class="right"><a href="/api">REST API</a></p>
         </div>
         <script type="text/javascript">
-            var mIntervalSet = false;
+            var exeOnce = true;
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -88,8 +88,11 @@
             function parseSys(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                if(true == exeOnce) {
+                    document.getElementById("version").appendChild(
+                        link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+                    );
+                }
                 document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
                 var date = new Date(obj["ts_now"] * 1000);
@@ -175,9 +178,9 @@
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(false == mIntervalSet) {
+                    if(true == exeOnce) {
                         window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
-                        mIntervalSet = true;
+                        exeOnce = false;
                     }
                 }
                 else

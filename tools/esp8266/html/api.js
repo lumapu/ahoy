@@ -93,3 +93,12 @@ function span(val, cl=null, id=null) {
 function br() {
     return document.createElement('br');
 }
+
+function link(dst, text, target=null) {
+    var a = document.createElement('a');
+    var t = document.createTextNode(text);
+    a.href = dst;
+    a.target = target;
+    a.appendChild(t);
+    return a;
+}

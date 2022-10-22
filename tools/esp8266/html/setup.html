@@ -268,7 +268,9 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                document.getElementById("version").appendChild(
+                    link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+                );
             }
 
             function parseIv(obj) {

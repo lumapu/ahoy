@@ -19,9 +19,12 @@
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
-            var intervalSet = false;
+            var exeOnce = true;
             function parseSys(obj) {
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                if(exeOnce == true) {
+                    document.getElementById("version").appendChild(
+                        link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+                    );}
             }
 
             function parseIv(obj, root) {
@@ -111,9 +114,9 @@
                     parseSys(obj["system"]);
                     parseIv(obj["inverter"], obj);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(false == intervalSet) {
+                    if(true == exeOnce) {
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh_interval"] * 1000);
-                        intervalSet = true;
+                        exeOnce = false;
                     }
                 }
                 else
