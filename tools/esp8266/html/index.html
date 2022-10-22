@@ -104,22 +104,26 @@
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
-                var dSpan = document.getElementById("date")
+                var dSpan = document.getElementById("date");
                 if(0 != obj["ts_now"])
                     dSpan.innerHTML = date.toLocaleString('de-DE');
                 else {
+                    dSpan.innerHTML = "";
                     var e = inp("set", "sync from browser", 0, ["btn"], "set", "button");
                     dSpan.appendChild(span("NTP timeserver unreachable. "));
                     dSpan.appendChild(e);
                     dSpan.appendChild(span("", ["span"], "apiResult"));
                     e.addEventListener("click", setTime);
                 }
-                document.getElementById("sunrise").innerHTML = sunrise.toLocaleString('de-DE');
-                document.getElementById("sunset").innerHTML = sunset.toLocaleString('de-DE');
                 
                 if(!obj["ts_sun_upd"]) {
-                    var elem = document.getElementById("sun");
-                    elem.parentNode.removeChild(elem);
+                    var e = document.getElementById("sun");
+                    if(null != e)
+                        e.parentNode.removeChild(e);
+                }
+                else {
+                    document.getElementById("sunrise").innerHTML = sunrise.toLocaleString('de-DE');
+                    document.getElementById("sunset").innerHTML = sunset.toLocaleString('de-DE');
                 }
             }
 

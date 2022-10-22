@@ -30,6 +30,7 @@ class ahoywifi {
         bool setupStation(uint32_t timeout);
         bool getApActive(void);
         time_t getNtpTime(void);
+        void getAvailNetworks(JsonObject obj);
 
     private:
         void sendNTPpacket(IPAddress& address);

@@ -605,6 +605,12 @@ bool app::getWifiApActive(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::getAvailNetworks(JsonObject obj) {
+    mWifi->getAvailNetworks(obj);
+}
+
+
+//-----------------------------------------------------------------------------
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 

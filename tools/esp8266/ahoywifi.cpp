@@ -210,6 +210,26 @@ time_t ahoywifi::getNtpTime(void) {
 
 
 //-----------------------------------------------------------------------------
+void ahoywifi::getAvailNetworks(JsonObject obj) {
+    JsonArray nets = obj.createNestedArray("networks");
+
+    int n = WiFi.scanComplete();
+    if(n == -2) {
+        WiFi.scanNetworks(true);
+    } else if(n) {
+        for (int i = 0; i < n; ++i) {
+            nets[i]["ssid"]   = WiFi.SSID(i);
+            nets[i]["rssi"]   = WiFi.RSSI(i);
+            nets[i]["hidden"] = WiFi.isHidden(i) ? true : false;
+        }
+        WiFi.scanDelete();
+        if(WiFi.scanComplete() == -2)
+            WiFi.scanNetworks(true);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
 void ahoywifi::sendNTPpacket(IPAddress& address) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};

@@ -45,16 +45,17 @@ void webApi::onApi(AsyncWebServerRequest *request) {
 
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
     String path = request->url().substring(5);
-    if(path == "system")             getSystem(root);
-    else if(path == "statistics")    getStatistics(root);
-    else if(path == "inverter/list") getInverterList(root);
-    else if(path == "index")         getIndex(root);
-    else if(path == "setup")         getSetup(root);
-    else if(path == "live")          getLive(root);
-    else if(path == "record/info")   getRecord(root, iv->getRecordStruct(InverterDevInform_All));
-    else if(path == "record/alarm")  getRecord(root, iv->getRecordStruct(AlarmData));
-    else if(path == "record/config") getRecord(root, iv->getRecordStruct(SystemConfigPara));
-    else if(path == "record/live")   getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
+    if(path == "system")              getSystem(root);
+    else if(path == "statistics")     getStatistics(root);
+    else if(path == "inverter/list")  getInverterList(root);
+    else if(path == "index")          getIndex(root);
+    else if(path == "setup")          getSetup(root);
+    else if(path == "setup/networks") getNetworks(root);
+    else if(path == "live")           getLive(root);
+    else if(path == "record/info")    getRecord(root, iv->getRecordStruct(InverterDevInform_All));
+    else if(path == "record/alarm")   getRecord(root, iv->getRecordStruct(AlarmData));
+    else if(path == "record/config")  getRecord(root, iv->getRecordStruct(SystemConfigPara));
+    else if(path == "record/live")    getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
     else
         getNotFound(root, F("http://") + request->host() + F("/api/"));
 
@@ -288,6 +289,12 @@ void webApi::getSetup(JsonObject obj) {
     getPinout(obj.createNestedObject(F("pinout")));
     getRadio(obj.createNestedObject(F("radio")));
     getSerial(obj.createNestedObject(F("serial")));
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getNetworks(JsonObject obj) {
+    mApp->getAvailNetworks(obj);
 }
 
 

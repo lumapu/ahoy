@@ -44,6 +44,7 @@ class webApi {
 
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
+        void getNetworks(JsonObject obj);
         void getLive(JsonObject obj);
         void getRecord(JsonObject obj, record_t<> *rec);
 

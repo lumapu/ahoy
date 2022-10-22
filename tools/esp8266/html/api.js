@@ -68,6 +68,14 @@ function sel(name, opt, selId) {
     return e;
 }
 
+function opt(val, html) {
+    o = document.createElement('option');
+    o.value = val;
+    o.innerHTML = html;
+    e.appendChild(o);
+    return o;
+}
+
 function div(cl) {
     e = document.createElement('div');
     e.classList.add(...cl);

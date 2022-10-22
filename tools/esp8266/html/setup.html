@@ -36,6 +36,10 @@
                         <fieldset>
                             <legend class="des">WiFi</legend>
                             <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+                            <label for="networks">Avail Networks</label>
+                            <select name="networks" id="networks" onChange="selNet()">
+                                <option value="-1">scanning ...</option>
+                            </select>
                             <label for="ssid">SSID</label>
                             <input type="text" name="ssid" class="text"/>
                             <label for="pwd">Password</label>
@@ -377,12 +381,35 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
+                getAjax('/api/setup/networks', listNetworks);
+                window.setInterval("getAjax('/api/setup/networks', listNetworks)", 7000);
+            }
+
+            function listNetworks(root) {
+                if(root["networks"].length > 0) {
+                    var s = document.getElementById("networks");
+                    var i, l = s.options.length - 1;
+                    for(i = l; i >= 0; i--) {
+                        s.remove(i);
+                    }
+
+                    for(i = 0; i < root["networks"].length; i++) {
+                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
+                    }
+                }
+            }
+
+            function selNet() {
+                var s = document.getElementById("networks");
+                var e = document.getElementsByName("ssid")[0];
+                e.value = s.value;
             }
             
             hiddenInput = document.getElementById("disclaimer")
             hiddenInput.value = sessionStorage.getItem("gDisclaimer");
 
             getAjax("/api/setup", parse);
+
         </script>
     </body>
 </html>

@@ -68,6 +68,7 @@ class app {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         bool getWifiApActive(void);
+        void getAvailNetworks(JsonObject obj);
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;
@@ -170,7 +171,6 @@ class app {
         inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
         inline bool getSettingsValid(void) { return mSettingsValid; }
         inline bool getRebootRequestState(void) { return mShowRebootRequest; }
-
 
         HmSystemType *mSys;
         bool mShouldReboot;
