@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -98,6 +98,7 @@ const byteAssign_t InfoAssignment[] = {
     { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
 };
 #define HMINFO_LIST_LEN     (sizeof(InfoAssignment) / sizeof(byteAssign_t))
+#define HMINFO_PAYLOAD_LEN  14
 
 const byteAssign_t SystemConfigParaAssignment[] = {
     { FLD_ACT_ACTIVE_PWR_LIMIT,    UNIT_PCT,   CH0,  2, 2, 10   }/*,
@@ -105,11 +106,13 @@ const byteAssign_t SystemConfigParaAssignment[] = {
     { FLD_ACT_PF,                  UNIT_NONE,  CH0,  6, 2, 1000 }*/
 };
 #define HMSYSTEM_LIST_LEN     (sizeof(SystemConfigParaAssignment) / sizeof(byteAssign_t))
+#define HMSYSTEM_PAYLOAD_LEN  14
 
 const byteAssign_t AlarmDataAssignment[] = {
     { FLD_LAST_ALARM_CODE,           UNIT_NONE,   CH0,  0, 2, 1 }
 };
 #define HMALARMDATA_LIST_LEN     (sizeof(AlarmDataAssignment) / sizeof(byteAssign_t))
+#define HMALARMDATA_PAYLOAD_LEN  0 // 0: means check is off
 
 
 
@@ -137,7 +140,8 @@ const byteAssign_t hm1chAssignment[] = {
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0, 0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0, 0, CMD_CALC }
 };
-#define HM1CH_LIST_LEN     (sizeof(hm1chAssignment) / sizeof(byteAssign_t))
+#define HM1CH_LIST_LEN      (sizeof(hm1chAssignment) / sizeof(byteAssign_t))
+#define HM1CH_PAYLOAD_LEN   30
 
 
 //-------------------------------------
@@ -172,7 +176,8 @@ const byteAssign_t hm2chAssignment[] = {
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0, 0, CMD_CALC }
 
 };
-#define HM2CH_LIST_LEN     (sizeof(hm2chAssignment) / sizeof(byteAssign_t))
+#define HM2CH_LIST_LEN      (sizeof(hm2chAssignment) / sizeof(byteAssign_t))
+#define HM2CH_PAYLOAD_LEN   42
 
 
 //-------------------------------------
@@ -220,7 +225,8 @@ const byteAssign_t hm4chAssignment[] = {
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0, 0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0, 0, CMD_CALC }
 };
-#define HM4CH_LIST_LEN     (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
+#define HM4CH_LIST_LEN      (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
+#define HM4CH_PAYLOAD_LEN   62
 
 
 #endif /*__HM_DEFINES_H__*/

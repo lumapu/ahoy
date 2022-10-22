@@ -76,8 +76,16 @@
                     }
 
                     var ts = div(["ts"]);
-                    var date = new Date(iv["ts_last_success"] * 1000);
-                    ts.innerHTML = "Last received data requested at: " + date.toLocaleString('de-DE', {timeZone: 'UTC'});
+                    var ageInfo = "Last received data requested at: ";
+                    if(iv["ts_last_success"] > 0) {
+                        var date = new Date(iv["ts_last_success"] * 1000);
+                        ageInfo += date.toLocaleString('de-DE');
+                    }
+                    else
+                        ageInfo += "nothing received";
+
+                    ts.innerHTML = ageInfo;
+
                     main.appendChild(ts);
                     ivHtml.push(main);
                 }

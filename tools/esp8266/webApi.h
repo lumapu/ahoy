@@ -21,6 +21,10 @@ class webApi {
         void setup(void);
         void loop(void);
 
+        uint32_t getTimezoneOffset() {
+            return mTimezoneOffset;
+        }
+
     private:
         void onApi(AsyncWebServerRequest *request);
         void onApiPost(AsyncWebServerRequest *request);
@@ -33,13 +37,14 @@ class webApi {
         void getInverterList(JsonObject obj);
         void getMqtt(JsonObject obj);
         void getNtp(JsonObject obj);
+        void getSun(JsonObject obj);
         void getPinout(JsonObject obj);
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
 
-
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
+        void getNetworks(JsonObject obj);
         void getLive(JsonObject obj);
         void getRecord(JsonObject obj, record_t<> *rec);
 
@@ -59,6 +64,8 @@ class webApi {
         sysConfig_t *mSysCfg;
         statistics_t *mStat;
         char *mVersion;
+
+        uint32_t mTimezoneOffset;
 };
 
 #endif /*__WEB_API_H__*/

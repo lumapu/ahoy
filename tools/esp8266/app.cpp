@@ -40,7 +40,7 @@ void app::setup(uint32_t timeout) {
     #ifndef AP_ONLY
         setupMqtt();
     #endif
-    mSys->setup(&mConfig);
+    mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
@@ -56,8 +56,8 @@ void app::loop(void) {
     if(millis() - mPrevMillis >= 1000) {
         mPrevMillis += 1000;
         mUptimeSecs++;
-        if(0 != mTimestamp)
-            mTimestamp++;
+        if(0 != mUtcTimestamp)
+            mUtcTimestamp++;
     }
 
     if(checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
@@ -67,8 +67,8 @@ void app::loop(void) {
 
     if(mUpdateNtp) {
         mUpdateNtp = false;
-        mTimestamp = mWifi->getNtpTime();
-        DPRINTLN(DBG_INFO, "[NTP]: " + getDateTimeStr(mTimestamp));
+        mUtcTimestamp = mWifi->getNtpTime();
+        DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
     }
 
     if(mFlagSendDiscoveryConfig) {
@@ -166,6 +166,14 @@ void app::loop(void) {
         mMqtt.loop();
 
     if(checkTicker(&mTicker, 1000)) {
+        if(mUtcTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 != (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) { // update on reboot or midnight
+            if (!mLatestSunTimestamp) { // first call: calculate time zone from longitude to refresh at local midnight
+                mCalculatedTimezoneOffset = (int8_t)((mConfig.sunLon >= 0 ? mConfig.sunLon + 7.5 : mConfig.sunLon - 7.5) / 15) * 3600;
+            }
+            calculateSunriseSunset();
+            mLatestSunTimestamp = mUtcTimestamp;
+        }
+
         if((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
             mMqtt.isConnected(true); // really needed? See comment from HorstG-57 #176
@@ -188,7 +196,7 @@ void app::loop(void) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if(NULL != iv) {
                         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                        if(iv->isAvailable(mTimestamp, rec)) {
+                        if(iv->isAvailable(mUtcTimestamp, rec)) {
                             DPRINTLN(DBG_INFO, "Inverter: " + String(id));
                             for(uint8_t i = 0; i < rec->length; i++) {
                                 if(0.0f != iv->getValue(i, rec)) {
@@ -208,7 +216,7 @@ void app::loop(void) {
         if(++mSendTicker >= mConfig.sendInterval) {
             mSendTicker = 0;
 
-            if(0 != mTimestamp) {
+            if(mUtcTimestamp > 946684800 && (!mConfig.sunDisNightCom || !mLatestSunTimestamp || (mUtcTimestamp >= mSunrise && mUtcTimestamp <= mSunset))) { // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
                 if(mConfig.serialDebug)
                     DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
 
@@ -272,9 +280,8 @@ void app::loop(void) {
                     }
                 }
             }
-            else if(mConfig.serialDebug) {
-                DPRINTLN(DBG_WARN, F("time not set, can't request inverter!"));
-            }
+            else if(mConfig.serialDebug)
+                DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
             yield();
         }
     }
@@ -295,19 +302,15 @@ bool app::buildPayload(uint8_t id) {
     if(mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
         mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
 
-    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) 
-    {
-        if(mPayload[id].len[i] > 0) 
-        {
-            if(i == (mPayload[id].maxPackId-1)) 
-            {
-                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
-                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8) | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
+    for(uint8_t i = 0; i < mPayload[id].maxPackId; i ++) {
+        if(mPayload[id].len[i] > 0) {
+            if(i == (mPayload[id].maxPackId-1)) {
+                crc = ah::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
+                crcRcv = (mPayload[id].data[i][mPayload[id].len[i] - 2] << 8)
+                    | (mPayload[id].data[i][mPayload[id].len[i] - 1]);
             }
-            else 
-            {
-                crc = Ahoy::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
-            }
+            else
+                crc = ah::crc16(mPayload[id].data[i], mPayload[id].len[i], crc);
         }
         yield();
     }
@@ -387,30 +390,31 @@ void app::processPayload(bool retransmit) {
                     DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                     record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd); // choose the parser
                     mPayload[iv->id].complete = true;
-                    if(mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
-                        mStat.rxSuccess++;
 
                     uint8_t payload[128];
-                    uint8_t offs = 0;
+                    uint8_t payloadLen = 0;
 
                     memset(payload, 0, 128);
 
                     for(uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i ++) {
-                        memcpy(&payload[offs], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
-                        offs += (mPayload[iv->id].len[i]);
+                        memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                        payloadLen += (mPayload[iv->id].len[i]);
                         yield();
                     }
-                    offs-=2;
+                    payloadLen-=2;
+
                     if(mConfig.serialDebug) {
-                        DPRINT(DBG_INFO, F("Payload (") + String(offs) + "): ");
-                        mSys->Radio.dumpBuf(NULL, payload, offs);
+                        DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                        mSys->Radio.dumpBuf(NULL, payload, payloadLen);
                     }
 
                     if(NULL == rec) {
                         DPRINTLN(DBG_ERROR, F("record is NULL!"));
                     } 
-                    else 
-                    {
+                    else if((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
+                        if(mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                            mStat.rxSuccess++;
+
                         rec->ts = mPayload[iv->id].ts;
                         for(uint8_t i = 0; i < rec->length; i++) {
                             iv->addValue(i, payload, rec);
@@ -427,7 +431,7 @@ void app::processPayload(bool retransmit) {
                             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                                 Inverter<> *iv = mSys->getInverterByPos(id);
                                 if (NULL != iv) {
-                                    if (iv->isAvailable(mTimestamp, rec)) {
+                                    if (iv->isAvailable(mUtcTimestamp, rec)) {
                                         for (uint8_t i = 0; i < rec->length; i++) {
                                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
                                             snprintf(val, 10, "%.3f", iv->getValue(i, rec));
@@ -442,12 +446,9 @@ void app::processPayload(bool retransmit) {
                                                     }
                                                 }
                                             }
-                                           
-                                            // Todo: make this section nice to read.
-                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
 
-                                            if(iv->isProducing(mTimestamp, rec))
-                                            {
+                                            if(iv->isProducing(mUtcTimestamp, rec)){
+                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                                                 snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
                                                 mMqtt.sendMsg(topic, val);
 
@@ -467,11 +468,11 @@ void app::processPayload(bool retransmit) {
                                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
                                             snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
                                             mMqtt.sendMsg(topic, val);
-                                            
+
                                             yield();
                                         }
-                                    } 
-                                } 
+                                    }
+                                }
                             }
 
                             // total values (sum of all inverters)
@@ -493,6 +494,10 @@ void app::processPayload(bool retransmit) {
                             }
                         }
                     }
+                    else {
+                        DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
+                        mStat.rxFail++;
+                    }
 
                     iv->setQueuedCmdFinished();
 
@@ -505,7 +510,7 @@ void app::processPayload(bool retransmit) {
             if(mMqttActive) {
                 record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 char topic[32 + MAX_NAME_LENGTH], val[32];
-                if (!iv->isAvailable(mTimestamp, rec) && !iv->isProducing(mTimestamp, rec)){
+                if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                     snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
                     mMqtt.sendMsg(topic, val);
@@ -648,6 +653,12 @@ bool app::getWifiApActive(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::getAvailNetworks(JsonObject obj) {
+    mWifi->getAvailNetworks(obj);
+}
+
+
+//-----------------------------------------------------------------------------
 void app::sendMqttDiscoveryConfig(void) {
     DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 
@@ -657,7 +668,7 @@ void app::sendMqttDiscoveryConfig(void) {
         if(NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             // TODO: next line makes no sense if discovery config is send manually by button
-            //if(iv->isAvailable(mTimestamp, rec) && mMqttConfigSendState[id] != true) {
+            //if(iv->isAvailable(mUtcTimestamp, rec) && mMqttConfigSendState[id] != true) {
                 DynamicJsonDocument deviceDoc(128);
                 deviceDoc["name"] = iv->name;
                 deviceDoc["ids"]  = String(iv->serial.u64, HEX);
@@ -739,9 +750,9 @@ void app::resetSystem(void) {
     mNtpRefreshInterval = NTP_REFRESH_INTERVAL; // [ms]
 
 #ifdef AP_ONLY
-    mTimestamp = 1;
+    mUtcTimestamp = 1;
 #else
-    mTimestamp = 0;
+    mUtcTimestamp = 0;
 #endif
 
     mHeapStatCnt = 0;
@@ -782,14 +793,19 @@ void app::loadDefaultConfig(void) {
     // nrf24
     mConfig.sendInterval      = SEND_INTERVAL;
     mConfig.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
-    mConfig.pinCs             = DEF_RF24_CS_PIN;
-    mConfig.pinCe             = DEF_RF24_CE_PIN;
-    mConfig.pinIrq            = DEF_RF24_IRQ_PIN;
+    mConfig.pinCs             = DEF_CS_PIN;
+    mConfig.pinCe             = DEF_CE_PIN;
+    mConfig.pinIrq            = DEF_IRQ_PIN;
     mConfig.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
 
     // ntp
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
     mConfig.ntpPort = DEF_NTP_PORT;
+
+    // Latitude + Longitude
+    mConfig.sunLat = 0.0;
+    mConfig.sunLon = 0.0;
+    mConfig.sunDisNightCom = false;
 
     // mqtt
     snprintf(mConfig.mqtt.broker, MQTT_ADDR_LEN, "%s", DEF_MQTT_BROKER);
@@ -870,6 +886,9 @@ void app::saveValues(void) {
     }
 
     updateCrc();
+
+    // update sun
+    mLatestSunTimestamp = 0;
 }
 
 
@@ -907,5 +926,32 @@ void app::resetPayload(Inverter<>* iv) {
     mPayload[iv->id].maxPackId   = 0;
     mPayload[iv->id].complete    = false;
     mPayload[iv->id].requested   = false;
-    mPayload[iv->id].ts          = mTimestamp;
+    mPayload[iv->id].ts          = mUtcTimestamp;
+}
+
+void app::calculateSunriseSunset() {
+    // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
+
+    // Julian day since 1.1.2000 12:00 + correction 69.12s
+    double n_JulianDay = (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 - 10957.0 + 0.0008;
+    // Mean solar time
+    double J = n_JulianDay - mConfig.sunLon / 360;
+    // Solar mean anomaly
+    double M = fmod((357.5291 + 0.98560028 * J), 360);
+    // Equation of the center
+    double C = 1.9148 * SIN(M) + 0.02 * SIN(2 * M) + 0.0003 * SIN(3 * M);
+    // Ecliptic longitude
+    double lambda = fmod((M + C + 180 + 102.9372), 360);
+    // Solar transit
+    double Jtransit = 2451545.0 + J + 0.0053 * SIN(M) - 0.0069 * SIN(2 * lambda);
+    // Declination of the sun
+    double delta = ASIN(SIN(lambda) * SIN(23.44));
+    // Hour angle
+    double omega = ACOS(SIN(-0.83) - SIN(mConfig.sunLat) * SIN(delta) / COS(mConfig.sunLat) * COS(delta));
+    // Calculate sunrise and sunset
+    double Jrise = Jtransit - omega / 360;
+    double Jset  = Jtransit + omega / 360;
+    // Julian sunrise/sunset to UTC unix timestamp (days incl. fraction to seconds + unix offset 1.1.2000 12:00)
+    mSunrise = (Jrise - 2451545.0) * 86400 + 946728000; // OPTIONAL: Add an offset of +-seconds to the end of the line
+    mSunset  = (Jset  - 2451545.0) * 86400 + 946728000; // OPTIONAL: Add an offset of +-seconds to the end of the line
 }

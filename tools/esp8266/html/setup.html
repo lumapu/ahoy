@@ -36,6 +36,10 @@
                         <fieldset>
                             <legend class="des">WiFi</legend>
                             <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+                            <label for="networks">Avail Networks</label>
+                            <select name="networks" id="networks" onChange="selNet()">
+                                <option value="-1">scanning ...</option>
+                            </select>
                             <label for="ssid">SSID</label>
                             <input type="text" name="ssid" class="text"/>
                             <label for="pwd">Password</label>
@@ -69,6 +73,20 @@
                         <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
                         <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
                         <span id="apiResultNtp"></span>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <div class="s_content">
+                    <fieldset>
+                    <legend class="des">Sunrise & Sunset</legend>
+                        <label for="sunLat">Latitude (decimal)</label>
+                        <input type="text" class="text" name="sunLat"/>
+                        <label for="sunLon">Longitude (decimal)</label>
+                        <input type="text" class="text" name="sunLon"/>
+                        <br>
+                        <label for="sunDisNightCom">disable night communication</label>
+                        <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
                     </fieldset>
                     </div>
 
@@ -156,10 +174,9 @@
 
             function setTime() {
                 var date = new Date();
-                var offset = date.getTimezoneOffset() * -60;
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(offset + (date.getTime() / 1000));
+                obj.ts = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
             }
 
@@ -219,7 +236,7 @@
                     }
                 });
 
-                for(var i of [["Name", "name", "Name*", 32]]) { // so richtig?
+                for(var i of [["Name", "name", "Name*", 32]]) {
                     iv.appendChild(lbl(id + i[0], i[2]));
                     iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
                 }
@@ -271,30 +288,68 @@
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 
-            function parsePinout(obj) {
+            function parseSun(obj) {
+                document.getElementsByName("sunLat")[0].value = obj["lat"]; 
+                document.getElementsByName("sunLon")[0].value = obj["lon"];
+                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
+            }
+
+            function parsePinout(obj, type) {
                 var e = document.getElementById("pinout");
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
                 for(p of pins) {
                     e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    e.appendChild(sel(p[1], [
-                        [0, "D3 (GPIO0)"],
-                        [1, "TX (GPIO1)"],
-                        [2, "D4 (GPIO2)"],
-                        [3, "RX (GPIO3)"],
-                        [4, "D2 (GPIO4)"],
-                        [5, "D1 (GPIO5)"],
-                        [6, "GPIO6"],
-                        [7, "GPIO7"],
-                        [8, "GPIO8"],
-                        [9, "GPIO9"],
-                        [10, "GPIO10"],
-                        [11, "GPIO11"],
-                        [12, "D6 (GPIO12)"],
-                        [13, "D7 (GPIO13)"],
-                        [14, "D5 (GPIO14)"],
-                        [15, "D8 (GPIO15)"],
-                        [16, "D0 (GPIO16 - no IRQ!)"]
-                    ], obj[p[0]]));
+                    if("ESP8266" == type) {
+                        e.appendChild(sel(p[1], [
+                            [0, "D3 (GPIO0)"],
+                            [1, "TX (GPIO1)"],
+                            [2, "D4 (GPIO2)"],
+                            [3, "RX (GPIO3)"],
+                            [4, "D2 (GPIO4)"],
+                            [5, "D1 (GPIO5)"],
+                            [6, "GPIO6"],
+                            [7, "GPIO7"],
+                            [8, "GPIO8"],
+                            [9, "GPIO9"],
+                            [10, "GPIO10"],
+                            [11, "GPIO11"],
+                            [12, "D6 (GPIO12)"],
+                            [13, "D7 (GPIO13)"],
+                            [14, "D5 (GPIO14)"],
+                            [15, "D8 (GPIO15)"],
+                            [16, "D0 (GPIO16 - no IRQ!)"]
+                        ], obj[p[0]]));
+                    }
+                    else {
+                        e.appendChild(sel(p[1], [
+                            [0,  "GPIO0"],
+                            [1,  "TX (GPIO1)"],
+                            [2,  "GPIO2 (LED)"],
+                            [3,  "RX (GPIO3)"],
+                            [4,  "GPIO4"],
+                            [5,  "GPIO5"],
+                            [12, "GPIO12"],
+                            [13, "GPIO13"],
+                            [14, "GPIO14"],
+                            [15, "GPIO15"],
+                            [16, "GPIO16"],
+                            [17, "GPIO17"],
+                            [18, "GPIO18"],
+                            [19, "GPIO19"],
+                            [21, "GPIO21"],
+                            [22, "GPIO22"],
+                            [23, "GPIO23"],
+                            [25, "GPIO25"],
+                            [26, "GPIO26"],
+                            [27, "GPIO27"],
+                            [32, "GPIO32"],
+                            [33, "GPIO33"],
+                            [34, "GPIO34"],
+                            [35, "GPIO35"],
+                            [36, "VP (GPIO36)"],
+                            [39, "VN (GPIO39)"]
+                        ], obj[p[0]]));
+                    }
                 }
             }
 
@@ -321,16 +376,40 @@
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
-                    parsePinout(root["pinout"]);
+                    parseSun(root["sun"]);
+                    parsePinout(root["pinout"], root["system"]["esp_type"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
+                getAjax('/api/setup/networks', listNetworks);
+                window.setInterval("getAjax('/api/setup/networks', listNetworks)", 7000);
+            }
+
+            function listNetworks(root) {
+                if(root["networks"].length > 0) {
+                    var s = document.getElementById("networks");
+                    var i, l = s.options.length - 1;
+                    for(i = l; i >= 0; i--) {
+                        s.remove(i);
+                    }
+
+                    for(i = 0; i < root["networks"].length; i++) {
+                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
+                    }
+                }
+            }
+
+            function selNet() {
+                var s = document.getElementById("networks");
+                var e = document.getElementsByName("ssid")[0];
+                e.value = s.value;
             }
             
             hiddenInput = document.getElementById("disclaimer")
             hiddenInput.value = sessionStorage.getItem("gDisclaimer");
 
             getAjax("/api/setup", parse);
+
         </script>
     </body>
 </html>

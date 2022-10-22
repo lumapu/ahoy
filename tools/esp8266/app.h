@@ -24,6 +24,12 @@
 #include "ahoywifi.h"
 #include "web.h"
 
+// convert degrees and radians for sun calculation
+#define SIN(x) (sin(radians(x)))
+#define COS(x) (cos(radians(x)))
+#define ASIN(x) (degrees(asin(x)))
+#define ACOS(x) (degrees(acos(x)))
+
 //  hier läst sich das Verhalten der app in Bezug auf MQTT
 //  durch PER-Conpiler defines  anpassen
 //
@@ -31,10 +37,7 @@
 #define __MQTT_AFTER_RX__               // versendet die MQTT Daten sobald die WR daten Aufbereitet wurden  ( gehört eigentlich ins Setup )
 // #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
 
-typedef CircularBuffer<packet_t, PACKET_BUFFER_SIZE> BufferType;
-typedef HmRadio<DEF_RF24_CE_PIN, DEF_RF24_CS_PIN, BufferType> RadioType;
-typedef Inverter<float> InverterType;
-typedef HmSystem<RadioType, BufferType, MAX_NUM_INVERTERS, InverterType> HmSystemType;
+typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 
 
 typedef struct {
@@ -65,6 +68,7 @@ class app {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         bool getWifiApActive(void);
+        void getAvailNetworks(JsonObject obj);
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;
@@ -95,12 +99,12 @@ class app {
             return String(str);
         }
 
-        String getTimeStr(void) {
-            char str[20];
-            if(0 == mTimestamp)
+        String getTimeStr(uint32_t offset = 0) {
+            char str[10];
+            if(0 == mUtcTimestamp)
                 sprintf(str, "n/a");
             else
-                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp), minute(mTimestamp), second(mTimestamp));
+                sprintf(str, "%02d:%02d:%02d ", hour(mUtcTimestamp + offset), minute(mUtcTimestamp + offset), second(mUtcTimestamp + offset));
             return String(str);
         }
 
@@ -109,15 +113,27 @@ class app {
         }
 
         inline uint32_t getTimestamp(void) {
-            return mTimestamp;
+            return mUtcTimestamp;
         }
 
-        inline void setTimestamp(uint32_t newTime) {
+        void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
             if(0 == newTime)
                 mUpdateNtp = true;
             else
-                mTimestamp = newTime;
+            {
+                mUtcTimestamp = newTime;
+            }
+        }
+
+        inline uint32_t getSunrise(void) {
+            return mSunrise;
+        }
+        inline uint32_t getSunset(void) {
+            return mSunset;
+        }
+        inline uint32_t getLatestSunTimestamp(void) {
+            return mLatestSunTimestamp;
         }
 
         void eraseSettings(bool all = false) {
@@ -156,7 +172,6 @@ class app {
         inline bool getSettingsValid(void) { return mSettingsValid; }
         inline bool getRebootRequestState(void) { return mShowRebootRequest; }
 
-
         HmSystemType *mSys;
         bool mShouldReboot;
         bool mFlagSendDiscoveryConfig;
@@ -171,7 +186,6 @@ class app {
         
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
-        void processPayload(bool retransmit, uint8_t cmd);
 
         const char* getFieldDeviceClass(uint8_t fieldId);
         const char* getFieldStateClass(uint8_t fieldId);
@@ -185,7 +199,7 @@ class app {
             while(length > 0) {
                 len = (length < 32) ? length : 32;
                 mEep->read(start, buf, len);
-                crc = Ahoy::crc16(buf, len, crc);
+                crc = ah::crc16(buf, len, crc);
                 start += len;
                 length -= len;
             }
@@ -237,6 +251,7 @@ class app {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
+        void calculateSunriseSunset(void);
 
         uint32_t mUptimeSecs;
         uint32_t mPrevMillis;
@@ -249,7 +264,7 @@ class app {
         bool mSettingsValid;
 
         eep *mEep;
-        uint32_t mTimestamp;
+        uint32_t mUtcTimestamp;
         bool mUpdateNtp;
 
         bool mShowRebootRequest;
@@ -280,6 +295,12 @@ class app {
 
         // serial
         uint16_t mSerialTicker;
+
+        // sun
+        int32_t mCalculatedTimezoneOffset;
+        uint32_t mSunrise;
+        uint32_t mSunset;
+        uint32_t mLatestSunTimestamp;
 };
 
 #endif /*__APP_H__*/

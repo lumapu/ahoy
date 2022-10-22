@@ -19,8 +19,10 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
-            if(null != xhr.responseText)
-                ptr(JSON.parse(xhr.responseText));
+            if(null != xhr.responseText) {
+                if(null != ptr)
+                    ptr(JSON.parse(xhr.responseText));
+            }
         }
     }
 }
@@ -64,6 +66,14 @@ function sel(name, opt, selId) {
         e.appendChild(o);
     }
     return e;
+}
+
+function opt(val, html) {
+    o = document.createElement('option');
+    o.value = val;
+    o.innerHTML = html;
+    e.appendChild(o);
+    return o;
 }
 
 function div(cl) {

@@ -18,6 +18,8 @@ webApi::webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *con
     mConfig  = config;
     mStat    = stat;
     mVersion = version;
+
+    mTimezoneOffset = 0;
 }
 
 
@@ -43,16 +45,17 @@ void webApi::onApi(AsyncWebServerRequest *request) {
 
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
     String path = request->url().substring(5);
-    if(path == "system")             getSystem(root);
-    else if(path == "statistics")    getStatistics(root);
-    else if(path == "inverter/list") getInverterList(root);
-    else if(path == "index")         getIndex(root);
-    else if(path == "setup")         getSetup(root);
-    else if(path == "live")          getLive(root);
-    else if(path == "record/info")   getRecord(root, iv->getRecordStruct(InverterDevInform_All));
-    else if(path == "record/alarm")  getRecord(root, iv->getRecordStruct(AlarmData));
-    else if(path == "record/config") getRecord(root, iv->getRecordStruct(SystemConfigPara));
-    else if(path == "record/live")   getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
+    if(path == "system")              getSystem(root);
+    else if(path == "statistics")     getStatistics(root);
+    else if(path == "inverter/list")  getInverterList(root);
+    else if(path == "index")          getIndex(root);
+    else if(path == "setup")          getSetup(root);
+    else if(path == "setup/networks") getNetworks(root);
+    else if(path == "live")           getLive(root);
+    else if(path == "record/info")    getRecord(root, iv->getRecordStruct(InverterDevInform_All));
+    else if(path == "record/alarm")   getRecord(root, iv->getRecordStruct(AlarmData));
+    else if(path == "record/config")  getRecord(root, iv->getRecordStruct(SystemConfigPara));
+    else if(path == "record/live")    getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
     else
         getNotFound(root, F("http://") + request->host() + F("/api/"));
 
@@ -142,8 +145,16 @@ void webApi::getSystem(JsonObject obj) {
     obj[F("build")]       = String(AUTO_GIT_HASH);
     obj[F("ts_uptime")]   = mApp->getUptime();
     obj[F("ts_now")]      = mApp->getTimestamp();
+    obj[F("ts_sunrise")]  = mApp->getSunrise();
+    obj[F("ts_sunset")]   = mApp->getSunset();
+    obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
     obj[F("disclaimer")]  = mConfig->disclaimer;
+#if defined(ESP32)
+    obj[F("esp_type")]    = F("ESP32");
+#else
+    obj[F("esp_type")]    = F("ESP8266");
+#endif
 }
 
 
@@ -198,6 +209,13 @@ void webApi::getMqtt(JsonObject obj) {
 void webApi::getNtp(JsonObject obj) {
     obj[F("addr")] = String(mConfig->ntpAddr);
     obj[F("port")] = String(mConfig->ntpPort);
+}
+
+//-----------------------------------------------------------------------------
+void webApi::getSun(JsonObject obj) {
+    obj[F("lat")] = mConfig->sunLat ? String(mConfig->sunLat, 5) : "";
+    obj[F("lon")] = mConfig->sunLat ? String(mConfig->sunLon, 5) : "";
+    obj[F("disnightcom")] = mConfig->sunDisNightCom;
 }
 
 
@@ -267,9 +285,16 @@ void webApi::getSetup(JsonObject obj) {
     getInverterList(obj.createNestedObject(F("inverter")));
     getMqtt(obj.createNestedObject(F("mqtt")));
     getNtp(obj.createNestedObject(F("ntp")));
+    getSun(obj.createNestedObject(F("sun")));
     getPinout(obj.createNestedObject(F("pinout")));
     getRadio(obj.createNestedObject(F("radio")));
     getSerial(obj.createNestedObject(F("serial")));
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getNetworks(JsonObject obj) {
+    mApp->getAvailNetworks(obj);
 }
 
 
@@ -414,6 +439,8 @@ bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
         mApp->setTimestamp(jsonIn[F("ts")]);
     else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag
+    else if(F("serial_utc_offset") == jsonIn[F("cmd")])
+        mTimezoneOffset = jsonIn[F("ts")];
     else if(F("discovery_cfg") == jsonIn[F("cmd")])
         mApp->mFlagSendDiscoveryConfig = true; // for homeassistant
     else {

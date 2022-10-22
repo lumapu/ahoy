@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -14,7 +14,7 @@
 
 #define CRC16_MODBUS_POLYNOM    0xA001
 
-namespace Ahoy {
+namespace ah {
     uint8_t crc8(uint8_t buf[], uint8_t len);
     uint16_t crc16(uint8_t buf[], uint8_t len, uint16_t start = 0xffff);
 }

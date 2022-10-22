@@ -41,9 +41,9 @@
 #define DEF_DEVICE_NAME         "AHOY-DTU"
 
 // default pinout (GPIO Number)
-#define DEF_RF24_CS_PIN         15
-#define DEF_RF24_CE_PIN         2
-#define DEF_RF24_IRQ_PIN        0
+#define DEF_CS_PIN              15
+#define DEF_CE_PIN              2
+#define DEF_IRQ_PIN             0
 
 // default NRF24 power, possible values (0 - 3)
 #define DEF_AMPLIFIERPOWER      1
@@ -77,6 +77,9 @@
 
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
+
+// Timezone
+#define TIMEZONE                1
 
 // default NTP server uri
 #define DEF_NTP_SERVER_NAME     "pool.ntp.org"
