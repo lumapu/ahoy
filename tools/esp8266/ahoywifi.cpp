@@ -220,7 +220,9 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
         for (int i = 0; i < n; ++i) {
             nets[i]["ssid"]   = WiFi.SSID(i);
             nets[i]["rssi"]   = WiFi.RSSI(i);
-            nets[i]["hidden"] = WiFi.isHidden(i) ? true : false;
+            // TODO: does github workflow use another version of this library?
+            // ahoywifi.cpp:223:38: error: 'class WiFiClass' has no member named 'isHidden'
+            //nets[i]["hidden"] = WiFi.isHidden(i) ? true : false;
         }
         WiFi.scanDelete();
         if(WiFi.scanComplete() == -2)
