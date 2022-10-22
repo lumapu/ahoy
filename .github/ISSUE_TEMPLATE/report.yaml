@@ -145,6 +145,56 @@ body:
     validations:
       required: true
   - type: textarea
+    id: setup
+    attributes:
+      label: Setup
+      description: |
+        Which settings are configured under http://ahoy-dtu/setup ?
+        Document any relevant setup values correctly.
+        Copy and paste the Inverter Section if you have multiple Inverters.
+      value: |
+        ### Device Host Name
+            - Device Name: AHOY-DTU
+        ### WiFi
+            - SSID: YOUR_WIFI_SSID *don't paste here*
+            - Password: YOUR_WIFI_PWD *don't paste here*
+        ### Inverter
+        #### Inverter 0
+            - Address: 1141752123456
+            - Name: HM-600
+            - Active Power Limit: 65535
+            - Active Power Limit Control Type: no powerlimit
+            - Max Module Power (Wp): 375, 375
+            - Module Name: link, rech
+        ### General
+            - Interval [s]: 30
+            - Max retries per Payload: 5
+        ### NTP Server
+            - NTP Server / IP: pool.ntp.org
+            - NTP Port: 123
+        ### MQTT
+            - Broker / Server IP: 
+            - Port: 1883
+            - Username (optional): 
+            - Password (optional): 
+            - Topic: inverter
+        ### System Config
+        #### Pinout (Wemos)
+            - CS: D8 (GPIO15)
+            - CE: D4 (GPIO2)
+            - IRQ: D3 (GPIO0)
+        #### Radio (NRF24L01+)
+            - Amplifier Power Level: LOW
+        #### Serial Console
+            - print inverter data: [x]
+            - Serial Debug: [x]
+            - Interval [s]: 5
+
+        - Reboot device after successful save: [x]
+        - SAVE
+    validations:
+      required: true
+  - type: textarea
     id: debugging
     attributes:
       label: Debug Serial Log output
@@ -153,3 +203,17 @@ body:
         - USB Serial Log (attached)
         - Setup settings (use our templates ... to be added)
       render: shell
+  - type: textarea
+    id: description
+    attributes:
+      label: Error description
+      description: Please describe what you expected and what happened instead.
+      value: |
+        1) Go to http://ahoy-dtu/setup
+        2) configure above settings
+        3) Reboot
+        4) I did this
+        5) I expected that
+        6) and something completely differen happened
+    validations:
+      required: true
