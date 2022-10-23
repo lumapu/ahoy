@@ -16,7 +16,7 @@ h2 {
 }
 
 .topnav a {
-    color: white;
+    color: #fff;
     padding: 14px 14px;
     text-decoration: none;
     font-size: 17px;
@@ -32,7 +32,7 @@ h2 {
     background: #333;
     display: block;
     position: absolute;
-    right: 0;
+    left: 0;
     top: 0;
 }
 
@@ -44,6 +44,7 @@ h2 {
 .active {
     background-color: #006ec0;
     color: #fff !important;
+    padding-left: 80px !important
 }
 
 .topnav span {

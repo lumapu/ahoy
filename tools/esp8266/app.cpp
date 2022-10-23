@@ -23,6 +23,7 @@ app::app() {
     loadDefaultConfig();
 
     mSys = new HmSystemType();
+    mSys->enableDebug();
     mShouldReboot = false;
 }
 
