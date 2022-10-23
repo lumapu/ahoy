@@ -1,3 +1,22 @@
+/**
+ * GENERIC FUNCTIONS
+ */
+
+function topnav() {
+    toggle("topnav");
+}
+
+function parseMenu(obj) {
+    var e = document.getElementById("topnav");
+    e.innerHTML = "";
+    for(var i = 0; i < obj["name"].length; i ++) {
+        if(obj["name"][i] == "-")
+            e.appendChild(span("", ["seperator"]));
+        else
+            e.appendChild(link(obj["link"][i], obj["name"][i], obj["trgt"][i]));
+    }
+}
+
 function toggle(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
@@ -35,6 +54,10 @@ function getAjax(url, ptr, method="GET", json=null) {
         }
     }
 }
+
+/**
+ * CREATE DOM FUNCTIONS
+ */
 
 function des(val) {
     e = document.createElement('p');

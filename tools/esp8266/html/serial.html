@@ -70,18 +70,6 @@
             var con = document.getElementById("serial");
             var exeOnce = true;
 
-            function topnav() {
-                toggle("topnav");
-            }
-
-            function parseMenu(obj) {
-                var e = document.getElementById("topnav");
-                e.innerHTML = "";
-                for(var i = 0; i < obj["name"].length; i ++) {
-                    e.appendChild(link(obj["link"][i], obj["name"][i]));
-                }
-            }
-
             function parseSys(obj) {
                 var up = obj["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;

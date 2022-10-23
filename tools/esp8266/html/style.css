@@ -47,7 +47,7 @@ h2 {
     padding-left: 80px !important
 }
 
-.topnav span {
+.topnav .icon span {
     display: block;
     width: 30px;
     height: 3px;
@@ -55,6 +55,14 @@ h2 {
     position: relative;
     background: #fff;
     border-radius: 2px;
+}
+
+span.seperator {
+    width: 100%;
+    height: 1px;
+    margin: 10px 0px 10px;
+    background-color: #444;
+    display: block;
 }
 
 /** old CSS below **/
@@ -125,7 +133,7 @@ a:hover, a:focus {
     color: #f00;
 }
 
-a.erase {
+a.btn {
     background-color: #006ec0;
     color: #fff;
     padding: 7px;

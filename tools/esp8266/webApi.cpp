@@ -250,12 +250,15 @@ void webApi::getMenu(JsonObject obj) {
     obj["link"][1] = "/serial";
     obj["name"][2] = "Setup";
     obj["link"][2] = "/setup";
-    obj["name"][3] = "Update";
-    obj["link"][3] = "/update";
+    obj["name"][3] = "-";
     obj["name"][4] = "REST API";
     obj["link"][4] = "/api";
-    obj["name"][5] = "Reboot";
-    obj["link"][5] = "/reboot";
+    obj["trgt"][4] = "_blank";
+    obj["name"][5] = "-";
+    obj["name"][6] = "Update";
+    obj["link"][6] = "/update";
+    obj["name"][7] = "Reboot";
+    obj["link"][7] = "/reboot";
 }
 
 

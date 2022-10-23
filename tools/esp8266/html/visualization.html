@@ -28,20 +28,6 @@
         <script type="text/javascript">
             var exeOnce = true;
 
-            function topnav() {
-                toggle("topnav");
-            }
-
-            function parseMenu(obj) {
-                if(true == exeOnce) {
-                    var e = document.getElementById("topnav");
-                    e.innerHTML = "";
-                    for(var i = 0; i < obj["name"].length; i ++) {
-                        e.appendChild(link(obj["link"][i], obj["name"][i]));
-                    }
-                }
-            }
-
             function parseSys(obj) {
                 if(true == exeOnce) {
                     document.getElementById("version").appendChild(
@@ -133,7 +119,8 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    parseMenu(obj["menu"]);
+                    if(true == exeOnce)
+                        parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseIv(obj["inverter"], obj);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];

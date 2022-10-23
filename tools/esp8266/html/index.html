@@ -85,20 +85,6 @@
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 
-            function topnav() {
-                toggle("topnav");
-            }
-
-            function parseMenu(obj) {
-                if(true == exeOnce) {
-                    var e = document.getElementById("topnav");
-                    e.innerHTML = "";
-                    for(var i = 0; i < obj["name"].length; i ++) {
-                        e.appendChild(link(obj["link"][i], obj["name"][i]));
-                    }
-                }
-            }
-
             function parseSys(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
@@ -187,7 +173,8 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    parseMenu(obj["menu"]);
+                    if(true == exeOnce)
+                        parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);

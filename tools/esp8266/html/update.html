@@ -32,19 +32,6 @@
             <p class="right" id="version"></p>
         </div>
         <script type="text/javascript">
-
-            function topnav() {
-                toggle("topnav");
-            }
-
-            function parseMenu(obj) {
-                var e = document.getElementById("topnav");
-                e.innerHTML = "";
-                for(var i = 0; i < obj["name"].length; i ++) {
-                    e.appendChild(link(obj["link"][i], obj["name"][i]));
-                }
-            }
-
             function parseSys(obj) {
                 document.getElementById("version").appendChild(
                     link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")

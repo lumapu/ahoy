@@ -29,7 +29,7 @@
         </div>
         <div id="setup" class="content">
             <div id="content">
-                <a class="erase" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
 
                 <form method="post" action="/save">
                     <fieldset>
@@ -287,18 +287,6 @@
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"], ["invRetry", "retries"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-            }
-
-            function topnav() {
-                toggle("topnav");
-            }
-
-            function parseMenu(obj) {
-                var e = document.getElementById("topnav");
-                e.innerHTML = "";
-                for(var i = 0; i < obj["name"].length; i ++) {
-                    e.appendChild(link(obj["link"][i], obj["name"][i]));
-                }
             }
 
             function parseSys(obj) {

@@ -160,8 +160,18 @@ void web::showNotFound(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void web::onReboot(AsyncWebServerRequest *request) {
-    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Rebooting ...</title><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>rebooting ... auto reload after 10s</body></html>"));
-    mMain->mShouldReboot = true;
+    String content = "";
+    int refresh = 120;
+    if(request->args() > 0) {
+        if(request->arg("reboot").toInt() == 1) {
+            refresh = 10;
+            content = F("reboot. Autoreload after 10 seconds");
+            mMain->mShouldReboot = true;
+        }
+    }
+    else
+        content = F("<a href=\"/reboot?reboot=1\" class=\"btn\">Reboot</a> <a href=\"/\" class=\"btn\">cancel</a>");
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Reboot</title><link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
 }
 
 
