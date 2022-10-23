@@ -68,6 +68,7 @@ class app {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         bool getWifiApActive(void);
+        void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
         uint8_t getIrqPin(void) {

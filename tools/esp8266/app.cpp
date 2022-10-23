@@ -610,6 +610,12 @@ bool app::getWifiApActive(void) {
 
 
 //-----------------------------------------------------------------------------
+void app::scanAvailNetworks(void) {
+    mWifi->scanAvailNetworks();
+}
+
+
+//-----------------------------------------------------------------------------
 void app::getAvailNetworks(JsonObject obj) {
     mWifi->getAvailNetworks(obj);
 }

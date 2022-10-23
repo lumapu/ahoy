@@ -77,6 +77,13 @@ function sel(name, opt, selId) {
     return e;
 }
 
+function selDelAllOpt(sel) {
+    var i, l = sel.options.length - 1;
+    for(i = l; i >= 0; i--) {
+        sel.remove(i);
+    }
+}
+
 function opt(val, html) {
     o = document.createElement('option');
     o.value = val;

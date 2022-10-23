@@ -456,7 +456,9 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
 //-----------------------------------------------------------------------------
 bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
-    if(F("set_time") == jsonIn[F("cmd")])
+    if(F("scan_wifi"))
+        mApp->scanAvailNetworks();
+    else if(F("set_time") == jsonIn[F("cmd")])
         mApp->setTimestamp(jsonIn[F("ts")]);
     else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag

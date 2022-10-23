@@ -44,9 +44,11 @@
                         <fieldset>
                             <legend class="des">WiFi</legend>
                             <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+                            <label for="scanbtn">Search Networks</label>
+                            <input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/><br/>
                             <label for="networks">Avail Networks</label>
                             <select name="networks" id="networks" onChange="selNet()">
-                                <option value="-1">scanning ...</option>
+                                <option value="-1">not scanned</option>
                             </select>
                             <label for="ssid">SSID</label>
                             <input type="text" name="ssid" class="text"/>
@@ -162,6 +164,15 @@
                     ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
             });
 
+            function apiCbWifi(obj) {
+                var e = document.getElementById("networks");
+                selDelAllOpt(e);
+                if(obj["success"])
+                    e.appendChild(opt("-1", "scanning ..."))
+                else
+                    e.appendChild(opt("-1", "Error: " + obj["error"]));
+            }
+
             function apiCbNtp(obj) {
                 var e = document.getElementById("apiResultNtp");
                 if(obj["success"])
@@ -184,6 +195,13 @@
                 obj.cmd = "set_time";
                 obj.ts = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+            }
+
+            function scan() {
+                var obj = new Object();
+                obj.cmd = "scan_wifi";
+                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
+                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 7000);
             }
 
             function syncTime() {
@@ -402,27 +420,26 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                 }
-                window.setInterval("getAjax('/api/setup/networks', listNetworks)", 7000);
             }
 
             function listNetworks(root) {
+                var s = document.getElementById("networks");
+                selDelAllOpt(s);
                 if(root["networks"].length > 0) {
-                    var s = document.getElementById("networks");
-                    var i, l = s.options.length - 1;
-                    for(i = l; i >= 0; i--) {
-                        s.remove(i);
-                    }
-
+                    s.appendChild(opt("-1", "please select network"));
                     for(i = 0; i < root["networks"].length; i++) {
                         s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
                     }
                 }
+                else
+                    s.appendChild(opt("-1", "no network found"));
             }
 
             function selNet() {
                 var s = document.getElementById("networks");
                 var e = document.getElementsByName("ssid")[0];
-                e.value = s.value;
+                if(-1 != s.value)
+                    e.value = s.value;
             }
             
             hiddenInput = document.getElementById("disclaimer")

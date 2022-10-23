@@ -210,23 +210,24 @@ time_t ahoywifi::getNtpTime(void) {
 
 
 //-----------------------------------------------------------------------------
+void ahoywifi::scanAvailNetworks(void) {
+    int n = WiFi.scanComplete();
+    if(n == -2)
+        WiFi.scanNetworks(true);
+}
+
+
+//-----------------------------------------------------------------------------
 void ahoywifi::getAvailNetworks(JsonObject obj) {
     JsonArray nets = obj.createNestedArray("networks");
 
     int n = WiFi.scanComplete();
-    if(n == -2) {
-        WiFi.scanNetworks(true);
-    } else if(n) {
+    if(n > 0) {
         for (int i = 0; i < n; ++i) {
             nets[i]["ssid"]   = WiFi.SSID(i);
             nets[i]["rssi"]   = WiFi.RSSI(i);
-            // TODO: does github workflow use another version of this library?
-            // ahoywifi.cpp:223:38: error: 'class WiFiClass' has no member named 'isHidden'
-            //nets[i]["hidden"] = WiFi.isHidden(i) ? true : false;
         }
         WiFi.scanDelete();
-        if(WiFi.scanComplete() == -2)
-            WiFi.scanNetworks(true);
     }
 }
 
