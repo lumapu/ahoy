@@ -2,6 +2,8 @@ html, body {
     font-family: Arial;
     margin: 0;
     padding: 0;
+    height: 100%;
+    min-height: 100%;
 }
 
 h2 {
@@ -37,11 +39,11 @@ h2 {
 }
 
 .topnav a:hover {
-    background-color: #006ec0;
+    background-color: #555 !important;
     color: #000;
 }
 
-.active {
+.title {
     background-color: #006ec0;
     color: #fff !important;
     padding-left: 80px !important
@@ -57,12 +59,96 @@ h2 {
     border-radius: 2px;
 }
 
+.topnav .active {
+    background-color: #00afc1;
+}
+
 span.seperator {
     width: 100%;
     height: 1px;
     margin: 10px 0px 10px;
-    background-color: #444;
+    background-color: #494949;
     display: block;
+}
+
+#wrapper {
+    min-height: 100%;
+}
+
+#content {
+    padding: 50px 20px 120px 20px;
+    overflow: auto;
+}
+
+#footer {
+    height: 120px;
+    margin-top: -120px;
+    background-color: #555;
+    width: 100%;
+    font-size: 13px;
+}
+
+#footer .right {
+    color: #bbb;
+    margin: 23px 25px;
+    text-align: right;
+}
+
+#footer .left {
+    color: #bbb;
+    margin: 23px 0px 0px 25px;
+}
+
+#footer ul {
+    list-style-type: none;
+    margin: 20px auto;
+    padding: 0;
+}
+
+#footer ul li, #footer a {
+    color: #bbb;
+    margin-bottom: 10px;
+    padding-left: 5px;
+    font-size: 13px;
+}
+
+#footer a:hover {
+    color: #fff;
+}
+
+.hide {
+    display: none;
+}
+
+@media only screen and (min-width: 992px) {
+    .topnav {
+        width: 230px !important;
+        height: 100%;
+    }
+
+    .topnav a.icon {
+        display: none !important;
+    }
+
+    .topnav a {
+        padding: 14px 24px;
+    }
+
+    .topnav .title {
+        padding-left: 24px !important;
+    }
+
+    .topnav .hide {
+        display: block;
+    }
+
+    #content {
+        padding: 15px 15px 120px 250px;
+    }
+
+    #footer .left {
+        margin-left: 250px !important;
+    }
 }
 
 /** old CSS below **/
@@ -91,7 +177,6 @@ p.lic, p.lic a {
 .s_content {
     display: none;
     overflow: hidden;
-
 }
 
 .s_collapsible {
@@ -119,10 +204,6 @@ p.lic, p.lic a {
     margin: 0 0 7px 12px;
 }
 
-.hide {
-    display: none;
-}
-
 a:link, a:visited {
     text-decoration: none;
     font-size: 13pt;
@@ -136,34 +217,12 @@ a:hover, a:focus {
 a.btn {
     background-color: #006ec0;
     color: #fff;
-    padding: 7px;
+    padding: 7px 15px 7px 15px;
     display: inline-block;
-    margin-top: 30px;
 }
 
-#content {
-    padding: 60px 15px 60px 15px;
-}
-
-#footer {
-    position: fixed;
-    bottom: 0px;
-    height: 45px;
-    background-color: #006ec0;
-    width: 100%;
-    border-top: 5px solid #fff;
-}
-
-#footer p, #footer a {
-    color: #fff;
-    padding: 0 7px 0 7px;
-    font-size: 10pt !important;
-}
-
-div.content {
-    background-color: #fff;
-    padding-bottom: 65px;
-    overflow: auto;
+a.btn:hover {
+    background-color: #555 !important;
 }
 
 input, select {
@@ -212,6 +271,10 @@ label {
     padding-right: 10px;
     margin: 10px 0px 0px 15px;
     vertical-align: top;
+}
+
+pre {
+    white-space: pre-wrap;
 }
 
 fieldset {

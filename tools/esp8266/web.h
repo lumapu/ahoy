@@ -54,6 +54,7 @@ class web {
 
     private:
         void onSerial(AsyncWebServerRequest *request);
+        void onSystem(AsyncWebServerRequest *request);
 
         AsyncWebServer *mWeb;
         AsyncEventSource *mEvts;

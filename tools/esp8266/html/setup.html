@@ -19,7 +19,7 @@
     </head>
     <body onload="load()">
         <div class="topnav">
-            <a href="/" class="active">AhoyDTU</a>
+            <a href="/" class="title">AhoyDTU</a>
             <a href="javascript:void(0);" class="icon" onclick="topnav()">
                 <span></span>
                 <span></span>
@@ -27,7 +27,7 @@
             </a>
             <div id="topnav" class="hide"></div>
         </div>
-        <div id="setup" class="content">
+        <div id="wrapper">
             <div id="content">
                 <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
 
@@ -149,9 +149,17 @@
             </div>
         </div>
         <div id="footer">
-            <p class="left">&copy 2022</p>
-            <p class="right" id="version"></p>
-            <p class="right"><a href="/factory">Factory Reset</a></p>
+            <div class="left">
+                AhoyDTU &copy 2022
+                <ul>
+                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+                </ul>
+            </div>
+            <div class="right">
+                <span id="version"></span><br/><br/>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+            </div>
         </div>
         <script type="text/javascript">
             var highestId = 0;
@@ -292,9 +300,7 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                document.getElementById("version").appendChild(
-                    link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
-                );
+                parseVersion(obj);
             }
 
             function parseIv(obj) {

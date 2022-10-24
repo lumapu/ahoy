@@ -18,6 +18,7 @@
 #include "html/h/visualization_html.h"
 #include "html/h/update_html.h"
 #include "html/h/serial_html.h"
+#include "html/h/system_html.h"
 
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
 
@@ -51,6 +52,7 @@ void web::setup(void) {
     mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,      this, std::placeholders::_1));
     mWeb->onNotFound (                     std::bind(&web::showNotFound,   this, std::placeholders::_1));
     mWeb->on("/reboot",         HTTP_ANY,  std::bind(&web::onReboot,       this, std::placeholders::_1));
+    mWeb->on("/system",         HTTP_ANY,  std::bind(&web::onSystem,       this, std::placeholders::_1));
     mWeb->on("/erase",          HTTP_ANY,  std::bind(&web::showErase,      this, std::placeholders::_1));
     mWeb->on("/factory",        HTTP_ANY,  std::bind(&web::showFactoryRst, this, std::placeholders::_1));
 
@@ -160,18 +162,18 @@ void web::showNotFound(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void web::onReboot(AsyncWebServerRequest *request) {
-    String content = "";
-    int refresh = 120;
-    if(request->args() > 0) {
-        if(request->arg("reboot").toInt() == 1) {
-            refresh = 10;
-            content = F("reboot. Autoreload after 10 seconds");
-            mMain->mShouldReboot = true;
-        }
-    }
-    else
-        content = F("<a href=\"/reboot?reboot=1\" class=\"btn\">Reboot</a> <a href=\"/\" class=\"btn\">cancel</a>");
-    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Reboot</title><link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
+    mMain->mShouldReboot = true;
+    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Reboot</title><link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>reboot. Autoreload after 10 seconds</body></html>"));
+}
+
+
+//-----------------------------------------------------------------------------
+void web::onSystem(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onSystem"));
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 

@@ -12,9 +12,19 @@ function parseMenu(obj) {
     for(var i = 0; i < obj["name"].length; i ++) {
         if(obj["name"][i] == "-")
             e.appendChild(span("", ["seperator"]));
-        else
-            e.appendChild(link(obj["link"][i], obj["name"][i], obj["trgt"][i]));
+        else {
+            var l = link(obj["link"][i], obj["name"][i], obj["trgt"][i]);
+            if(obj["link"][i] == window.location.pathname)
+                l.classList.add("active");
+            e.appendChild(l);
+        }
     }
+}
+
+function parseVersion(obj) {
+    document.getElementById("version").appendChild(
+        link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+    );
 }
 
 function toggle(id, hide) {
