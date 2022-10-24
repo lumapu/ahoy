@@ -322,8 +322,10 @@ if __name__ == '__main__':
 
             print('', end='', flush=True)
 
-            if loop_interval > 0 and (time.time() - t_loop_start) < loop_interval:
-                time.sleep(loop_interval - (time.time() - t_loop_start))
+            time_to_sleep = loop_interval - (time.time() - t_loop_start)
+
+            if loop_interval > 0 and time_to_sleep > 0:
+                time.sleep(time_to_sleep) 
 
     except KeyboardInterrupt:
         sys.exit()
