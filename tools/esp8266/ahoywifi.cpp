@@ -223,9 +223,16 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
 
     int n = WiFi.scanComplete();
     if(n > 0) {
+        int sort[n];
+        for (int i = 0; i < n; i++)
+            sort[i] = i;
+        for (int i = 0; i < n; i++)
+            for (int j = i + 1; j < n; j++)
+                if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
+                    std::swap(sort[i], sort[j]); 
         for (int i = 0; i < n; ++i) {
-            nets[i]["ssid"]   = WiFi.SSID(i);
-            nets[i]["rssi"]   = WiFi.RSSI(i);
+            nets[i]["ssid"]   = WiFi.SSID(sort[i]);
+            nets[i]["rssi"]   = WiFi.RSSI(sort[i]);
         }
         WiFi.scanDelete();
     }
