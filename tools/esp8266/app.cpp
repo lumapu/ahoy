@@ -895,6 +895,7 @@ void app::setupMqtt(void) {
     }
 }
 
+
 //-----------------------------------------------------------------------------
 void app::resetPayload(Inverter<>* iv) {
     DPRINTLN(DBG_INFO, "resetPayload: id: " + String(iv->id));
@@ -907,6 +908,8 @@ void app::resetPayload(Inverter<>* iv) {
     mPayload[iv->id].ts          = mUtcTimestamp;
 }
 
+
+//-----------------------------------------------------------------------------
 void app::calculateSunriseSunset() {
     // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
 

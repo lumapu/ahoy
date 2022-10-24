@@ -62,7 +62,7 @@
                     <fieldset>
                     <legend class="des">Inverter</legend>
                         <div id="inverter"></div><br/>
-                        <input type="button" id="btnAdd" value="Add Inverter"/>
+                        <input type="button" id="btnAdd" class="btn" value="Add Inverter"/>
                         <p class="subdes">General</p>
                         <label for="invInterval">Interval [s]</label>
                         <input type="text" class="text" name="invInterval"/>
@@ -229,13 +229,14 @@
                 var e = document.getElementsByName(id + "Addr")[0];
                 e.value = "";
                 e.dispatchEvent(new Event("keyup"));
+                e.dispatchEvent(new Event("change"));
                 document.getElementsByName(id + "Name")[0].value = "";
             }
 
             function ivHtml(obj, id) {
                 highestId = id;
                 if(highestId == (maxInv - 1))
-                    toggle("btnAdd", true);
+                    setHide("btnAdd", true);
                 iv = document.getElementById("inverter");
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
@@ -244,28 +245,32 @@
                 iv.appendChild(lbl(id + "Addr", "Address*"));
                 var addr = inp(id + "Addr", obj["serial"], 12)
                 iv.appendChild(addr);
-                addr.addEventListener("keyup", (e) => {
-                    var serial = addr.value.substring(0,4);
-                    var max = 0;
-                    for(var i=0;i<4;i++) {
-                        toggle(id+"ModPwr"+i, true);
-                        toggle(id+"ModName"+i, true);
-                    }
-                    toggle("lbl"+id+"ModPwr", true);
-                    toggle("lbl"+id+"ModName", true);
+                ['keyup', 'change'].forEach(function(evt) {
 
-                    if(serial == "1161") max = 4;
-                    else if(serial == "1141") max = 2;
-                    else if(serial == "1121") max = 1;
+                    addr.addEventListener(evt, (e) => {
+                        var serial = addr.value.substring(0,4);
+                        var max = 0;
+                        for(var i=0;i<4;i++) {
+                            setHide(id+"ModPwr"+i, true);
+                            setHide(id+"ModName"+i, true);
+                        }
+                        setHide("lbl"+id+"ModPwr", true);
+                        setHide("lbl"+id+"ModName", true);
 
-                    for(var i=0;i<max;i++) {
-                        toggle(id+"ModPwr"+i, false);
-                        toggle(id+"ModName"+i, false);
-                    }
-                    if(max != 0) {
-                        toggle("lbl"+id+"ModPwr", false);
-                        toggle("lbl"+id+"ModName", false);
-                    }
+                        if(serial === "1161") max = 4;
+                        else if(serial === "1141") max = 2;
+                        else if(serial === "1121") max = 1;
+                        else max = 0;
+
+                        if(max != 0) {
+                            for(var i=0;i<max;i++) {
+                                setHide(id+"ModPwr"+i, false);
+                                setHide(id+"ModName"+i, false);
+                            }
+                            setHide("lbl"+id+"ModPwr", false);
+                            setHide("lbl"+id+"ModName", false);
+                        }
+                    })
                 });
 
                 for(var i of [["Name", "name", "Name*", 32]]) {

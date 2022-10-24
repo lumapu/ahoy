@@ -27,7 +27,7 @@ function parseVersion(obj) {
     );
 }
 
-function toggle(id, hide) {
+function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
         if(!elm.classList.contains("hide"))
