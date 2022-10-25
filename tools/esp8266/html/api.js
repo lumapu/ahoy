@@ -1,4 +1,33 @@
-function toggle(id, hide) {
+/**
+ * GENERIC FUNCTIONS
+ */
+
+function topnav() {
+    toggle("topnav");
+}
+
+function parseMenu(obj) {
+    var e = document.getElementById("topnav");
+    e.innerHTML = "";
+    for(var i = 0; i < obj["name"].length; i ++) {
+        if(obj["name"][i] == "-")
+            e.appendChild(span("", ["seperator"]));
+        else {
+            var l = link(obj["link"][i], obj["name"][i], obj["trgt"][i]);
+            if(obj["link"][i] == window.location.pathname)
+                l.classList.add("active");
+            e.appendChild(l);
+        }
+    }
+}
+
+function parseVersion(obj) {
+    document.getElementById("version").appendChild(
+        link("https://github.com/lumapu/ahoy/commits/" + obj["build"], "Git SHA: " + obj["build"] + " :: " + obj["version"], "_blank")
+    );
+}
+
+function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
         if(!elm.classList.contains("hide"))
@@ -6,6 +35,15 @@ function toggle(id, hide) {
     }
     else
         elm.classList.remove('hide');
+}
+
+
+function toggle(id) {
+    var e = document.getElementById(id);
+    if(!e.classList.contains("hide"))
+        e.classList.add("hide");
+    else
+        e.classList.remove('hide');
 }
 
 function getAjax(url, ptr, method="GET", json=null) {
@@ -26,6 +64,10 @@ function getAjax(url, ptr, method="GET", json=null) {
         }
     }
 }
+
+/**
+ * CREATE DOM FUNCTIONS
+ */
 
 function des(val) {
     e = document.createElement('p');
@@ -68,6 +110,13 @@ function sel(name, opt, selId) {
     return e;
 }
 
+function selDelAllOpt(sel) {
+    var i, l = sel.options.length - 1;
+    for(i = l; i >= 0; i--) {
+        sel.remove(i);
+    }
+}
+
 function opt(val, html) {
     o = document.createElement('option');
     o.value = val;
@@ -92,4 +141,14 @@ function span(val, cl=null, id=null) {
 
 function br() {
     return document.createElement('br');
+}
+
+function link(dst, text, target=null) {
+    var a = document.createElement('a');
+    var t = document.createTextNode(text);
+    a.href = dst;
+    if(null != target)
+        a.target = target;
+    a.appendChild(t);
+    return a;
 }

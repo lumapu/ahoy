@@ -8,20 +8,40 @@
         <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY</h1>
-        <div id="content" class="content">
-            <div id="live"></div>
-            <p>Every <span id="refresh"></span> seconds the values are updated</p>
+        <div class="topnav">
+            <a href="/" class="title">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
+        <div id="wrapper">
+            <div id="content">
+                <div id="live"></div>
+                <p>Every <span id="refresh"></span> seconds the values are updated</p>
+            </div>
         </div>
         <div id="footer">
-            <p class="left">&copy 2022</p>
-            <p class="left"><a href="/">Home</a></p>
-            <p class="right" id="version"></p>
+            <div class="left">
+                AhoyDTU &copy 2022
+                <ul>
+                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+                </ul>
+            </div>
+            <div class="right">
+                <span id="version"></span><br/><br/>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+            </div>
         </div>
         <script type="text/javascript">
-            var intervalSet = false;
+            var exeOnce = true;
+
             function parseSys(obj) {
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                if(true == exeOnce)
+                    parseVersion(obj);
             }
 
             function parseIv(obj, root) {
@@ -108,12 +128,14 @@
 
             function parse(obj) {
                 if(null != obj) {
+                    if(true == exeOnce)
+                        parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseIv(obj["inverter"], obj);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(false == intervalSet) {
+                    if(true == exeOnce) {
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh_interval"] * 1000);
-                        intervalSet = true;
+                        exeOnce = false;
                     }
                 }
                 else

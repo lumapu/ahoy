@@ -23,6 +23,7 @@ app::app() {
     loadDefaultConfig();
 
     mSys = new HmSystemType();
+    mSys->enableDebug();
     mShouldReboot = false;
 }
 
@@ -169,6 +170,23 @@ void app::loop(void) {
             snprintf(val, 10, "%ld", millis() / 1000);
 
             mMqtt.sendMsg("uptime", val);
+
+            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if(NULL != iv) {
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    char topic[32 + MAX_NAME_LENGTH], val[32];
+                    if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                        snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
+                        mMqtt.sendMsg(topic, val);
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                        snprintf(val, 32, "0");
+                        mMqtt.sendMsg(topic, val);
+                    }
+                }
+            }
+
 
 #ifdef __MQTT_TEST__
             // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
@@ -487,19 +505,6 @@ void app::processPayload(bool retransmit) {
                 }
             }
 
-            if (mMqttActive) {
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                char topic[32 + MAX_NAME_LENGTH], val[32];
-                if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)) {
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                    snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
-                    mMqtt.sendMsg(topic, val);
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                    snprintf(val, 32, "0");
-                    mMqtt.sendMsg(topic, val);
-                }
-            }
-
             yield();
         }
     }
@@ -625,6 +630,12 @@ void app::cbMqtt(char *topic, byte *payload, unsigned int length) {
 bool app::getWifiApActive(void) {
     return mWifi->getApActive();
 }
+
+//-----------------------------------------------------------------------------
+void app::scanAvailNetworks(void) {
+    mWifi->scanAvailNetworks();
+}
+
 
 //-----------------------------------------------------------------------------
 void app::getAvailNetworks(JsonObject obj) {
@@ -880,6 +891,7 @@ void app::setupMqtt(void) {
     }
 }
 
+
 //-----------------------------------------------------------------------------
 void app::resetPayload(Inverter<> *iv) {
     DPRINTLN(DBG_INFO, "resetPayload: id: " + String(iv->id));
@@ -892,6 +904,8 @@ void app::resetPayload(Inverter<> *iv) {
     mPayload[iv->id].ts = mUtcTimestamp;
 }
 
+
+//-----------------------------------------------------------------------------
 void app::calculateSunriseSunset() {
     // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
 

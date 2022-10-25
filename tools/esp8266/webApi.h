@@ -42,6 +42,7 @@ class webApi {
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
 
+        void getMenu(JsonObject obj);
         void getIndex(JsonObject obj);
         void getSetup(JsonObject obj);
         void getNetworks(JsonObject obj);

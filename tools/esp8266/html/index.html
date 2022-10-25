@@ -7,65 +7,75 @@
         <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>AHOY</h1>
-        <div id="content" class="content">
-            <SCRIPT>
-                function promptFunction() {
-                    var Text = prompt("This project was started from https://www.mikrocontroller.net/topic/525778 this discussion.\n\n" + 
-                    "The Hoymiles protocol was decrypted through the voluntary efforts of many participants. ahoy, among others, was developed based on this work.\n" + 
-                    "The software was developed to the best of our knowledge and belief. Nevertheless, no liability can be accepted for a malfunction or guarantee loss of the inverter.\n\n" + 
-                    "Ahoy is freely available. If you paid money for the software, you probably got ripped off.\n\nPlease type in 'YeS', you are accept our Disclaim. You should then save your config.", "");
-                    if (Text != "YeS") 
-                        promptFunction();
-                    else
-                        return true;
-    
-                }
-            </SCRIPT>
+        <div class="topnav">
+            <a href="/" class="title">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
+        <div id="wrapper">
+            <div id="content">
+                <script>
+                    function promptFunction() {
+                        var Text = prompt("This project was started from https://www.mikrocontroller.net/topic/525778 this discussion.\n\n" +
+                        "The Hoymiles protocol was decrypted through the voluntary efforts of many participants. ahoy, among others, was developed based on this work.\n" +
+                        "The software was developed to the best of our knowledge and belief. Nevertheless, no liability can be accepted for a malfunction or guarantee loss of the inverter.\n\n" +
+                        "Ahoy is freely available. If you paid money for the software, you probably got ripped off.\n\nPlease type in 'YeS', you are accept our Disclaim. You should then save your config.", "");
+                        if (Text != "YeS")
+                            promptFunction();
+                        else
+                            return true;
 
-            <p>
-                <a href="/live">Visualization</a><br/>
-                <br/>
-                <a href="/setup">Setup</a><br/>
-                <br/>
-                <a href="/serial">Webserial & Commands</a><br/>
-            </p>
-            <p><span class="des">Uptime: </span><span id="uptime"></span></p>
-            <p><span class="des">ESP-Time: </span><span id="date"></span></p>
-            <div id="sun">
-                <span class="des">Sunrise: </span><span id="sunrise"></span><br>
-                <span class="des">Sunset: </span><span id="sunset"></span>
-            </div>
-            <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
-            <p>
-                <span class="des">Statistics: </span>
-                <pre id="stat"></pre>
-                <pre id="iv"></pre>
-                <pre id="warn_info"></pre>
-            </p>
-            <p>Every <span id="refresh"></span> seconds the values are updated</p>
+                    }
+                </script>
+                <p><span class="des">Uptime: </span><span id="uptime"></span></p>
+                <p><span class="des">ESP-Time: </span><span id="date"></span></p>
+                <div id="sun">
+                    <span class="des">Sunrise: </span><span id="sunrise"></span><br>
+                    <span class="des">Sunset: </span><span id="sunset"></span>
+                </div>
+                <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
+                <p>
+                    <span class="des">Statistics: </span>
+                    <pre id="stat"></pre>
+                    <pre id="iv"></pre>
+                    <pre id="warn_info"></pre>
+                </p>
+                <p>Every <span id="refresh"></span> seconds the values are updated</p>
 
-            <div id="note">
-                New updates can be found on Github: <a href="https://github.com/lumapu/ahoy" target="_blank">https://github.com/lumapu/ahoy</a><br/>
-                <br/>
-                Please report issues in <a href="https://github.com/lumapu/ahoy/issues">Github</a><br/>
-                Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a><br/>
-                Support this project: <a href="https://paypal.me/lupusch">Donate</a><br/>
-                <p class="lic"><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de">Creative Commons - https://creativecommons.org/licenses/by-nc-sa/3.0/de/</a><br/>
-                Check the licenses which are published on <a href="https://github.com/lumapu/ahoy">https://github.com/lumapu/ahoy</a> as well</p><br/>
-
-                This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a>
+                <div id="note">
+                    Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a><br/>
+                    <h2>Support this project:</h2>
+                    <ul>
+                        <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
+                        <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/tools/esp8266/User_Manual.md"  target="_blank">documentation</a></li>
+                        <li>Test <a href="https://github.com/lumapu/ahoy/actions/workflows/compile_development.yml"  target="_blank">development firmware</a></li>
+                        <li>make a <a href="https://paypal.me/lupusch"  target="_blank">donation</a></li>
+                    </ul>
+                    <p class="lic">
+                        This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a>
+                    </p>
+                </div>
             </div>
         </div>
         <div id="footer">
-            <p class="left">&copy 2022</p>
-            <p class="left"><a href="/update">Update Firmware</a></p>
-            <p class="right" id="version"></p>
-            <p class="right"><a href="/reboot">Reboot</a></p>
-            <p class="right"><a href="/api">REST API</a></p>
+            <div class="left">
+                AhoyDTU &copy 2022
+                <ul>
+                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+                </ul>
+            </div>
+            <div class="right">
+                <span id="version"></span><br/><br/>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+            </div>
         </div>
         <script type="text/javascript">
-            var mIntervalSet = false;
+            var exeOnce = true;
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -88,8 +98,8 @@
             function parseSys(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-
-                document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                if(true == exeOnce)
+                    parseVersion(obj);
                 document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
                 var date = new Date(obj["ts_now"] * 1000);
@@ -170,14 +180,16 @@
 
             function parse(obj) {
                 if(null != obj) {
+                    if(true == exeOnce)
+                        parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(false == mIntervalSet) {
+                    if(true == exeOnce) {
                         window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
-                        mIntervalSet = true;
+                        exeOnce = false;
                     }
                 }
                 else

@@ -7,60 +7,78 @@
         <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <h1>Serial Console</h1>
-        <div id="content" class="content">
-            <div class="serial">
-                <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
-                connected: <span class="dot" id="connected"></span> 
-                Uptime: <span id="uptime"></span>
-                <input type="button" value="clear" class="btn" id="clear"/> 
-                <input type="button" value="autoscroll" class="btn" id="scroll"/>
-                <br/>
-                <br/>
-                <br/>
-                <br/>
-                <hr>
-                <h3>Commands</h3>
-                <br/>
-                <label for="iv">Select Inverter:</label>
-                <select name="iv" id="InvID">
-                </select>
-                <br/>
-                <div id="power">
-                    <input type="button" value="Restart" class="btn" id="restart"/>
-                    <input type="button" value="Turn Off" class="btn" id="power_off"/>
-                    <input type="button" value="Turn On" class="btn" id="power_on"/>
+        <div class="topnav">
+            <a href="/" class="title">AhoyDTU</a>
+            <a href="javascript:void(0);" class="icon" onclick="topnav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </a>
+            <div id="topnav" class="hide"></div>
+        </div>
+        <div id="wrapper">
+            <div id="content">
+                <div class="serial">
+                    <textarea id="serial" cols="80" rows="20" readonly></textarea><br/>
+                    connected: <span class="dot" id="connected"></span>
+                    Uptime: <span id="uptime"></span>
+                    <input type="button" value="clear" class="btn" id="clear"/>
+                    <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <hr>
+                    <h3>Commands</h3>
+                    <br/>
+                    <label for="iv">Select Inverter:</label>
+                    <select name="iv" id="InvID">
+                    </select>
+                    <br/>
+                    <div id="power">
+                        <input type="button" value="Restart" class="btn" id="restart"/>
+                        <input type="button" value="Turn Off" class="btn" id="power_off"/>
+                        <input type="button" value="Turn On" class="btn" id="power_on"/>
+                    </div>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <br/>
+                    <label>Send Power Limit: </label>
+                    <input type="number" class="text" name="pwrlimval" maxlength="4"/>
+                    <label> </label>
+                    <select name="pwrlimcntrl" id="pwrlimcntrl">
+                        <option value="" selected disabled hidden>select the unit and persistence</option>
+                        <option value="0">absolute in Watt non persistent</option>
+                        <option value="1">relative in percent non persistent</option>
+                        <option value="256">absolute in Watt persistent</option>
+                        <option value="257">relative in percent persistent</option>
+                    </select>
+                    <br/>
+                    <input type="button" value="Send Power Limit" class="btn" id="sendpwrlim"/>
+                    <br/>
+                    <p>Ctrl result: <span id="result">n/a</span></p>
                 </div>
-                <br/>
-                <br/>
-                <br/>
-                <br/>
-                <br/>
-                <label>Send Power Limit: </label>
-                <input type="number" class="text" name="pwrlimval" maxlength="4"/>
-                <label> </label>
-                <select name="pwrlimcntrl" id="pwrlimcntrl">
-                    <option value="" selected disabled hidden>select the unit and persistence</option>
-                    <option value="0">absolute in Watt non persistent</option>
-                    <option value="1">relative in percent non persistent</option>
-                    <option value="256">absolute in Watt persistent</option>
-                    <option value="257">relative in percent persistent</option>
-                </select>
-                <br/>
-                <input type="button" value="Send Power Limit" class="btn" id="sendpwrlim"/>
-                <br/>
-                <p>Ctrl result: <span id="result">n/a</span></p>
             </div>
         </div>
         <div id="footer">
-            <p class="left">&copy 2022</p>
-            <p class="left"><a href="/">Home</a></p>
-            <p class="right" id="version"></p>
+            <div class="left">
+                AhoyDTU &copy 2022
+                <ul>
+                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+                </ul>
+            </div>
+            <div class="right">
+                <span id="version"></span><br/><br/>
+                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+            </div>
         </div>
         <script type="text/javascript">
             var mAutoScroll = true;
             var con = document.getElementById("serial");
-            var mIntervalSet = false;
+            var exeOnce = true;
 
             function parseSys(obj) {
                 var up = obj["ts_uptime"];
@@ -73,14 +91,15 @@
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
 
-                if(false == mIntervalSet) {
-                    document.getElementById("version").innerHTML = "Git SHA: " + obj["build"] + " :: " + obj["version"];
+                if(true == exeOnce) {
+                    parseVersion(obj);
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
-                    mIntervalSet = true;
+                    exeOnce = false;
                 }
             }
 
             function parse(root) {
+                parseMenu(root["menu"]);
                 select = document.getElementById('InvID');
 
                 if(null == root) return;

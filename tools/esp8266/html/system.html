@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <title>Update</title>
+        <title>System</title>
         <link rel="stylesheet" type="text/css" href="style.css"/>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript" src="api.js"></script>
@@ -18,15 +18,9 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <div>
-                    Make sure that you have noted all your settings before starting an update. New versions may have changed their memory layout which can break your existing settings.<br/>
-                    <br/>
-                    <a href="/get_setup" target="_blank">Download your settings (JSON file)</a>
-                </div>
-                <br/><br/>
-                <form method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                    <input type="file" name="update"><input type="submit" value="Update">
-                </form>
+                <a href="/factory" class="btn">Factory Reset</a><br/>
+                <br/>
+                <a href="/reboot" class="btn">Reboot</a>
             </div>
         </div>
         <div id="footer">
