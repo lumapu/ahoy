@@ -19,8 +19,5 @@
     "editor.detectIndentation": false,
 
     // https://clang.llvm.org/docs/ClangFormatStyleOptions.html
-    "C_Cpp.vcFormat.newLine.closeBraceSameLine.emptyFunction": false,
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "sameLine",
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "sameLine",
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.lambda": "sameLine"
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}",
 }
