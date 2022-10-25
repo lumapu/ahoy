@@ -1,0 +1,23 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    // identify that settings is loaded
+    "workbench.colorCustomizations": {
+        "editorLineNumber.foreground": "#00ff00"
+    },
+
+    "editor.wordWrap": "off",
+    "files.eol" : "\n",
+    "files.trimTrailingWhitespace" : true,
+
+    "diffEditor.ignoreTrimWhitespace": true,
+    "files.autoSave": "afterDelay",
+
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    // `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
+    // Set to false to keep the values you've explicitly set, above.
+    "editor.detectIndentation": false,
+
+    // https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}",
+}
