@@ -557,7 +557,7 @@ void app::cbMqtt(char *topic, byte *payload, unsigned int length) {
                                         else
                                             DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W"));*/
 
-                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F((iv->powerLimit[1] & 0x0001) ? "%" : "W"));
+                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + String(iv->powerLimit[1] & 0x0001) ? F("%") : F("W"));
                                     }
                                     iv->devControlRequest = true;
                                 } else {
