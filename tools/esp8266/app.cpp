@@ -578,7 +578,6 @@ void app::sendMqttDiscoveryConfig(void) {
     }
 }
 
-
 //-----------------------------------------------------------------------------
 void app::sendMqtt(void) {
     mMqtt.isConnected(true);  // really needed? See comment from HorstG-57 #176
@@ -594,33 +593,31 @@ void app::sendMqtt(void) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if (NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)) {
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
-                mMqtt.sendMsg(topic, val);
 
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                snprintf(val, 32, "0");
-                mMqtt.sendMsg(topic, val);
-            } else if (!iv->isProducing(mUtcTimestamp, rec)) {
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED);
-                mMqtt.sendMsg(topic, val);
+            uint8_t status = MQTT_STATUS_AVAIL_PROD;
+            if (!iv->isAvailable(mUtcTimestamp, rec))
+                status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+            if (!iv->isProducing(mUtcTimestamp, rec)) {
+                if (MQTT_STATUS_AVAIL_PROD == status)
+                    status = MQTT_STATUS_AVAIL_NOT_PROD;
+            }
 
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                snprintf(val, 32, "1");
-                mMqtt.sendMsg(topic, val);
+            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+            snprintf(val, 32, "%s%s%s%s",
+                (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
+                "available and ",
+                (MQTT_STATUS_NOT_AVAIL_NOT_PROD || MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                "producing"
+            );
+            mMqtt.sendMsg(topic, val);
 
+            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+            snprintf(val, 32, "%d", status);
+            mMqtt.sendMsg(topic, val);
+
+            if (iv->isAvailable(mUtcTimestamp, rec)) {
                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
                 snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
-                mMqtt.sendMsg(topic, val);
-            } else {  // is producing and is available
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
-                mMqtt.sendMsg(topic, val);
-
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                snprintf(val, 32, "2");
                 mMqtt.sendMsg(topic, val);
 
                 for (uint8_t i = 0; i < rec->length; i++) {
@@ -675,7 +672,6 @@ void app::sendMqtt(void) {
     }
 }
 
-
 //-----------------------------------------------------------------------------
 const char *app::getFieldDeviceClass(uint8_t fieldId) {
     uint8_t pos = 0;
@@ -686,7 +682,6 @@ const char *app::getFieldDeviceClass(uint8_t fieldId) {
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
 }
 
-
 //-----------------------------------------------------------------------------
 const char *app::getFieldStateClass(uint8_t fieldId) {
     uint8_t pos = 0;
@@ -696,7 +691,6 @@ const char *app::getFieldStateClass(uint8_t fieldId) {
     }
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
 }
-
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
@@ -869,7 +863,6 @@ void app::setupMqtt(void) {
     }
 }
 
-
 //-----------------------------------------------------------------------------
 void app::resetPayload(Inverter<> *iv) {
     DPRINTLN(DBG_INFO, "resetPayload: id: " + String(iv->id));
@@ -881,7 +874,6 @@ void app::resetPayload(Inverter<> *iv) {
     mPayload[iv->id].requested = false;
     mPayload[iv->id].ts = mUtcTimestamp;
 }
-
 
 //-----------------------------------------------------------------------------
 void app::calculateSunriseSunset() {

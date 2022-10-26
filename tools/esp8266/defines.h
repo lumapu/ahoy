@@ -68,6 +68,11 @@ typedef enum {
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
 
+
+#define MQTT_STATUS_NOT_AVAIL_NOT_PROD      0
+#define MQTT_STATUS_AVAIL_NOT_PROD          1
+#define MQTT_STATUS_AVAIL_PROD              2
+
 //-------------------------------------
 // EEPROM
 //-------------------------------------
