@@ -42,7 +42,7 @@ jobs:
       working-directory: tools/esp8266/html
       run: python convert.py
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266 --environment esp8266-release --environment esp32-wroom32-release
+      run: pio run -d tools/esp8266 --environment esp8266-release --environment esp8266-1m-release --environment esp32-wroom32-release
     - name: rename-binary-files
       id: rename-binary-files
       working-directory: tools/esp8266/scripts
