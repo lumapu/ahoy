@@ -165,33 +165,7 @@ void app::loop(void) {
 
         if ((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
-            mMqtt.isConnected(true);  // really needed? See comment from HorstG-57 #176
-            char val[10];
-            snprintf(val, 10, "%ld", millis() / 1000);
-
-            mMqtt.sendMsg("uptime", val);
-
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    char topic[32 + MAX_NAME_LENGTH], val[32];
-                    if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)){
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                        snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
-                        mMqtt.sendMsg(topic, val);
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                        snprintf(val, 32, "0");
-                        mMqtt.sendMsg(topic, val);
-                    }
-                }
-            }
-
-
-#ifdef __MQTT_TEST__
-            // für einfacheren Test mit MQTT, den MQTT abschnitt in 10 Sekunden wieder ausführen
-            mMqttTicker = mMqttInterval - 10;
-#endif
+            sendMqtt();
         }
 
         if (mConfig.serialShowIv) {
@@ -318,9 +292,7 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
-#ifdef __MQTT_AFTER_RX__
-    boolean doMQTT = false;
-#endif
+    bool doMQTT = false;
 
     // DPRINTLN(DBG_INFO, F("processPayload"));
     for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -406,102 +378,13 @@ void app::processPayload(bool retransmit) {
                         }
                         iv->doCalculations();
 
-                        // MQTT send out
-                        if (mMqttActive) {
-                            record_t<> *recRealtime = iv->getRecordStruct(RealTimeRunData_Debug);
-                            char topic[32 + MAX_NAME_LENGTH], val[32];
-                            float total[4];
-                            memset(total, 0, sizeof(float) * 4);
-                            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                                Inverter<> *iv = mSys->getInverterByPos(id);
-                                if (NULL != iv) {
-                                    if (iv->isAvailable(mUtcTimestamp, rec)) {
-                                        for (uint8_t i = 0; i < rec->length; i++) {
-                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                                            snprintf(val, 10, "%.3f", iv->getValue(i, rec));
-                                            mMqtt.sendMsg(topic, val);
-                                            if (recRealtime == rec) {
-                                                if (CH0 == rec->assign[i].ch) {
-                                                    switch (rec->assign[i].fieldId) {
-                                                        case FLD_PAC:
-                                                            total[0] += iv->getValue(i, rec);
-                                                            break;
-                                                        case FLD_YT:
-                                                            total[1] += iv->getValue(i, rec);
-                                                            break;
-                                                        case FLD_YD:
-                                                            total[2] += iv->getValue(i, rec);
-                                                            break;
-                                                        case FLD_PDC:
-                                                            total[3] += iv->getValue(i, rec);
-                                                            break;
-                                                    }
-                                                }
-                                            }
-
-                                            if (iv->isProducing(mUtcTimestamp, rec)) {
-                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                                                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
-                                                mMqtt.sendMsg(topic, val);
-
-                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                                                snprintf(val, 32, "2");
-                                            } else {
-                                                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED);
-                                                mMqtt.sendMsg(topic, val);
-
-                                                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                                                snprintf(val, 32, "1");
-                                            }
-
-                                            mMqtt.sendMsg(topic, val);
-
-                                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
-                                            snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
-                                            mMqtt.sendMsg(topic, val);
-
-                                            yield();
-                                        }
-                                    }
-                                }
-                            }
-
-                            // total values (sum of all inverters)
-                            if (recRealtime == rec) {
-                                if (mSys->getNumInverters() > 1) {
-                                    uint8_t fieldId = 0;
-                                    for (uint8_t i = 0; i < 4; i++) {
-                                        switch (i) {
-                                            case 0:
-                                                fieldId = FLD_PAC;
-                                                break;
-                                            case 1:
-                                                fieldId = FLD_YT;
-                                                break;
-                                            case 2:
-                                                fieldId = FLD_YD;
-                                                break;
-                                            case 3:
-                                                fieldId = FLD_PDC;
-                                                break;
-                                        }
-                                        snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                                        snprintf(val, 10, "%.3f", total[i]);
-                                        mMqtt.sendMsg(topic, val);
-                                    }
-                                }
-                            }
-                        }
+                        doMQTT = true;
                     } else {
                         DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
                         mStat.rxFail++;
                     }
 
                     iv->setQueuedCmdFinished();
-
-#ifdef __MQTT_AFTER_RX__
-                    doMQTT = true;
-#endif
                 }
             }
 
@@ -509,16 +392,12 @@ void app::processPayload(bool retransmit) {
         }
     }
 
-#ifdef __MQTT_AFTER_RX__
     //  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet ( doMQTT = true)
     //  dann die den mMqttTicker auf mMqttIntervall -2 setzen, also
     //  MQTT aussenden in 2 sek aktivieren
-    //  dies sollte noch über einen Schalter im Setup aktivier / deaktivierbar gemacht werden
     if ((mMqttInterval != 0xffff) && doMQTT) {
-        ++mMqttTicker = mMqttInterval - 2;
-        DPRINT(DBG_DEBUG, F("MQTTticker auf Intervall -2 sec "));
+        mMqttTicker = mMqttInterval - 2;
     }
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -636,7 +515,6 @@ void app::scanAvailNetworks(void) {
     mWifi->scanAvailNetworks();
 }
 
-
 //-----------------------------------------------------------------------------
 void app::getAvailNetworks(JsonObject obj) {
     mWifi->getAvailNetworks(obj);
@@ -700,6 +578,104 @@ void app::sendMqttDiscoveryConfig(void) {
     }
 }
 
+
+//-----------------------------------------------------------------------------
+void app::sendMqtt(void) {
+    mMqtt.isConnected(true);  // really needed? See comment from HorstG-57 #176
+    char topic[32 + MAX_NAME_LENGTH], val[32];
+    float total[4];
+    bool sendTotal = false;
+    memset(total, 0, sizeof(float) * 4);
+    snprintf(val, 32, "%ld", millis() / 1000);
+
+    mMqtt.sendMsg("uptime", val);
+
+    for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mSys->getInverterByPos(id);
+        if (NULL != iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            if (!iv->isAvailable(mUtcTimestamp, rec) && !iv->isProducing(mUtcTimestamp, rec)) {
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_NOT_AVAIL_AND_NOT_PRODUCED);
+                mMqtt.sendMsg(topic, val);
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                snprintf(val, 32, "0");
+                mMqtt.sendMsg(topic, val);
+            } else if (!iv->isProducing(mUtcTimestamp, rec)) {
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_NOT_PRODUCED);
+                mMqtt.sendMsg(topic, val);
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                snprintf(val, 32, "1");
+                mMqtt.sendMsg(topic, val);
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
+                snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
+                mMqtt.sendMsg(topic, val);
+            } else {  // is producing and is available
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                snprintf(val, 32, DEF_MQTT_IV_MESSAGE_INVERTER_AVAIL_AND_PRODUCED);
+                mMqtt.sendMsg(topic, val);
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                snprintf(val, 32, "2");
+                mMqtt.sendMsg(topic, val);
+
+                for (uint8_t i = 0; i < rec->length; i++) {
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                    mMqtt.sendMsg(topic, val);
+                    if (CH0 == rec->assign[i].ch) {
+                        switch (rec->assign[i].fieldId) {
+                            case FLD_PAC:
+                                total[0] += iv->getValue(i, rec);
+                                break;
+                            case FLD_YT:
+                                total[1] += iv->getValue(i, rec);
+                                break;
+                            case FLD_YD:
+                                total[2] += iv->getValue(i, rec);
+                                break;
+                            case FLD_PDC:
+                                total[3] += iv->getValue(i, rec);
+                                break;
+                        }
+                    }
+                    yield();
+                }
+                sendTotal = true;
+            }
+        }
+    }
+
+    if (true == sendTotal) {
+        uint8_t fieldId;
+        for (uint8_t i = 0; i < 4; i++) {
+            switch (i) {
+                default:
+                case 0:
+                    fieldId = FLD_PAC;
+                    break;
+                case 1:
+                    fieldId = FLD_YT;
+                    break;
+                case 2:
+                    fieldId = FLD_YD;
+                    break;
+                case 3:
+                    fieldId = FLD_PDC;
+                    break;
+            }
+            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
+            snprintf(val, 10, "%.3f", total[i]);
+            mMqtt.sendMsg(topic, val);
+        }
+    }
+}
+
+
 //-----------------------------------------------------------------------------
 const char *app::getFieldDeviceClass(uint8_t fieldId) {
     uint8_t pos = 0;
@@ -710,6 +686,7 @@ const char *app::getFieldDeviceClass(uint8_t fieldId) {
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
 }
 
+
 //-----------------------------------------------------------------------------
 const char *app::getFieldStateClass(uint8_t fieldId) {
     uint8_t pos = 0;
@@ -719,6 +696,7 @@ const char *app::getFieldStateClass(uint8_t fieldId) {
     }
     return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
 }
+
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {

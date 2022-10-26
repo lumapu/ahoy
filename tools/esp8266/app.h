@@ -30,15 +30,7 @@
 #define ASIN(x) (degrees(asin(x)))
 #define ACOS(x) (degrees(acos(x)))
 
-//  hier läst sich das Verhalten der app in Bezug auf MQTT
-//  durch PER-Conpiler defines  anpassen
-//
-// #define __MQTT_TEST__                   // MQTT Interval wird auf 10 Sekunden verkürzt ( nur für testzwecke )
-#define __MQTT_AFTER_RX__               // versendet die MQTT Daten sobald die WR daten Aufbereitet wurden  ( gehört eigentlich ins Setup )
-// #define __MQTT_NO_DISCOVERCONFIG__      // das versenden der MQTTDiscoveryConfig abschalten  ( gehört eigentlich ins Setup )
-
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-
 
 typedef struct {
     uint8_t txCmd;
@@ -185,6 +177,7 @@ class app {
         void setupMqtt(void);
 
         void sendMqttDiscoveryConfig(void);
+        void sendMqtt(void);
         
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
