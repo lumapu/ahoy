@@ -1,3 +1,7 @@
+html, body {
+    height: 100%;
+}
+
 tr {
     border-top: 1px solid #ccc;
     border-left: 1px solid #ccc;
