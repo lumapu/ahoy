@@ -1,0 +1,8 @@
+{{ define "main" }}
+
+<div id="home-jumbotron" class="jumbotron text-center">
+  <h1>{{ .Site.Title }}</h1>
+  <p class="font-125">{{ .Site.Params.homeText | markdownify }}</p>
+</div>
+
+{{ end }}

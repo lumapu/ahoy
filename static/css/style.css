@@ -1,0 +1,15 @@
+tr {
+    border-top: 1px solid #ccc;
+    border-left: 1px solid #ccc;
+}
+
+td, th {
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    padding: 7px;
+}
+
+h2, h3, h4 {
+    margin-top: 15px;
+    color: #0d6efd;
+}

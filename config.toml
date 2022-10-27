@@ -1,0 +1,34 @@
+baseURL = 'http://lumapu.github.io/ahoy'
+languageCode = 'en-us'
+title = 'AhoyDTU'
+
+[permalinks]
+  blog = "/:filename/"
+
+# See https://feathericons.com/
+# The value of pre is the icon name
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    name = "Getting started"
+    url = "/getting_started/"
+    weight = 2
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 3
+#  [[menu.main]]
+#    name = "Blog"
+#    url = "/blog/"
+#    weight = 2
+#  [[menu.main]]
+#    name = "Tags"
+#    url = "/tags/"
+#    weight = 3
+
+
+[params]
+  homeText = "Check how your Hoymiles inverter is performing"
