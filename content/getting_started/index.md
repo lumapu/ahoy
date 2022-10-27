@@ -27,6 +27,6 @@ The hardware insists only in two modules:
 
 ## Software / Firmware
 
-The firmware can be found on [](https://github.com/lumapu/ahoy). Point to the releases section on the right part of the page and download the zip-file. It contains binaries for both ESP models.
+The firmware can be found on [Github](https://github.com/lumapu/ahoy). Point to the releases section on the right part of the page and download the zip-file. It contains binaries for both ESP models.
 
 ### Flash
