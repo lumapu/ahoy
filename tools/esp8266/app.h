@@ -10,6 +10,7 @@
 #include "Arduino.h"
 
 
+#include <queue>
 #include <RF24.h>
 #include <RF24_config.h>
 #include <ArduinoJson.h>
@@ -287,6 +288,7 @@ class app {
         uint16_t mMqttInterval;
         bool mMqttActive;
         bool mMqttConfigSendState[MAX_NUM_INVERTERS];
+        std::queue<uint8_t> mMqttSendList;
 
         // serial
         uint16_t mSerialTicker;

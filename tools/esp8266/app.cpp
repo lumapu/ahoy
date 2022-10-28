@@ -292,110 +292,106 @@ bool app::buildPayload(uint8_t id) {
 
 //-----------------------------------------------------------------------------
 void app::processPayload(bool retransmit) {
-    bool doMQTT = false;
-
-    // DPRINTLN(DBG_INFO, F("processPayload"));
     for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
-        if (NULL != iv) {
-            if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
-                // no processing needed if txId is not 0x95
-                // DPRINTLN(DBG_INFO, F("processPayload - set complete, txId: ") + String(mPayload[iv->id].txId, HEX));
-                mPayload[iv->id].complete = true;
-            }
+        if (NULL != iv)
+            break; // skip to next inverter
 
-            if (!mPayload[iv->id].complete) {
-                if (!buildPayload(iv->id))  // payload not complete
-                {
-                    if (mPayload[iv->id].requested) {
-                        if (retransmit) {
-                            if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
-                                // This is required to prevent retransmissions without answer.
-                                DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
-                                mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
-                            } else {
-                                if (mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
-                                    mPayload[iv->id].retransmits++;
-                                    if (mPayload[iv->id].maxPackId != 0) {
-                                        for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
-                                            if (mPayload[iv->id].len[i] == 0) {
-                                                if (mConfig.serialDebug)
-                                                    DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
-                                                break;  // only retransmit one frame per loop
-                                            }
-                                            yield();
-                                        }
-                                    } else {
+        if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
+            // no processing needed if txId is not 0x95
+            // DPRINTLN(DBG_INFO, F("processPayload - set complete, txId: ") + String(mPayload[iv->id].txId, HEX));
+            mPayload[iv->id].complete = true;
+        }
+
+        if (!mPayload[iv->id].complete) {
+            if (!buildPayload(iv->id)) { // payload not complete
+                if ((mPayload[iv->id].requested) && (retransmit)) {
+                    if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
+                        // This is required to prevent retransmissions without answer.
+                        DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
+                        mPayload[iv->id].retransmits = mConfig.maxRetransPerPyld;
+                    } else {
+                        if (mPayload[iv->id].retransmits < mConfig.maxRetransPerPyld) {
+                            mPayload[iv->id].retransmits++;
+                            if (mPayload[iv->id].maxPackId != 0) {
+                                for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
+                                    if (mPayload[iv->id].len[i] == 0) {
                                         if (mConfig.serialDebug)
-                                            DPRINTLN(DBG_WARN, F("while retrieving data: last frame missing: Request Retransmit"));
-                                        if (0x00 != mLastPacketId)
-                                            mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
-                                        else {
-                                            mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
-                                        }
+                                            DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                                        break;  // only retransmit one frame per loop
                                     }
-                                    mSys->Radio.switchRxCh(100);
+                                    yield();
+                                }
+                            } else {
+                                if (mConfig.serialDebug)
+                                    DPRINTLN(DBG_WARN, F("while retrieving data: last frame missing: Request Retransmit"));
+                                if (0x00 != mLastPacketId)
+                                    mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
+                                else {
+                                    mPayload[iv->id].txCmd = iv->getQueuedCmd();
+                                    mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                                 }
                             }
+                            mSys->Radio.switchRxCh(100);
                         }
                     }
-                } else {  // payload complete
-                    DPRINTLN(DBG_INFO, F("procPyld: cmd:  ") + String(mPayload[iv->id].txCmd));
-                    DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
-                    DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
-                    record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
-                    mPayload[iv->id].complete = true;
+                }
+            } else {  // payload complete
+                DPRINTLN(DBG_INFO, F("procPyld: cmd:  ") + String(mPayload[iv->id].txCmd));
+                DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
+                DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
+                record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
+                mPayload[iv->id].complete = true;
 
-                    uint8_t payload[128];
-                    uint8_t payloadLen = 0;
+                uint8_t payload[128];
+                uint8_t payloadLen = 0;
 
-                    memset(payload, 0, 128);
+                memset(payload, 0, 128);
 
-                    for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
-                        memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
-                        payloadLen += (mPayload[iv->id].len[i]);
+                for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
+                    memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                    payloadLen += (mPayload[iv->id].len[i]);
+                    yield();
+                }
+                payloadLen -= 2;
+
+                if (mConfig.serialDebug) {
+                    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                    mSys->Radio.dumpBuf(NULL, payload, payloadLen);
+                }
+
+                if (NULL == rec) {
+                    DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
+                    if (mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                        mStat.rxSuccess++;
+
+                    rec->ts = mPayload[iv->id].ts;
+                    for (uint8_t i = 0; i < rec->length; i++) {
+                        iv->addValue(i, payload, rec);
                         yield();
                     }
-                    payloadLen -= 2;
+                    iv->doCalculations();
 
-                    if (mConfig.serialDebug) {
-                        DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                        mSys->Radio.dumpBuf(NULL, payload, payloadLen);
-                    }
-
-                    if (NULL == rec) {
-                        DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                    } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
-                        if (mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
-                            mStat.rxSuccess++;
-
-                        rec->ts = mPayload[iv->id].ts;
-                        for (uint8_t i = 0; i < rec->length; i++) {
-                            iv->addValue(i, payload, rec);
-                            yield();
-                        }
-                        iv->doCalculations();
-
-                        doMQTT = true;
-                    } else {
-                        DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
-                        mStat.rxFail++;
-                    }
-
-                    iv->setQueuedCmdFinished();
+                    mMqttSendList.push(mPayload[iv->id].txCmd);
+                } else {
+                    DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
+                    mStat.rxFail++;
                 }
-            }
 
-            yield();
+                iv->setQueuedCmdFinished();
+            }
         }
+
+        yield();
+
     }
 
-    //  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet ( doMQTT = true)
+    //  ist MQTT aktiviert und es wurden Daten vom einem oder mehreren WR aufbereitet
     //  dann die den mMqttTicker auf mMqttIntervall -2 setzen, also
     //  MQTT aussenden in 2 sek aktivieren
-    if ((mMqttInterval != 0xffff) && doMQTT) {
+    if ((mMqttInterval != 0xffff) && (!mMqttSendList.empty())) {
         mMqttTicker = mMqttInterval - 2;
     }
 }
@@ -529,8 +525,6 @@ void app::sendMqttDiscoveryConfig(void) {
         Inverter<> *iv = mSys->getInverterByPos(id);
         if (NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            // TODO: next line makes no sense if discovery config is send manually by button
-            // if(iv->isAvailable(mUtcTimestamp, rec) && mMqttConfigSendState[id] != true) {
             DynamicJsonDocument deviceDoc(128);
             deviceDoc["name"] = iv->name;
             deviceDoc["ids"] = String(iv->serial.u64, HEX);
@@ -573,7 +567,6 @@ void app::sendMqttDiscoveryConfig(void) {
             mMqttConfigSendState[id] = true;
 
             yield();
-            //}
         }
     }
 }
@@ -589,41 +582,52 @@ void app::sendMqtt(void) {
 
     mMqtt.sendMsg("uptime", val);
 
-    for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-        Inverter<> *iv = mSys->getInverterByPos(id);
-        if (NULL != iv) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+    if(mMqttSendList.empty())
+        return;
 
-            uint8_t status = MQTT_STATUS_AVAIL_PROD;
-            if (!iv->isAvailable(mUtcTimestamp, rec))
-                status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-            if (!iv->isProducing(mUtcTimestamp, rec)) {
-                if (MQTT_STATUS_AVAIL_PROD == status)
-                    status = MQTT_STATUS_AVAIL_NOT_PROD;
-            }
+    while(!mMqttSendList.empty()) {
+        for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if (NULL != iv)
+                break; // skip to next inverter
 
-            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-            snprintf(val, 32, "%s%s%s%s",
-                (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
-                "available and ",
-                (MQTT_STATUS_NOT_AVAIL_NOT_PROD || MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
-                "producing"
-            );
-            mMqtt.sendMsg(topic, val);
+            record_t<> *rec = iv->getRecordStruct(mMqttSendList.front());
 
-            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-            snprintf(val, 32, "%d", status);
-            mMqtt.sendMsg(topic, val);
+            if(mMqttSendList.front() == RealTimeRunData_Debug) {
+                // inverter status
+                uint8_t status = MQTT_STATUS_AVAIL_PROD;
+                if (!iv->isAvailable(mUtcTimestamp, rec))
+                    status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                if (!iv->isProducing(mUtcTimestamp, rec)) {
+                    if (MQTT_STATUS_AVAIL_PROD == status)
+                        status = MQTT_STATUS_AVAIL_NOT_PROD;
+                }
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                snprintf(val, 32, "%s%s%s%s",
+                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
+                    "available and ",
+                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD || MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                    "producing"
+                );
+                mMqtt.sendMsg(topic, val);
 
-            if (iv->isAvailable(mUtcTimestamp, rec)) {
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                snprintf(val, 32, "%d", status);
+                mMqtt.sendMsg(topic, val);
+
                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
                 snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
                 mMqtt.sendMsg(topic, val);
+            }
 
-                for (uint8_t i = 0; i < rec->length; i++) {
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                    snprintf(val, 10, "%.3f", iv->getValue(i, rec));
-                    mMqtt.sendMsg(topic, val);
+            // data
+            for (uint8_t i = 0; i < rec->length; i++) {
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                mMqtt.sendMsg(topic, val);
+
+                // calculate total values for RealTimeRunData_Debug
+                if (mMqttSendList.front() == RealTimeRunData_Debug) {
                     if (CH0 == rec->assign[i].ch) {
                         switch (rec->assign[i].fieldId) {
                             case FLD_PAC:
@@ -640,11 +644,13 @@ void app::sendMqtt(void) {
                                 break;
                         }
                     }
-                    yield();
+                    sendTotal = true;
                 }
-                sendTotal = true;
+                yield();
             }
         }
+
+        mMqttSendList.pop(); // remove from list once all inverters were processed
     }
 
     if (true == sendTotal) {

@@ -242,7 +242,7 @@
                 id = "inv" + id;
 
 
-                iv.appendChild(lbl(id + "Addr", "Address*"));
+                iv.appendChild(lbl(id + "Addr", "Serial Number (12 digits)*"));
                 var addr = inp(id + "Addr", obj["serial"], 12)
                 iv.appendChild(addr);
                 ['keyup', 'change'].forEach(function(evt) {
