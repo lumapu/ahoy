@@ -1,15 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-100">
     {{ partial "head.html" . }}
-    <body>
-        <div id="body">
-            {{ partial "nav.html" . }}
+    <body class="d-flex flex-column h-100">
+        {{ partial "nav.html" . }}
+        <main class="flex-shrink-0 pt-5 pb-5">
             <div class="container">
-                <main id="main">
-                 {{ block "main" . }}{{ end }}
-                </main>
+             {{ block "main" . }}{{ end }}
             </div>
-        </div>
+        </main>
         {{ partial "footer.html" . }}
     </body>
 </html>
