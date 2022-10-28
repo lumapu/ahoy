@@ -6,7 +6,7 @@ draft: false
 ---
 
 ### Kontakt
-* E-Mail: ahoy@lpusch.de
+* E-Mail: contact@ahoydtu.de
 * Probleme melden: [Github Issues](https://github.com/lumapu/ahoy/issues)
 
 ### Haftung für Inhalte
