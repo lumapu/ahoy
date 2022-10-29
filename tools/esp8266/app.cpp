@@ -103,8 +103,7 @@ void app::loop(void) {
 
                 if (0 != len) {
                     Inverter<> *iv = mSys->findInverter(&p->packet[1]);
-                    if ((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)))  // response from get information command
-                    {
+                    if ((NULL != iv) && (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES))) {  // response from get information command
                         mPayload[iv->id].txId = p->packet[0];
                         DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                         uint8_t *pid = &p->packet[9];
@@ -127,8 +126,7 @@ void app::loop(void) {
                             }
                         }
                     }
-                    if ((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)))  // response from dev control command
-                    {
+                    if ((NULL != iv) && (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES))) { // response from dev control command
                         DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
 
                         mPayload[iv->id].txId = p->packet[0];
@@ -294,8 +292,8 @@ bool app::buildPayload(uint8_t id) {
 void app::processPayload(bool retransmit) {
     for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
         Inverter<> *iv = mSys->getInverterByPos(id);
-        if (NULL != iv)
-            break; // skip to next inverter
+        if (NULL == iv)
+            continue; // skip to next inverter
 
         if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
             // no processing needed if txId is not 0x95
@@ -411,8 +409,7 @@ void app::cbMqtt(char *topic, byte *payload, unsigned int length) {
             if (iv_id >= 0 && iv_id <= MAX_NUM_INVERTERS) {
                 Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
                 if (NULL != iv) {
-                    if (!iv->devControlRequest)  // still pending
-                    {
+                    if (!iv->devControlRequest) {  // still pending
                         token = strtok(NULL, "/");
 
                         switch (std::stoi(token)) {
@@ -588,8 +585,8 @@ void app::sendMqtt(void) {
     while(!mMqttSendList.empty()) {
         for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             Inverter<> *iv = mSys->getInverterByPos(id);
-            if (NULL != iv)
-                break; // skip to next inverter
+            if (NULL == iv)
+                continue; // skip to next inverter
 
             record_t<> *rec = iv->getRecordStruct(mMqttSendList.front());
 
