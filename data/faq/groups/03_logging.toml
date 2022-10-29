@@ -1,0 +1,7 @@
+id = "logging"
+name = "Logging"
+
+[[items]]
+
+question = "Kann Ahoy die geloggten Daten abspeichern und vorhalten? Wenn ja wie lange?"
+answer = "Nein Ahoy ist eine DTU (data transfer unit), die nur als Brücke zwischen Wechselrichter und Hausautomatisierung zu sehen ist."

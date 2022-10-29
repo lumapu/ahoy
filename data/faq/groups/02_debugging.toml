@@ -1,0 +1,7 @@
+id = "debug"
+name = "Debugging"
+
+[[items]]
+
+question = "Wie kann ich sehen, ob die Firmware richtig aufgespielt wurde?"
+answer = "Die Serielle Konsole über USB gibt beim Start verschiedene Informationen aus. Es werden neben der WLAN Verbindung auch Informationen zum NRF24 Modul ausgegeben."

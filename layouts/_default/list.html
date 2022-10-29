@@ -1,10 +1,26 @@
 {{ define "main" }}
 
 <h1>{{ .Title }}</h1>
-{{ range .Pages.ByPublishDate.Reverse }}
-<p>
-  <a class="font-125" href="{{ .RelPermalink }}">{{ .Title }}</a>
-</p>
-{{ end }}
-
+    {{ range $grp := $.Site.Data.faq.groups }}
+    <div class="accordion accordion-flush" id="accordionFlush{{.name}}">
+    <h2>{{.name}}</h2>
+    <div class="accordion" id="accordionExample">
+        {{ $counter := 0 }}
+        {{ range .items }}
+        <div class="accordion-item">
+            {{ $counter = add $counter 1 }}
+            <h2 class="accordion-header" id="heading{{ $grp.name }}{{ $counter }}">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $grp.name }}{{ $counter }}" aria-expanded="false" aria-controls="flush-collapse{{ $grp.name }}{{ $counter }}">
+                    <strong>{{.question}}</strong>
+                </button>
+            </h2>
+            <div id="collapse{{ $grp.name }}{{ $counter }}" class="accordion-collapse collapse" aria-labelledby="heading{{ $grp.name }}{{ $counter }}" data-bs-parent="#accordionFlush{{$grp.name}}">
+                <div class="accordion-body">
+                    {{.answer}}
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
 {{ end }}

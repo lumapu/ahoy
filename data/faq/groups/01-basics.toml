@@ -1,0 +1,18 @@
+id = "basics"
+name = "Basics"
+
+[[items]]
+question = "Wo finde ich die aktuelle (stabile) Firmware?"
+answer = "Releases können hier gefunden werden: https://github.com/lumapu/ahoy/releases/"
+
+[[items]]
+question = "Ich habe von Development Builds gehört, wo kann ich die finden und herunterladen?"
+answer = "Die Development Builds werden automatisch erstellt und sind in Github unter [Actions](https://github.com/lumapu/ahoy/actions) zu finden. Für den Download muss man bei Github eingeloggt sein. Man bekommt ein Zip mit den Firmwares für ESP8266 und ESP32."
+
+[[items]]
+question = "Wie verbinde ich den Ahoy mit meinem WLAN?"
+answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen Access Point (AP). Dieser hat den Namen 'AhoyDTU'. Dieses WLAN muss mit einem anderen WLAN Gerät gesucht werden (z.B. PC oder Smartphone) und eine Verbindung hergestellt werden. Besteht die Verbindung, in den Browser wechseln und die IP http://192.168.1.1 aufrufen um auf die Weboberfläche zu gelangen. Jetzt kann über die Rubrik 'Settings' unter anderem das heimische WLAN eingetragen werden."
+
+[[items]]
+question = "Wie ist das default Passwort im AP mode?"
+answer = "Das Passwort lautet: esp_8266"
