@@ -15,7 +15,6 @@
 #define VERSION_MINOR       5
 #define VERSION_PATCH       28
 
-
 //-------------------------------------
 typedef struct {
     uint8_t rxCh;
