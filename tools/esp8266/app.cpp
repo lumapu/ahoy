@@ -11,6 +11,7 @@
 #include "app.h"
 
 #include <ArduinoJson.h>
+#include <U8g2lib.h>
 
 
 //-----------------------------------------------------------------------------
@@ -64,42 +65,43 @@ static unsigned char bmp_arrow[] U8X8_PROGMEM = {
         B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
         B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000 } ;
 
-void DataScreen( app* main, time_t ts )
+void DataScreen( app* mApp, time_t ts )
 {
 static    int extra =  0;
-    String timeStr = main->getDateTimeStr(ts).substring(2,22);
+    String timeStr = mApp->getDateTimeStr(ts).substring(2,22);
     IPAddress ip = WiFi.localIP();
     float totalYield = 0.000, totalYieldToday = 0.000, totalActual = 0.0;
     char fmtText[32];
     int  ucnt=0;
 
-    for (uint8_t id = 0; id < main->mSys->getNumInverters(); id++)
+    for (uint8_t id = 0; id < mApp->mSys->getNumInverters(); id++)
     {
-        Inverter<> *iv = main->mSys->getInverterByPos(id);
+        Inverter<> *iv = mApp->mSys->getInverterByPos(id);
         if (NULL != iv)
         {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             uint8_t pos;
             uint8_t list[] = {FLD_PAC, FLD_YT, FLD_YD};
 
-            if ( !iv->isAvailable(ts) )
+            if ( !iv->isProducing(ts,rec) )
                 continue;
 
             ucnt++;
 
             for (uint8_t fld = 0; fld < 3; fld++)
             {
-                pos = (iv->getPosByChFld(CH0, list[fld]));
+                pos = iv->getPosByChFld(CH0, list[fld],rec);
 
                 if(fld == 1){
-                    totalYield += iv->getValue(pos);
+                    totalYield += iv->getValue(pos,rec);
                 }
 
                 if(fld == 2){
-                    totalYieldToday += iv->getValue(pos);
+                    totalYieldToday += iv->getValue(pos,rec);
                 }
 
                 if(fld == 0){
-                    totalActual += iv->getValue(pos);
+                    totalActual += iv->getValue(pos,rec);
                 }
             }
         }
@@ -202,7 +204,7 @@ void app::loop(void) {
 static int lcnt=0;
     if ( lcnt == 150000 )
     {
-        DataScreen(this, mTimestamp);
+        DataScreen(this, mUtcTimestamp);
         lcnt=0;
     }
     lcnt++;
