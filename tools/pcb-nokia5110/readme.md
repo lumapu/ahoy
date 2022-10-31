@@ -8,7 +8,7 @@ Attention: Be sure you have the right type of nokia-display-pcb !
 Check pin-header-description (There are different versions avail)!
 ( check picture : LIGHT (or BL) is placed between GND and VCC )
 
-![img]Nokia5110-LCD.jpg) or ![img](Nokia5110-LCD2.jpg)
+![img](Nokia5110-LCD.jpg) or ![img](Nokia5110-LCD2.jpg)
 
 
 You can use this PCB also without mounting a Nokia-display on backside !
