@@ -12,6 +12,7 @@
 
 #include <ArduinoJson.h>
 
+
 //-----------------------------------------------------------------------------
 app::app() {
     Serial.begin(115200);
@@ -27,14 +28,140 @@ app::app() {
     mShouldReboot = false;
 }
 
+#define ENA_NOKIA
+#ifdef ENA_NOKIA
+// 114181866432
+U8G2_PCD8544_84X48_1_4W_HW_SPI u8g2(U8G2_R0,5,4,16);
+
+void ShowInfoText( const char *txt )
+{
+    /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
+    u8g2.clear();
+    u8g2.firstPage();
+    do{
+        const char *e;
+        const char *p = txt;
+        int y=10;
+        u8g2.setFont(u8g2_font_5x8_tr);
+        while(1)
+        {
+            for(e=p+1; (*e && (*e != '\n')); e++);
+            size_t len=e-p;
+            u8g2.setCursor(2,y);
+            String res=((String)p).substring(0,len);
+            u8g2.print(res);
+            if ( !*e )
+                break;
+            p=e+1;
+            y+=12;
+        }
+        u8g2.sendBuffer();
+    } while( u8g2.nextPage() );
+}
+
+static unsigned char bmp_arrow[] U8X8_PROGMEM = {
+        B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
+        B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
+        B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000 } ;
+
+void DataScreen( app* main, time_t ts )
+{
+static    int extra =  0;
+    String timeStr = main->getDateTimeStr(ts).substring(2,22);
+    IPAddress ip = WiFi.localIP();
+    float totalYield = 0.000, totalYieldToday = 0.000, totalActual = 0.0;
+    char fmtText[32];
+    int  ucnt=0;
+
+    for (uint8_t id = 0; id < main->mSys->getNumInverters(); id++)
+    {
+        Inverter<> *iv = main->mSys->getInverterByPos(id);
+        if (NULL != iv)
+        {
+            uint8_t pos;
+            uint8_t list[] = {FLD_PAC, FLD_YT, FLD_YD};
+
+            if ( !iv->isAvailable(ts) )
+                continue;
+
+            ucnt++;
+
+            for (uint8_t fld = 0; fld < 3; fld++)
+            {
+                pos = (iv->getPosByChFld(CH0, list[fld]));
+
+                if(fld == 1){
+                    totalYield += iv->getValue(pos);
+                }
+
+                if(fld == 2){
+                    totalYieldToday += iv->getValue(pos);
+                }
+
+                if(fld == 0){
+                    totalActual += iv->getValue(pos);
+                }
+            }
+        }
+    }
+
+       /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
+    u8g2.clear();
+    u8g2.firstPage();
+    do{
+        if(ucnt)
+        {
+            u8g2.drawXBMP(10,0,8,17,bmp_arrow);
+            u8g2.setFont(u8g2_font_logisoso16_tr);
+            u8g2.setCursor(25,16);
+            sprintf(fmtText,"%3.0f",totalActual);
+            u8g2.print(String(fmtText)+F(" W"));
+            u8g2.drawHLine(2,20,78);
+            u8g2.setFont(u8g2_font_5x8_tr);
+            u8g2.setCursor(5,29);
+            sprintf(fmtText,"%4.0f",totalYieldToday);
+            u8g2.print(F("today ")+String(fmtText)+F(" Wh"));
+            u8g2.setCursor(5,37);
+            sprintf(fmtText,"%.1f",totalYield);
+            u8g2.print(F("total ")+String(fmtText)+F(" kWh"));
+        }
+        else
+        {
+            u8g2.setFont(u8g2_font_logisoso16_tr);
+            u8g2.setCursor(30,30);
+            u8g2.print(F("off"));
+            u8g2.setFont(u8g2_font_5x8_tr);
+        }
+        if ( !(extra%20) )
+        {
+            u8g2.setCursor(5,47);
+            u8g2.print(ip);
+        }
+        else
+        {
+            u8g2.setCursor(0,47);
+            u8g2.print(timeStr);
+        }
+
+        u8g2.sendBuffer();
+    } while( u8g2.nextPage() );
+    extra++;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
 
+#ifdef ENA_NOKIA
+    u8g2.begin();
+    ShowInfoText("booting...");
+#endif
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
     mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
     loadEEpconfig();
 
+    //ShowInfoText("booting...\nwifi");
     mWifi->setup(timeout, mWifiSettingsValid);
 
 #ifndef AP_ONLY
@@ -44,6 +171,7 @@ void app::setup(uint32_t timeout) {
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
+    //ShowInfoText("booting...\nwifi\n \ndone");
 }
 
 //-----------------------------------------------------------------------------
@@ -70,7 +198,15 @@ void app::loop(void) {
         mUtcTimestamp = mWifi->getNtpTime();
         DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
     }
-
+#ifdef ENA_NOKIA
+static int lcnt=0;
+    if ( lcnt == 150000 )
+    {
+        DataScreen(this, mTimestamp);
+        lcnt=0;
+    }
+    lcnt++;
+#endif
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
         sendMqttDiscoveryConfig();
