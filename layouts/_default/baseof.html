@@ -3,10 +3,9 @@
     {{ partial "head.html" . }}
     <body class="d-flex flex-column h-100">
         {{ partial "nav.html" . }}
-        <main class="flex-shrink-0 pt-5 pb-5">
-            <div class="container">
-             {{ block "main" . }}{{ end }}
-            </div>
+        <main>
+            {{ block "main" . }}
+            {{ end }}
         </main>
         {{ partial "footer.html" . }}
     </body>
