@@ -80,14 +80,15 @@ void webApi::onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t
     AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
     JsonObject root = response->getRoot();
 
-    DeserializationError err = deserializeJson(json, (const char *)data);
+    DeserializationError err = deserializeJson(json, (const char *)data, len);
+    JsonObject obj = json.as<JsonObject>();
     root[F("success")] = (err) ? false : true;
     if(!err) {
         String path = request->url().substring(5);
         if(path == "ctrl")
-            root[F("success")] = setCtrl(json, root);
+            root[F("success")] = setCtrl(obj, root);
         else if(path == "setup")
-            root[F("success")] = setSetup(json, root);
+            root[F("success")] = setSetup(obj, root);
         else {
             root[F("success")] = false;
             root[F("error")]   = "Path not found: " + path;
@@ -400,21 +401,21 @@ void webApi::getRecord(JsonObject obj, record_t<> *rec) {
 
 
 //-----------------------------------------------------------------------------
-bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
+bool webApi::setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
     uint8_t cmd = jsonIn[F("cmd")];
 
     // Todo: num is the inverter number 0-3. For better display in DPRINTLN
-    uint8_t num = jsonIn[F("inverter")]; 
-    uint8_t tx_request = jsonIn[F("tx_request")]; 
+    uint8_t num = jsonIn[F("inverter")];
+    uint8_t tx_request = jsonIn[F("tx_request")];
 
-    if(TX_REQ_DEVCONTROL == tx_request) 
+    if(TX_REQ_DEVCONTROL == tx_request)
     {
         DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
-        
+
         Inverter<> *iv = getInverter(jsonIn, jsonOut);
         JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
 
-        if(NULL != iv) 
+        if(NULL != iv)
         {
             switch (cmd)
             {
@@ -443,7 +444,7 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
                 default:
                     jsonOut["error"] = "unknown 'cmd' = " + String(cmd);
                     return false;
-            }            
+            }
         } else {
             return false;
         }
@@ -458,8 +459,8 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
 
 //-----------------------------------------------------------------------------
-bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
-    if(F("scan_wifi"))
+bool webApi::setSetup(JsonObject jsonIn, JsonObject jsonOut) {
+    if(F("scan_wifi") == jsonIn[F("cmd")])
         mApp->scanAvailNetworks();
     else if(F("set_time") == jsonIn[F("cmd")])
         mApp->setTimestamp(jsonIn[F("ts")]);
@@ -479,7 +480,7 @@ bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
 
 //-----------------------------------------------------------------------------
-Inverter<> *webApi::getInverter(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
+Inverter<> *webApi::getInverter(JsonObject jsonIn, JsonObject jsonOut) {
     uint8_t id = jsonIn[F("inverter")];
     Inverter<> *iv = mApp->mSys->getInverterByPos(id);
     if(NULL == iv)
