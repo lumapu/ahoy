@@ -5,7 +5,7 @@ One goal :  You can power this pcb via USB-interface of D1-mini.
 
 attached zip was created with easyeda. You can order easyly on jlcpcb.com.
 
-###### __Attention__
+## Attention
 Be sure you have the right type of nokia-display-pcb !
 Check pin-header-description (There are different versions avail)!
 ( check picture : LIGHT (or BL) is placed between GND and VCC )
