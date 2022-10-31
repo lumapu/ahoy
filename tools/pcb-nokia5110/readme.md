@@ -9,5 +9,8 @@ Check pin-header-description (There are different versions avail)!
 ( check picture : LIGHT (or BL) is placed between GND and VCC )
 
 ![img](https://github.com/gh-fx2/ahoy/tree/nokia5110/tools/pcb-nokia5110/Nokia5110-LCD.jpg)
+or
+(Nokia5110-LCD2.jpg)
+
 
 You can use this PCB also without mounting a Nokia-display on backside !
