@@ -53,7 +53,6 @@ class mqtt {
             char top[64];
             snprintf(top, 64, "%s/%s", mCfg->topic, topic);
             sendMsg2(top, msg, false);
-            mTxCnt++;
         }
 
         void sendMsg2(const char *topic, const char *msg, boolean retained) {
@@ -63,6 +62,7 @@ class mqtt {
                 if(mClient->connected())
                     mClient->publish(topic, msg, retained);
             }
+            mTxCnt++;
         }
 
         bool isConnected(bool doRecon = false) {
