@@ -40,6 +40,8 @@ while booting (wait for wifi, 1st data, ...)
 ![img](5_runTime.jpg)
 this is the normal screen with time in bottom line (refresh all 5 seconds)
 
-## next step
+## next step(s)
 
-Next step is creating a 3D printed case ... but this is a task for dark days in december.
+* modbus communication interface
+* 3D printed case ... but this is a task for dark days in december.
+
