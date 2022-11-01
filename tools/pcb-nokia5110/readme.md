@@ -22,3 +22,20 @@ D1-mini and NRF placed on front side, nokia display will soldered bottom.
 You can use this PCB also without mounting a Nokia-display.
 
 Actual version of PCB has mounting holes and additional 5V/Gnd -pin access.
+
+## after soldering ...
+
+![img](1_Front.jpg)
+NRF & Wemos on Front
+
+![img](2_Bottom.jpg)
+Nokia Display soldered on bottom side
+
+![img](3_booting.jpg)
+while booting (wait for wifi, 1st data, ...)
+
+![img](4_runIP.jpg)
+1st screen show most interesting info and IP in bottom line
+
+![img](5_runTime.jpg)
+this is the normal screen with time in bottom line (refresh all 5 seconds)
