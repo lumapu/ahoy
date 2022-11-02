@@ -11,6 +11,7 @@
 #include "web.h"
 
 #include "html/h/index_html.h"
+#include "html/h/login_html.h"
 #include "html/h/style_css.h"
 #include "html/h/api_js.h"
 #include "html/h/favicon_ico_gz.h"
@@ -33,6 +34,9 @@ web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, c
     mEvts    = new AsyncEventSource("/events");
     mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
 
+    mProtected     = true;
+    mLogoutTimeout = 0;
+
     memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
     mSerialBufFill     = 0;
     mWebSerialTicker   = 0;
@@ -47,6 +51,8 @@ void web::setup(void) {
     mWeb->begin();
     DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
     mWeb->on("/",               HTTP_GET,  std::bind(&web::onIndex,        this, std::placeholders::_1));
+    mWeb->on("/login",          HTTP_ANY,  std::bind(&web::onLogin,        this, std::placeholders::_1));
+    mWeb->on("/logout",         HTTP_GET,  std::bind(&web::onLogout,       this, std::placeholders::_1));
     mWeb->on("/style.css",      HTTP_GET,  std::bind(&web::onCss,          this, std::placeholders::_1));
     mWeb->on("/api.js",         HTTP_GET,  std::bind(&web::onApiJs,        this, std::placeholders::_1));
     mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&web::onFavicon,      this, std::placeholders::_1));
@@ -77,7 +83,6 @@ void web::setup(void) {
     registerDebugCb(std::bind(&web::serialCb, this, std::placeholders::_1));
 }
 
-
 //-----------------------------------------------------------------------------
 void web::loop(void) {
     mApi->loop();
@@ -91,6 +96,21 @@ void web::loop(void) {
     }
 }
 
+//-----------------------------------------------------------------------------
+void web::tickSecond(void) {
+    if(0 != mLogoutTimeout) {
+        mLogoutTimeout -= 1;
+        if(0 == mLogoutTimeout)
+            mProtected = true;
+
+        DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
+    }
+}
+
+//-----------------------------------------------------------------------------
+void web::setProtection(bool protect) {
+    mProtected = protect;
+}
 
 //-----------------------------------------------------------------------------
 void web::onConnect(AsyncEventSourceClient *client) {
@@ -107,6 +127,11 @@ void web::onConnect(AsyncEventSourceClient *client) {
 void web::onIndex(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onIndex"));
 
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), index_html, index_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
@@ -114,7 +139,25 @@ void web::onIndex(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
+void web::onLogin(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onLogin"));
+
+    if(request->args() > 0) {
+        if(String(request->arg("pwd")) == String(mConfig->password)) {
+            mProtected      = false;
+            request->redirect("/");
+        }
+    }
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), login_html, login_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
 void web::onCss(AsyncWebServerRequest *request) {
+    mLogoutTimeout = LOGOUT_TIMEOUT;
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
@@ -163,13 +206,37 @@ void web::showNotFound(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void web::onReboot(AsyncWebServerRequest *request) {
     mMain->mShouldReboot = true;
-    request->send(200, F("text/html"), F("<!doctype html><html><head><title>Reboot</title><link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\"/><meta http-equiv=\"refresh\" content=\"10; URL=/\"></head><body>reboot. Autoreload after 10 seconds</body></html>"));
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
 }
 
 
 //-----------------------------------------------------------------------------
 void web::onSystem(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onSystem"));
+
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
+    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
+    response->addHeader(F("Content-Encoding"), "gzip");
+    request->send(response);
+}
+
+
+//-----------------------------------------------------------------------------
+void web::onLogout(AsyncWebServerRequest *request) {
+    DPRINTLN(DBG_VERBOSE, F("onLogout"));
+
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
+    mProtected = true;
 
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
@@ -179,6 +246,11 @@ void web::onSystem(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void web::showErase(AsyncWebServerRequest *request) {
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
     DPRINTLN(DBG_VERBOSE, F("showErase"));
     mMain->eraseSettings();
     onReboot(request);
@@ -187,6 +259,11 @@ void web::showErase(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void web::showFactoryRst(AsyncWebServerRequest *request) {
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
     DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
     String content = "";
     int refresh = 3;
@@ -218,6 +295,11 @@ void web::showFactoryRst(AsyncWebServerRequest *request) {
 void web::onSetup(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
+
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
@@ -227,6 +309,11 @@ void web::onSetup(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void web::showSave(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("showSave"));
+
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
 
     if(request->args() > 0) {
         char buf[20] = {0};
@@ -238,6 +325,10 @@ void web::showSave(AsyncWebServerRequest *request) {
             request->arg("pwd").toCharArray(mSysCfg->stationPwd, PWD_LEN);
         if(request->arg("device") != "")
             request->arg("device").toCharArray(mSysCfg->deviceName, DEVNAME_LEN);
+        if(request->arg("adminpwd") != "{PWD}") {
+            request->arg("adminpwd").toCharArray(mConfig->password, PWD_LEN);
+            mProtected = true;
+        }
 
         // inverter
         Inverter<> *iv;
@@ -272,7 +363,7 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // Disclaimer
         if(request->arg("disclaimer") != "")
-            mConfig->disclaimer = strcmp("true", request->arg("disclaimer").c_str()) == 0 ? true : false; 
+            mConfig->disclaimer = strcmp("true", request->arg("disclaimer").c_str()) == 0 ? true : false;
             DPRINTLN(DBG_INFO, request->arg("disclaimer").c_str());
 
         // pinout
@@ -305,7 +396,7 @@ void web::showSave(AsyncWebServerRequest *request) {
             mConfig->sunLon = request->arg("sunLon").toFloat();
             mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
         }
-        
+
 
         // mqtt
         if(request->arg("mqttAddr") != "") {
@@ -333,9 +424,11 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         if(request->arg("reboot") == "on")
             onReboot(request);
-        else
-            request->send(200, F("text/html"), F("<!doctype html><html><head><title>Setup saved</title><meta http-equiv=\"refresh\" content=\"0; URL=/setup\"></head><body>"
-                "<p>saved</p></body></html>"));
+        else {
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
+        }
     }
 }
 
@@ -343,6 +436,11 @@ void web::showSave(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void web::onLive(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onLive"));
+
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
 
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), visualization_html, visualization_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
@@ -368,13 +466,13 @@ void web::showWebApi(AsyncWebServerRequest *request) {
             // if the AlarmData is requested set the Alarm Index to the requested one
             if (cmd == AlarmData || cmd == AlarmUpdate) {
                 // set the AlarmMesIndex for the request from user input
-                iv->alarmMesIndex = response["payload"]; 
+                iv->alarmMesIndex = response["payload"];
             }
             DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
             // process payload from web request corresponding to the cmd
             iv->enqueCommand<InfoCommand>(cmd);
         }
-        
+
 
         if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL) {
             if (response["cmd"] == (uint8_t)ActivePowerContr) {
@@ -409,7 +507,7 @@ void web::showWebApi(AsyncWebServerRequest *request) {
             if (response["cmd"] == (uint8_t)Restart) {
                 iv->devControlCmd = Restart;
                 iv->devControlRequest = true; // queue it in the request loop
-            }            
+            }
         }
     }
     request->send(200, "text/json", "{success:true}");
@@ -420,6 +518,10 @@ void web::showWebApi(AsyncWebServerRequest *request) {
 void web::onUpdate(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onUpdate"));
 
+    /*if(mProtected) {
+        request->redirect("/login");
+        return;
+    }*/
 
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), update_html, update_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");
@@ -449,7 +551,7 @@ void web::showUpdate(AsyncWebServerRequest *request) {
 void web::showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
     if(!index) {
         Serial.printf("Update Start: %s\n", filename.c_str());
-#ifndef ESP32   
+#ifndef ESP32
         Update.runAsync(true);
 #endif
         if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
@@ -474,6 +576,11 @@ void web::showUpdate2(AsyncWebServerRequest *request, String filename, size_t in
 //-----------------------------------------------------------------------------
 void web::onSerial(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onSerial"));
+
+    if(mProtected) {
+        request->redirect("/login");
+        return;
+    }
 
     AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), serial_html, serial_html_len);
     response->addHeader(F("Content-Encoding"), "gzip");

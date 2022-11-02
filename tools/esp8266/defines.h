@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       29
+#define VERSION_PATCH       30
 
 //-------------------------------------
 typedef struct {
@@ -87,6 +87,7 @@ typedef enum {
 #define INV_CH_CH_NAME_LEN      MAX_NUM_INVERTERS * MAX_NAME_LENGTH * 4 // (4 channels)
 #define INV_INTERVAL_LEN        2                                       // uint16_t
 #define INV_MAX_RTRY_LEN        1                                       // uint8_t
+#define INV_ENABLED_LEN         1                                       // uint8_t
 
 #define CFG_SUN_LEN             9 // 2x float(4+4) + bool(1)
 
@@ -112,6 +113,8 @@ typedef struct {
 #pragma pack(pop)   // restore original alignment from stack
 
 
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
     char deviceName[DEVNAME_LEN];
 
@@ -119,10 +122,15 @@ typedef struct {
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
 } sysConfig_t;
+#pragma pack(pop)   // restore original alignment from stack
+
 
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
+    // protection
+    char password[PWD_LEN];
+
     // nrf24
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
@@ -150,6 +158,9 @@ typedef struct {
     uint16_t serialInterval;
     bool serialShowIv;
     bool serialDebug;
+
+    // static ip placeholder
+    uint32_t staticIp[4];
 } config_t;
 #pragma pack(pop)   // restore original alignment from stack
 
@@ -162,7 +173,7 @@ typedef struct {
 
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
-#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN + 1
+#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN
 #define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + DISCLAIMER
 
 #define ADDR_START              0
@@ -179,8 +190,9 @@ typedef struct {
 #define ADDR_INV_CH_NAME        ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
 #define ADDR_INV_INTERVAL       ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
 #define ADDR_INV_MAX_RTRY       ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
+#define ADDR_INV_ENABLED        ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
 
-#define ADDR_NEXT               ADDR_INV_MAX_RTRY   + INV_INTERVAL_LEN
+#define ADDR_NEXT               ADDR_INV_MAX_RTRY   + INV_ENABLED_LEN
 
 
 #define ADDR_SETTINGS_CRC       ADDR_NEXT + 2

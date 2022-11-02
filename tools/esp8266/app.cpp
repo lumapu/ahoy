@@ -44,6 +44,9 @@ void app::setup(uint32_t timeout) {
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
+    mWebInst->setProtection(strlen(mConfig.password) != 0);
+    DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettingsValid) ? F("true") : F("false")));
+    DPRINTLN(DBG_INFO, F("EEprom storage size: 0x") + String(ADDR_SETTINGS_CRC, HEX));
 }
 
 //-----------------------------------------------------------------------------
@@ -58,6 +61,13 @@ void app::loop(void) {
         mUptimeSecs++;
         if (0 != mUtcTimestamp)
             mUtcTimestamp++;
+
+        mWebInst->tickSecond();
+
+        if (mShouldReboot) {
+            DPRINTLN(DBG_INFO, F("Rebooting..."));
+            ESP.restart();
+        }
     }
 
     if (checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
@@ -74,11 +84,6 @@ void app::loop(void) {
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
         sendMqttDiscoveryConfig();
-    }
-
-    if (mShouldReboot) {
-        DPRINTLN(DBG_INFO, F("Rebooting..."));
-        ESP.restart();
     }
 
     mSys->Radio.loop();
@@ -742,6 +747,9 @@ void app::loadDefaultConfig(void) {
     // wifi
     snprintf(mSysConfig.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
     snprintf(mSysConfig.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
+
+    // password
+    snprintf(mConfig.password, PWD_LEN, "%s", GUI_DEF_PASSWORD);
 
     // nrf24
     mConfig.sendInterval = SEND_INTERVAL;

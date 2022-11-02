@@ -17,11 +17,7 @@
             <div id="topnav" class="hide"></div>
         </div>
         <div id="wrapper">
-            <div id="content">
-                <a href="/factory" class="btn">Factory Reset</a><br/>
-                <br/>
-                <a href="/reboot" class="btn">Reboot</a>
-            </div>
+            <div id="content"></div>
         </div>
         <div id="footer">
             <div class="left">
@@ -45,10 +41,19 @@
                 if(null != obj) {
                     parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
+                    var e = document.getElementById("content");
+                    e.innerHTML = obj["html"];
+
+                    if(null != obj["refresh"]) {
+                        var meta = document.createElement('meta');
+                        meta.httpEquiv = "refresh"
+                        meta.content = obj["refresh"] + "; URL=" + obj["refresh_url"];
+                        document.getElementsByTagName('head')[0].appendChild(meta);
+                    }
                 }
             }
 
-            getAjax("/api/index", parse);
+            getAjax("/api" + window.location.pathname, parse);
         </script>
     </body>
 </html>

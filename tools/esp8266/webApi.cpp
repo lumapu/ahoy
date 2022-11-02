@@ -22,7 +22,6 @@ webApi::webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *con
     mTimezoneOffset = 0;
 }
 
-
 //-----------------------------------------------------------------------------
 void webApi::setup(void) {
     mSrv->on("/api", HTTP_GET,  std::bind(&webApi::onApi,         this, std::placeholders::_1));
@@ -31,7 +30,6 @@ void webApi::setup(void) {
 
     mSrv->on("/get_setup", HTTP_GET,  std::bind(&webApi::onDwnldSetup,   this, std::placeholders::_1));
 }
-
 
 //-----------------------------------------------------------------------------
 void webApi::loop(void) {
@@ -46,6 +44,9 @@ void webApi::onApi(AsyncWebServerRequest *request) {
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
     String path = request->url().substring(5);
     if(path == "system")              getSystem(root);
+    else if(path == "logout")         getLogout(root);
+    else if(path == "save")           getSave(root);
+    else if(path == "reboot")         getReboot(root);
     else if(path == "statistics")     getStatistics(root);
     else if(path == "inverter/list")  getInverterList(root);
     else if(path == "menu")           getMenu(root);
@@ -140,7 +141,7 @@ void webApi::onDwnldSetup(AsyncWebServerRequest *request) {
 
 
 //-----------------------------------------------------------------------------
-void webApi::getSystem(JsonObject obj) {
+void webApi::getSysInfo(JsonObject obj) {
     obj[F("ssid")]        = mSysCfg->stationSsid;
     obj[F("device_name")] = mSysCfg->deviceName;
     obj[F("version")]     = String(mVersion);
@@ -157,6 +158,44 @@ void webApi::getSystem(JsonObject obj) {
 #else
     obj[F("esp_type")]    = F("ESP8266");
 #endif
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getSystem(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
+    getSysInfo(obj.createNestedObject(F("system")));
+    obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getLogout(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
+    getSysInfo(obj.createNestedObject(F("system")));
+    obj[F("refresh")] = 3;
+    obj[F("refresh_url")] = "/";
+    obj[F("html")] = F("succesfully logged out");
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getSave(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
+    getSysInfo(obj.createNestedObject(F("system")));
+    obj[F("refresh")] = 2;
+    obj[F("refresh_url")] = "/setup";
+    obj[F("html")] = F("settings succesfully save");
+}
+
+
+//-----------------------------------------------------------------------------
+void webApi::getReboot(JsonObject obj) {
+    getMenu(obj.createNestedObject(F("menu")));
+    getSysInfo(obj.createNestedObject(F("system")));
+    obj[F("refresh")] = 10;
+    obj[F("refresh_url")] = "/";
+    obj[F("html")] = F("reboot. Autoreload after 10 seconds");
 }
 
 
@@ -260,13 +299,18 @@ void webApi::getMenu(JsonObject obj) {
     obj["link"][6] = "/update";
     obj["name"][7] = "System";
     obj["link"][7] = "/system";
+    if(strlen(mConfig->password) > 0) {
+        obj["name"][8] = "-";
+        obj["name"][9] = "Logout";
+        obj["link"][9] = "/logout";
+    }
 }
 
 
 //-----------------------------------------------------------------------------
 void webApi::getIndex(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
-    getSystem(obj.createNestedObject(F("system")));
+    getSysInfo(obj.createNestedObject(F("system")));
     getStatistics(obj.createNestedObject(F("statistics")));
     obj["refresh_interval"] = SEND_INTERVAL;
 
@@ -305,7 +349,7 @@ void webApi::getIndex(JsonObject obj) {
 //-----------------------------------------------------------------------------
 void webApi::getSetup(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
-    getSystem(obj.createNestedObject(F("system")));
+    getSysInfo(obj.createNestedObject(F("system")));
     getInverterList(obj.createNestedObject(F("inverter")));
     getMqtt(obj.createNestedObject(F("mqtt")));
     getNtp(obj.createNestedObject(F("ntp")));
@@ -325,7 +369,7 @@ void webApi::getNetworks(JsonObject obj) {
 //-----------------------------------------------------------------------------
 void webApi::getLive(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
-    getSystem(obj.createNestedObject(F("system")));
+    getSysInfo(obj.createNestedObject(F("system")));
     JsonArray invArr = obj.createNestedArray(F("inverter"));
     obj["refresh_interval"] = SEND_INTERVAL;
 

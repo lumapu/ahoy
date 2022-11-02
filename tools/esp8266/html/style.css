@@ -414,3 +414,26 @@ div.ModPwr, div.ModName {
     display: inline-block;
     margin-top: 15px;
 }
+
+#login {
+    width: 300px;
+    height: 200px;
+    border: 1px solid #ccc;
+    background-color: #eee;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -160px;
+    margin-left: -150px;
+}
+
+#login .pad {
+    padding: 20px;
+}
+
+#login .pad input {
+    width: 100%;
+    padding: 7px 0 7px 0;
+    border: 0px;
+    margin-bottom: 10px;
+}

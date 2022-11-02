@@ -29,10 +29,15 @@ class web {
 
         void setup(void);
         void loop(void);
+        void tickSecond(void);
+
+        void setProtection(bool protect);
 
         void onConnect(AsyncEventSourceClient *client);
 
         void onIndex(AsyncWebServerRequest *request);
+        void onLogin(AsyncWebServerRequest *request);
+        void onLogout(AsyncWebServerRequest *request);
         void onCss(AsyncWebServerRequest *request);
         void onApiJs(AsyncWebServerRequest *request);
         void onFavicon(AsyncWebServerRequest *request);
@@ -58,6 +63,8 @@ class web {
 
         AsyncWebServer *mWeb;
         AsyncEventSource *mEvts;
+        bool mProtected;
+        uint32_t mLogoutTimeout;
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;

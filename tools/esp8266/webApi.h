@@ -32,7 +32,11 @@ class webApi {
         void getNotFound(JsonObject obj, String url);
         void onDwnldSetup(AsyncWebServerRequest *request);
 
+        void getSysInfo(JsonObject obj);
         void getSystem(JsonObject obj);
+        void getLogout(JsonObject obj);
+        void getSave(JsonObject obj);
+        void getReboot(JsonObject obj);
         void getStatistics(JsonObject obj);
         void getInverterList(JsonObject obj);
         void getMqtt(JsonObject obj);

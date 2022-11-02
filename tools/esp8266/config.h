@@ -25,6 +25,11 @@
 // If the next line is uncommented, Ahoy will stay in access point mode all the time
 //#define AP_ONLY
 
+// protection of the GUI by password
+#define GUI_DEF_PASSWORD    ""
+
+// timeout for automatic logoff (20 minutes)
+#define LOGOUT_TIMEOUT      (20 * 60 * 60)
 
 //-------------------------------------
 // CONFIGURATION - COMPILE TIME
