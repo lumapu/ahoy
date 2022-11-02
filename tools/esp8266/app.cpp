@@ -11,7 +11,9 @@
 #include "app.h"
 
 #include <ArduinoJson.h>
+#ifdef ENA_NOKIA
 #include <U8g2lib.h>
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -29,10 +31,8 @@ app::app() {
     mShouldReboot = false;
 }
 
-#define ENA_NOKIA
 #ifdef ENA_NOKIA
-// 114181866432
-// 114181809192
+
 U8G2_PCD8544_84X48_1_4W_HW_SPI u8g2(U8G2_R0,5,4,16);
 
 void ShowInfoText( const char *txt )
