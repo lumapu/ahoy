@@ -164,7 +164,6 @@ void app::setup(uint32_t timeout) {
     mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
     loadEEpconfig();
 
-    //ShowInfoText("booting...\nwifi");
     mWifi->setup(timeout, mWifiSettingsValid);
 
 #ifndef AP_ONLY
@@ -174,7 +173,6 @@ void app::setup(uint32_t timeout) {
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
-    //ShowInfoText("booting...\nwifi\n \ndone");
 }
 
 //-----------------------------------------------------------------------------
