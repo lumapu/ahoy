@@ -234,7 +234,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 
 ## MQTT command to set the DTU without webinterface
 
-[Read here](tools/esp8266/User_Manual.md)
+[Read here](User_Manual.md)
 
 ## Used Libraries
 
