@@ -200,7 +200,7 @@ Start it
   sudo service hoymiles start 
 ```
 
-After that, you should be able to open a website to http://ip-of-your-ip:9233/ and see some stats
+After that, you should be able to open a website to http://ip-of-your-rpi:9233/ and see some stats
 
 ```
 # HELP python_gc_objects_collected_total Objects collected during gc
