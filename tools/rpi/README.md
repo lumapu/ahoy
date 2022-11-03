@@ -225,6 +225,13 @@ string_energy_daily{panel="panel_3"} 487.0
 ```
  + more stats 
 
+I added my dashboard to docker-sup../dashboard folder if you are interested
+
+![dashboard_example1](docker-supplementals/dashboard/Selection_025.jpg)
+![dashboard_example2](docker-supplementals/dashboard/Selection_027.jpg)
+
+
+
 
 Todo
 ----
