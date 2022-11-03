@@ -135,6 +135,9 @@ def poll_inverter(inverter, do_init, retries=4):
                 if volkszaehler_client:
                     volkszaehler_client.store_status(result)
 
+                if prometheus_client:
+                    prometheus_client.store_status(result)
+
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
     Publish StatusResponse object
@@ -285,6 +288,13 @@ if __name__ == '__main__':
                 bucket=influx_config.get('bucket', None),
                 measurement=influx_config.get('measurement', 'hoymiles'))
 
+    prometheus_client = None
+    prometheus_config = ahoy_config.get('prometheus', {})
+    if prometheus_config and not prometheus_config.get('disabled', False):
+        from .outputs import PrometheusOutputPlugin
+        prometheus_client = PrometheusOutputPlugin(
+                prometheus_config)
+
     volkszaehler_client = None
     volkszaehler_config = ahoy_config.get('volkszaehler', {})
     if volkszaehler_config and not volkszaehler_config.get('disabled', False):
@@ -322,10 +332,8 @@ if __name__ == '__main__':
 
             print('', end='', flush=True)
 
-            time_to_sleep = loop_interval - (time.time() - t_loop_start)
-
-            if loop_interval > 0 and time_to_sleep > 0:
-                time.sleep(time_to_sleep) 
+            if loop_interval > 0 and (time.time() - t_loop_start) < loop_interval:
+                time.sleep(loop_interval - (time.time() - t_loop_start))
 
     except KeyboardInterrupt:
         sys.exit()

@@ -19,6 +19,11 @@ ahoy:
     useTLS: False
     insecureTLS: False #set True for e.g. self signed certificates. 
 
+  # adding prometheus exporter
+  prometheus:
+    disabled: false
+    port: 9233
+
   # Influx2 output
   influxdb:
     disabled: true
