@@ -178,7 +178,7 @@
                         break;
                     default:
                         obj.cmd = 2;
-                }            
+                }
 
                 obj.inverter = get_selected_iv();
                 obj.tx_request = 81;
@@ -188,15 +188,16 @@
             document.getElementById("sendpwrlim").addEventListener("click", function() {
                 var val = parseInt(document.getElementsByName('pwrlimval')[0].value);
                 var ctrl = parseInt(document.getElementsByName('pwrlimcntrl')[0].value);
-                
-                if((ctrl == 1 || ctrl == 257) && unit < 2) unit = 2;
-                if(isNaN(val) || isNaN(ctrl)) 
+
+                if((ctrl == 1 || ctrl == 257) && val < 2) val = 2;
+
+                if(isNaN(val) || isNaN(ctrl))
                 {
                     var tmp = (isNaN(val)) ? "Value" : "Unit";
                     document.getElementById("result").textContent = tmp + " is missing";
                     return;
                 }
-                
+
                 var obj = new Object();
                 obj.inverter = get_selected_iv();
                 obj.cmd = 11;
