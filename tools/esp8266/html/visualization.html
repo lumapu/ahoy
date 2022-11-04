@@ -113,7 +113,7 @@
                 // total
                 if(obj.length > 1) {
                     for(var j = 0; j < root.ch0_fld_names.length; j++) {
-                        var val = total[j];
+                        var val = Math.round(total[j] * 100) / 100;
                         if(val > 0) {
                             var sub = div(["subgrp"]);
                             sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));

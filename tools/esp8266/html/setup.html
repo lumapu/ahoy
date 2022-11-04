@@ -307,6 +307,9 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
+                var e = document.getElementsByName("adminpwd")[0];
+                if(!obj["pwd_set"])
+                    e.value = "";
                 parseVersion(obj);
             }
 

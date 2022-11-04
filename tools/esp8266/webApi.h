@@ -33,9 +33,9 @@ class webApi {
         void onDwnldSetup(AsyncWebServerRequest *request);
 
         void getSysInfo(JsonObject obj);
-        void getSystem(JsonObject obj);
-        void getLogout(JsonObject obj);
-        void getSave(JsonObject obj);
+        void getHtmlSystem(JsonObject obj);
+        void getHtmlLogout(JsonObject obj);
+        void getHtmlSave(JsonObject obj);
         void getReboot(JsonObject obj);
         void getStatistics(JsonObject obj);
         void getInverterList(JsonObject obj);

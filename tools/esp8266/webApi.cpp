@@ -43,9 +43,10 @@ void webApi::onApi(AsyncWebServerRequest *request) {
 
     Inverter<> *iv = mApp->mSys->getInverterByPos(0, false);
     String path = request->url().substring(5);
-    if(path == "system")              getSystem(root);
-    else if(path == "logout")         getLogout(root);
-    else if(path == "save")           getSave(root);
+    if(path == "html/system")         getHtmlSystem(root);
+    else if(path == "html/logout")    getHtmlLogout(root);
+    else if(path == "html/save")      getHtmlSave(root);
+    else if(path == "system")         getSysInfo(root);
     else if(path == "reboot")         getReboot(root);
     else if(path == "statistics")     getStatistics(root);
     else if(path == "inverter/list")  getInverterList(root);
@@ -153,6 +154,7 @@ void webApi::getSysInfo(JsonObject obj) {
     obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
     obj[F("disclaimer")]  = mConfig->disclaimer;
+    obj[F("pwd_set")]     = (strlen(mConfig->password) > 0);
 #if defined(ESP32)
     obj[F("esp_type")]    = F("ESP32");
 #else
@@ -162,7 +164,7 @@ void webApi::getSysInfo(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
-void webApi::getSystem(JsonObject obj) {
+void webApi::getHtmlSystem(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
@@ -170,7 +172,7 @@ void webApi::getSystem(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
-void webApi::getLogout(JsonObject obj) {
+void webApi::getHtmlLogout(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     obj[F("refresh")] = 3;
@@ -180,7 +182,7 @@ void webApi::getLogout(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
-void webApi::getSave(JsonObject obj) {
+void webApi::getHtmlSave(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     obj[F("refresh")] = 2;

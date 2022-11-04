@@ -327,7 +327,7 @@ void web::showSave(AsyncWebServerRequest *request) {
             request->arg("device").toCharArray(mSysCfg->deviceName, DEVNAME_LEN);
         if(request->arg("adminpwd") != "{PWD}") {
             request->arg("adminpwd").toCharArray(mConfig->password, PWD_LEN);
-            mProtected = true;
+            mProtected = (strlen(mConfig->password) > 0);
         }
 
         // inverter
