@@ -10,4 +10,7 @@
 	{{ $title := print .Title " | " .Site.Title }}
 	{{ if .IsHome }}{{ $title = .Site.Title }}{{ end }}
 	<title>{{ $title }}</title>
+	<script type="text/javascript">
+		if (window.location.href.match("http://ahoydtu.de")) window.location.protocol='https:'
+	</script>
 </head>
