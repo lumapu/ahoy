@@ -17,17 +17,6 @@ from yaml.loader import SafeLoader
 import paho.mqtt.client
 import hoymiles
 
-def main_loop(do_init):
-    """Main loop"""
-    inverters = [
-            inverter for inverter in ahoy_config.get('inverters', [])
-            if not inverter.get('disabled', False)]
-
-    for inverter in inverters:
-        if hoymiles.HOYMILES_DEBUG_LOGGING:
-            print(f'Poll inverter {inverter["serial"]}')
-        poll_inverter(inverter, do_init)
-
 class InfoCommands(IntEnum):
     InverterDevInform_Simple = 0  # 0x00
     InverterDevInform_All = 1     # 0x01
@@ -47,6 +36,38 @@ class InfoCommands(IntEnum):
     GetLossRate = 21              # 0x15
     GetSelfCheckState = 30        # 0x1e
     InitDataState = 0xff
+
+def main_loop(ahoy_config):
+    """Main loop"""
+    inverters = [
+            inverter for inverter in ahoy_config.get('inverters', [])
+            if not inverter.get('disabled', False)]
+
+    loop_interval = ahoy_config.get('interval', 1)
+    try:
+        do_init = True
+        while True:
+            t_loop_start = time.time()
+
+            for inverter in inverters:
+                if hoymiles.HOYMILES_DEBUG_LOGGING:
+                    print(f'Poll inverter {inverter["serial"]}')
+                poll_inverter(inverter, do_init)
+            do_init = False
+
+            print('', end='', flush=True)
+
+            if loop_interval > 0:
+                time_to_sleep = loop_interval - (time.time() - t_loop_start)
+                if time_to_sleep > 0:
+                    time.sleep(time_to_sleep)
+
+    except KeyboardInterrupt:
+        sys.exit()
+    except Exception as e:
+        print ('Exception catched: %s' % e)
+        raise
+
 
 def poll_inverter(inverter, do_init, retries=4):
     """
@@ -310,25 +331,4 @@ if __name__ == '__main__':
             mqtt_client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
-    loop_interval = ahoy_config.get('interval', 1)
-    try:
-        do_init = True
-        while True:
-            t_loop_start = time.time()
-
-            main_loop(do_init)
-
-            do_init = False
-
-            print('', end='', flush=True)
-
-            time_to_sleep = loop_interval - (time.time() - t_loop_start)
-
-            if loop_interval > 0 and time_to_sleep > 0:
-                time.sleep(time_to_sleep) 
-
-    except KeyboardInterrupt:
-        sys.exit()
-    except Exception as e:
-        print ('Exception catched: %s' % e)
-        raise
+    main_loop(ahoy_config)
