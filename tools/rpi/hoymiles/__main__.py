@@ -11,6 +11,8 @@ from enum import IntEnum
 import re
 import time
 from datetime import datetime
+from datetime import timedelta
+from suntimes import SunTimes
 import argparse
 import yaml
 from yaml.loader import SafeLoader
@@ -37,16 +39,49 @@ class InfoCommands(IntEnum):
     GetSelfCheckState = 30        # 0x1e
     InitDataState = 0xff
 
+class SunsetHandler:
+    def __init__(self, sunset_config):
+        self.sunset = None
+        if sunset_config and sunset_config.get('disabled', True) == False:
+            latitude = sunset_config.get('latitude')
+            longitude = sunset_config.get('longitude')
+            altitude = sunset_config.get('altitude')
+            self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
+            now = datetime.now()
+            self.nextSunset = self.suntimes.setutc(now)
+            print (f'Todays sunset is at {self.nextSunset}')
+
+    def checkWaitForSunrise(self):
+        if not self.suntimes:
+            return
+        # if the sunset already happened for today
+        now = datetime.now()
+        if self.nextSunset < now:
+            # wait until the sun rises tomorrow
+            nextSunrise = self.suntimes.riseutc(now + timedelta(days=1))
+            self.nextSunset = self.suntimes.setutc(now + timedelta(days=1))
+            time_to_sleep = (nextSunrise - datetime.now()).total_seconds()
+            print (f'Waiting for sunrise at {nextSunrise} ({time_to_sleep} seconds)')
+            if time_to_sleep > 0:
+                time.sleep(time_to_sleep)
+                now = datetime.now()
+                print (f'Woke up... next sunset  is at {self.nextSunset}')
+        return
+
 def main_loop(ahoy_config):
     """Main loop"""
     inverters = [
             inverter for inverter in ahoy_config.get('inverters', [])
             if not inverter.get('disabled', False)]
 
+    sunset = SunsetHandler(ahoy_config.get('sunset'))
+
     loop_interval = ahoy_config.get('interval', 1)
     try:
         do_init = True
         while True:
+            sunset.checkWaitForSunrise()
+
             t_loop_start = time.time()
 
             for inverter in inverters:
