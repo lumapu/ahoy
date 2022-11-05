@@ -600,7 +600,7 @@ void app::sendMqtt(void) {
                 uint8_t status = MQTT_STATUS_AVAIL_PROD;
                 if (!iv->isAvailable(mUtcTimestamp, rec))
                     status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                if (!iv->isProducing(mUtcTimestamp, rec)) {
+                else if (!iv->isProducing(mUtcTimestamp, rec)) {
                     if (MQTT_STATUS_AVAIL_PROD == status)
                         status = MQTT_STATUS_AVAIL_NOT_PROD;
                 }
