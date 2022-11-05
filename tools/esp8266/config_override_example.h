@@ -7,6 +7,7 @@
 #define __CONFIG_OVERRIDE_H__
 
 // override fallback WiFi info
+#define FB_WIFI_OVERRIDDEN
 
 // each ovveride must be preceeded with an #undef statement
 #undef FB_WIFI_SSID

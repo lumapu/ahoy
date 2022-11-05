@@ -48,6 +48,7 @@ class ahoywifi {
         uint32_t mApLastTick;
         bool mApActive;
         bool wifiWasEstablished;
+        bool mStationWifiIsDef;
 };
 
 #endif /*__AHOYWIFI_H__*/

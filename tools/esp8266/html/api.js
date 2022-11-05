@@ -90,7 +90,7 @@ function inp(name, val, max=32, cl=["text"], id=null, type=null) {
     e.classList.add(...cl);
     e.name = name;
     e.value = val;
-    if(null != type) e.maxLength = max;
+    if(null != max) e.maxLength = max;
     if(null != id) e.id = id;
     if(null != type) e.type = type;
     return e;

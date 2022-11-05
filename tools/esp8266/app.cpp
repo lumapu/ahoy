@@ -17,11 +17,11 @@ app::app() {
     Serial.begin(115200);
     DPRINTLN(DBG_VERBOSE, F("app::app"));
     mEep = new eep();
-    mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
 
     resetSystem();
     loadDefaultConfig();
 
+    mWifi = new ahoywifi(this, &mSysConfig, &mConfig);
     mSys = new HmSystemType();
     mSys->enableDebug();
     mShouldReboot = false;
@@ -231,7 +231,7 @@ void app::loop(void) {
                         if (mConfig.serialDebug)
                             DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
                         if (mConfig.serialDebug) {
-                            DPRINT(DBG_INFO, F("Inverter #") + String(iv->id) + " ");
+                            DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
                             DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
                         }
                     }
@@ -242,18 +242,19 @@ void app::loop(void) {
                     yield();
                     if (mConfig.serialDebug) {
                         DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
-                        DPRINTLN(DBG_INFO, F("Requesting Inverter SN ") + String(iv->serial.u64, HEX));
+                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->serial.u64, HEX));
                     }
 
                     if (iv->devControlRequest) {
                         if (mConfig.serialDebug)
-                            DPRINTLN(DBG_INFO, F("Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
+                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
                         mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
                         mPayload[iv->id].txCmd = iv->devControlCmd;
                         iv->clearCmdQueue();
                         iv->enqueCommand<InfoCommand>(SystemConfigPara);
                     } else {
                         uint8_t cmd = iv->getQueuedCmd();
+                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
                         mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                         mPayload[iv->id].txCmd = cmd;
                         mRxTicker = 0;
@@ -333,6 +334,7 @@ void app::processPayload(bool retransmit) {
                                     mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, mLastPacketId, true);
                                 else {
                                     mPayload[iv->id].txCmd = iv->getQueuedCmd();
+                                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
                                     mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
                                 }
                             }

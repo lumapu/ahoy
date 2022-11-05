@@ -33,10 +33,16 @@ ahoywifi::ahoywifi(app *main, sysConfig_t *sysCfg, config_t *config) {
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(uint32_t timeout, bool settingValid) {
+    #ifdef FB_WIFI_OVERRIDDEN
+        mStationWifiIsDef = false;
+    #else
+        mStationWifiIsDef = (strncmp(mSysCfg->stationSsid, FB_WIFI_SSID, 14) == 0);
+    #endif
+
     mWifiStationTimeout = timeout;
     #ifndef AP_ONLY
         if(false == mApActive)
-            mApActive = setupStation(mWifiStationTimeout);
+            mApActive = (mStationWifiIsDef) ? true : setupStation(mWifiStationTimeout);
     #endif
 
     if(!settingValid) {
@@ -66,7 +72,7 @@ bool ahoywifi::loop(void) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
         if(mMain->checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
-            mApActive = setupStation(mWifiStationTimeout);
+            mApActive = (mStationWifiIsDef) ? true : setupStation(mWifiStationTimeout);
             if(mApActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
                     DPRINTLN(DBG_ERROR, F("password must be at least 8 characters long"));
@@ -77,13 +83,14 @@ bool ahoywifi::loop(void) {
         }
         else {
             if(millis() - mApLastTick > 10000) {
+                mApLastTick = millis();
                 uint8_t cnt = WiFi.softAPgetStationNum();
                 if(cnt > 0) {
-                    DPRINTLN(DBG_INFO, String(cnt) + F(" client connected, resetting AP timeout"));
+                    DPRINTLN(DBG_INFO, String(cnt) + F(" client connected (no timeout)"));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
-                mApLastTick = millis();
-                DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
+                else
+                    DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
             }
         }
 #endif
@@ -92,7 +99,7 @@ bool ahoywifi::loop(void) {
     if((WiFi.status() != WL_CONNECTED) && wifiWasEstablished) {
         if(!mApActive) {
             DPRINTLN(DBG_INFO, "[WiFi]: Connection Lost");
-            mApActive = setupStation(mWifiStationTimeout);
+            mApActive = (mStationWifiIsDef) ? true : setupStation(mWifiStationTimeout);
         }
     }
 

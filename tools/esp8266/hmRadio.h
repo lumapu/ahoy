@@ -220,7 +220,7 @@ class HmRadio {
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
-            DPRINTLN(DBG_INFO, F("sendTimePacket"));
+            DPRINTLN(DBG_VERBOSE, F("sendTimePacket"));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
