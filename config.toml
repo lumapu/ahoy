@@ -20,18 +20,6 @@ title = 'AhoyDTU'
     name = "FAQ"
     url = "/faq/"
     weight = 3
-  [[menu.main]]
-    name = "About"
-    url = "/about/"
-    weight = 4
-#  [[menu.main]]
-#    name = "Blog"
-#    url = "/blog/"
-#    weight = 2
-#  [[menu.main]]
-#    name = "Tags"
-#    url = "/tags/"
-#    weight = 3
 
 
 [params]

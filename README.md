@@ -1,7 +1,7 @@
 # Information
 
-This repository contains the sources for [AhoyDTU](http://ahoydtu.de). The sources are converted by a *static site generator* [Hugo](https://gohugo.io/).
-The main Repository URL is: [](https://github.com/lumapu/ahoy)
+This repository contains the sources for https://ahoydtu.de. The sources are converted by a *static site generator* [Hugo](https://gohugo.io/).
+The main Repository URL is: https://github.com/lumapu/ahoy
 
 
 # Contribute
@@ -23,6 +23,7 @@ Feel free to modify / add contents of the website which helps other users to und
 ### Docker
 
 * you can use a local docker container which runs Hugo to convert the sources to a static site:
+
   `docker run --rm -it -v ${pwd}\:/src -p 80:1313 klakegg/hugo:0.101.0-ext-alpine shell`
 * from the shell start hugo server by typing `hugo server`
 * point your browser to http://localhost

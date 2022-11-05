@@ -1,12 +1,22 @@
-<footer class="footer mt-auto px-4 py-5 bg-dark">
-    <div class="container">
-        <div class="row">
-            <div class="col text-white">© 2022 {{ .Site.Title }}</div>
-            <div class="col"><a href="/imprint">Imprint</a></div>
-        </div>
+<footer class="footer mt-auto text-center text-lg-start text-white" style="background-color: #45526e">
+
+    <div class="container p-4 pb-0">
+        <section>
+            <div class="row d-flex">
+                <div class="col-auto">
+                    <p>
+                        <a href="/imprint" class="text-white">Imprint</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+        © 2022
+        <a class="text-white" href="https://ahoydtu.de">AhoyDTU.de</a>
     </div>
 </footer>
 
 {{ $js := "js/bootstrap.bundle.min.js" | relURL }}
 <script type="text/javascript" src="{{ $js }}"></script>
-
