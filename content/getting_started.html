@@ -12,10 +12,10 @@ draft: false
         <div class="col-lg-6">
             <h1 class="display-5 fw-bold lh-1 mb-3">Hardware / Einkaufsliste</h1>
             <p class="lead">
-                Die Hardware für AhoyDTU besteht nur aus zwei Modulen. Einem WLAN-Modul und einem 2.4GHz Funkmodul. Für die Systemstabilität wird noch ein Kondensator empfohlen.
+                Die Hardware für AhoyDTU besteht nur aus zwei Modulen, einem WLAN-Modul und einem 2.4GHz Funkmodul. Für die Systemstabilität wird ein Kondensator nahe am Funkmodul empfohlen. 
             </p>
             <p class="lead">
-                Der Gesamtpreis spiegelt wider was eine Hardware für Ahoy kosten darf. Auf gängigen Platformen wird diese zu völlig überzogenen Preisen angeboten. Also besser selbst zusammenbauen und dabei noch etwas lernen.
+                Der Gesamtpreis spiegelt wider was eine Hardware für Ahoy kosten darf. Auf gängigen Plattformen wird diese zu völlig überzogenen Preisen angeboten, also besser selbst zusammenbauen.
             </p>
             <div class="alert alert-secondary" role="alert">
                 Die extern verlinkten Angebote sind willkürlich und dienen nur als Beispiel. Die Angebote können zwischenzeitlich ausverkauft oder entfernt worden sein.
@@ -114,7 +114,9 @@ draft: false
         <div class="col-lg-6">
             <h1 class="display-5 fw-bold lh-1 mb-3">Firmware flashen</h1>
             <p class="lead">
-                Ist die Hardware zusammengebaut / -gesteckt kann über den Web Installer die Firmware (letztes Release) auf den ESP geladen werden.<br/>
+                Ist die Hardware zusammengebaut / -gesteckt kann über den Web-Installer die Firmware (letztes Release) auf den ESP geladen werden.
+            </p>
+            <p class="lead" > 
                 Hierzu die Ahoy-Hardware per USB Kabel an den PC stecken und evtl. warten, bis die Treiber installiert sind. Anschließend auf den <strong>connect</strong> Button klicken.
             </p>
             <div class="alert alert-primary" role="alert">
@@ -162,7 +164,7 @@ draft: false
 
             <h4><span class="badge rounded-pill bg-primary mt-5">2</span> Ahoy als WLAN Client einrichten</h4>
             <p class="lead">
-                Damit Ahoy von jedem Gerät in Ihrem Netzwerk erreicht werden kann, soll er sich automatisch mit dem heimischen WLAN verbinden.
+                Damit Ahoy von jedem Gerät in Ihrem Netzwerk erreicht werden kann, ist es erforderlich, dass er sich mit dem heimischen WLAN verbindet.
             </p>
             <p class="lead">
                 Hierzu muss in die Einstellungen navigiert werden, dies geschieht über den Menüpunkt <a href="http://192.168.1.1/setup" target="_blank">Settings</a>.
@@ -171,7 +173,9 @@ draft: false
                 In der Rubrik <strong>WiFi</strong> müssen <strong>SSID</strong> und das <strong>WLAN Passwort</strong> eingetragen werden.
             </p>
             <p class="lead">
-                Um den Schritt abzuschließen müssen die Einstellungen mit einem Klick auf <strong>save</strong> gespeichert werden.<br/>
+                Um den Schritt abzuschließen müssen die Einstellungen mit einem Klick auf <strong>save</strong> gespeichert werden.
+            </p>
+            <p class="lead">
                 Durch einen Neustart meldet sich der Ahoy automatisch in dem eingestellten WLAN an.
             </p>
         </div>
@@ -192,12 +196,16 @@ draft: false
                 Jeder Wechelrichter hat eine eindeutige Seriennummer. Diese muss in den Einstellungen eingetragen werden. Hierzu wieder die Einstellungen über die zuvor ermittelte IP-Adresse aufrufen.
             </p>
             <p class="lead">
-                Die Rubrik <strong>Inverter</strong> öffnen und die 12-stellige Serinennummer eingeben.<br/>
+                Die Rubrik <strong>Inverter</strong> öffnen und die 12-stellige Serinennummer eingeben.
+            </p>
+            <p class="lead">
                 Der Name im nächsten Feld ist frei wählbar und dient der späteren Erkennung z.B. über MQTT.
             </p>
             <p class="lead">
-                Unter <i>Max Module Power (Wp)</i> wird die maximale Peak-Leistung der Solarmodule pro Eingang des Wechselrichters eingetragen.<br/>
-                Die <i>Module Namen</i> sind optional, auch diese dienen der späteren Erkennung.
+                Unter <i>Max Module Power (Wp)</i> wird die maximale Peak-Leistung der Solarmodule pro Eingang des Wechselrichters eingetragen.
+            </p>
+            <p class="lead">
+                Die <i>Modul Namen</i> sind optional, auch diese dienen der späteren Erkennung.
             </p>
             <div class="alert alert-primary mt-3" role="alert">
                 Die Seriennummer des Wechselrichters klebt zweifach unten auf dem Wechselrichter.
@@ -254,7 +262,7 @@ draft: false
         <div class="col-10 col-sm-8 col-lg-6">
             <h4>Sonnenauf und -untergang</h4>
             <p class="lead">
-                Da der Wechselrichter nur bei tageslicht Daten sendet, kann optional eine Nachabschaltung konfiguriert werden. Hierzu sind die Geo-koorinaten vom Standort nötig. Sind diese korrekt eingetragen, wird automatisch der lokale Sonnenauf- und Untergang berechnet.
+                Da der Wechselrichter nur bei Tageslicht Daten sendet, kann optional eine Nachtabschaltung konfiguriert werden. Hierzu sind die Geokoorinaten vom Standort nötig. Sind diese korrekt eingetragen, wird automatisch der lokale Sonnenauf- und untergang berechnet.
             </p>
             <p class="lead">
                 Die Koordinaten müssen mit Dezimalpunkt angegeben werden, z.B. <strong>51.1</strong> und <strong>10.2</strong>.
@@ -273,15 +281,15 @@ draft: false
         <div class="col-lg-6">
             <h4>Beitragen / Unterstützen</h4>
             <p class="lead">
-                Inzwischen zählt die Community von Ahoy schon ca. 1000 Leute. Jeder ist herzlich willkommen.
+                Inzwischen besteht die Community von Ahoy schon aus ca. 1000 Leuten, jeder ist herzlich willkommen.
             </p>
             <p class="lead">
-                Es gibt verschiedene Themen, die die Gemeinschaft voranbringen:
+                Es gibt verschiedene Themen, welchen die Gemeinschaft voranbringen:
                 <ul class="lead">
                     <li>Erweiterungen / Verbesserungen am Code</li>
                     <li>Dokumentation der Features</li>
                     <li>Diskussion mit anderen Mitgliedern</li>
-                    <li>Testen und berichten von Fehlern</li>
+                    <li>Testen und Berichten von Fehlern</li>
                     <li>Support von neuen Mitgliedern</li>
                     <li>Entwerfen von Platinen / Gehäusen für Ahoy</li>
                     <li>Spende an die Entwickler</li>
