@@ -79,7 +79,8 @@ typedef enum {
 #define PWD_LEN                 64
 #define DEVNAME_LEN             16
 #define CRC_LEN                 2 // uint16_t
-#define DISCLAIMER              1
+#define DISCLAIMER_LEN          1
+#define STATIC_IP_LEN           16 // 4x uint32_t
 
 #define INV_ADDR_LEN            MAX_NUM_INVERTERS * 8                   // uint64_t
 #define INV_NAME_LEN            MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
@@ -174,7 +175,7 @@ typedef struct {
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
 #define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN
-#define CFG_LEN                 7 + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + DISCLAIMER
+#define CFG_LEN                 PWD_LEN + 7 + DISCLAIMER_LEN + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + STATIC_IP_LEN
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START

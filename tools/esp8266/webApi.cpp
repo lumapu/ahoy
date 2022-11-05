@@ -314,7 +314,7 @@ void webApi::getIndex(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     getStatistics(obj.createNestedObject(F("statistics")));
-    obj["refresh_interval"] = SEND_INTERVAL;
+    obj["refresh_interval"] = mConfig->sendInterval;
 
     JsonArray inv = obj.createNestedArray(F("inverter"));
     Inverter<> *iv;
@@ -373,7 +373,7 @@ void webApi::getLive(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     JsonArray invArr = obj.createNestedArray(F("inverter"));
-    obj["refresh_interval"] = SEND_INTERVAL;
+    obj["refresh_interval"] = mConfig->sendInterval;
 
     uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 
