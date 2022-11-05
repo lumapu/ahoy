@@ -579,7 +579,6 @@ void app::sendMqtt(void) {
     char topic[32 + MAX_NAME_LENGTH], val[32];
     float total[4];
     bool sendTotal = false;
-    memset(total, 0, sizeof(float) * 4);
     snprintf(val, 32, "%ld", millis() / 1000);
 
     mMqtt.sendMsg("uptime", val);
@@ -588,6 +587,7 @@ void app::sendMqtt(void) {
         return;
 
     while(!mMqttSendList.empty()) {
+        memset(total, 0, sizeof(float) * 4);
         for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if (NULL == iv)
@@ -653,29 +653,29 @@ void app::sendMqtt(void) {
         }
 
         mMqttSendList.pop(); // remove from list once all inverters were processed
-    }
 
-    if (true == sendTotal) {
-        uint8_t fieldId;
-        for (uint8_t i = 0; i < 4; i++) {
-            switch (i) {
-                default:
-                case 0:
-                    fieldId = FLD_PAC;
-                    break;
-                case 1:
-                    fieldId = FLD_YT;
-                    break;
-                case 2:
-                    fieldId = FLD_YD;
-                    break;
-                case 3:
-                    fieldId = FLD_PDC;
-                    break;
+        if (true == sendTotal) {
+            uint8_t fieldId;
+            for (uint8_t i = 0; i < 4; i++) {
+                switch (i) {
+                    default:
+                    case 0:
+                        fieldId = FLD_PAC;
+                        break;
+                    case 1:
+                        fieldId = FLD_YT;
+                        break;
+                    case 2:
+                        fieldId = FLD_YD;
+                        break;
+                    case 3:
+                        fieldId = FLD_PDC;
+                        break;
+                }
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
+                snprintf(val, 10, "%.3f", total[i]);
+                mMqtt.sendMsg(topic, val);
             }
-            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-            snprintf(val, 10, "%.3f", total[i]);
-            mMqtt.sendMsg(topic, val);
         }
     }
 }
