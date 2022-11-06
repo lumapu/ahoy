@@ -42,14 +42,13 @@ class InfoCommands(IntEnum):
 
 class SunsetHandler:
     def __init__(self, sunset_config):
-        self.sunset = None
+        self.suntimes = None
         if sunset_config and sunset_config.get('disabled', True) == False:
             latitude = sunset_config.get('latitude')
             longitude = sunset_config.get('longitude')
             altitude = sunset_config.get('altitude')
             self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
-            now = datetime.now()
-            self.nextSunset = self.suntimes.setutc(now)
+            self.nextSunset = self.suntimes.setutc(datetime.now())
             print (f'Todays sunset is at {self.nextSunset}')
 
     def checkWaitForSunrise(self):
@@ -59,14 +58,14 @@ class SunsetHandler:
         now = datetime.now()
         if self.nextSunset < now:
             # wait until the sun rises tomorrow
-            nextSunrise = self.suntimes.riseutc(now + timedelta(days=1))
-            self.nextSunset = self.suntimes.setutc(now + timedelta(days=1))
+            tomorrow = now + timedelta(days=1)
+            nextSunrise = self.suntimes.riseutc(tomorrow)
+            self.nextSunset = self.suntimes.setutc(tomorrow)
             time_to_sleep = (nextSunrise - datetime.now()).total_seconds()
             print (f'Waiting for sunrise at {nextSunrise} ({time_to_sleep} seconds)')
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
-                now = datetime.now()
-                print (f'Woke up... next sunset  is at {self.nextSunset}')
+                print (f'Woke up... next sunset is at {self.nextSunset}')
         return
 
 def main_loop(ahoy_config):
