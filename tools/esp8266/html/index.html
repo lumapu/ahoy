@@ -153,11 +153,13 @@
                 for(var i of obj) {
                     html += "Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is ";
                     if(false == i["is_avail"])
-                        html += "not ";
-                    html += "available and is ";
-                    if(false == i["is_producing"])
-                        html += "not ";
-                    html += "producing\n";
+                        html += "not yet available";
+                    else {
+                        html += "available and is ";
+                        if(false == i["is_producing"])
+                            html += "not ";
+                        html += "producing\n";
+                    }
 
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {

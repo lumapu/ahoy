@@ -612,10 +612,10 @@ void app::sendMqtt(void) {
                 }
                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
                 snprintf(val, 32, "%s%s%s%s",
-                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
+                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
                     "available and ",
-                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD || MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
-                    "producing"
+                    (MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                    (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
                 );
                 mMqtt.sendMsg(topic, val);
 
@@ -629,32 +629,34 @@ void app::sendMqtt(void) {
             }
 
             // data
-            for (uint8_t i = 0; i < rec->length; i++) {
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                snprintf(val, 10, "%.3f", iv->getValue(i, rec));
-                mMqtt.sendMsg(topic, val);
+            if(iv->isAvailable(mUtcTimestamp, rec)) {
+                for (uint8_t i = 0; i < rec->length; i++) {
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                    mMqtt.sendMsg(topic, val);
 
-                // calculate total values for RealTimeRunData_Debug
-                if (mMqttSendList.front() == RealTimeRunData_Debug) {
-                    if (CH0 == rec->assign[i].ch) {
-                        switch (rec->assign[i].fieldId) {
-                            case FLD_PAC:
-                                total[0] += iv->getValue(i, rec);
-                                break;
-                            case FLD_YT:
-                                total[1] += iv->getValue(i, rec);
-                                break;
-                            case FLD_YD:
-                                total[2] += iv->getValue(i, rec);
-                                break;
-                            case FLD_PDC:
-                                total[3] += iv->getValue(i, rec);
-                                break;
+                    // calculate total values for RealTimeRunData_Debug
+                    if (mMqttSendList.front() == RealTimeRunData_Debug) {
+                        if (CH0 == rec->assign[i].ch) {
+                            switch (rec->assign[i].fieldId) {
+                                case FLD_PAC:
+                                    total[0] += iv->getValue(i, rec);
+                                    break;
+                                case FLD_YT:
+                                    total[1] += iv->getValue(i, rec);
+                                    break;
+                                case FLD_YD:
+                                    total[2] += iv->getValue(i, rec);
+                                    break;
+                                case FLD_PDC:
+                                    total[3] += iv->getValue(i, rec);
+                                    break;
+                            }
                         }
+                        sendTotal = true;
                     }
-                    sendTotal = true;
+                    yield();
                 }
-                yield();
             }
         }
 
