@@ -40,8 +40,13 @@ while booting (wait for wifi, 1st data, ...)
 ![img](5_runTime.jpg)
 this is the normal screen with time in bottom line (refresh all 5 seconds)
 
-## next step(s)
+# SSD1306
 
-* modbus communication interface
-* 3D printed case ... but this is a task for dark days in december.
+Some changes made possible to use SSD1306 (instead of NOKIA5110 display).
+![img](SSD1306.png)
 
+You can use same PCB. You only have to connect GND (SSD:GND), VCC (SSD:VCC), D/C (SSD:SDA) and SCE (SSD:SCL)
+![img](6_Wiring_SSD1306.png)
+
+On other PCB-layouts, PIN wemos:D1 need connected to SSD:SCL and wemos:D2 has to be connected to SSD:SDA.
+much fun.
