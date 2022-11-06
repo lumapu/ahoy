@@ -57,6 +57,21 @@
                             <label for="pwd">Password</label>
                             <input type="password" class="text" name="pwd" value="{PWD}"/>
                         </fieldset>
+                        <fieldset>
+                            <legend class="des">Static IP (optional)</legend>
+                            <p>
+                                Leave fields blank for DHCP<br/>
+                                The following fields are parsed in this format: 192.168.1.1
+                            </p>
+                            <label for="ipAddr">IP Address</label>
+                            <input type="text" name="ipAddr" class="text" maxlength="15" />
+                            <label for="ipMask">Submask</label>
+                            <input type="text" name="ipMask" class="text" maxlength="15" />
+                            <label for="ipDns">DNS</label>
+                            <input type="text" name="ipDns" class="text" maxlength="15" />
+                            <label for="ipGateway">Gateway</label>
+                            <input type="text" name="ipGateway" class="text" maxlength="15" />
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">Inverter</button>
@@ -92,6 +107,9 @@
                     <div class="s_content">
                     <fieldset>
                     <legend class="des">Sunrise & Sunset</legend>
+                        <p>
+                            Latitude and Longitude must be set to be stored! decimal separator: '.' (dot)
+                        </p>
                         <label for="sunLat">Latitude (decimal)</label>
                         <input type="text" class="text" name="sunLat"/>
                         <label for="sunLon">Longitude (decimal)</label>
@@ -313,6 +331,12 @@
                 parseVersion(obj);
             }
 
+            function parseStaticIp(obj) {
+                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns", "dns"], ["ipGateway", "gateway"]])
+                    if(null != obj[i[1]])
+                        document.getElementsByName(i[0])[0].value = obj[i[1]];
+            }
+
             function parseIv(obj) {
                 for(var i = 0; i < obj.inverter.length; i++)
                     ivHtml(obj.inverter[i], i);
@@ -416,6 +440,7 @@
                 if(null != root) {
                     parseMenu(root["menu"]);
                     parseSys(root["system"]);
+                    parseStaticIp(root["static_ip"]);
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);

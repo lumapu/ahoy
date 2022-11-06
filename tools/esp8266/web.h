@@ -61,6 +61,15 @@ class web {
         void onSerial(AsyncWebServerRequest *request);
         void onSystem(AsyncWebServerRequest *request);
 
+        void ip2Arr(uint8_t ip[], char *ipStr) {
+            char *p = strtok(ipStr, ".");
+            uint8_t i = 0;
+            while(NULL != p) {
+                ip[i++] = atoi(p);
+                p = strtok(NULL, ".");
+            }
+        }
+
         AsyncWebServer *mWeb;
         AsyncEventSource *mEvts;
         bool mProtected;

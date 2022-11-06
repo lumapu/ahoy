@@ -285,6 +285,17 @@ void webApi::getSerial(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
+void webApi::getStaticIp(JsonObject obj) {
+    if(mConfig->staticIp.ip[0] != 0) {
+        obj[F("ip")]      = ip2String(mConfig->staticIp.ip);
+        obj[F("mask")]    = ip2String(mConfig->staticIp.mask);
+        obj[F("dns")]     = ip2String(mConfig->staticIp.dns);
+        obj[F("gateway")] = ip2String(mConfig->staticIp.gateway);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
 void webApi::getMenu(JsonObject obj) {
     obj["name"][0] = "Live";
     obj["link"][0] = "/live";
@@ -359,6 +370,7 @@ void webApi::getSetup(JsonObject obj) {
     getPinout(obj.createNestedObject(F("pinout")));
     getRadio(obj.createNestedObject(F("radio")));
     getSerial(obj.createNestedObject(F("serial")));
+    getStaticIp(obj.createNestedObject(F("static_ip")));
 }
 
 

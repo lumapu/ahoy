@@ -141,6 +141,14 @@ bool ahoywifi::setupStation(uint32_t timeout) {
     }
 
     WiFi.mode(WIFI_STA);
+    if(mConfig->staticIp.ip[0] != 0) {
+        IPAddress ip(mConfig->staticIp.ip);
+        IPAddress mask(mConfig->staticIp.mask);
+        IPAddress dns(mConfig->staticIp.dns);
+        IPAddress gateway(mConfig->staticIp.gateway);
+        if(!WiFi.config(ip, gateway, mask, dns))
+            DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
+    }
     WiFi.begin(mSysCfg->stationSsid, mSysCfg->stationPwd);
     if(String(mSysCfg->deviceName) != "")
         WiFi.hostname(mSysCfg->deviceName);

@@ -129,6 +129,17 @@ typedef struct {
 #pragma pack(push)  // push current alignment to stack
 #pragma pack(1)     // set alignment to 1 byte boundary
 typedef struct {
+    uint8_t ip[4];      // ip address
+    uint8_t mask[4];    // sub mask
+    uint8_t dns[4];     // dns
+    uint8_t gateway[4]; // standard gateway
+} staticIp_t;
+#pragma pack(pop)   // restore original alignment from stack
+
+
+#pragma pack(push)  // push current alignment to stack
+#pragma pack(1)     // set alignment to 1 byte boundary
+typedef struct {
     // protection
     char password[PWD_LEN];
 
@@ -160,8 +171,8 @@ typedef struct {
     bool serialShowIv;
     bool serialDebug;
 
-    // static ip placeholder
-    uint32_t staticIp[4];
+    // static ip
+    staticIp_t staticIp;
 } config_t;
 #pragma pack(pop)   // restore original alignment from stack
 

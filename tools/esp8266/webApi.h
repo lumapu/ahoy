@@ -45,6 +45,7 @@ class webApi {
         void getPinout(JsonObject obj);
         void getRadio(JsonObject obj);
         void getSerial(JsonObject obj);
+        void getStaticIp(JsonObject obj);
 
         void getMenu(JsonObject obj);
         void getIndex(JsonObject obj);
@@ -60,6 +61,12 @@ class webApi {
 
         double round3(double value) {
            return (int)(value * 1000 + 0.5) / 1000.0;
+        }
+
+        String ip2String(uint8_t ip[]) {
+            char str[16];
+            snprintf(str, 16, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+            return String(str);
         }
 
         AsyncWebServer *mSrv;

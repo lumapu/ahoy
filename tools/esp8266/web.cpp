@@ -330,6 +330,28 @@ void web::showSave(AsyncWebServerRequest *request) {
             mProtected = (strlen(mConfig->password) > 0);
         }
 
+
+        // static ip
+        if(request->arg("ipAddr") != "") {
+            request->arg("ipAddr").toCharArray(buf, SSID_LEN);
+            ip2Arr(mConfig->staticIp.ip, buf);
+            if(request->arg("ipMask") != "") {
+                request->arg("ipMask").toCharArray(buf, SSID_LEN);
+                ip2Arr(mConfig->staticIp.mask, buf);
+            }
+            if(request->arg("ipDns") != "") {
+                request->arg("ipDns").toCharArray(buf, SSID_LEN);
+                ip2Arr(mConfig->staticIp.dns, buf);
+            }
+            if(request->arg("ipGateway") != "") {
+                request->arg("ipGateway").toCharArray(buf, SSID_LEN);
+                ip2Arr(mConfig->staticIp.gateway, buf);
+            }
+        }
+        else
+            memset(&mConfig->staticIp, 0, sizeof(staticIp_t));
+
+
         // inverter
         Inverter<> *iv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
