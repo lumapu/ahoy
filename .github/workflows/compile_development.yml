@@ -51,14 +51,14 @@ jobs:
 
 
     - name: Create ESP8266 Artifact (for Github Pages - ahoydtu.de)
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3
       with:
         name: dev_esp8266_build
         path: ./tools/esp8266/.pio/build/esp8266-release/firmware.bin
 
 
     - name: Create ESP32 Artifact (for Github Pages - ahoydtu.de)
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3
       with:
         name: dev_esp32_build
         path: ./tools/esp8266/.pio/build/esp32-wroom32-release/firmware.bin
