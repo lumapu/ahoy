@@ -81,7 +81,7 @@ typedef enum {
 #define CRC_LEN                 2 // uint16_t
 #define DISCLAIMER_LEN          1
 #define STATIC_IP_LEN           16 // 4x uint32_t
-#define STATUS_LED_LEN          4  // 4x uint8_t
+#define STATUS_LED_LEN          2  // 2x uint8_t
 
 #define INV_ADDR_LEN            MAX_NUM_INVERTERS * 8                   // uint64_t
 #define INV_NAME_LEN            MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
