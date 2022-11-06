@@ -393,9 +393,9 @@ void web::showSave(AsyncWebServerRequest *request) {
         for(uint8_t i = 0; i < 5; i ++) {
             pin = request->arg(String(pinArgNames[i])).toInt();
             switch(i) {
-                default: mConfig->pinCs    = pin; break;
-                case 1:  mConfig->pinCe    = pin; break;
-                case 2:  mConfig->pinIrq   = pin; break;
+                default: mConfig->pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                case 1:  mConfig->pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
+                case 2:  mConfig->pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
                 case 3:  mConfig->led.led0 = pin; break;
                 case 4:  mConfig->led.led1 = pin; break;
             }
