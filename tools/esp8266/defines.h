@@ -81,6 +81,7 @@ typedef enum {
 #define CRC_LEN                 2 // uint16_t
 #define DISCLAIMER_LEN          1
 #define STATIC_IP_LEN           16 // 4x uint32_t
+#define STATUS_LED_LEN          4  // 4x uint8_t
 
 #define INV_ADDR_LEN            MAX_NUM_INVERTERS * 8                   // uint64_t
 #define INV_NAME_LEN            MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
@@ -114,8 +115,8 @@ typedef struct {
 #pragma pack(pop)   // restore original alignment from stack
 
 
-#pragma pack(push)  // push current alignment to stack
-#pragma pack(1)     // set alignment to 1 byte boundary
+#pragma pack(push)
+#pragma pack(1)
 typedef struct {
     char deviceName[DEVNAME_LEN];
 
@@ -123,22 +124,30 @@ typedef struct {
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
 } sysConfig_t;
-#pragma pack(pop)   // restore original alignment from stack
+#pragma pack(pop)
 
 
-#pragma pack(push)  // push current alignment to stack
-#pragma pack(1)     // set alignment to 1 byte boundary
+#pragma pack(push)
+#pragma pack(1)
 typedef struct {
     uint8_t ip[4];      // ip address
     uint8_t mask[4];    // sub mask
     uint8_t dns[4];     // dns
     uint8_t gateway[4]; // standard gateway
 } staticIp_t;
-#pragma pack(pop)   // restore original alignment from stack
+#pragma pack(pop)
+
+#pragma pack(push)
+#pragma pack(1)
+typedef struct {
+    uint8_t led0; // first led pin
+    uint8_t led1; // second led pin
+} statusLed_t;
+#pragma pack(pop)
 
 
-#pragma pack(push)  // push current alignment to stack
-#pragma pack(1)     // set alignment to 1 byte boundary
+#pragma pack(push)
+#pragma pack(1)
 typedef struct {
     // protection
     char password[PWD_LEN];
@@ -173,8 +182,12 @@ typedef struct {
 
     // static ip
     staticIp_t staticIp;
+
+    // status LED(s)
+    statusLed_t led;
 } config_t;
-#pragma pack(pop)   // restore original alignment from stack
+#pragma pack(pop)
+
 
 typedef struct {
     uint32_t rxFail;
@@ -186,7 +199,7 @@ typedef struct {
 
 #define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
 #define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN
-#define CFG_LEN                 PWD_LEN + 7 + DISCLAIMER_LEN + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + STATIC_IP_LEN
+#define CFG_LEN                 PWD_LEN + 7 + DISCLAIMER_LEN + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + STATIC_IP_LEN + STATUS_LED_LEN
 
 #define ADDR_START              0
 #define ADDR_CFG_SYS            ADDR_START

@@ -21,7 +21,7 @@
 #include "html/h/serial_html.h"
 #include "html/h/system_html.h"
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
 
 //-----------------------------------------------------------------------------
 web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
@@ -390,12 +390,14 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // pinout
         uint8_t pin;
-        for(uint8_t i = 0; i < 3; i ++) {
+        for(uint8_t i = 0; i < 5; i ++) {
             pin = request->arg(String(pinArgNames[i])).toInt();
             switch(i) {
-                default: mConfig->pinCs  = pin; break;
-                case 1:  mConfig->pinCe  = pin; break;
-                case 2:  mConfig->pinIrq = pin; break;
+                default: mConfig->pinCs    = pin; break;
+                case 1:  mConfig->pinCe    = pin; break;
+                case 2:  mConfig->pinIrq   = pin; break;
+                case 3:  mConfig->led.led0 = pin; break;
+                case 4:  mConfig->led.led1 = pin; break;
             }
         }
 

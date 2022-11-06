@@ -44,15 +44,17 @@ class mqtt {
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
         }
 
-        void setCallback(MQTT_CALLBACK_SIGNATURE){
+        void setCallback(MQTT_CALLBACK_SIGNATURE) {
             mClient->setCallback(callback);
         }
 
         void sendMsg(const char *topic, const char *msg) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
-            char top[64];
-            snprintf(top, 64, "%s/%s", mCfg->topic, topic);
-            sendMsg2(top, msg, false);
+            if(mAddressSet) {
+                char top[64];
+                snprintf(top, 64, "%s/%s", mCfg->topic, topic);
+                sendMsg2(top, msg, false);
+            }
         }
 
         void sendMsg2(const char *topic, const char *msg, boolean retained) {
@@ -61,12 +63,14 @@ class mqtt {
                     reconnect();
                 if(mClient->connected())
                     mClient->publish(topic, msg, retained);
+                mTxCnt++;
             }
-            mTxCnt++;
         }
 
         bool isConnected(bool doRecon = false) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:isConnected"));
+            if(!mAddressSet)
+                return false;
             if(doRecon && !mClient->connected())
                 reconnect();
             return mClient->connected();
@@ -74,9 +78,11 @@ class mqtt {
 
         void loop() {
             //DPRINT(F("m"));
-            if(!mClient->connected())
-                reconnect();
-            mClient->loop();
+            if(mAddressSet) {
+                if(!mClient->connected())
+                    reconnect();
+                mClient->loop();
+            }
         }
 
         uint32_t getTxCnt(void) {

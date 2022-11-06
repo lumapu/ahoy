@@ -175,11 +175,14 @@ class app {
         void resetSystem(void);
         void loadDefaultConfig(void);
         void loadEEpconfig(void);
-        void setupMqtt(void);
 
+        void setupMqtt(void);
         void sendMqttDiscoveryConfig(void);
         void sendMqtt(void);
         
+        void setupLed(void);
+        void updateLed(void);
+
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
 

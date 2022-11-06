@@ -42,6 +42,8 @@ void app::setup(uint32_t timeout) {
 #endif
     mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
 
+    setupLed();
+
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
     mWebInst->setup();
     mWebInst->setProtection(strlen(mConfig.password) != 0);
@@ -263,6 +265,8 @@ void app::loop(void) {
             } else if (mConfig.serialDebug)
                 DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
             yield();
+
+            updateLed();
         }
     }
 }
@@ -761,6 +765,10 @@ void app::loadDefaultConfig(void) {
     mConfig.pinIrq = DEF_IRQ_PIN;
     mConfig.amplifierPower = DEF_AMPLIFIERPOWER & 0x03;
 
+    // status LED
+    mConfig.led.led0 = DEF_LED0_PIN;
+    mConfig.led.led1 = DEF_LED1_PIN;
+
     // ntp
     snprintf(mConfig.ntpAddr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
     mConfig.ntpPort = DEF_NTP_PORT;
@@ -788,7 +796,7 @@ void app::loadDefaultConfig(void) {
 
 //-----------------------------------------------------------------------------
 void app::loadEEpconfig(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::loadEEpconfig"));
+    DPRINTLN(DBG_INFO, F("loadEEpconfig"));
 
     if (mWifiSettingsValid)
         mEep->read(ADDR_CFG_SYS, (uint8_t *)&mSysConfig, CFG_SYS_LEN);
@@ -863,8 +871,10 @@ void app::setupMqtt(void) {
         }
 
         mMqttTicker = 0;
-        mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName);
-        mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        if(mMqttActive) {
+            mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName);
+            mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        }
 
         if (mMqttActive) {
             mMqtt.sendMsg("version", mVersion);
@@ -872,6 +882,37 @@ void app::setupMqtt(void) {
                 mMqtt.sendMsg("device", mSysConfig.deviceName);
                 mMqtt.sendMsg("uptime", "0");
             }
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::setupLed(void) {
+    /** LED connection diagram
+     *          \\
+     * PIN ---- |<----- 3.3V
+     *
+     * */
+    if(mConfig.led.led0 != 0xff) {
+        pinMode(mConfig.led.led0, OUTPUT);
+        digitalWrite(mConfig.led.led0, HIGH); // LED off
+    }
+    if(mConfig.led.led1 != 0xff) {
+        pinMode(mConfig.led.led1, OUTPUT);
+        digitalWrite(mConfig.led.led1, HIGH); // LED off
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::updateLed(void) {
+    if(mConfig.led.led0 != 0xff) {
+        Inverter<> *iv = mSys->getInverterByPos(0);
+        if (NULL != iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            if(iv->isProducing(mUtcTimestamp, rec))
+                digitalWrite(mConfig.led.led0, LOW); // LED on
+            else
+                digitalWrite(mConfig.led.led0, HIGH); // LED off
         }
     }
 }

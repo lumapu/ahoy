@@ -267,6 +267,8 @@ void webApi::getPinout(JsonObject obj) {
     obj[F("cs")]  = mConfig->pinCs;
     obj[F("ce")]  = mConfig->pinCe;
     obj[F("irq")] = mConfig->pinIrq;
+    obj[F("led0")] = mConfig->led.led0;
+    obj[F("led1")] = mConfig->led.led1;
 }
 
 
