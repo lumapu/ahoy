@@ -585,6 +585,7 @@ void app::sendMqtt(void) {
     char topic[32 + MAX_NAME_LENGTH], val[32];
     float total[4];
     bool sendTotal = false;
+    bool totalIncomplete = false;
     snprintf(val, 32, "%ld", millis() / 1000);
 
     mMqtt.sendMsg("uptime", val);
@@ -604,8 +605,10 @@ void app::sendMqtt(void) {
             if(mMqttSendList.front() == RealTimeRunData_Debug) {
                 // inverter status
                 uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                if (!iv->isAvailable(mUtcTimestamp, rec))
+                if (!iv->isAvailable(mUtcTimestamp, rec)) {
                     status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                    totalIncomplete = true;
+                }
                 else if (!iv->isProducing(mUtcTimestamp, rec)) {
                     if (MQTT_STATUS_AVAIL_PROD == status)
                         status = MQTT_STATUS_AVAIL_NOT_PROD;
@@ -662,7 +665,7 @@ void app::sendMqtt(void) {
 
         mMqttSendList.pop(); // remove from list once all inverters were processed
 
-        if (true == sendTotal) {
+        if ((true == sendTotal) && (false == totalIncomplete)) {
             uint8_t fieldId;
             for (uint8_t i = 0; i < 4; i++) {
                 switch (i) {
