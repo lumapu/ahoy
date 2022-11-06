@@ -10,6 +10,7 @@ import struct
 from enum import IntEnum
 import re
 import time
+import traceback
 from datetime import datetime
 from datetime import timedelta
 from suntimes import SunTimes
@@ -101,6 +102,7 @@ def main_loop(ahoy_config):
         sys.exit()
     except Exception as e:
         print ('Exception catched: %s' % e)
+        traceback.print_exc()
         raise
 
 
