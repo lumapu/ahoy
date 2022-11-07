@@ -36,7 +36,9 @@ app::app() {
 }
 
 #ifdef ENA_SSD1306
-SSD1306Wire display(0x3c, 4, 5);
+/* esp8266 : SCL = 5, SDA = 4 */
+/* ewsp32  : SCL = 22, SDA = 21 */
+SSD1306Wire display(0x3c, SDA, SCL);
 
 static unsigned char bmp_arrow[] PROGMEM = {
         B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
