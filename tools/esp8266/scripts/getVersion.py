@@ -1,7 +1,7 @@
 import os
 from datetime import date
 
-def genOtaBin(path)
+def genOtaBin(path):
     arr = []
     arr.append(1)
     arr.append(0)
