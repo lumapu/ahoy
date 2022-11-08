@@ -18,21 +18,21 @@ def readVersion(path, infile):
                     version += line[p+13:].rstrip() + "."
                     versionnumber += line[p+13:].rstrip() + "."
     
-    os.mkdir(path + ".pio/build/out/")
+    os.mkdir(path + ".pio/build/firmware/")
     sha = os.getenv("SHA",default="sha")
     versionout = version[:-1] + "_esp8266_" + sha + ".bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
-    dst = path + ".pio/build/out/" + versionout
+    dst = path + ".pio/build/firmware/" + versionout
     os.rename(src, dst)
     
     versionout = version[:-1] + "_esp8266_1m_" + sha + ".bin"
     src = path + ".pio/build/esp8266-1m-release/firmware.bin"
-    dst = path + ".pio/build/out/" + versionout
+    dst = path + ".pio/build/firmware/" + versionout
     os.rename(src, dst)
 
     versionout = version[:-1] + "_esp32_" + sha + ".bin"
     src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
-    dst = path + ".pio/build/out/" + versionout
+    dst = path + ".pio/build/firmware/" + versionout
     os.rename(src, dst)
 
     print("::set-output name=name::" + versionnumber[:-1] )
