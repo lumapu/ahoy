@@ -1,6 +1,30 @@
 import os
 from datetime import date
 
+def genOtaBin(path)
+    arr = []
+    arr.append(1)
+    arr.append(0)
+    arr.append(0)
+    arr.append(0)
+    for x in range(24):
+        arr.append(255)
+    arr.append(154)
+    arr.append(152)
+    arr.append(67)
+    arr.append(71)
+    for x in range(4064):
+        arr.append(255)
+    arr.append(0)
+    arr.append(0)
+    arr.append(0)
+    arr.append(0)
+    for x in range(4092):
+        arr.append(255)
+    with open(path + "ota.bin", "wb") as f:
+        f.write(bytearray(arr))
+
+
 def readVersion(path, infile):
     f = open(path + infile, "r")
     lines = f.readlines()
@@ -40,8 +64,9 @@ def readVersion(path, infile):
     dst = path + "firmware/"
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")
+    genOtaBin(path + "firmware/")
+    os.rename("gh-action-dev-build-flash.html", path + "index.html")
 
-    #print("::set-output name=name::" + versionnumber[:-1] )
     print("name=" + versionnumber[:-1] )
     
     

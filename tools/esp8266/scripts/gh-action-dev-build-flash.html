@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" class="h-100">
+    <body class="d-flex flex-column h-100">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+            <title>Flash | AhoyDTU</title>
+        </head>
+        <main>
+            <div class="container col-xxl-8 px-4 py-5">
+                <h3>Development Build (ESP8266 / ESP32)</h3>
+                <p class="lead">
+
+                </p>
+                <p class="lead" >
+                    Hierzu die Ahoy-Hardware per USB Kabel an den PC stecken und evtl. warten, bis die Treiber installiert sind. Anschließend auf den ensprechenden <strong>connect</strong> Button klicken.
+                </p>
+
+                <esp-web-install-button manifest="firmware/manifest.json">
+                    <button class="btn btn-primary" slot="activate">Development Build installieren</button>
+                    <span slot="unsupported">
+                        <div class="alert alert-warning" role="alert">
+                            Your browser does not support installing things on ESP devices. Use Google Chrome or Microsoft Edge.
+                        </div>
+                    </span>
+                    <span slot="not-allowed">
+                        <div class="alert alert-danger" role="alert">
+                            You are not allowed to do this using http!
+                        </div>
+                    </span>
+                </esp-web-install-button>
+                <div class="alert alert-secondary mt-3" role="alert">
+                    Der Online Installer wird von <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Home Web Tools</a> bereitgestellt
+                </div>
+
+                <h3>Release Build</h3>
+                <p class="lead" >
+                    Die Release Builds werden auf <a href="https://ahoydtu.de" target="_blank">ahoyDtu.de</a> veröffentlicht.
+                </p>
+            </div>
+        </main>
+        <footer class="footer mt-auto text-center text-lg-start text-white" style="background-color: #45526e">
+            <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
+                © 2022
+                <a class="text-white" href="https://ahoydtu.de">AhoyDTU.de</a>
+            </div>
+        </footer>
+        <script type="module" src="https://unpkg.com/esp-web-tools@9.0.3/dist/web/install-button.js?module"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    </body>
+</html>

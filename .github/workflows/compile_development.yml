@@ -71,9 +71,10 @@ jobs:
       with:
         name: ${{ steps.rename-binary-files.outputs.name }}_dev_build
         path: |
-          tools/*/firmware/*
-          tools/*/User_Manual.md
-          tools/*/json/manifest.json
+          tools/esp8266/*/firmware/*
+          tools/esp8266/*/User_Manual.md
+          tools/esp8266/*/index.html
+          tools/esp8266/*/json/manifest.json
 
         #./${{ steps.rename-binary-files.outputs.name }}.zip
 
