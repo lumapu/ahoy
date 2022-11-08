@@ -35,7 +35,14 @@ def readVersion(path, infile):
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
-    print("::set-output name=name::" + versionnumber[:-1] )
+    # other ESP32 bin files
+    src = path + ".pio/build/esp32-wroom32-release/"
+    dst = path + "firmware/"
+    os.rename(src + "bootloader.bin", dst + "bootloader.bin")
+    os.rename(src + "partitions.bin", dst + "partitions.bin")
+
+    #print("::set-output name=name::" + versionnumber[:-1] )
+    print("name=" + versionnumber[:-1] )
     
     
 readVersion("../", "defines.h")
