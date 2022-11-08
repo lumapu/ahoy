@@ -73,7 +73,7 @@ jobs:
         path: |
           tools/esp8266/*/firmware/*
           tools/esp8266/*/User_Manual.md
-          tools/esp8266/*/index.html
+          tools/esp8266/*/install.html
           tools/esp8266/*/json/manifest.json
 
         #./${{ steps.rename-binary-files.outputs.name }}.zip
