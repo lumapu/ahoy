@@ -63,7 +63,7 @@ jobs:
 
       #run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip tools/esp8266/.pio/build/out/* tools/esp8266/User_Manual.md
     - name: Create Artifact
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.rename-binary-files.outputs.name }}_dev_build
         path: |
