@@ -65,7 +65,7 @@ def readVersion(path, infile):
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")
     genOtaBin(path + "firmware/")
-    os.rename("gh-action-dev-build-flash.html", path + "install.html")
+    os.rename("../scripts/gh-action-dev-build-flash.html", path + "install.html")
 
     print("name=" + versionnumber[:-1] )
     
