@@ -10,23 +10,15 @@ import struct
 from enum import IntEnum
 import re
 import time
+import traceback
 from datetime import datetime
+from datetime import timedelta
+from suntimes import SunTimes
 import argparse
 import yaml
 from yaml.loader import SafeLoader
 import paho.mqtt.client
 import hoymiles
-
-def main_loop(do_init):
-    """Main loop"""
-    inverters = [
-            inverter for inverter in ahoy_config.get('inverters', [])
-            if not inverter.get('disabled', False)]
-
-    for inverter in inverters:
-        if hoymiles.HOYMILES_DEBUG_LOGGING:
-            print(f'Poll inverter {inverter["serial"]}')
-        poll_inverter(inverter, do_init)
 
 class InfoCommands(IntEnum):
     InverterDevInform_Simple = 0  # 0x00
@@ -47,6 +39,71 @@ class InfoCommands(IntEnum):
     GetLossRate = 21              # 0x15
     GetSelfCheckState = 30        # 0x1e
     InitDataState = 0xff
+
+class SunsetHandler:
+    def __init__(self, sunset_config):
+        self.suntimes = None
+        if sunset_config and sunset_config.get('disabled', True) == False:
+            latitude = sunset_config.get('latitude')
+            longitude = sunset_config.get('longitude')
+            altitude = sunset_config.get('altitude')
+            self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
+            self.nextSunset = self.suntimes.setutc(datetime.now())
+            print (f'Todays sunset is at {self.nextSunset}')
+
+    def checkWaitForSunrise(self):
+        if not self.suntimes:
+            return
+        # if the sunset already happened for today
+        now = datetime.now()
+        if self.nextSunset < now:
+            # wait until the sun rises tomorrow
+            tomorrow = now + timedelta(days=1)
+            nextSunrise = self.suntimes.riseutc(tomorrow)
+            self.nextSunset = self.suntimes.setutc(tomorrow)
+            time_to_sleep = (nextSunrise - datetime.now()).total_seconds()
+            print (f'Waiting for sunrise at {nextSunrise} ({time_to_sleep} seconds)')
+            if time_to_sleep > 0:
+                time.sleep(time_to_sleep)
+                print (f'Woke up... next sunset is at {self.nextSunset}')
+        return
+
+def main_loop(ahoy_config):
+    """Main loop"""
+    inverters = [
+            inverter for inverter in ahoy_config.get('inverters', [])
+            if not inverter.get('disabled', False)]
+
+    sunset = SunsetHandler(ahoy_config.get('sunset'))
+
+    loop_interval = ahoy_config.get('interval', 1)
+    try:
+        do_init = True
+        while True:
+            sunset.checkWaitForSunrise()
+
+            t_loop_start = time.time()
+
+            for inverter in inverters:
+                if hoymiles.HOYMILES_DEBUG_LOGGING:
+                    print(f'Poll inverter {inverter["serial"]}')
+                poll_inverter(inverter, do_init)
+            do_init = False
+
+            print('', end='', flush=True)
+
+            if loop_interval > 0:
+                time_to_sleep = loop_interval - (time.time() - t_loop_start)
+                if time_to_sleep > 0:
+                    time.sleep(time_to_sleep)
+
+    except KeyboardInterrupt:
+        sys.exit()
+    except Exception as e:
+        print ('Exception catched: %s' % e)
+        traceback.print_exc()
+        raise
+
 
 def poll_inverter(inverter, do_init, retries=4):
     """
@@ -310,25 +367,4 @@ if __name__ == '__main__':
             mqtt_client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
-    loop_interval = ahoy_config.get('interval', 1)
-    try:
-        do_init = True
-        while True:
-            t_loop_start = time.time()
-
-            main_loop(do_init)
-
-            do_init = False
-
-            print('', end='', flush=True)
-
-            time_to_sleep = loop_interval - (time.time() - t_loop_start)
-
-            if loop_interval > 0 and time_to_sleep > 0:
-                time.sleep(time_to_sleep) 
-
-    except KeyboardInterrupt:
-        sys.exit()
-    except Exception as e:
-        print ('Exception catched: %s' % e)
-        raise
+    main_loop(ahoy_config)

@@ -86,7 +86,7 @@ Required python modules
 Some modules are not installed by default on a RaspberryPi, therefore add them manually:
 
 ```
-pip install crcmod pyyaml paho-mqtt
+pip install crcmod pyyaml paho-mqtt SunTimes
 ```
 
 Configuration

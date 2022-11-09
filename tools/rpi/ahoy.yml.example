@@ -1,8 +1,12 @@
 ---
 
 ahoy:
-  interval: 0
-  sunset: true
+  interval: 5
+  sunset:
+    disabled: false
+    latitude: 51.799118
+    longitude: 10.615523
+    altitude: 1142
 
   # List of available NRF24 transceivers
   nrf:
