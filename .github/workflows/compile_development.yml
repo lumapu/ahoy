@@ -52,7 +52,7 @@ jobs:
     - name: Rename Binary files
       id: rename-binary-files
       working-directory: src
-      run: python /scripts/getVersion.py >> $GITHUB_OUTPUT
+      run: python ../scripts/getVersion.py >> $GITHUB_OUTPUT
 
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
@@ -63,7 +63,7 @@ jobs:
 
     - name: Create Manifest
       working-directory: src
-      run: python scripts/buildManifest.py
+      run: python ../scripts/buildManifest.py
 
     - name: Create Artifact
       uses: actions/upload-artifact@v3
