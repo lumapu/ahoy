@@ -85,7 +85,7 @@ void app::loop(void) {
 
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
-        sendMqttDiscoveryConfig();
+        mMqtt.sendMqttDiscoveryConfig(mSys, mConfig.mqtt.topic, mMqttInterval);
     }
 
     mSys->Radio.loop();
@@ -524,60 +524,6 @@ void app::getAvailNetworks(JsonObject obj) {
     mWifi->getAvailNetworks(obj);
 }
 
-//-----------------------------------------------------------------------------
-void app::sendMqttDiscoveryConfig(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
-
-    char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
-    for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-        Inverter<> *iv = mSys->getInverterByPos(id);
-        if (NULL != iv) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            DynamicJsonDocument deviceDoc(128);
-            deviceDoc["name"] = iv->name;
-            deviceDoc["ids"] = String(iv->serial.u64, HEX);
-            deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
-            deviceDoc["mf"] = "Hoymiles";
-            deviceDoc["mdl"] = iv->name;
-            JsonObject deviceObj = deviceDoc.as<JsonObject>();
-            DynamicJsonDocument doc(384);
-
-            for (uint8_t i = 0; i < rec->length; i++) {
-                if (rec->assign[i].ch == CH0) {
-                    snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i, rec));
-                } else {
-                    snprintf(name, 32, "%s CH%d %s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                }
-                snprintf(stateTopic, 64, "%s/%s/ch%d/%s", mConfig.mqtt.topic, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
-
-                doc["name"] = name;
-                doc["stat_t"] = stateTopic;
-                doc["unit_of_meas"] = iv->getUnit(i, rec);
-                doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
-                doc["dev"] = deviceObj;
-                doc["exp_aft"] = mMqttInterval + 5;  // add 5 sec if connection is bad or ESP too slow
-                if (devCls != NULL)
-                    doc["dev_cla"] = devCls;
-                if (stateCls != NULL)
-                    doc["stat_cla"] = stateCls;
-
-                serializeJson(doc, buffer);
-                mMqtt.sendMsg2(discoveryTopic, buffer, true);
-                // DPRINTLN(DBG_INFO, F("mqtt sent"));
-                doc.clear();
-            }
-
-            // TODO: remove this field, obsolete?
-            mMqttConfigSendState[id] = true;
-
-            yield();
-        }
-    }
-}
 
 //-----------------------------------------------------------------------------
 void app::sendMqtt(void) {
@@ -689,26 +635,6 @@ void app::sendMqtt(void) {
             }
         }
     }
-}
-
-//-----------------------------------------------------------------------------
-const char *app::getFieldDeviceClass(uint8_t fieldId) {
-    uint8_t pos = 0;
-    for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-        if (deviceFieldAssignment[pos].fieldId == fieldId)
-            break;
-    }
-    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
-}
-
-//-----------------------------------------------------------------------------
-const char *app::getFieldStateClass(uint8_t fieldId) {
-    uint8_t pos = 0;
-    for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-        if (deviceFieldAssignment[pos].fieldId == fieldId)
-            break;
-    }
-    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
 }
 
 //-----------------------------------------------------------------------------

@@ -32,6 +32,7 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
+typedef mqtt<HmSystemType> MqttType;
 
 typedef struct {
     uint8_t txCmd;
@@ -177,7 +178,6 @@ class app {
         void loadEEpconfig(void);
 
         void setupMqtt(void);
-        void sendMqttDiscoveryConfig(void);
         void sendMqtt(void);
 
         void setupLed(void);
@@ -185,9 +185,6 @@ class app {
 
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
-
-        const char* getFieldDeviceClass(uint8_t fieldId);
-        const char* getFieldStateClass(uint8_t fieldId);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
             DPRINTLN(DBG_VERBOSE, F("main.h:buildEEpCrc"));
@@ -286,11 +283,10 @@ class app {
         uint32_t mRxTicker;
 
         // mqtt
-        mqtt mMqtt;
+        MqttType mMqtt;
         uint16_t mMqttTicker;
         uint16_t mMqttInterval;
         bool mMqttActive;
-        bool mMqttConfigSendState[MAX_NUM_INVERTERS];
         std::queue<uint8_t> mMqttSendList;
 
         // serial

@@ -65,7 +65,6 @@ def convert2Header(inFile, compress):
 
 # delete all files in the 'h' dir, but ignore 'favicon_ico_gz.h'
 dir = 'h'
-print(os.getcwd())
 if os.getcwd()[-4:] != "html":
     dir = "web/html/" + dir
 
