@@ -11,6 +11,14 @@
 #include "app.h"
 
 #include <ArduinoJson.h>
+#ifdef ENA_NOKIA
+#include <U8g2lib.h>
+#endif
+#ifdef ENA_SSD1306
+#include <Wire.h>
+#include <SSD1306Wire.h>
+#endif
+
 
 //-----------------------------------------------------------------------------
 app::app() {
@@ -27,9 +35,260 @@ app::app() {
     mShouldReboot = false;
 }
 
+#ifdef ENA_SSD1306
+/* esp8266 : SCL = 5, SDA = 4 */
+/* ewsp32  : SCL = 22, SDA = 21 */
+SSD1306Wire display(0x3c, SDA, SCL);
+
+static unsigned char bmp_arrow[] PROGMEM = {
+        B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
+        B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
+        B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000 } ;
+
+void DataScreen( app* mApp, time_t ts )
+{
+static    int extra =  0;
+    String timeStr = mApp->getDateTimeStr(ts).substring(2,22);
+    IPAddress ip = WiFi.localIP();
+    float totalYield = 0.000, totalYieldToday = 0.000, totalActual = 0.0;
+    char fmtText[32];
+    int  ucnt=0;
+
+    for (uint8_t id = 0; id < mApp->mSys->getNumInverters(); id++)
+    {
+        Inverter<> *iv = mApp->mSys->getInverterByPos(id);
+        if (NULL != iv)
+        {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            uint8_t pos;
+            uint8_t list[] = {FLD_PAC, FLD_YT, FLD_YD};
+
+            if ( !iv->isProducing(ts,rec) )
+                continue;
+
+            ucnt++;
+
+            for (uint8_t fld = 0; fld < 3; fld++)
+            {
+                pos = iv->getPosByChFld(CH0, list[fld],rec);
+
+                if(fld == 1){
+                    totalYield += iv->getValue(pos,rec);
+                }
+
+                if(fld == 2){
+                    totalYieldToday += iv->getValue(pos,rec);
+                }
+
+                if(fld == 0){
+                    totalActual += iv->getValue(pos,rec);
+                }
+            }
+        }
+    }
+
+    display.clear();
+
+    if(ucnt)
+    {
+        display.setBrightness(63);
+        display.drawXbm(10,5,8,17,bmp_arrow);
+        display.setFont(ArialMT_Plain_24);
+        sprintf(fmtText,"%3.0f",totalActual);
+        display.drawString(25,0,String(fmtText)+F(" W"));
+        display.setFont(ArialMT_Plain_16);
+        sprintf(fmtText,"%4.0f",totalYieldToday);
+        display.drawString(5,22,F("today ")+String(fmtText)+F(" Wh"));
+        sprintf(fmtText,"%.1f",totalYield);
+        display.drawString(5,35,F("total  ")+String(fmtText)+F(" kWh"));
+        display.drawLine(2,23,123,23);
+    }
+    else
+    {
+static int rx=50;
+static char up=1;
+        if(up)
+        {
+            rx+=2;
+            if(rx>=70)
+            up=0;
+        }
+        else
+        {
+            rx-=2;
+            if(rx<=50)
+            up=1;
+        }
+        display.setBrightness(1);
+        display.setFont(ArialMT_Plain_24);
+        display.drawString(rx,10,F("off"));
+        display.setFont(ArialMT_Plain_16);
+    }
+    if ( !(extra%20) )
+    {
+        display.drawString(5,49,ip.toString());
+    }
+    else
+    {
+        int w=display.getStringWidth(timeStr.c_str(),timeStr.length(),0);
+        if ( w>127 )
+        {
+            String tt=timeStr.substring(9,17);
+            w=display.getStringWidth(tt.c_str(),tt.length(),0);
+            display.drawString(127-w,49,tt);
+        }
+        else
+            display.drawString(0,49,timeStr);
+    }
+
+    display.display();
+    extra++;
+}
+#endif
+
+#ifdef ENA_NOKIA
+
+U8G2_PCD8544_84X48_1_4W_HW_SPI u8g2(U8G2_R0,5,4,16);
+
+void ShowInfoText( const char *txt )
+{
+    /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
+    u8g2.clear();
+    u8g2.firstPage();
+    do{
+        const char *e;
+        const char *p = txt;
+        int y=10;
+        u8g2.setFont(u8g2_font_5x8_tr);
+        while(1)
+        {
+            for(e=p+1; (*e && (*e != '\n')); e++);
+            size_t len=e-p;
+            u8g2.setCursor(2,y);
+            String res=((String)p).substring(0,len);
+            u8g2.print(res);
+            if ( !*e )
+                break;
+            p=e+1;
+            y+=12;
+        }
+        u8g2.sendBuffer();
+    } while( u8g2.nextPage() );
+}
+
+static unsigned char bmp_arrow[] U8X8_PROGMEM = {
+        B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
+        B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
+        B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000 } ;
+
+void DataScreen( app* mApp, time_t ts )
+{
+static    int extra =  0;
+    String timeStr = mApp->getDateTimeStr(ts).substring(2,22);
+    IPAddress ip = WiFi.localIP();
+    float totalYield = 0.000, totalYieldToday = 0.000, totalActual = 0.0;
+    char fmtText[32];
+    int  ucnt=0;
+
+    for (uint8_t id = 0; id < mApp->mSys->getNumInverters(); id++)
+    {
+        Inverter<> *iv = mApp->mSys->getInverterByPos(id);
+        if (NULL != iv)
+        {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            uint8_t pos;
+            uint8_t list[] = {FLD_PAC, FLD_YT, FLD_YD};
+
+            if ( !iv->isProducing(ts,rec) )
+                continue;
+
+            ucnt++;
+
+            for (uint8_t fld = 0; fld < 3; fld++)
+            {
+                pos = iv->getPosByChFld(CH0, list[fld],rec);
+
+                if(fld == 1){
+                    totalYield += iv->getValue(pos,rec);
+                }
+
+                if(fld == 2){
+                    totalYieldToday += iv->getValue(pos,rec);
+                }
+
+                if(fld == 0){
+                    totalActual += iv->getValue(pos,rec);
+                }
+            }
+        }
+    }
+
+       /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
+    u8g2.clear();
+    u8g2.firstPage();
+    do{
+        if(ucnt)
+        {
+            u8g2.drawXBMP(10,0,8,17,bmp_arrow);
+            u8g2.setFont(u8g2_font_logisoso16_tr);
+            u8g2.setCursor(25,16);
+            sprintf(fmtText,"%3.0f",totalActual);
+            u8g2.print(String(fmtText)+F(" W"));
+            u8g2.drawHLine(2,20,78);
+            u8g2.setFont(u8g2_font_5x8_tr);
+            u8g2.setCursor(5,29);
+            sprintf(fmtText,"%4.0f",totalYieldToday);
+            u8g2.print(F("today ")+String(fmtText)+F(" Wh"));
+            u8g2.setCursor(5,37);
+            sprintf(fmtText,"%.1f",totalYield);
+            u8g2.print(F("total ")+String(fmtText)+F(" kWh"));
+        }
+        else
+        {
+            u8g2.setFont(u8g2_font_logisoso16_tr);
+            u8g2.setCursor(30,30);
+            u8g2.print(F("off"));
+            u8g2.setFont(u8g2_font_5x8_tr);
+        }
+        if ( !(extra%20) )
+        {
+            u8g2.setCursor(5,57);
+            u8g2.print(ip);
+        }
+        else
+        {
+            u8g2.setCursor(0,47);
+            u8g2.print(timeStr);
+        }
+
+        u8g2.sendBuffer();
+    } while( u8g2.nextPage() );
+    extra++;
+}
+#endif
+
 //-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     DPRINTLN(DBG_VERBOSE, F("app::setup"));
+
+#ifdef ENA_NOKIA
+    u8g2.begin();
+    ShowInfoText("booting...");
+#endif
+#ifdef ENA_SSD1306
+    display.init();
+    display.flipScreenVertically();
+    display.setContrast(63);
+    display.setBrightness(63);
+
+    display.clear();
+    display.setFont(ArialMT_Plain_24);
+    display.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
+
+    display.drawString(64,22,"Starting...");
+    display.display();
+    display.setTextAlignment(TEXT_ALIGN_LEFT);
+#endif
 
     mWifiSettingsValid = checkEEpCrc(ADDR_START, ADDR_WIFI_CRC, ADDR_WIFI_CRC);
     mSettingsValid = checkEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)), ADDR_SETTINGS_CRC);
@@ -82,7 +341,15 @@ void app::loop(void) {
         mUtcTimestamp = mWifi->getNtpTime();
         DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
     }
-
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+static int lcnt=90000;
+    if ( lcnt == 150000 )
+    {
+        DataScreen(this, mUtcTimestamp);
+        lcnt=0;
+    }
+    lcnt++;
+#endif
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
         sendMqttDiscoveryConfig();
