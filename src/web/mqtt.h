@@ -95,76 +95,184 @@ class mqtt {
         }
 
         void sendMqttDiscoveryConfig(HMSYSTEM *sys, const char *topic, uint32_t invertval) {
-    DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
+            DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
 
-    char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
-    for (uint8_t id = 0; id < sys->getNumInverters(); id++) {
-        Inverter<> *iv = sys->getInverterByPos(id);
-        if (NULL != iv) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            DynamicJsonDocument deviceDoc(128);
-            deviceDoc["name"] = iv->name;
-            deviceDoc["ids"] = String(iv->serial.u64, HEX);
-            deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
-            deviceDoc["mf"] = "Hoymiles";
-            deviceDoc["mdl"] = iv->name;
-            JsonObject deviceObj = deviceDoc.as<JsonObject>();
-            DynamicJsonDocument doc(384);
+            char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
+            for (uint8_t id = 0; id < sys->getNumInverters(); id++) {
+                Inverter<> *iv = sys->getInverterByPos(id);
+                if (NULL != iv) {
+                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                    DynamicJsonDocument deviceDoc(128);
+                    deviceDoc["name"] = iv->name;
+                    deviceDoc["ids"] = String(iv->serial.u64, HEX);
+                    deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
+                    deviceDoc["mf"] = "Hoymiles";
+                    deviceDoc["mdl"] = iv->name;
+                    JsonObject deviceObj = deviceDoc.as<JsonObject>();
+                    DynamicJsonDocument doc(384);
 
-            for (uint8_t i = 0; i < rec->length; i++) {
-                if (rec->assign[i].ch == CH0) {
-                    snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i, rec));
-                } else {
-                    snprintf(name, 32, "%s CH%d %s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    for (uint8_t i = 0; i < rec->length; i++) {
+                        if (rec->assign[i].ch == CH0) {
+                            snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i, rec));
+                        } else {
+                            snprintf(name, 32, "%s CH%d %s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        }
+                        snprintf(stateTopic, 64, "%s/%s/ch%d/%s", topic, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
+                        const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
+                        const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
+
+                        doc["name"] = name;
+                        doc["stat_t"] = stateTopic;
+                        doc["unit_of_meas"] = iv->getUnit(i, rec);
+                        doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
+                        doc["dev"] = deviceObj;
+                        doc["exp_aft"] = invertval + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                        if (devCls != NULL)
+                            doc["dev_cla"] = devCls;
+                        if (stateCls != NULL)
+                            doc["stat_cla"] = stateCls;
+
+                        serializeJson(doc, buffer);
+                        sendMsg2(discoveryTopic, buffer, true);
+                        // DPRINTLN(DBG_INFO, F("mqtt sent"));
+                        doc.clear();
+                    }
+
+                    yield();
                 }
-                snprintf(stateTopic, 64, "%s/%s/ch%d/%s", topic, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
-
-                doc["name"] = name;
-                doc["stat_t"] = stateTopic;
-                doc["unit_of_meas"] = iv->getUnit(i, rec);
-                doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
-                doc["dev"] = deviceObj;
-                doc["exp_aft"] = invertval + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                if (devCls != NULL)
-                    doc["dev_cla"] = devCls;
-                if (stateCls != NULL)
-                    doc["stat_cla"] = stateCls;
-
-                serializeJson(doc, buffer);
-                sendMsg2(discoveryTopic, buffer, true);
-                // DPRINTLN(DBG_INFO, F("mqtt sent"));
-                doc.clear();
             }
-
-            yield();
         }
-    }
-}
 
+        void sendIvData(HMSYSTEM *sys, uint32_t mUtcTs, std::queue<uint8_t> list) {
+            isConnected(true);  // really needed? See comment from HorstG-57 #176
+            char topic[32 + MAX_NAME_LENGTH], val[32];
+            float total[4];
+            bool sendTotal = false;
+            bool totalIncomplete = false;
+            snprintf(val, 32, "%ld", millis() / 1000);
 
-//-----------------------------------------------------------------------------
-const char *getFieldDeviceClass(uint8_t fieldId) {
-    uint8_t pos = 0;
-    for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-        if (deviceFieldAssignment[pos].fieldId == fieldId)
-            break;
-    }
-    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
-}
+            sendMsg("uptime", val);
 
-//-----------------------------------------------------------------------------
-const char *getFieldStateClass(uint8_t fieldId) {
-    uint8_t pos = 0;
-    for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-        if (deviceFieldAssignment[pos].fieldId == fieldId)
-            break;
-    }
-    return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
-}
+            if(list.empty())
+                return;
+
+            while(!list.empty()) {
+                memset(total, 0, sizeof(float) * 4);
+                for (uint8_t id = 0; id < sys->getNumInverters(); id++) {
+                    Inverter<> *iv = sys->getInverterByPos(id);
+                    if (NULL == iv)
+                        continue; // skip to next inverter
+
+                    record_t<> *rec = iv->getRecordStruct(list.front());
+
+                    if(list.front() == RealTimeRunData_Debug) {
+                        // inverter status
+                        uint8_t status = MQTT_STATUS_AVAIL_PROD;
+                        if (!iv->isAvailable(mUtcTs, rec)) {
+                            status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                            totalIncomplete = true;
+                        }
+                        else if (!iv->isProducing(mUtcTs, rec)) {
+                            if (MQTT_STATUS_AVAIL_PROD == status)
+                                status = MQTT_STATUS_AVAIL_NOT_PROD;
+                        }
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                        snprintf(val, 32, "%s%s%s%s",
+                            (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
+                            "available and ",
+                            (MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                            (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
+                        );
+                        sendMsg(topic, val);
+
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                        snprintf(val, 32, "%d", status);
+                        sendMsg(topic, val);
+
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
+                        snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
+                        sendMsg(topic, val);
+                    }
+
+                    // data
+                    if(iv->isAvailable(mUtcTs, rec)) {
+                        for (uint8_t i = 0; i < rec->length; i++) {
+                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                            snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                            sendMsg(topic, val);
+
+                            // calculate total values for RealTimeRunData_Debug
+                            if (list.front() == RealTimeRunData_Debug) {
+                                if (CH0 == rec->assign[i].ch) {
+                                    switch (rec->assign[i].fieldId) {
+                                        case FLD_PAC:
+                                            total[0] += iv->getValue(i, rec);
+                                            break;
+                                        case FLD_YT:
+                                            total[1] += iv->getValue(i, rec);
+                                            break;
+                                        case FLD_YD:
+                                            total[2] += iv->getValue(i, rec);
+                                            break;
+                                        case FLD_PDC:
+                                            total[3] += iv->getValue(i, rec);
+                                            break;
+                                    }
+                                }
+                                sendTotal = true;
+                            }
+                            yield();
+                        }
+                    }
+                }
+
+                list.pop(); // remove from list once all inverters were processed
+
+                if ((true == sendTotal) && (false == totalIncomplete)) {
+                    uint8_t fieldId;
+                    for (uint8_t i = 0; i < 4; i++) {
+                        switch (i) {
+                            default:
+                            case 0:
+                                fieldId = FLD_PAC;
+                                break;
+                            case 1:
+                                fieldId = FLD_YT;
+                                break;
+                            case 2:
+                                fieldId = FLD_YD;
+                                break;
+                            case 3:
+                                fieldId = FLD_PDC;
+                                break;
+                        }
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
+                        snprintf(val, 10, "%.3f", total[i]);
+                        sendMsg(topic, val);
+                    }
+                }
+            }
+        }
+
+        const char *getFieldDeviceClass(uint8_t fieldId) {
+            uint8_t pos = 0;
+            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+                if (deviceFieldAssignment[pos].fieldId == fieldId)
+                    break;
+            }
+            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
+        }
+
+        const char *getFieldStateClass(uint8_t fieldId) {
+            uint8_t pos = 0;
+            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+                if (deviceFieldAssignment[pos].fieldId == fieldId)
+                    break;
+            }
+            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
+        }
 
     private:
         void reconnect(void) {
