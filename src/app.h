@@ -247,8 +247,6 @@ class app {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
-        void calculateSunriseSunset(void);
-
         uint32_t mUptimeSecs;
         uint32_t mPrevMillis;
         uint8_t mHeapStatCnt;
@@ -294,8 +292,7 @@ class app {
 
         // sun
         int32_t mCalculatedTimezoneOffset;
-        uint32_t mSunrise;
-        uint32_t mSunset;
+        uint32_t mSunrise, mSunset;
         uint32_t mLatestSunTimestamp;
 };
 

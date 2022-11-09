@@ -38,15 +38,18 @@ class mqtt {
 
         ~mqtt() { }
 
-        void setup(mqttConfig_t *cfg, const char *devname) {
+        void setup(mqttConfig_t *cfg, const char *devname, HMSYSTEM *sys) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
 
             mCfg = cfg;
             snprintf(mDevName, DEVNAME_LEN,    "%s", devname);
+            mSys = sys;
 
             mClient->setServer(mCfg->broker, mCfg->port);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
+
+            setCallback(std::bind(&mqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         }
 
         void setCallback(MQTT_CALLBACK_SIGNATURE) {
@@ -94,12 +97,12 @@ class mqtt {
             return mTxCnt;
         }
 
-        void sendMqttDiscoveryConfig(HMSYSTEM *sys, const char *topic, uint32_t invertval) {
-            DPRINTLN(DBG_VERBOSE, F("app::sendMqttDiscoveryConfig"));
+        void sendMqttDiscoveryConfig(const char *topic, uint32_t invertval) {
+            DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
-            for (uint8_t id = 0; id < sys->getNumInverters(); id++) {
-                Inverter<> *iv = sys->getInverterByPos(id);
+            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL != iv) {
                     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                     DynamicJsonDocument deviceDoc(128);
@@ -145,7 +148,7 @@ class mqtt {
             }
         }
 
-        void sendIvData(HMSYSTEM *sys, uint32_t mUtcTs, std::queue<uint8_t> list) {
+        void sendIvData(uint32_t mUtcTs, std::queue<uint8_t> list) {
             isConnected(true);  // really needed? See comment from HorstG-57 #176
             char topic[32 + MAX_NAME_LENGTH], val[32];
             float total[4];
@@ -160,8 +163,8 @@ class mqtt {
 
             while(!list.empty()) {
                 memset(total, 0, sizeof(float) * 4);
-                for (uint8_t id = 0; id < sys->getNumInverters(); id++) {
-                    Inverter<> *iv = sys->getInverterByPos(id);
+                for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                    Inverter<> *iv = mSys->getInverterByPos(id);
                     if (NULL == iv)
                         continue; // skip to next inverter
 
@@ -256,24 +259,6 @@ class mqtt {
             }
         }
 
-        const char *getFieldDeviceClass(uint8_t fieldId) {
-            uint8_t pos = 0;
-            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-                if (deviceFieldAssignment[pos].fieldId == fieldId)
-                    break;
-            }
-            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
-        }
-
-        const char *getFieldStateClass(uint8_t fieldId) {
-            uint8_t pos = 0;
-            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
-                if (deviceFieldAssignment[pos].fieldId == fieldId)
-                    break;
-            }
-            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
-        }
-
     private:
         void reconnect(void) {
             DPRINTLN(DBG_DEBUG, F("mqtt.h:reconnect"));
@@ -311,8 +296,130 @@ class mqtt {
             }
         }
 
+        const char *getFieldDeviceClass(uint8_t fieldId) {
+            uint8_t pos = 0;
+            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+                if (deviceFieldAssignment[pos].fieldId == fieldId)
+                    break;
+            }
+            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
+        }
+
+        const char *getFieldStateClass(uint8_t fieldId) {
+            uint8_t pos = 0;
+            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+                if (deviceFieldAssignment[pos].fieldId == fieldId)
+                    break;
+            }
+            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
+        }
+
+        void cbMqtt(char *topic, byte *payload, unsigned int length) {
+            // callback handling on subscribed devcontrol topic
+            DPRINTLN(DBG_INFO, F("cbMqtt"));
+            // subcribed topics are mTopic + "/devcontrol/#" where # is <inverter_id>/<subcmd in dec>
+            // eg. mypvsolar/devcontrol/1/11 with payload "400" --> inverter 1 active power limit 400 Watt
+            const char *token = strtok(topic, "/");
+            while (token != NULL) {
+                if (strcmp(token, "devcontrol") == 0) {
+                    token = strtok(NULL, "/");
+                    uint8_t iv_id = std::stoi(token);
+
+                    if (iv_id >= 0 && iv_id <= MAX_NUM_INVERTERS) {
+                        Inverter<> *iv = mSys->getInverterByPos(iv_id);
+                        if (NULL != iv) {
+                            if (!iv->devControlRequest) {  // still pending
+                                token = strtok(NULL, "/");
+
+                                switch (std::stoi(token)) {
+                                    // Active Power Control
+                                    case ActivePowerContr:
+                                        token = strtok(NULL, "/");  // get ControlMode aka "PowerPF.Desc" in DTU-Pro Code from topic string
+                                        if (token == NULL)          // default via mqtt ommit the LimitControlMode
+                                            iv->powerLimit[1] = AbsolutNonPersistent;
+                                        else
+                                            iv->powerLimit[1] = std::stoi(token);
+                                        if (length <= 5) {  // if (std::stoi((char*)payload) > 0) more error handling powerlimit needed?
+                                            if (iv->powerLimit[1] >= AbsolutNonPersistent && iv->powerLimit[1] <= RelativPersistent) {
+                                                iv->devControlCmd = ActivePowerContr;
+                                                iv->powerLimit[0] = std::stoi(std::string((char *)payload, (unsigned int)length));  // THX to @silversurfer
+                                                /*if (iv->powerLimit[1] & 0x0001)
+                                                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%"));
+                                                else
+                                                    DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W"));*/
+
+                                                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + String(iv->powerLimit[1] & 0x0001) ? F("%") : F("W"));
+                                            }
+                                            iv->devControlRequest = true;
+                                        } else {
+                                            DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char *)payload));
+                                        }
+                                        break;
+
+                                    // Turn On
+                                    case TurnOn:
+                                        iv->devControlCmd = TurnOn;
+                                        DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id));
+                                        iv->devControlRequest = true;
+                                        break;
+
+                                    // Turn Off
+                                    case TurnOff:
+                                        iv->devControlCmd = TurnOff;
+                                        DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id));
+                                        iv->devControlRequest = true;
+                                        break;
+
+                                    // Restart
+                                    case Restart:
+                                        iv->devControlCmd = Restart;
+                                        DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id));
+                                        iv->devControlRequest = true;
+                                        break;
+
+                                    // Reactive Power Control
+                                    case ReactivePowerContr:
+                                        iv->devControlCmd = ReactivePowerContr;
+                                        if (true) {  // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
+                                            iv->devControlCmd = ReactivePowerContr;
+                                            iv->powerLimit[0] = std::stoi(std::string((char *)payload, (unsigned int)length));
+                                            iv->powerLimit[1] = 0x0000;  // if reactivepower limit is set via external interface --> set it temporay
+                                            DPRINTLN(DBG_DEBUG, F("Reactivepower limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W"));
+                                            iv->devControlRequest = true;
+                                        }
+                                        break;
+
+                                    // Set Power Factor
+                                    case PFSet:
+                                        // iv->devControlCmd = PFSet;
+                                        // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
+                                        DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id));
+                                        break;
+
+                                    // CleanState lock & alarm
+                                    case CleanState_LockAndAlarm:
+                                        iv->devControlCmd = CleanState_LockAndAlarm;
+                                        DPRINTLN(DBG_INFO, F("CleanState lock & alarm for inverter ") + String(iv->id));
+                                        iv->devControlRequest = true;
+                                        break;
+
+                                    default:
+                                        DPRINTLN(DBG_INFO, "Not implemented");
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                token = strtok(NULL, "/");
+            }
+            DPRINTLN(DBG_INFO, F("app::cbMqtt finished"));
+        }
+
         WiFiClient mEspClient;
         PubSubClient *mClient;
+        HMSYSTEM *mSys;
         
         bool mAddressSet;
         mqttConfig_t *mCfg;

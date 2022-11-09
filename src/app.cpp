@@ -9,8 +9,8 @@
 #endif
 
 #include "app.h"
-
 #include <ArduinoJson.h>
+#include "utils/sun.h"
 
 //-----------------------------------------------------------------------------
 app::app() {
@@ -37,11 +37,10 @@ void app::setup(uint32_t timeout) {
 
     mWifi->setup(timeout, mWifiSettingsValid);
 
+    mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
 #ifndef AP_ONLY
     setupMqtt();
 #endif
-    mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
-
     setupLed();
 
     mWebInst = new web(this, &mSysConfig, &mConfig, &mStat, mVersion);
@@ -85,7 +84,7 @@ void app::loop(void) {
 
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
-        mMqtt.sendMqttDiscoveryConfig(mSys, mConfig.mqtt.topic, mMqttInterval);
+        mMqtt.sendMqttDiscoveryConfig(mConfig.mqtt.topic, mMqttInterval);
     }
 
     mSys->Radio.loop();
@@ -164,13 +163,13 @@ void app::loop(void) {
             if (!mLatestSunTimestamp) {                                                                                                                                                           // first call: calculate time zone from longitude to refresh at local midnight
                 mCalculatedTimezoneOffset = (int8_t)((mConfig.sunLon >= 0 ? mConfig.sunLon + 7.5 : mConfig.sunLon - 7.5) / 15) * 3600;
             }
-            calculateSunriseSunset();
+            ah::calculateSunriseSunset(mUtcTimestamp, mCalculatedTimezoneOffset, mConfig.sunLat, mConfig.sunLon, &mSunrise, &mSunset);
             mLatestSunTimestamp = mUtcTimestamp;
         }
 
         if ((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
             mMqttTicker = 0;
-            mMqtt.sendIvData(mSys, mUtcTimestamp, mMqttSendList);
+            mMqtt.sendIvData(mUtcTimestamp, mMqttSendList);
         }
 
         if (mConfig.serialShowIv) {
@@ -406,110 +405,6 @@ void app::processPayload(bool retransmit) {
 }
 
 //-----------------------------------------------------------------------------
-void app::cbMqtt(char *topic, byte *payload, unsigned int length) {
-    // callback handling on subscribed devcontrol topic
-    DPRINTLN(DBG_INFO, F("app::cbMqtt"));
-    // subcribed topics are mTopic + "/devcontrol/#" where # is <inverter_id>/<subcmd in dec>
-    // eg. mypvsolar/devcontrol/1/11 with payload "400" --> inverter 1 active power limit 400 Watt
-    const char *token = strtok(topic, "/");
-    while (token != NULL) {
-        if (strcmp(token, "devcontrol") == 0) {
-            token = strtok(NULL, "/");
-            uint8_t iv_id = std::stoi(token);
-
-            if (iv_id >= 0 && iv_id <= MAX_NUM_INVERTERS) {
-                Inverter<> *iv = this->mSys->getInverterByPos(iv_id);
-                if (NULL != iv) {
-                    if (!iv->devControlRequest) {  // still pending
-                        token = strtok(NULL, "/");
-
-                        switch (std::stoi(token)) {
-                            // Active Power Control
-                            case ActivePowerContr:
-                                token = strtok(NULL, "/");  // get ControlMode aka "PowerPF.Desc" in DTU-Pro Code from topic string
-                                if (token == NULL)          // default via mqtt ommit the LimitControlMode
-                                    iv->powerLimit[1] = AbsolutNonPersistent;
-                                else
-                                    iv->powerLimit[1] = std::stoi(token);
-                                if (length <= 5) {  // if (std::stoi((char*)payload) > 0) more error handling powerlimit needed?
-                                    if (iv->powerLimit[1] >= AbsolutNonPersistent && iv->powerLimit[1] <= RelativPersistent) {
-                                        iv->devControlCmd = ActivePowerContr;
-                                        iv->powerLimit[0] = std::stoi(std::string((char *)payload, (unsigned int)length));  // THX to @silversurfer
-                                        /*if (iv->powerLimit[1] & 0x0001)
-                                            DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("%"));
-                                        else
-                                            DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W"));*/
-
-                                        DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + String(iv->powerLimit[1] & 0x0001) ? F("%") : F("W"));
-                                    }
-                                    iv->devControlRequest = true;
-                                } else {
-                                    DPRINTLN(DBG_INFO, F("Invalid mqtt payload recevied: ") + String((char *)payload));
-                                }
-                                break;
-
-                            // Turn On
-                            case TurnOn:
-                                iv->devControlCmd = TurnOn;
-                                DPRINTLN(DBG_INFO, F("Turn on inverter ") + String(iv->id));
-                                iv->devControlRequest = true;
-                                break;
-
-                            // Turn Off
-                            case TurnOff:
-                                iv->devControlCmd = TurnOff;
-                                DPRINTLN(DBG_INFO, F("Turn off inverter ") + String(iv->id));
-                                iv->devControlRequest = true;
-                                break;
-
-                            // Restart
-                            case Restart:
-                                iv->devControlCmd = Restart;
-                                DPRINTLN(DBG_INFO, F("Restart inverter ") + String(iv->id));
-                                iv->devControlRequest = true;
-                                break;
-
-                            // Reactive Power Control
-                            case ReactivePowerContr:
-                                iv->devControlCmd = ReactivePowerContr;
-                                if (true) {  // if (std::stoi((char*)payload) > 0) error handling powerlimit needed?
-                                    iv->devControlCmd = ReactivePowerContr;
-                                    iv->powerLimit[0] = std::stoi(std::string((char *)payload, (unsigned int)length));
-                                    iv->powerLimit[1] = 0x0000;  // if reactivepower limit is set via external interface --> set it temporay
-                                    DPRINTLN(DBG_DEBUG, F("Reactivepower limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W"));
-                                    iv->devControlRequest = true;
-                                }
-                                break;
-
-                            // Set Power Factor
-                            case PFSet:
-                                // iv->devControlCmd = PFSet;
-                                // uint16_t power_factor = std::stoi(strtok(NULL, "/"));
-                                DPRINTLN(DBG_INFO, F("Set Power Factor not implemented for inverter ") + String(iv->id));
-                                break;
-
-                            // CleanState lock & alarm
-                            case CleanState_LockAndAlarm:
-                                iv->devControlCmd = CleanState_LockAndAlarm;
-                                DPRINTLN(DBG_INFO, F("CleanState lock & alarm for inverter ") + String(iv->id));
-                                iv->devControlRequest = true;
-                                break;
-
-                            default:
-                                DPRINTLN(DBG_INFO, "Not implemented");
-                                break;
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        token = strtok(NULL, "/");
-    }
-    DPRINTLN(DBG_INFO, F("app::cbMqtt finished"));
-}
-
-//-----------------------------------------------------------------------------
 bool app::getWifiApActive(void) {
     return mWifi->getApActive();
 }
@@ -685,15 +580,12 @@ void app::setupMqtt(void) {
         if (mConfig.mqtt.broker[0] > 0) {
             mMqttActive = true;
             if (mMqttInterval < MIN_MQTT_INTERVAL) mMqttInterval = MIN_MQTT_INTERVAL;
-        } else {
+        } else
             mMqttInterval = 0xffff;
-        }
 
         mMqttTicker = 0;
-        if(mMqttActive) {
-            mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName);
-            mMqtt.setCallback(std::bind(&app::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        }
+        if(mMqttActive)
+            mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName, mSys);
 
         if (mMqttActive) {
             mMqtt.sendMsg("version", mVersion);
@@ -746,32 +638,4 @@ void app::resetPayload(Inverter<> *iv) {
     mPayload[iv->id].complete = false;
     mPayload[iv->id].requested = false;
     mPayload[iv->id].ts = mUtcTimestamp;
-}
-
-//-----------------------------------------------------------------------------
-void app::calculateSunriseSunset() {
-    // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
-
-    // Julian day since 1.1.2000 12:00 + correction 69.12s
-    double n_JulianDay = (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 - 10957.0 + 0.0008;
-    // Mean solar time
-    double J = n_JulianDay - mConfig.sunLon / 360;
-    // Solar mean anomaly
-    double M = fmod((357.5291 + 0.98560028 * J), 360);
-    // Equation of the center
-    double C = 1.9148 * SIN(M) + 0.02 * SIN(2 * M) + 0.0003 * SIN(3 * M);
-    // Ecliptic longitude
-    double lambda = fmod((M + C + 180 + 102.9372), 360);
-    // Solar transit
-    double Jtransit = 2451545.0 + J + 0.0053 * SIN(M) - 0.0069 * SIN(2 * lambda);
-    // Declination of the sun
-    double delta = ASIN(SIN(lambda) * SIN(23.44));
-    // Hour angle
-    double omega = ACOS(SIN(-0.83) - SIN(mConfig.sunLat) * SIN(delta) / COS(mConfig.sunLat) * COS(delta));
-    // Calculate sunrise and sunset
-    double Jrise = Jtransit - omega / 360;
-    double Jset = Jtransit + omega / 360;
-    // Julian sunrise/sunset to UTC unix timestamp (days incl. fraction to seconds + unix offset 1.1.2000 12:00)
-    mSunrise = (Jrise - 2451545.0) * 86400 + 946728000;  // OPTIONAL: Add an offset of +-seconds to the end of the line
-    mSunset = (Jset - 2451545.0) * 86400 + 946728000;    // OPTIONAL: Add an offset of +-seconds to the end of the line
 }
