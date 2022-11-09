@@ -52,7 +52,7 @@ jobs:
     - name: Rename Binary files
       id: rename-binary-files
       working-directory: src
-      run: python scripts/getVersion.py >> $GITHUB_OUTPUT
+      run: python /scripts/getVersion.py >> $GITHUB_OUTPUT
 
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
