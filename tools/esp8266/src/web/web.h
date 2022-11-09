@@ -6,7 +6,7 @@
 #ifndef __WEB_H__
 #define __WEB_H__
 
-#include "dbg.h"
+#include "../utils/dbg.h"
 #ifdef ESP32
     #include "AsyncTCP.h"
     #include "Update.h"
@@ -14,7 +14,7 @@
     #include "ESPAsyncTCP.h"
 #endif
 #include "ESPAsyncWebServer.h"
-#include "app.h"
+#include "../app.h"
 #include "webApi.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048

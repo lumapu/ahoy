@@ -6,7 +6,7 @@
 #ifndef __APP_H__
 #define __APP_H__
 
-#include "dbg.h"
+#include "src/utils/dbg.h"
 #include "Arduino.h"
 
 
@@ -15,15 +15,15 @@
 #include <RF24_config.h>
 #include <ArduinoJson.h>
 
-#include "eep.h"
+#include "config/eep.h"
 #include "defines.h"
-#include "crc.h"
+#include "utils/crc.h"
 
-#include "CircularBuffer.h"
-#include "hmSystem.h"
-#include "mqtt.h"
-#include "ahoywifi.h"
-#include "web.h"
+#include "hm/CircularBuffer.h"
+#include "hm/hmSystem.h"
+#include "wifi/ahoywifi.h"
+#include "web/mqtt.h"
+#include "web/web.h"
 
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
@@ -179,7 +179,7 @@ class app {
         void setupMqtt(void);
         void sendMqttDiscoveryConfig(void);
         void sendMqtt(void);
-        
+
         void setupLed(void);
         void updateLed(void);
 

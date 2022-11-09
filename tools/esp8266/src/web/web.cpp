@@ -10,16 +10,16 @@
 
 #include "web.h"
 
-#include "html/h/index_html.h"
-#include "html/h/login_html.h"
-#include "html/h/style_css.h"
-#include "html/h/api_js.h"
-#include "html/h/favicon_ico_gz.h"
-#include "html/h/setup_html.h"
-#include "html/h/visualization_html.h"
-#include "html/h/update_html.h"
-#include "html/h/serial_html.h"
-#include "html/h/system_html.h"
+#include "../../html/h/index_html.h"
+#include "../../html/h/login_html.h"
+#include "../../html/h/style_css.h"
+#include "../../html/h/api_js.h"
+#include "../../html/h/favicon_ico_gz.h"
+#include "../../html/h/setup_html.h"
+#include "../../html/h/visualization_html.h"
+#include "../../html/h/update_html.h"
+#include "../../html/h/serial_html.h"
+#include "../../html/h/system_html.h"
 
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
 

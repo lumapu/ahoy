@@ -6,16 +6,16 @@
 #ifndef __AHOYWIFI_H__
 #define __AHOYWIFI_H__
 
-#include "dbg.h"
+#include "../utils/dbg.h"
 
 // NTP
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 #include <DNSServer.h>
 
-#include "defines.h"
+#include "../defines.h"
 
-#include "app.h"
+#include "../app.h"
 
 class app;
 

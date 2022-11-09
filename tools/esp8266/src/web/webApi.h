@@ -1,7 +1,7 @@
 #ifndef __WEB_API_H__
 #define __WEB_API_H__
 
-#include "dbg.h"
+#include "../utils/dbg.h"
 #ifdef ESP32
     #include "AsyncTCP.h"
 #else
@@ -9,7 +9,7 @@
 #endif
 #include "ESPAsyncWebServer.h"
 #include "AsyncJson.h"
-#include "app.h"
+#include "../app.h"
 
 
 class app;

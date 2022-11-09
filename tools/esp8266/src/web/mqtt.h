@@ -17,7 +17,7 @@
   #define F(sl) (sl)
 #endif
 #include <PubSubClient.h>
-#include "defines.h"
+#include "../defines.h"
 
 class mqtt {
     public:

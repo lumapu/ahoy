@@ -6,9 +6,9 @@
 #ifndef __RADIO_H__
 #define __RADIO_H__
 
-#include "dbg.h"
+#include "../utils/dbg.h"
 #include <RF24.h>
-#include "crc.h"
+#include "../utils/crc.h"
 #ifndef DISABLE_IRQ
     #if defined(ESP8266) || defined(ESP32)
         #define DISABLE_IRQ noInterrupts()
