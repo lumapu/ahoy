@@ -47,8 +47,7 @@ def buildManifest(path, infile, outfile):
 
     jsonString = json.dumps(data, indent=2)
 
-    os.mkdir(path + "json/")
-    fp = open(path + "json/" + outfile, "w")
+    fp = open(path + "firmware/" + outfile, "w")
     fp.write(jsonString)
     fp.close()
 

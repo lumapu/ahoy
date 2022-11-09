@@ -41,6 +41,42 @@
                     Die Release Builds werden auf <a href="https://ahoydtu.de" target="_blank">ahoyDtu.de</a> veröffentlicht.
                 </p>
             </div>
+
+            <div class="container col-xxl-8 px-4 py-5">
+                <h3>Vorbereitungen Google Chrome</h3>
+                <p class="lead">
+                    Bekommt man nach der Auswahl des COM-Ports einen Fehler <i>Failed to download manifest</i> muss man Chrome mit einem Parameter starten:
+                </p>
+                <p class="lead">
+                    <div class="row lead mb-2">
+                        <div class="col col-md-2 col-sm-12">
+                            Windows
+                        </div>
+                        <div class="col mx-sm-4">
+                            <code>start chrome --allow-file-access-from-files</code>
+                        </div>
+                    </div>
+                    <div class="row lead mb-2">
+                        <div class="col col-md-2 col-sm-12">
+                            Linux
+                        </div>
+                        <div class="col mx-sm-4">
+                            <code>google-chrome --allow-file-access-from-files</code>
+                        </div>
+                    </div>
+                    <div class="row lead">
+                        <div class="col col-md-2 col-sm-12">
+                            OS X
+                        </div>
+                        <div class="col mx-sm-4">
+                            <code>open -a 'Google Chrome' --args -allow-file-access-from-files</code>
+                        </div>
+                    </div>
+                </p>
+                <div class="alert alert-warning" role="alert">
+                    <strong>Wichtig: </strong>es darf keine weitere Instanz von Chrome offen sein, sonst funktionert der Parameter nicht.
+                </div>
+            </div>
         </main>
         <footer class="footer mt-auto text-center text-lg-start text-white" style="background-color: #45526e">
             <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.2);">
