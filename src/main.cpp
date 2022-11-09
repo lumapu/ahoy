@@ -3,9 +3,9 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#include "src/utils/dbg.h"
-#include "src/app.h"
-#include "src/config/config.h"
+#include "utils/dbg.h"
+#include "app.h"
+#include "config/config.h"
 
 
 app myApp;

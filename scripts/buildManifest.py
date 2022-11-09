@@ -52,4 +52,4 @@ def buildManifest(path, infile, outfile):
     fp.close()
 
     
-buildManifest("../", "defines.h", "manifest.json")
+buildManifest("", "defines.h", "manifest.json")

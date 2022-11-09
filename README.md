@@ -7,13 +7,13 @@
 
 List of approaches
 
-- [ESP8266/ESP32, C++](tools/esp8266/) 👈 the most effort is spent here
+- [ESP8266/ESP32, C++](Getting_Started.md) 👈 the most effort is spent here
 - [Arduino Nano, C++](tools/nano/NRF24_SendRcv/)
 - [Raspberry Pi, Python](tools/rpi/)
 - [Others, C/C++](tools/nano/NRF24_SendRcv/)
 
 ## Quick Start with ESP8266
-- [Go here ✨](tools/esp8266/README.md#things-needed)
+- [Go here ✨](Getting_Started.md#things-needed)
 
 
 ## Success Stories

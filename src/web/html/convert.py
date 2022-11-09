@@ -65,8 +65,9 @@ def convert2Header(inFile, compress):
 
 # delete all files in the 'h' dir, but ignore 'favicon_ico_gz.h'
 dir = 'h'
+print(os.getcwd())
 if os.getcwd()[-4:] != "html":
-    dir = "html/" + dir
+    dir = "web/html/" + dir
 
 for f in os.listdir(dir):
     if not f.startswith('favicon_ico_gz'):  
@@ -74,7 +75,7 @@ for f in os.listdir(dir):
 
 # grab all files with following extensions
 if os.getcwd()[-4:] != "html":
-    os.chdir('./html')
+    os.chdir('./web/html')
 types = ('*.html', '*.css', '*.js') # the tuple of file types
 files_grabbed = []
 for files in types:

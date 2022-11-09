@@ -1,7 +1,7 @@
 # User Manual Ahoy DTU (on ESP8266)
 Version #{VERSION}#
 ## Introduction
-See the repository [README.md](README.md)
+See the repository [README.md](Getting_Started.md)
 
 ## Setup
 Assuming you have a running ahoy-dtu and you can access the setup page.

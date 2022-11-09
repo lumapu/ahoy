@@ -85,7 +85,7 @@ To also run our sister project OpenDTU and be upwards compatible for the future 
 #### There are fake NRF24L01+ Modules out there
 
 Watch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
-An example can be found in [Issue #230](https://github.com/grindylow/ahoy/issues/230).<br/>
+An example can be found in [Issue #230](https://github.com/lumapu/ahoy/issues/230).<br/>
 You are welcome to add more examples of faked chips. We will add that information here.<br/>
 
 ## Wiring things up
@@ -112,11 +112,11 @@ This is an example wiring using a Wemos D1 mini.<br>
 
 ##### Schematic
 
-![Schematic](../../doc/AhoyWemos_Schaltplan.jpg)
+![Schematic](doc/AhoyWemos_Schaltplan.jpg)
 
 ##### Symbolic view
 
-![Symbolic](../../doc/AhoyWemos_Steckplatine.jpg)
+![Symbolic](doc/AhoyWemos_Steckplatine.jpg)
 
 #### ESP32 wiring example
 
@@ -124,11 +124,11 @@ Example wiring for a 38pin ESP32 module
 
 ##### Schematic
 
-![Schematic](../../doc/Wiring_ESP32_Schematic.png)
+![Schematic](doc/Wiring_ESP32_Schematic.png)
 
 ##### Symbolic view
 
-![Symbolic](../../doc/Wiring_ESP32_Symbol.png)
+![Symbolic](doc/Wiring_ESP32_Symbol.png)
 
 ##### ESP32 GPIO settings
 

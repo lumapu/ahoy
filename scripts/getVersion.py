@@ -70,4 +70,4 @@ def readVersion(path, infile):
     print("name=" + versionnumber[:-1] )
     
     
-readVersion("../", "defines.h")
+readVersion("", "defines.h")

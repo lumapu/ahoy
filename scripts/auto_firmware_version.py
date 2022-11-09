@@ -17,7 +17,7 @@ from dulwich import porcelain
 
 def get_firmware_specifier_build_flag():
     try:
-        build_version = porcelain.describe('../../')  # refers to the repository root dir
+        build_version = porcelain.describe('../')  # refers to the repository root dir
     except:
         build_version = "g0000000"
 
