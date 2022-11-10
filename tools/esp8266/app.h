@@ -71,8 +71,6 @@ class app {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         String getStatistics(void);
-        String getJson(void);
-        String getMetrics(void);
         bool getWifiApActive(void);
         
 
@@ -146,6 +144,7 @@ class app {
         }
 
         HmSystemType *mSys;
+        uint32_t mTimestamp;
 
     private:
         void resetSystem(void);
@@ -156,8 +155,6 @@ class app {
         bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
         void processPayload(bool retransmit, uint8_t cmd);
-
-        std::pair<String, String> convertToPromUnits(String shortUnit);
 
         void sendMqttDiscoveryConfig(void);
         const char* getFieldDeviceClass(uint8_t fieldId);
@@ -236,7 +233,7 @@ class app {
         bool mSettingsValid;
 
         eep *mEep;
-        uint32_t mTimestamp;
+        
 
         bool mShowRebootRequest;
 

@@ -41,8 +41,14 @@ class web {
         void showStatistics(void);
         void showVisualization(void);
         void showLiveData(void);
+
+#ifdef ENABLE_JSON_EP
         void showJson(void);
+#endif
+#ifdef ENABLE_PROMETHEUS_EP
         void showMetrics(void);
+#endif
+
         void showWebApi(void);
 
     private:
@@ -53,6 +59,10 @@ class web {
             WebServer *mWeb;
             HTTPUpdateServer *mUpdater;
         #endif
+
+#ifdef ENABLE_PROMETHEUS_EP
+        std::pair<String, String> convertToPromUnits(String shortUnit);
+#endif
 
         config_t *mConfig;
         sysConfig_t *mSysCfg;
