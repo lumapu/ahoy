@@ -602,12 +602,12 @@ void web::showJson(void) {
 
 std::pair<String, String> web::convertToPromUnits(String shortUnit) {
 
-    if(shortUnit == "A")    return {"amplere", "gauge"};
-    if(shortUnit == "V")    return {"volts", "gauge"};
+    if(shortUnit == "A")    return {"ampere", "gauge"};
+    if(shortUnit == "V")    return {"volt", "gauge"};
     if(shortUnit == "%")    return {"ratio", "gauge"};
-    if(shortUnit == "W")    return {"watts", "gauge"};
-    if(shortUnit == "Wh")   return {"watts_daily", "counter"};
-    if(shortUnit == "kWh")  return {"watts_total", "counter"};
+    if(shortUnit == "W")    return {"watt", "gauge"};
+    if(shortUnit == "Wh")   return {"watt_daily", "counter"};
+    if(shortUnit == "kWh")  return {"watt_total", "counter"};
     if(shortUnit == "°C")   return {"celsius", "gauge"};
 
     return {"", "gauge"};
