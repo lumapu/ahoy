@@ -5,7 +5,7 @@
 .vscode/ipch
 .vscode/extensions.json
 src/config/config_override.h
-src/html/h/*
+src/web/html/h/*
 /**/Debug
 /**/v16/*
 *.db

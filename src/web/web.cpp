@@ -14,7 +14,7 @@
 #include "html/h/login_html.h"
 #include "html/h/style_css.h"
 #include "html/h/api_js.h"
-#include "html/h/favicon_ico_gz.h"
+#include "html/h/favicon_ico.h"
 #include "html/h/setup_html.h"
 #include "html/h/visualization_html.h"
 #include "html/h/update_html.h"
@@ -178,7 +178,7 @@ void web::onApiJs(AsyncWebServerRequest *request) {
 //-----------------------------------------------------------------------------
 void web::onFavicon(AsyncWebServerRequest *request) {
     static const char favicon_type[] PROGMEM = "image/x-icon";
-    AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico_gz, favicon_ico_gz_len);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico, favicon_ico_len);
     response->addHeader(F("Content-Encoding"), "gzip");
     request->send(response);
 }
