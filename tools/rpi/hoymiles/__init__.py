@@ -9,7 +9,6 @@ import struct
 import time
 import re
 from datetime import datetime
-import json
 import crcmod
 from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 from .decoders import *
@@ -50,16 +49,6 @@ def ser_to_esb_addr(inverter_ser):
     """
     air_order = ser_to_hm_addr(inverter_ser)[::-1] + b'\x01'
     return air_order[::-1]
-
-def print_addr(inverter_ser):
-    """
-    Debug print addresses
-
-    :param str inverter_ser: inverter serial
-    """
-    print(f"ser# {inverter_ser} ", end='')
-    print(f" -> HM  {' '.join([f'{byte:02x}' for byte in ser_to_hm_addr(inverter_ser)])}", end='')
-    print(f" -> ESB {' '.join([f'{byte:02x}' for byte in ser_to_esb_addr(inverter_ser)])}")
 
 class ResponseDecoderFactory:
     """
