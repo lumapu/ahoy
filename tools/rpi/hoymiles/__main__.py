@@ -66,7 +66,6 @@ class SunsetHandler:
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
                 print (f'Woke up... next sunset is at {self.nextSunset} UTC')
-        return
 
 def main_loop(ahoy_config):
     """Main loop"""
@@ -75,6 +74,7 @@ def main_loop(ahoy_config):
             if not inverter.get('disabled', False)]
 
     sunset = SunsetHandler(ahoy_config.get('sunset'))
+    dtu_ser = ahoy_config.get('dtu', {}).get('serial')
 
     loop_interval = ahoy_config.get('interval', 1)
     try:
@@ -87,7 +87,7 @@ def main_loop(ahoy_config):
             for inverter in inverters:
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
                     print(f'Poll inverter {inverter["serial"]}')
-                poll_inverter(inverter, do_init)
+                poll_inverter(inverter, dtu_ser, do_init, 3)
             do_init = False
 
             print('', end='', flush=True)
@@ -101,11 +101,11 @@ def main_loop(ahoy_config):
         sys.exit()
     except Exception as e:
         print ('Exception catched: %s' % e)
-        traceback.print_exc()
+        print (traceback.print_exc())
         raise
 
 
-def poll_inverter(inverter, do_init, retries=4):
+def poll_inverter(inverter, dtu_ser, do_init, retries):
     """
     Send/Receive command_queue, initiate status poll on inverter
 
@@ -114,7 +114,6 @@ def poll_inverter(inverter, do_init, retries=4):
     :type retries: int
     """
     inverter_ser = inverter.get('serial')
-    dtu_ser = ahoy_config.get('dtu', {}).get('serial')
 
     # Queue at least status data request
     inv_str = str(inverter_ser)
