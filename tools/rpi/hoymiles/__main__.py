@@ -19,6 +19,7 @@ import yaml
 from yaml.loader import SafeLoader
 import paho.mqtt.client
 import hoymiles
+import logging
 
 class InfoCommands(IntEnum):
     InverterDevInform_Simple = 0  # 0x00
@@ -49,7 +50,7 @@ class SunsetHandler:
             altitude = sunset_config.get('altitude')
             self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
             self.nextSunset = self.suntimes.setutc(datetime.utcnow())
-            print (f'Todays sunset is at {self.nextSunset} UTC')
+            logging.info (f'Todays sunset is at {self.nextSunset} UTC')
 
     def checkWaitForSunrise(self):
         if not self.suntimes:
@@ -61,11 +62,11 @@ class SunsetHandler:
             tomorrow = now + timedelta(days=1)
             nextSunrise = self.suntimes.riseutc(tomorrow)
             self.nextSunset = self.suntimes.setutc(tomorrow)
-            time_to_sleep = (nextSunrise - datetime.now()).total_seconds()
-            print (f'Waiting for sunrise at {nextSunrise} UTC ({time_to_sleep} seconds)')
+            time_to_sleep = int((nextSunrise - datetime.now()).total_seconds())
+            logging.info (f'Waiting for sunrise at {nextSunrise} UTC ({time_to_sleep} seconds)')
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
-                print (f'Woke up... next sunset is at {self.nextSunset} UTC')
+                logging.info (f'Woke up... next sunset is at {self.nextSunset} UTC')
 
 def main_loop(ahoy_config):
     """Main loop"""
@@ -86,11 +87,9 @@ def main_loop(ahoy_config):
 
             for inverter in inverters:
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'Poll inverter {inverter["serial"]}')
+                    logging.debug(f'Poll inverter {inverter["serial"]}')
                 poll_inverter(inverter, dtu_ser, do_init, 3)
             do_init = False
-
-            print('', end='', flush=True)
 
             if loop_interval > 0:
                 time_to_sleep = loop_interval - (time.time() - t_loop_start)
@@ -100,8 +99,8 @@ def main_loop(ahoy_config):
     except KeyboardInterrupt:
         sys.exit()
     except Exception as e:
-        print ('Exception catched: %s' % e)
-        print (traceback.print_exc())
+        logging.fatal('Exception catched: %s' % e)
+        logging.fatal(traceback.print_exc())
         raise
 
 
@@ -147,14 +146,14 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                     response = com.get_payload()
                     payload_ttl = 0
                 except Exception as e_all:
-                    print(f'Error while retrieving data: {e_all}')
+                    logging.error(f'Error while retrieving data: {e_all}')
                     pass
 
         # Handle the response data if any
         if response:
             c_datetime = datetime.now()
             if hoymiles.HOYMILES_DEBUG_LOGGING:
-                print(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
+                logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
                     inverter_ser=inverter_ser
@@ -164,18 +163,17 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 data = result.__dict__()
 
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}', end='')
+                    logging.debug(f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}', end='')
                     if data['powerfactor'] is not None:
-                        print(f', pf={data["powerfactor"]}', end='')
+                        logging.debug(f', pf={data["powerfactor"]}', end='')
                     phase_id = 0
                     for phase in data['phases']:
-                        print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
+                        logging.debug(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
                         phase_id = phase_id + 1
                     string_id = 0
                     for string in data['strings']:
-                        print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
+                        logging.debug(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
                         string_id = string_id + 1
-                    print()
 
                 if 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
@@ -256,7 +254,7 @@ def mqtt_on_command(client, userdata, message):
         inverter_ser = next(
                 item[0] for item in mqtt_command_topic_subs if item[1] == message.topic)
     except StopIteration:
-        print('Unexpedtedly received mqtt message for {message.topic}')
+        logging.warning('Unexpedtedly received mqtt message for {message.topic}')
 
     if inverter_ser:
         p_message = message.payload.decode('utf-8').lower()
@@ -274,14 +272,31 @@ def mqtt_on_command(client, userdata, message):
                 command_queue[str(inverter_ser)].append(
                     hoymiles.frame_payload(payload[1:]))
 
+def init_logging(ahoy_config):
+    log_config = ahoy_config.get('logging')
+    fn = 'hoymiles.log'
+    lvl = logging.ERROR
+    if log_config:
+        fn = log_config.get('filename', fn)
+        level = log_config.get('level', 'ERROR')
+        if level == 'DEBUG':
+            lvl = logging.DEBUG
+        elif level == 'INFO':
+            lvl = logging.INFO
+        elif level == 'WARNING':
+            lvl = logging.WARNING
+        elif level == 'ERROR':
+            lvl = logging.ERROR
+    logging.basicConfig(filename=fn, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway', prog="hoymiles")
     parser.add_argument("-c", "--config-file", nargs="?", required=True,
         help="configuration file")
     parser.add_argument("--log-transactions", action="store_true", default=False,
-        help="Enable transaction logging output")
+        help="Enable transaction logging output (loglevel must be DEBUG)")
     parser.add_argument("--verbose", action="store_true", default=False,
-        help="Enable debug output")
+        help="Enable detailed debug output (loglevel must be DEBUG)")
     global_config = parser.parse_args()
 
     # Load ahoy.yml config file
@@ -293,13 +308,14 @@ if __name__ == '__main__':
             with open('ahoy.yml', 'r') as fh_yaml:
                 cfg = yaml.load(fh_yaml, Loader=SafeLoader)
     except FileNotFoundError:
-        print("Could not load config file. Try --help")
+        logging.error("Could not load config file. Try --help")
         sys.exit(2)
     except yaml.YAMLError as e_yaml:
-        print('Failed to load config frile {global_config.config_file}: {e_yaml}')
+        logging.error('Failed to load config file {global_config.config_file}: {e_yaml}')
         sys.exit(1)
 
     ahoy_config = dict(cfg.get('ahoy', {}))
+    init_logging(ahoy_config)
 
     # Prepare for multiple transceivers, makes them configurable (currently
     # only one supported)
@@ -366,4 +382,5 @@ if __name__ == '__main__':
             mqtt_client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
+    logging.info(f'Starting main_loop with inverter(s) {g_inverters}')
     main_loop(ahoy_config)

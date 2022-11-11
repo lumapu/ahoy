@@ -8,6 +8,7 @@ Hoymiles Micro-Inverters decoder library
 import struct
 from datetime import datetime, timedelta
 import crcmod
+import logging
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
@@ -44,17 +45,17 @@ def print_table_unpack(s_fmt, payload, cw=6):
 
     l_hexlified = [f'{byte:02x}' for byte in payload]
 
-    print(f'{"Pos": <{cw}}', end='')
-    print(''.join([f'{num: >{cw}}' for num in range(0, len(payload))]))
-    print(f'{"Hex": <{cw}}', end='')
-    print(''.join([f'{byte: >{cw}}' for byte in l_hexlified]))
+    logging.debug(f'{"Pos": <{cw}}', end='')
+    logging.debug(''.join([f'{num: >{cw}}' for num in range(0, len(payload))]))
+    logging.debug(f'{"Hex": <{cw}}', end='')
+    logging.debug(''.join([f'{byte: >{cw}}' for byte in l_hexlified]))
 
     l_fmt = struct.calcsize(s_fmt)
     if len(payload) >= l_fmt:
         for offset in range(0, l_fmt):
-            print(f'{s_fmt: <{cw}}', end='')
-            print(' ' * cw * offset, end='')
-            print(''.join(
+            logging.debug(f'{s_fmt: <{cw}}', end='')
+            logging.debug(' ' * cw * offset, end='')
+            logging.debug(''.join(
                 [f'{num[0]: >{cw*l_fmt}}' for num in g_unpack(s_fmt, payload[offset:])]))
 
 class Response:
@@ -299,7 +300,7 @@ class EventsResponse(UnknownResponse):
 
         crc_valid = self.validate_crc_m()
         if crc_valid:
-            #print(' payload has valid modbus crc')
+            #logging.debug(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
         status = struct.unpack('>H', self.response[:2])[0]
@@ -310,16 +311,16 @@ class EventsResponse(UnknownResponse):
         for i_chunk in range(2, len(self.response), chunk_size):
             chunk = self.response[i_chunk:i_chunk+chunk_size]
 
-            print(' '.join([f'{byte:02x}' for byte in chunk]) + ': ')
+            logging.debug(' '.join([f'{byte:02x}' for byte in chunk]) + ': ')
 
             opcode, a_code, a_count, uptime_sec = struct.unpack('>BBHH', chunk[0:6])
             a_text = self.alarm_codes.get(a_code, 'N/A')
 
-            print(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
+            logging.debug(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
 
             for fmt in ['BBHHHHH']:
-                print(f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk)))
-            print(end='', flush=True)
+                logging.debug(f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk)))
+            logging.debug(end='', flush=True)
 
 class HardwareInfoResponse(UnknownResponse):
     def __init__(self, *args, **params):
@@ -340,8 +341,8 @@ class HardwareInfoResponse(UnknownResponse):
         fw_version_pat = int((fw_version %   100))
         fw_build_mm = int(fw_build_mmdd / 100)
         fw_build_dd = int(fw_build_mmdd % 100)
-        print()
-        print(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
+        logging.debug()
+        logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
 
 class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
@@ -351,40 +352,40 @@ class DebugDecodeAny(UnknownResponse):
 
         crc8_valid = self.validate_crc8()
         if crc8_valid:
-            print(' payload has valid crc8')
+            logging.debug(' payload has valid crc8')
             self.response = self.response[:-1]
 
         crc_valid = self.validate_crc_m()
         if crc_valid:
-            print(' payload has valid modbus crc')
+            logging.debug(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
         l_payload = len(self.response)
-        print(f' payload has {l_payload} bytes')
+        logging.debug(f' payload has {l_payload} bytes')
 
-        print()
-        print('Field view: int')
+        logging.debug()
+        logging.debug('Field view: int')
         print_table_unpack('>B', self.response)
 
-        print()
-        print('Field view: shorts')
+        logging.debug()
+        logging.debug('Field view: shorts')
         print_table_unpack('>H', self.response)
 
-        print()
-        print('Field view: longs')
+        logging.debug()
+        logging.debug('Field view: longs')
         print_table_unpack('>L', self.response)
 
         try:
             if len(self.response) > 2:
-                print(' type utf-8  : ' + self.response.decode('utf-8'))
+                logging.debug(' type utf-8  : ' + self.response.decode('utf-8'))
         except UnicodeDecodeError:
-            print(' type utf-8  : utf-8 decode error')
+            logging.debug(' type utf-8  : utf-8 decode error')
 
         try:
             if len(self.response) > 2:
-                print(' type ascii  : ' + self.response.decode('ascii'))
+                logging.debug(' type ascii  : ' + self.response.decode('ascii'))
         except UnicodeDecodeError:
-            print(' type ascii  : ascii decode error')
+            logging.debug(' type ascii  : ascii decode error')
 
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase

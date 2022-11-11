@@ -9,6 +9,7 @@ import struct
 import time
 import re
 from datetime import datetime
+import logging
 import crcmod
 from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 from .decoders import *
@@ -573,7 +574,7 @@ class InverterTransaction:
 
         if HOYMILES_TRANSACTION_LOGGING:
             c_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            print(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
+            logging.debug(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
 
         self.radio.transmit(packet, txpower=self.txpower)
 
@@ -581,14 +582,14 @@ class InverterTransaction:
         try:
             for response in self.radio.receive():
                 if HOYMILES_TRANSACTION_LOGGING:
-                    print(response)
+                    logging.debug(response)
 
                 self.frame_append(response)
                 wait = True
         except TimeoutError:
             pass
         except BufferError as e:
-            print(f'Buffer error {e}')
+            logging.warning(f'Buffer error {e}')
             pass
 
         return wait
