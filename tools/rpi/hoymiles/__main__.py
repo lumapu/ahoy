@@ -48,24 +48,24 @@ class SunsetHandler:
             longitude = sunset_config.get('longitude')
             altitude = sunset_config.get('altitude')
             self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
-            self.nextSunset = self.suntimes.setutc(datetime.now())
-            print (f'Todays sunset is at {self.nextSunset}')
+            self.nextSunset = self.suntimes.setutc(datetime.utcnow())
+            print (f'Todays sunset is at {self.nextSunset} UTC')
 
     def checkWaitForSunrise(self):
         if not self.suntimes:
             return
         # if the sunset already happened for today
-        now = datetime.now()
+        now = datetime.utcnow()
         if self.nextSunset < now:
             # wait until the sun rises tomorrow
             tomorrow = now + timedelta(days=1)
             nextSunrise = self.suntimes.riseutc(tomorrow)
             self.nextSunset = self.suntimes.setutc(tomorrow)
             time_to_sleep = (nextSunrise - datetime.now()).total_seconds()
-            print (f'Waiting for sunrise at {nextSunrise} ({time_to_sleep} seconds)')
+            print (f'Waiting for sunrise at {nextSunrise} UTC ({time_to_sleep} seconds)')
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
-                print (f'Woke up... next sunset is at {self.nextSunset}')
+                print (f'Woke up... next sunset is at {self.nextSunset} UTC')
         return
 
 def main_loop(ahoy_config):
