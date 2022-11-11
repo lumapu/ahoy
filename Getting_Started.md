@@ -218,19 +218,20 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 
  To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.1.1/setup](http://192.168.1.1/setup) ).<br/>
 
-| page | use | output |
-| ---- | ------ | ------ |
-| /uptime | displays the uptime of your Ahoy DTU | 0 Days, 01:37:34; now: 2022-08-21 11:13:53 |
-| /reboot | reboots the Ahoy DTU | |
-| /erase | erases the EEPROM |    |
-| /factory | resets to the factory defaults configured in config.h |    |
-| /setup | opens the setup page |    |
-| /save | | |
-| /cmdstat | show stat from the home page | |
-| /visualization | displays the information from your converter |     |
-| /livedata | displays the live data |     |
-| /json | gets live-data in JSON format | json output from the livedata |
-| /api | |    |
+| page | use | output | default availability |
+| ---- | ------ | ------ | ------ |
+| /uptime | displays the uptime uf your Ahoy DTU | 0 Days, 01:37:34; now: 2022-08-21 11:13:53 | yes |
+| /reboot | reboots the Ahoy DTU | | yes |
+| /erase | erases the EEPROM |    | yes |
+| /factory | resets to the factory defaults configured in config.h |    | yes |
+| /setup | opens the setup page |    | yes |
+| /save | | | yes |
+| /cmdstat | show stat from the home page | | yes |
+| /visualization | displays the information from your converter |     | yes |
+| /livedata | displays the live data |     | yes |
+| /json | gets live-data in JSON format | json output from the livedata | no - enable via config_override.h |
+| /metrics | gets live-data for prometheus | prometheus metrics from the livedata | no - enable via config_override.h |
+| /api | |    |  yes |
 
 ## MQTT command to set the DTU without webinterface
 

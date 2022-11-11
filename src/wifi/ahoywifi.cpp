@@ -110,7 +110,7 @@ bool ahoywifi::loop(void) {
 //-----------------------------------------------------------------------------
 void ahoywifi::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
-    IPAddress apIp(192, 168, 1, 1);
+    IPAddress apIp(192, 168, 4, 1);
 
     DPRINTLN(DBG_INFO, F("\n---------\nAP MODE\nSSID: ")
         + String(ssid) + F("\nPWD: ")

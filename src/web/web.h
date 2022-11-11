@@ -33,6 +33,14 @@ class web {
 
         void setProtection(bool protect);
 
+
+        void onUpdate(AsyncWebServerRequest *request);
+        void showUpdate(AsyncWebServerRequest *request);
+        void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
+
+        void serialCb(String msg);
+
+    private:
         void onConnect(AsyncEventSourceClient *client);
 
         void onIndex(AsyncWebServerRequest *request);
@@ -51,13 +59,6 @@ class web {
         void onLive(AsyncWebServerRequest *request);
         void showWebApi(AsyncWebServerRequest *request);
 
-        void onUpdate(AsyncWebServerRequest *request);
-        void showUpdate(AsyncWebServerRequest *request);
-        void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
-
-        void serialCb(String msg);
-
-    private:
         void onSerial(AsyncWebServerRequest *request);
         void onSystem(AsyncWebServerRequest *request);
 
@@ -69,6 +70,15 @@ class web {
                 p = strtok(NULL, ".");
             }
         }
+
+#ifdef ENABLE_JSON_EP
+        void showJson(void);
+#endif
+
+#ifdef ENABLE_PROMETHEUS_EP
+        void showMetrics(void);
+        std::pair<String, String> convertToPromUnits(String shortUnit);
+#endif
 
         AsyncWebServer *mWeb;
         AsyncEventSource *mEvts;

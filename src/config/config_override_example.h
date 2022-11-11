@@ -25,4 +25,12 @@
 #undef DEF_RF24_IRQ_PIN
 #define DEF_RF24_IRQ_PIN        16
 
+
+// To enable the json endpoint at /json
+// #define ENABLE_JSON_EP
+
+// To enable the endpoint for prometheus to scrape data from at /metrics
+// #define ENABLE_PROMETHEUS_EP
+
+
 #endif /*__CONFIG_OVERRIDE_H__*/

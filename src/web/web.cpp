@@ -68,6 +68,12 @@ void web::setup(void) {
     mWeb->on("/live",           HTTP_ANY,  std::bind(&web::onLive,         this, std::placeholders::_1));
     mWeb->on("/api1",           HTTP_POST, std::bind(&web::showWebApi,     this, std::placeholders::_1));
 
+#ifdef ENABLE_JSON_EP
+    mWeb->on("/json",           HTTP_ANY,  std::bind(&web::showJson,       this, std::placeholders::_1));
+#endif
+#ifdef ENABLE_PROMETHEUS_EP
+    mWeb->on("/metrics",        HTTP_ANY,  std::bind(&web::showMetrics,    this, std::placeholders::_1));
+#endif
 
     mWeb->on("/update",         HTTP_GET,  std::bind(&web::onUpdate,       this, std::placeholders::_1));
     mWeb->on("/update",         HTTP_POST, std::bind(&web::showUpdate,     this, std::placeholders::_1),
@@ -641,3 +647,79 @@ void web::serialCb(String msg) {
     }
 
 }
+
+
+//-----------------------------------------------------------------------------
+#ifdef ENABLE_JSON_EP
+void web::showJson(void) {
+    DPRINTLN(DBG_VERBOSE, F("web::showJson"));
+    String modJson;
+
+    modJson = F("{\n");
+    for(uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mMain->mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            char topic[40], val[25];
+            snprintf(topic, 30, "\"%s\": {\n", iv->name);
+            modJson += String(topic);
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
+                snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
+                modJson += String(topic) + ": " + String(val) + F(",\n");
+            }
+            modJson += F("\t\"last_msg\": \"") + mMain->getDateTimeStr(iv->ts) + F("\"\n\t},\n");
+        }
+    }
+    modJson += F("\"json_ts\": \"") + String(mMain->getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
+
+    mWeb->send(200, F("application/json"), modJson);
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+#ifdef ENABLE_PROMETHEUS_EP
+std::pair<String, String> web::convertToPromUnits(String shortUnit) {
+
+    if(shortUnit == "A")    return {"ampere", "gauge"};
+    if(shortUnit == "V")    return {"volt", "gauge"};
+    if(shortUnit == "%")    return {"ratio", "gauge"};
+    if(shortUnit == "W")    return {"watt", "gauge"};
+    if(shortUnit == "Wh")   return {"watt_daily", "counter"};
+    if(shortUnit == "kWh")  return {"watt_total", "counter"};
+    if(shortUnit == "°C")   return {"celsius", "gauge"};
+
+    return {"", "gauge"};
+}
+
+
+//-----------------------------------------------------------------------------
+void web::showMetrics(void) {
+    DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
+    String metrics;
+    char headline[80];
+
+    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mSysCfg->deviceName);
+    metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
+
+    for(uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
+        Inverter<> *iv = mMain->mSys->getInverterByPos(id);
+        if(NULL != iv) {
+            char type[60], topic[60], val[25];
+            for(uint8_t i = 0; i < iv->listLen; i++) {
+                uint8_t channel = iv->assign[i].ch;
+                if(channel == 0) {
+                    String promUnit, promType;
+                    std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i) );
+                    snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i), promUnit.c_str(), promType.c_str());
+                    snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i), promUnit.c_str(), iv->name);
+                    snprintf(val, 25, "%.3f", iv->getValue(i));
+                    metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
+                }
+            }
+        }
+    }
+
+    mWeb->send(200, F("text/plain"), metrics);
+}
+#endif

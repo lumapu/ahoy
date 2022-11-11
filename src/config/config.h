@@ -46,9 +46,15 @@
 #define DEF_DEVICE_NAME         "AHOY-DTU"
 
 // default pinout (GPIO Number)
-#define DEF_CS_PIN              15
-#define DEF_CE_PIN              2
-#define DEF_IRQ_PIN             0
+#if defined(ESP32)
+    #define DEF_CS_PIN              15
+    #define DEF_CE_PIN              2
+    #define DEF_IRQ_PIN             0
+#else
+    #define DEF_CS_PIN              5
+    #define DEF_CE_PIN              4
+    #define DEF_IRQ_PIN             16
+#endif
 #define DEF_LED0_PIN            255 // off
 #define DEF_LED1_PIN            255 // off
 
