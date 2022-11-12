@@ -459,7 +459,7 @@ bool webApi::setCtrl(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
 
 //-----------------------------------------------------------------------------
 bool webApi::setSetup(DynamicJsonDocument jsonIn, JsonObject jsonOut) {
-    if(F("scan_wifi"))
+    if(F("scan_wifi") == jsonIn[F("cmd")])
         mApp->scanAvailNetworks();
     else if(F("set_time") == jsonIn[F("cmd")])
         mApp->setTimestamp(jsonIn[F("ts")]);
