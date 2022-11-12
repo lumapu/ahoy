@@ -163,17 +163,18 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 data = result.__dict__()
 
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    logging.debug(f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}', end='')
+                    dbg = f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}'
                     if data['powerfactor'] is not None:
-                        logging.debug(f', pf={data["powerfactor"]}', end='')
+                        dbg += f', pf={data["powerfactor"]}'
                     phase_id = 0
                     for phase in data['phases']:
-                        logging.debug(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
+                        dbg += f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}'
                         phase_id = phase_id + 1
                     string_id = 0
                     for string in data['strings']:
-                        logging.debug(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
+                        dbg += f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}'
                         string_id = string_id + 1
+                    logging.debug(dbg)
 
                 if 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:

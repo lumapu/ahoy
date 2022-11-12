@@ -45,18 +45,20 @@ def print_table_unpack(s_fmt, payload, cw=6):
 
     l_hexlified = [f'{byte:02x}' for byte in payload]
 
-    logging.debug(f'{"Pos": <{cw}}', end='')
-    logging.debug(''.join([f'{num: >{cw}}' for num in range(0, len(payload))]))
-    logging.debug(f'{"Hex": <{cw}}', end='')
-    logging.debug(''.join([f'{byte: >{cw}}' for byte in l_hexlified]))
+    dbg  = f'{"Pos": <{cw}}'
+    dbg += ''.join([f'{num: >{cw}}' for num in range(0, len(payload))])
+    logging.debug(dbg)
+    dbg  = f'{"Hex": <{cw}}'
+    dbg += ''.join([f'{byte: >{cw}}' for byte in l_hexlified])
+    logging.debug(dbg)
 
     l_fmt = struct.calcsize(s_fmt)
     if len(payload) >= l_fmt:
         for offset in range(0, l_fmt):
-            logging.debug(f'{s_fmt: <{cw}}', end='')
-            logging.debug(' ' * cw * offset, end='')
-            logging.debug(''.join(
-                [f'{num[0]: >{cw*l_fmt}}' for num in g_unpack(s_fmt, payload[offset:])]))
+            dbg  = f'{s_fmt: <{cw}}'
+            dbg += ' ' * cw * offset
+            dbg += ''.join([f'{num[0]: >{cw*l_fmt}}' for num in g_unpack(s_fmt, payload[offset:])])
+            logging.debug(dbg)
 
 class Response:
     """ All Response Shared methods """
@@ -305,7 +307,7 @@ class EventsResponse(UnknownResponse):
 
         status = struct.unpack('>H', self.response[:2])[0]
         a_text = self.alarm_codes.get(status, 'N/A')
-        print (f' Inverter status: {a_text} ({status})')
+        logging.info (f' Inverter status: {a_text} ({status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):
@@ -318,9 +320,10 @@ class EventsResponse(UnknownResponse):
 
             logging.debug(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
 
+            dbg = ''
             for fmt in ['BBHHHHH']:
-                logging.debug(f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk)))
-            logging.debug(end='', flush=True)
+                dbg += f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk))
+            logging.debug(dbg)
 
 class HardwareInfoResponse(UnknownResponse):
     def __init__(self, *args, **params):
@@ -341,7 +344,6 @@ class HardwareInfoResponse(UnknownResponse):
         fw_version_pat = int((fw_version %   100))
         fw_build_mm = int(fw_build_mmdd / 100)
         fw_build_dd = int(fw_build_mmdd % 100)
-        logging.debug()
         logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
 
 class DebugDecodeAny(UnknownResponse):
