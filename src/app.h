@@ -21,6 +21,7 @@
 
 #include "hm/CircularBuffer.h"
 #include "hm/hmSystem.h"
+#include "hm/payload.h"
 #include "wifi/ahoywifi.h"
 #include "web/mqtt.h"
 #include "web/web.h"
@@ -33,19 +34,7 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef mqtt<HmSystemType> MqttType;
-
-typedef struct {
-    uint8_t txCmd;
-    uint8_t txId;
-    uint8_t invId;
-    uint32_t ts;
-    uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
-    uint8_t len[MAX_PAYLOAD_ENTRIES];
-    bool complete;
-    uint8_t maxPackId;
-    uint8_t retransmits;
-    bool requested;
-} invPayload_t;
+typedef payload<HmSystemType> PayloadType;
 
 class ahoywifi;
 class web;
@@ -64,6 +53,10 @@ class app {
         bool getWifiApActive(void);
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
+
+        void payloadEventListener(uint8_t cmd) {
+            mMqttSendList.push(cmd);
+        }
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;
@@ -183,7 +176,6 @@ class app {
         void setupLed(void);
         void updateLed(void);
 
-        bool buildPayload(uint8_t id);
         void processPayload(bool retransmit);
 
         inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
@@ -268,13 +260,12 @@ class app {
         sysConfig_t mSysConfig;
         config_t mConfig;
         char mVersion[12];
+        PayloadType mPayload;
 
         uint16_t mSendTicker;
         uint8_t mSendLastIvId;
 
-        invPayload_t mPayload[MAX_NUM_INVERTERS];
         statistics_t mStat;
-        uint8_t mLastPacketId;
 
         // timer
         uint32_t mTicker;

@@ -54,7 +54,7 @@
                     <h3>Support this project:</h3>
                     <ul>
                         <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
-                        <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/tools/esp8266/User_Manual.md"  target="_blank">documentation</a></li>
+                        <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">documentation</a></li>
                         <li>Test <a href="https://github.com/lumapu/ahoy/actions/workflows/compile_development.yml"  target="_blank">development firmware</a></li>
                         <li>make a <a href="https://paypal.me/lupusch"  target="_blank">donation</a></li>
                     </ul>
@@ -153,7 +153,7 @@
                 for(var i of obj) {
                     html += "Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is ";
                     if(false == i["is_avail"])
-                        html += "not yet available";
+                        html += "not yet available\n";
                     else {
                         html += "available and is ";
                         if(false == i["is_producing"])

@@ -204,7 +204,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
  If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.<br/>
  <br/>
  If connected to your local Network, you just have to find out the used IP Address or try the default name [http://ahoy-dtu/](http://ahoy-dtu/). In most cases your Router will give you a hint.<br/>
- If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is [http://192.168.1.1/](http://192.168.1.1/).<br/>
+ If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is [http://192.168.4.1/](http://192.168.4.1/).<br/>
  Just open the IP-Address in your browser.<br/>
  <br/>
  The webinterface has the following abilities:
@@ -216,7 +216,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 
 ##### HTTP based Pages
 
- To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.1.1/setup](http://192.168.1.1/setup) ).<br/>
+ To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.4.1/setup](http://192.168.4.1/setup) ).<br/>
 
 | page | use | output | default availability |
 | ---- | ------ | ------ | ------ |
