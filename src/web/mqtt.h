@@ -65,8 +65,7 @@ class mqtt {
                     reconnect();
                 mClient->loop();
 
-                if(!mSendList.empty())
-                    sendIvData();
+                sendIvData();
             }
         }
 
@@ -216,18 +215,18 @@ class mqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
-        void sendIvData() {
+        void sendIvData(void) {
+            if(mSendList.empty())
+                return;
+
             isConnected(true);  // really needed? See comment from HorstG-57 #176
             char topic[32 + MAX_NAME_LENGTH], val[32];
             float total[4];
             bool sendTotal = false;
             bool totalIncomplete = false;
-            snprintf(val, 32, "%ld", millis() / 1000);
+            snprintf(val, 40, "%ld", millis() / 1000);
 
             sendMsg("uptime", val);
-
-            if(mSendList.empty())
-                return;
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);
@@ -250,20 +249,20 @@ class mqtt {
                                 status = MQTT_STATUS_AVAIL_NOT_PROD;
                         }
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
-                        snprintf(val, 32, "%s%s%s%s",
-                            (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
+                        snprintf(val, 40, "%s%s%s%s",
+                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
                             "available and ",
-                            (MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
-                            (MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
+                            (status == MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
                         );
                         sendMsg(topic, val);
 
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
-                        snprintf(val, 32, "%d", status);
+                        snprintf(val, 40, "%d", status);
                         sendMsg(topic, val);
 
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
-                        snprintf(val, 48, "%i", iv->getLastTs(rec) * 1000);
+                        snprintf(val, 40, "%i", iv->getLastTs(rec) * 1000);
                         sendMsg(topic, val);
                     }
 
@@ -271,7 +270,7 @@ class mqtt {
                     if(iv->isAvailable(*mUtcTimestamp, rec)) {
                         for (uint8_t i = 0; i < rec->length; i++) {
                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                            snprintf(val, 10, "%.3f", iv->getValue(i, rec));
+                            snprintf(val, 40, "%.3f", iv->getValue(i, rec));
                             sendMsg(topic, val);
 
                             // calculate total values for RealTimeRunData_Debug
@@ -320,7 +319,7 @@ class mqtt {
                                 break;
                         }
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                        snprintf(val, 10, "%.3f", total[i]);
+                        snprintf(val, 40, "%.3f", total[i]);
                         sendMsg(topic, val);
                     }
                 }

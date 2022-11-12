@@ -43,7 +43,7 @@ void app::setup(uint32_t timeout) {
 #ifndef AP_ONLY
     setupMqtt();
     if(mMqttActive)
-        mPayload.addListener(std::bind(&MqttType::payloadEventListener, mMqtt, std::placeholders::_1));
+        mPayload.addListener(std::bind(&MqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
 #endif
     setupLed();
 
