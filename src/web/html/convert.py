@@ -52,14 +52,14 @@ def convert2Header(inFile):
     f.write("#endif /*__{}_{}_H__*/\n".format(define, define2))
     f.close()
 
-# delete all files in the 'h' dir, but ignore 'favicon_ico_gz.h'
+# delete all files in the 'h' dir
 dir = 'h'
 if os.getcwd()[-4:] != "html":
     dir = "web/html/" + dir
 
-for f in os.listdir(dir):
-    #if not f.startswith('favicon_ico_gz'):
-    os.remove(os.path.join(dir, f))
+if os.path.exists(dir):
+    for f in os.listdir(dir):
+        os.remove(os.path.join(dir, f))
 
 # grab all files with following extensions
 if os.getcwd()[-4:] != "html":
