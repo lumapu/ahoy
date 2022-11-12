@@ -18,6 +18,7 @@
 #include "config/eep.h"
 #include "defines.h"
 #include "utils/crc.h"
+#include "utils/ahoyTimer.h"
 
 #include "hm/CircularBuffer.h"
 #include "hm/hmSystem.h"
@@ -54,9 +55,6 @@ class app {
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
-        void payloadEventListener(uint8_t cmd) {
-            mMqttSendList.push(cmd);
-        }
 
         uint8_t getIrqPin(void) {
             return mConfig.pinIrq;
@@ -142,20 +140,6 @@ class app {
             mEep->commit();
         }
 
-        inline bool checkTicker(uint32_t *ticker, uint32_t interval) {
-            uint32_t mil = millis();
-            if(mil >= *ticker) {
-                *ticker = mil + interval;
-                return true;
-            }
-            else if(mil < (*ticker - interval)) {
-                *ticker = mil + interval;
-                return true;
-            }
-
-            return false;
-        }
-
         inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
         inline bool getSettingsValid(void) { return mSettingsValid; }
         inline bool getRebootRequestState(void) { return mShowRebootRequest; }
@@ -171,7 +155,6 @@ class app {
         void loadEEpconfig(void);
 
         void setupMqtt(void);
-        void sendMqtt(void);
 
         void setupLed(void);
         void updateLed(void);
@@ -273,10 +256,7 @@ class app {
 
         // mqtt
         MqttType mMqtt;
-        uint16_t mMqttTicker;
-        uint16_t mMqttInterval;
         bool mMqttActive;
-        std::queue<uint8_t> mMqttSendList;
 
         // serial
         uint16_t mSerialTicker;

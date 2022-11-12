@@ -8,6 +8,7 @@
   #define F(sl) (sl)
 #endif
 #include "ahoywifi.h"
+#include "../utils/ahoyTimer.h"
 
 
 // NTP CONFIG
@@ -71,7 +72,7 @@ bool ahoywifi::loop(void) {
     if(mApActive) {
         mDns->processNextRequest();
 #ifndef AP_ONLY
-        if(mMain->checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
+        if(ah::checkTicker(&mNextTryTs, (WIFI_AP_ACTIVE_TIME * 1000))) {
             mApActive = (mStationWifiIsDef) ? true : setupStation(mWifiStationTimeout);
             if(mApActive) {
                 if(strlen(WIFI_AP_PWD) < 8)
@@ -244,7 +245,7 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
         for (int i = 0; i < n; i++)
             for (int j = i + 1; j < n; j++)
                 if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                    std::swap(sort[i], sort[j]); 
+                    std::swap(sort[i], sort[j]);
         for (int i = 0; i < n; ++i) {
             nets[i]["ssid"]   = WiFi.SSID(sort[i]);
             nets[i]["rssi"]   = WiFi.RSSI(sort[i]);

@@ -10,6 +10,8 @@
 
 #include "web.h"
 
+#include "../utils/ahoyTimer.h"
+
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
 #include "html/h/style_css.h"
@@ -93,7 +95,7 @@ void web::setup(void) {
 void web::loop(void) {
     mApi->loop();
 
-    if(mMain->checkTicker(&mWebSerialTicker, mWebSerialInterval)) {
+    if(ah::checkTicker(&mWebSerialTicker, mWebSerialInterval)) {
         if(mSerialBufFill > 0) {
             mEvts->send(mSerialBuf, "serial", millis());
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);

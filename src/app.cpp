@@ -40,9 +40,10 @@ void app::setup(uint32_t timeout) {
     mSys->setup(mConfig.amplifierPower, mConfig.pinIrq, mConfig.pinCe, mConfig.pinCs);
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig.serialDebug);
-    mPayload.addListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 #ifndef AP_ONLY
     setupMqtt();
+    if(mMqttActive)
+        mPayload.addListener(std::bind(&MqttType::payloadEventListener, mMqtt, std::placeholders::_1));
 #endif
     setupLed();
 
@@ -74,7 +75,7 @@ void app::loop(void) {
         }
     }
 
-    if (checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
+    if (ah::checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
         if (!apActive)
             mUpdateNtp = true;
     }
@@ -87,14 +88,14 @@ void app::loop(void) {
 
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
-        mMqtt.sendMqttDiscoveryConfig(mConfig.mqtt.topic, mMqttInterval);
+        mMqtt.sendMqttDiscoveryConfig(mConfig.mqtt.topic);
     }
 
     mSys->Radio.loop();
 
     yield();
 
-    if (checkTicker(&mRxTicker, 5)) {
+    if (ah::checkTicker(&mRxTicker, 5)) {
         bool rxRdy = mSys->Radio.switchRxCh();
 
         if (!mSys->BufCtrl.empty()) {
@@ -110,34 +111,27 @@ void app::loop(void) {
 
                 mStat.frmCnt++;
 
-                if (0 != len) {
+                if (0 != len)
                     mPayload.add(p, len);
-                }
             }
             mSys->BufCtrl.popBack();
         }
         yield();
 
-        if (rxRdy) {
+        if (rxRdy)
             mPayload.process(true, mConfig.maxRetransPerPyld, &mStat);
-        }
     }
 
     if (mMqttActive)
         mMqtt.loop();
 
-    if (checkTicker(&mTicker, 1000)) {
+    if (ah::checkTicker(&mTicker, 1000)) {
         if (mUtcTimestamp > 946684800 && mConfig.sunLat && mConfig.sunLon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 != (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) {  // update on reboot or midnight
             if (!mLatestSunTimestamp) {                                                                                                                                                           // first call: calculate time zone from longitude to refresh at local midnight
                 mCalculatedTimezoneOffset = (int8_t)((mConfig.sunLon >= 0 ? mConfig.sunLon + 7.5 : mConfig.sunLon - 7.5) / 15) * 3600;
             }
             ah::calculateSunriseSunset(mUtcTimestamp, mCalculatedTimezoneOffset, mConfig.sunLat, mConfig.sunLon, &mSunrise, &mSunset);
             mLatestSunTimestamp = mUtcTimestamp;
-        }
-
-        if ((++mMqttTicker >= mMqttInterval) && (mMqttInterval != 0xffff) && mMqttActive) {
-            mMqttTicker = 0;
-            mMqtt.sendIvData(mUtcTimestamp, mMqttSendList);
         }
 
         if (mConfig.serialShowIv) {
@@ -277,8 +271,6 @@ void app::resetSystem(void) {
     mHeapStatCnt = 0;
 
     mSendTicker = 0xffff;
-    mMqttTicker = 0xffff;
-    mMqttInterval = MQTT_INTERVAL;
     mSerialTicker = 0xffff;
     mMqttActive = false;
 
@@ -372,9 +364,6 @@ void app::loadEEpconfig(void) {
                         mEep->read(ADDR_INV_CH_NAME + (i * 4 * MAX_NAME_LENGTH) + j * MAX_NAME_LENGTH, iv->chName[j], MAX_NAME_LENGTH);
                     }
                 }
-
-                // TODO: the original mqttinterval value is not needed any more
-                mMqttInterval += mConfig.sendInterval;
             }
         }
 
@@ -413,23 +402,11 @@ void app::saveValues(void) {
 //-----------------------------------------------------------------------------
 void app::setupMqtt(void) {
     if (mSettingsValid) {
-        if (mConfig.mqtt.broker[0] > 0) {
+        if (mConfig.mqtt.broker[0] > 0)
             mMqttActive = true;
-            if (mMqttInterval < MIN_MQTT_INTERVAL) mMqttInterval = MIN_MQTT_INTERVAL;
-        } else
-            mMqttInterval = 0xffff;
 
-        mMqttTicker = 0;
         if(mMqttActive)
-            mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName, mSys);
-
-        if (mMqttActive) {
-            mMqtt.sendMsg("version", mVersion);
-            if (mMqtt.isConnected()) {
-                mMqtt.sendMsg("device", mSysConfig.deviceName);
-                mMqtt.sendMsg("uptime", "0");
-            }
-        }
+            mMqtt.setup(&mConfig.mqtt, mSysConfig.deviceName, mVersion, mSys, &mUtcTimestamp);
     }
 }
 
