@@ -177,8 +177,11 @@
                 </ul>
             </div>
             <div class="right">
-                <span id="version"></span><br/><br/>
-                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+                <ul>
+                    <li><span id="version"></span></li>
+                    <li><span id="esp_type"></span></li>
+                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
+                </ul>
             </div>
         </div>
         <script type="text/javascript">
@@ -355,7 +358,7 @@
             }
 
             function parseSun(obj) {
-                document.getElementsByName("sunLat")[0].value = obj["lat"]; 
+                document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
                 document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
             }
@@ -472,7 +475,7 @@
                 if(-1 != s.value)
                     e.value = s.value;
             }
-            
+
             hiddenInput = document.getElementById("disclaimer")
             hiddenInput.value = sessionStorage.getItem("gDisclaimer");
 
