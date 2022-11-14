@@ -24,7 +24,7 @@ class webApi;
 
 class web {
     public:
-        web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]);
+        web(app *main, settings_t *config, statistics_t *stat, char version[]);
         ~web() {}
 
         void setup(void);
@@ -85,8 +85,7 @@ class web {
         bool mProtected;
         uint32_t mLogoutTimeout;
 
-        config_t *mConfig;
-        sysConfig_t *mSysCfg;
+        settings_t *mConfig;
         statistics_t *mStat;
         char *mVersion;
         app *mMain;

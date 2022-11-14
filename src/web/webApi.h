@@ -16,7 +16,7 @@ class app;
 
 class webApi {
     public: 
-        webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]);
+        webApi(AsyncWebServer *srv, app *app, settings_t *config, statistics_t *stat, char version[]);
 
         void setup(void);
         void loop(void);
@@ -72,8 +72,7 @@ class webApi {
         AsyncWebServer *mSrv;
         app *mApp;
 
-        config_t *mConfig;
-        sysConfig_t *mSysCfg;
+        settings_t *mConfig;
         statistics_t *mStat;
         char *mVersion;
 

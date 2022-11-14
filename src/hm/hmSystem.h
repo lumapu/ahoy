@@ -20,7 +20,7 @@ class HmSystem {
         RadioType Radio;
         typedef BUFFER BufferType;
         BufferType BufCtrl;
-        //DevControlCmdType DevControlCmd;        
+        //DevControlCmdType DevControlCmd;
 
         HmSystem() {
             mNumInv = 0;
@@ -37,7 +37,18 @@ class HmSystem {
             Radio.setup(&BufCtrl, ampPwr, irqPin, cePin, csPin);
         }
 
-        INVERTERTYPE *addInverter(const char *name, uint64_t serial, uint16_t chMaxPwr[]) {
+        void addInverters(cfgInst_t *config) {
+            Inverter<> *iv;
+            for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                if (0ULL != config->iv[i].serial.u64) {
+                    iv = addInverter(&config->iv[i]);
+                    if (NULL != iv)
+                        DPRINTLN(DBG_INFO, "added inverter " + String(iv->config->serial.u64, HEX));
+                }
+            }
+        }
+
+        INVERTERTYPE *addInverter(cfgIv_t *config) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:addInverter"));
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT(DBG_WARN, F("max number of inverters reached!"));
@@ -45,18 +56,17 @@ class HmSystem {
             }
             INVERTERTYPE *p = &mInverter[mNumInv];
             p->id         = mNumInv;
-            p->serial.u64 = serial;
-            memcpy(p->chMaxPwr, chMaxPwr, (4*2));
-            DPRINT(DBG_VERBOSE, "SERIAL: " + String(p->serial.b[5], HEX));
-            DPRINTLN(DBG_VERBOSE, " " + String(p->serial.b[4], HEX));
-            if(p->serial.b[5] == 0x11) {
-                switch(p->serial.b[4]) {
+            p->config     = config;
+            DPRINT(DBG_VERBOSE, "SERIAL: " + String(p->config->serial.b[5], HEX));
+            DPRINTLN(DBG_VERBOSE, " " + String(p->config->serial.b[4], HEX));
+            if(p->config->serial.b[5] == 0x11) {
+                switch(p->config->serial.b[4]) {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x41: p->type = INV_TYPE_2CH; break;
                     case 0x61: p->type = INV_TYPE_4CH; break;
-                    default: 
+                    default:
                         DPRINT(DBG_ERROR, F("unknown inverter type: 11"));
-                        DPRINTLN(DBG_ERROR, String(p->serial.b[4], HEX)); 
+                        DPRINTLN(DBG_ERROR, String(p->config->serial.b[4], HEX));
                         break;
                 }
             }
@@ -64,8 +74,6 @@ class HmSystem {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
 
             p->init();
-            uint8_t len   = (uint8_t)strlen(name);
-            strncpy(p->name, name, (len > MAX_NAME_LENGTH) ? MAX_NAME_LENGTH : len);
 
             mNumInv ++;
             return p;
@@ -76,10 +84,10 @@ class HmSystem {
             INVERTERTYPE *p;
             for(uint8_t i = 0; i < mNumInv; i++) {
                 p = &mInverter[i];
-                if((p->serial.b[3] == buf[0])
-                    && (p->serial.b[2] == buf[1])
-                    && (p->serial.b[1] == buf[2])
-                    && (p->serial.b[0] == buf[3]))
+                if((p->config->serial.b[3] == buf[0])
+                    && (p->config->serial.b[2] == buf[1])
+                    && (p->config->serial.b[1] == buf[2])
+                    && (p->config->serial.b[0] == buf[3]))
                     return p;
             }
             return NULL;
@@ -89,7 +97,7 @@ class HmSystem {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
                 return NULL;
-            else if((mInverter[pos].initialized && mInverter[pos].serial.u64 != 0ULL) || false == check)
+            else if((mInverter[pos].initialized && mInverter[pos].config->serial.u64 != 0ULL) || false == check)
                 return &mInverter[pos];
             else
                 return NULL;

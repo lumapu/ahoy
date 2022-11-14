@@ -26,15 +26,14 @@
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
 
 //-----------------------------------------------------------------------------
-web::web(app *main, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
+web::web(app *main, settings_t *config, statistics_t *stat, char version[]) {
     mMain    = main;
-    mSysCfg  = sysCfg;
     mConfig  = config;
     mStat    = stat;
     mVersion = version;
     mWeb     = new AsyncWebServer(80);
     mEvts    = new AsyncEventSource("/events");
-    mApi     = new webApi(mWeb, main, sysCfg, config, stat, version);
+    mApi     = new webApi(mWeb, main, config, stat, version);
 
     mProtected     = true;
     mLogoutTimeout = 0;
@@ -151,7 +150,7 @@ void web::onLogin(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("onLogin"));
 
     if(request->args() > 0) {
-        if(String(request->arg("pwd")) == String(mConfig->password)) {
+        if(String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
             mProtected      = false;
             request->redirect("/");
         }
@@ -260,7 +259,7 @@ void web::showErase(AsyncWebServerRequest *request) {
     }
 
     DPRINTLN(DBG_VERBOSE, F("showErase"));
-    mMain->eraseSettings();
+    mMain->eraseSettings(false);
     onReboot(request);
 }
 
@@ -277,9 +276,11 @@ void web::showFactoryRst(AsyncWebServerRequest *request) {
     int refresh = 3;
     if(request->args() > 0) {
         if(request->arg("reset").toInt() == 1) {
-            mMain->eraseSettings(true);
-            content = F("factory reset: success\n\nrebooting ... ");
             refresh = 10;
+            if(mMain->eraseSettings(true))
+                content = F("factory reset: success\n\nrebooting ... ");
+            else
+                content = F("factory reset: failed\n\nrebooting ... ");
         }
         else {
             content = F("factory reset: aborted");
@@ -328,48 +329,52 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // general
         if(request->arg("ssid") != "")
-            request->arg("ssid").toCharArray(mSysCfg->stationSsid, SSID_LEN);
+            request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
         if(request->arg("pwd") != "{PWD}")
-            request->arg("pwd").toCharArray(mSysCfg->stationPwd, PWD_LEN);
+            request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
         if(request->arg("device") != "")
-            request->arg("device").toCharArray(mSysCfg->deviceName, DEVNAME_LEN);
+            request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
         if(request->arg("adminpwd") != "{PWD}") {
-            request->arg("adminpwd").toCharArray(mConfig->password, PWD_LEN);
-            mProtected = (strlen(mConfig->password) > 0);
+            request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
+            mProtected = (strlen(mConfig->sys.adminPwd) > 0);
         }
 
 
         // static ip
         if(request->arg("ipAddr") != "") {
             request->arg("ipAddr").toCharArray(buf, SSID_LEN);
-            ip2Arr(mConfig->staticIp.ip, buf);
+            ip2Arr(mConfig->sys.ip.ip, buf);
             if(request->arg("ipMask") != "") {
                 request->arg("ipMask").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->staticIp.mask, buf);
+                ip2Arr(mConfig->sys.ip.mask, buf);
             }
-            if(request->arg("ipDns") != "") {
-                request->arg("ipDns").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->staticIp.dns, buf);
+            if(request->arg("ipDns1") != "") {
+                request->arg("ipDns1").toCharArray(buf, SSID_LEN);
+                ip2Arr(mConfig->sys.ip.dns1, buf);
+            }
+            if(request->arg("ipDns2") != "") {
+                request->arg("ipDns2").toCharArray(buf, SSID_LEN);
+                ip2Arr(mConfig->sys.ip.dns2, buf);
             }
             if(request->arg("ipGateway") != "") {
                 request->arg("ipGateway").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->staticIp.gateway, buf);
+                ip2Arr(mConfig->sys.ip.gateway, buf);
             }
         }
         else
-            memset(&mConfig->staticIp, 0, sizeof(staticIp_t));
+            memset(&mConfig->sys.ip.ip, 0, 4);
 
 
         // inverter
-        Inverter<> *iv;
+        /*Inverter<> *iv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             iv = mMain->mSys->getInverterByPos(i, false);
             // address
             request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
             if(strlen(buf) == 0)
                 memset(buf, 0, 20);
-            iv->serial.u64 = mMain->Serial2u64(buf);
-            switch(iv->serial.b[4]) {
+            iv->config->serial.u64 = mMain->Serial2u64(buf);
+            switch(iv->config->serial.b[4]) {
                 case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
                 case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
                 case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
@@ -377,58 +382,52 @@ void web::showSave(AsyncWebServerRequest *request) {
             }
 
             // name
-            request->arg("inv" + String(i) + "Name").toCharArray(iv->name, MAX_NAME_LENGTH);
+            request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
             // max channel power / name
             for(uint8_t j = 0; j < 4; j++) {
-                iv->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
-                request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->chName[j], MAX_NAME_LENGTH);
+                iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
+                request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
             }
             iv->initialized = true;
-        }
+        }*/
         if(request->arg("invInterval") != "")
-            mConfig->sendInterval = request->arg("invInterval").toInt();
+            mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
         if(request->arg("invRetry") != "")
-            mConfig->maxRetransPerPyld = request->arg("invRetry").toInt();
-
-        // Disclaimer
-        if(request->arg("disclaimer") != "")
-            mConfig->disclaimer = strcmp("true", request->arg("disclaimer").c_str()) == 0 ? true : false;
-            DPRINTLN(DBG_INFO, request->arg("disclaimer").c_str());
+            mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
 
         // pinout
         uint8_t pin;
         for(uint8_t i = 0; i < 5; i ++) {
             pin = request->arg(String(pinArgNames[i])).toInt();
             switch(i) {
-                default: mConfig->pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                case 1:  mConfig->pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                case 2:  mConfig->pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
+                default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
+                case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
                 case 3:  mConfig->led.led0 = pin; break;
                 case 4:  mConfig->led.led1 = pin; break;
             }
         }
 
         // nrf24 amplifier power
-        mConfig->amplifierPower = request->arg("rf24Power").toInt() & 0x03;
+        mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
 
         // ntp
         if(request->arg("ntpAddr") != "") {
-            request->arg("ntpAddr").toCharArray(mConfig->ntpAddr, NTP_ADDR_LEN);
-            mConfig->ntpPort = request->arg("ntpPort").toInt() & 0xffff;
+            request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
+            mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
         }
 
         // sun
         if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
-            mConfig->sunLat = 0.0;
-            mConfig->sunLon = 0.0;
-            mConfig->sunDisNightCom = false;
+            mConfig->sun.lat = 0.0;
+            mConfig->sun.lon = 0.0;
+            mConfig->sun.disNightCom = false;
         } else {
-            mConfig->sunLat = request->arg("sunLat").toFloat();
-            mConfig->sunLon = request->arg("sunLon").toFloat();
-            mConfig->sunDisNightCom = (request->arg("sunDisNightCom") == "on");
+            mConfig->sun.lat = request->arg("sunLat").toFloat();
+            mConfig->sun.lon = request->arg("sunLon").toFloat();
+            mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
         }
-
 
         // mqtt
         if(request->arg("mqttAddr") != "") {
@@ -444,15 +443,14 @@ void web::showSave(AsyncWebServerRequest *request) {
 
         // serial console
         if(request->arg("serIntvl") != "") {
-            mConfig->serialInterval = request->arg("serIntvl").toInt() & 0xffff;
+            mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
 
-            mConfig->serialDebug  = (request->arg("serDbg") == "on");
-            mConfig->serialShowIv = (request->arg("serEn") == "on");
+            mConfig->serial.debug  = (request->arg("serDbg") == "on");
+            mConfig->serial.showIv = (request->arg("serEn") == "on");
             // Needed to log TX buffers to serial console
-            mMain->mSys->Radio.mSerialDebug = mConfig->serialDebug;
+            mMain->mSys->Radio.mSerialDebug = mConfig->serial.debug;
         }
-
-        mMain->saveValues();
+        mMain->saveSettings();
 
         if(request->arg("reboot") == "on")
             onReboot(request);
@@ -701,7 +699,7 @@ void web::showMetrics(void) {
     String metrics;
     char headline[80];
 
-    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mSysCfg->deviceName);
+    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mconfig->sys.deviceName);
     metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
 
     for(uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {

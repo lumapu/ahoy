@@ -7,21 +7,19 @@
 #define __AHOYWIFI_H__
 
 #include "../utils/dbg.h"
-
-// NTP
+#include <Arduino.h>
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 #include <DNSServer.h>
+#include "ESPAsyncWebServer.h"
 
-#include "../defines.h"
-
-#include "../app.h"
+#include "../config/settings.h"
 
 class app;
 
 class ahoywifi {
     public:
-        ahoywifi(app *main, sysConfig_t *sysCfg, config_t *config);
+        ahoywifi(settings_t *config);
         ~ahoywifi() {}
 
         void setup(uint32_t timeout, bool settingValid);
@@ -36,9 +34,7 @@ class ahoywifi {
     private:
         void sendNTPpacket(IPAddress& address);
 
-        config_t *mConfig;
-        sysConfig_t *mSysCfg;
-        app *mMain;
+        settings_t *mConfig;
 
         DNSServer *mDns;
         WiFiUDP *mUdp; // for time server

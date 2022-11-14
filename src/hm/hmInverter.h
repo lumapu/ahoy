@@ -14,6 +14,7 @@
 #include "hmDefines.h"
 #include <memory>
 #include <queue>
+#include "../config/settings.h"
 
 /**
  * For values which are of interest and not transmitted by the inverter can be
@@ -104,8 +105,8 @@ const calcFunc_t<T> calcFunctions[] = {
 template <class REC_TYP>
 class Inverter {
     public:
+        cfgIv_t       *config;               // stored settings
         uint8_t       id;                    // unique id
-        char          name[MAX_NAME_LENGTH]; // human readable name, eg. "HM-600.1"
         uint8_t       type;                  // integer which refers to inverter type
         uint16_t      alarmMesIndex;         // Last recorded Alarm Message Index
         uint16_t      fwVersion;             // Firmware Version from Info Command Request
@@ -113,15 +114,12 @@ class Inverter {
         float         actPowerLimit;         // actual power limit
         uint8_t       devControlCmd;         // carries the requested cmd
         bool          devControlRequest;     // true if change needed
-        serial_u      serial;                // serial number as on barcode
         serial_u      radioId;               // id converted to modbus
         uint8_t       channels;              // number of PV channels (1-4)
         record_t<REC_TYP> recordMeas;        // structure for measured values
         record_t<REC_TYP> recordInfo;        // structure for info values
         record_t<REC_TYP> recordConfig;      // structure for system config values
         record_t<REC_TYP> recordAlarm;       // structure for alarm values
-        uint16_t      chMaxPwr[4];           // maximum power of the modules (Wp)
-        char          chName[4][MAX_NAME_LENGTH]; // human readable name for channels
         String        lastAlarmMsg;
         bool          initialized;           // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
 
@@ -150,14 +148,14 @@ class Inverter {
         void setQueuedCmdFinished() {
             if (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
-                _commandQueue.pop(); 
+                _commandQueue.pop();
             }
         }
 
         void clearCmdQueue() {
             while (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
-                _commandQueue.pop(); 
+                _commandQueue.pop();
             }
         }
 
@@ -185,8 +183,6 @@ class Inverter {
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
-            memset(name, 0, MAX_NAME_LENGTH);
-            memset(chName, 0, MAX_NAME_LENGTH * 4);
             initialized = true;
         }
 
@@ -484,10 +480,10 @@ class Inverter {
         void toRadioId(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:toRadioId"));
             radioId.u64  = 0ULL;
-            radioId.b[4] = serial.b[0];
-            radioId.b[3] = serial.b[1];
-            radioId.b[2] = serial.b[2];
-            radioId.b[1] = serial.b[3];
+            radioId.b[4] = config->serial.b[0];
+            radioId.b[3] = config->serial.b[1];
+            radioId.b[2] = config->serial.b[2];
+            radioId.b[1] = config->serial.b[3];
             radioId.b[0] = 0x01;
         }
 };
@@ -583,8 +579,8 @@ static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC, rec);
-        if(iv->chMaxPwr[arg0-1] > 0)
-            return iv->getValue(pos, rec) / iv->chMaxPwr[arg0-1] * 100.0f;
+        if(iv->config->chMaxPwr[arg0-1] > 0)
+            return iv->getValue(pos, rec) / iv->config->chMaxPwr[arg0-1] * 100.0f;
     }
     return 0.0;
 }

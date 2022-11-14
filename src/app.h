@@ -7,15 +7,12 @@
 #define __APP_H__
 
 #include "utils/dbg.h"
-#include "Arduino.h"
-
-
-#include <queue>
+#include <Arduino.h>
 #include <RF24.h>
 #include <RF24_config.h>
 #include <ArduinoJson.h>
 
-#include "config/eep.h"
+#include "config/settings.h"
 #include "defines.h"
 #include "utils/crc.h"
 #include "utils/ahoyTimer.h"
@@ -42,7 +39,7 @@ class web;
 
 class app {
     public:
-        app();
+        app() {}
         ~app() {}
 
         void setup(uint32_t timeout);
@@ -55,9 +52,17 @@ class app {
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
+        void saveSettings(void) {
+            DPRINTLN(DBG_INFO, "a");
+            mSettings.saveSettings();
+        }
+
+        bool eraseSettings(bool eraseWifi = false) {
+            return mSettings.eraseSettings(eraseWifi);
+        }
 
         uint8_t getIrqPin(void) {
-            return mConfig.pinIrq;
+            return mConfig->nrf.pinIrq;
         }
 
         uint64_t Serial2u64(const char *val) {
@@ -122,26 +127,8 @@ class app {
             return mLatestSunTimestamp;
         }
 
-        void eraseSettings(bool all = false) {
-            //DPRINTLN(DBG_VERBOSE, F("main.h:eraseSettings"));
-            uint8_t buf[64];
-            uint16_t addr = (all) ? ADDR_START : ADDR_START_SETTINGS;
-            uint16_t end;
-
-            memset(buf, 0xff, 64);
-            do {
-                end = addr + 64;
-                if(end > (ADDR_SETTINGS_CRC + 2))
-                    end = (ADDR_SETTINGS_CRC + 2);
-                DPRINTLN(DBG_DEBUG, F("erase: 0x") + String(addr, HEX) + " - 0x" + String(end, HEX));
-                mEep->write(addr, buf, (end-addr));
-                addr = end;
-            } while(addr < (ADDR_SETTINGS_CRC + 2));
-            mEep->commit();
-        }
-
         inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
-        inline bool getSettingsValid(void) { return mSettingsValid; }
+        inline bool getSettingsValid(void) { return mSettings.getValid(); }
         inline bool getRebootRequestState(void) { return mShowRebootRequest; }
         inline uint32_t getMqttTxCnt(void) { return mMqtt.getTxCnt(); }
 
@@ -151,56 +138,11 @@ class app {
 
     private:
         void resetSystem(void);
-        void loadDefaultConfig(void);
-        void loadEEpconfig(void);
 
         void setupMqtt(void);
 
         void setupLed(void);
         void updateLed(void);
-
-        void processPayload(bool retransmit);
-
-        inline uint16_t buildEEpCrc(uint32_t start, uint32_t length) {
-            DPRINTLN(DBG_VERBOSE, F("main.h:buildEEpCrc"));
-            uint8_t buf[32];
-            uint16_t crc = 0xffff;
-            uint8_t len;
-
-            while(length > 0) {
-                len = (length < 32) ? length : 32;
-                mEep->read(start, buf, len);
-                crc = ah::crc16(buf, len, crc);
-                start += len;
-                length -= len;
-            }
-            return crc;
-        }
-
-        void updateCrc(void) {
-            DPRINTLN(DBG_VERBOSE, F("app::updateCrc"));
-            uint16_t crc;
-
-            crc = buildEEpCrc(ADDR_START, ADDR_WIFI_CRC);
-            DPRINTLN(DBG_DEBUG, F("new Wifi CRC: ") + String(crc, HEX));
-            mEep->write(ADDR_WIFI_CRC, crc);
-
-            crc = buildEEpCrc(ADDR_START_SETTINGS, ((ADDR_NEXT) - (ADDR_START_SETTINGS)));
-            DPRINTLN(DBG_DEBUG, F("new Settings CRC: ") + String(crc, HEX));
-            mEep->write(ADDR_SETTINGS_CRC, crc);
-
-            mEep->commit();
-        }
-
-        bool checkEEpCrc(uint32_t start, uint32_t length, uint32_t crcPos) {
-            DPRINTLN(DBG_VERBOSE, F("main.h:checkEEpCrc"));
-            DPRINTLN(DBG_DEBUG, F("start: ") + String(start) + F(", length: ") + String(length));
-            uint16_t crcRd, crcCheck;
-            crcCheck = buildEEpCrc(start, length);
-            mEep->read(crcPos, &crcRd);
-            DPRINTLN(DBG_DEBUG, "CRC RD: " + String(crcRd, HEX) + " CRC CALC: " + String(crcCheck, HEX));
-            return (crcCheck == crcRd);
-        }
 
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
@@ -228,11 +170,6 @@ class app {
         uint32_t mNtpRefreshTicker;
         uint32_t mNtpRefreshInterval;
 
-
-        bool mWifiSettingsValid;
-        bool mSettingsValid;
-
-        eep *mEep;
         uint32_t mUtcTimestamp;
         bool mUpdateNtp;
 
@@ -240,10 +177,10 @@ class app {
 
         ahoywifi *mWifi;
         web *mWebInst;
-        sysConfig_t mSysConfig;
-        config_t mConfig;
         char mVersion[12];
         PayloadType mPayload;
+        settings mSettings;
+        settings_t *mConfig;
 
         uint16_t mSendTicker;
         uint8_t mSendLastIvId;

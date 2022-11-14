@@ -67,8 +67,10 @@
                             <input type="text" name="ipAddr" class="text" maxlength="15" />
                             <label for="ipMask">Submask</label>
                             <input type="text" name="ipMask" class="text" maxlength="15" />
-                            <label for="ipDns">DNS</label>
-                            <input type="text" name="ipDns" class="text" maxlength="15" />
+                            <label for="ipDns1">DNS 1</label>
+                            <input type="text" name="ipDns1" class="text" maxlength="15" />
+                            <label for="ipDns2">DNS 2</label>
+                            <input type="text" name="ipDns2" class="text" maxlength="15" />
                             <label for="ipGateway">Gateway</label>
                             <input type="text" name="ipGateway" class="text" maxlength="15" />
                         </fieldset>
@@ -332,7 +334,7 @@
             }
 
             function parseStaticIp(obj) {
-                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns", "dns"], ["ipGateway", "gateway"]])
+                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
             }

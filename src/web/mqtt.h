@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -21,9 +21,9 @@
 #include "../utils/ahoyTimer.h"
 #include "../config/config.h"
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include "../defines.h"
 #include "../hm/hmSystem.h"
-#include <ArduinoJson.h>
 
 template<class HMSYSTEM>
 class mqtt {
@@ -34,18 +34,16 @@ class mqtt {
 
             mLastReconnect = 0;
             mTxCnt = 0;
-
-            memset(mDevName, 0, DEVNAME_LEN);
         }
 
         ~mqtt() { }
 
-        void setup(mqttConfig_t *cfg, const char *devname, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(cfgMqtt_t *cfg, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
 
-            snprintf(mDevName, DEVNAME_LEN, "%s", devname);
             mCfg          = cfg;
+            mDevName      = devName;
             mSys          = sys;
             mUtcTimestamp = utcTs;
 
@@ -55,7 +53,7 @@ class mqtt {
             setCallback(std::bind(&mqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
             sendMsg("version", version);
-            sendMsg("device", devname);
+            sendMsg("device", devName);
             sendMsg("uptime", "0");
         }
 
@@ -76,8 +74,8 @@ class mqtt {
         void sendMsg(const char *topic, const char *msg) {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
             if(mAddressSet) {
-                char top[64];
-                snprintf(top, 64, "%s/%s", mCfg->topic, topic);
+                char top[66];
+                snprintf(top, 66, "%s/%s", mCfg->topic, topic);
                 sendMsg2(top, msg, false);
             }
         }
@@ -118,22 +116,22 @@ class mqtt {
                 if (NULL != iv) {
                     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                     DynamicJsonDocument deviceDoc(128);
-                    deviceDoc["name"] = iv->name;
-                    deviceDoc["ids"] = String(iv->serial.u64, HEX);
+                    deviceDoc["name"] = iv->config->name;
+                    deviceDoc["ids"] = String(iv->config->serial.u64, HEX);
                     deviceDoc["cu"] = F("http://") + String(WiFi.localIP().toString());
                     deviceDoc["mf"] = "Hoymiles";
-                    deviceDoc["mdl"] = iv->name;
+                    deviceDoc["mdl"] = iv->config->name;
                     JsonObject deviceObj = deviceDoc.as<JsonObject>();
                     DynamicJsonDocument doc(384);
 
                     for (uint8_t i = 0; i < rec->length; i++) {
                         if (rec->assign[i].ch == CH0) {
-                            snprintf(name, 32, "%s %s", iv->name, iv->getFieldName(i, rec));
+                            snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
                         } else {
-                            snprintf(name, 32, "%s CH%d %s", iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                            snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                         }
-                        snprintf(stateTopic, 64, "%s/%s/ch%d/%s", topic, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(stateTopic, 64, "%s/%s/ch%d/%s", topic, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                         snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
                         const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
                         const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
@@ -141,7 +139,7 @@ class mqtt {
                         doc["name"] = name;
                         doc["stat_t"] = stateTopic;
                         doc["unit_of_meas"] = iv->getUnit(i, rec);
-                        doc["uniq_id"] = String(iv->serial.u64, HEX) + "_" + uniq_id;
+                        doc["uniq_id"] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
                         doc["dev"] = deviceObj;
                         doc["exp_aft"] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                         if (devCls != NULL)
@@ -248,7 +246,7 @@ class mqtt {
                             if (MQTT_STATUS_AVAIL_PROD == status)
                                 status = MQTT_STATUS_AVAIL_NOT_PROD;
                         }
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->name);
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->config->name);
                         snprintf(val, 40, "%s%s%s%s",
                             (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
                             "available and ",
@@ -257,11 +255,11 @@ class mqtt {
                         );
                         sendMsg(topic, val);
 
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->name);
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                         snprintf(val, 40, "%d", status);
                         sendMsg(topic, val);
 
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->name);
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
                         snprintf(val, 40, "%i", iv->getLastTs(rec) * 1000);
                         sendMsg(topic, val);
                     }
@@ -269,7 +267,7 @@ class mqtt {
                     // data
                     if(iv->isAvailable(*mUtcTimestamp, rec)) {
                         for (uint8_t i = 0; i < rec->length; i++) {
-                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
                             snprintf(val, 40, "%.3f", iv->getValue(i, rec));
                             sendMsg(topic, val);
 
@@ -435,8 +433,8 @@ class mqtt {
         uint32_t *mUtcTimestamp;
 
         bool mAddressSet;
-        mqttConfig_t *mCfg;
-        char mDevName[DEVNAME_LEN];
+        cfgMqtt_t *mCfg;
+        const char *mDevName;
         uint32_t mLastReconnect;
         uint32_t mTxCnt;
         std::queue<uint8_t> mSendList;
