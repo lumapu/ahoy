@@ -73,8 +73,11 @@
                 </ul>
             </div>
             <div class="right">
-                <span id="version"></span><br/><br/>
-                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+                <ul>
+                    <li><span id="version"></span></li>
+                    <li><span id="esp_type"></span></li>
+                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
+                </ul>
             </div>
         </div>
         <script type="text/javascript">
@@ -101,8 +104,10 @@
             function parseSys(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-                if(true == exeOnce)
+                if(exeOnce){
                     parseVersion(obj);
+                    parseESP(obj);
+                }
                 document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
                 var date = new Date(obj["ts_now"] * 1000);
@@ -128,7 +133,7 @@
                     dSpan.appendChild(span("", ["span"], "apiResult"));
                     e.addEventListener("click", setTime);
                 }
-                
+
                 if(!obj["ts_sun_upd"]) {
                     var e = document.getElementById("sun");
                     if(null != e)
@@ -185,14 +190,14 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    if(true == exeOnce)
+                    if(exeOnce)
                         parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
-                    if(true == exeOnce) {
+                    if(exeOnce) {
                         window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
                         exeOnce = false;
                     }
