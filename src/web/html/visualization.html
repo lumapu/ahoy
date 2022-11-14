@@ -32,16 +32,21 @@
                 </ul>
             </div>
             <div class="right">
-                <span id="version"></span><br/><br/>
-                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
+                <ul>
+                    <li><span id="version"></span></li>
+                    <li><span id="esp_type"></span></li>
+                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
+                </ul>
             </div>
         </div>
         <script type="text/javascript">
             var exeOnce = true;
 
             function parseSys(obj) {
-                if(true == exeOnce)
+                if(true == exeOnce){
                     parseVersion(obj);
+                    parseESP(obj);
+                }
             }
 
             function parseIv(obj, root) {
