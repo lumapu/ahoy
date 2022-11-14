@@ -96,6 +96,7 @@
 
                 if(true == exeOnce) {
                     parseVersion(obj);
+                    parseESP(obj);
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
                     exeOnce = false;
                 }

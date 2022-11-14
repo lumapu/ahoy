@@ -43,8 +43,10 @@
             var exeOnce = true;
 
             function parseSys(obj) {
-                if(true == exeOnce)
+                if(true == exeOnce){
                     parseVersion(obj);
+                    parseESP(obj);
+                }
             }
 
             function parseIv(obj, root) {
