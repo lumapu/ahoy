@@ -155,6 +155,21 @@ void webApi::getSysInfo(JsonObject obj) {
     obj[F("wifi_rssi")]   = WiFi.RSSI();
     obj[F("disclaimer")]  = mConfig->disclaimer;
     obj[F("pwd_set")]     = (strlen(mConfig->password) > 0);
+
+    obj[F("hostname")]      = WiFi.getHostname();
+    obj[F("sdkversion")]    = ESP.getSdkVersion();
+    obj[F("cpufreq")]       = ESP.getCpuFreqMHz();
+
+    obj[F("heap_total")]    = ESP.getHeapSize();
+    obj[F("heap_used")]     = ESP.getHeapSize() - ESP.getFreeHeap();
+    obj[F("sketch_total")]  = ESP.getFreeSketchSpace();
+    obj[F("sketch_used")]   = ESP.getSketchSize();
+    //obj[F("littlefs_total")] = LittleFS.totalBytes();
+    //obj[F("littlefs_used")] = LittleFS.usedBytes();
+
+    obj[F("chiprevision")]  = ESP.getChipRevision();
+    obj[F("chipmodel")]     = ESP.getChipModel();
+    obj[F("chipcores")]     = ESP.getChipCores();
 #if defined(ESP32)
     obj[F("esp_type")]    = F("ESP32");
 #else
