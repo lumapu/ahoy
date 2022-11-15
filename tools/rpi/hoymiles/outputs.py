@@ -6,6 +6,7 @@ Hoymiles output plugin library
 """
 
 import socket
+import logging
 from datetime import datetime, timezone
 from hoymiles.decoders import StatusResponse
 
@@ -310,4 +311,4 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
             try:
                 output.store_status(data, self.session)
             except ValueError as e:
-                print('Could not send data to volkszaehler instance: %s' % e)
+                logging.warning('Could not send data to volkszaehler instance: %s' % e)
