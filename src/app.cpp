@@ -249,6 +249,8 @@ void app::getAvailNetworks(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
+    snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+
     mUptimeSecs = 0;
     mPrevMillis = 0;
     mUpdateNtp = false;

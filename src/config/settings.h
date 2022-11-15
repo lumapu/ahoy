@@ -157,11 +157,12 @@ class settings {
             if(!fp)
                 DPRINTLN(DBG_WARN, F("failed to load json, using default config"));
             else {
-                DynamicJsonDocument json(8192);
-                DeserializationError err = deserializeJson(json, fp);
+                DPRINTLN(DBG_INFO, fp.readString());
+                fp.seek(0, SeekSet);
+                DynamicJsonDocument root(4096);
+                DeserializationError err = deserializeJson(root, fp);
                 if(!err) {
                     mValid = true;
-                    JsonObject root = json.to<JsonObject>();
                     jsonWifi(root["wifi"]);
                     jsonNrf(root["nrf"]);
                     jsonNtp(root["ntp"]);
@@ -187,21 +188,22 @@ class settings {
                 return false;
             }
 
-            DynamicJsonDocument json(8192);
+            DynamicJsonDocument json(4096);
             JsonObject root = json.to<JsonObject>();
-            jsonWifi(root["wifi"], true);
-            jsonNrf(root["nrf"], true);
-            jsonNtp(root["ntp"], true);
-            jsonSun(root["sun"], true);
-            jsonSerial(root["serial"], true);
-            jsonMqtt(root["mqtt"], true);
-            jsonLed(root["led"], true);
-            jsonInst(root["inst"], true);
+            jsonWifi(root.createNestedObject(F("wifi")), true);
+            jsonNrf(root.createNestedObject(F("nrf")), true);
+            jsonNtp(root.createNestedObject(F("ntp")), true);
+            jsonSun(root.createNestedObject(F("sun")), true);
+            jsonSerial(root.createNestedObject(F("serial")), true);
+            jsonMqtt(root.createNestedObject(F("mqtt")), true);
+            jsonLed(root.createNestedObject(F("led")), true);
+            jsonInst(root.createNestedObject(F("inst")), true);
 
             if(0 == serializeJson(root, fp)) {
                 DPRINTLN(DBG_ERROR, F("can't write settings file!"));
                 return false;
             }
+            fp.close();
 
             return true;
         }
@@ -235,9 +237,11 @@ class settings {
             DPRINTLN(DBG_INFO, F("loadDefaults"));
 
             memset(&mCfg, 0, sizeof(settings_t));
-            snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
-            snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);
-            snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
+            if(wifi) {
+                snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
+                snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);
+                snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
+            }
 
             mCfg.nrf.sendInterval      = SEND_INTERVAL;
             mCfg.nrf.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
@@ -361,41 +365,47 @@ class settings {
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
-                obj["0"] = mCfg.led.led0;
-                obj["1"] = mCfg.led.led1;
+                obj[F("0")] = mCfg.led.led0;
+                obj[F("1")] = mCfg.led.led1;
             } else {
-                mCfg.led.led0 = obj["0"];
-                mCfg.led.led1 = obj["1"];
+                mCfg.led.led0 = obj[F("0")];
+                mCfg.led.led1 = obj[F("1")];
             }
         }
 
         void jsonInst(JsonObject obj, bool set = false) {
-            if(set) {
-                obj["en"]    = mCfg.inst.enabled;
-            } else {
-                mCfg.inst.enabled = obj["en"];
-            }
+            if(set)
+                obj[F("en")]    = mCfg.inst.enabled;
+            else
+                mCfg.inst.enabled = obj[F("en")];
+
+            JsonArray ivArr;
+            if(set)
+                ivArr = obj.createNestedArray(F("iv"));
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                jsonIv(obj["iv"][i], mCfg.inst.iv[i], set);
+                if(set)
+                    jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
+                else
+                    jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
             }
         }
 
-        void jsonIv(JsonObject obj, cfgIv_t cfg, bool set = false) {
+        void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj["en"]     = cfg.enabled;
-                obj["name"]   = cfg.name;
-                obj["serial"] = cfg.serial.u64;
+                obj[F("en")]     = cfg->enabled;
+                obj[F("name")]   = cfg->name;
+                obj[F("sn")] = cfg->serial.u64;
                 for(uint8_t i = 0; i < 4; i++) {
-                    obj["chPwr"][i]  = cfg.chMaxPwr[i];
-                    obj["chName"][i] = cfg.chName[i];
+                    obj[F("pwr")][i]  = cfg->chMaxPwr[i];
+                    obj[F("chName")][i] = cfg->chName[i];
                 }
             } else {
-                cfg.enabled = obj["en"];
-                snprintf(cfg.name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
-                cfg.serial.u64 = obj["serial"];
+                cfg->enabled = obj[F("en")];
+                snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
+                cfg->serial.u64 = obj[F("sn")];
                 for(uint8_t i = 0; i < 4; i++) {
-                    cfg.chMaxPwr[i] = obj["chPwr"][i];
-                    snprintf(cfg.chName[i], MAX_NAME_LENGTH, "%s", obj["chName"][i].as<const char*>());
+                    cfg->chMaxPwr[i] = obj[F("pwr")][i];
+                    snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
                 }
             }
         }

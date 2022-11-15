@@ -44,13 +44,13 @@
 
 // default pinout (GPIO Number)
 #if defined(ESP32)
-    #define DEF_CS_PIN              15
-    #define DEF_CE_PIN              2
-    #define DEF_IRQ_PIN             0
-#else
     #define DEF_CS_PIN              5
     #define DEF_CE_PIN              4
     #define DEF_IRQ_PIN             16
+#else
+    #define DEF_CS_PIN              15
+    #define DEF_CE_PIN              2
+    #define DEF_IRQ_PIN             0
 #endif
 #define DEF_LED0_PIN            255 // off
 #define DEF_LED1_PIN            255 // off
@@ -62,7 +62,7 @@
 #define PACKET_BUFFER_SIZE      30
 
 // number of configurable inverters
-#define MAX_NUM_INVERTERS       4
+#define MAX_NUM_INVERTERS       10
 
 // default serial interval
 #define SERIAL_INTERVAL         5

@@ -40,8 +40,8 @@ class HmSystem {
         void addInverters(cfgInst_t *config) {
             Inverter<> *iv;
             for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                iv = addInverter(&config->iv[i]);
                 if (0ULL != config->iv[i].serial.u64) {
-                    iv = addInverter(&config->iv[i]);
                     if (NULL != iv)
                         DPRINTLN(DBG_INFO, "added inverter " + String(iv->config->serial.u64, HEX));
                 }

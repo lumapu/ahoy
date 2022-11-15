@@ -53,7 +53,6 @@ class app {
         void getAvailNetworks(JsonObject obj);
 
         void saveSettings(void) {
-            DPRINTLN(DBG_INFO, "a");
             mSettings.saveSettings();
         }
 

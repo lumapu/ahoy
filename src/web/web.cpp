@@ -366,7 +366,7 @@ void web::showSave(AsyncWebServerRequest *request) {
 
 
         // inverter
-        /*Inverter<> *iv;
+        Inverter<> *iv;
         for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
             iv = mMain->mSys->getInverterByPos(i, false);
             // address
@@ -390,7 +390,8 @@ void web::showSave(AsyncWebServerRequest *request) {
                 request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
             }
             iv->initialized = true;
-        }*/
+        }
+
         if(request->arg("invInterval") != "")
             mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
         if(request->arg("invRetry") != "")
