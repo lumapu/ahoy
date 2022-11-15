@@ -20,4 +20,7 @@
 
     // https://clang.llvm.org/docs/ClangFormatStyleOptions.html
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4, ColumnLimit: 0}",
+    "files.associations": {
+        "typeinfo": "cpp"
+    },
 }

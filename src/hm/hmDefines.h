@@ -9,13 +9,6 @@
 #include "../utils/dbg.h"
 #include <cstdint>
 
-
-union serial_u {
-    uint64_t u64;
-    uint8_t  b[8];
-};
-
-
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
 const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%", "var", ""};
