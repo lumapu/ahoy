@@ -33,18 +33,29 @@ connected between +3.3V and GND (Pin 1 & 2) of the NRF Module
 * [ ] Image of the your wiring attached
 
 ### Connection diagram I used:
-| nRF24L01+ Pin | ESP8266/32 GPIO |
-| ------------- | --------------- |
-| Pin 1 GND []  |  GND            |
-| Pin 2 +3.3V   |  +3.3V          |
-| Pin 3 CE      | GPIO_2/_4 CE    |
-| Pin 4 CSN     | GPIO15/_5 CS    |
-| Pin 5 SCK     | GPIO14/18 SCLK  |
-| Pin 6 MOSI    | GPIO13/23 MOSI  |
-| Pin 7 MISO    | GPIO12/19 MISO  |
-| Pin 8 IRQ     | GPIO_0/0 IRQ    |
+| nRF24L01+ Pin | ESP8266 GPIO   |
+| ------------- | -------------- |
+| Pin 1 GND [*] | GND            |
+| Pin 2 +3.3V   | +3.3V          |
+| Pin 3 CE      | GPIO2  CE   D4 |
+| Pin 4 CSN     | GPIO15 CS   D8 |
+| Pin 5 SCK     | GPIO14 SCLK D5 |
+| Pin 6 MOSI    | GPIO13 MOSI D7 |
+| Pin 7 MISO    | GPIO12 MISO D6 |
+| Pin 8 IRQ     | GPIO0  IRQ  D3 |
 
-Note: [] GND Pin 1 has a square mark on the nRF24L01+ module
+| nRF24L01+ Pin | ESP32 GPIO      |
+| ------------- | --------------- |
+| Pin 1 GND [*] | GND             |
+| Pin 2 +3.3V   | +3.3V           |
+| Pin 3 CE      | GPIO4  CE   D4  |
+| Pin 4 CSN     | GPIO5  CS   D5  |
+| Pin 5 SCK     | GPIO18 SCLK D18 |
+| Pin 6 MOSI    | GPIO23 MOSI D23 |
+| Pin 7 MISO    | GPIO19 MISO D19 |
+| Pin 8 IRQ     | GPIO0  IRQ  D0  |
+
+Note: [*] GND Pin 1 has a square mark on the nRF24L01+ module
 
 ## Software
 * [ ] AhoyDTU
