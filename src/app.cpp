@@ -287,7 +287,7 @@ void app::setupMqtt(void) {
         mMqttActive = true;
 
     if(mMqttActive)
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp);
+        mMqtt.setup(this, &mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp);
 }
 
 //-----------------------------------------------------------------------------
