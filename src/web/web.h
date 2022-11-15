@@ -76,7 +76,7 @@ class web {
 #endif
 
 #ifdef ENABLE_PROMETHEUS_EP
-        void showMetrics(void);
+        void showMetrics(AsyncWebServerRequest *request);
         std::pair<String, String> convertToPromUnits(String shortUnit);
 #endif
 

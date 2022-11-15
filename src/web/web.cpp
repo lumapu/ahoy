@@ -695,32 +695,33 @@ std::pair<String, String> web::convertToPromUnits(String shortUnit) {
 
 
 //-----------------------------------------------------------------------------
-void web::showMetrics(void) {
+void web::showMetrics(AsyncWebServerRequest *request) {
     DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
     String metrics;
     char headline[80];
 
-    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mconfig->sys.deviceName);
+    snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mVersion, mConfig->sys.deviceName);
     metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
 
     for(uint8_t id = 0; id < mMain->mSys->getNumInverters(); id++) {
         Inverter<> *iv = mMain->mSys->getInverterByPos(id);
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         if(NULL != iv) {
             char type[60], topic[60], val[25];
-            for(uint8_t i = 0; i < iv->listLen; i++) {
-                uint8_t channel = iv->assign[i].ch;
+            for(uint8_t i = 0; i < iv->channels; i++) {
+                uint8_t channel = iv->getChannel(i, rec);
                 if(channel == 0) {
                     String promUnit, promType;
-                    std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i) );
-                    snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i), promUnit.c_str(), promType.c_str());
-                    snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i), promUnit.c_str(), iv->name);
-                    snprintf(val, 25, "%.3f", iv->getValue(i));
+                    std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i, rec) );
+                    snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i, rec), promUnit.c_str(), promType.c_str());
+                    snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i, rec), promUnit.c_str(), iv->config->name);
+                    snprintf(val, 25, "%.3f", iv->getValue(i,rec));
                     metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
                 }
             }
         }
     }
 
-    mWeb->send(200, F("text/plain"), metrics);
+    request->send(200, F("text/plain"), metrics);
 }
 #endif
