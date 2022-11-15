@@ -113,6 +113,12 @@ void ahoywifi::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
     IPAddress apIp(192, 168, 4, 1);
 
+    DBGPRINTLN(F("\n---------\nAhoy Info:"));
+    DBGPRINT(F("Version: "));
+    DBGPRINTLN(String(VERSION_MAJOR) + F(".") + String(VERSION_MINOR) + F(".") + String(VERSION_PATCH));
+    DBGPRINT(F("Github Hash: "));
+    DBGPRINTLN(String(AUTO_GIT_HASH));
+
     DBGPRINT(F("\n---------\nAP MODE\nSSID: "));
     DBGPRINTLN(ssid);
     DBGPRINT(F("PWD: "));
@@ -120,6 +126,8 @@ void ahoywifi::setupAp(const char *ssid, const char *pwd) {
     DBGPRINT(F("\nActive for: "));
     DBGPRINT(String(WIFI_AP_ACTIVE_TIME));
     DBGPRINTLN(F(" seconds"));
+
+    DBGPRINTLN("\nIp Address: " + apIp[0] + apIp[1] + apIp[2] + apIp[3]);
     DBGPRINTLN(F("\n---------\n"));
 
     WiFi.mode(WIFI_AP);
