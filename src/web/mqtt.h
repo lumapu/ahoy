@@ -38,16 +38,17 @@ class mqtt {
 
         ~mqtt() { }
 
-        void setup(cfgMqtt_t *cfg, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(app *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
 
-            mCfg          = cfg;
-            mDevName      = devName;
-            mSys          = sys;
-            mUtcTimestamp = utcTs;
+            mApp            = app;
+            mCfg_mqtt       = cfg_mqtt;
+            mDevName        = devName;
+            mSys            = sys;
+            mUtcTimestamp   = utcTs;
 
-            mClient->setServer(mCfg->broker, mCfg->port);
+            mClient->setServer(mCfg_mqtt->broker, mCfg_mqtt->port);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
             setCallback(std::bind(&mqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -75,7 +76,7 @@ class mqtt {
             //DPRINTLN(DBG_VERBOSE, F("mqtt.h:sendMsg"));
             if(mAddressSet) {
                 char top[66];
-                snprintf(top, 66, "%s/%s", mCfg->topic, topic);
+                snprintf(top, 66, "%s/%s", mCfg_mqtt->topic, topic);
                 sendMsg2(top, msg, false);
             }
         }
@@ -173,21 +174,21 @@ class mqtt {
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden,
                     // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
-                    mClient->setServer(mCfg->broker, mCfg->port);
+                    mClient->setServer(mCfg_mqtt->broker, mCfg_mqtt->port);
                     mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
                     char lwt[MQTT_TOPIC_LEN + 7 ]; // "/uptime" --> + 7 byte
-                    snprintf(lwt, MQTT_TOPIC_LEN + 7, "%s/uptime", mCfg->topic);
+                    snprintf(lwt, MQTT_TOPIC_LEN + 7, "%s/uptime", mCfg_mqtt->topic);
 
-                    if((strlen(mCfg->user) > 0) && (strlen(mCfg->pwd) > 0))
-                        resub = mClient->connect(mDevName, mCfg->user, mCfg->pwd, lwt, 0, false, "offline");
+                    if((strlen(mCfg_mqtt->user) > 0) && (strlen(mCfg_mqtt->pwd) > 0))
+                        resub = mClient->connect(mDevName, mCfg_mqtt->user, mCfg_mqtt->pwd, lwt, 0, false, "offline");
                     else
                         resub = mClient->connect(mDevName, lwt, 0, false, "offline");
                         // ein Subscribe ist nur nach einem connect notwendig
                     if(resub) {
                         char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
                         // ToDo: "/devcontrol/#" is hardcoded
-                        snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg->topic);
+                        snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg_mqtt->topic);
                         DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
                         mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
                     }
@@ -225,6 +226,13 @@ class mqtt {
             snprintf(val, 40, "%ld", millis() / 1000);
 
             sendMsg("uptime", val);
+
+            sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
+
+            String sunrise = String(mApp->getSunrise());
+            String sunset = String(mApp->getSunset());
+            sendMsg("sunrise", sunrise.c_str());
+            sendMsg("sunset", sunset.c_str());
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);
@@ -427,13 +435,14 @@ class mqtt {
             DPRINTLN(DBG_INFO, F("app::cbMqtt finished"));
         }
 
+        app *mApp;
         WiFiClient mEspClient;
         PubSubClient *mClient;
         HMSYSTEM *mSys;
         uint32_t *mUtcTimestamp;
 
         bool mAddressSet;
-        cfgMqtt_t *mCfg;
+        cfgMqtt_t *mCfg_mqtt;
         const char *mDevName;
         uint32_t mLastReconnect;
         uint32_t mTxCnt;

@@ -2,6 +2,12 @@
 
 ahoy:
   interval: 5
+
+  logging:
+    filename: 'hoymiles.log'
+    # DEBUG, INFO, WARNING, ERROR, FATAL
+    level: 'INFO'
+
   sunset:
     disabled: false
     latitude: 51.799118

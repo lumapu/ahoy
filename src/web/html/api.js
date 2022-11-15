@@ -31,6 +31,23 @@ function parseESP(obj) {
     document.getElementById("esp_type").innerHTML="Board: " + obj["esp_type"];
 }
 
+function parseSysInfo(obj) {
+    document.getElementById("sdkversion").innerHTML=    "SDKv.: " + obj["sdk_version"];
+    document.getElementById("cpufreq").innerHTML=       "CPU MHz: " + obj["cpu_freq"] + "MHz";
+    document.getElementById("chiprevision").innerHTML=  "Rev.: " + obj["chip_revision"];
+    document.getElementById("chipmodel").innerHTML=     "Model: " + obj["chip_model"];
+    document.getElementById("chipcores").innerHTML=     "Core: " + obj["chip_cores"];
+    document.getElementById("esp_type").innerHTML=      "Type: " + obj["esp_type"];
+
+    document.getElementById("heap_used").innerHTML=     "Used: " + obj["heap_used"];
+    document.getElementById("heap_total").innerHTML=      "Total: " + obj["heap_total"];
+}
+
+function changeProgressbar(id, value, max) {
+    document.getElementById(id).value = value;
+    document.getElementById(id).max = max;
+}
+
 function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
