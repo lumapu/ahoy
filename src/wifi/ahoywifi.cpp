@@ -87,8 +87,11 @@ bool ahoywifi::loop(void) {
                     DPRINTLN(DBG_INFO, String(cnt) + F(" client connected (no timeout)"));
                     mNextTryTs = (millis() + (WIFI_AP_ACTIVE_TIME * 1000));
                 }
-                else
-                    DPRINTLN(DBG_INFO, F("AP will be closed in ") + String((mNextTryTs - mApLastTick) / 1000) + F(" seconds"));
+                else {
+                    DBGPRINT(F("AP will be closed in "));
+                    DBGPRINT(String((mNextTryTs - mApLastTick) / 1000));
+                    DBGPRINTLN(F(" seconds"));
+                }
             }
         }
 #endif
@@ -110,12 +113,14 @@ void ahoywifi::setupAp(const char *ssid, const char *pwd) {
     DPRINTLN(DBG_VERBOSE, F("app::setupAp"));
     IPAddress apIp(192, 168, 4, 1);
 
-    DPRINTLN(DBG_INFO, F("\n---------\nAP MODE\nSSID: ")
-        + String(ssid) + F("\nPWD: ")
-        + String(pwd) + F("\nActive for: ")
-        + String(WIFI_AP_ACTIVE_TIME) + F(" seconds")
-        + F("\n---------\n"));
-    DPRINTLN(DBG_DEBUG, String(mNextTryTs));
+    DBGPRINT(F("\n---------\nAP MODE\nSSID: "));
+    DBGPRINTLN(ssid);
+    DBGPRINT(F("PWD: "));
+    DBGPRINTLN(pwd);
+    DBGPRINT(F("\nActive for: "));
+    DBGPRINT(String(WIFI_AP_ACTIVE_TIME));
+    DBGPRINTLN(F(" seconds"));
+    DBGPRINTLN(F("\n---------\n"));
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
@@ -153,13 +158,15 @@ bool ahoywifi::setupStation(uint32_t timeout) {
         WiFi.hostname(mConfig->sys.deviceName);
 
     delay(2000);
-    DPRINTLN(DBG_INFO, F("connect to network '") + String(mConfig->sys.stationSsid) + F("' ..."));
+    DBGPRINT(F("connect to network '"));
+    DBGPRINT(mConfig->sys.stationSsid);
+    DBGPRINTLN(F("' ..."));
     while (WiFi.status() != WL_CONNECTED) {
         delay(100);
         if(cnt % 40 == 0)
-            Serial.println(".");
+            DBGPRINTLN(".");
         else
-            Serial.print(".");
+            DBGPRINT(".");
 
         if(timeout > 0) { // limit == 0 -> no limit
             if(--cnt <= 0) {

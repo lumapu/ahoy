@@ -107,15 +107,21 @@ class settings {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
 
             mValid = false;
+            #if !defined(ESP32)
+                LittleFSConfig cfg;
+                cfg.setAutoFormat(false);
+                LittleFS.setConfig(cfg);
+                #define LITTLFS_TRUE
+                #define LITTLFS_FALSE
+            #else
+                #define LITTLFS_TRUE true
+                #define LITTLFS_FALSE false
+            #endif
 
-            LittleFSConfig cfg;
-            cfg.setAutoFormat(false);
-            LittleFS.setConfig(cfg);
-
-            if(!LittleFS.begin()) {
+            if(!LittleFS.begin(LITTLFS_FALSE)) {
                 DPRINTLN(DBG_INFO, F(".. format .."));
                 LittleFS.format();
-                if(LittleFS.begin())
+                if(LittleFS.begin(LITTLFS_TRUE))
                     DPRINTLN(DBG_INFO, F(".. success"));
                 else
                     DPRINTLN(DBG_INFO, F(".. failed"));
@@ -142,13 +148,17 @@ class settings {
         }
 
         void getInfo(uint32_t *used, uint32_t *size) {
-            FSInfo info;
-            LittleFS.info(info);
-            *used = info.usedBytes;
-            *size = info.totalBytes;
+            #if !defined(ESP32)
+                FSInfo info;
+                LittleFS.info(info);
+                *used = info.usedBytes;
+                *size = info.totalBytes;
 
-            DPRINTLN(DBG_INFO, F("-- FILESYSTEM INFO --"));
-            DPRINTLN(DBG_INFO, String(info.usedBytes) + F(" of ") + String(info.totalBytes)  + F(" used"));
+                DPRINTLN(DBG_INFO, F("-- FILESYSTEM INFO --"));
+                DPRINTLN(DBG_INFO, String(info.usedBytes) + F(" of ") + String(info.totalBytes)  + F(" used"));
+            #else
+                DPRINTLN(DBG_WARN, F("not supported by ESP32"));
+            #endif
         }
 
         void readSettings(void) {
