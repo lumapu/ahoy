@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       35
+#define VERSION_PATCH       36
 
 //-------------------------------------
 typedef struct {
@@ -63,6 +63,11 @@ typedef enum {
     RelativPersistent     = 257UL   // 0x0101
 } PowerLimitControlType;
 
+union serial_u {
+    uint64_t u64;
+    uint8_t  b[8];
+};
+
 #define MIN_SERIAL_INTERVAL     5
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
@@ -78,116 +83,14 @@ typedef enum {
 #define SSID_LEN                32
 #define PWD_LEN                 64
 #define DEVNAME_LEN             16
-#define CRC_LEN                 2 // uint16_t
-#define DISCLAIMER_LEN          1
-#define STATIC_IP_LEN           16 // 4x uint32_t
-#define STATUS_LED_LEN          2  // 2x uint8_t
-
-#define INV_ADDR_LEN            MAX_NUM_INVERTERS * 8                   // uint64_t
-#define INV_NAME_LEN            MAX_NUM_INVERTERS * MAX_NAME_LENGTH     // char[]
-#define INV_CH_CH_PWR_LEN       MAX_NUM_INVERTERS * 2 * 4               // uint16_t (4 channels)
-#define INV_CH_CH_NAME_LEN      MAX_NUM_INVERTERS * MAX_NAME_LENGTH * 4 // (4 channels)
-#define INV_INTERVAL_LEN        2                                       // uint16_t
-#define INV_MAX_RTRY_LEN        1                                       // uint8_t
-#define INV_ENABLED_LEN         1                                       // uint8_t
-
-#define CFG_SUN_LEN             9 // 2x float(4+4) + bool(1)
-
 #define NTP_ADDR_LEN            32 // DNS Name
 
 #define MQTT_ADDR_LEN           32 // DNS Name
 #define MQTT_USER_LEN           16
 #define MQTT_PWD_LEN            32
-#define MQTT_TOPIC_LEN          32
-#define MQTT_DISCOVERY_PREFIX   "homeassistant"
+#define MQTT_TOPIC_LEN          64
+
 #define MQTT_MAX_PACKET_SIZE    384
-#define MQTT_RECONNECT_DELAY    5000
-
-#pragma pack(push)  // push current alignment to stack
-#pragma pack(1)     // set alignment to 1 byte boundary
-typedef struct {
-    char broker[MQTT_ADDR_LEN];
-    uint16_t port;
-    char user[MQTT_USER_LEN];
-    char pwd[MQTT_PWD_LEN];
-    char topic[MQTT_TOPIC_LEN];
-} mqttConfig_t;
-#pragma pack(pop)   // restore original alignment from stack
-
-
-#pragma pack(push)
-#pragma pack(1)
-typedef struct {
-    char deviceName[DEVNAME_LEN];
-
-    // wifi
-    char stationSsid[SSID_LEN];
-    char stationPwd[PWD_LEN];
-} sysConfig_t;
-#pragma pack(pop)
-
-
-#pragma pack(push)
-#pragma pack(1)
-typedef struct {
-    uint8_t ip[4];      // ip address
-    uint8_t mask[4];    // sub mask
-    uint8_t dns[4];     // dns
-    uint8_t gateway[4]; // standard gateway
-} staticIp_t;
-#pragma pack(pop)
-
-#pragma pack(push)
-#pragma pack(1)
-typedef struct {
-    uint8_t led0; // first led pin
-    uint8_t led1; // second led pin
-} statusLed_t;
-#pragma pack(pop)
-
-
-#pragma pack(push)
-#pragma pack(1)
-typedef struct {
-    // protection
-    char password[PWD_LEN];
-
-    // nrf24
-    uint16_t sendInterval;
-    uint8_t maxRetransPerPyld;
-    uint8_t pinCs;
-    uint8_t pinCe;
-    uint8_t pinIrq;
-    uint8_t amplifierPower;
-
-    // Disclaimer
-    bool disclaimer;
-
-    // ntp
-    char ntpAddr[NTP_ADDR_LEN];
-    uint16_t ntpPort;
-
-    // mqtt
-    mqttConfig_t mqtt;
-
-    // sun
-    float sunLat;
-    float sunLon;
-    bool sunDisNightCom; // disable night communication
-
-    // serial
-    uint16_t serialInterval;
-    bool serialShowIv;
-    bool serialDebug;
-
-    // static ip
-    staticIp_t staticIp;
-
-    // status LED(s)
-    statusLed_t led;
-} config_t;
-#pragma pack(pop)
-
 
 typedef struct {
     uint32_t rxFail;
@@ -195,42 +98,5 @@ typedef struct {
     uint32_t rxSuccess;
     uint32_t frmCnt;
 } statistics_t;
-
-
-#define CFG_MQTT_LEN            MQTT_ADDR_LEN + 2 + MQTT_USER_LEN + MQTT_PWD_LEN +MQTT_TOPIC_LEN
-#define CFG_SYS_LEN             DEVNAME_LEN + SSID_LEN + PWD_LEN
-#define CFG_LEN                 PWD_LEN + 7 + DISCLAIMER_LEN + NTP_ADDR_LEN + 2 + CFG_MQTT_LEN + CFG_SUN_LEN + 4 + STATIC_IP_LEN + STATUS_LED_LEN
-
-#define ADDR_START              0
-#define ADDR_CFG_SYS            ADDR_START
-#define ADDR_WIFI_CRC           ADDR_CFG_SYS  + CFG_SYS_LEN
-#define ADDR_START_SETTINGS     ADDR_WIFI_CRC + CRC_LEN
-
-#define ADDR_CFG                ADDR_START_SETTINGS
-#define ADDR_CFG_INVERTER       ADDR_CFG + CFG_LEN
-
-#define ADDR_INV_ADDR           ADDR_CFG_INVERTER
-#define ADDR_INV_NAME           ADDR_INV_ADDR      + INV_ADDR_LEN
-#define ADDR_INV_CH_PWR         ADDR_INV_NAME      + INV_NAME_LEN
-#define ADDR_INV_CH_NAME        ADDR_INV_CH_PWR    + INV_CH_CH_PWR_LEN
-#define ADDR_INV_INTERVAL       ADDR_INV_CH_NAME   + INV_CH_CH_NAME_LEN
-#define ADDR_INV_MAX_RTRY       ADDR_INV_INTERVAL  + INV_INTERVAL_LEN
-#define ADDR_INV_ENABLED        ADDR_INV_MAX_RTRY  + INV_MAX_RTRY_LEN
-
-#define ADDR_NEXT               ADDR_INV_MAX_RTRY   + INV_ENABLED_LEN
-
-
-#define ADDR_SETTINGS_CRC       ADDR_NEXT + 2
-
-#if(ADDR_SETTINGS_CRC <= ADDR_NEXT)
-#pragma error "address overlap! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", ADDR_NEXT="+ ADDR_NEXT +")"
-#endif
-
-#if(ADDR_SETTINGS_CRC >= 4096 - CRC_LEN)
-#pragma error "EEPROM size exceeded! (ADDR_SETTINGS_CRC="+ ADDR_SETTINGS_CRC +", CRC_LEN="+ CRC_LEN +")"
-#pragma error "Configure less inverters? (MAX_NUM_INVERTERS=" + MAX_NUM_INVERTERS +")"
-#endif
-
-
 
 #endif /*__DEFINES_H__*/

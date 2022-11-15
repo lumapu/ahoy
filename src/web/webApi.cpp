@@ -11,10 +11,9 @@
 #include "webApi.h"
 
 //-----------------------------------------------------------------------------
-webApi::webApi(AsyncWebServer *srv, app *app, sysConfig_t *sysCfg, config_t *config, statistics_t *stat, char version[]) {
+webApi::webApi(AsyncWebServer *srv, app *app, settings_t *config, statistics_t *stat, char version[]) {
     mSrv = srv;
     mApp = app;
-    mSysCfg  = sysCfg;
     mConfig  = config;
     mStat    = stat;
     mVersion = version;
@@ -143,8 +142,8 @@ void webApi::onDwnldSetup(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void webApi::getSysInfo(JsonObject obj) {
-    obj[F("ssid")]        = mSysCfg->stationSsid;
-    obj[F("device_name")] = mSysCfg->deviceName;
+    obj[F("ssid")]        = mConfig->sys.stationSsid;
+    obj[F("device_name")] = mConfig->sys.deviceName;
     obj[F("version")]     = String(mVersion);
     obj[F("build")]       = String(AUTO_GIT_HASH);
     obj[F("ts_uptime")]   = mApp->getUptime();
@@ -153,8 +152,7 @@ void webApi::getSysInfo(JsonObject obj) {
     obj[F("ts_sunset")]   = mApp->getSunset();
     obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]   = WiFi.RSSI();
-    obj[F("disclaimer")]  = mConfig->disclaimer;
-    obj[F("pwd_set")]     = (strlen(mConfig->password) > 0);
+    obj[F("pwd_set")]     = (strlen(mConfig->sys.adminPwd) > 0);
 #if defined(ESP32)
     obj[F("esp_type")]    = F("ESP32");
 #else
@@ -221,19 +219,19 @@ void webApi::getInverterList(JsonObject obj) {
         if(NULL != iv) {
             JsonObject obj2 = invArr.createNestedObject();
             obj2[F("id")]       = i;
-            obj2[F("name")]     = String(iv->name);
-            obj2[F("serial")]   = String(iv->serial.u64, HEX);
+            obj2[F("name")]     = String(iv->config->name);
+            obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
             obj2[F("channels")] = iv->channels;
             obj2[F("version")]  = String(iv->fwVersion);
 
             for(uint8_t j = 0; j < iv->channels; j ++) {
-                obj2[F("ch_max_power")][j] = iv->chMaxPwr[j];
-                obj2[F("ch_name")][j] = iv->chName[j];
+                obj2[F("ch_max_power")][j] = iv->config->chMaxPwr[j];
+                obj2[F("ch_name")][j] = iv->config->chName[j];
             }
         }
     }
-    obj[F("interval")]          = String(mConfig->sendInterval);
-    obj[F("retries")]           = String(mConfig->maxRetransPerPyld);
+    obj[F("interval")]          = String(mConfig->nrf.sendInterval);
+    obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
     obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
 }
 
@@ -250,23 +248,23 @@ void webApi::getMqtt(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getNtp(JsonObject obj) {
-    obj[F("addr")] = String(mConfig->ntpAddr);
-    obj[F("port")] = String(mConfig->ntpPort);
+    obj[F("addr")] = String(mConfig->ntp.addr);
+    obj[F("port")] = String(mConfig->ntp.port);
 }
 
 //-----------------------------------------------------------------------------
 void webApi::getSun(JsonObject obj) {
-    obj[F("lat")] = mConfig->sunLat ? String(mConfig->sunLat, 5) : "";
-    obj[F("lon")] = mConfig->sunLat ? String(mConfig->sunLon, 5) : "";
-    obj[F("disnightcom")] = mConfig->sunDisNightCom;
+    obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
+    obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
+    obj[F("disnightcom")] = mConfig->sun.disNightCom;
 }
 
 
 //-----------------------------------------------------------------------------
 void webApi::getPinout(JsonObject obj) {
-    obj[F("cs")]  = mConfig->pinCs;
-    obj[F("ce")]  = mConfig->pinCe;
-    obj[F("irq")] = mConfig->pinIrq;
+    obj[F("cs")]  = mConfig->nrf.pinCs;
+    obj[F("ce")]  = mConfig->nrf.pinCe;
+    obj[F("irq")] = mConfig->nrf.pinIrq;
     obj[F("led0")] = mConfig->led.led0;
     obj[F("led1")] = mConfig->led.led1;
 }
@@ -274,25 +272,26 @@ void webApi::getPinout(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getRadio(JsonObject obj) {
-    obj[F("power_level")] = mConfig->amplifierPower;
+    obj[F("power_level")] = mConfig->nrf.amplifierPower;
 }
 
 
 //-----------------------------------------------------------------------------
 void webApi::getSerial(JsonObject obj) {
-    obj[F("interval")]       = (uint16_t)mConfig->serialInterval;
-    obj[F("show_live_data")] = mConfig->serialShowIv;
-    obj[F("debug")]          = mConfig->serialDebug;
+    obj[F("interval")]       = (uint16_t)mConfig->serial.interval;
+    obj[F("show_live_data")] = mConfig->serial.showIv;
+    obj[F("debug")]          = mConfig->serial.debug;
 }
 
 
 //-----------------------------------------------------------------------------
 void webApi::getStaticIp(JsonObject obj) {
-    if(mConfig->staticIp.ip[0] != 0) {
-        obj[F("ip")]      = ip2String(mConfig->staticIp.ip);
-        obj[F("mask")]    = ip2String(mConfig->staticIp.mask);
-        obj[F("dns")]     = ip2String(mConfig->staticIp.dns);
-        obj[F("gateway")] = ip2String(mConfig->staticIp.gateway);
+    if(mConfig->sys.ip.ip[0] != 0) {
+        obj[F("ip")]      = ip2String(mConfig->sys.ip.ip);
+        obj[F("mask")]    = ip2String(mConfig->sys.ip.mask);
+        obj[F("dns1")]     = ip2String(mConfig->sys.ip.dns1);
+        obj[F("dns2")]     = ip2String(mConfig->sys.ip.dns2);
+        obj[F("gateway")] = ip2String(mConfig->sys.ip.gateway);
     }
 }
 
@@ -314,7 +313,7 @@ void webApi::getMenu(JsonObject obj) {
     obj["link"][6] = "/update";
     obj["name"][7] = "System";
     obj["link"][7] = "/system";
-    if(strlen(mConfig->password) > 0) {
+    if(strlen(mConfig->sys.adminPwd) > 0) {
         obj["name"][8] = "-";
         obj["name"][9] = "Logout";
         obj["link"][9] = "/logout";
@@ -327,7 +326,7 @@ void webApi::getIndex(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     getStatistics(obj.createNestedObject(F("statistics")));
-    obj["refresh_interval"] = mConfig->sendInterval;
+    obj["refresh_interval"] = mConfig->nrf.sendInterval;
 
     JsonArray inv = obj.createNestedArray(F("inverter"));
     Inverter<> *iv;
@@ -337,7 +336,7 @@ void webApi::getIndex(JsonObject obj) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             JsonObject invObj = inv.createNestedObject();
             invObj[F("id")]              = i;
-            invObj[F("name")]            = String(iv->name);
+            invObj[F("name")]            = String(iv->config->name);
             invObj[F("version")]         = String(iv->fwVersion);
             invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp(), rec);
             invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp(), rec);
@@ -387,7 +386,7 @@ void webApi::getLive(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
     JsonArray invArr = obj.createNestedArray(F("inverter"));
-    obj["refresh_interval"] = mConfig->sendInterval;
+    obj["refresh_interval"] = mConfig->nrf.sendInterval;
 
     uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 
@@ -398,7 +397,7 @@ void webApi::getLive(JsonObject obj) {
         if(NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             JsonObject obj2 = invArr.createNestedObject();
-            obj2[F("name")]               = String(iv->name);
+            obj2[F("name")]               = String(iv->config->name);
             obj2[F("channels")]           = iv->channels;
             obj2[F("power_limit_read")]   = round3(iv->actPowerLimit);
             obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
@@ -415,7 +414,7 @@ void webApi::getLive(JsonObject obj) {
             }
 
             for(uint8_t j = 1; j <= iv->channels; j ++) {
-                obj2[F("ch_names")][j] = String(iv->chName[j-1]);
+                obj2[F("ch_names")][j] = String(iv->config->chName[j-1]);
                 JsonArray cur = ch.createNestedArray();
                 for (uint8_t k = 0; k < 6; k++) {
                     switch(k) {
