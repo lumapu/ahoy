@@ -157,8 +157,8 @@ class settings {
             if(!fp)
                 DPRINTLN(DBG_WARN, F("failed to load json, using default config"));
             else {
-                DPRINTLN(DBG_INFO, fp.readString());
-                fp.seek(0, SeekSet);
+                //DPRINTLN(DBG_INFO, fp.readString());
+                //fp.seek(0, SeekSet);
                 DynamicJsonDocument root(4096);
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err) {
