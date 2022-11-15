@@ -12,11 +12,6 @@
     #include <WiFi.h>
 #endif
 
-#if defined(ESP32) && defined(F)
-  #undef F
-  #define F(sl) (sl)
-#endif
-
 #include "../utils/dbg.h"
 #include "../utils/ahoyTimer.h"
 #include "../config/config.h"

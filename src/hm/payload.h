@@ -29,9 +29,9 @@ typedef std::function<void(uint8_t)> payloadListenerType;
 
 
 template<class HMSYSTEM>
-class payload : public Handler<payloadListenerType> {
+class Payload : public Handler<payloadListenerType> {
     public:
-        payload() : Handler() {}
+        Payload() : Handler() {}
 
         void setup(HMSYSTEM *sys) {
             mSys = sys;

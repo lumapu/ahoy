@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -21,17 +21,17 @@ void app::setup(uint32_t timeout) {
     resetSystem();
     mSettings.setup();
     mSettings.getPtr(mConfig);
+    DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
     mWifi = new ahoywifi(mConfig);
 
     mSys = new HmSystemType();
     mSys->enableDebug();
-    mShouldReboot = false;
+    mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mSys->addInverters(&mConfig->inst);
 
     mWifi->setup(timeout, mSettings.getValid());
 
-    mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mSys->addInverters(&mConfig->inst);
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 #ifndef AP_ONLY
@@ -41,12 +41,11 @@ void app::setup(uint32_t timeout) {
 #endif
     setupLed();
 
+    mWeb = new web(this, mConfig, &mStat, mVersion);
+    mWeb->setup();
+    mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mWebInst = new web(this, mConfig, &mStat, mVersion);
-    mWebInst->setup();
-    mWebInst->setProtection(strlen(mConfig->sys.adminPwd) != 0);
-    DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
-
+    addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial));
 }
 
 //-----------------------------------------------------------------------------
@@ -54,7 +53,7 @@ void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
 
     bool apActive = mWifi->loop();
-    mWebInst->loop();
+    mWeb->loop();
 
     if (millis() - mPrevMillis >= 1000) {
         mPrevMillis += 1000;
@@ -62,7 +61,7 @@ void app::loop(void) {
         if (0 != mUtcTimestamp)
             mUtcTimestamp++;
 
-        mWebInst->tickSecond();
+        mWeb->tickSecond();
 
         if (mShouldReboot) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
@@ -98,12 +97,10 @@ void app::loop(void) {
             packet_t *p = mSys->BufCtrl.getBack();
 
             if (mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
-                // process buffer only on first occurrence
                 if (mConfig->serial.debug) {
                     DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
                     mSys->Radio.dumpBuf(NULL, p->packet, len);
                 }
-
                 mStat.frmCnt++;
 
                 if (0 != len)
@@ -129,30 +126,7 @@ void app::loop(void) {
             mLatestSunTimestamp = mUtcTimestamp;
         }
 
-        if (mConfig->serial.showIv) {
-            if (++mSerialTicker >= mConfig->serial.interval) {
-                mSerialTicker = 0;
-                char topic[30], val[10];
-                for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                    Inverter<> *iv = mSys->getInverterByPos(id);
-                    if (NULL != iv) {
-                        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                        if (iv->isAvailable(mUtcTimestamp, rec)) {
-                            DPRINTLN(DBG_INFO, "Inverter: " + String(id));
-                            for (uint8_t i = 0; i < rec->length; i++) {
-                                if (0.0f != iv->getValue(i, rec)) {
-                                    snprintf(topic, 30, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                                    snprintf(val, 10, "%.3f %s", iv->getValue(i, rec), iv->getUnit(i, rec));
-                                    DPRINTLN(DBG_INFO, String(topic) + ": " + String(val));
-                                }
-                                yield();
-                            }
-                            DPRINTLN(DBG_INFO, "");
-                        }
-                    }
-                }
-            }
-        }
+
 
         if (++mSendTicker >= mConfig->nrf.sendInterval) {
             mSendTicker = 0;
@@ -251,6 +225,7 @@ void app::getAvailNetworks(JsonObject obj) {
 void app::resetSystem(void) {
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
+    mShouldReboot = false;
     mUptimeSecs = 0;
     mPrevMillis = 0;
     mUpdateNtp = false;
@@ -268,7 +243,6 @@ void app::resetSystem(void) {
     mHeapStatCnt = 0;
 
     mSendTicker = 0xffff;
-    mSerialTicker = 0xffff;
     mMqttActive = false;
 
     mTicker = 0;

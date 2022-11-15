@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2022 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -16,6 +16,7 @@
 #include "defines.h"
 #include "utils/crc.h"
 #include "utils/ahoyTimer.h"
+#include "utils/scheduler.h"
 
 #include "hm/CircularBuffer.h"
 #include "hm/hmSystem.h"
@@ -24,6 +25,8 @@
 #include "web/mqtt.h"
 #include "web/web.h"
 
+#include "publisher/pubSerial.h"
+
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
 #define COS(x) (cos(radians(x)))
@@ -31,15 +34,16 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
+typedef Payload<HmSystemType> PayloadType;
 typedef mqtt<HmSystemType> MqttType;
-typedef payload<HmSystemType> PayloadType;
+typedef PubSerial<HmSystemType> PubSerialType;
 
 class ahoywifi;
 class web;
 
-class app {
+class app : public ah::Scheduler {
     public:
-        app() {}
+        app() : ah::Scheduler() {}
         ~app() {}
 
         void setup(uint32_t timeout);
@@ -175,9 +179,11 @@ class app {
         bool mShowRebootRequest;
 
         ahoywifi *mWifi;
-        web *mWebInst;
-        char mVersion[12];
+        web *mWeb;
         PayloadType mPayload;
+        PubSerialType mPubSerial;
+
+        char mVersion[12];
         settings mSettings;
         settings_t *mConfig;
 
@@ -193,9 +199,6 @@ class app {
         // mqtt
         MqttType mMqtt;
         bool mMqttActive;
-
-        // serial
-        uint16_t mSerialTicker;
 
         // sun
         int32_t mCalculatedTimezoneOffset;
