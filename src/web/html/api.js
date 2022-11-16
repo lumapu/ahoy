@@ -32,20 +32,29 @@ function parseESP(obj) {
 }
 
 function parseSysInfo(obj) {
-    document.getElementById("sdkversion").innerHTML=    "SDKv.: " + obj["sdk_version"];
-    document.getElementById("cpufreq").innerHTML=       "CPU MHz: " + obj["cpu_freq"] + "MHz";
-    document.getElementById("chiprevision").innerHTML=  "Rev.: " + obj["chip_revision"];
-    document.getElementById("chipmodel").innerHTML=     "Model: " + obj["chip_model"];
-    document.getElementById("chipcores").innerHTML=     "Core: " + obj["chip_cores"];
-    document.getElementById("esp_type").innerHTML=      "Type: " + obj["esp_type"];
+    const data = ["sdk_version", "cpu_freq", "chip_revision", "chip_model", "chip_cores", "esp_type"];
 
-    document.getElementById("heap_used").innerHTML=     "Used: " + obj["heap_used"];
-    document.getElementById("heap_total").innerHTML=      "Total: " + obj["heap_total"];
+    var ul = document.getElementById("info");
+
+    if(!isNaN(obj["heap_total"])) {
+        document.getElementById("info").innerHTML = 'Heap:<progress id="heap" max="100" value="0"></progress> <span id="heap_used"></span> bytes (<span id="heap_total"></span> bytes)';
+        changeProgressbar("heap", obj["heap_used"], obj["heap_total"]);
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+        if(!data.includes(key) || (typeof value == 'undefined')) continue;
+        var li = document.createElement("li");
+        li.appendChild(document.createTextNode(key + ": " + value));
+        ul.appendChild(li);
+    }
 }
 
 function changeProgressbar(id, value, max) {
     document.getElementById(id).value = value;
     document.getElementById(id).max = max;
+
+    document.getElementById("heap_used").textContent = value;
+    document.getElementById("heap_total").textContent = max;
 }
 
 function setHide(id, hide) {
