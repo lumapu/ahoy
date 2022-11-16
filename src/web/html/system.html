@@ -18,15 +18,7 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <ul>
-                    <li>Heap:<progress id="heap" max="100" value="70"></progress> <span id="heap_used"></span>(<span id="heap_total"></span>)</li>
-                    <li><span id="sdkversion"></span></li>
-                    <li><span id="cpufreq"></span></li>
-                    <li><span id="chiprevision"></span></li>
-                    <li><span id="chipmodel"></span></li>
-                    <li><span id="chipcores"></span></li>
-                    <li><span id="esp_type"></span></li>
-                </ul>
+                <div id="info"></div>
                 <div id="system"></div>
             </div>
         </div>
@@ -50,7 +42,6 @@
             function parseSys(obj) {
                 parseVersion(obj);
                 parseESP(obj);
-                changeProgressbar("heap", obj["heap_used"], obj["heap_total"]);
             }
 
             function parse(obj) {
