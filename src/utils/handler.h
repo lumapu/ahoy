@@ -20,11 +20,11 @@ class Handler {
             mList.push_back(f);
         }
 
-        virtual void notify(void) {
+        /*virtual void notify(void) {
             for(typename std::list<TYPE>::iterator it = mList.begin(); it != mList.end(); ++it) {
-               (*it);
+               (*it)();
             }
-        }
+        }*/
 
     protected:
         std::list<TYPE> mList;

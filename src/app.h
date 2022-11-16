@@ -115,9 +115,7 @@ class app : public ah::Scheduler {
             if(0 == newTime)
                 mUpdateNtp = true;
             else
-            {
                 mUtcTimestamp = newTime;
-            }
         }
 
         inline uint32_t getSunrise(void) {
@@ -147,6 +145,28 @@ class app : public ah::Scheduler {
         void setupLed(void);
         void updateLed(void);
 
+        void uptimeTick(void) {
+            mUptimeSecs++;
+            if (0 != mUtcTimestamp)
+                mUtcTimestamp++;
+
+            if (mShouldReboot) {
+                DPRINTLN(DBG_INFO, F("Rebooting..."));
+                ESP.restart();
+            }
+
+            if (mUpdateNtp) {
+                mUpdateNtp = false;
+                mUtcTimestamp = mWifi->getNtpTime();
+                DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
+            }
+        }
+
+        void ntpUpdateTick(void) {
+            if (!mWifi->getApActive())
+                mUpdateNtp = true;
+        }
+
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
             #ifdef ESP8266
@@ -168,10 +188,7 @@ class app : public ah::Scheduler {
         }
 
         uint32_t mUptimeSecs;
-        uint32_t mPrevMillis;
         uint8_t mHeapStatCnt;
-        uint32_t mNtpRefreshTicker;
-        uint32_t mNtpRefreshInterval;
 
         uint32_t mUtcTimestamp;
         bool mUpdateNtp;

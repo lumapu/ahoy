@@ -18,27 +18,29 @@ void app::setup(uint32_t timeout) {
     while (!Serial)
         yield();
 
+    addListener(EVERY_SEC, std::bind(&app::uptimeTick, this));
+    addListener(EVERY_12H, std::bind(&app::ntpUpdateTick, this));
+
     resetSystem();
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
     mWifi = new ahoywifi(mConfig);
+    mWifi->setup(timeout, mSettings.getValid());
 
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
     mSys->addInverters(&mConfig->inst);
 
-    mWifi->setup(timeout, mSettings.getValid());
-
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
-#ifndef AP_ONLY
+#if !defined(AP_ONLY)
     if (mConfig->mqtt.broker[0] > 0) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
-        addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt, std::placeholders::_1));
+        addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
     }
 #endif
     setupLed();
@@ -46,8 +48,9 @@ void app::setup(uint32_t timeout) {
     mWeb = new web(this, mConfig, &mStat, mVersion);
     mWeb->setup();
     mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
+    addListener(EVERY_SEC, std::bind(&web::tickSecond, mWeb));
 
-    //addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial, std::placeholders::_1));
+    //addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial));
 }
 
 //-----------------------------------------------------------------------------
@@ -56,33 +59,7 @@ void app::loop(void) {
 
     ah::Scheduler::loop();
 
-    bool apActive = mWifi->loop();
     mWeb->loop();
-
-    if (millis() - mPrevMillis >= 1000) {
-        mPrevMillis += 1000;
-        mUptimeSecs++;
-        if (0 != mUtcTimestamp)
-            mUtcTimestamp++;
-
-        mWeb->tickSecond();
-
-        if (mShouldReboot) {
-            DPRINTLN(DBG_INFO, F("Rebooting..."));
-            ESP.restart();
-        }
-    }
-
-    if (ah::checkTicker(&mNtpRefreshTicker, mNtpRefreshInterval)) {
-        if (!apActive)
-            mUpdateNtp = true;
-    }
-
-    if (mUpdateNtp) {
-        mUpdateNtp = false;
-        mUtcTimestamp = mWifi->getNtpTime();
-        DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
-    }
 
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
@@ -230,12 +207,8 @@ void app::resetSystem(void) {
 
     mShouldReboot = false;
     mUptimeSecs = 0;
-    mPrevMillis = 0;
     mUpdateNtp = false;
     mFlagSendDiscoveryConfig = false;
-
-    mNtpRefreshTicker = 0;
-    mNtpRefreshInterval = NTP_REFRESH_INTERVAL;  // [ms]
 
 #ifdef AP_ONLY
     mUtcTimestamp = 1;

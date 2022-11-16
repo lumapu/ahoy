@@ -34,7 +34,7 @@ class PubMqtt {
         ~PubMqtt() { }
 
         void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *sunrise, uint32_t *sunset) {
-            DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
+            DPRINTLN(DBG_VERBOSE, F("PubMqtt.h:setup"));
             mAddressSet = true;
 
             mCfg_mqtt       = cfg_mqtt;
@@ -59,8 +59,7 @@ class PubMqtt {
                 mClient->loop();
         }
 
-        void tickerSecond(int i) {
-            DPRINTLN(DBG_INFO, "tickerSecond");
+        void tickerSecond() {
             if(mAddressSet) {
                 if(!mClient->connected())
                     reconnect();

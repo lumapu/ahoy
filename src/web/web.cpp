@@ -104,7 +104,7 @@ void web::loop(void) {
 }
 
 //-----------------------------------------------------------------------------
-void web::tickSecond(void) {
+void web::tickSecond() {
     if(0 != mLogoutTimeout) {
         mLogoutTimeout -= 1;
         if(0 == mLogoutTimeout)

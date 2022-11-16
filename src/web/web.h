@@ -29,7 +29,7 @@ class web {
 
         void setup(void);
         void loop(void);
-        void tickSecond(void);
+        void tickSecond();
 
         void setProtection(bool protect);
 

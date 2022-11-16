@@ -12,7 +12,7 @@
 #include <list>
 
 enum {EVERY_SEC = 1, EVERY_MIN, EVERY_HR, EVERY_12H, EVERY_DAY};
-typedef std::function<void(int)> SchedulerCb;
+typedef std::function<void()> SchedulerCb;
 
 namespace ah {
 class Scheduler {
@@ -61,7 +61,7 @@ class Scheduler {
 
         virtual void notify(std::list<SchedulerCb> *lType) {
             for(std::list<SchedulerCb>::iterator it = lType->begin(); it != lType->end(); ++it) {
-               (*it)(1);
+               (*it)();
             }
         }
 
