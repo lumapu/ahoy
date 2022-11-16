@@ -22,9 +22,9 @@
 #include "hm/hmSystem.h"
 #include "hm/payload.h"
 #include "wifi/ahoywifi.h"
-#include "web/mqtt.h"
 #include "web/web.h"
 
+#include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 
 // convert degrees and radians for sun calculation
@@ -35,7 +35,7 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef Payload<HmSystemType> PayloadType;
-typedef mqtt<HmSystemType> MqttType;
+typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 class ahoywifi;
@@ -197,7 +197,7 @@ class app : public ah::Scheduler {
         uint32_t mRxTicker;
 
         // mqtt
-        MqttType mMqtt;
+        PubMqttType mMqtt;
         bool mMqttActive;
 
         // sun

@@ -21,7 +21,8 @@ class PubSerial {
             mUtcTimestamp = utcTs;
         }
 
-        void tickerMinute(void) {
+        void tickerMinute(int i) {
+            DPRINTLN(DBG_INFO, "tickerMinute");
             if(++mTick >= mCfg->serial.interval) {
                 mTick = 0;
                 if (mCfg->serial.showIv) {

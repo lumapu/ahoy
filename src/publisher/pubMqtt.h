@@ -3,8 +3,8 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#ifndef __MQTT_H__
-#define __MQTT_H__
+#ifndef __PUB_MQTT_H__
+#define __PUB_MQTT_H__
 
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
@@ -21,9 +21,9 @@
 #include "../hm/hmSystem.h"
 
 template<class HMSYSTEM>
-class mqtt {
+class PubMqtt {
     public:
-        mqtt() {
+        PubMqtt() {
             mClient     = new PubSubClient(mEspClient);
             mAddressSet = false;
 
@@ -31,22 +31,23 @@ class mqtt {
             mTxCnt = 0;
         }
 
-        ~mqtt() { }
+        ~PubMqtt() { }
 
-        void setup(app *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *sunrise, uint32_t *sunset) {
             DPRINTLN(DBG_VERBOSE, F("mqtt.h:setup"));
             mAddressSet = true;
 
-            mApp            = app;
             mCfg_mqtt       = cfg_mqtt;
             mDevName        = devName;
             mSys            = sys;
             mUtcTimestamp   = utcTs;
+            mSunrise        = sunrise;
+            mSunset         = sunset;
 
             mClient->setServer(mCfg_mqtt->broker, mCfg_mqtt->port);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
-            setCallback(std::bind(&mqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+            setCallback(std::bind(&PubMqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
             sendMsg("version", version);
             sendMsg("device", devName);
@@ -54,13 +55,17 @@ class mqtt {
         }
 
         void loop() {
+            if(mAddressSet)
+                mClient->loop();
+        }
+
+        void tickerSecond(int i) {
+            DPRINTLN(DBG_INFO, "tickerSecond");
             if(mAddressSet) {
                 if(!mClient->connected())
                     reconnect();
-                mClient->loop();
-
-                sendIvData();
             }
+            sendIvData();
         }
 
         void setCallback(MQTT_CALLBACK_SIGNATURE) {
@@ -224,10 +229,8 @@ class mqtt {
 
             sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
 
-            String sunrise = String(mApp->getSunrise());
-            String sunset = String(mApp->getSunset());
-            sendMsg("sunrise", sunrise.c_str());
-            sendMsg("sunset", sunset.c_str());
+            sendMsg("sunrise", String(*mSunrise).c_str());
+            sendMsg("sunset", String(*mSunset).c_str());
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);
@@ -430,7 +433,7 @@ class mqtt {
             DPRINTLN(DBG_INFO, F("app::cbMqtt finished"));
         }
 
-        app *mApp;
+        uint32_t *mSunrise, *mSunset;
         WiFiClient mEspClient;
         PubSubClient *mClient;
         HMSYSTEM *mSys;
@@ -444,4 +447,4 @@ class mqtt {
         std::queue<uint8_t> mSendList;
 };
 
-#endif /*__MQTT_H_*/
+#endif /*__PUB_MQTT_H__*/

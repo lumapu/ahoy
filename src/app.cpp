@@ -35,9 +35,11 @@ void app::setup(uint32_t timeout) {
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 #ifndef AP_ONLY
-    setupMqtt();
-    if(mMqttActive)
-        mPayload.addListener(std::bind(&MqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
+    if (mConfig->mqtt.broker[0] > 0) {
+        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
+        mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
+        addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt, std::placeholders::_1));
+    }
 #endif
     setupLed();
 
@@ -45,12 +47,14 @@ void app::setup(uint32_t timeout) {
     mWeb->setup();
     mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial));
+    //addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial, std::placeholders::_1));
 }
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
+
+    ah::Scheduler::loop();
 
     bool apActive = mWifi->loop();
     mWeb->loop();
@@ -114,8 +118,7 @@ void app::loop(void) {
             mPayload.process(true, mConfig->nrf.maxRetransPerPyld, &mStat);
     }
 
-    if (mMqttActive)
-        mMqtt.loop();
+    mMqtt.loop();
 
     if (ah::checkTicker(&mTicker, 1000)) {
         if (mUtcTimestamp > 946684800 && mConfig->sun.lat && mConfig->sun.lon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 != (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) {  // update on reboot or midnight
@@ -243,7 +246,6 @@ void app::resetSystem(void) {
     mHeapStatCnt = 0;
 
     mSendTicker = 0xffff;
-    mMqttActive = false;
 
     mTicker = 0;
     mRxTicker = 0;
@@ -253,15 +255,6 @@ void app::resetSystem(void) {
     mShowRebootRequest = false;
 
     memset(&mStat, 0, sizeof(statistics_t));
-}
-
-//-----------------------------------------------------------------------------
-void app::setupMqtt(void) {
-    if (mConfig->mqtt.broker[0] > 0)
-        mMqttActive = true;
-
-    if(mMqttActive)
-        mMqtt.setup(this, &mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp);
 }
 
 //-----------------------------------------------------------------------------
