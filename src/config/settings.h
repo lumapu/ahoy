@@ -68,11 +68,11 @@ typedef struct {
 } cfgLed_t;
 
 typedef struct {
-    char broker[MQTT_ADDR_LEN];
+    String broker;
     uint16_t port;
-    char user[MQTT_USER_LEN];
+    String user;
     char pwd[MQTT_PWD_LEN];
-    char topic[MQTT_TOPIC_LEN];
+    String topic;
 } cfgMqtt_t;
 
 typedef struct {
@@ -272,10 +272,10 @@ class settings {
             mCfg.serial.debug    = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
-            snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
-            snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", DEF_MQTT_USER);
+            mCfg.mqtt.broker = DEF_MQTT_BROKER;
+            mCfg.mqtt.user = DEF_MQTT_USER;
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
-            snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
+            mCfg.mqtt.topic = DEF_MQTT_TOPIC;
 
             mCfg.led.led0 = DEF_LED0_PIN;
             mCfg.led.led1 = DEF_LED1_PIN;
@@ -366,10 +366,10 @@ class settings {
                 obj[F("topic")]  = mCfg.mqtt.topic;
             } else {
                 mCfg.mqtt.port = obj[F("port")];
-                snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", obj[F("broker")].as<const char*>());
-                snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", obj[F("user")].as<const char*>());
+                mCfg.mqtt.broker = obj[F("broker")].as<const char*>();
+                mCfg.mqtt.user = obj[F("user")].as<const char*>();
                 snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", obj[F("pwd")].as<const char*>());
-                snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", obj[F("topic")].as<const char*>());
+                mCfg.mqtt.topic = obj[F("topic")].as<const char*>();
             }
         }
 

@@ -85,10 +85,7 @@ union serial_u {
 #define DEVNAME_LEN             16
 #define NTP_ADDR_LEN            32 // DNS Name
 
-#define MQTT_ADDR_LEN           32 // DNS Name
-#define MQTT_USER_LEN           16
-#define MQTT_PWD_LEN            32
-#define MQTT_TOPIC_LEN          64
+#define MQTT_PWD_LEN            64
 
 #define MQTT_MAX_PACKET_SIZE    384
 

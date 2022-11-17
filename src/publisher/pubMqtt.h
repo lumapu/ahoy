@@ -44,7 +44,7 @@ class PubMqtt {
             mSunrise        = sunrise;
             mSunset         = sunset;
 
-            mClient->setServer(mCfg_mqtt->broker, mCfg_mqtt->port);
+            mClient->setServer(mCfg_mqtt->broker.c_str(), mCfg_mqtt->port);
             mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
             setCallback(std::bind(&PubMqtt<HMSYSTEM>::cbMqtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -107,7 +107,7 @@ class PubMqtt {
             return mTxCnt;
         }
 
-        void sendMqttDiscoveryConfig(const char *topic) {
+        void sendMqttDiscoveryConfig(String topic) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
@@ -173,23 +173,21 @@ class PubMqtt {
                 if(strlen(mDevName) > 0) {
                     // der Server und der Port müssen neu gesetzt werden,
                     // da ein MQTT_CONNECTION_LOST -3 die Werte zerstört hat.
-                    mClient->setServer(mCfg_mqtt->broker, mCfg_mqtt->port);
+                    mClient->setServer(mCfg_mqtt->broker.c_str(), mCfg_mqtt->port);
                     mClient->setBufferSize(MQTT_MAX_PACKET_SIZE);
 
-                    char lwt[MQTT_TOPIC_LEN + 7 ]; // "/uptime" --> + 7 byte
-                    snprintf(lwt, MQTT_TOPIC_LEN + 7, "%s/uptime", mCfg_mqtt->topic);
+                    String lwt = mCfg_mqtt->topic + "/uptime";
 
-                    if((strlen(mCfg_mqtt->user) > 0) && (strlen(mCfg_mqtt->pwd) > 0))
-                        resub = mClient->connect(mDevName, mCfg_mqtt->user, mCfg_mqtt->pwd, lwt, 0, false, "offline");
+                    if((mCfg_mqtt->user.length() > 0) && (strlen(mCfg_mqtt->pwd) > 0))
+                        resub = mClient->connect(mDevName, mCfg_mqtt->user.c_str(), mCfg_mqtt->pwd, lwt.c_str(), 0, false, "offline");
                     else
-                        resub = mClient->connect(mDevName, lwt, 0, false, "offline");
+                        resub = mClient->connect(mDevName, lwt.c_str(), 0, false, "offline");
                         // ein Subscribe ist nur nach einem connect notwendig
                     if(resub) {
-                        char topic[MQTT_TOPIC_LEN + 13 ]; // "/devcontrol/#" --> + 6 byte
                         // ToDo: "/devcontrol/#" is hardcoded
-                        snprintf(topic, MQTT_TOPIC_LEN + 13, "%s/devcontrol/#", mCfg_mqtt->topic);
-                        DPRINTLN(DBG_INFO, F("subscribe to ") + String(topic));
-                        mClient->subscribe(topic); // subscribe to mTopic + "/devcontrol/#"
+                        String topic = mCfg_mqtt->topic + "/devcontrol/#"; // "/devcontrol/#"
+                        DPRINTLN(DBG_INFO, F("subscribe to ") + topic);
+                        mClient->subscribe(&topic); // subscribe to mTopic + "/devcontrol/#"
                     }
                 }
             }
