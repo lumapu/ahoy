@@ -99,6 +99,7 @@
                     parseESP(obj);
                     window.setInterval("getAjax('/api/system', parseSys)", 10000);
                     exeOnce = false;
+                    getAjax("/api/setup", parse);
                 }
             }
 
@@ -150,7 +151,6 @@
                 }, false);
             }
 
-            getAjax("/api/system", parseSys);
 
             // only for test
             function ctrlCb(obj) {
@@ -210,7 +210,7 @@
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 
-            getAjax("/api/setup", parse);
+            getAjax("/api/system", parseSys);
         </script>
     </body>
 </html>
