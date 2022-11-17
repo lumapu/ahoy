@@ -16,3 +16,16 @@ answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen
 [[items]]
 question = "Wie ist das default Passwort im AP mode?"
 answer = "Das Passwort lautet: esp_8266"
+
+[[items]]
+question = "Welche Inverter werden unterstützt?"
+answer = "aktuell wird nur die HM-Serie unterstützt. (HM300, HM400, HM600, HM800, HM1200 und HM1500) Es werden auch TSOL Wechselrichter unterstützt."
+
+[[items]]
+question = "Wird die MI-Serie unterstützt?"
+answer = "Nein noch nicht. Eine Unterstütung dieser Serie steht unter den höchsten Prioritäten."
+
+[[items]]
+question = "Wird die HMS- HMT-Serie unterstützt?"
+answer = "Nein noch nicht. Die Entwicklung wurde gestartet."
+
