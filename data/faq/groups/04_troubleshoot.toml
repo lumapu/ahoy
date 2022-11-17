@@ -3,4 +3,4 @@ name = "Troubleshooting"
 
 [[items]]
 question = "Ich kann keine Daten vom Inverter empfangen"
-answer = "Folgende Punkte können sollten mit ja beantwortet werden können: Schon ein anderes Pinout verwendet (vor allem IRQ)? Verbindungen verlötet? Power Versorung ok, evtl. Kondensator nahe an NRF24? Es ist Tag (Inverter braucht DC Spannung um zu antworten)?"
+answer = "Folgende Punkte sollten mit ja beantwortet werden können: Schon ein anderes Pinout verwendet (vor allem IRQ)? Verbindungen verlötet? Power Versorung ok, evtl. Kondensator nahe an NRF24? Es ist Tag (Inverter braucht DC Spannung um zu antworten)?"
