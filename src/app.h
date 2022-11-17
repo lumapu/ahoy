@@ -155,10 +155,19 @@ class app : public ah::Scheduler {
                 ESP.restart();
             }
 
+
+
             if (mUpdateNtp) {
                 mUpdateNtp = false;
                 mUtcTimestamp = mWifi->getNtpTime();
                 DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
+            }
+        }
+
+        void minuteTick(void) {
+            if(0 == mUtcTimestamp) {
+                if(!mWifi->getApActive())
+                    mUpdateNtp = true;
             }
         }
 

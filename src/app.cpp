@@ -19,6 +19,7 @@ void app::setup(uint32_t timeout) {
         yield();
 
     addListener(EVERY_SEC, std::bind(&app::uptimeTick, this));
+    addListener(EVERY_MIN, std::bind(&app::minuteTick, this));
     addListener(EVERY_12H, std::bind(&app::ntpUpdateTick, this));
 
     resetSystem();

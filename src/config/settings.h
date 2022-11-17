@@ -245,13 +245,18 @@ class settings {
     private:
         void loadDefaults(bool wifi = true) {
             DPRINTLN(DBG_INFO, F("loadDefaults"));
-
-            memset(&mCfg, 0, sizeof(settings_t));
             if(wifi) {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);
-                snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
             }
+            else {
+                cfgSys_t tmp;
+                memset(&tmp.adminPwd, 0, PWD_LEN);
+                memcpy(&tmp, &mCfg.sys, sizeof(cfgSys_t));
+                memset(&mCfg, 0, sizeof(settings_t));
+                memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            }
+            snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
             mCfg.nrf.sendInterval      = SEND_INTERVAL;
             mCfg.nrf.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
