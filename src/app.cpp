@@ -43,6 +43,7 @@ void app::setup(uint32_t timeout) {
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
+        addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
     }
 #endif
     setupLed();

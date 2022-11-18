@@ -72,6 +72,15 @@ class PubMqtt {
                 char val[40];
                 snprintf(val, 40, "%ld", millis() / 1000);
                 sendMsg("uptime", val);
+
+                sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
+            }
+        }
+
+        void tickerHour() {
+            if(mAddressSet) {
+                sendMsg("sunrise", String(*mSunrise).c_str());
+                sendMsg("sunset", String(*mSunset).c_str());
             }
         }
 
@@ -230,11 +239,6 @@ class PubMqtt {
             float total[4];
             bool sendTotal = false;
             bool totalIncomplete = false;
-
-            sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
-
-            sendMsg("sunrise", String(*mSunrise).c_str());
-            sendMsg("sunset", String(*mSunset).c_str());
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);
