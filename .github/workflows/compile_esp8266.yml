@@ -4,10 +4,10 @@ on:
   push:
     branches: main
     paths:
-    - 'tools/esp8266/**' # build only when changes occur here
-    - '!tools/esp8266/README.md'
-    - '!tools/esp8266/CHANGES.md'
-    - '!tools/esp8266/User_Manual.md'
+    - 'src/**' # build only when changes occur here
+    - '!README.md'
+    - '!CHANGES.md'
+    - '!User_Manual.md'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -48,8 +48,9 @@ jobs:
     - name: Convert HTML files
       working-directory: src/web/html
       run: python convert.py
+
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266 --environment esp8266-release --environment esp8285-release --environment esp32-wroom32-release
+      run: pio run -d src --environment esp8266-release --environment esp8285-release --environment esp32-wroom32-release
 
     - name: Rename Binary files
       id: rename-binary-files
@@ -64,17 +65,17 @@ jobs:
         prerelease: false
         release_name: ${{ steps.rename-binary-files.outputs.name }}
         tag_name: ${{ steps.rename-binary-files.outputs.name }}
-        body_path: tools/esp8266/CHANGES.md
+        body_path: CHANGES.md
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - name: set-version
       uses: cschleiden/replace-tokens@v1
       with:
-        files: tools/esp8266/User_Manual.md
+        files: User_Manual.md
       env:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
     - name: create-artifact
-      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip tools/esp8266/.pio/build/out/* tools/esp8266/User_Manual.md
+      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/.pio/build/out/* User_Manual.md
 
     - name: Upload Release
       id: upload-release
