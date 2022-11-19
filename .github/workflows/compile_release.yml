@@ -5,6 +5,7 @@ on:
     branches: main
     paths:
     - 'src/**' # build only when changes occur here
+    - '.github/workflows/compile_release.yml'
     - '!README.md'
     - '!CHANGES.md'
     - '!User_Manual.md'
