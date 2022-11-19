@@ -65,7 +65,7 @@ jobs:
         prerelease: false
         release_name: ${{ steps.rename-binary-files.outputs.name }}
         tag_name: ${{ steps.rename-binary-files.outputs.name }}
-        body_path: CHANGES.md
+        body_path: src/CHANGES.md
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - name: set-version
