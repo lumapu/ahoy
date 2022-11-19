@@ -69,14 +69,16 @@ jobs:
         body_path: src/CHANGES.md
       env:
         GITHUB_TOKEN: ${{ github.token }}
-    - name: set-version
+
+    - name: Set Version
       uses: cschleiden/replace-tokens@v1
       with:
         files: User_Manual.md
       env:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
-    - name: create-artifact
-      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/.pio/build/out/* User_Manual.md
+
+    - name: Create Artifact
+      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/firmware/* User_Manual.md
 
     - name: Upload Release
       id: upload-release
