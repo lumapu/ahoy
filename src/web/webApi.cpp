@@ -162,6 +162,9 @@ void webApi::getSysInfo(JsonObject obj) {
     obj[F("sketch_total")] = ESP.getFreeSketchSpace();
     obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
 
+
+    getRadio(obj.createNestedObject(F("radio")));
+
 #if defined(ESP32)
     obj[F("heap_total")]    = ESP.getHeapSize();
     obj[F("chip_revision")] = ESP.getChipRevision();
@@ -306,6 +309,9 @@ void webApi::getPinout(JsonObject obj) {
 //-----------------------------------------------------------------------------
 void webApi::getRadio(JsonObject obj) {
     obj[F("power_level")] = mConfig->nrf.amplifierPower;
+    obj[F("isconnected")] = mApp->mSys->Radio.isChipConnected();
+    obj[F("DataRate")] = mApp->mSys->Radio.getDataRate();
+    obj[F("isPVariant")] = mApp->mSys->Radio.isPVariant();
 }
 
 
@@ -358,6 +364,7 @@ void webApi::getMenu(JsonObject obj) {
 void webApi::getIndex(JsonObject obj) {
     getMenu(obj.createNestedObject(F("menu")));
     getSysInfo(obj.createNestedObject(F("system")));
+    getRadio(obj.createNestedObject(F("radio")));
     getStatistics(obj.createNestedObject(F("statistics")));
     obj["refresh_interval"] = mConfig->nrf.sendInterval;
 
@@ -380,6 +387,9 @@ void webApi::getIndex(JsonObject obj) {
     JsonArray warn = obj.createNestedArray(F("warnings"));
     if(!mApp->mSys->Radio.isChipConnected())
         warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
+    else if(!mApp->mSys->Radio.isPVariant())
+        warn.add(F("your NRF24 module have not a plus(+), please check!"));
+
     if(!mApp->mqttIsConnected())
         warn.add(F("MQTT is not connected"));
 

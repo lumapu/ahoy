@@ -23,6 +23,7 @@ void app::setup(uint32_t timeout) {
     addListener(EVERY_12H, std::bind(&app::ntpUpdateTick, this));
 
     resetSystem();
+
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
@@ -33,19 +34,28 @@ void app::setup(uint32_t timeout) {
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mSys->addInverters(&mConfig->inst);
 
-    mPayload.setup(mSys);
-    mPayload.enableSerialDebug(mConfig->serial.debug);
-#if !defined(AP_ONLY)
-    if (mConfig->mqtt.broker[0] > 0) {
+    if(mSys->Radio.isChipConnected())
+    {
+        mSys->addInverters(&mConfig->inst);
+
+        mPayload.setup(mSys);
+        mPayload.enableSerialDebug(mConfig->serial.debug);
+    }
+    else
+    {
+        DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+    }
+
+    // when WiFi is in client mode, then enable mqtt broker
+    if (mConfig->mqtt.broker[0] > 0 && WiFi.getMode() == WIFI_STA) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
         addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
     }
-#endif
+
     setupLed();
 
     mWeb = new web(this, mConfig, &mStat, mVersion);
