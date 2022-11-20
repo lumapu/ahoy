@@ -142,30 +142,47 @@ void webApi::onDwnldSetup(AsyncWebServerRequest *request) {
 
 //-----------------------------------------------------------------------------
 void webApi::getSysInfo(JsonObject obj) {
-    obj[F("ssid")]        = mConfig->sys.stationSsid;
-    obj[F("device_name")] = mConfig->sys.deviceName;
-    obj[F("version")]     = String(mVersion);
-    obj[F("build")]       = String(AUTO_GIT_HASH);
-    obj[F("ts_uptime")]   = mApp->getUptime();
-    obj[F("ts_now")]      = mApp->getTimestamp();
-    obj[F("ts_sunrise")]  = mApp->getSunrise();
-    obj[F("ts_sunset")]   = mApp->getSunset();
-    obj[F("ts_sun_upd")]  = mApp->getLatestSunTimestamp();
-    obj[F("wifi_rssi")]   = WiFi.RSSI();
-    obj[F("pwd_set")]     = (strlen(mConfig->sys.adminPwd) > 0);
+    obj[F("ssid")]         = mConfig->sys.stationSsid;
+    obj[F("device_name")]  = mConfig->sys.deviceName;
+    obj[F("version")]      = String(mVersion);
+    obj[F("build")]        = String(AUTO_GIT_HASH);
+    obj[F("ts_uptime")]    = mApp->getUptime();
+    obj[F("ts_now")]       = mApp->getTimestamp();
+    obj[F("ts_sunrise")]   = mApp->getSunrise();
+    obj[F("ts_sunset")]    = mApp->getSunset();
+    obj[F("ts_sun_upd")]   = mApp->getLatestSunTimestamp();
+    obj[F("wifi_rssi")]    = WiFi.RSSI();
+    obj[F("mac")]          = WiFi.macAddress();
+    obj[F("hostname")]     = WiFi.getHostname();
+    obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
 
-    obj[F("hostname")]      = WiFi.getHostname();
-    obj[F("sdk_version")]    = ESP.getSdkVersion();
-    obj[F("cpu_freq")]       = ESP.getCpuFreqMHz();
+    obj[F("sdk")]          = ESP.getSdkVersion();
+    obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
+    obj[F("heap_free")]    = ESP.getFreeHeap();
+    obj[F("sketch_total")] = ESP.getFreeSketchSpace();
+    obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
+
 #if defined(ESP32)
     obj[F("heap_total")]    = ESP.getHeapSize();
-    obj[F("heap_used")]     = ESP.getHeapSize() - ESP.getFreeHeap();
-    obj[F("chip_revision")]  = ESP.getChipRevision();
-    obj[F("chip_model")]     = ESP.getChipModel();
-    obj[F("chip_cores")]     = ESP.getChipCores();
+    obj[F("chip_revision")] = ESP.getChipRevision();
+    obj[F("chip_model")]    = ESP.getChipModel();
+    obj[F("chip_cores")]    = ESP.getChipCores();
+    //obj[F("core_version")]  = F("n/a");
+    //obj[F("flash_size")]    = F("n/a");
+    //obj[F("heap_frag")]     = F("n/a");
+    //obj[F("max_free_blk")]  = F("n/a");
+    //obj[F("reboot_reason")] = F("n/a");
+#else
+    //obj[F("heap_total")]    = F("n/a");
+    //obj[F("chip_revision")] = F("n/a");
+    //obj[F("chip_model")]    = F("n/a");
+    //obj[F("chip_cores")]    = F("n/a");
+    obj[F("core_version")]  = ESP.getCoreVersion();
+    obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
+    obj[F("heap_frag")]     = ESP.getHeapFragmentation();
+    obj[F("max_free_blk")]  = ESP.getMaxFreeBlockSize();
+    obj[F("reboot_reason")] = ESP.getResetReason();
 #endif
-    obj[F("sketch_total")]  = ESP.getFreeSketchSpace();
-    obj[F("sketch_used")]   = ESP.getSketchSize();
     //obj[F("littlefs_total")] = LittleFS.totalBytes();
     //obj[F("littlefs_used")] = LittleFS.usedBytes();
 

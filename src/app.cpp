@@ -42,6 +42,8 @@ void app::setup(uint32_t timeout) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
+        addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
+        addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
     }
 #endif
     setupLed();
@@ -225,7 +227,6 @@ void app::resetSystem(void) {
     mRxTicker = 0;
 
     mSendLastIvId = 0;
-
     mShowRebootRequest = false;
 
     memset(&mStat, 0, sizeof(statistics_t));

@@ -67,6 +67,23 @@ class PubMqtt {
             sendIvData();
         }
 
+        void tickerMinute() {
+            if(mAddressSet) {
+                char val[40];
+                snprintf(val, 40, "%ld", millis() / 1000);
+                sendMsg("uptime", val);
+
+                sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
+            }
+        }
+
+        void tickerHour() {
+            if(mAddressSet) {
+                sendMsg("sunrise", String(*mSunrise).c_str());
+                sendMsg("sunset", String(*mSunset).c_str());
+            }
+        }
+
         void setCallback(MQTT_CALLBACK_SIGNATURE) {
             mClient->setCallback(callback);
         }
@@ -218,18 +235,10 @@ class PubMqtt {
                 return;
 
             isConnected(true);  // really needed? See comment from HorstG-57 #176
-            char topic[32 + MAX_NAME_LENGTH], val[32];
+            char topic[32 + MAX_NAME_LENGTH], val[40];
             float total[4];
             bool sendTotal = false;
             bool totalIncomplete = false;
-            snprintf(val, 40, "%ld", millis() / 1000);
-
-            sendMsg("uptime", val);
-
-            sendMsg("wifi_rssi", String(WiFi.RSSI()).c_str());
-
-            sendMsg("sunrise", String(*mSunrise).c_str());
-            sendMsg("sunset", String(*mSunset).c_str());
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);

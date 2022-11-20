@@ -31,32 +31,6 @@ function parseESP(obj) {
     document.getElementById("esp_type").innerHTML="Board: " + obj["esp_type"];
 }
 
-function parseSysInfo(obj) {
-    const data = ["sdk_version", "cpu_freq", "chip_revision", "chip_model", "chip_cores", "esp_type"];
-
-    var ul = document.getElementById("info");
-
-    if(!isNaN(obj["heap_total"])) {
-        document.getElementById("info").innerHTML = 'Heap:<progress id="heap" max="100" value="0"></progress> <span id="heap_used"></span> bytes (<span id="heap_total"></span> bytes)';
-        changeProgressbar("heap", obj["heap_used"], obj["heap_total"]);
-    }
-
-    for (const [key, value] of Object.entries(obj)) {
-        if(!data.includes(key) || (typeof value == 'undefined')) continue;
-        var li = document.createElement("li");
-        li.appendChild(document.createTextNode(key + ": " + value));
-        ul.appendChild(li);
-    }
-}
-
-function changeProgressbar(id, value, max) {
-    document.getElementById(id).value = value;
-    document.getElementById(id).max = max;
-
-    document.getElementById("heap_used").textContent = value;
-    document.getElementById("heap_total").textContent = max;
-}
-
 function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
@@ -66,7 +40,6 @@ function setHide(id, hide) {
     else
         elm.classList.remove('hide');
 }
-
 
 function toggle(id) {
     var e = document.getElementById(id);

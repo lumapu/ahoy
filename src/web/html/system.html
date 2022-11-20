@@ -18,7 +18,7 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <div id="info"></div>
+                <div><ul id="info"></ul></div>
                 <div id="system"></div>
             </div>
         </div>
@@ -42,6 +42,21 @@
             function parseSys(obj) {
                 parseVersion(obj);
                 parseESP(obj);
+            }
+
+            function parseSysInfo(obj) {
+                const data = ["sdk", "cpu_freq", "chip_revision",
+                    "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi",
+                    "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
+                    "max_free_blk", "version", "core_version", "reboot_reason"];
+
+                var ul = document.getElementById("info");
+                for (const [key, value] of Object.entries(obj)) {
+                    if(!data.includes(key) || (typeof value == 'undefined')) continue;
+                    var li = document.createElement("li");
+                    li.appendChild(document.createTextNode(key + ": " + value));
+                    ul.appendChild(li);
+                }
             }
 
             function parse(obj) {
