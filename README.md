@@ -14,6 +14,7 @@ List of approaches
 
 ## Quick Start with ESP8266
 - [Go here ✨](Getting_Started.md#things-needed)
+- [Our Website](https://ahoydtu.de)
 
 
 ## Success Stories
