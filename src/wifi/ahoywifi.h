@@ -33,11 +33,15 @@ class ahoywifi {
 
     private:
         void sendNTPpacket(IPAddress& address);
+        //void onConnect(const WiFiEventStationModeGotIP& event);
+        //void onDisconnect(const WiFiEventStationModeDisconnected& event);
 
         settings_t *mConfig;
 
         DNSServer *mDns;
         WiFiUDP *mUdp; // for time server
+        //WiFiEventHandler wifiConnectHandler;
+        //WiFiEventHandler wifiDisconnectHandler;
 
         uint32_t mWifiStationTimeout;
         uint32_t mNextTryTs;

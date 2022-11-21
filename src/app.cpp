@@ -27,6 +27,10 @@ void app::setup(uint32_t timeout) {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
+#if !defined(AP_ONLY)
+    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
+#endif
+
     mWifi = new ahoywifi(mConfig);
     mWifi->setup(timeout, mSettings.getValid());
 
@@ -39,7 +43,6 @@ void app::setup(uint32_t timeout) {
     mPayload.enableSerialDebug(mConfig->serial.debug);
 #if !defined(AP_ONLY)
     if (mConfig->mqtt.broker[0] > 0) {
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
