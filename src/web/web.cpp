@@ -107,8 +107,10 @@ void web::loop(void) {
 void web::tickSecond() {
     if(0 != mLogoutTimeout) {
         mLogoutTimeout -= 1;
-        if(0 == mLogoutTimeout)
-            mProtected = true;
+        if(0 == mLogoutTimeout) {
+            if(strlen(mConfig->sys.adminPwd) > 0)
+                mProtected = true;
+        }
 
         DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
     }
