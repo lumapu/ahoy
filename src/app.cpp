@@ -27,6 +27,11 @@ void app::setup(uint32_t timeout) {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
+    mSys = new HmSystemType();
+    mSys->enableDebug();
+    mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mSys->addInverters(&mConfig->inst);
+
 #if !defined(AP_ONLY)
     mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
 #endif
@@ -34,10 +39,6 @@ void app::setup(uint32_t timeout) {
     mWifi = new ahoywifi(mConfig);
     mWifi->setup(timeout, mSettings.getValid());
 
-    mSys = new HmSystemType();
-    mSys->enableDebug();
-    mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mSys->addInverters(&mConfig->inst);
 
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
@@ -221,6 +222,9 @@ void app::resetSystem(void) {
 #else
     mUtcTimestamp = 0;
 #endif
+
+    mSunrise = 0;
+    mSunset  = 0;
 
     mHeapStatCnt = 0;
 
