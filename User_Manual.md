@@ -84,48 +84,66 @@ The AhoyDTU subscribes on three topics `<TOPIC>/ctrl/#`, `<TOPIC>/setup` and `<T
 ```mqtt
 <TOPIC>/ctrl/power/<INVERTER_ID>
 ```
-with payload `1` for `ON` and `0` for `OFF`
+with payload `1` = `ON` and `0` = `OFF`
 
 Example:
 ```mqtt
-`inverter/ctrl/power/0` `1`
+inverter/ctrl/power/0     1
 ```
 
-
 ### Inverter restart
-
-`<TOPIC>/ctrl/restart/<INVERTER_ID>`
+```mqtt
+<TOPIC>/ctrl/restart/<INVERTER_ID>
+```
 Example:
-`inverter/ctrl/restart/0`
-
+```mqtt
+inverter/ctrl/restart/0
+```
 
 ### Power Limit relative persistent [%]
 
-`<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>` with a payload `[2 .. 100]`
-Example:
-`inverter/ctrl/limit_persistent_relative/0` `70`
+```mqtt
+<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>
+```
+with a payload `[2 .. 100]`
 
+Example:
+```mqtt
+inverter/ctrl/limit_persistent_relative/0     70
+```
 
 ### Power Limit absolute persistent [Watts]
+```mqtt
+<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>
+```
+with a payload `[0 .. 65535]`
 
-`<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>` with a payload `[0 .. 65535]`
 Example:
-`inverter/ctrl/limit_persistent_relative/0` `600`
-
+```mqtt
+inverter/ctrl/limit_persistent_relative/0     600
+```
 
 ### Power Limit relative non persistent [%]
+```mqtt
+<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>
+```
+with a payload `[2 .. 100]`
 
-`<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>` with a payload `[2 .. 100]`
 Example:
-`inverter/ctrl/limit_nonpersistent_relative/0` `70`
-
+```mqtt
+inverter/ctrl/limit_nonpersistent_relative/0     70
+```
 
 ### Power Limit absolute non persistent [Watts]
+```mqtt
+<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>
+```
+with a payload `[0 .. 65535]`
 
-`<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>` with a payload `[0 .. 65535]`
 Example:
-`inverter/ctrl/limit_nonpersistent_relative/0` `600`
-
+```mqtt
+inverter/ctrl/limit_nonpersistent_relative/0     600
+```
 
 ## Control via REST API
 
@@ -144,7 +162,7 @@ The rest API works with *JSON* POST requests. All the following instructions mus
     "val": <VALUE>
 }
 ```
-The `<VALUE>` should be set to `1` for `ON` and `0` for `OFF`
+The `<VALUE>` should be set to `1` = `ON` and `0` = `OFF`
 
 
 ### Inverter restart
