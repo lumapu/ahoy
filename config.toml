@@ -17,9 +17,13 @@ title = 'AhoyDTU'
     url = "/getting_started/"
     weight = 2
   [[menu.main]]
+    name = "Web Installer"
+    url = "/web_install/"
+    weight = 3
+  [[menu.main]]
     name = "FAQ"
     url = "/faq/"
-    weight = 3
+    weight = 4
 
 
 [params]

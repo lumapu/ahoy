@@ -1,0 +1,40 @@
+---
+title: "Web Install"
+date: 2022-11-21T21:27:10Z
+tags: []
+draft: false
+---
+<script type="module" src="https://unpkg.com/esp-web-tools@9.0.3/dist/web/install-button.js?module"></script>
+
+
+<div class="container col-xxl-8 px-4 py-5">
+    <div class="row flex-lg-row align-items-center g-5 py-5">
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold lh-1 mb-3">Firmware flashen</h1>
+            <div class="alert alert-primary" role="alert">
+                <strong>Hinweis: </strong>Der Web Installer kann sowohl für ESP8266 als auch ESP32 verwendet werden.
+            </div>
+        </div>
+        <div class="col-10 col-sm-8 col-lg-6">
+            <esp-web-install-button manifest="/firmware/manifest.json">
+                <span slot="unsupported">
+                    <div class="alert alert-warning" role="alert">
+                        Your browser does not support installing things on ESP devices. Use Google Chrome or Microsoft Edge.
+                    </div>
+                </span>
+                <span slot="not-allowed">
+                    <div class="alert alert-danger" role="alert">
+                        You are not allowed to do this using http!
+                    </div>
+                </span>
+            </esp-web-install-button>
+            <div class="alert alert-secondary mt-3" role="alert">
+                Der Online Installer wird von <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Home Web Tools</a> bereitgestellt
+            </div>
+            <p class="lead">
+                Alternativ kann auch die aktuelle Entwicklerversion heruntergeladen werden: <a href="https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip" target="_blank">latest Development Build</a> (das zip enthält auch WebTools um die Version zu installieren)<br/>
+                (Die Entwicklerversion kann uU. instabil sein oder Fehler enthalten!)
+            </p>
+        </div>
+    </div>
+</div>
