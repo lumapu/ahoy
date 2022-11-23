@@ -76,13 +76,20 @@ Also an absolute active power limit below approx. 30 Watt seems to be not meanfu
 The AhoyDTU subscribes on three topics `<TOPIC>/ctrl/#`, `<TOPIC>/setup` and `<TOPIC>/status`.
 
 👆 `<TOPIC>` can be set on setup page, default is `inverter`.
+
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
 
 ### Inverter Power (On / Off)
-`<TOPIC>/ctrl/power/<INVERTER_ID>` with payload `1` for `ON` and `0` for `OFF`
+```mqtt
+<TOPIC>/ctrl/power/<INVERTER_ID>
+```
+with payload `1` for `ON` and `0` for `OFF`
+
 Example:
+```mqtt
 `inverter/ctrl/power/0` `1`
+```
 
 
 ### Inverter restart
