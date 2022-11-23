@@ -27,11 +27,24 @@ void webApi::setup(void) {
     mSrv->on("/api", HTTP_POST, std::bind(&webApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                 std::bind(&webApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
 
-    mSrv->on("/get_setup", HTTP_GET,  std::bind(&webApi::onDwnldSetup,   this, std::placeholders::_1));
+    mSrv->on("/get_setup", HTTP_GET,  std::bind(&webApi::onDwnldSetup, this, std::placeholders::_1));
 }
 
 //-----------------------------------------------------------------------------
 void webApi::loop(void) {
+}
+
+//-----------------------------------------------------------------------------
+void webApi::ctrlRequest(JsonObject obj) {
+    /*char out[128];
+    serializeJson(obj, out, 128);
+    DPRINTLN(DBG_INFO, "webApi: " + String(out));*/
+    DynamicJsonDocument json(128);
+    JsonObject dummy = json.to<JsonObject>();
+    if(obj[F("path")] == "ctrl")
+        setCtrl(obj, dummy);
+    else if(obj[F("path")] == "setup")
+        setSetup(obj, dummy);
 }
 
 
@@ -333,7 +346,7 @@ void webApi::getStaticIp(JsonObject obj) {
 void webApi::getMenu(JsonObject obj) {
     obj["name"][0] = "Live";
     obj["link"][0] = "/live";
-    obj["name"][1] = "Serial Console";
+    obj["name"][1] = "Serial / Control";
     obj["link"][1] = "/serial";
     obj["name"][2] = "Settings";
     obj["link"][2] = "/setup";
@@ -346,10 +359,14 @@ void webApi::getMenu(JsonObject obj) {
     obj["link"][6] = "/update";
     obj["name"][7] = "System";
     obj["link"][7] = "/system";
+    obj["name"][8] = "-";
+    obj["name"][9] = "Documentation";
+    obj["link"][9] = "https://ahoydtu.de";
+    obj["trgt"][9] = "_blank";
     if(strlen(mConfig->sys.adminPwd) > 0) {
-        obj["name"][8] = "-";
-        obj["name"][9] = "Logout";
-        obj["link"][9] = "/logout";
+        obj["name"][10] = "-";
+        obj["name"][11] = "Logout";
+        obj["link"][11] = "/logout";
     }
 }
 
@@ -494,72 +511,50 @@ void webApi::getRecord(JsonObject obj, record_t<> *rec) {
 
 //-----------------------------------------------------------------------------
 bool webApi::setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
-    uint8_t cmd = jsonIn[F("cmd")];
+    Inverter<> *iv = mApp->mSys->getInverterByPos(jsonIn[F("id")]);
+    if(NULL == iv) {
+        jsonOut[F("error")] = F("inverter index invalid: ") + jsonIn[F("id")].as<String>();
+        return false;
+    }
 
-    // Todo: num is the inverter number 0-3. For better display in DPRINTLN
-    uint8_t num = jsonIn[F("inverter")];
-    uint8_t tx_request = jsonIn[F("tx_request")];
-
-    if(TX_REQ_DEVCONTROL == tx_request)
-    {
-        DPRINTLN(DBG_INFO, F("devcontrol [") + String(num) + F("], cmd: 0x") + String(cmd, HEX));
-
-        Inverter<> *iv = getInverter(jsonIn, jsonOut);
-        JsonArray payload = jsonIn[F("payload")].as<JsonArray>();
-
-        if(NULL != iv)
-        {
-            switch (cmd)
-            {
-                case TurnOn:
-                    iv->devControlCmd = TurnOn;
-                    iv->devControlRequest = true;
-                    break;
-                case TurnOff:
-                    iv->devControlCmd = TurnOff;
-                    iv->devControlRequest = true;
-                    break;
-                case CleanState_LockAndAlarm:
-                    iv->devControlCmd = CleanState_LockAndAlarm;
-                    iv->devControlRequest = true;
-                    break;
-                case Restart:
-                    iv->devControlCmd = Restart;
-                    iv->devControlRequest = true;
-                    break;
-                case ActivePowerContr:
-                    iv->devControlCmd = ActivePowerContr;
-                    iv->devControlRequest = true;
-                    iv->powerLimit[0] = payload[0];
-                    iv->powerLimit[1] = payload[1];
-                    break;
-                default:
-                    jsonOut["error"] = "unknown 'cmd' = " + String(cmd);
-                    return false;
-            }
-        } else {
-            return false;
-        }
+    if(F("power") == jsonIn[F("cmd")]) {
+        iv->devControlCmd = (jsonIn[F("val")] == 1) ? TurnOn : TurnOff;
+        iv->devControlRequest = true;
+    } else if(F("restart") == jsonIn[F("restart")]) {
+        iv->devControlCmd = Restart;
+        iv->devControlRequest = true;
+    }
+    else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
+        iv->powerLimit[0] = jsonIn["val"];
+        if(F("limit_persistent_relative") == jsonIn[F("cmd")])
+            iv->powerLimit[1] = RelativPersistent;
+        else if(F("limit_persistent_absolute") == jsonIn[F("cmd")])
+            iv->powerLimit[1] = AbsolutPersistent;
+        else if(F("limit_nonpersistent_relative") == jsonIn[F("cmd")])
+            iv->powerLimit[1] = RelativNonPersistent;
+        else if(F("limit_nonpersistent_absolute") == jsonIn[F("cmd")])
+            iv->powerLimit[1] = AbsolutNonPersistent;
+        iv->devControlCmd = ActivePowerContr;
+        iv->devControlRequest = true;
     }
     else {
-        jsonOut[F("error")] = F("unknown 'tx_request'");
+        jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
         return false;
     }
 
     return true;
 }
 
-
 //-----------------------------------------------------------------------------
 bool webApi::setSetup(JsonObject jsonIn, JsonObject jsonOut) {
     if(F("scan_wifi") == jsonIn[F("cmd")])
         mApp->scanAvailNetworks();
     else if(F("set_time") == jsonIn[F("cmd")])
-        mApp->setTimestamp(jsonIn[F("ts")]);
+        mApp->setTimestamp(jsonIn[F("val")]);
     else if(F("sync_ntp") == jsonIn[F("cmd")])
         mApp->setTimestamp(0); // 0: update ntp flag
     else if(F("serial_utc_offset") == jsonIn[F("cmd")])
-        mTimezoneOffset = jsonIn[F("ts")];
+        mTimezoneOffset = jsonIn[F("val")];
     else if(F("discovery_cfg") == jsonIn[F("cmd")])
         mApp->mFlagSendDiscoveryConfig = true; // for homeassistant
     else {
@@ -568,14 +563,4 @@ bool webApi::setSetup(JsonObject jsonIn, JsonObject jsonOut) {
     }
 
     return true;
-}
-
-
-//-----------------------------------------------------------------------------
-Inverter<> *webApi::getInverter(JsonObject jsonIn, JsonObject jsonOut) {
-    uint8_t id = jsonIn[F("inverter")];
-    Inverter<> *iv = mApp->mSys->getInverterByPos(id);
-    if(NULL == iv)
-        jsonOut[F("error")] = F("inverter index to high: ") + String(id);
-    return iv;
 }

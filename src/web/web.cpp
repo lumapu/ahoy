@@ -648,9 +648,12 @@ void web::serialCb(String msg) {
         mSerialBufFill = 0;
         mEvts->send("webSerial, buffer overflow!", "serial", millis());
     }
-
 }
 
+//-----------------------------------------------------------------------------
+void web::apiCtrlRequest(JsonObject obj) {
+    mApi->ctrlRequest(obj);
+}
 
 //-----------------------------------------------------------------------------
 #ifdef ENABLE_JSON_EP

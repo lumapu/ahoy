@@ -13,6 +13,12 @@
 #include "utils/sun.h"
 
 //-----------------------------------------------------------------------------
+app::app() : ah::Scheduler() {
+    mWeb = NULL;
+}
+
+
+//-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     Serial.begin(115200);
     while (!Serial)
@@ -39,7 +45,6 @@ void app::setup(uint32_t timeout) {
     mWifi = new ahoywifi(mConfig);
     mWifi->setup(timeout, mSettings.getValid());
 
-
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 #if !defined(AP_ONLY)
@@ -48,6 +53,7 @@ void app::setup(uint32_t timeout) {
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
         addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
+        mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
 #endif
     setupLed();
@@ -226,8 +232,6 @@ void app::resetSystem(void) {
     mSunrise = 0;
     mSunset  = 0;
 
-    mHeapStatCnt = 0;
-
     mSendTicker = 0xffff;
 
     mTicker = 0;
@@ -238,6 +242,12 @@ void app::resetSystem(void) {
     mShowRebootRequest = false;
 
     memset(&mStat, 0, sizeof(statistics_t));
+}
+
+//-----------------------------------------------------------------------------
+void app::mqttSubRxCb(JsonObject obj) {
+    if(NULL != mWeb)
+        mWeb->apiCtrlRequest(obj);
 }
 
 //-----------------------------------------------------------------------------

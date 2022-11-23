@@ -40,6 +40,8 @@ class web {
 
         void serialCb(String msg);
 
+        void apiCtrlRequest(JsonObject obj);
+
     private:
         void onConnect(AsyncEventSourceClient *client);
 

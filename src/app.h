@@ -43,7 +43,7 @@ class web;
 
 class app : public ah::Scheduler {
     public:
-        app() : ah::Scheduler() {}
+        app();
         ~app() {}
 
         void setup(uint32_t timeout);
@@ -140,7 +140,7 @@ class app : public ah::Scheduler {
     private:
         void resetSystem(void);
 
-        void setupMqtt(void);
+        void mqttSubRxCb(JsonObject obj);
 
         void setupLed(void);
         void updateLed(void);
@@ -197,7 +197,6 @@ class app : public ah::Scheduler {
         }
 
         uint32_t mUptimeSecs;
-        uint8_t mHeapStatCnt;
 
         uint32_t mUtcTimestamp;
         bool mUpdateNtp;

@@ -25,6 +25,8 @@ class webApi {
             return mTimezoneOffset;
         }
 
+        void ctrlRequest(JsonObject obj);
+
     private:
         void onApi(AsyncWebServerRequest *request);
         void onApiPost(AsyncWebServerRequest *request);
@@ -56,8 +58,6 @@ class webApi {
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut);
         bool setSetup(JsonObject jsonIn, JsonObject jsonOut);
-
-        Inverter<> *getInverter(JsonObject jsonIn, JsonObject jsonOut);
 
         double round3(double value) {
            return (int)(value * 1000 + 0.5) / 1000.0;
