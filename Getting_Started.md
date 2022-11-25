@@ -55,6 +55,7 @@ TSun Inverters:
 
 - TSOL-350
 - TSOL-400
+- [TSOL-M800](http://de.tsun-ess.com/products/TSOL-M/User-Manual-TSOL-M350&M400&M800&M1600-EN-V1.0.pdf)
 - others may work as well (need to be verified).
 
 ## Things needed
