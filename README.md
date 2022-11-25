@@ -21,7 +21,7 @@ List of approaches
 - [Getting the data into influxDB and visualize them in a Grafana Dashboard](https://grafana.com/grafana/dashboards/16850-pv-power-ahoy/) (thx @Carl)
 
 ## Support, Feedback, Information and Discussion
-- [Discord Server (~ 300 Users)](https://discord.gg/WzhxEY62mB)
+- [Discord Server (~ 1200 Users)](https://discord.gg/WzhxEY62mB)
 - [The root of development](https://www.mikrocontroller.net/topic/525778)
 
 ### Development
