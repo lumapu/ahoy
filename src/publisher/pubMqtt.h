@@ -111,7 +111,8 @@ class PubMqtt {
         }
 
         void payloadEventListener(uint8_t cmd) {
-            mSendList.push(cmd);
+            if(mClient.connected()) // prevent overflow if MQTT broker is not reachable but set
+                mSendList.push(cmd);
         }
 
         void setSubscriptionCb(subscriptionCb cb) {
@@ -185,6 +186,7 @@ class PubMqtt {
         void onWifiConnect(const WiFiEventStationModeGotIP& event) {
             DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
             mClient.connect();
+            mEnReconnect = true;
         }
 
         void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
@@ -197,6 +199,7 @@ class PubMqtt {
                 case SYSTEM_EVENT_STA_GOT_IP:
                     DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
                     mClient.connect();
+                    mEnReconnect = true;
                     break;
 
                 case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -360,15 +363,15 @@ class PubMqtt {
                             (status == MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
                             (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
                         );
-                        publish(topic, val);
+                        publish(topic, val, true);
 
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                         snprintf(val, 40, "%d", status);
-                        publish(topic, val);
+                        publish(topic, val, true);
 
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
                         snprintf(val, 40, "%i", iv->getLastTs(rec) * 1000);
-                        publish(topic, val);
+                        publish(topic, val, true);
                     }
 
                     // data

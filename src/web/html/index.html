@@ -196,9 +196,9 @@
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
-                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                    document.getElementById("refresh").innerHTML = 10;
                     if(exeOnce) {
-                        window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+                        window.setInterval("getAjax('/api/index', parse)", 10000);
                         exeOnce = false;
                     }
                 }

@@ -332,13 +332,12 @@ void webApi::getSerial(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void webApi::getStaticIp(JsonObject obj) {
-    if(mConfig->sys.ip.ip[0] != 0) {
-        obj[F("ip")]      = ip2String(mConfig->sys.ip.ip);
-        obj[F("mask")]    = ip2String(mConfig->sys.ip.mask);
-        obj[F("dns1")]     = ip2String(mConfig->sys.ip.dns1);
-        obj[F("dns2")]     = ip2String(mConfig->sys.ip.dns2);
-        obj[F("gateway")] = ip2String(mConfig->sys.ip.gateway);
-    }
+    char buf[16];
+    ah::ip2Char(mConfig->sys.ip.ip, buf);      obj[F("ip")]      = String(buf);
+    ah::ip2Char(mConfig->sys.ip.mask, buf);    obj[F("mask")]    = String(buf);
+    ah::ip2Char(mConfig->sys.ip.dns1, buf);    obj[F("dns1")]    = String(buf);
+    ah::ip2Char(mConfig->sys.ip.dns2, buf);    obj[F("dns2")]    = String(buf);
+    ah::ip2Char(mConfig->sys.ip.gateway, buf); obj[F("gateway")] = String(buf);
 }
 
 
@@ -397,7 +396,7 @@ void webApi::getIndex(JsonObject obj) {
     JsonArray warn = obj.createNestedArray(F("warnings"));
     if(!mApp->mSys->Radio.isChipConnected())
         warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
-    if(!mApp->mqttIsConnected())
+    if((!mApp->mqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
         warn.add(F("MQTT is not connected"));
 
     JsonArray info = obj.createNestedArray(F("infos"));

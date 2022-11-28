@@ -70,7 +70,7 @@ class HmSystem {
                         break;
                 }
             }
-            else
+            else if(p->config->serial.u64 != 0ULL)
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
 
             p->init();

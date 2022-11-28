@@ -63,12 +63,6 @@ class webApi {
            return (int)(value * 1000 + 0.5) / 1000.0;
         }
 
-        String ip2String(uint8_t ip[]) {
-            char str[16];
-            snprintf(str, 16, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
-            return String(str);
-        }
-
         AsyncWebServer *mSrv;
         app *mApp;
 
