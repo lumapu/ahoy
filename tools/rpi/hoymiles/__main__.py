@@ -62,7 +62,7 @@ class SunsetHandler:
             tomorrow = now + timedelta(days=1)
             nextSunrise = self.suntimes.riseutc(tomorrow)
             self.nextSunset = self.suntimes.setutc(tomorrow)
-            time_to_sleep = int((nextSunrise - datetime.now()).total_seconds())
+            time_to_sleep = int((nextSunrise - datetime.utcnow()).total_seconds())
             logging.info (f'Waiting for sunrise at {nextSunrise} UTC ({time_to_sleep} seconds)')
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
