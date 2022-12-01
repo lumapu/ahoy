@@ -378,7 +378,7 @@ class PubMqtt {
                     if(iv->isAvailable(*mUtcTimestamp, rec)) {
                         for (uint8_t i = 0; i < rec->length; i++) {
                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                            snprintf(val, 40, "%.3f", iv->getValue(i, rec));
+                            snprintf(val, sizeof(val), "%g", ah::round3(iv->getValue(i, rec)));
                             publish(topic, val);
 
                             // calculate total values for RealTimeRunData_Debug
@@ -427,7 +427,7 @@ class PubMqtt {
                                 break;
                         }
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                        snprintf(val, 40, "%.3f", total[i]);
+                        snprintf(val, sizeof(val), "%g", ah::round3(total[i]));
                         publish(topic, val);
                     }
                 }

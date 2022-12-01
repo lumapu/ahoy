@@ -14,6 +14,7 @@
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr);
     void ip2Char(uint8_t ip[], char *str);
+    double round3(double value);
 }
 
 #endif /*__HELPER_H__*/

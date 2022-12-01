@@ -448,7 +448,7 @@ void webApi::getLive(JsonObject obj) {
             JsonObject obj2 = invArr.createNestedObject();
             obj2[F("name")]               = String(iv->config->name);
             obj2[F("channels")]           = iv->channels;
-            obj2[F("power_limit_read")]   = round3(iv->actPowerLimit);
+            obj2[F("power_limit_read")]   = ah::round3(iv->actPowerLimit);
             obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
             obj2[F("ts_last_success")]    = rec->ts;
 
@@ -457,7 +457,7 @@ void webApi::getLive(JsonObject obj) {
             obj2[F("ch_names")][0] = "AC";
             for (uint8_t fld = 0; fld < sizeof(list); fld++) {
                 pos = (iv->getPosByChFld(CH0, list[fld], rec));
-                ch0[fld] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
+                ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                 obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
                 obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
             }
@@ -474,7 +474,7 @@ void webApi::getLive(JsonObject obj) {
                         case 4:  pos = (iv->getPosByChFld(j, FLD_YT, rec));  break;
                         case 5:  pos = (iv->getPosByChFld(j, FLD_IRR, rec)); break;
                     }
-                    cur[k] = (0xff != pos) ? round3(iv->getValue(pos, rec)) : 0.0;
+                    cur[k] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                     if(1 == j) {
                         obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
                         obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
