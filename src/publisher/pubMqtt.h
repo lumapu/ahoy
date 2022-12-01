@@ -47,7 +47,7 @@ class PubMqtt {
             mSunrise        = sunrise;
             mSunset         = sunset;
 
-            snprintf(mLwtTopic, MQTT_TOPIC_LEN + 7, "%s/status", mCfgMqtt->topic);
+            snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
             #if defined(ESP8266)
             mHWifiCon = WiFi.onStationModeGotIP(std::bind(&PubMqtt::onWifiConnect, this, std::placeholders::_1));
@@ -358,10 +358,10 @@ class PubMqtt {
                         }
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->config->name);
                         snprintf(val, 40, "%s%s%s%s",
-                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not yet " : "",
+                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
                             "available and ",
                             (status == MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
-                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "" : "producing"
+                            "producing"
                         );
                         publish(topic, val, true);
 
@@ -377,9 +377,19 @@ class PubMqtt {
                     // data
                     if(iv->isAvailable(*mUtcTimestamp, rec)) {
                         for (uint8_t i = 0; i < rec->length; i++) {
+                            bool retained = false;
+                            if (mSendList.front() == RealTimeRunData_Debug) {
+                                switch (rec->assign[i].fieldId) {
+                                    case FLD_YT:
+                                    case FLD_YD:
+                                        retained = true;
+                                        break;
+                                }
+                            }
+
                             snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
                             snprintf(val, 40, "%.3f", iv->getValue(i, rec));
-                            publish(topic, val);
+                            publish(topic, val, retained);
 
                             // calculate total values for RealTimeRunData_Debug
                             if (mSendList.front() == RealTimeRunData_Debug) {
@@ -428,7 +438,7 @@ class PubMqtt {
                         }
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                         snprintf(val, 40, "%.3f", total[i]);
-                        publish(topic, val);
+                        publish(topic, val, true);
                     }
                 }
             }
@@ -449,9 +459,9 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
-        char mLwtTopic[MQTT_TOPIC_LEN+7];
-        const char* mLwtOnline = "online";
-        const char* mLwtOffline = "offline";
+        char mLwtTopic[MQTT_TOPIC_LEN+5];
+        const char* mLwtOnline = "connected";
+        const char* mLwtOffline = "not connected";
         const char *mDevName, *mVersion;
 };
 

@@ -120,7 +120,7 @@
                 // set time offset for serial console
                 var obj = new Object();
                 obj.cmd = "serial_utc_offset";
-                obj.ts  = new Date().getTimezoneOffset() * -60;
+                obj.val = new Date().getTimezoneOffset() * -60;
                 getAjax("/api/setup", null, "POST", JSON.stringify(obj));
             }
 
