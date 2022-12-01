@@ -26,4 +26,8 @@ namespace ah {
         else
             snprintf(str, 16, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     }
+
+    double round3(double value) {
+        return (int)(value * 1000 + 0.5) / 1000.0;
+    }
 }
