@@ -26,13 +26,15 @@
     #define DEF_RF24_IRQ_PIN        (3)
 #endif
 
+#define DEF_VERSION "\n version 2022-12-01 21:45"
+
 
 
 // default radio ID
 #define DTU_RADIO_ID            ((uint64_t)0x1234567801ULL)
 
 // real inverter ID is taken from config_override.h at the bottom of this file
-#define IV1_RADIO_ID ((uint64_t) 0x114144332211ULL)     // 0x1141 is for HM800, lowerb4bytes must be filled with real ID from INV-plate
+#define IV1_RADIO_ID ((uint64_t) 0x114144332211ULL)     // 0x1141 is type-id for HM800, lower 4bytes must be filled with real ID from INV-plate
 
 // default NRF24 power, possible values (0 - 3)
 #define DEF_AMPLIFIERPOWER      2
@@ -41,7 +43,7 @@
 #define PACKET_BUFFER_SIZE     7
 
 // number of configurable inverters
-#define MAX_NUM_INVERTERS       1
+#define MAX_NUM_INVERTERS       2
 
 // default serial interval
 #define SERIAL_INTERVAL         5
@@ -57,7 +59,7 @@
 #define MAX_RF_PAYLOAD_SIZE     32
 
 // maximum total payload buffers (must be greater than the number of received frame fragments)
-#define MAX_PAYLOAD_ENTRIES     8
+#define MAX_PAYLOAD_ENTRIES     5
 
 // maximum requests for retransmits per payload (per inverter)
 #define DEF_MAX_RETRANS_PER_PYLD    10
@@ -67,6 +69,12 @@
 
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
+
+
+//will be used for serial utils buffers
+#define MAX_SERBYTES 120                            //serial input buffer length of this app
+#define MAX_STRING_LEN 50                           //max length of output string at once
+#define MAX_SER_PARAM 5                             //max num of serial cmd parameter
 
 
 #if __has_include("config_override.h")

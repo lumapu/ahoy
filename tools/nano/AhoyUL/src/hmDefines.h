@@ -20,7 +20,7 @@ union serial_u {
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
 //const char* const units[] = {" V", " A", " W", " Wh", " kWh", " Hz", " °C", " %", " var", ""};
-const char PGM_units[][5] PROGMEM {" V", " A", " W", " Wh", " kWh", " Hz", " °C", " %", " var", ""}; 
+const char PGM_units[][6] PROGMEM {" V ", " A ", " W ", " Wh ", " kWh ", " Hz ", " °C ", " % ", " var ", " "};      //one hidden byte needed at the end for '\0'
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
@@ -29,7 +29,7 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_HW_ID,
         FLD_ACT_ACTIVE_PWR_LIMIT, /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE};
 
-//PGM Flash memory usage instead of RAM for ARDUINO NANO, idea given by Nick Gammon great webpage http://gammon.com.au/progmem
+//PGM Flash memory usage instead of RAM for ARDUINO NANO, idea given by Nick Gammon's great webpage http://gammon.com.au/progmem
 const char PGM_fields[/*NUM ELEMENTS*/][25] PROGMEM {
     {"U_DC"},
     {"I_DC"},
@@ -260,6 +260,9 @@ const byteAssign_t hm4chAssignment[] = {
 };
 #define HM4CH_LIST_LEN      (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
 #define HM4CH_PAYLOAD_LEN   62
+
+
+
 
 
 #endif /*__HM_DEFINES_H__*/

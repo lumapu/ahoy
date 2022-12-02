@@ -10,18 +10,14 @@
 // The interface is USB2serial for input and output.
 // There are two modes of operation:
 // - automode: one REQUEST message is polled periodically and decoded payload is given by serial-IF (@57600baud), some comfig inputs possible
-// - smac-mode: -> The hoymiles specific REQUEST messages must be given as input via serial-IF (@57600baud)
-//              <- The full sorted RESPONSE is given to the serial-IF with as smac-packet (to be used with python, fhem, etc.) 
-// 
+// - mac-mode: -> The hoymiles specific REQUEST messages must be given as input via serial-IF (@57600baud) smac-packet
+//             <- The full sorted RESPONSE is given to the serial-IF with as rmac-packet (to be used with python, fhem, etc.)
+//
 
 #include <Arduino.h>
 #include <printf.h>
 #include <stdint.h>
 #include <stdio.h>
-
-#include <RF24.h>
-#include <RF24_config.h>
-#include <SPI.h>
 
 #include "CircularBuffer.h"
 #include "config.h"
@@ -45,7 +41,7 @@ static void swap_bytes(uint8_t *, uint32_t);
 static uint32_t swap_bytes(uint32_t);
 static bool check_array(uint8_t *, uint8_t *, uint8_t);
 // low level packet payload and inverter handling
-static uint8_t getInvID(invPayload_t *, uint8_t, uint8_t *);
+static uint8_t getInvIX(invPayload_t *, uint8_t, uint8_t *);
 static uint8_t getNumInv(invPayload_t *, uint8_t);
 static bool copyPacket2Payload(invPayload_t *, uint8_t, packet_t *, bool);
 static bool savePayloadfragment(invPayload_t *, packet_t *, uint8_t, uint8_t);
@@ -53,10 +49,10 @@ static bool processPayload(invPayload_t *, config_t *, bool);
 static uint8_t checkPayload(invPayload_t *);
 static bool resetPayload(invPayload_t *);
 // output and decoding
-static bool returnMACPackets(invPayload_t *);
-static uint8_t returnPayload(invPayload_t *, uint8_t *, uint8_t);
-static void decodePayload(uint8_t, uint8_t *, uint8_t, uint32_t, char*, uint8_t, uint16_t);
-//interrupt handler
+static bool out_uart_smac_resp(invPayload_t *);
+static uint8_t collect_and_return_userPayload(invPayload_t *, uint8_t *, uint8_t);
+static void decodePayload(uint8_t, uint8_t *, uint8_t, uint32_t, char *, uint8_t, uint16_t);
+// interrupt handler
 static void handleIntr(void);
 
 // sysConfig_t mSysConfig;
@@ -64,18 +60,18 @@ static config_t mConfig;
 static BufferType packet_Buffer;
 // static char mVersion[12];
 
-static volatile uint32_t mTimestamp;
+static volatile uint32_t mTimestamp;  // used to count the seconds
 // static uint16_t mSendTicker;
 // static uint8_t mSendLastIvId;
 
-static invPayload_t mPayload[MAX_NUM_INVERTERS];
+static invPayload_t mPayload[MAX_NUM_INVERTERS];  // that is the central storage of data related to all registered inverters
 // static uint32_t mRxFailed;
 // static uint32_t mRxSuccess;
 // static uint32_t mFrameCnt;
 // static uint8_t mLastPacketId;
 
 // serial
-static volatile uint16_t mSerialTicker;
+static volatile uint16_t mSerialTicker;  // could be used for serial output control
 
 // timer
 // static uint32_t mTicker;
@@ -84,46 +80,84 @@ static volatile uint16_t mSerialTicker;
 // static HmSystemType *mSys;
 static RadioType hmRadio;
 // static uint8_t radio_id[5];                       //todo: use the mPayload[].id field   ,this defines the radio-id (domain) of the rf24 transmission, will be derived from inverter id
-static uint64_t radio_id64 = 0ULL;
+// static uint64_t radio_id64 = 0ULL;
 
-#define P(x) (__FlashStringHelper *)(x)                             // PROGMEM-Makro for variables
+#define P(x) (__FlashStringHelper *)(x)  // PROGMEM-Makro for variables
 static const char COMPILE_DATE[] PROGMEM = {__DATE__};
 static const char COMPILE_TIME[] PROGMEM = {__TIME__};
 static const char NAME[] PROGMEM = {DEF_DEVICE_NAME};
+static const char VERSION[] PROGMEM = {DEF_VERSION};
 
-#define USER_PAYLOAD_MAXLEN 128
-static uint8_t user_payload[USER_PAYLOAD_MAXLEN];  // used for simple decoding and output only
+
+#define USER_PAYLOAD_MAXLEN 80                     // user_payload buffer size, so far a max output length is 62 for 4ch Inverter
+static uint8_t user_payload[USER_PAYLOAD_MAXLEN];  // buffer used for simple decoding and output only, one inverter only
 static uint32_t user_pl_ts = 0;
 
-#define MAX_STRING_LEN 51
-static char strout[MAX_STRING_LEN];                             //global string buffer for sprintf, snprintf, snprintf_P outputs
+static SerialUtils utSer;  				// class reference of serial utils
+static char inSer;         				// one char input-buffer for most simple uart-cmds
+static char *m_strout_p;  				// pointer of output buffer
+static char **mParams;    				// pointer to char arrays used for input buffer str tokenizer output, array must get initialized with physical space!!!
+//static char* mParam[MAX_SER_PARAM];	// optionally: array of pointers to char*
 
-///////////////////////////////////////////////////////////////////
+static packet_t rfTX_packet;  // structure of one received radio packet
+static uint8_t rxch;          // keeps the current RX channel
+
+
+// volatile static uint32_t current_millis = 0;
+static volatile uint32_t timer1_millis = 0L;  // general loop timer
+static volatile uint32_t timer2_millis = 0L;  // send Request timer
+static volatile uint32_t lastRx_millis = 0L;
+#define ONE_SECOND (1000L)
+#define ONE_MINUTE (60L * ONE_SECOND)
+#define QUARTER_HOUR (15L * ONE_MINUTE)
+#define SEND_INTERVAL_ms (ONE_SECOND * SEND_INTERVAL)
+#define MIN_SEND_INTERVAL_ms (ONE_SECOND * MIN_SEND_INTERVAL)
+static uint8_t c_loop = 0;
+static volatile int sread_len = 0;  // UART read length
+// static volatile bool rxRdy = false;                         //will be set true on first receive packet during sending interval, reset to false before sending
+static uint8_t m_inv_ix = 0;
+static bool payload_used[MAX_NUM_INVERTERS];
+// static bool saveMACPacket = false;  // when true the the whole MAC packet with address is kept, remove the MAC for CRC calc
+static bool automode = true;
+static bool sendNow = false;
+static bool doDecode = true;
+static bool showMAC = true;
+static volatile uint32_t polling_inv_msec = SEND_INTERVAL_ms;
+static volatile uint16_t tmp16 = 0;
+static uint8_t tmp8 = 0;
+static uint8_t tmp81 = 0;
+static uint32_t min_SEND_SYNC_msec = MIN_SEND_INTERVAL_ms;
+
+static bool iv_devControlReq = false;                      //this is one kind of requests, see devControlCmds
+static uint8_t iv_devControlCmd = ActivePowerContr;        //for now the only devControlCmd
+static uint16_t iv_powerLimit[2];                          // limit power output
+
+/**
+ * 
+ * 
+ * setup()
+ * 
+***********************************************************************************************/
 void setup() {
     // Serial.begin(115200);
     Serial.begin(57600);
-    printf_begin();
+    printf_begin();  // I guess, need for printf(), tocheck with F() and PROGMEM
     Serial.flush();
     Serial.print(P(NAME));
-    Serial.print(F("\ncompiled "));
-    Serial.print(P(COMPILE_DATE));
-    Serial.print(F(" "));
-    Serial.print(P(COMPILE_TIME));
+    Serial.print(P(VERSION)); Serial.print(F(" /compiled ")); Serial.print(P(COMPILE_DATE)); Serial.print(F(" ")); Serial.print(P(COMPILE_TIME));
 
     mSerialTicker = 0xffff;
-    resetSystem();                              // reset allocated mPayload buffer
-    loadDefaultConfig(&mConfig);                // fills the mConfig parameter with values
-    strout[MAX_STRING_LEN-1] = '\0';                                  //string termination
-    
+    resetSystem();                // reset allocated mPayload buffer
+    loadDefaultConfig(&mConfig);  // fills the mConfig parameter with values
 
-    // todo: loadEEconfig() from Flash, like Inverter-ID, power setting
-    // mSys = new HmSystemType();
-    // mSys->setup(&mConfig);
-
-    DPRINT(DBG_INFO, F("freeRAM ")); _DPRINT(DBG_INFO,availableMemory());
-    delay(2000);
+    DPRINT(DBG_INFO, F("freeRAM "));
+    _DPRINT(DBG_INFO, availableMemory());
+    delay(100);
     hmRadio.setup(&mConfig, &packet_Buffer);
     attachInterrupt(digitalPinToInterrupt(DEF_RF24_IRQ_PIN), handleIntr, FALLING);
+
+    utSer.setup(MAX_SERBYTES, MAX_STRING_LEN, MAX_SER_PARAM);
+    m_strout_p = utSer.getStrOutBuf();  // points to valid output buffer address
 
     // prepare radio domain ID
     // radio_id[0] = (uint8_t) 0x01;
@@ -131,47 +165,32 @@ void setup() {
 
     // assign inverter ID to the payload structure
     mPayload[0].invId[0] = (uint8_t)0x01;
-    swap_bytes(&mPayload[0].invId[1], (uint32_t)IV1_RADIO_ID);
-    mPayload[0].invType = (uint16_t)(IV1_RADIO_ID >> 32);                                                 //keep just upper 6 and 5th byte (e.g.0x1141) of interter plate id
-    
+    swap_bytes(&mPayload[0].invId[1], (uint32_t)IV1_RADIO_ID);  // high byte is at lowest index
+    mPayload[0].invType = (uint16_t)(IV1_RADIO_ID >> 32);       // keep just upper 6 and 5th byte (e.g.0x1141) of interter plate id for type
+
     // hmRadio.dumpBuf("\nsetup InvID ", &mPayload[0].invId[0], 5, DBG_DEBUG);
 
     // alternativly radio-id
-    //radio_id64 = (uint64_t)(swap_bytes((uint32_t)IV1_RADIO_ID)) << 8 | 0x01;
+    // radio_id64 = (uint64_t)(swap_bytes((uint32_t)IV1_RADIO_ID)) << 8 | 0x01;
 
     // todo: load Inverter decoder depending on InvID
 
+    m_inv_ix = 0;                                       //first inverter index
+    
+    //global var for all inverter
+    iv_powerLimit[1] = AbsolutNonPersistent;
+    iv_powerLimit[0] = 0xFFFF;                          //unlimited
 }  // end setup()
 
-// volatile static uint32_t current_millis = 0;
-static volatile uint32_t timer1_millis = 0L;  // general loop timer
-static volatile uint32_t timer2_millis = 0L;  // send Request timer
-static volatile uint32_t lastRx_millis = 0L;
-#define ONE_SECOND      (1000L)
-#define ONE_MINUTE      (60L * ONE_SECOND)
-#define QUARTER_HOUR    (15L * ONE_MINUTE)
-#define SEND_INTERVAL_ms        (ONE_SECOND * SEND_INTERVAL)
-#define MIN_SEND_INTERVAL_ms    (ONE_SECOND * MIN_SEND_INTERVAL)
-static uint8_t c_loop = 0;
-static volatile int sread_len = 0;  // UART read length
-// static volatile bool rxRdy = false;                         //will be set true on first receive packet during sending interval, reset to false before sending
-static uint8_t inv_ix;
-static bool payload_used[MAX_NUM_INVERTERS];
-// static bool saveMACPacket = false;  // when true the the whole MAC packet with address is kept, remove the MAC for CRC calc
-static bool automode = true;
-static bool doDecode = false;
-static bool showMAC = true;
-static volatile uint32_t polling_inv_msec = SEND_INTERVAL_ms;
-static volatile uint16_t tmp16 = 0;
-static uint8_t tmp8 = 0;
-static uint32_t min_SEND_SYNC_msec = MIN_SEND_INTERVAL_ms;
-
-/////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////
+/**
+ * 
+ * 
+ * loop()
+ * 
+**********************************************************************************************************************/
 void loop() {
     // the inverter id/ix I shall be handled in a loop if more than one inverter is registered for periodic polling
-    inv_ix = 0;
-
+    
     // counting the time reference of seconds
     if (millis() - timer1_millis >= ONE_SECOND) {
         timer1_millis = millis();
@@ -186,22 +205,112 @@ void loop() {
         }  // end if
     }
 
-    // query serial-IF for some control and data to be send via RF (cmd: sMAC:chXX:... see eval_uart_smac_cmd() format)
+    // set and query serial-IF with some commands, in non-automode mainly cmd sMAC:chXX:... see format in src
     if (Serial.available()) {
         // wait char
         inSer = Serial.read();
-        delay(10);
+        delay(2);
         switch (inSer) {
+            case (char)'a': {
+                // enable automode with REQ polling interval via a10 => 10sec, a100 => 100sec or other range 5....3600sec
+                //extend automode with polling period in sec, inverter ix and id, all numerial value are optional from the back
+                //cmd: a[[[:<poll_sec>]:<invIX>]:<12digit invID>:]  e.g. a:120:1:081511223344:, also polling only a:120: and polling and inv_ix via a:120:1
+                automode = true;
+                m_inv_ix = 0;
+                uint8_t invIX = 0;
+                uint16_t invType = 0x4711;
+                uint8_t invID5[5] = {0x01, 0x44, 0x33, 0x22, 0x11};
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams);
+                
+                if (tmp8 > 0) {
+                    //get polling interval from first parameter
+                    tmp81 = strlen(&mParams[0][0]);
+                    if (tmp81 > 0 && tmp81 < 5) {
+                        polling_inv_msec = 1000 * utSer.uart_eval_decimal_val(F("auto poll sec "), &mParams[0][0], 5, 5, 3600, 1);
+                    }
+
+					if (tmp8 > 2) {
+						//get inverter index and inverter ID from parameter 2 and 3
+						if (utSer.uart_cmd_add_inverter_parsing( &mParams[1], MAX_SER_PARAM, &invIX, &invType, &invID5[0])) {
+                            // write to inverter structure at given index
+                            mPayload[invIX].invType = invType;
+                            memcpy(mPayload[invIX].invId, invID5, 5);
+                            m_inv_ix = invIX;
+                            DPRINT(DBG_INFO, F(" OK"));
+                            // todo: save inverter list to eeprom depending on 4th parameter (e.g ":eep:" )
+						} //end if()
+						
+					} else if (tmp8 > 1) {
+						//try to get and set the inverter-index onyl 						
+                        tmp81 = (uint8_t) (utSer.uart_eval_decimal_val(NULL, &mParams[1][0], tmp8, 0, MAX_NUM_INVERTERS, 1));
+						if (mPayload[tmp81].invType != 0x0000) { 
+                                m_inv_ix = tmp81;
+                                DPRINT(DBG_INFO, F(" inv_ix "));
+                                _DPRINT(DBG_INFO, m_inv_ix);
+                                DPRINT(DBG_INFO, F(" OK"));
+                        } else {
+                                DPRINT(DBG_INFO, F(" ERR"));
+                        } //end if-else
+					}//end if(tmp8 > 2)-else
+
+                } //end if(tmp8 > 0)
+                break;
+            } // end case a
+
+            case (char)'d': {
+                // trigger decoding, enable periodic decoding via "d1" and disable via "d0"
+                Serial.print(F("\nd"));
+                // simple decoding, can only handle the current active inverter index, maybe erased if new data arrive, switch other inverter via interter indexing in automode settings
+                decodePayload(TX_REQ_INFO + 0x80, user_payload, 42, user_pl_ts, utSer.mStrOutBuf, MAX_STRING_LEN, mPayload[m_inv_ix].invType);
+                sread_len = utSer.serBlockRead_ms(utSer.mSerBuffer);
+                doDecode = (bool)utSer.uart_eval_decimal_val(F("decoding "), utSer.mSerBuffer, sread_len, 0, 255, 1);
+                break;
+            }  // end case d
+
             case (char)'s': {
                 // sending smac commands which are send to the inverter, same format as from inverter, see details in funct. eval_uart_smac_cmd(...)
-                //e.g. "smac:ch03:958180....:rc40:" -- ch03 for Tx channel, <raw data with crc8>, rc40 for rx channel 40, if rx channel is left then default tx_ix+2
-                DPRINT(DBG_INFO, F("s OK"));                                                // OK needed only for my simple python at-terminal
-                static packet_t rfTX_packet;
-                static uint8_t rxch;
-                ser_buffer[0] = '\0';
-                automode = false;
-                sread_len = serReadBytes_ms(ser_buffer, MAX_SERBYTES, 2000);
-                if (eval_uart_smac_cmd(ser_buffer, sread_len, &rfTX_packet, &rxch)) {
+                // e.g. "smac:ch03:958180....:rc40:" -- ch03 for Tx channel, <raw data with crc8>, -- rc40 for rx channel 40, if rx channel is left then default tx_ix+2
+
+                //todo: not yet tested much
+
+                if (automode == true) {
+                    automode = false;
+                    DPRINT(DBG_INFO, F("automode ")); _DPRINT(DBG_INFO, automode); 
+                }
+
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams);
+                if (tmp8 > 0) {
+                    if (strstr(&mParams[0][0], "mac")) {
+                        if (utSer.uart_cmd_smac_request_parser(mParams, tmp8, &rfTX_packet, &rxch)) {
+                            if (rxch == 0) {
+                                // if rxchannel not given, then set automatically
+                                rxch = hmRadio.getRxChannel(rfTX_packet.rfch);
+                            }
+                            hmRadio.setRxChanIdx(hmRadio.getChanIdx(rxch));
+
+                            // compare inv-id from packet data with all registerd inv-id of the payload_t struct array
+                            m_inv_ix = getInvIX(mPayload, MAX_NUM_INVERTERS, &rfTX_packet.data[0]);
+                            if (m_inv_ix == 0xFF) {
+                                DPRINT(DBG_DEBUG, F("inv_id no match"));
+                                m_inv_ix = MAX_NUM_INVERTERS - 1;                               //use last possition
+                            }
+                            DPRINT(DBG_DEBUG, F("m_inv_ix ")); _DPRINT(DBG_DEBUG, m_inv_ix);
+                            payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
+                            mPayload[m_inv_ix].isMACPacket = true;  // MAC must be enabled to show the full MAC packet, no need for user_payload only
+                            mPayload[m_inv_ix].receive = false;
+                            hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);  // 2022-10-30: byte array transfer working
+                            mPayload[m_inv_ix].requested = true;
+                            mPayload[m_inv_ix].invType = 0x1111;                                //used as dummy type, decode works external only with known type
+                           
+                        }//end if(utSer.uart_cmd_smac_request_parser(...))
+                    }  // end if(mac)
+                }  // end if(tmp8)
+
+                /*
+                sread_len = utSer.serBlockRead_ms(utSer.mSerBuffer);
+                if (utSer.eval_uart_smac_request(utSer.mSerBuffer, sread_len, &rfTX_packet, &rxch)) {
                     // send on Tx channel and receive on Rx channel
                     if (rxch == 0) {
                         // if rxchannel not given, then set automatically
@@ -210,102 +319,194 @@ void loop() {
                     hmRadio.setRxChanIdx(hmRadio.getChanIdx(rxch));
 
                     // compare inv-id from packet data with all registerd inv-id of the payload_t struct array
-                    inv_ix = getInvID(mPayload, MAX_NUM_INVERTERS, &rfTX_packet.data[0]);
-                    if (inv_ix != 0xFF) {
-                        DPRINT(DBG_DEBUG, F("match, inv_ix "));
-                        _DPRINT(DBG_DEBUG, inv_ix);
-                        payload_used[inv_ix] = !resetPayload(&mPayload[inv_ix]);
-                        mPayload[inv_ix].isMACPacket = true;                             //MAC must be enabled to show the full MAC packet, no need for user_payload only
-                        mPayload[inv_ix].receive = false;
-                        hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);          // 2022-10-30: byte array transfer working
-                        mPayload[inv_ix].requested = true;
+                    m_inv_ix = getInvIX(mPayload, MAX_NUM_INVERTERS, &rfTX_packet.data[0]);
+                    if (m_inv_ix != 0xFF) {
+                        if (m_inv_ix < MAX_NUM_INVERTERS) {
+                        }
+                        DPRINT(DBG_DEBUG, F("match, m_inv_ix "));
+                        _DPRINT(DBG_DEBUG, m_inv_ix);
+                        payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
+                        mPayload[m_inv_ix].isMACPacket = true;  // MAC must be enabled to show the full MAC packet, no need for user_payload only
+                        mPayload[m_inv_ix].receive = false;
+                        hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);  // 2022-10-30: byte array transfer working
+                        mPayload[m_inv_ix].requested = true;
                     } else {
                         // no matching inverter, do nothing
-                        inv_ix = 0;
+                        m_inv_ix = 0;
                     }
-                }
+                }  // end if
+                */
+
                 break;
             }  // end case s
 
+            case (char)'i': {
+                // inverter handling cmds for automode
+                uint8_t invIX = 0;
+                uint16_t invType = 0x4711;
+                uint8_t invID5[5] = {0x01, 0x44, 0x33, 0x22, 0x11};
+                // cmd tokens will be written in mParams-pointer array
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams);
+                if (tmp8 > 0) {
+                    if (strstr(&mParams[0][0], "add")) {
+                        // cmd to add a new inverter at index possition
+                        // /> invreg:01:1144 11223344:         - register new inverter at index 01 and plate id
+                        //
+                        if (utSer.uart_cmd_add_inverter_parsing(++mParams, tmp8, &invIX, &invType, &invID5[0])) {
+                            // write to inverter structure at given index
+                            mPayload[invIX].invType = invType;
+                            memcpy(mPayload[invIX].invId, invID5, 5);
+                            // todo: extend inverter list to eeprom
+                        }
+
+                    } else if (strstr(&mParams[0][0], "lst")) {
+                        // match cmd to list inverter which are registered
+                        //  /> invlist:                        -- list content of all index possitions
+                        //
+                        Serial.print(F("\ninv List:"));
+                        for (uint8_t x = 0; x < MAX_NUM_INVERTERS; x++) {
+                            snprintf_P(utSer.getStrOutBuf(), MAX_STRING_LEN, PSTR("\n  %d: %04X "), x, mPayload[x].invType);
+                            Serial.print(utSer.getStrOutBuf());
+                            utSer.print_bytes(mPayload[x].invId, 5, " ", true);
+                        }  // end for()
+
+                    } else if (strstr(&mParams[0][0], "del")) {
+                        // cmd to delete inverter from inverter list via given index
+                        //  /> invdel:01:                       -- delete index 01 from list
+                        //
+                        if (utSer.uart_cmd_del_inverter_parsing(mParams, tmp8, &invIX)) {
+                            mPayload[invIX].invType = 0x0000;
+                        }
+
+                    } else {
+                        // no cmd match
+                    }
+                }
+                break;
+            }  // end case i
+
             case (char)'c': {
-                // todo: scan all channels for 1bit RSSI value and print result
-                Serial.print(F("\nc OK "));
-                hmRadio.scanRF();
+                // todo: scan all channels for 1bit RDP (RSSI) value and print result
+                // Serial.print(F("\nc OK "));
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams);
+                if (tmp8 > 0) {
+                    tmp81 = (uint8_t) (utSer.uart_eval_decimal_val(F("scan "), &mParams[0][0], 5, 1, 255, 1));
+                    while (tmp81--) {
+                        hmRadio.scanRF();
+                        if (Serial.available()) {
+                            // wait char
+                            inSer = Serial.read();
+                            if (inSer >= '\n') break; //from while()
+                        }//end if
+                    }//end while()
+                }
                 break;
             }
-            
-            case (char)'z': {
-                // todo: register new Inverter ID in payload_t array via "z:<5bytes>:<crc>:", save to eeprom
-                // todo: query via z1? for first inverter
-                break;
-            }
-
-            case (char)'a': {
-                //enable automode with REQ polling interval via a10 => 10sec, a100 => 100sec or other range 5....3600sec
-                automode = true;
-                sread_len = serReadBytes_ms(ser_buffer, MAX_SERBYTES, 2000);
-                polling_inv_msec = eval_uart_decimal_val("auto polling msec ", ser_buffer, sread_len, 5, 3600, ONE_SECOND);
-                break;
-            }  // end case a
-
-            case (char)'d': {
-                // trigger decoding, enable periodic decoding via "d1" and disable via "d0"
-                Serial.print(F("\nd OK "));
-                // simple decoding
-                decodePayload(TX_REQ_INFO + 0x80, &user_payload[0], 42, user_pl_ts, &strout[0], MAX_STRING_LEN, mPayload[inv_ix].invType);
-                sread_len = serReadBytes_ms(ser_buffer, MAX_SERBYTES, 2000);
-                doDecode = (bool)eval_uart_decimal_val("decoding ", ser_buffer, sread_len, 0, 255, 1);
-                break;
-            }  // end case d
 
             case (char)'m': {
-                // enable/disable show MACmessages via "m0" or "d1"
-                Serial.print(F("\nm OK "));
-                sread_len = serReadBytes_ms(ser_buffer, MAX_SERBYTES, 2000);
-                showMAC = (bool)eval_uart_decimal_val("showMAC ", ser_buffer, sread_len, 0, 255, 1);
+                // enable/disable show MACmessages via "m0" or "m1"
+                Serial.print(F("\nm"));
+                sread_len = utSer.serBlockRead_ms(utSer.mSerBuffer);
+                showMAC = (bool)utSer.uart_eval_decimal_val(F("showMAC "), utSer.mSerBuffer, sread_len, 0, 255, 1);
                 break;
             }  // end case m
 
-            case (char)'i': {
-                // query current radio information
-                DPRINT(DBG_INFO, F("i OK"));
-                hmRadio.print_radio_details();
+            case (char)'r': {
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams,2);
+                if (strstr(&mParams[0][0], "xch")) {
+                    // sets rx channel via e.g via cmd rxch:63:
+                    rxch = utSer.uart_eval_decimal_val(F("rx chan "), &mParams[1][0], 3, 0, 125, 1);            //use first parameter after cmd
+                } else {
+                    // query current radio information via "r"
+                    hmRadio.print_radio_details();
+                }//end if-else()                
                 break;
             }
+
+            case (char)'p': {
+                //set or query power limit from inverter, parameter must be separated by ":"
+                //todo: extend para-check to reactive powerlimit "%var" and "var"
+
+                mParams = utSer.getParamsBuf();
+                tmp8 = utSer.read_uart_cmd_param(mParams,3);
+                if (strstr(&mParams[0][0], "?")) {
+                    // cmd:/ "p?"
+                    // query power setting
+                    //not sure there is a query request
+                    DPRINT(DBG_DEBUG, F("query: not yet, break"));
+                    break;
+
+                } else if (strstr(&mParams[0][0], "%")) {
+                    //make non persistent settings only
+                    // set relative power
+                    iv_powerLimit[0] = (uint16_t) utSer.uart_eval_decimal_val(F("Prel "), &mParams[0][0], 4, 0, 100, 1);
+                    iv_powerLimit[1] = RelativNonPersistent;
+
+                } if (strstr(&mParams[0][0], "w")) {
+                    //make non persistent settings only
+                    // set absolute power
+                    iv_powerLimit[0] = (uint16_t) utSer.uart_eval_decimal_val(F("Pabs "), &mParams[0][0], 5, 0, 65000, 1);
+                    iv_powerLimit[1] = AbsolutNonPersistent;
+                }//end if-else()
+
+                //if (!iv_devControlReq) {
+                    iv_devControlReq = true;            //defines type of message, not that something is pending
+                    sendNow = true;
+                //}
+                break;
+            }//end p
 
             case (char)'t': {
                 // set the time sec since Jan-01 1970 (UNIX epoch time) as decimal String value e.g. "t1612345678:" for Feb-03 2021 9:47:58
                 // timestamp is only used for sending packet timer, but not for the timing of Tx/Rx scheduling etc...
-                sread_len = serReadBytes_ms(ser_buffer, MAX_SERBYTES, 2000);
-                mTimestamp = eval_uart_decimal_val("time set ", ser_buffer, sread_len, 12 * 3600, 0xFFFFFFFF, 1);
-
-
+                //ther is no need of exact timing, it must only increase (change) in REQ_INFO_CMDs
+                sread_len = utSer.serBlockRead_ms(utSer.getInBuf());
+                mTimestamp = utSer.uart_eval_decimal_val(F("time set "), utSer.getInBuf(), sread_len, 10 * 3600, 0xFFFFFFFF, 1);
                 break;
-            } // end case t
-        }  // end switch-case
-    }      // end if serial...
+            }  // end case t
+
+            case (char)'?':{
+                Serial.print(F("\ncmds: a, c, d, iadd, idel, ilst, m, p, s, rxch, t, ?"));
+                break;
+             } //end case '?'
+
+        }      // end switch-case
+    }          // end if serial...
+
+
 
     // automode RF-Tx-trigger
     if (automode) {
-        //slow down the sending if no Rx for long time
+        // slow down the sending if no Rx for long time
         if (millis() - lastRx_millis > QUARTER_HOUR) {
             min_SEND_SYNC_msec = QUARTER_HOUR;
         } else {
             min_SEND_SYNC_msec = MIN_SEND_INTERVAL_ms;
         }
 
-        // normal sending request interval
         // todo: add queue of cmds or schedule simple device control request for power limit values
-        if ( millis() - timer2_millis >= min_SEND_SYNC_msec && ((millis() - lastRx_millis > polling_inv_msec) || millis() < 60000) ) {
+        if (millis() - timer2_millis >= min_SEND_SYNC_msec && ((millis() - lastRx_millis > polling_inv_msec) || millis() < 60000 || sendNow)) {
             timer2_millis = millis();
             // DISABLE_IRQ;
-            // todo: handle different inverter via inv_id
-            payload_used[inv_ix] = !resetPayload(&mPayload[inv_ix]);
-            mPayload[inv_ix].isMACPacket = true;
-            mPayload[inv_ix].receive = false;
-            hmRadio.sendTimePacket(&mPayload[inv_ix].invId[0], 0x0B, mTimestamp, 0x0000);
-            mPayload[inv_ix].requested = true;
+            payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
+            mPayload[m_inv_ix].isMACPacket = true;
+            mPayload[m_inv_ix].receive = false;
+            mPayload[m_inv_ix].requested = true;                    // assume the previous sending is finished because of scheduled timing, therefore no check if still true                       
+            if (iv_devControlReq) {
+                //send devControlReq
+                hmRadio.sendControlPacket(&mPayload[m_inv_ix].invId[0], iv_devControlCmd, iv_powerLimit);
+                iv_devControlReq = false;                           //todo: use timer that it is not send to quick (e.g. max once per 5sec)
+                sendNow = false;
+
+            } else {
+                //send regular info request
+                hmRadio.sendTimePacket(&mPayload[m_inv_ix].invId[0], 0x0B, mTimestamp, 0x0000);
+            }
             // RESTORE_IRQ;
+
         }
     }
 
@@ -313,7 +514,7 @@ void loop() {
     // receives rf data and writes data into circular buffer (packet_Buffer)
     hmRadio.loop();
 
-    // eval RF-Rx raw data (one single entry per loop to keep receiving new messages from one inverter (inverter domain is set via invID)
+    // eval RF-Rx raw data (one single entry per loop to keep receiving new messages from one inverter m_inv_ix (inverter domain is set in nrf24+ via invID)
     if (!packet_Buffer.empty()) {
         packet_t *p;
         p = packet_Buffer.getBack();
@@ -329,10 +530,10 @@ void loop() {
             // mFrameCnt++;
 
             if (p->plen) {
-                // no need to get the inv_ix, because only desired inverter will answer, payload buffer is CRC protected
-                // inv_ix = getInvID(mPayload, MAX_NUM_INVERTERS, &p->data[0]);
-                if (inv_ix >= 0 && inv_ix < MAX_NUM_INVERTERS) {
-                    if (copyPacket2Payload(&mPayload[inv_ix], inv_ix, p, mPayload[inv_ix].isMACPacket)) {
+                // no need to get the m_inv_ix, because only desired inverter will answer, payload buffer is CRC protected
+                // m_inv_ix = getInvID(mPayload, MAX_NUM_INVERTERS, &p->data[0]);
+                if (m_inv_ix >= 0 && m_inv_ix < MAX_NUM_INVERTERS) {
+                    if (copyPacket2Payload(&mPayload[m_inv_ix], m_inv_ix, p, mPayload[m_inv_ix].isMACPacket)) {
                         lastRx_millis = millis();
                     }
                 }
@@ -345,21 +546,22 @@ void loop() {
 
     // handle output of data if ready
     // after min 500msec and all packets shall be copied successfully to mPayload structure, run only if requested and some data received after REQ-trigger
-    if ((millis() - timer2_millis >= 500) && packet_Buffer.empty() && mPayload[inv_ix].requested && mPayload[inv_ix].receive) {
+    if ((millis() - timer2_millis >= 500) && packet_Buffer.empty() && mPayload[m_inv_ix].requested && mPayload[m_inv_ix].receive) {
         // process payload some sec after last sending
-        if (false == payload_used[inv_ix]) {
-            if (processPayload(&mPayload[inv_ix], &mConfig, true)) {
+
+        if (false == payload_used[m_inv_ix]) {
+            if (processPayload(&mPayload[m_inv_ix], &mConfig, true)) {
                 // data valid and complete
 
-                if (mPayload[inv_ix].isMACPacket && showMAC) {
-                    returnMACPackets(&mPayload[inv_ix]);
-                } 
-                payload_used[inv_ix] = true;
-                tmp8 = returnPayload(&mPayload[inv_ix], &user_payload[0], USER_PAYLOAD_MAXLEN);
-                user_pl_ts = mPayload[inv_ix].ts;
+                if (mPayload[m_inv_ix].isMACPacket && showMAC) {
+                    out_uart_smac_resp(&mPayload[m_inv_ix]);
+                }
+                payload_used[m_inv_ix] = true;
+                tmp8 = collect_and_return_userPayload(&mPayload[m_inv_ix], &user_payload[0], USER_PAYLOAD_MAXLEN);
+                user_pl_ts = mPayload[m_inv_ix].ts;
 
                 if (tmp8 == 42 && doDecode) {
-                    decodePayload(mPayload[inv_ix].txId, &user_payload[0], tmp8, user_pl_ts, &strout[0], MAX_STRING_LEN, mPayload[inv_ix].invType);
+                    decodePayload(mPayload[m_inv_ix].txId, &user_payload[0], tmp8, user_pl_ts, m_strout_p, MAX_STRING_LEN, mPayload[m_inv_ix].invType);
                 }
             }
         }
@@ -404,9 +606,6 @@ static void loadDefaultConfig(config_t *_mconfig) {
     _mconfig->serialDebug = true;
 }
 
-
-
-
 // free RAM check for debugging. SRAM for ATmega328p = 2048Kb.
 static int availableMemory() {
     // Use 1024 with ATmega168
@@ -432,27 +631,31 @@ static uint32_t swap_bytes(uint32_t _v) {
     return _res;
 }
 
-
 //////////////////  handle payload function, maybe later as own class //////////////////
 /**
  * compares the two arrays and returns true when equal
  */
-static bool check_array(uint8_t *invID, uint8_t *rcvID, uint8_t _len) {
-    uint8_t i;
-    for (i = 0; i < _len; i++) {
-        if (invID[i] != rcvID[i]) return false;
-    }
-    return true;
-}
+// static bool check_array(uint8_t *invID, uint8_t *rcvID, uint8_t _len) {
+//     uint8_t i;
+//     for (i = 0; i < _len; i++) {
+//         if (invID[i] != rcvID[i]) return false;
+//     }
+//     return true;
+// }
 
 /**
- * gets the payload index that matches to the received ID, in case of no match 0xFF is returned
+ * gets the payload index that matches to the received ID or the first empty payload structure possition,
+ *    in case index exeeds _pMAX then 0xFF is returned
  */
-static uint8_t getInvID(invPayload_t *_payload, uint8_t _pMAX, uint8_t *rcv_data) {
+static uint8_t getInvIX(invPayload_t *_payload, uint8_t _pMAX, uint8_t *rcv_data) {
     uint8_t i;
     for (i = 0; i < _pMAX; i++) {
         // comparison starts at index 1 of invID, because index zero contains the pipe, only 4 bytes are compared
-        if (check_array(&_payload->invId[1], &rcv_data[1], 4)) return i;
+        // if (check_array(&_payload->invId[1], &rcv_data[1], 4)) return i;
+        if (memcmp(&_payload->invId[1], &rcv_data[1], 4) == 0)
+            return i;
+        else if (memcmp(&_payload->invId[1], "\0\0\0\0", 4) == 0)
+            return i;
         _payload++;
     }
     return (uint8_t)0xFF;
@@ -468,7 +671,6 @@ static uint8_t getNumInv(invPayload_t *_payload, uint8_t _pMAX) {
     return i;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // low level payload packet handling
@@ -479,7 +681,7 @@ static uint8_t getNumInv(invPayload_t *_payload, uint8_t _pMAX) {
  * clearing of the current inverter data structure, except the ID and typedef
  */
 static bool resetPayload(invPayload_t *_payload) {
-    // static uint8_t inv_ix;
+    // static uint8_t m_inv_ix;
     uint8_t backup_inv_id[5];
     uint16_t backup_inv_type;
     DPRINT(DBG_VERBOSE, F("resetPayload invid "));
@@ -557,20 +759,19 @@ static bool copyPacket2Payload(invPayload_t *_payload, uint8_t _invx, packet_t *
     return _res;
 }  // end savePayload()
 
-
 /**
- * saves copies one received payload-packet into inverter memory structure  
+ * saves copies one received payload-packet into inverter memory structure
  */
 static bool savePayloadfragment(invPayload_t *_payload, packet_t *_p, uint8_t _pid, uint8_t _ix) {
     volatile bool _res = false;
     if ((_pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {
         _res = true;
-        memcpy(&_payload->data[(_pid & 0x7F) - 1][0], &_p->data[_ix], _p->plen - _ix - 1);
-        _payload->len[(_pid & 0x7F) - 1] = _p->plen - _ix - 1;
+        memcpy(&_payload->data[(_pid & 0x7F) - 1][0], &_p->data[_ix], _p->plen - _ix);
+        _payload->len[(_pid & 0x7F) - 1] = _p->plen - _ix;
         _payload->rxChIdx = _p->rfch;
         _payload->ts = millis();
         _payload->txId = _p->data[0];
-        _payload->receive = _res;                  // indicates that a packet was received at least once per Request iteration
+        _payload->receive = _res;  // indicates that a packet was received at least once per Request iteration
 
         // handle last packet additionally
         if ((_pid & 0x80) == 0x80) {
@@ -586,7 +787,6 @@ static bool savePayloadfragment(invPayload_t *_payload, packet_t *_p, uint8_t _p
     }  // end if(MAX_PAYLOAD_ENTRIES)
     return _res;
 }  // end savePayload fragment
-
 
 /**
  * process the received payload and handles retransmission request for one inverter
@@ -627,7 +827,6 @@ static bool processPayload(invPayload_t *_payload, config_t *_mconfig, bool retr
 
 }  // end processPayload()
 
-
 /**
  * checks the paypload of all received packet-fragments via CRC16 and length
  * returns:
@@ -659,16 +858,16 @@ static uint8_t checkPayload(invPayload_t *_payload) {
         // check CRC over all entries
         for (i = 0; i < _payload->maxPackId; i++) {
             if (_payload->len[i] > 0) {
-                DPRINT(DBG_VERBOSE, F(" checkPL "));
-                _DPRINT(DBG_VERBOSE, _payload->len[i] - ixpl);
-                _DPRINT(DBG_VERBOSE, F("B "));
-                hmRadio.dumpBuf(DBG_VERBOSE, NULL, &_payload->data[i][ixpl], _payload->len[i] - ixpl);
+                DPRINT(DBG_DEBUG, F(" checkPL "));
+                _DPRINT(DBG_DEBUG, _payload->len[i] - ixpl - 1);
+                _DPRINT(DBG_DEBUG, F("B "));
+                hmRadio.dumpBuf(DBG_DEBUG, NULL, &_payload->data[i][ixpl], _payload->len[i] - ixpl - 1);
 
                 if (i == (_payload->maxPackId - 1)) {
-                    crc = Hoymiles::crc16(&_payload->data[i][ixpl], _payload->len[i] - ixpl - 2, crc);
-                    crcRcv = (_payload->data[i][_payload->len[i] - 2] << 8) | (_payload->data[i][_payload->len[i] - 1]);
+                    crc = Hoymiles::crc16(&_payload->data[i][ixpl], _payload->len[i] - ixpl - 3, crc);
+                    crcRcv = (_payload->data[i][_payload->len[i] - 3] << 8) | (_payload->data[i][_payload->len[i] - 2]);
                 } else
-                    crc = Hoymiles::crc16(&_payload->data[i][ixpl], _payload->len[i] - ixpl, crc);
+                    crc = Hoymiles::crc16(&_payload->data[i][ixpl], _payload->len[i] - ixpl - 1, crc);
             } else {
                 // entry in range with len == zero
                 //--> request retransmit with this index
@@ -681,7 +880,6 @@ static uint8_t checkPayload(invPayload_t *_payload) {
             DPRINT(DBG_DEBUG, F(" checkPL -> CRC16 OK"));
             return (uint8_t)0x00;
 
-
         } else {
             if ((_payload->maxPackId > 0) && (i >= _payload->maxPackId)) {
                 DPRINT(DBG_ERROR, F("  crc    "));
@@ -691,8 +889,8 @@ static uint8_t checkPayload(invPayload_t *_payload) {
                 // wrong CRC16 over all packets, must actually never happen for correct packets, must be programming bug
                 DPRINT(DBG_ERROR, F("  cPL wrong req. "));
                 _DPRINTHEX(DBG_ERROR, (uint8_t)(i + 0x81));
-                _payload->receive = false;                              //stop further eval
-                return (uint8_t)0xFF;                                   
+                _payload->receive = false;  // stop further eval
+                return (uint8_t)0xFF;
             }
         }  // end if-else
     }      // end if-else
@@ -700,24 +898,28 @@ static uint8_t checkPayload(invPayload_t *_payload) {
     return (uint8_t)(i + 0x81);
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // output and decoding functions
 //
 //
+
 /**
- *  output of sorted packets with MAC-header, all info included 
+ *  output of sorted packets with MAC-header, all info included
  */
-static bool returnMACPackets(invPayload_t *_payload) {
+static bool out_uart_smac_resp(invPayload_t *_payload) {
+    Serial.print(F("\nrMAC:ch"));
+    if (_payload->rxChIdx < 10) Serial.print(F("0"));
+    Serial.print(_payload->rxChIdx);
+    Serial.print(F(":{"));
     for (uint8_t i = 0; i < (_payload->maxPackId); i++) {
-        Serial.print(F("\nrMAC:ch"));
-        if (_payload->rxChIdx < 10) Serial.print(F(" "));
-        Serial.print(_payload->rxChIdx);
-        Serial.print(F(": "));
         hmRadio.dumpBuf(NULL, &_payload->data[i][0], _payload->len[i]);
+        if (i != _payload->maxPackId - 1)
+            Serial.println(F(":"));
+        else
+            Serial.print(F("}:"));
     }  // end for()
-    Serial.print(F(":rt"));
+    Serial.print(F("rt"));
     Serial.print(_payload->retransmits);
     Serial.print(F(":"));
     return true;
@@ -726,19 +928,21 @@ static bool returnMACPackets(invPayload_t *_payload) {
 /**
  *  output of pure user payload message
  */
-static uint8_t returnPayload(invPayload_t *_payload, uint8_t *_user_payload, uint8_t _ulen) {
+static uint8_t collect_and_return_userPayload(invPayload_t *_payload, uint8_t *_user_payload, uint8_t _ulen) {
     // iv->ts = mPayload[iv->id].ts;
     memset(_user_payload, 0, _ulen);
-    static uint8_t _offs, _ixpl, _len;
+    volatile uint8_t _offs, _ixpl;
     _offs = 0;
     _ixpl = 0;
     if (_payload->isMACPacket) {
         _ixpl = 10;  // index of position of payload start after pid
     }                // end if()
 
+    if (_payload->maxPackId < 1) return 0xff;           //false, assume no valid data in payload
+
     for (uint8_t i = 0; i < (_payload->maxPackId); i++) {
         memcpy(&_user_payload[_offs], &_payload->data[i][_ixpl], (_payload->len[i] - _ixpl - 1));
-        _offs += (_payload->len[i] - _ixpl);
+        _offs += (_payload->len[i] - _ixpl - 1);
     }  // end for()
 
     _offs -= 2;
@@ -750,44 +954,51 @@ static uint8_t returnPayload(invPayload_t *_payload, uint8_t *_user_payload, uin
     return _offs;
 }  // end if returnPaylout
 
-
 /**
  * simple decoding of 2ch HM-inverter only
  */
-static void decodePayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, uint32_t _ts, char* _strout, uint8_t _strlen, uint16_t _invtype) {
+static void decodePayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, uint32_t _ts, char *_strout, uint8_t _strlen, uint16_t _invtype) {
     volatile uint32_t _val = 0L;
     byteAssign_t _bp;
     volatile uint8_t _x;
     volatile uint8_t _end;
-    volatile uint8_t _dot_val;
     volatile float _fval;
-    
+    volatile uint8_t _tmp8 = 0xff;
+
     //_str80[80] = '\0';
-    snprintf_P(_strout, _strlen, PSTR("\ndata age: %d sec"), (millis() - _ts)/1000);
-    Serial.print(_strout);
-    snprintf_P(_strout, _strlen, PSTR("\nInvertertype %Xxxxxxxxx "), _invtype);
+    snprintf_P(_strout, _strlen, PSTR("\ndata age: %d sec"), (millis() - _ts) / 1000);
     Serial.print(_strout);
 
     if (_cmd == 0x95 and _ulen == 42) {
         //!!! simple HM600/700/800 2ch decoding for cmd=0x95 only !!!!
+
+        //snprintf_P(_strout, _strlen, PSTR("\nHM800/%04Xxxxxxxxx/"), _invtype);
+        //Serial.print(_strout);
+
         for (_x = 0; _x < HM2CH_LIST_LEN; _x++) {
             // read values from given positions in payload
             _bp = hm2chAssignment[_x];
             _val = 0L;
             _end = _bp.start + _bp.num;
+            if (_tmp8 != _bp.ch) {
+                snprintf_P(_strout, _strlen, PSTR("\nHM800/%04Xxxxxxxxx/ch%02d "), _invtype, _bp.ch);
+                Serial.print(_strout);
+                //snprintf_P(_strout, _strlen, PSTR("ch%02d/"), _bp.ch);
+                //Serial.print(_strout);
+            }
+            _tmp8 = _bp.ch;
 
-            snprintf_P(_strout, _strlen, PSTR("\nHM800/ch%02d/"), _bp.ch);
-            Serial.print(_strout);
-            //Serial.print(F("\nHM800/ch"));
-            //Serial.print(_bp.ch);
-            //Serial.print(F("/"));
-            //strncpy_P(_strout, (PGM_P)pgm_read_word(&(PGM_fields[_bp.fieldId])), _strlen);               // read from PROGMEM array into RAM, works for A-Nano, not for esp8266
-            //snprintf_P(_strout, );
-            strncpy_P(_strout, &(PGM_fields[_bp.fieldId][0]), _strlen);
-            Serial.print(_strout);
-            Serial.print(F(": "));
+            // Serial.print(F("\nHM800/ch"));
+            // Serial.print(_bp.ch);
+            // Serial.print(F("/"));
+            // strncpy_P(_strout, (PGM_P)pgm_read_word(&(PGM_fields[_bp.fieldId])), _strlen);               // this read from PROGMEM array into RAM, works for A-Nano, not for esp8266
+            // snprintf_P(_strout, );
 
             if (CMD_CALC != _bp.div && _bp.div != 0) {
+                strncpy_P(_strout, &(PGM_fields[_bp.fieldId][0]), _strlen);
+                Serial.print(_strout);
+                Serial.print(F(": "));
+
                 do {
                     _val <<= 8;
                     _val |= _user_payload[_bp.start];
@@ -796,16 +1007,17 @@ static void decodePayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, u
 
                 if (_bp.unitId == UNIT_NONE) {
                     Serial.print(_val);
+                    Serial.print(F(" "));
                     continue;
                 }
-                Serial.print(_fval,2);                                            //arduino nano does not sprintf.. float values, but print() does
-                //Serial.print(units[_bp.unitId]);
+                Serial.print(_fval, 2);  // arduino nano does not sprintf(float values), but print() does
+                // Serial.print(units[_bp.unitId]);
                 strncpy_P(_strout, &PGM_units[_bp.unitId][0], _strlen);
                 Serial.print(_strout);
 
             } else {
                 // do calculations
-                Serial.print(F("not yet"));
+                // Serial.print(F("not yet"));
             }
         }  // end for()
     } else {
@@ -814,14 +1026,11 @@ static void decodePayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, u
     }
 }
 
-
-
-
 ///////////////////////////////////////////////////////////
 //
 // Interrupt handling
 //
-#if defined(ESP8266) || defined(ESP32) 
+#if defined(ESP8266) || defined(ESP32)
 IRAM_ATTR void handleIntr(void) {
     hmRadio.handleIntr();
 }
@@ -831,4 +1040,3 @@ static void handleIntr(void) {
 }
 #endif
 ///////////////////////////////////////////////////////////
-

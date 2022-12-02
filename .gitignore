@@ -22,3 +22,11 @@ tools/esp8266/.vscode/extensions.json
 .vscode
 tools/esp8266/platformio-device-monitor-*.log
 tools/esp8266/html/h/*
+*.zip
+/hoymiles_doc/*
+*.pyc
+/tools/nano/AhoyUL/log/*.*
+*todo
+/tools/nano/AhoyUL/_libs2/HoymilesMAC.py
+/tools/nano/AhoyUL/myTest_app.py_old.py
+/tools/nano/AhoyUL/myTest_app.py

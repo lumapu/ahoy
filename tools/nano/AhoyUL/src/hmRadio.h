@@ -217,7 +217,7 @@ class HmRadio {
     }
 
     void sendControlPacket(uint8_t *_radio_id, uint8_t cmd, uint16_t *data) {
-        DPRINTLN(DBG_VERBOSE, F("hmRadio:sendControlPacket"));
+        //DPRINTLN(DBG_INFO, F("hmRadio:sendControlPacket"));
         sendCmdPacket(_radio_id, TX_REQ_DEVCONTROL, ALL_FRAMES, false);  // 0x80 implementation as original DTU code
         int cnt = 0;
         mTxBuf[10] = cmd;  // cmd --> 0x0b => Type_ActivePowerContr, 0 on, 1 off, 2 restart, 12 reactive power, 13 power factor
@@ -435,7 +435,9 @@ class HmRadio {
         mNrf24.printPrettyDetails();
     }
 
-    // todo: scan all channel for 1bit rdp value (1 == >=-64dBm, 0 == <-64dBm)
+    /**
+     * scans all channel for 1bit rdp value (1 == >=-64dBm, 0 == <-64dBm)
+     */
     void scanRF(void) {
         bool _rdp = 0;
         DISABLE_IRQ;
