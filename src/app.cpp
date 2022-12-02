@@ -13,6 +13,12 @@
 #include "utils/sun.h"
 
 //-----------------------------------------------------------------------------
+app::app() : ah::Scheduler() {
+    mWeb = NULL;
+}
+
+
+//-----------------------------------------------------------------------------
 void app::setup(uint32_t timeout) {
     Serial.begin(115200);
     while (!Serial)
@@ -28,12 +34,12 @@ void app::setup(uint32_t timeout) {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
-    mWifi = new ahoywifi(mConfig);
-    mWifi->setup(timeout, mSettings.getValid());
-
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    
+    mWifi = new ahoywifi(mConfig);
+    mWifi->setup(timeout, mSettings.getValid());
 
     if(mSys->Radio.isChipConnected())
     {
@@ -54,6 +60,7 @@ void app::setup(uint32_t timeout) {
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
         addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
+        mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
 
     setupLed();
@@ -229,7 +236,8 @@ void app::resetSystem(void) {
     mUtcTimestamp = 0;
 #endif
 
-    mHeapStatCnt = 0;
+    mSunrise = 0;
+    mSunset  = 0;
 
     mSendTicker = 0xffff;
 
@@ -240,6 +248,12 @@ void app::resetSystem(void) {
     mShowRebootRequest = false;
 
     memset(&mStat, 0, sizeof(statistics_t));
+}
+
+//-----------------------------------------------------------------------------
+void app::mqttSubRxCb(JsonObject obj) {
+    if(NULL != mWeb)
+        mWeb->apiCtrlRequest(obj);
 }
 
 //-----------------------------------------------------------------------------

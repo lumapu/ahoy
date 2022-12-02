@@ -32,6 +32,8 @@ ahoywifi::ahoywifi(settings_t *config) {
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(uint32_t timeout, bool settingValid) {
+    //wifiConnectHandler = WiFi.onStationModeGotIP(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
+    //wifiDisconnectHandler = WiFi.onStationModeDisconnected(std::bind(&ahoywifi::onDisconnect, this, std::placeholders::_1));
 
     #ifdef FB_WIFI_OVERRIDDEN
         mStationWifiIsDef = false;
@@ -287,3 +289,15 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     mUdp->write(buf, NTP_PACKET_SIZE);
     mUdp->endPacket();
 }
+
+
+//-----------------------------------------------------------------------------
+/*void ahoywifi::onConnect(const WiFiEventStationModeGotIP& event) {
+    Serial.println("Connected to Wi-Fi.");
+}
+
+
+//-----------------------------------------------------------------------------
+void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
+    Serial.println("Disconnected from Wi-Fi.");
+}*/

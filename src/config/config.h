@@ -26,7 +26,7 @@
 //#define AP_ONLY
 
 // timeout for automatic logoff (20 minutes)
-#define LOGOUT_TIMEOUT      (20 * 60 * 60)
+#define LOGOUT_TIMEOUT      (20 * 60)
 
 //-------------------------------------
 // CONFIGURATION - COMPILE TIME
