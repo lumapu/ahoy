@@ -25,7 +25,7 @@ namespace ah {
         // Declination of the sun
         double delta = ASIN(SIN(lambda) * SIN(23.44));
         // Hour angle
-        double omega = ACOS((SIN(-0.83) - SIN(lat) * SIN(delta) / COS(lat) * COS(delta)));
+        double omega = ACOS((SIN(-0.83) - SIN(lat) * SIN(delta)) / (COS(lat) * COS(delta)));
         // Calculate sunrise and sunset
         double Jrise = Jtransit - omega / 360;
         double Jset = Jtransit + omega / 360;
