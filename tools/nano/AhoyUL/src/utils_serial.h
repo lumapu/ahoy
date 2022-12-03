@@ -330,12 +330,12 @@ class SerialUtils {
      * 
      * parses the uart smac command parameter and writes into the mac-packet sending structure
      */
-    static boolean uart_cmd_smac_request_parser(char **_cmd_params, uint8_t _clen, packet_t *packet, uint8_t *rxch) {
+    boolean uart_cmd_smac_request_parsing(char **_cmd_params, uint8_t _numPara, packet_t *packet, uint8_t *rxch) {
         
         //example cmd "smac:ch03:958180....:rc40:"
-        if (_clen < 2) {
-            DPRINT(DBG_ERROR, F("clen low"));
-            _DPRINT(DBG_ERROR, _clen);
+        if (_numPara < 2) {
+            DPRINT(DBG_ERROR, F(" numPara low"));
+            _DPRINT(DBG_ERROR, _numPara);
             return false;
         }
 
@@ -355,10 +355,15 @@ class SerialUtils {
             packet->data[_i / 2] = (uint8_t)x2b(&_cmd_params[2][_i]);
         }  // end for()
         packet->plen = _i / 2;
+
+        if (DBG_DEBUG <= DEBUG_LEVEL) {
+            Serial.print(F("\ndata "));
+            print_bytes( packet->data, packet->plen, "", true);
+        }
         
         // parse rx channel input
         *rxch = 0;
-        if (_clen == 3) {
+        if (_numPara == 3) {
             m = strstr(_cmd_params[3], "rc");
             if(m) {
                 m += 2;
@@ -366,8 +371,7 @@ class SerialUtils {
             } // end if(m)
         }  // end if()
 
-        DPRINT(DBG_INFO, F("rxch "));
-        _DPRINT(DBG_DEBUG, *rxch);
+        DPRINT(DBG_DEBUG, F("rxch ")); _DPRINT(DBG_DEBUG, *rxch);
         return true;
     }// end uart_cmd_smac_request_parser()
 
@@ -413,8 +417,9 @@ class SerialUtils {
                             invID5[i] = strtol(strtmp5, NULL, 16);             // convert 2char to one byte
                         }
 
-                        DPRINT(DBG_INFO, F(" InvID5  "));
-                        if (DBG_INFO) {
+                        
+                        if (DBG_INFO <= DEBUG_LEVEL) {
+                            DPRINT(DBG_INFO, F(" InvID5  "));
                             print_bytes(&invID5[0], 5, "", true);
                         }
                         _res = true;
@@ -456,8 +461,10 @@ class SerialUtils {
         return _res;
     }  // end uart_inverter_del_check()
 
-    ////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // output functions
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      *
      *

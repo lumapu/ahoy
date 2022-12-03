@@ -11,7 +11,7 @@
 // There are two modes of operation:
 // - automode: one REQUEST message is polled periodically and decoded payload is given by serial-IF (@57600baud), some comfig inputs possible
 // - mac-mode: -> The hoymiles specific REQUEST messages must be given as input via serial-IF (@57600baud) smac-packet
-//             <- The full sorted RESPONSE is given to the serial-IF with as rmac-packet (to be used with python, fhem, etc.)
+//             <- The full sorted RESPONSE is given to the serial-IF as rmac-packet (to be used with python, fhem, etc.) -- todo
 //
 
 #include <Arduino.h>
@@ -82,6 +82,8 @@ static RadioType hmRadio;
 // static uint8_t radio_id[5];                       //todo: use the mPayload[].id field   ,this defines the radio-id (domain) of the rf24 transmission, will be derived from inverter id
 // static uint64_t radio_id64 = 0ULL;
 
+
+#define DEF_VERSION "\n version 2022-12-03 11:05"
 #define P(x) (__FlashStringHelper *)(x)  // PROGMEM-Makro for variables
 static const char COMPILE_DATE[] PROGMEM = {__DATE__};
 static const char COMPILE_TIME[] PROGMEM = {__TIME__};
@@ -104,9 +106,10 @@ static uint8_t rxch;          // keeps the current RX channel
 
 
 // volatile static uint32_t current_millis = 0;
-static volatile uint32_t timer1_millis = 0L;  // general loop timer
-static volatile uint32_t timer2_millis = 0L;  // send Request timer
+static volatile uint32_t timer1_millis = 0L;    // general loop timer
+static volatile uint32_t timer2_millis = 0L;    // send Request timer
 static volatile uint32_t lastRx_millis = 0L;
+static volatile uint32_t tcmd_millis = 0L;      //timer for smac cmd
 #define ONE_SECOND (1000L)
 #define ONE_MINUTE (60L * ONE_SECOND)
 #define QUARTER_HOUR (15L * ONE_MINUTE)
@@ -122,6 +125,7 @@ static bool automode = true;
 static bool sendNow = false;
 static bool doDecode = true;
 static bool showMAC = true;
+static bool smac_send = false;                                //cmd smac was send         
 static volatile uint32_t polling_inv_msec = SEND_INTERVAL_ms;
 static volatile uint16_t tmp16 = 0;
 static uint8_t tmp8 = 0;
@@ -209,7 +213,7 @@ void loop() {
     if (Serial.available()) {
         // wait char
         inSer = Serial.read();
-        delay(2);
+        //delay(1);
         switch (inSer) {
             case (char)'a': {
                 // enable automode with REQ polling interval via a10 => 10sec, a100 => 100sec or other range 5....3600sec
@@ -283,22 +287,24 @@ void loop() {
                 tmp8 = utSer.read_uart_cmd_param(mParams);
                 if (tmp8 > 0) {
                     if (strstr(&mParams[0][0], "mac")) {
-                        if (utSer.uart_cmd_smac_request_parser(mParams, tmp8, &rfTX_packet, &rxch)) {
+                        if (utSer.uart_cmd_smac_request_parsing(mParams, tmp8, &rfTX_packet, &rxch)) {
                             if (rxch == 0) {
                                 // if rxchannel not given, then set automatically
                                 rxch = hmRadio.getRxChannel(rfTX_packet.rfch);
                             }
                             hmRadio.setRxChanIdx(hmRadio.getChanIdx(rxch));
 
-                            // compare inv-id from packet data with all registerd inv-id of the payload_t struct array
+                            // compare inv-id from packet data with all registered inv-id of the payload_t struct array
                             m_inv_ix = getInvIX(mPayload, MAX_NUM_INVERTERS, &rfTX_packet.data[0]);
                             if (m_inv_ix == 0xFF) {
                                 DPRINT(DBG_DEBUG, F("inv_id no match"));
                                 m_inv_ix = MAX_NUM_INVERTERS - 1;                               //use last possition
                             }
                             DPRINT(DBG_DEBUG, F("m_inv_ix ")); _DPRINT(DBG_DEBUG, m_inv_ix);
+                            tcmd_millis = millis();
+                            smac_send = true;
                             payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
-                            mPayload[m_inv_ix].isMACPacket = true;  // MAC must be enabled to show the full MAC packet, no need for user_payload only
+                            mPayload[m_inv_ix].isMACPacket = true;                              // MAC must be enabled to show the full MAC packet, no need for user_payload
                             mPayload[m_inv_ix].receive = false;
                             hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);  // 2022-10-30: byte array transfer working
                             mPayload[m_inv_ix].requested = true;
@@ -307,36 +313,6 @@ void loop() {
                         }//end if(utSer.uart_cmd_smac_request_parser(...))
                     }  // end if(mac)
                 }  // end if(tmp8)
-
-                /*
-                sread_len = utSer.serBlockRead_ms(utSer.mSerBuffer);
-                if (utSer.eval_uart_smac_request(utSer.mSerBuffer, sread_len, &rfTX_packet, &rxch)) {
-                    // send on Tx channel and receive on Rx channel
-                    if (rxch == 0) {
-                        // if rxchannel not given, then set automatically
-                        rxch = hmRadio.getRxChannel(rfTX_packet.rfch);
-                    }
-                    hmRadio.setRxChanIdx(hmRadio.getChanIdx(rxch));
-
-                    // compare inv-id from packet data with all registerd inv-id of the payload_t struct array
-                    m_inv_ix = getInvIX(mPayload, MAX_NUM_INVERTERS, &rfTX_packet.data[0]);
-                    if (m_inv_ix != 0xFF) {
-                        if (m_inv_ix < MAX_NUM_INVERTERS) {
-                        }
-                        DPRINT(DBG_DEBUG, F("match, m_inv_ix "));
-                        _DPRINT(DBG_DEBUG, m_inv_ix);
-                        payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
-                        mPayload[m_inv_ix].isMACPacket = true;  // MAC must be enabled to show the full MAC packet, no need for user_payload only
-                        mPayload[m_inv_ix].receive = false;
-                        hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);  // 2022-10-30: byte array transfer working
-                        mPayload[m_inv_ix].requested = true;
-                    } else {
-                        // no matching inverter, do nothing
-                        m_inv_ix = 0;
-                    }
-                }  // end if
-                */
-
                 break;
             }  // end case s
 
@@ -469,7 +445,7 @@ void loop() {
             }  // end case t
 
             case (char)'?':{
-                Serial.print(F("\ncmds: a, c, d, iadd, idel, ilst, m, p, s, rxch, t, ?"));
+                Serial.print(F("\ncmds: a:, c_, d, iadd:, idel:, ilst:, m_, p:, s, smac:, rxch_, t_, ?"));
                 break;
              } //end case '?'
 
@@ -565,7 +541,16 @@ void loop() {
                 }
             }
         }
-    }
+
+    } else {
+        //no receive to smac cmd within timeout (of about 10 retransmissions) --> command_timeout == 4000
+        if (smac_send && (millis()-tcmd_millis > 4000)) {
+            smac_send = false;
+            //shows number of retransmits, if rt>0 some response, but incomplete
+            Serial.print(F("rmac:rt")); Serial.print(mPayload[m_inv_ix].retransmits); Serial.println(F(":ERR"));
+        }//end if()
+
+    } 
 
 }  // end loop()
 //-----------------------------------------------------------------------------
@@ -911,7 +896,7 @@ static bool out_uart_smac_resp(invPayload_t *_payload) {
     Serial.print(F("\nrMAC:ch"));
     if (_payload->rxChIdx < 10) Serial.print(F("0"));
     Serial.print(_payload->rxChIdx);
-    Serial.print(F(":{"));
+    Serial.println(F(":{"));
     for (uint8_t i = 0; i < (_payload->maxPackId); i++) {
         hmRadio.dumpBuf(NULL, &_payload->data[i][0], _payload->len[i]);
         if (i != _payload->maxPackId - 1)
@@ -921,7 +906,7 @@ static bool out_uart_smac_resp(invPayload_t *_payload) {
     }  // end for()
     Serial.print(F("rt"));
     Serial.print(_payload->retransmits);
-    Serial.print(F(":"));
+    Serial.println(F(":OK"));
     return true;
 }
 
@@ -1020,6 +1005,8 @@ static void decodePayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, u
                 // Serial.print(F("not yet"));
             }
         }  // end for()
+        Serial.println();
+
     } else {
         Serial.print(F("NO DECODER "));
         Serial.print(_cmd, HEX);

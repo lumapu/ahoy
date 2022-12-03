@@ -8,9 +8,6 @@
 
 #include <stdint.h>
 
-//-------------------------------------
-// CONFIGURATION - COMPILE TIME
-//-------------------------------------
 
 #if defined(ESP8266)
     // for esp8266 environment
@@ -25,9 +22,6 @@
     #define DEF_RF24_CS_PIN         (10)
     #define DEF_RF24_IRQ_PIN        (3)
 #endif
-
-#define DEF_VERSION "\n version 2022-12-01 21:45"
-
 
 
 // default radio ID

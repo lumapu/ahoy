@@ -30,3 +30,4 @@ tools/esp8266/html/h/*
 /tools/nano/AhoyUL/_libs2/HoymilesMAC.py
 /tools/nano/AhoyUL/myTest_app.py_old.py
 /tools/nano/AhoyUL/myTest_app.py
+tools/nano/AhoyUL/FHEM/34_mbStamp02.pm
