@@ -11,7 +11,7 @@ answer = "Die Development Builds werden automatisch erstellt und sind in Github 
 
 [[items]]
 question = "Wie verbinde ich den Ahoy mit meinem WLAN?"
-answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen Access Point (AP). Dieser hat den Namen 'AhoyDTU'. Dieses WLAN muss mit einem anderen WLAN Gerät gesucht werden (z.B. PC oder Smartphone) und eine Verbindung hergestellt werden. Besteht die Verbindung, in den Browser wechseln und die IP http://192.168.1.1 aufrufen um auf die Weboberfläche zu gelangen. Jetzt kann über die Rubrik 'Settings' unter anderem das heimische WLAN eingetragen werden."
+answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen Access Point (AP). Dieser hat den Namen 'AhoyDTU'. Dieses WLAN muss mit einem anderen WLAN Gerät gesucht werden (z.B. PC oder Smartphone) und eine Verbindung hergestellt werden. Besteht die Verbindung, in den Browser wechseln und die IP http://192.168.4.1 aufrufen um auf die Weboberfläche zu gelangen. Jetzt kann über die Rubrik 'Settings' unter anderem das heimische WLAN eingetragen werden."
 
 [[items]]
 question = "Wie ist das default Passwort im AP mode?"
