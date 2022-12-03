@@ -30,16 +30,22 @@ class ahoywifi {
         void setupAp(void);
         void setupStation(void);
         void sendNTPpacket(IPAddress& address);
+        #if defined(ESP8266)
         void onConnect(const WiFiEventStationModeGotIP& event);
         void onDisconnect(const WiFiEventStationModeDisconnected& event);
+        #else
+        void onWiFiEvent(WiFiEvent_t event);
+        #endif
         void welcome(String msg);
 
         settings_t *mConfig;
 
         DNSServer mDns;
         WiFiUDP mUdp; // for time server
+        #if defined(ESP8266)
         WiFiEventHandler wifiConnectHandler;
         WiFiEventHandler wifiDisconnectHandler;
+        #endif
 
         bool mConnected, mInitNtp;
         uint8_t mCnt;

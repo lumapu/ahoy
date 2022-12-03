@@ -38,8 +38,12 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
         ah::ip2Char(mConfig->sys.ip.ip, ipSta);
     #endif
 
+    #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeGotIP(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
     wifiDisconnectHandler = WiFi.onStationModeDisconnected(std::bind(&ahoywifi::onDisconnect, this, std::placeholders::_1));
+    #else
+    WiFi.onEvent(std::bind(&ahoywifi::onWiFiEvent, this, std::placeholders::_1));
+    #endif
 }
 
 
@@ -146,7 +150,7 @@ void ahoywifi::getNtpTime(void) {
 
     *mUtcTimestamp = date;
 
-    DPRINTLN(DBG_INFO, F("[NTP]: ") + ah::getDateTimeStr(*mUtcTimestamp) + F(" UTC"));
+    DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(*mUtcTimestamp) + " UTC");
 }
 
 
@@ -202,27 +206,58 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::onConnect(const WiFiEventStationModeGotIP& event) {
-    if(!mConnected) {
-        mConnected = true;
-        DBGPRINTLN(F("\n[WiFi] Connected"));
-        WiFi.mode(WIFI_STA);
-        WiFi.begin();
-        DBGPRINTLN(F("[WiFi] AP disabled"));
-        mDns.stop();
+#if defined(ESP8266)
+    void ahoywifi::onConnect(const WiFiEventStationModeGotIP& event) {
+        if(!mConnected) {
+            mConnected = true;
+            DBGPRINTLN(F("\n[WiFi] Connected"));
+            WiFi.mode(WIFI_STA);
+            DBGPRINTLN(F("[WiFi] AP disabled"));
+            mDns.stop();
 
-        welcome(WiFi.localIP().toString() + F(" (Station)"));
+            welcome(WiFi.localIP().toString() + F(" (Station)"));
+        }
     }
-}
 
 
-//-----------------------------------------------------------------------------
-void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
-    if(mConnected) {
-        mConnected = false;
-        DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+    //-------------------------------------------------------------------------
+    void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
+        if(mConnected) {
+            mConnected = false;
+            DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+        }
     }
-}
+
+#else
+    //-------------------------------------------------------------------------
+    void ahoywifi::onWiFiEvent(WiFiEvent_t event) {
+        switch(event) {
+            case SYSTEM_EVENT_STA_GOT_IP:
+                if(!mConnected) {
+                    delay(1000);
+                    mConnected = true;
+                    DBGPRINTLN(F("\n[WiFi] Connected"));
+                    welcome(WiFi.localIP().toString() + F(" (Station)"));
+                    WiFi.mode(WIFI_STA);
+                    WiFi.begin();
+                    DBGPRINTLN(F("[WiFi] AP disabled"));
+                    mDns.stop();
+
+                }
+                break;
+
+            case SYSTEM_EVENT_STA_DISCONNECTED:
+                if(mConnected) {
+                    mConnected = false;
+                    DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+#endif
 
 
 //-----------------------------------------------------------------------------

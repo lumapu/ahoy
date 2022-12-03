@@ -227,7 +227,7 @@ class PubMqtt {
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
-            DBGPRINT(F("MQTT disconnected, reason: "));
+            DPRINT(DBG_INFO, F("MQTT disconnected, reason: "));
             switch (reason) {
                 case espMqttClientTypes::DisconnectReason::TCP_DISCONNECTED:
                     DBGPRINTLN(F("TCP disconnect"));
