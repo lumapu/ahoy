@@ -84,15 +84,6 @@ class app : public ah::Scheduler {
             return ret;
         }
 
-        String getDateTimeStr(time_t t) {
-            char str[20];
-            if(0 == t)
-                sprintf(str, "n/a");
-            else
-                sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
-            return String(str);
-        }
-
         String getTimeStr(uint32_t offset = 0) {
             char str[10];
             if(0 == mUtcTimestamp)
@@ -155,25 +146,20 @@ class app : public ah::Scheduler {
                 ESP.restart();
             }
 
-
-
             if (mUpdateNtp) {
                 mUpdateNtp = false;
-                mUtcTimestamp = mWifi->getNtpTime();
-                DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
+                mWifi.getNtpTime();
             }
         }
 
         void minuteTick(void) {
             if(0 == mUtcTimestamp) {
-                if(!mWifi->getApActive())
-                    mUpdateNtp = true;
+                mUpdateNtp = true;
             }
         }
 
         void ntpUpdateTick(void) {
-            if (!mWifi->getApActive())
-                mUpdateNtp = true;
+            mUpdateNtp = true;
         }
 
         void stats(void) {
@@ -203,7 +189,7 @@ class app : public ah::Scheduler {
 
         bool mShowRebootRequest;
 
-        ahoywifi *mWifi;
+        ahoywifi mWifi;
         web *mWeb;
         PayloadType mPayload;
         PubSerialType mPubSerial;

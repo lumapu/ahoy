@@ -42,8 +42,7 @@ void app::setup(uint32_t timeout) {
     mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
 #endif
 
-    mWifi = new ahoywifi(mConfig);
-    mWifi->setup(timeout, mSettings.getValid());
+    mWifi.setup(mConfig, &mUtcTimestamp);
 
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
@@ -71,6 +70,10 @@ void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
 
     ah::Scheduler::loop();
+
+    #if !defined(AP_ONLY)
+    mWifi.loop();
+    #endif
 
     mWeb->loop();
 
@@ -199,18 +202,13 @@ void app::handleIntr(void) {
 }
 
 //-----------------------------------------------------------------------------
-bool app::getWifiApActive(void) {
-    return mWifi->getApActive();
-}
-
-//-----------------------------------------------------------------------------
 void app::scanAvailNetworks(void) {
-    mWifi->scanAvailNetworks();
+    mWifi.scanAvailNetworks();
 }
 
 //-----------------------------------------------------------------------------
 void app::getAvailNetworks(JsonObject obj) {
-    mWifi->getAvailNetworks(obj);
+    mWifi.getAvailNetworks(obj);
 }
 
 

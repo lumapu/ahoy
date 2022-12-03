@@ -6,15 +6,18 @@
 #ifndef __HELPER_H__
 #define __HELPER_H__
 
+#include <Arduino.h>
 #include <cstdint>
 #include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
+#include <TimeLib.h>
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr);
     void ip2Char(uint8_t ip[], char *str);
     double round3(double value);
+    String getDateTimeStr(time_t t);
 }
 
 #endif /*__HELPER_H__*/

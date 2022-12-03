@@ -30,4 +30,13 @@ namespace ah {
     double round3(double value) {
         return (int)(value * 1000 + 0.5) / 1000.0;
     }
+
+    String getDateTimeStr(time_t t) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else
+            sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+        return String(str);
+    }
 }

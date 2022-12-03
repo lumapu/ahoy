@@ -226,7 +226,7 @@ class settings {
 
     private:
         void loadDefaults(bool wifi = true) {
-            DPRINTLN(DBG_INFO, F("loadDefaults"));
+            DPRINTLN(DBG_VERBOSE, F("loadDefaults"));
             if(wifi) {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);

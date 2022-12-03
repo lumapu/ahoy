@@ -664,10 +664,10 @@ void web::showJson(void) {
                 snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
                 modJson += String(topic) + ": " + String(val) + F(",\n");
             }
-            modJson += F("\t\"last_msg\": \"") + mMain->getDateTimeStr(iv->ts) + F("\"\n\t},\n");
+            modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(iv->ts) + F("\"\n\t},\n");
         }
     }
-    modJson += F("\"json_ts\": \"") + String(mMain->getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
+    modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
 
     mWeb->send(200, F("application/json"), modJson);
 }
