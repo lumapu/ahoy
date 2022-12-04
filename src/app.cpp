@@ -38,15 +38,15 @@ void app::setup(uint32_t timeout) {
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
     mSys->addInverters(&mConfig->inst);
 
-#if !defined(AP_ONLY)
+    #if !defined(AP_ONLY)
     mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
-#endif
+    #endif
 
     mWifi.setup(mConfig, &mUtcTimestamp);
 
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
-#if !defined(AP_ONLY)
+    #if !defined(AP_ONLY)
     if (mConfig->mqtt.broker[0] > 0) {
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
@@ -54,13 +54,20 @@ void app::setup(uint32_t timeout) {
         addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
-#endif
+    #endif
     setupLed();
 
     mWeb = new web(this, mConfig, &mStat, mVersion);
     mWeb->setup();
     mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
     addListener(EVERY_SEC, std::bind(&web::tickSecond, mWeb));
+
+    // Plugins
+    #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+    mMonoDisplay.setup(mSys, &mUtcTimestamp);
+    mPayload.addListener(std::bind(&MonoDisplayType::payloadEventListener, &mMonoDisplay, std::placeholders::_1));
+    addListener(EVERY_SEC, std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
+    #endif
 
     //addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial));
 }

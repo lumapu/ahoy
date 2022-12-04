@@ -27,6 +27,7 @@
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 
+
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
 #define COS(x) (cos(radians(x)))
@@ -38,7 +39,12 @@ typedef Payload<HmSystemType> PayloadType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
-class ahoywifi;
+// PLUGINS
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+    #include "plugins/MonochromeDisplay/MonochromeDisplay.h"
+    typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
+#endif
+
 class web;
 
 class app : public ah::Scheduler {
@@ -215,6 +221,11 @@ class app : public ah::Scheduler {
         int32_t mCalculatedTimezoneOffset;
         uint32_t mSunrise, mSunset;
         uint32_t mLatestSunTimestamp;
+
+        // plugins
+        #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+        MonoDisplayType mMonoDisplay;
+        #endif
 };
 
 #endif /*__APP_H__*/
