@@ -163,7 +163,6 @@ void webApi::getSysInfo(JsonObject obj) {
     obj[F("ts_now")]       = mApp->getTimestamp();
     obj[F("ts_sunrise")]   = mApp->getSunrise();
     obj[F("ts_sunset")]    = mApp->getSunset();
-    obj[F("ts_sun_upd")]   = mApp->getLatestSunTimestamp();
     obj[F("wifi_rssi")]    = WiFi.RSSI();
     obj[F("mac")]          = WiFi.macAddress();
     obj[F("hostname")]     = WiFi.getHostname();

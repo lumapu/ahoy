@@ -89,9 +89,31 @@ class PubMqtt {
             }
         }
 
-        void tickerHour() {
+        void tickerSun() {
             publish("sunrise", String(*mSunrise).c_str(), true);
             publish("sunset", String(*mSunset).c_str(), true);
+        }
+
+        void tickSunset() {
+            char topic[MAX_NAME_LENGTH + 15], val[32];
+            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if (NULL == iv)
+                    continue; // skip to next inverter
+
+                snprintf(topic, MAX_NAME_LENGTH + 15, "%s/available_text", iv->config->name);
+                snprintf(val, 32, "not available and not producing");
+                publish(topic, val, true);
+
+                snprintf(topic, MAX_NAME_LENGTH + 15, "%s/available", iv->config->name);
+                snprintf(val, 32, "%d", MQTT_STATUS_NOT_AVAIL_NOT_PROD);
+                publish(topic, val, true);
+            }
+        }
+
+        void payloadEventListener(uint8_t cmd) {
+            if(mClient.connected()) // prevent overflow if MQTT broker is not reachable but set
+                mSendList.push(cmd);
         }
 
         void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true) {
@@ -108,11 +130,6 @@ class PubMqtt {
             char topic[MQTT_TOPIC_LEN + 20];
             snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s/%s", mCfgMqtt->topic, subTopic);
             mClient.subscribe(topic, QOS_0);
-        }
-
-        void payloadEventListener(uint8_t cmd) {
-            if(mClient.connected()) // prevent overflow if MQTT broker is not reachable but set
-                mSendList.push(cmd);
         }
 
         void setSubscriptionCb(subscriptionCb cb) {

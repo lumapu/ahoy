@@ -134,7 +134,7 @@
                     e.addEventListener("click", setTime);
                 }
 
-                if(!obj["ts_sun_upd"]) {
+                if(0 == obj["ts_sunrise"]) {
                     var e = document.getElementById("sun");
                     if(null != e)
                         e.parentNode.removeChild(e);

@@ -1,6 +1,7 @@
 #ifndef __MONOCHROME_DISPLAY__
 #define __MONOCHROME_DISPLAY__
 
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
 #ifdef ENA_NOKIA
     #include <U8g2lib.h>
     #define DISP_PROGMEM U8X8_PROGMEM
@@ -21,7 +22,6 @@ static uint8_t bmp_arrow[] DISP_PROGMEM = {
     B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
     B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000} ;
 
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
 template<class HMSYSTEM>
 class MonochromeDisplay {
     public:

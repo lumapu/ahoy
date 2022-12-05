@@ -24,14 +24,19 @@ void app::setup(uint32_t timeout) {
     while (!Serial)
         yield();
 
-    addListener(EVERY_SEC, std::bind(&app::uptimeTick, this));
-    addListener(EVERY_MIN, std::bind(&app::minuteTick, this));
-    addListener(EVERY_12H, std::bind(&app::ntpUpdateTick, this));
-
     resetSystem();
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
+
+    addListener(EVERY_SEC, std::bind(&app::tickSecond, this));
+    addListener(EVERY_MIN, std::bind(&app::tickMinute, this));
+    addListener(EVERY_12H, std::bind(&app::tickNtpUpdate, this));
+    once(mConfig->nrf.sendInterval, std::bind(&app::tickSend, this), "tickSend");
+    if((mConfig->sun.lat) && (mConfig->sun.lon)) {
+        once(5, std::bind(&app::tickCalcSunrise, this));
+        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+    }
 
     mSys = new HmSystemType();
     mSys->enableDebug();
@@ -39,10 +44,10 @@ void app::setup(uint32_t timeout) {
     mSys->addInverters(&mConfig->inst);
 
     #if !defined(AP_ONLY)
-    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mUtcTimestamp, &mSunrise, &mSunset);
+    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
     #endif
 
-    mWifi.setup(mConfig, &mUtcTimestamp);
+    mWifi.setup(mConfig, &mTimestamp);
 
     mPayload.setup(mSys);
     mPayload.enableSerialDebug(mConfig->serial.debug);
@@ -51,8 +56,8 @@ void app::setup(uint32_t timeout) {
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
         addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
-        addListener(EVERY_HR,  std::bind(&PubMqttType::tickerHour, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
+
     }
     #endif
     setupLed();
@@ -64,7 +69,7 @@ void app::setup(uint32_t timeout) {
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
-    mMonoDisplay.setup(mSys, &mUtcTimestamp);
+    mMonoDisplay.setup(mSys, &mTimestamp);
     mPayload.addListener(std::bind(&MonoDisplayType::payloadEventListener, &mMonoDisplay, std::placeholders::_1));
     addListener(EVERY_SEC, std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
@@ -119,87 +124,95 @@ void app::loop(void) {
     }
 
     mMqtt.loop();
+}
 
-    if (ah::checkTicker(&mTicker, 1000)) {
-        if (mUtcTimestamp > 946684800 && mConfig->sun.lat && mConfig->sun.lon && (mUtcTimestamp + mCalculatedTimezoneOffset) / 86400 != (mLatestSunTimestamp + mCalculatedTimezoneOffset) / 86400) {  // update on reboot or midnight
-            if (!mLatestSunTimestamp) {                                                                                                                                                           // first call: calculate time zone from longitude to refresh at local midnight
-                mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-            }
-            ah::calculateSunriseSunset(mUtcTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
-            mLatestSunTimestamp = mUtcTimestamp;
-        }
-
-
-
-        if (++mSendTicker >= mConfig->nrf.sendInterval) {
-            mSendTicker = 0;
-
-            if (mUtcTimestamp > 946684800 && (!mConfig->sun.disNightCom || !mLatestSunTimestamp || (mUtcTimestamp >= mSunrise && mUtcTimestamp <= mSunset))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
-                if (mConfig->serial.debug)
-                    DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
-
-                if (!mSys->BufCtrl.empty()) {
-                    if (mConfig->serial.debug)
-                        DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
-                }
-
-                int8_t maxLoop = MAX_NUM_INVERTERS;
-                Inverter<> *iv = mSys->getInverterByPos(mSendLastIvId);
-                do {
-                    mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
-                    iv = mSys->getInverterByPos(mSendLastIvId);
-                } while ((NULL == iv) && ((maxLoop--) > 0));
-
-                if (NULL != iv) {
-                    if (!mPayload.isComplete(iv))
-                        mPayload.process(false, mConfig->nrf.maxRetransPerPyld, &mStat);
-
-                    if (!mPayload.isComplete(iv)) {
-                        if (0 == mPayload.getMaxPacketId(iv))
-                            mStat.rxFailNoAnser++;
-                        else
-                            mStat.rxFail++;
-
-                        iv->setQueuedCmdFinished();  // command failed
-                        if (mConfig->serial.debug)
-                            DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                        if (mConfig->serial.debug) {
-                            DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
-                            DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload.getRetransmits(iv)) + ")");
-                        }
-                    }
-
-                    mPayload.reset(iv, mUtcTimestamp);
-                    mPayload.request(iv);
-
-                    yield();
-                    if (mConfig->serial.debug) {
-                        DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
-                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
-                    }
-
-                    if (iv->devControlRequest) {
-                        if (mConfig->serial.debug)
-                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
-                        mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
-                        mPayload.setTxCmd(iv, iv->devControlCmd);
-                        iv->clearCmdQueue();
-                        iv->enqueCommand<InfoCommand>(SystemConfigPara);
-                    } else {
-                        uint8_t cmd = iv->getQueuedCmd();
-                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
-                        mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload.getTs(iv), iv->alarmMesIndex);
-                        mPayload.setTxCmd(iv, cmd);
-                        mRxTicker = 0;
-                    }
-                }
-            } else if (mConfig->serial.debug)
-                DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
-            yield();
-
-            updateLed();
-        }
+//-----------------------------------------------------------------------------
+void app::tickCalcSunrise(void) {
+    if (0 == mTimestamp) {
+        once(5, std::bind(&app::tickCalcSunrise, this)); // check again in 5 secs
+        return;
     }
+    ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
+
+    uint32_t nxtTrig = mTimestamp - (mTimestamp % 86400) + 86400; // next midnight
+    onceAt(nxtTrig, std::bind(&app::tickCalcSunrise, this), "calc sunrise");
+    onceAt(mSunrise, std::bind(&app::tickSend, this), "tickSend"); // register next event
+    if (mConfig->mqtt.broker[0] > 0) {
+        once(1, std::bind(&PubMqttType::tickerSun, &mMqtt), "MQTT-tickerSun");
+        onceAt(mSunset, std::bind(&PubMqttType::tickSunset, &mMqtt));
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::tickSend(void) {
+    if ((mTimestamp > 0) && (!mConfig->sun.disNightCom || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
+        once(mConfig->nrf.sendInterval, std::bind(&app::tickSend, this), "tickSend"); // register next event
+        if (mConfig->serial.debug)
+            DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
+
+        if (!mSys->BufCtrl.empty()) {
+            if (mConfig->serial.debug)
+                DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
+        }
+
+        int8_t maxLoop = MAX_NUM_INVERTERS;
+        Inverter<> *iv = mSys->getInverterByPos(mSendLastIvId);
+        do {
+            mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
+            iv = mSys->getInverterByPos(mSendLastIvId);
+        } while ((NULL == iv) && ((maxLoop--) > 0));
+
+        if (NULL != iv) {
+            if (!mPayload.isComplete(iv))
+                mPayload.process(false, mConfig->nrf.maxRetransPerPyld, &mStat);
+
+            if (!mPayload.isComplete(iv)) {
+                if (0 == mPayload.getMaxPacketId(iv))
+                    mStat.rxFailNoAnser++;
+                else
+                    mStat.rxFail++;
+
+                iv->setQueuedCmdFinished();  // command failed
+                if (mConfig->serial.debug)
+                    DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                if (mConfig->serial.debug) {
+                    DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
+                    DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload.getRetransmits(iv)) + ")");
+                }
+            }
+
+            mPayload.reset(iv, mTimestamp);
+            mPayload.request(iv);
+
+            yield();
+            if (mConfig->serial.debug) {
+                DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
+                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
+            }
+
+            if (iv->devControlRequest) {
+                if (mConfig->serial.debug)
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
+                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
+                mPayload.setTxCmd(iv, iv->devControlCmd);
+                iv->clearCmdQueue();
+                iv->enqueCommand<InfoCommand>(SystemConfigPara);
+            } else {
+                uint8_t cmd = iv->getQueuedCmd();
+                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
+                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload.getTs(iv), iv->alarmMesIndex);
+                mPayload.setTxCmd(iv, cmd);
+                mRxTicker = 0;
+            }
+        }
+    } else {
+        once(3600, std::bind(&app::tickSend, this), "tickSend"); // register next event (one hour)
+        if (mConfig->serial.debug)
+            DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
+    }
+    yield();
+
+    updateLed();
 }
 
 //-----------------------------------------------------------------------------
@@ -224,22 +237,18 @@ void app::resetSystem(void) {
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
     mShouldReboot = false;
-    mUptimeSecs = 0;
     mUpdateNtp = false;
     mFlagSendDiscoveryConfig = false;
 
 #ifdef AP_ONLY
-    mUtcTimestamp = 1;
+    mTimestamp = 1;
 #else
-    mUtcTimestamp = 0;
+    mTimestamp = 0;
 #endif
 
     mSunrise = 0;
     mSunset  = 0;
 
-    mSendTicker = 0xffff;
-
-    mTicker = 0;
     mRxTicker = 0;
 
     mSendLastIvId = 0;
@@ -278,7 +287,7 @@ void app::updateLed(void) {
         Inverter<> *iv = mSys->getInverterByPos(0);
         if (NULL != iv) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            if(iv->isProducing(mUtcTimestamp, rec))
+            if(iv->isProducing(mTimestamp, rec))
                 digitalWrite(mConfig->led.led0, LOW); // LED on
             else
                 digitalWrite(mConfig->led.led0, HIGH); // LED off

@@ -92,19 +92,11 @@ class app : public ah::Scheduler {
 
         String getTimeStr(uint32_t offset = 0) {
             char str[10];
-            if(0 == mUtcTimestamp)
+            if(0 == mTimestamp)
                 sprintf(str, "n/a");
             else
-                sprintf(str, "%02d:%02d:%02d ", hour(mUtcTimestamp + offset), minute(mUtcTimestamp + offset), second(mUtcTimestamp + offset));
+                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp + offset), minute(mTimestamp + offset), second(mTimestamp + offset));
             return String(str);
-        }
-
-        inline uint32_t getUptime(void) {
-            return mUptimeSecs;
-        }
-
-        inline uint32_t getTimestamp(void) {
-            return mUtcTimestamp;
         }
 
         void setTimestamp(uint32_t newTime) {
@@ -112,7 +104,7 @@ class app : public ah::Scheduler {
             if(0 == newTime)
                 mUpdateNtp = true;
             else
-                mUtcTimestamp = newTime;
+                Scheduler::setTimestamp(newTime);
         }
 
         inline uint32_t getSunrise(void) {
@@ -120,9 +112,6 @@ class app : public ah::Scheduler {
         }
         inline uint32_t getSunset(void) {
             return mSunset;
-        }
-        inline uint32_t getLatestSunTimestamp(void) {
-            return mLatestSunTimestamp;
         }
 
         inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
@@ -142,11 +131,7 @@ class app : public ah::Scheduler {
         void setupLed(void);
         void updateLed(void);
 
-        void uptimeTick(void) {
-            mUptimeSecs++;
-            if (0 != mUtcTimestamp)
-                mUtcTimestamp++;
-
+        void tickSecond(void) {
             if (mShouldReboot) {
                 DPRINTLN(DBG_INFO, F("Rebooting..."));
                 ESP.restart();
@@ -158,15 +143,18 @@ class app : public ah::Scheduler {
             }
         }
 
-        void minuteTick(void) {
-            if(0 == mUtcTimestamp) {
+        void tickMinute(void) {
+            if(0 == mTimestamp) {
                 mUpdateNtp = true;
             }
         }
 
-        void ntpUpdateTick(void) {
+        void tickNtpUpdate(void) {
             mUpdateNtp = true;
         }
+
+        void tickCalcSunrise(void);
+        void tickSend(void);
 
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
@@ -188,9 +176,6 @@ class app : public ah::Scheduler {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
-        uint32_t mUptimeSecs;
-
-        uint32_t mUtcTimestamp;
         bool mUpdateNtp;
 
         bool mShowRebootRequest;
@@ -204,13 +189,11 @@ class app : public ah::Scheduler {
         settings mSettings;
         settings_t *mConfig;
 
-        uint16_t mSendTicker;
         uint8_t mSendLastIvId;
 
         statistics_t mStat;
 
         // timer
-        uint32_t mTicker;
         uint32_t mRxTicker;
 
         // mqtt
@@ -220,7 +203,6 @@ class app : public ah::Scheduler {
         // sun
         int32_t mCalculatedTimezoneOffset;
         uint32_t mSunrise, mSunset;
-        uint32_t mLatestSunTimestamp;
 
         // plugins
         #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
