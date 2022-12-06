@@ -274,7 +274,7 @@ class SerialUtils {
             DPRINT(DBG_INFO, _info);
             _DPRINT(DBG_INFO, _tmp32);
         }
-        
+        Serial.println();
         return _tmp32;
     }  // end eval_simple_cmd()
 
@@ -458,6 +458,7 @@ class SerialUtils {
                 }
             }  // end if(strlen(_cmd_params[1]))
         }      // end if(_plen...)
+        Serial.println();
         return _res;
     }  // end uart_inverter_del_check()
 

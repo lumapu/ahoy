@@ -83,7 +83,7 @@ static RadioType hmRadio;
 // static uint64_t radio_id64 = 0ULL;
 
 
-#define DEF_VERSION "\n version 2022-12-03 11:05"
+#define DEF_VERSION "\n version 2022-12-06 21:30"
 #define P(x) (__FlashStringHelper *)(x)  // PROGMEM-Makro for variables
 static const char COMPILE_DATE[] PROGMEM = {__DATE__};
 static const char COMPILE_TIME[] PROGMEM = {__TIME__};
@@ -257,8 +257,8 @@ void loop() {
                                 DPRINT(DBG_INFO, F(" ERR"));
                         } //end if-else
 					}//end if(tmp8 > 2)-else
-
                 } //end if(tmp8 > 0)
+                Serial.println();
                 break;
             } // end case a
 
@@ -313,6 +313,7 @@ void loop() {
                         }//end if(utSer.uart_cmd_smac_request_parser(...))
                     }  // end if(mac)
                 }  // end if(tmp8)
+                Serial.println();
                 break;
             }  // end case s
 
@@ -359,6 +360,7 @@ void loop() {
                         // no cmd match
                     }
                 }
+                Serial.println();
                 break;
             }  // end case i
 
@@ -378,6 +380,7 @@ void loop() {
                         }//end if
                     }//end while()
                 }
+                Serial.println();
                 break;
             }
 
@@ -412,7 +415,7 @@ void loop() {
                     // cmd:/ "p?"
                     // query power setting
                     //not sure there is a query request
-                    DPRINT(DBG_DEBUG, F("query: not yet, break"));
+                    DPRINTLN(DBG_DEBUG, F("query: not yet, break"));
                     break;
 
                 } else if (strstr(&mParams[0][0], "%")) {
@@ -445,9 +448,9 @@ void loop() {
             }  // end case t
 
             case (char)'?':{
-                Serial.print(F("\ncmds: a:, c_, d, iadd:, idel:, ilst:, m_, p:, s, smac:, rxch_, t_, ?"));
+                Serial.println(F("\ncmds: a:, c_, d, iadd:, idel:, ilst:, m_, p:, s, smac:, rxch_, t_, ?"));
                 break;
-             } //end case '?'
+            } //end case '?'
 
         }      // end switch-case
     }          // end if serial...

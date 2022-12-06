@@ -5,8 +5,72 @@ use strict;
 use warnings;
 use DevIo;                                              # load DevIo.pm if not already loaded
 
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+my $last_hour=0;
+
+my %sets = (
+  "a"	   => ":[0-9]+:", 
+  "a"	   => ":[0-9]+:[0-9]{1}:[0-9]{12}:",                   #automode enable and configure
+  "c"	     => "[0-9]+", 
+	"smac"  => ":ch[0-9]{2}:[a-fA-F0-9]:rx[0-9]{2}:",    				#smac command (automode off)
+	"s"      => "",                                             #automode of
+	"d"      => "0,1",									                        #query decoding now
+  "?"      => "",
+);
+
+
+my %Inv = { "1141xxxxxxxx", };
+my $yield_day = 0;                       #todo make per inverter
+my $yield_total = 0;
+
+
+
+# called when a new definition is created (by hand or from configuration read on FHEM startup)
+sub ahoyUL_Define($$)
+{
+  my ($hash, $def) = @_;
+  my @a = split("[ \t]+", $def);
+
+  my $name = $a[0];
+  # $a[1] is always equals the module name "MY_MODULE"
+  
+  # first argument is a serial device (e.g. "/dev/ttyUSB0@57600,8,N,1")
+  my $dev = $a[2]; 
+
+  return "no device given" unless($dev);
+  
+  # close connection if maybe open (on definition modify)
+  DevIo_CloseDev($hash) if(DevIo_IsOpen($hash));  
+  # add a default baud rate (9600), if not given by user
+  $dev .= '@57600,8,N,1' if(not $dev =~ m/\@\d+$/);
+  # set the device to open
+  $hash->{DeviceName} = $dev;
+  # open connection with custom init function
+  my $ret = DevIo_OpenDev($hash, 0, "ahoyUL_Init");
+
+  # start periodic reading
+  InternalTimer(gettimeofday()+15, "ahoyUL_GetUpdate", $hash); 
+  return undef;
+}
+
+
+
+# will be executed upon successful connection establishment (see DevIo_OpenDev())
+sub ahoyUL_Init($)
+{
+    my ($hash) = @_;
+    my $name = $hash->{NAME};
+    Log3 $name, 3, "ahoy device Init() called ...";
+    # send init to device, here e.g. enable automode to send DevInfoReq (0x15 ... 0x0B ....) every 120sec and enable simple decoding in ahoy-nano   
+	  DevIo_SimpleWrite($hash, "a120:\nd1\r\n", 2);
+    
+    return undef; 
+}
+
+
+
 # called upon loading the module MY_MODULE
-sub AHOYUL_Initialize($)
+sub ahoyUL_Initialize($)
 {
   my ($hash) = @_;
 
@@ -17,56 +81,31 @@ sub AHOYUL_Initialize($)
   $hash->{ReadyFn}  = "ahoyUL_Ready";
   
   $hash->{ParseFn}  = "ahoyUL_Parse";
+  $hash->{ParseFn}  = "ahoyUL_GetUpdate";                             #to be initialized in X_Define with a period
   
 }
 
-# called when a new definition is created (by hand or from configuration read on FHEM startup)
-sub ahoyUL_Define($$)
+
+sub ahoyUL_GetUpdate($)
 {
-  my ($hash, $def) = @_;
-  my @a = split("[ \t]+", $def);
+	my ($hash) = @_;
+	my $name = $hash->{NAME};
+	Log3 $name, 3, "ahoy_GetUpdate called ...";
 
-  my $name = $a[0];
-  
-  # $a[1] is always equals the module name "MY_MODULE"
-  
-  # first argument is a serial device (e.g. "/dev/ttyUSB0@57600,8,N,1")
-  my $dev = $a[2]; 
+	# neuen Timer starten in einem konfigurierten Interval.
+	#InternalTimer(gettimeofday()+$hash->{cmdInterval}, "ahoyUL_GetUpdate", $hash);
+  InternalTimer(gettimeofday()+120, "ahoyUL_GetUpdate", $hash);
 
-  return "no device given" unless($dev);
-  
-  # close connection if maybe open (on definition modify)
-  DevIo_CloseDev($hash) if(DevIo_IsOpen($hash));  
-
-  # add a default baud rate (9600), if not given by user
-  $dev .= '@57600,8,N,1' if(not $dev =~ m/\@\d+$/);
-  
-  # set the device to open
-  $hash->{DeviceName} = $dev;
-  
-  # open connection with custom init function
-  my $ret = DevIo_OpenDev($hash, 0, "ahoyUL_Init"); 
- 
-  return undef;
+  #todo: call cmd sender method or do it right here
 }
 
-# called when definition is undefined 
-# (config reload, shutdown or delete of definition)
-sub ahoyUL_Undef($$)
-{
-  my ($hash, $name) = @_;
- 
-  # close the connection 
-  DevIo_CloseDev($hash);
-  
-  return undef;
-}
 
 # called repeatedly if device disappeared
 sub ahoyUL_Ready($)
 {
   my ($hash) = @_;
-  
+  my $name = $hash->{NAME};
+  Log3 $name, 3, "ahoyUL_Ready() called ...";
   # try to reopen the connection in case the connection is lost
   return DevIo_OpenDev($hash, 1, "ahoyUL_Init"); 
 }
@@ -100,32 +139,67 @@ sub ahoyUL_Read($)
 # called when one line of data was received
 sub ahoyUL_Parse($$$$)
 {
-  my ( $hash, $iohash, $name, $rmsg) = @_;
-  Log3 $name, 3, "ahoyUL: $rmsg";
+    my ( $hash, $iohash, $name, $rmsg) = @_;
+    Log3 $name, 3, "ahoyUL: $rmsg";
 
-  if($rmsg =~ m/rMAC/) {
-    # handle rmac responses
+    $last_hour = $hour;
+    ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime();
+    if($hour < $last_hour) {
+        $yield_day = 0;
+        $yield_total = 0;
+        readingsSingleUpdate($hash, "yield_dc", "day $yield_day Wh  total $yield_total kWh" , 1);
+    }#end if
 
-
-  } elsif($rmsg =~ m/payload/) {
-    # payload
-
-
-  } elsif($rmsg =~ m/ch00/) {
-    # AC channel
-    readingsBeginUpdate($hash);
-		readingsBulkUpdateIfChanged($hash, "myPV1", $rmsg , 1);
-		readingsEndUpdate($hash, 1);
+    if($rmsg =~ m/[rR]{1}MAC/) {
+        # handle rmac responses
+        $hash->{RMAC} = $rmsg;
+        $hash->{RMAC_started} = 1;
+        $hash->{RMAC_complete} = 0;
   
-  } elsif($rmsg =~ m/ch0[1-4]/) {
-    # one DC channel
-    readingsBeginUpdate($hash);
-		readingsBulkUpdateIfChanged($hash, "myPV1", $rmsg , 1);
-		readingsEndUpdate($hash, 1);
-  }
+    } elsif ($hash->{RMAC_started}) {
+        $hash->{RMAC} .= $rmsg;
+        $hash->{RMAC_started} += 1;
+        if($rmsg =~ m/OK|ERR/) {
+            #end of rmac detected
+            $hash->{RMAC_complete} = 1;
+            $hash->{RMAC} =~ s/\r\n//g;
+            $hash->{RMAC} .= "\n";
 
-}
+        } elsif ($hash->{RMAC_started} > 10) {
+            #stop rmac collection insufficiently if OK missed
+            $hash->{RMAC_started} = 0;
+            $hash->{RMAC_complete} = 0;
+        }
+    
+    } elsif($rmsg =~ m/payload/) {
+        # user payload
+        readingsSingleUpdate($hash, "Payload", $rmsg , 1);
 
+    } elsif($rmsg =~ m/(ch0[0-4])/) {                                           # regex match results to $1
+        # decoded message from arduino
+        readingsSingleUpdate($hash, "dec_$1", $rmsg , 1);
+        if ($1 eq "ch00") {
+            #end
+            readingsSingleUpdate($hash, "yield_dc", "day $yield_day Wh  total $yield_total kWh" , 1);
+            $yield_day = 0;
+            $yield_total = 0;
+        } else {
+            $rmsg =~ m/YieldDay: ([0-9\.]+).*YieldTotal: ([0-9\.]+)/;           # regex match results to $1 and $2
+            $yield_day += $1;
+            $yield_total += $2;
+        }
+        
+    } 
+
+    # do further rmac parsing hereafter
+    if ($hash->{RMAC_complete}) {
+        readingsSingleUpdate($hash, "MACresp", $hash->{RMAC} , 1);
+        $hash->{RMAC_started} = 0;
+        $hash->{RMAC_complete} = 0;
+        #todo data valid check for OK or ERR
+    }
+
+}# end X_Parse
 
 
 # called if set command is executed
@@ -134,32 +208,33 @@ sub ahoyUL_Set($$@)
     my ($hash, $name, @params) = @_;
 	  #my @a = split("[ \t]+", @params);
     
-    return "ahoyul_set needs at least a command" if(@params < 1);
 	  my $cmd = $params[0];
+
+    return "unknown argument $cmd choose one of " . join(" ", sort keys %sets) 
+        if(@params < 2);
     
-    my $usage = "unknown argument $cmd, choose one of a:c:d:iadd:idel:ilst:sMAC:?";
+    my $usage = "should not come";
 
 	  # get command overview from ahoy-nano device
     if($cmd eq "?")
     {	
-        DevIo_SimpleWrite($hash, "$cmd\r\n", 2);
+        DevIo_SimpleWrite($hash, "$cmd\n", 2);
     }
     elsif($cmd eq "a")
     {
-		    DevIo_SimpleWrite($hash, "a:{$params[1]}:{$params[2]}:{$params[3]}:\r\n", 2);
+		    DevIo_SimpleWrite($hash, "a:$params[1]:$params[2]:$params[3]:\n", 2);
     }
     elsif($cmd eq "c")
     {
-        DevIo_SimpleWrite($hash, "c:{$params[1]}:\r\n", 2);
+        DevIo_SimpleWrite($hash, "c$params[1]:\n", 2);
     }
 	  elsif($cmd eq "d")
     {
-        DevIo_SimpleWrite($hash, "d:{$params[1]}:\r\n", 2);
+        DevIo_SimpleWrite($hash, "d$params[1]:\n", 2);
     }
-	  elsif($cmd eq "i")
+	  elsif($cmd eq "s")
     {
-        #todo
-		    #DevIo_SimpleWrite($hash, "off\r\n", 2);
+        DevIo_SimpleWrite($hash, "s\n", 2);
     }
 	  elsif($cmd eq "sMAC")
     {
@@ -170,17 +245,18 @@ sub ahoyUL_Set($$@)
     {
         return $usage;
     }
-}
-    
-# will be executed upon successful connection establishment (see DevIo_OpenDev())
-sub ahoyUL_Init($)
-{
-    my ($hash) = @_;
-
-    # send init to device, here e.g. enable automode to send DevInfoReq (0x15 ... 0x0B ....) every 120sec and enable simple decoding in ahoy-nano   
-	  DevIo_SimpleWrite($hash, "a120:::::d1:\r\n", 2);
-    
     return undef; 
+}
+
+# called when definition is undefined 
+# (config reload, shutdown or delete of definition)
+sub ahoyUL_Undef($$)
+{
+  my ($hash, $name) = @_;
+ 
+  # close the connection 
+  DevIo_CloseDev($hash);
+  return undef;
 }
 
 1;
