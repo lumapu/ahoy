@@ -42,6 +42,7 @@ namespace ah {
                 mUptime     = 0;
                 mTimestamp  = 0;
                 mPrevMillis = millis();
+                mDiffFraq   = 0;
             }
 
             void loop(void) {
@@ -53,7 +54,8 @@ namespace ah {
                         return;
                     }
                     mDiffSeconds = mDiff / 1000;
-                    mPrevMillis += (mPrevMillis * 1000);
+                    mDiffFraq    = mDiff % 1000;
+                    mPrevMillis += (mDiffSeconds * 1000) - mDiffFraq;
                     checkEvery();
                     checkAt();
                     mUptime += mDiffSeconds;
@@ -132,6 +134,7 @@ namespace ah {
             uint32_t mMillis, mPrevMillis, mDiff;
             uint32_t mUptime;
             uint8_t mDiffSeconds;
+            uint16_t mDiffFraq;
     };
 }
 

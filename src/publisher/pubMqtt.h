@@ -236,7 +236,7 @@ class PubMqtt {
 
             publish("version", mVersion, true);
             publish("device", mDevName, true);
-            publish("uptime", "0");
+            tickerMinute();
             publish(mLwtTopic, mLwtOnline, true, false);
 
             subscribe("ctrl/#");

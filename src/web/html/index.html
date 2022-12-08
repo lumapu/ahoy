@@ -39,12 +39,11 @@
                 </div>
                 <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
                 <p>
-                    <span class="des">Statistics: </span>
+                    <span class="des">System Infos: </span>
                     <pre id="stat"></pre>
                     <pre id="iv"></pre>
                     <pre id="warn_info"></pre>
                 </p>
-                <p>Every <span id="refresh"></span> seconds the values are updated</p>
 
                 <div id="note">
                     Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a><br/>
@@ -79,6 +78,8 @@
         </div>
         <script type="text/javascript">
             var exeOnce = true;
+            var tickCnt = 0;
+            var ts = 0;
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -107,6 +108,7 @@
                 }
                 document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
+                ts = obj["ts_now"];
                 var date = new Date(obj["ts_now"] * 1000);
                 var up = obj["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
@@ -188,6 +190,18 @@
                 document.getElementById("warn_info").innerHTML = html;
             }
 
+            function tick() {
+                if(++tickCnt >= 10) {
+                    tickCnt = 0;
+                    getAjax('/api/index', parse);
+                }
+                else {
+                    var dSpan = document.getElementById("date");
+                    if(0 != ts)
+                    dSpan.innerHTML = (new Date((ts+tickCnt) * 1000)).toLocaleString('de-DE');
+                }
+            }
+
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
@@ -196,9 +210,8 @@
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
-                    document.getElementById("refresh").innerHTML = 10;
                     if(exeOnce) {
-                        window.setInterval("getAjax('/api/index', parse)", 10000);
+                        window.setInterval("tick()", 1000);
                         exeOnce = false;
                     }
                 }
