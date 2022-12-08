@@ -98,6 +98,7 @@ typedef struct {
     cfgMqtt_t   mqtt;
     cfgLed_t    led;
     cfgInst_t   inst;
+    bool        valid;
 } settings_t;
 
 class settings {
@@ -107,7 +108,7 @@ class settings {
         void setup() {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
 
-            mValid = false;
+            mCfg.valid = false;
             #if !defined(ESP32)
                 LittleFSConfig cfg;
                 cfg.setAutoFormat(false);
@@ -145,7 +146,7 @@ class settings {
         }
 
         bool getValid(void) {
-            return mValid;
+            return mCfg.valid;
         }
 
         void getInfo(uint32_t *used, uint32_t *size) {
@@ -173,7 +174,7 @@ class settings {
                 DynamicJsonDocument root(4096);
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err) {
-                    mValid = true;
+                    mCfg.valid = true;
                     jsonWifi(root["wifi"]);
                     jsonNrf(root["nrf"]);
                     jsonNtp(root["ntp"]);
@@ -409,7 +410,6 @@ class settings {
         }
 
         settings_t mCfg;
-        bool mValid;
 };
 
 #endif /*__SETTINGS_H__*/

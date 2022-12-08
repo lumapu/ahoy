@@ -95,6 +95,7 @@ class PubMqtt {
         }
 
         void tickSunset() {
+            printf("tickSunset\n");
             char topic[MAX_NAME_LENGTH + 15], val[32];
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
@@ -387,7 +388,7 @@ class PubMqtt {
                         publish(topic, val, true);
 
                         snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                        snprintf(val, 40, "%i", iv->getLastTs(rec) * 1000);
+                        snprintf(val, 40, "%d", iv->getLastTs(rec));
                         publish(topic, val, true);
                     }
 

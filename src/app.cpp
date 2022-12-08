@@ -19,24 +19,29 @@ app::app() : ah::Scheduler() {
 
 
 //-----------------------------------------------------------------------------
-void app::setup(uint32_t timeout) {
+void app::setup() {
     Serial.begin(115200);
     while (!Serial)
         yield();
+
+    ah::Scheduler::setup();
 
     resetSystem();
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
-    addListener(EVERY_SEC, std::bind(&app::tickSecond, this));
-    addListener(EVERY_MIN, std::bind(&app::tickMinute, this));
-    addListener(EVERY_12H, std::bind(&app::tickNtpUpdate, this));
-    once(mConfig->nrf.sendInterval, std::bind(&app::tickSend, this), "tickSend");
-    if((mConfig->sun.lat) && (mConfig->sun.lon)) {
-        once(5, std::bind(&app::tickCalcSunrise, this));
-        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-    }
+
+    everySec(std::bind(&app::tickSecond, this));
+    everyMin(std::bind(&app::tickMinute, this));
+    every12h(std::bind(&app::tickNtpUpdate, this));
+    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
+    #if !defined(AP_ONLY)
+        if((mConfig->sun.lat) && (mConfig->sun.lon)) {
+            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+            once(std::bind(&app::tickCalcSunrise, this), 5);
+        }
+    #endif
 
     mSys = new HmSystemType();
     mSys->enableDebug();
@@ -54,10 +59,9 @@ void app::setup(uint32_t timeout) {
     #if !defined(AP_ONLY)
     if (mConfig->mqtt.broker[0] > 0) {
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
-        addListener(EVERY_SEC, std::bind(&PubMqttType::tickerSecond, &mMqtt));
-        addListener(EVERY_MIN, std::bind(&PubMqttType::tickerMinute, &mMqtt));
+        everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
+        everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
-
     }
     #endif
     setupLed();
@@ -65,16 +69,17 @@ void app::setup(uint32_t timeout) {
     mWeb = new web(this, mConfig, &mStat, mVersion);
     mWeb->setup();
     mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
-    addListener(EVERY_SEC, std::bind(&web::tickSecond, mWeb));
+    everySec(std::bind(&web::tickSecond, mWeb));
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
     mMonoDisplay.setup(mSys, &mTimestamp);
     mPayload.addListener(std::bind(&MonoDisplayType::payloadEventListener, &mMonoDisplay, std::placeholders::_1));
-    addListener(EVERY_SEC, std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
+    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
 
-    //addListener(EVERY_MIN, std::bind(&PubSerialType::tickerMinute, &mPubSerial));
+    mPubSerial.setup(mConfig, mSys, &mTimestamp);
+    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval);
 }
 
 //-----------------------------------------------------------------------------
@@ -129,27 +134,26 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
     if (0 == mTimestamp) {
-        once(5, std::bind(&app::tickCalcSunrise, this)); // check again in 5 secs
+        once(std::bind(&app::tickCalcSunrise, this), 5); // check again in 5 secs
         return;
     }
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
     uint32_t nxtTrig = mTimestamp - (mTimestamp % 86400) + 86400; // next midnight
-    onceAt(nxtTrig, std::bind(&app::tickCalcSunrise, this), "calc sunrise");
-    onceAt(mSunrise, std::bind(&app::tickSend, this), "tickSend"); // register next event
+    onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
-        once(1, std::bind(&PubMqttType::tickerSun, &mMqtt), "MQTT-tickerSun");
-        onceAt(mSunset, std::bind(&PubMqttType::tickSunset, &mMqtt));
+        once(std::bind(&PubMqttType::tickerSun, &mMqtt), 1);
+        onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), mSunset);
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
+    if(!mSys->Radio.isChipConnected()) {
+        DPRINTLN(DBG_WARN, "NRF24 not connected!");
+        return;
+    }
     if ((mTimestamp > 0) && (!mConfig->sun.disNightCom || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
-        once(mConfig->nrf.sendInterval, std::bind(&app::tickSend, this), "tickSend"); // register next event
-        if (mConfig->serial.debug)
-            DPRINTLN(DBG_DEBUG, F("Free heap: 0x") + String(ESP.getFreeHeap(), HEX));
-
         if (!mSys->BufCtrl.empty()) {
             if (mConfig->serial.debug)
                 DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
@@ -206,7 +210,6 @@ void app::tickSend(void) {
             }
         }
     } else {
-        once(3600, std::bind(&app::tickSend, this), "tickSend"); // register next event (one hour)
         if (mConfig->serial.debug)
             DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
     }

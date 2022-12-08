@@ -10,7 +10,7 @@ namespace ah {
     void calculateSunriseSunset(uint32_t utcTs, uint32_t offset, float lat, float lon, uint32_t *sunrise, uint32_t *sunset) {
         // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
 
-        // Julian day since 1.1.2000 12:00 + correction 69.12s
+        // Julian day since 1.1.2000 12:00
         double n_JulianDay = (utcTs + offset) / 86400 - 10957.0;
         // Mean solar time
         double J = n_JulianDay - lon / 360;

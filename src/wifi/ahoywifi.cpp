@@ -8,8 +8,6 @@
   #define F(sl) (sl)
 #endif
 #include "ahoywifi.h"
-#include "../utils/ahoyTimer.h"
-
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
@@ -25,17 +23,16 @@ ahoywifi::ahoywifi() {
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
-    char ipSta[16];
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
 
     #if !defined(FB_WIFI_OVERRIDDEN)
-        if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
+        if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) == 0)
             setupAp();
     #endif
     #if !defined(AP_ONLY)
-        setupStation();
-        ah::ip2Char(mConfig->sys.ip.ip, ipSta);
+        if(mConfig->valid)
+            setupStation();
     #endif
 
     #if defined(ESP8266)

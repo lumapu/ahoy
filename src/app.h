@@ -52,7 +52,7 @@ class app : public ah::Scheduler {
         app();
         ~app() {}
 
-        void setup(uint32_t timeout);
+        void setup(void);
         void loop(void);
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);

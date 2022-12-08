@@ -160,17 +160,12 @@ class Inverter {
         }
 
     	uint8_t getQueuedCmd() {
-            if (_commandQueue.empty()){
-                // Fill with default commands
-                enqueCommand<InfoCommand>(RealTimeRunData_Debug);
+            if (_commandQueue.empty()) {
                 if (fwVersion == 0)
-                { // info needed maybe after "one night" (=> DC>0 to DC=0 and to DC>0) or reboot
                     enqueCommand<InfoCommand>(InverterDevInform_All);
-                }
+                enqueCommand<InfoCommand>(RealTimeRunData_Debug);
                 if (actPowerLimit == 0xffff)
-                { // info needed maybe after "one nigth" (=> DC>0 to DC=0 and to DC>0) or reboot
                     enqueCommand<InfoCommand>(SystemConfigPara);
-                }
             }
             return _commandQueue.front().get()->getCmd();
         }

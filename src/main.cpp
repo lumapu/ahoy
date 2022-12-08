@@ -18,7 +18,7 @@ IRAM_ATTR void handleIntr(void) {
 
 //-----------------------------------------------------------------------------
 void setup() {
-    myApp.setup(WIFI_TRY_CONNECT_TIME);
+    myApp.setup();
 
     // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
