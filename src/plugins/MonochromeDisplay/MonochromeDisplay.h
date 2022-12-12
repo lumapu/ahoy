@@ -21,18 +21,21 @@
 static uint8_t bmp_arrow[] DISP_PROGMEM = {
     B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
     B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
-    B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000} ;
+    B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000};
+
+static TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
+static TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Tim
 
 template<class HMSYSTEM>
-class MonochromeDisplay : mCE({"CEST", Last, Sun, Mar, 2, 120}, {"CET ", Last, Sun, Oct, 3, 60}) {
+class MonochromeDisplay {
     public:
         #if defined(ENA_NOKIA)
-        MonochromeDisplay() : mDisplay(U8G2_R0,5,4,16) {
+        MonochromeDisplay() : mDisplay(U8G2_R0, 5, 4, 16), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
         }
         #else // ENA_SSD1306
-        MonochromeDisplay() : mDisplay(0x3c, SDA, SCL) {
+        MonochromeDisplay() : mDisplay(0x3c, SDA, SCL), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
             mRx         = 0;
@@ -276,7 +279,7 @@ class MonochromeDisplay : mCE({"CEST", Last, Sun, Mar, 2, 120}, {"CET ", Last, S
         bool mNewPayload;
         uint32_t *mUtcTs;
         HMSYSTEM *mSys;
-        Timezone mCE(CEST, CET);
+        Timezone mCE;
 };
 #endif
 

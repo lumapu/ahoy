@@ -141,7 +141,7 @@ bool ahoywifi::getNtpTime(void) {
                 secsSince1900 |= (buf[43]      );
 
                 *mUtcTimestamp = secsSince1900 - 2208988800UL; // UTC time
-                DPRINTLN(DBG_INFO, F("[NTP]: ") + ah::getDateTimeStr(*mUtcTimestamp) + F(" UTC"));
+                DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(*mUtcTimestamp) + " UTC");
                 return true;
             } else
                 delay(10);
