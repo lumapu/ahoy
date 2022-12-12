@@ -51,11 +51,11 @@ Hoymiles Inverters
 - HM1200
 - HM1500
 
-TSun Inverters:
+TSUN Inverters:
 
-- TSOL-350
-- TSOL-400
-- [TSOL-M800](http://de.tsun-ess.com/products/TSOL-M/User-Manual-TSOL-M350&M400&M800&M1600-EN-V1.0.pdf)
+- [TSOL-M350](https://www.tsun-ess.com/Micro-Inverter/M350-M400)
+- [TSOL-M400](https://www.tsun-ess.com/Micro-Inverter/M350-M400)
+- [TSOL-M800/TSOL-M800(DE)](https://www.tsun-ess.com/Micro-Inverter/M800)
 - others may work as well (need to be verified).
 
 ## Things needed
