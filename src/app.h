@@ -27,6 +27,7 @@
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 
+
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
 #define COS(x) (cos(radians(x)))
@@ -38,15 +39,20 @@ typedef Payload<HmSystemType> PayloadType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
-class ahoywifi;
+// PLUGINS
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+    #include "plugins/MonochromeDisplay/MonochromeDisplay.h"
+    typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
+#endif
+
 class web;
 
 class app : public ah::Scheduler {
     public:
-        app() : ah::Scheduler() {}
+        app();
         ~app() {}
 
-        void setup(uint32_t timeout);
+        void setup(void);
         void loop(void);
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
@@ -84,30 +90,13 @@ class app : public ah::Scheduler {
             return ret;
         }
 
-        String getDateTimeStr(time_t t) {
-            char str[20];
-            if(0 == t)
-                sprintf(str, "n/a");
-            else
-                sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
-            return String(str);
-        }
-
         String getTimeStr(uint32_t offset = 0) {
             char str[10];
-            if(0 == mUtcTimestamp)
+            if(0 == mTimestamp)
                 sprintf(str, "n/a");
             else
-                sprintf(str, "%02d:%02d:%02d ", hour(mUtcTimestamp + offset), minute(mUtcTimestamp + offset), second(mUtcTimestamp + offset));
+                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp + offset), minute(mTimestamp + offset), second(mTimestamp + offset));
             return String(str);
-        }
-
-        inline uint32_t getUptime(void) {
-            return mUptimeSecs;
-        }
-
-        inline uint32_t getTimestamp(void) {
-            return mUtcTimestamp;
         }
 
         void setTimestamp(uint32_t newTime) {
@@ -115,7 +104,7 @@ class app : public ah::Scheduler {
             if(0 == newTime)
                 mUpdateNtp = true;
             else
-                mUtcTimestamp = newTime;
+                Scheduler::setTimestamp(newTime);
         }
 
         inline uint32_t getSunrise(void) {
@@ -123,9 +112,6 @@ class app : public ah::Scheduler {
         }
         inline uint32_t getSunset(void) {
             return mSunset;
-        }
-        inline uint32_t getLatestSunTimestamp(void) {
-            return mLatestSunTimestamp;
         }
 
         inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
@@ -140,41 +126,35 @@ class app : public ah::Scheduler {
     private:
         void resetSystem(void);
 
-        void setupMqtt(void);
+        void mqttSubRxCb(JsonObject obj);
 
         void setupLed(void);
         void updateLed(void);
 
-        void uptimeTick(void) {
-            mUptimeSecs++;
-            if (0 != mUtcTimestamp)
-                mUtcTimestamp++;
-
+        void tickSecond(void) {
             if (mShouldReboot) {
                 DPRINTLN(DBG_INFO, F("Rebooting..."));
                 ESP.restart();
             }
 
-
-
             if (mUpdateNtp) {
                 mUpdateNtp = false;
-                mUtcTimestamp = mWifi->getNtpTime();
-                DPRINTLN(DBG_INFO, F("[NTP]: ") + getDateTimeStr(mUtcTimestamp) + F(" UTC"));
+                mWifi.getNtpTime();
             }
         }
 
-        void minuteTick(void) {
-            if(0 == mUtcTimestamp) {
-                if(!mWifi->getApActive())
-                    mUpdateNtp = true;
-            }
-        }
-
-        void ntpUpdateTick(void) {
-            if (!mWifi->getApActive())
+        void tickMinute(void) {
+            if(0 == mTimestamp) {
                 mUpdateNtp = true;
+            }
         }
+
+        void tickNtpUpdate(void) {
+            mUpdateNtp = true;
+        }
+
+        void tickCalcSunrise(void);
+        void tickSend(void);
 
         void stats(void) {
             DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
@@ -196,15 +176,11 @@ class app : public ah::Scheduler {
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
 
-        uint32_t mUptimeSecs;
-        uint8_t mHeapStatCnt;
-
-        uint32_t mUtcTimestamp;
         bool mUpdateNtp;
 
         bool mShowRebootRequest;
 
-        ahoywifi *mWifi;
+        ahoywifi mWifi;
         web *mWeb;
         PayloadType mPayload;
         PubSerialType mPubSerial;
@@ -213,13 +189,11 @@ class app : public ah::Scheduler {
         settings mSettings;
         settings_t *mConfig;
 
-        uint16_t mSendTicker;
         uint8_t mSendLastIvId;
 
         statistics_t mStat;
 
         // timer
-        uint32_t mTicker;
         uint32_t mRxTicker;
 
         // mqtt
@@ -229,7 +203,11 @@ class app : public ah::Scheduler {
         // sun
         int32_t mCalculatedTimezoneOffset;
         uint32_t mSunrise, mSunset;
-        uint32_t mLatestSunTimestamp;
+
+        // plugins
+        #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+        MonoDisplayType mMonoDisplay;
+        #endif
 };
 
 #endif /*__APP_H__*/

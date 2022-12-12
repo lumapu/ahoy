@@ -11,6 +11,7 @@
 #include "web.h"
 
 #include "../utils/ahoyTimer.h"
+#include "../utils/helper.h"
 
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
@@ -107,8 +108,10 @@ void web::loop(void) {
 void web::tickSecond() {
     if(0 != mLogoutTimeout) {
         mLogoutTimeout -= 1;
-        if(0 == mLogoutTimeout)
-            mProtected = true;
+        if(0 == mLogoutTimeout) {
+            if(strlen(mConfig->sys.adminPwd) > 0)
+                mProtected = true;
+        }
 
         DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
     }
@@ -341,28 +344,16 @@ void web::showSave(AsyncWebServerRequest *request) {
 
 
         // static ip
-        if(request->arg("ipAddr") != "") {
-            request->arg("ipAddr").toCharArray(buf, SSID_LEN);
-            ip2Arr(mConfig->sys.ip.ip, buf);
-            if(request->arg("ipMask") != "") {
-                request->arg("ipMask").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->sys.ip.mask, buf);
-            }
-            if(request->arg("ipDns1") != "") {
-                request->arg("ipDns1").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->sys.ip.dns1, buf);
-            }
-            if(request->arg("ipDns2") != "") {
-                request->arg("ipDns2").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->sys.ip.dns2, buf);
-            }
-            if(request->arg("ipGateway") != "") {
-                request->arg("ipGateway").toCharArray(buf, SSID_LEN);
-                ip2Arr(mConfig->sys.ip.gateway, buf);
-            }
-        }
-        else
-            memset(&mConfig->sys.ip.ip, 0, 4);
+        request->arg("ipAddr").toCharArray(buf, 20);
+        ah::ip2Arr(mConfig->sys.ip.ip, buf);
+        request->arg("ipMask").toCharArray(buf, 20);
+        ah::ip2Arr(mConfig->sys.ip.mask, buf);
+        request->arg("ipDns1").toCharArray(buf, 20);
+        ah::ip2Arr(mConfig->sys.ip.dns1, buf);
+        request->arg("ipDns2").toCharArray(buf, 20);
+        ah::ip2Arr(mConfig->sys.ip.dns2, buf);
+        request->arg("ipGateway").toCharArray(buf, 20);
+        ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
 
         // inverter
@@ -435,12 +426,14 @@ void web::showSave(AsyncWebServerRequest *request) {
             String addr = request->arg("mqttAddr");
             addr.trim();
             addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
-            request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
-            if(request->arg("mqttPwd") != "{PWD}")
-                request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
-            request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
-            mConfig->mqtt.port = request->arg("mqttPort").toInt();
         }
+        else
+            mConfig->mqtt.broker[0] = '\0';
+        request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
+        if(request->arg("mqttPwd") != "{PWD}")
+            request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
+        request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+        mConfig->mqtt.port = request->arg("mqttPort").toInt();
 
         // serial console
         if(request->arg("serIntvl") != "") {
@@ -646,9 +639,12 @@ void web::serialCb(String msg) {
         mSerialBufFill = 0;
         mEvts->send("webSerial, buffer overflow!", "serial", millis());
     }
-
 }
 
+//-----------------------------------------------------------------------------
+void web::apiCtrlRequest(JsonObject obj) {
+    mApi->ctrlRequest(obj);
+}
 
 //-----------------------------------------------------------------------------
 #ifdef ENABLE_JSON_EP
@@ -668,10 +664,10 @@ void web::showJson(void) {
                 snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
                 modJson += String(topic) + ": " + String(val) + F(",\n");
             }
-            modJson += F("\t\"last_msg\": \"") + mMain->getDateTimeStr(iv->ts) + F("\"\n\t},\n");
+            modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(iv->ts) + F("\"\n\t},\n");
         }
     }
-    modJson += F("\"json_ts\": \"") + String(mMain->getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
+    modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
 
     mWeb->send(200, F("application/json"), modJson);
 }

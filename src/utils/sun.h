@@ -10,8 +10,8 @@ namespace ah {
     void calculateSunriseSunset(uint32_t utcTs, uint32_t offset, float lat, float lon, uint32_t *sunrise, uint32_t *sunset) {
         // Source: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
 
-        // Julian day since 1.1.2000 12:00 + correction 69.12s
-        double n_JulianDay = (utcTs + offset) / 86400 - 10957.0 + 0.0008;
+        // Julian day since 1.1.2000 12:00
+        double n_JulianDay = (utcTs + offset) / 86400 - 10957.0;
         // Mean solar time
         double J = n_JulianDay - lon / 360;
         // Solar mean anomaly
@@ -25,7 +25,7 @@ namespace ah {
         // Declination of the sun
         double delta = ASIN(SIN(lambda) * SIN(23.44));
         // Hour angle
-        double omega = ACOS(SIN(-0.83) - SIN(lat) * SIN(delta) / COS(lat) * COS(delta));
+        double omega = ACOS((SIN(-0.83) - SIN(lat) * SIN(delta)) / (COS(lat) * COS(delta)));
         // Calculate sunrise and sunset
         double Jrise = Jtransit - omega / 360;
         double Jset = Jtransit + omega / 360;

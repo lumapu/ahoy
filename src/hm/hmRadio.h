@@ -139,14 +139,15 @@ class HmRadio {
             mNrf24.setPALevel(ampPwr & 0x03);
             mNrf24.startListening();
 
-            DPRINTLN(DBG_INFO, F("Radio Config:"));
-            mNrf24.printPrettyDetails();
 
             mTxCh = setDefaultChannels();
 
-            if(!mNrf24.isChipConnected()) {
-                DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+            if(mNrf24.isChipConnected()) {
+                DPRINTLN(DBG_INFO, F("Radio Config:"));
+                mNrf24.printPrettyDetails();
             }
+            else
+                DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
         void loop(void) {

@@ -39,18 +39,14 @@
                 </div>
                 <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
                 <p>
-                    <span class="des">Statistics: </span>
+                    <span class="des">System Infos: </span>
                     <pre id="stat"></pre>
                     <pre id="iv"></pre>
                     <pre id="warn_info"></pre>
                 </p>
-                <p>Every <span id="refresh"></span> seconds the values are updated</p>
 
                 <div id="note">
                     Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a><br/>
-                    <h3>Documentation</h3>
-                    <a href="https://ahoydtu.de" target="_blank">ahoydtu.de</a>
-
                     <h3>Support this project:</h3>
                     <ul>
                         <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
@@ -82,6 +78,8 @@
         </div>
         <script type="text/javascript">
             var exeOnce = true;
+            var tickCnt = 0;
+            var ts = 0;
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -97,7 +95,7 @@
                 var date = new Date();
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(date.getTime() / 1000);
+                obj.val = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 
@@ -110,6 +108,7 @@
                 }
                 document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
 
+                ts = obj["ts_now"];
                 var date = new Date(obj["ts_now"] * 1000);
                 var up = obj["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
@@ -118,10 +117,13 @@
                 var sec  = up % 60;
                 var sunrise = new Date(obj["ts_sunrise"] * 1000);
                 var sunset = new Date(obj["ts_sunset"] * 1000);
-                document.getElementById("uptime").innerHTML = days + " Days, "
-                    + ("0"+hrs).substr(-2) + ":"
-                    + ("0"+min).substr(-2) + ":"
-                    + ("0"+sec).substr(-2);
+                var e = document.getElementById("uptime");
+                e.innerHTML = days + " Day";
+                if(1 != days)
+                    e.innerHTML += "s";
+                e.innerHTML += ", " + ("0"+hrs).substr(-2) + ":"
+                   + ("0"+min).substr(-2) + ":"
+                   + ("0"+sec).substr(-2);
                 var dSpan = document.getElementById("date");
                 if(0 != obj["ts_now"])
                     dSpan.innerHTML = date.toLocaleString('de-DE');
@@ -134,7 +136,7 @@
                     e.addEventListener("click", setTime);
                 }
 
-                if(!obj["ts_sun_upd"]) {
+                if(0 == obj["ts_sunrise"]) {
                     var e = document.getElementById("sun");
                     if(null != e)
                         e.parentNode.removeChild(e);
@@ -188,6 +190,18 @@
                 document.getElementById("warn_info").innerHTML = html;
             }
 
+            function tick() {
+                if(++tickCnt >= 10) {
+                    tickCnt = 0;
+                    getAjax('/api/index', parse);
+                }
+                else {
+                    var dSpan = document.getElementById("date");
+                    if(0 != ts)
+                    dSpan.innerHTML = (new Date((ts+tickCnt) * 1000)).toLocaleString('de-DE');
+                }
+            }
+
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
@@ -196,9 +210,8 @@
                     parseStat(obj["statistics"]);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
-                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
                     if(exeOnce) {
-                        window.setInterval("getAjax('/api/index', parse)", obj["refresh_interval"] * 1000);
+                        window.setInterval("tick()", 1000);
                         exeOnce = false;
                     }
                 }

@@ -9,7 +9,6 @@
 #include "../utils/dbg.h"
 #include <Arduino.h>
 #include <WiFiUdp.h>
-#include <TimeLib.h>
 #include <DNSServer.h>
 #include "ESPAsyncWebServer.h"
 
@@ -19,32 +18,38 @@ class app;
 
 class ahoywifi {
     public:
-        ahoywifi(settings_t *config);
-        ~ahoywifi() {}
+        ahoywifi();
 
-        void setup(uint32_t timeout, bool settingValid);
-        bool loop(void);
-        void setupAp(const char *ssid, const char *pwd);
-        bool setupStation(uint32_t timeout);
-        bool getApActive(void);
-        time_t getNtpTime(void);
+        void setup(settings_t *config, uint32_t *utcTimestamp);
+        void loop(void);
+        void getNtpTime(void);
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
     private:
+        void setupAp(void);
+        void setupStation(void);
         void sendNTPpacket(IPAddress& address);
+        #if defined(ESP8266)
+        void onConnect(const WiFiEventStationModeGotIP& event);
+        void onDisconnect(const WiFiEventStationModeDisconnected& event);
+        #else
+        void onWiFiEvent(WiFiEvent_t event);
+        #endif
+        void welcome(String msg);
 
         settings_t *mConfig;
 
-        DNSServer *mDns;
-        WiFiUDP *mUdp; // for time server
+        DNSServer mDns;
+        WiFiUDP mUdp; // for time server
+        #if defined(ESP8266)
+        WiFiEventHandler wifiConnectHandler;
+        WiFiEventHandler wifiDisconnectHandler;
+        #endif
 
-        uint32_t mWifiStationTimeout;
-        uint32_t mNextTryTs;
-        uint32_t mApLastTick;
-        bool mApActive;
-        bool wifiWasEstablished;
-        bool mStationWifiIsDef;
+        bool mConnected, mInitNtp;
+        uint8_t mCnt;
+        uint32_t *mUtcTimestamp;
 };
 
 #endif /*__AHOYWIFI_H__*/

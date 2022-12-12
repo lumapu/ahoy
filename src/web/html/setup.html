@@ -50,7 +50,7 @@
                             <input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/><br/>
                             <label for="networks">Avail Networks</label>
                             <select name="networks" id="networks" onChange="selNet()">
-                                <option value="-1">not scanned</option>
+                                <option value="-1" selected disabled hidden>not scanned</option>
                             </select>
                             <label for="ssid">SSID</label>
                             <input type="text" name="ssid" class="text"/>
@@ -163,7 +163,7 @@
                     </div>
 
                     <label for="reboot">Reboot device after successful save</label>
-                    <input type="checkbox" class="cb" name="reboot"/>
+                    <input type="checkbox" class="cb" name="reboot" checked />
                     <input type="submit" value="save" class="btn right"/><br/>
                     <br/>
                     <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values)
@@ -226,7 +226,7 @@
                 var date = new Date();
                 var obj = new Object();
                 obj.cmd = "set_time";
-                obj.ts = parseInt(date.getTime() / 1000);
+                obj.val = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
             }
 
@@ -234,7 +234,7 @@
                 var obj = new Object();
                 obj.cmd = "scan_wifi";
                 getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 7000);
+                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function syncTime() {
