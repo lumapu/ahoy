@@ -263,7 +263,6 @@ void app::resetSystem(void) {
     mRxTicker = 0;
 
     mSendLastIvId = 0;
-
     mShowRebootRequest = false;
 
     memset(&mStat, 0, sizeof(statistics_t));
