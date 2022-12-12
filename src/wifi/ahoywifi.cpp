@@ -115,9 +115,11 @@ void ahoywifi::setupStation(void) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::getNtpTime(void) {
+bool ahoywifi::getNtpTime(void) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::getNtpTime"));
-    time_t date = 0;
+    if(!mConnected)
+        return false;
+
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
     uint8_t retry = 0;
@@ -138,16 +140,16 @@ void ahoywifi::getNtpTime(void) {
                 secsSince1900 |= (buf[42] <<  8);
                 secsSince1900 |= (buf[43]      );
 
-                date = secsSince1900 - 2208988800UL; // UTC time
-                break;
+                *mUtcTimestamp = secsSince1900 - 2208988800UL; // UTC time
+                DPRINTLN(DBG_INFO, F("[NTP]: ") + ah::getDateTimeStr(*mUtcTimestamp) + F(" UTC"));
+                return true;
             } else
                 delay(10);
         }
     }
 
-    *mUtcTimestamp = date;
-
-    DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(*mUtcTimestamp) + " UTC");
+    DPRINTLN(DBG_INFO, F("[NTP]: getNtpTime failed"));
+    return false;
 }
 
 

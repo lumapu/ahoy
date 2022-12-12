@@ -48,20 +48,28 @@ namespace ah {
             void loop(void) {
                 mMillis = millis();
                 mDiff = mMillis - mPrevMillis;
-                if(mDiff >= 1000) {
-                    if(mMillis < mPrevMillis) { // overflow
-                        mPrevMillis = mMillis;
-                        return;
+                if (mDiff < 1000)
+                    return;
+
+                mDiffSeconds = 1;
+                if (mDiff < 2000)
+                    mPrevMillis += 1000;
+                else {
+                    if (mMillis < mPrevMillis) { // overflow
+                        mDiff = mMillis;
+                        if (mDiff < 1000)
+                            return;
                     }
                     mDiffSeconds = mDiff / 1000;
-                    mDiffFraq    = mDiff % 1000;
-                    mPrevMillis += (mDiffSeconds * 1000) - mDiffFraq;
-                    checkEvery();
-                    checkAt();
-                    mUptime += mDiffSeconds;
-                    if(0 != mTimestamp)
-                        mTimestamp += mDiffSeconds;
+                    mPrevMillis += (mDiffSeconds * 1000);
                 }
+
+                mUptime += mDiffSeconds;
+                if(0 != mTimestamp)
+                    mTimestamp += mDiffSeconds;
+                checkEvery();
+                checkAt();
+
             }
 
             void once(scdCb c, uint32_t timeout)     { mStack.add(c, timeout, 0); }
@@ -105,6 +113,7 @@ namespace ah {
 
                     if(expired) {
                         (p->d.c)();
+                        yield();
                         if(0 == p->d.reload)
                             p = mStack.rem(p);
                         else {
@@ -122,6 +131,7 @@ namespace ah {
                 while(NULL != p) {
                     if((p->d.timestamp) <= mTimestamp) {
                         (p->d.c)();
+                        yield();
                         p = mStackAt.rem(p);
                     }
                     else
@@ -134,7 +144,6 @@ namespace ah {
             uint32_t mMillis, mPrevMillis, mDiff;
             uint32_t mUptime;
             uint8_t mDiffSeconds;
-            uint16_t mDiffFraq;
     };
 }
 

@@ -143,15 +143,7 @@ class app : public ah::Scheduler {
             }
         }
 
-        void tickMinute(void) {
-            if(0 == mTimestamp) {
-                mUpdateNtp = true;
-            }
-        }
-
-        void tickNtpUpdate(void) {
-            mUpdateNtp = true;
-        }
+        void tickNtpUpdate(void);
 
         void tickCalcSunrise(void);
         void tickSend(void);

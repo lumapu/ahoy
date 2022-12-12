@@ -33,10 +33,9 @@ void app::setup() {
 
 
     everySec(std::bind(&app::tickSecond, this));
-    everyMin(std::bind(&app::tickMinute, this));
-    every12h(std::bind(&app::tickNtpUpdate, this));
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
     #if !defined(AP_ONLY)
+        once(std::bind(&app::tickNtpUpdate), 2);
         if((mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             once(std::bind(&app::tickCalcSunrise, this), 5);
@@ -132,6 +131,15 @@ void app::loop(void) {
 }
 
 //-----------------------------------------------------------------------------
+void app::tickNtpUpdate(void) {
+    uint32_t nxtTrig = 5;  // default: check again in 5 sec
+    if (mWifi.getNtpTime())
+        nxtTrig = 43200;    // check again in 12 h
+    once(std::bind(&app::tickNtpUpdate, this), nxtTrig);
+}
+
+
+//-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
     if (0 == mTimestamp) {
         once(std::bind(&app::tickCalcSunrise, this), 5); // check again in 5 secs
@@ -139,7 +147,7 @@ void app::tickCalcSunrise(void) {
     }
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
-    uint32_t nxtTrig = mTimestamp - (mTimestamp % 86400) + 86400; // next midnight
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp + 1000) % 86400) + 86400; // next midnight
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
         once(std::bind(&PubMqttType::tickerSun, &mMqtt), 1);
