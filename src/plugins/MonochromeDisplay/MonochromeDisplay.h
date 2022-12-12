@@ -13,6 +13,7 @@
     #define DISP_PROGMEM PROGMEM
 #endif
 
+#include <Timezone.h>
 
 #include "../../utils/helper.h"
 #include "../../hm/hmSystem.h"
@@ -23,7 +24,7 @@ static uint8_t bmp_arrow[] DISP_PROGMEM = {
     B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000} ;
 
 template<class HMSYSTEM>
-class MonochromeDisplay {
+class MonochromeDisplay : mCE({"CEST", Last, Sun, Mar, 2, 120}, {"CET ", Last, Sun, Oct, 3, 60}) {
     public:
         #if defined(ENA_NOKIA)
         MonochromeDisplay() : mDisplay(U8G2_R0,5,4,16) {
@@ -34,7 +35,7 @@ class MonochromeDisplay {
         MonochromeDisplay() : mDisplay(0x3c, SDA, SCL) {
             mNewPayload = false;
             mExtra      = 0;
-            mRx         = 50;
+            mRx         = 0;
             mUp         = 1;
         }
         #endif
@@ -104,11 +105,14 @@ class MonochromeDisplay {
         #endif
 
         void DataScreen(void) {
-            String timeStr = ah::getDateTimeStr(*mUtcTs).substring(2, 22);
+            String timeStr = ah::getDateTimeStr(mCE.toLocal(*mUtcTs)).substring(2, 22);
             IPAddress ip = WiFi.localIP();
-            float totalYield = 0.000, totalYieldToday = 0.000, totalActual = 0.0;
+            float totalYield = 0.0, totalYieldToday = 0.0, totalActual = 0.0;
             char fmtText[32];
-            int  ucnt=0;
+            int  ucnt=0, num_inv=0;
+            unsigned int pow_i[ MAX_NUM_INVERTERS ];
+
+            memset( pow_i, 0, sizeof(unsigned int)* MAX_NUM_INVERTERS );
 
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
@@ -117,10 +121,10 @@ class MonochromeDisplay {
                     uint8_t pos;
                     uint8_t list[] = {FLD_PAC, FLD_YT, FLD_YD};
 
+                    num_inv++;
+
                     if ( !iv->isProducing(*mUtcTs,rec) )
                         continue;
-
-                    ucnt++;
 
                     for (uint8_t fld = 0; fld < 3; fld++) {
                         pos = iv->getPosByChFld(CH0, list[fld],rec);
@@ -130,8 +134,12 @@ class MonochromeDisplay {
                         if(fld == 2)
                             totalYieldToday += iv->getValue(pos,rec);
                         if(fld == 0)
+                        {
+                            pow_i[num_inv-1] = iv->getValue(pos,rec);
                             totalActual += iv->getValue(pos,rec);
+                        }
                     }
+                    ucnt++;
                 }
             }
 
@@ -149,11 +157,26 @@ class MonochromeDisplay {
                         mDisplay.drawHLine(2,20,78);
                         mDisplay.setFont(u8g2_font_5x8_tr);
                         mDisplay.setCursor(5,29);
-                        sprintf(fmtText,"%4.0f",totalYieldToday);
-                        mDisplay.print(F("today ")+String(fmtText)+F(" Wh"));
-                        mDisplay.setCursor(5,37);
-                        sprintf(fmtText,"%.1f",totalYield);
-                        mDisplay.print(F("total ")+String(fmtText)+F(" kWh"));
+                        if (( num_inv != 2 ) || !(mExtra%2))
+                        {
+                            sprintf(fmtText,"%4.0f",totalYieldToday);
+                            mDisplay.print(F("today ")+String(fmtText)+F(" Wh"));
+                            mDisplay.setCursor(5,37);
+                            sprintf(fmtText,"%.1f",totalYield);
+                            mDisplay.print(F("total ")+String(fmtText)+F(" kWh"));
+                        }
+                        else
+                        {
+                            if( pow_i[0] )
+                                mDisplay.print(F("#1  ")+String(pow_i[0])+F(" W"));
+                            else
+                                mDisplay.print(F("#1  -----"));
+                            mDisplay.setCursor(5,37);
+                            if( pow_i[1] )
+                                mDisplay.print(F("#2  ")+String(pow_i[1])+F(" W"));
+                            else
+                                mDisplay.print(F("#2  -----"));
+                        }
                     }
                     else {
                         mDisplay.setFont(u8g2_font_logisoso16_tr);
@@ -161,9 +184,9 @@ class MonochromeDisplay {
                         mDisplay.print(F("off"));
                         mDisplay.setFont(u8g2_font_5x8_tr);
                     }
-                    if ( !(mExtra%20) ) {
-                        mDisplay.setCursor(5,57);
-                        mDisplay.print(ip);
+                    if ( !(mExtra%10) && ip ) {
+                        mDisplay.setCursor(5,47);
+                        mDisplay.print(ip.toString());
                     }
                     else {
                         mDisplay.setCursor(0,47);
@@ -174,44 +197,66 @@ class MonochromeDisplay {
                 } while( mDisplay.nextPage() );
                 mExtra++;
         #else // ENA_SSD1306
+            if(mUp) {
+                mRx += 2;
+                if(mRx >= 20)
+                mUp = 0;
+            } else {
+                mRx -= 2;
+                if(mRx <= 0)
+                mUp = 1;
+            }
+            int ex = 2*( mExtra % 5 );
+
             if(ucnt) {
                 mDisplay.setBrightness(63);
-                mDisplay.drawXbm(10,5,8,17,bmp_arrow);
+                mDisplay.drawXbm(10+ex,5,8,17,bmp_arrow);
                 mDisplay.setFont(ArialMT_Plain_24);
                 sprintf(fmtText,"%3.0f",totalActual);
-                mDisplay.drawString(25,0,String(fmtText)+F(" W"));
+                mDisplay.drawString(25+ex,0,String(fmtText)+F(" W"));
                 mDisplay.setFont(ArialMT_Plain_16);
-                sprintf(fmtText,"%4.0f",totalYieldToday);
-                mDisplay.drawString(5,22,F("today ")+String(fmtText)+F(" Wh"));
-                sprintf(fmtText,"%.1f",totalYield);
-                mDisplay.drawString(5,35,F("total  ")+String(fmtText)+F(" kWh"));
+
+                if (( num_inv != 2 ) || !(mExtra%2))
+                {
+                    sprintf(fmtText,"%4.0f",totalYieldToday);
+                    mDisplay.drawString(5,22,F("today ")+String(fmtText)+F(" Wh"));
+                    sprintf(fmtText,"%.1f",totalYield);
+                    mDisplay.drawString(5,35,F("total  ")+String(fmtText)+F(" kWh"));
+                }
+                else
+                {
+                    if( pow_i[0] )
+                        mDisplay.drawString(15,22,F("#1  ")+String(pow_i[0])+F(" W"));
+                    else
+                        mDisplay.drawString(15,22,F("#1  -----"));
+                    if( pow_i[1] )
+                        mDisplay.drawString(15,35,F("#2  ")+String(pow_i[1])+F(" W"));
+                    else
+                        mDisplay.drawString(15,35,F("#2  -----"));
+                }
                 mDisplay.drawLine(2,23,123,23);
             }
             else {
-                if(mUp) {
-                    mRx += 2;
-                    if(mRx >= 70)
-                    mUp = 0;
-                } else {
-                    mRx -= 2;
-                    if(mRx <= 50)
-                    mUp = 1;
-                }
                 mDisplay.setBrightness(1);
                 mDisplay.setFont(ArialMT_Plain_24);
-                mDisplay.drawString(mRx, 10, F("off"));
+                mDisplay.drawString(mRx+50, 10, F("off"));
                 mDisplay.setFont(ArialMT_Plain_16);
             }
-            if (!(mExtra % 20)) {
-                mDisplay.drawString(5, 49, ip.toString());
-            } else {
-                int w = mDisplay.getStringWidth(timeStr.c_str(), timeStr.length(), 0);
-                if (w > 127) {
-                    String tt=timeStr.substring(9, 17);
-                    w=mDisplay.getStringWidth(tt.c_str(),tt.length(), 0);
-                    mDisplay.drawString(127 - w, 49, tt);
-                } else
-                    mDisplay.drawString(0, 49, timeStr);
+            if ( (!(mExtra%10) && ip )|| (timeStr.length()<16))
+            {
+                mDisplay.drawString(5,49,ip.toString());
+            }
+            else
+            {
+                int w=mDisplay.getStringWidth(timeStr.c_str(),timeStr.length(),0);
+                if ( w>127 )
+                {
+                    String tt=timeStr.substring(9,17);
+                    w=mDisplay.getStringWidth(tt.c_str(),tt.length(),0);
+                    mDisplay.drawString(127-w-mRx,49,tt);
+                }
+                else
+                    mDisplay.drawString(0,49,timeStr);
             }
 
             mDisplay.display();
@@ -231,6 +276,7 @@ class MonochromeDisplay {
         bool mNewPayload;
         uint32_t *mUtcTs;
         HMSYSTEM *mSys;
+        Timezone mCE(CEST, CET);
 };
 #endif
 
