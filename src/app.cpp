@@ -62,14 +62,14 @@ void app::setup() {
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
-    if ((mConfig->mqtt.broker[0] > 0) && (WiFi.getMode() == WIFI_STA)) {
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
+    #if !defined(AP_ONLY)
+    if (mConfig->mqtt.broker[0] > 0) {
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
         everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
-
+    #endif
     setupLed();
 
     mWeb = new web(this, mConfig, &mStat, mVersion);
