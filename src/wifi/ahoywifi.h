@@ -22,7 +22,7 @@ class ahoywifi {
 
         void setup(settings_t *config, uint32_t *utcTimestamp);
         void loop(void);
-        void getNtpTime(void);
+        bool getNtpTime(void);
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 

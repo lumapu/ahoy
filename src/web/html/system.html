@@ -19,6 +19,7 @@
         <div id="wrapper">
             <div id="content">
                 <div><ul id="info"></ul></div>
+                <div><ul id="radio"></ul></div>
                 <div id="system"></div>
             </div>
         </div>
@@ -59,11 +60,34 @@
                 }
             }
 
+            function parseRadio(obj) {
+                const pa = ["MIN", "LOW", "HIGH", "MAX"];
+                const datarate = ["1 MBps", "2 MBps", "250 kbps"];
+
+                var ul = document.getElementById("radio");
+                let data;
+
+                var li = document.createElement("li");
+                li.appendChild(document.createTextNode("nrf24l01" + (obj["isPVariant"] ? "+ " : "") + (obj["isconnected"] ? "is connected " : "is not connected ")));
+                ul.appendChild(li);
+
+                if(obj["isconnected"]) {
+                    var li = document.createElement("li");
+                    li.appendChild(document.createTextNode("Datarate: " + datarate[obj["DataRate"]]));
+                    ul.appendChild(li);
+
+                    var li = document.createElement("li");
+                    li.appendChild(document.createTextNode("Power Level: " + pa[obj["power_level"]]));
+                    ul.appendChild(li);
+                }
+            }
+
             function parse(obj) {
                 if(null != obj) {
                     parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
                     parseSysInfo(obj["system"]);
+                    parseRadio(obj["system"]["radio"]);
                     var e = document.getElementById("system");
                     e.innerHTML = obj["html"];
 

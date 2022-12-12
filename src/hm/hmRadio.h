@@ -99,7 +99,7 @@ class HmRadio {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
             mBufCtrl = ctrl;
-        
+
 
             uint32_t dtuSn = 0x87654321;
             uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
@@ -192,7 +192,7 @@ class HmRadio {
         uint8_t setDefaultChannels(void) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setDefaultChannels"));
             mTxChIdx    = 2; // Start TX with 40
-            mRxChIdx    = 0; // Start RX with 03            
+            mRxChIdx    = 0; // Start RX with 03
             return mRfChLst[mTxChIdx];
         }
 
@@ -213,7 +213,7 @@ class HmRadio {
             uint16_t crc = ah::crc16(&mTxBuf[10], cnt);
             mTxBuf[10 + cnt++] = (crc >> 8) & 0xff;
             mTxBuf[10 + cnt++] = (crc     ) & 0xff;
-            
+
             // crc over all
             mTxBuf[10 + cnt] = ah::crc8(mTxBuf, 10 + cnt);
 
@@ -296,6 +296,14 @@ class HmRadio {
             return mNrf24.isChipConnected();
         }
 
+        rf24_datarate_e getDataRate(void) {
+            return mNrf24.getDataRate();
+        }
+
+        bool isPVariant(void) {
+            return mNrf24.isPVariant();
+        }
+
 
 
         uint32_t mSendCnt;
@@ -361,7 +369,7 @@ class HmRadio {
         uint8_t mTxChIdx;
 
         uint8_t mRfChLst[RF_CHANNELS];
-        
+
         uint8_t mRxChIdx;
         uint16_t mRxLoopCnt;
 

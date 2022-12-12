@@ -42,7 +42,6 @@ namespace ah {
                 mUptime     = 0;
                 mTimestamp  = 0;
                 mPrevMillis = millis();
-                mDiffFraq   = 0;
             }
 
             void loop(void) {
