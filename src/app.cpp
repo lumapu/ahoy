@@ -27,6 +27,7 @@ void app::setup() {
     ah::Scheduler::setup();
 
     resetSystem();
+
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
@@ -35,7 +36,7 @@ void app::setup() {
     everySec(std::bind(&app::tickSecond, this));
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
     #if !defined(AP_ONLY)
-        once(std::bind(&app::tickNtpUpdate), 2);
+        once(std::bind(&app::tickNtpUpdate, this), 2);
         if((mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             once(std::bind(&app::tickCalcSunrise, this), 5);
@@ -45,7 +46,6 @@ void app::setup() {
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mSys->addInverters(&mConfig->inst);
 
     #if !defined(AP_ONLY)
     mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
@@ -53,16 +53,23 @@ void app::setup() {
 
     mWifi.setup(mConfig, &mTimestamp);
 
-    mPayload.setup(mSys);
-    mPayload.enableSerialDebug(mConfig->serial.debug);
-    #if !defined(AP_ONLY)
-    if (mConfig->mqtt.broker[0] > 0) {
+    if(mSys->Radio.isChipConnected()) {
+        mSys->addInverters(&mConfig->inst);
+        mPayload.setup(mSys);
+        mPayload.enableSerialDebug(mConfig->serial.debug);
+    }
+    else
+        DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+
+    // when WiFi is in client mode, then enable mqtt broker
+    if ((mConfig->mqtt.broker[0] > 0) && (WiFi.getMode() == WIFI_STA)) {
+        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
         mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
         everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
-    #endif
+
     setupLed();
 
     mWeb = new web(this, mConfig, &mStat, mVersion);
