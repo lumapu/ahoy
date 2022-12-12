@@ -253,6 +253,7 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 | `RF24`                | 1.4.5   | GPL-2.0  |
 | `PubSubClient`        | 2.8     | MIT      |
 | `ArduinoJson`         | 6.19.4  | MIT      |
+| `ESP Async WebServer` | 4.3.0   | ?        |
 
 ## Contact
 
