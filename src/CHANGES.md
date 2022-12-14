@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.52
+* improved ahoyWifi class
+* added interface class for app
+* refactored web and webApi -> RestApi
+* fix calcSunrise was not called every day
+* added MQTT RX counter to index.html
+* all values are displayed on /live even if they are 0
+
 ## 0.5.51
 * improved scheduler, @beegee3 #483
 * refactored get NTP time, @beegee3 #483

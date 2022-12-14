@@ -114,13 +114,13 @@ inverter/ctrl/limit_persistent_relative/0     70
 
 ### Power Limit absolute persistent [Watts]
 ```mqtt
-<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>
+<TOPIC>/ctrl/limit_persistent_absolute/<INVERTER_ID>
 ```
 with a payload `[0 .. 65535]`
 
 Example:
 ```mqtt
-inverter/ctrl/limit_persistent_relative/0     600
+inverter/ctrl/limit_persistent_absolute/0     600
 ```
 
 ### Power Limit relative non persistent [%]
@@ -136,13 +136,13 @@ inverter/ctrl/limit_nonpersistent_relative/0     70
 
 ### Power Limit absolute non persistent [Watts]
 ```mqtt
-<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>
+<TOPIC>/ctrl/limit_nonpersistent_absolute/<INVERTER_ID>
 ```
 with a payload `[0 .. 65535]`
 
 Example:
 ```mqtt
-inverter/ctrl/limit_nonpersistent_relative/0     600
+inverter/ctrl/limit_nonpersistent_absolute/0     600
 ```
 
 ## Control via REST API

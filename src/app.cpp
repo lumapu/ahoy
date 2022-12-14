@@ -13,9 +13,7 @@
 #include "utils/sun.h"
 
 //-----------------------------------------------------------------------------
-app::app() : ah::Scheduler() {
-    mWeb = NULL;
-}
+app::app() : ah::Scheduler() {}
 
 
 //-----------------------------------------------------------------------------
@@ -72,10 +70,19 @@ void app::setup() {
     #endif
     setupLed();
 
-    mWeb = new web(this, mConfig, &mStat, mVersion);
-    mWeb->setup();
-    mWeb->setProtection(strlen(mConfig->sys.adminPwd) != 0);
-    everySec(std::bind(&web::tickSecond, mWeb));
+    mWeb.setup(this, mSys, mConfig);
+    mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
+    everySec(std::bind(&WebType::tickSecond, &mWeb));
+
+    mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
+    /*mApi.registerCb(apiCbScanNetworks, std::bind(&app::scanAvailNetworks, this));
+    #if !defined(AP_ONLY)
+        mApi.registerCb(apiCbMqttTxCnt, std::bind(&PubMqttType::getTxCnt, &mMqtt));
+        mApi.registerCb(apiCbMqttRxCnt, std::bind(&PubMqttType::getRxCnt, &mMqtt));
+        mApi.registerCb(apiCbMqttIsCon, std::bind(&PubMqttType::isConnected, &mMqtt));
+        mApi.registerCb(apiCbMqttDiscvry, std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt));
+        //mApi.registerCb(apiCbMqttDiscvry, std::bind(&app::setMqttDiscoveryFlag, this));
+    #endif*/
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
@@ -98,11 +105,11 @@ void app::loop(void) {
     mWifi.loop();
     #endif
 
-    mWeb->loop();
+    mWeb.loop();
 
     if (mFlagSendDiscoveryConfig) {
         mFlagSendDiscoveryConfig = false;
-        mMqtt.sendMqttDiscoveryConfig(mConfig->mqtt.topic);
+        mMqtt.sendDiscoveryConfig();
     }
 
     mSys->Radio.loop();
@@ -154,7 +161,7 @@ void app::tickCalcSunrise(void) {
     }
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp + 1000) % 86400) + 86400; // next midnight
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 10) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
         once(std::bind(&PubMqttType::tickerSun, &mMqtt), 1);
@@ -215,7 +222,7 @@ void app::tickSend(void) {
                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
                 mPayload.setTxCmd(iv, iv->devControlCmd);
                 iv->clearCmdQueue();
-                iv->enqueCommand<InfoCommand>(SystemConfigPara);
+                iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
@@ -238,17 +245,6 @@ void app::handleIntr(void) {
     DPRINTLN(DBG_VERBOSE, F("app::handleIntr"));
     mSys->Radio.handleIntr();
 }
-
-//-----------------------------------------------------------------------------
-void app::scanAvailNetworks(void) {
-    mWifi.scanAvailNetworks();
-}
-
-//-----------------------------------------------------------------------------
-void app::getAvailNetworks(JsonObject obj) {
-    mWifi.getAvailNetworks(obj);
-}
-
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
@@ -277,8 +273,7 @@ void app::resetSystem(void) {
 
 //-----------------------------------------------------------------------------
 void app::mqttSubRxCb(JsonObject obj) {
-    if(NULL != mWeb)
-        mWeb->apiCtrlRequest(obj);
+    mApi.ctrlRequest(obj);
 }
 
 //-----------------------------------------------------------------------------

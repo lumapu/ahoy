@@ -149,7 +149,7 @@ class PubMqtt {
             return mRxCnt;
         }
 
-        void sendMqttDiscoveryConfig(const char *topic) {
+        void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
@@ -172,14 +172,14 @@ class PubMqtt {
                         } else {
                             snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                         }
-                        snprintf(stateTopic, 64, "%s/%s/ch%d/%s", topic, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(stateTopic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
                         snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                         snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
                         const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
                         const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
                         doc[F("name")] = name;
-                        doc[F("stat_t")] = stateTopic;
+                        doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(stateTopic);
                         doc[F("unit_of_meas")] = iv->getUnit(i, rec);
                         doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
                         doc[F("dev")] = deviceObj;

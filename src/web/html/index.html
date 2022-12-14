@@ -191,14 +191,11 @@
             }
 
             function tick() {
+                if(0 != ts)
+                    document.getElementById("date").innerHTML = (new Date((ts+tickCnt) * 1000)).toLocaleString('de-DE');
                 if(++tickCnt >= 10) {
                     tickCnt = 0;
                     getAjax('/api/index', parse);
-                }
-                else {
-                    var dSpan = document.getElementById("date");
-                    if(0 != ts)
-                    dSpan.innerHTML = (new Date((ts+tickCnt) * 1000)).toLocaleString('de-DE');
                 }
             }
 

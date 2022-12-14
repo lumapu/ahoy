@@ -6,11 +6,14 @@
 #ifndef __APP_H__
 #define __APP_H__
 
+
 #include "utils/dbg.h"
 #include <Arduino.h>
 #include <RF24.h>
 #include <RF24_config.h>
 #include <ArduinoJson.h>
+
+#include "appInterface.h"
 
 #include "config/settings.h"
 #include "defines.h"
@@ -23,6 +26,7 @@
 #include "hm/payload.h"
 #include "wifi/ahoywifi.h"
 #include "web/web.h"
+#include "web/RestApi.h"
 
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
@@ -36,6 +40,8 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef Payload<HmSystemType> PayloadType;
+typedef Web<HmSystemType> WebType;
+typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
@@ -45,9 +51,8 @@ typedef PubSerial<HmSystemType> PubSerialType;
     typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
 #endif
 
-class web;
 
-class app : public ah::Scheduler {
+class app : public IApp, public ah::Scheduler {
     public:
         app();
         ~app() {}
@@ -59,35 +64,77 @@ class app : public ah::Scheduler {
         void saveValues(void);
         void resetPayload(Inverter<>* iv);
         bool getWifiApActive(void);
-        void scanAvailNetworks(void);
-        void getAvailNetworks(JsonObject obj);
 
-        void saveSettings(void) {
-            mSettings.saveSettings();
+        uint32_t getUptime() {
+            return Scheduler::getUptime();
+        }
+
+        uint32_t getTimestamp() {
+            return Scheduler::getTimestamp();
+        }
+
+        bool saveSettings() {
+            return mSettings.saveSettings();
         }
 
         bool eraseSettings(bool eraseWifi = false) {
             return mSettings.eraseSettings(eraseWifi);
         }
 
-        uint8_t getIrqPin(void) {
-            return mConfig->nrf.pinIrq;
+        statistics_t *getStatistics() {
+            return &mStat;
         }
 
-        uint64_t Serial2u64(const char *val) {
-            char tmp[3];
-            uint64_t ret = 0ULL;
-            uint64_t u64;
-            memset(tmp, 0, 3);
-            for(uint8_t i = 0; i < 6; i++) {
-                tmp[0] = val[i*2];
-                tmp[1] = val[i*2 + 1];
-                if((tmp[0] == '\0') || (tmp[1] == '\0'))
-                    break;
-                u64 = strtol(tmp, NULL, 16);
-                ret |= (u64 << ((5-i) << 3));
-            }
-            return ret;
+        void scanAvailNetworks() {
+            mWifi.scanAvailNetworks();
+        }
+
+        void getAvailNetworks(JsonObject obj) {
+            mWifi.getAvailNetworks(obj);
+        }
+
+        void setRebootFlag() {
+            mShouldReboot = true;
+        }
+
+        const char *getVersion() {
+            return mVersion;
+        }
+
+        uint32_t getSunrise() {
+            return mSunrise;
+        }
+
+        uint32_t getSunset() {
+            return mSunset;
+        }
+
+        bool getSettingsValid() {
+            return mSettings.getValid();
+        }
+
+        bool getRebootRequestState() {
+            return mShowRebootRequest;
+        }
+
+        void setMqttDiscoveryFlag() {
+            mFlagSendDiscoveryConfig = true;
+        }
+
+        bool getMqttIsConnected() {
+            return mMqtt.isConnected();
+        }
+
+        uint32_t getMqttTxCnt() {
+            return mMqtt.getTxCnt();
+        }
+
+        uint32_t getMqttRxCnt() {
+            return mMqtt.getRxCnt();
+        }
+
+        uint8_t getIrqPin(void) {
+            return mConfig->nrf.pinIrq;
         }
 
         String getTimeStr(uint32_t offset = 0) {
@@ -107,21 +154,8 @@ class app : public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        inline uint32_t getSunrise(void) {
-            return mSunrise;
-        }
-        inline uint32_t getSunset(void) {
-            return mSunset;
-        }
-
-        inline bool mqttIsConnected(void) { return mMqtt.isConnected(); }
-        inline bool getSettingsValid(void) { return mSettings.getValid(); }
-        inline bool getRebootRequestState(void) { return mShowRebootRequest; }
-        inline uint32_t getMqttTxCnt(void) { return mMqtt.getTxCnt(); }
-
         HmSystemType *mSys;
         bool mShouldReboot;
-        bool mFlagSendDiscoveryConfig;
 
     private:
         void resetSystem(void);
@@ -169,11 +203,13 @@ class app : public ah::Scheduler {
         }
 
         bool mUpdateNtp;
+        bool mFlagSendDiscoveryConfig;
 
         bool mShowRebootRequest;
 
         ahoywifi mWifi;
-        web *mWeb;
+        WebType mWeb;
+        RestApiType mApi;
         PayloadType mPayload;
         PubSerialType mPubSerial;
 

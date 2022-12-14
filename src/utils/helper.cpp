@@ -39,4 +39,20 @@ namespace ah {
             sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
         return String(str);
     }
+
+    uint64_t Serial2u64(const char *val) {
+        char tmp[3];
+        uint64_t ret = 0ULL;
+        uint64_t u64;
+        memset(tmp, 0, 3);
+        for(uint8_t i = 0; i < 6; i++) {
+            tmp[0] = val[i*2];
+            tmp[1] = val[i*2 + 1];
+            if((tmp[0] == '\0') || (tmp[1] == '\0'))
+                break;
+            u64 = strtol(tmp, NULL, 16);
+            ret |= (u64 << ((5-i) << 3));
+        }
+        return ret;
+    }
 }

@@ -47,7 +47,7 @@ class ahoywifi {
         WiFiEventHandler wifiDisconnectHandler;
         #endif
 
-        bool mConnected, mInitNtp;
+        bool mConnected, mReconnect;
         uint8_t mCnt;
         uint32_t *mUtcTimestamp;
 };

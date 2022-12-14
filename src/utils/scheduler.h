@@ -103,14 +103,9 @@ namespace ah {
 
         private:
             inline void checkEvery(void) {
-                bool expired;
                 sP *p = mStack.getFront();
                 while(NULL != p) {
-                    if(mDiffSeconds >= p->d.timeout) expired = true;
-                    else if((p->d.timeout--) == 0)   expired = true;
-                    else                             expired = false;
-
-                    if(expired) {
+                    if(mDiffSeconds >= p->d.timeout) { // expired
                         (p->d.c)();
                         yield();
                         if(0 == p->d.reload)
@@ -120,8 +115,10 @@ namespace ah {
                             p = mStack.get(p);
                         }
                     }
-                    else
+                    else { // not expired
+                        p->d.timeout -= mDiffSeconds;
                         p = mStack.get(p);
+                    }
                 }
             }
 

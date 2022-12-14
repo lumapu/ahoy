@@ -17,7 +17,7 @@
 ahoywifi::ahoywifi() {
     mCnt       = 0;
     mConnected = false;
-    mInitNtp   = true;
+    mReconnect = false;
 }
 
 
@@ -47,7 +47,7 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
 //-----------------------------------------------------------------------------
 void ahoywifi::loop() {
     #if !defined(AP_ONLY)
-    if(!mConnected) {
+    if(mReconnect) {
         delay(100);
         mCnt++;
         if((mCnt % 50) == 0)
@@ -56,11 +56,7 @@ void ahoywifi::loop() {
             WiFi.reconnect();
             mCnt = 0;
         }
-    } else if(mInitNtp) {
-        getNtpTime();
-        mInitNtp = false;
     }
-    mCnt = 0;
     #endif
 
 }
@@ -209,6 +205,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     void ahoywifi::onConnect(const WiFiEventStationModeGotIP& event) {
         if(!mConnected) {
             mConnected = true;
+            mReconnect = false;
             DBGPRINTLN(F("\n[WiFi] Connected"));
             WiFi.mode(WIFI_STA);
             DBGPRINTLN(F("[WiFi] AP disabled"));
@@ -223,6 +220,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
         if(mConnected) {
             mConnected = false;
+            mReconnect = true;
             DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
         }
     }
