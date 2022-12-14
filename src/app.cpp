@@ -165,6 +165,7 @@ void app::tickCalcSunrise(void) {
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
         once(std::bind(&PubMqttType::tickerSun, &mMqtt), 1);
+        onceAt(std::bind(&PubMqttType::tickSunrise, &mMqtt), mSunrise);
         onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), mSunset);
     }
 }

@@ -7,6 +7,7 @@
 * fix calcSunrise was not called every day
 * added MQTT RX counter to index.html
 * all values are displayed on /live even if they are 0
+* added MQTT <TOPIC>/status to show status over all inverters
 
 ## 0.5.51
 * improved scheduler, @beegee3 #483

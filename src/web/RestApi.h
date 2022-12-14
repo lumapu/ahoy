@@ -366,7 +366,7 @@ class RestApi {
             if(!mSys->Radio.isChipConnected())
                 warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
             else if(!mSys->Radio.isPVariant())
-                warn.add(F("your NRF24 module have not a plus(+), please check!"));
+                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible!"));
 
             if((!mApp->getMqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
                 warn.add(F("MQTT is not connected"));

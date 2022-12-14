@@ -146,6 +146,10 @@ class app : public IApp, public ah::Scheduler {
             return String(str);
         }
 
+        uint32_t getTimezoneOffset() {
+            return mApi.getTimezoneOffset();
+        }
+
         void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
             if(0 == newTime)

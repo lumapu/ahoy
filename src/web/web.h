@@ -152,9 +152,9 @@ class Web {
 
         void serialCb(String msg) {
             msg.replace("\r\n", "<rn>");
-            /*if(mSerialAddTime) {
+            if(mSerialAddTime) {
                 if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
-                    strncpy(&mSerialBuf[mSerialBufFill], mMain->getTimeStr(mApi.getTimezoneOffset()).c_str(), 9);
+                    strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
                     mSerialBufFill += 9;
                 }
                 else {
@@ -162,9 +162,7 @@ class Web {
                     mEvts->send("webSerial, buffer overflow!", "serial", millis());
                 }
                 mSerialAddTime = false;
-            }*/
-
-            // TODO: comment in
+            }
 
             if(msg.endsWith("<rn>"))
                 mSerialAddTime = true;
