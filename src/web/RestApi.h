@@ -246,6 +246,7 @@ class RestApi {
                 iv = mSys->getInverterByPos(i);
                 if(NULL != iv) {
                     JsonObject obj2 = invArr.createNestedObject();
+                    obj2[F("enabled")]  = (bool)iv->config->enabled;
                     obj2[F("id")]       = i;
                     obj2[F("name")]     = String(iv->config->name);
                     obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
@@ -353,6 +354,7 @@ class RestApi {
                 if(NULL != iv) {
                     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                     JsonObject invObj = inv.createNestedObject();
+                    invObj[F("enabled")]         = (bool)iv->config->enabled;
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
                     invObj[F("version")]         = String(iv->fwVersion);
@@ -412,6 +414,7 @@ class RestApi {
                 if(NULL != iv) {
                     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                     JsonObject obj2 = invArr.createNestedObject();
+                    obj2[F("enabled")]            = (bool)iv->config->enabled;
                     obj2[F("name")]               = String(iv->config->name);
                     obj2[F("channels")]           = iv->channels;
                     obj2[F("power_limit_read")]   = ah::round3(iv->actPowerLimit);

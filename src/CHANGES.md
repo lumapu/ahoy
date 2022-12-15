@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.53
+* Mono-Display: show values in offline mode #498
+* improved wifi class #483
+* added communication enable / disable (to test mutliple DTUs with the same inverter)
+* fix factory reset #495
+
 ## 0.5.52
 * improved ahoyWifi class
 * added interface class for app

@@ -194,7 +194,7 @@
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1))
-                    ivHtml(JSON.parse('{"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
             });
 
             function apiCbWifi(obj) {
@@ -266,12 +266,16 @@
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
 
+                iv.appendChild(lbl(id + "Enable", "Communication Enable"));
+                var en = inp(id + "Enable", null, null, ["cb"], id + "Enable", "checkbox");
+                en.checked = obj["enabled"];
+                iv.appendChild(en);
+                iv.appendChild(br());
 
                 iv.appendChild(lbl(id + "Addr", "Serial Number (12 digits)*"));
-                var addr = inp(id + "Addr", obj["serial"], 12)
+                var addr = inp(id + "Addr", obj["serial"], 12);
                 iv.appendChild(addr);
                 ['keyup', 'change'].forEach(function(evt) {
-
                     addr.addEventListener(evt, (e) => {
                         var serial = addr.value.substring(0,4);
                         var max = 0;

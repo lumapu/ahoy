@@ -190,46 +190,48 @@ void app::tickSend(void) {
         } while ((NULL == iv) && ((maxLoop--) > 0));
 
         if (NULL != iv) {
-            if (!mPayload.isComplete(iv))
-                mPayload.process(false, mConfig->nrf.maxRetransPerPyld, &mStat);
+            if(iv->config->enabled) {
+                if (!mPayload.isComplete(iv))
+                    mPayload.process(false, mConfig->nrf.maxRetransPerPyld, &mStat);
 
-            if (!mPayload.isComplete(iv)) {
-                if (0 == mPayload.getMaxPacketId(iv))
-                    mStat.rxFailNoAnser++;
-                else
-                    mStat.rxFail++;
+                if (!mPayload.isComplete(iv)) {
+                    if (0 == mPayload.getMaxPacketId(iv))
+                        mStat.rxFailNoAnser++;
+                    else
+                        mStat.rxFail++;
 
-                iv->setQueuedCmdFinished();  // command failed
-                if (mConfig->serial.debug)
-                    DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                if (mConfig->serial.debug) {
-                    DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
-                    DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload.getRetransmits(iv)) + ")");
+                    iv->setQueuedCmdFinished();  // command failed
+                    if (mConfig->serial.debug)
+                        DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                    if (mConfig->serial.debug) {
+                        DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
+                        DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload.getRetransmits(iv)) + ")");
+                    }
                 }
-            }
 
-            mPayload.reset(iv, mTimestamp);
-            mPayload.request(iv);
+                mPayload.reset(iv, mTimestamp);
+                mPayload.request(iv);
 
-            yield();
-            if (mConfig->serial.debug) {
-                DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
-            }
+                yield();
+                if (mConfig->serial.debug) {
+                    DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
+                }
 
-            if (iv->devControlRequest) {
-                if (mConfig->serial.debug)
-                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
-                mPayload.setTxCmd(iv, iv->devControlCmd);
-                iv->clearCmdQueue();
-                iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
-            } else {
-                uint8_t cmd = iv->getQueuedCmd();
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
-                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload.getTs(iv), iv->alarmMesIndex);
-                mPayload.setTxCmd(iv, cmd);
-                mRxTicker = 0;
+                if (iv->devControlRequest) {
+                    if (mConfig->serial.debug)
+                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
+                    mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
+                    mPayload.setTxCmd(iv, iv->devControlCmd);
+                    iv->clearCmdQueue();
+                    iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                } else {
+                    uint8_t cmd = iv->getQueuedCmd();
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
+                    mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload.getTs(iv), iv->alarmMesIndex);
+                    mPayload.setTxCmd(iv, cmd);
+                    mRxTicker = 0;
+                }
             }
         }
     } else {

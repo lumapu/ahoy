@@ -114,7 +114,7 @@ class PubMqtt {
                     continue; // skip to next inverter
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
-                if (!iv->isAvailable(*mUtcTimestamp, rec)) {
+                if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
                     snprintf(topic, MQTT_TOPIC_LEN + 15, "%s/available_text", iv->config->name);
                     snprintf(val, 32, "not available and not producing");
                     publish(topic, val, true);
@@ -263,7 +263,7 @@ class PubMqtt {
 
             subscribe("ctrl/#");
             subscribe("setup/#");
-            subscribe("status/#");
+            //subscribe("status/#");
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
@@ -293,7 +293,7 @@ class PubMqtt {
         }
 
         void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
-            DPRINTLN(DBG_VERBOSE, F("MQTT got topic: ") + String(topic));
+            DPRINTLN(DBG_INFO, F("MQTT got topic: ") + String(topic));
             if(NULL == mSubscriptionCb)
                 return;
 
@@ -394,10 +394,12 @@ class PubMqtt {
 
                         // inverter status
                         uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                        if (!iv->isAvailable(*mUtcTimestamp, rec)) {
+                        if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
                             status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                            totalIncomplete = true;
-                            allAvail = false;
+                            if(iv->config->enabled) { // only change all-avail if inverter is enabled!
+                                totalIncomplete = true;
+                                allAvail = false;
+                            }
                         }
                         else if (!iv->isProducing(*mUtcTimestamp, rec)) {
                             mIvAvail = true;

@@ -31,8 +31,14 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
             setupAp();
     #endif
     #if !defined(AP_ONLY)
-        if(mConfig->valid)
-            setupStation();
+        if(mConfig->valid) {
+            #if !defined(FB_WIFI_OVERRIDDEN)
+                if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
+                    setupStation();
+            #else
+                setupStation();
+            #endif
+        }
     #endif
 
     #if defined(ESP8266)

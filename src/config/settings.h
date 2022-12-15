@@ -267,6 +267,8 @@ class settings {
 
             mCfg.led.led0 = DEF_LED0_PIN;
             mCfg.led.led1 = DEF_LED1_PIN;
+
+            memset(&mCfg.inst, 0, sizeof(cfgInst_t));
         }
 
         void jsonWifi(JsonObject obj, bool set = false) {
@@ -374,9 +376,9 @@ class settings {
 
         void jsonInst(JsonObject obj, bool set = false) {
             if(set)
-                obj[F("en")]    = mCfg.inst.enabled;
+                obj[F("en")] = (bool)mCfg.inst.enabled;
             else
-                mCfg.inst.enabled = obj[F("en")];
+                mCfg.inst.enabled = (bool)obj[F("en")];
 
             JsonArray ivArr;
             if(set)
@@ -391,15 +393,15 @@ class settings {
 
         void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj[F("en")]     = cfg->enabled;
-                obj[F("name")]   = cfg->name;
-                obj[F("sn")] = cfg->serial.u64;
+                obj[F("en")]   = (bool)cfg->enabled;
+                obj[F("name")] = cfg->name;
+                obj[F("sn")]   = cfg->serial.u64;
                 for(uint8_t i = 0; i < 4; i++) {
                     obj[F("pwr")][i]  = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
                 }
             } else {
-                cfg->enabled = obj[F("en")];
+                cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
                 for(uint8_t i = 0; i < 4; i++) {

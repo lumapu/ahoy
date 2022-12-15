@@ -59,56 +59,58 @@
                     ivHtml.push(tDiv);
 
                 for(var iv of obj) {
-                    main = div(["iv"]);
-                    var ch0 = div(["ch-iv"]);
-                    var limit = iv["power_limit_read"] + "%";
-                    if(limit == "65535%")
-                        limit = "n/a";
-                    ch0.appendChild(span(iv["name"] + " Limit " + limit + " | last Alarm: " + iv["last_alarm"], ["head"]));
+                    if(iv["enabled"]) {
+                        main = div(["iv"]);
+                        var ch0 = div(["ch-iv"]);
+                        var limit = iv["power_limit_read"] + "%";
+                        if(limit == "65535%")
+                            limit = "n/a";
+                        ch0.appendChild(span(iv["name"] + " Limit " + limit + " | last Alarm: " + iv["last_alarm"], ["head"]));
 
-                    for(var j = 0; j < root.ch0_fld_names.length; j++) {
-                        var val = Math.round(iv["ch"][0][j] * 100) / 100;
-                        var sub = div(["subgrp"]);
-                        sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                        sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
-                        ch0.appendChild(sub);
+                        for(var j = 0; j < root.ch0_fld_names.length; j++) {
+                            var val = Math.round(iv["ch"][0][j] * 100) / 100;
+                            var sub = div(["subgrp"]);
+                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
+                            ch0.appendChild(sub);
 
-                        switch(j) {
-                            case 2:  total[j] += val; break; // P_AC
-                            case 6:  total[j] += val; break; // YieldTotal
-                            case 7:  total[j] += val; break; // YieldDay
-                            case 8:  total[j] += val; break; // P_DC
-                            case 10: total[j] += val; break; // Q_AC
+                            switch(j) {
+                                case 2:  total[j] += val; break; // P_AC
+                                case 6:  total[j] += val; break; // YieldTotal
+                                case 7:  total[j] += val; break; // YieldDay
+                                case 8:  total[j] += val; break; // P_DC
+                                case 10: total[j] += val; break; // Q_AC
+                            }
                         }
-                    }
-                    main.appendChild(ch0);
+                        main.appendChild(ch0);
 
 
-                    for(var i = 1; i < (iv["channels"] + 1); i++) {
-                        var ch = div(["ch"]);
-                        ch.appendChild(span(("" == iv["ch_names"][i]) ? ("CHANNEL " + i) : iv["ch_names"][i], ["head"]));
+                        for(var i = 1; i < (iv["channels"] + 1); i++) {
+                            var ch = div(["ch"]);
+                            ch.appendChild(span(("" == iv["ch_names"][i]) ? ("CHANNEL " + i) : iv["ch_names"][i], ["head"]));
 
-                        for(var j = 0; j < root.fld_names.length; j++) {
-                            var val = Math.round(iv["ch"][i][j] * 100) / 100;
-                            ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                            ch.appendChild(span(root["fld_names"][j], ["info"]));
+                            for(var j = 0; j < root.fld_names.length; j++) {
+                                var val = Math.round(iv["ch"][i][j] * 100) / 100;
+                                ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                                ch.appendChild(span(root["fld_names"][j], ["info"]));
+                            }
+                            main.appendChild(ch);
                         }
-                        main.appendChild(ch);
+
+                        var ts = div(["ts"]);
+                        var ageInfo = "Last received data requested at: ";
+                        if(iv["ts_last_success"] > 0) {
+                            var date = new Date(iv["ts_last_success"] * 1000);
+                            ageInfo += date.toLocaleString('de-DE');
+                        }
+                        else
+                            ageInfo += "nothing received";
+
+                        ts.innerHTML = ageInfo;
+
+                        main.appendChild(ts);
+                        ivHtml.push(main);
                     }
-
-                    var ts = div(["ts"]);
-                    var ageInfo = "Last received data requested at: ";
-                    if(iv["ts_last_success"] > 0) {
-                        var date = new Date(iv["ts_last_success"] * 1000);
-                        ageInfo += date.toLocaleString('de-DE');
-                    }
-                    else
-                        ageInfo += "nothing received";
-
-                    ts.innerHTML = ageInfo;
-
-                    main.appendChild(ts);
-                    ivHtml.push(main);
                 }
 
                 // total

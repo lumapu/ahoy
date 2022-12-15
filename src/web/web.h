@@ -406,6 +406,8 @@ class Web {
                 Inverter<> *iv;
                 for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                     iv = mSys->getInverterByPos(i, false);
+                    // enable communication
+                    iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
                     // address
                     request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
                     if(strlen(buf) == 0)
