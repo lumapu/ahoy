@@ -191,10 +191,9 @@
             }
 
             function tick() {
-                ++tickCnt;
                 if(0 != ts)
-                    document.getElementById("date").innerHTML = (new Date((ts+tickCnt) * 1000)).toLocaleString('de-DE');
-                if(tickCnt >= 10) {
+                    document.getElementById("date").innerHTML = (new Date((++ts) * 1000)).toLocaleString('de-DE');
+                if(++tickCnt >= 10) {
                     tickCnt = 0;
                     getAjax('/api/index', parse);
                 }

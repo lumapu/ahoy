@@ -221,6 +221,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
         if(mConnected) {
             mConnected = false;
             mReconnect = true;
+            mCnt       = 0;
             DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
         }
     }
@@ -239,13 +240,15 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
                     WiFi.begin();
                     DBGPRINTLN(F("[WiFi] AP disabled"));
                     mDns.stop();
-
+                    mReconnect = false;
                 }
                 break;
 
             case SYSTEM_EVENT_STA_DISCONNECTED:
                 if(mConnected) {
                     mConnected = false;
+                    mReconnect = true;
+                    mCnt       = 0;
                     DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
                 }
                 break;
