@@ -43,8 +43,10 @@
 #define SERIAL_INTERVAL         5
 
 // default send interval
-#define SEND_INTERVAL           60                      //send interval if Rx OK
-#define SEND_INTERVAL_MIN       10                      //send interval if no RX (used initial sync or signal loss), todo: shall be disabled over night
+#define SEND_INTERVAL            (60)                      //send interval if Rx OK
+#define SEND_NOSIGNAL_SHORT      (10)                      //short send interval if no RX (used initial sync or signal loss)
+#define SEND_REPEAT              (5)                       //number of tries of short send interval to sync faster to inverter after night
+#define SEND_NOSIGNAL_LONG       (20*60)                   //long TX interval whne no SIGNAL for long time, e.g. over night
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16

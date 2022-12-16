@@ -1,9 +1,10 @@
 
 package main;
-
 use strict;
 use warnings;
 use DevIo;                                              # load DevIo.pm if not already loaded
+use Time::HiRes qw(gettimeofday);
+
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
 my $last_hour=0;
@@ -19,7 +20,7 @@ my %sets = (
 );
 
 
-my %Inv = { "1141xxxxxxxx", };
+#my %Inv = { "1141xxxxxxxx" };
 my $yield_day = 0;                       #todo make per inverter
 my $yield_total = 0;
 
@@ -46,7 +47,9 @@ sub ahoyUL_Define($$)
   # set the device to open
   $hash->{DeviceName} = $dev;
   # open connection with custom init function
-  my $ret = DevIo_OpenDev($hash, 0, "ahoyUL_Init");
+  #my $ret = DevIo_OpenDev($hash, 0, "ahoyUL_Init");
+  my $ret = DevIo_OpenDev($hash, 0, undef);
+  InternalTimer(gettimeofday()+5, "ahoyUL_Init", $hash); 
 
   # start periodic reading
   InternalTimer(gettimeofday()+15, "ahoyUL_GetUpdate", $hash); 
@@ -54,13 +57,12 @@ sub ahoyUL_Define($$)
 }
 
 
-
 # will be executed upon successful connection establishment (see DevIo_OpenDev())
 sub ahoyUL_Init($)
 {
     my ($hash) = @_;
     my $name = $hash->{NAME};
-    Log3 $name, 3, "ahoy device Init() called ...";
+    Log3 $name, 2, "ahoy device Init() called ...";
     # send init to device, here e.g. enable automode to send DevInfoReq (0x15 ... 0x0B ....) every 120sec and enable simple decoding in ahoy-nano   
 	  DevIo_SimpleWrite($hash, "a120:\nd1\r\n", 2);
     
@@ -73,16 +75,24 @@ sub ahoyUL_Init($)
 sub ahoyUL_Initialize($)
 {
   my ($hash) = @_;
+  my $name = $hash->{NAME};
 
   $hash->{DefFn}    = "ahoyUL_Define";
   $hash->{UndefFn}  = "ahoyUL_Undef";
   $hash->{SetFn}    = "ahoyUL_Set";
   $hash->{ReadFn}   = "ahoyUL_Read";
   $hash->{ReadyFn}  = "ahoyUL_Ready";
-  
   $hash->{ParseFn}  = "ahoyUL_Parse";
   $hash->{ParseFn}  = "ahoyUL_GetUpdate";                             #to be initialized in X_Define with a period
-  
+  #$hash->{AttrFn}   = "ahoyUL_Attr";
+  $hash->{AttrList}  = "disable:0,1 " .
+					   "header " .
+                       "inv_polling_sec " .
+                       "$readingFnAttributes ";
+
+  Log3 $name, 2, "ahoy_Initialize called";
+
+  return undef;
 }
 
 
@@ -90,11 +100,11 @@ sub ahoyUL_GetUpdate($)
 {
 	my ($hash) = @_;
 	my $name = $hash->{NAME};
-	Log3 $name, 3, "ahoy_GetUpdate called ...";
+	Log3 $name, 4, "ahoy_GetUpdate called ... todo later";
 
 	# neuen Timer starten in einem konfigurierten Interval.
 	#InternalTimer(gettimeofday()+$hash->{cmdInterval}, "ahoyUL_GetUpdate", $hash);
-  InternalTimer(gettimeofday()+120, "ahoyUL_GetUpdate", $hash);
+  InternalTimer(gettimeofday() + 1800, "ahoyUL_GetUpdate", $hash);
 
   #todo: call cmd sender method or do it right here
 }
@@ -257,6 +267,28 @@ sub ahoyUL_Undef($$)
   # close the connection 
   DevIo_CloseDev($hash);
   return undef;
+}
+
+
+# default sub to set and del attributes, maybe used later
+sub ahoyUL_Attr($$$$)
+{
+	my ( $cmd, $name, $aName, $aValue ) = @_;
+    
+  	# $cmd  - Vorgangsart - kann die Werte "del" (löschen) oder "set" (setzen) annehmen
+	# $name - Gerätename
+	# $aName/$aValue sind Attribut-Name und Attribut-Wert
+    
+	if ($cmd eq "set") {
+		if ($aName eq "Regex") {
+			eval { qr/$aValue/ };
+			if ($@) {
+				Log3 $name, 3, "X ($name) - Invalid regex in attr $name $aName $aValue: $@";
+				return "Invalid Regex $aValue: $@";
+			}
+		}
+	}
+	return undef;
 }
 
 1;
