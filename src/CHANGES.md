@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.54
+* changed sunrise / sunset calculation, angle is now `-3.5` instead of original `-0.83`
+* improved scheduler (removed -1 from `reload`) #483
+* improved reboot flag in `app.h`
+* fixed #493 no MQTT payload once display is defined
+
 ## 0.5.53
 * Mono-Display: show values in offline mode #498
 * improved wifi class #483

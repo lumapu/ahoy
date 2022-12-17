@@ -111,7 +111,7 @@ namespace ah {
                         if(0 == p->d.reload)
                             p = mStack.rem(p);
                         else {
-                            p->d.timeout = p->d.reload - 1;
+                            p->d.timeout = p->d.reload;
                             p = mStack.get(p);
                         }
                     }

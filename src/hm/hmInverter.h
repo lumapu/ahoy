@@ -109,7 +109,6 @@ class Inverter {
         uint8_t       id;                    // unique id
         uint8_t       type;                  // integer which refers to inverter type
         uint16_t      alarmMesIndex;         // Last recorded Alarm Message Index
-        uint16_t      fwVersion;             // Firmware Version from Info Command Request
         uint16_t      powerLimit[2];         // limit power output
         float         actPowerLimit;         // actual power limit
         uint8_t       devControlCmd;         // carries the requested cmd
@@ -130,7 +129,6 @@ class Inverter {
             devControlRequest = false;
             devControlCmd = InitDataState;
             initialized = false;
-            fwVersion = 0;
             lastAlarmMsg =  "nothing";
             alarmMesIndex = 0;
         }
@@ -153,6 +151,7 @@ class Inverter {
         }
 
         void clearCmdQueue() {
+            DPRINTLN(DBG_INFO, F("clearCmdQueue"));
             while (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop();
@@ -161,7 +160,7 @@ class Inverter {
 
     	uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
-                if (fwVersion == 0)
+                if (getFwVersion() == 0)
                     enqueCommand<InfoCommand>(InverterDevInform_All);
                 enqueCommand<InfoCommand>(RealTimeRunData_Debug);
                 if (actPowerLimit == 0xffff)
@@ -264,11 +263,7 @@ class Inverter {
                 }
                 else if (rec->assign == InfoAssignment) {
                     DPRINTLN(DBG_DEBUG, "add info");
-                    // get at least the firmware version and save it to the inverter object
-                    if (getPosByChFld(0, FLD_FW_VERSION, rec) == pos){
-                        fwVersion = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter FW-Version: ") + String(fwVersion));
-                    }
+                    // eg. fw version ...
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
@@ -294,6 +289,8 @@ class Inverter {
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getValue"));
             if(NULL == rec)
+                return 0;
+            if(pos > rec->length)
                 return 0;
             return rec->record[pos];
         }
@@ -321,6 +318,12 @@ class Inverter {
                 return (getValue(pos, rec) > INACT_PWR_THRESH);
             }
             return false;
+        }
+
+        uint16_t getFwVersion() {
+            record_t<> *rec = getRecordStruct(InverterDevInform_All);
+            uint8_t pos = getPosByChFld(CH0, FLD_FW_VERSION, rec);
+            return getValue(pos, rec);
         }
 
         uint32_t getLastTs(record_t<> *rec) {

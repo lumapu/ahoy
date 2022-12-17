@@ -35,12 +35,6 @@
                     <select name="iv" id="InvID">
                     </select>
                     <br/>
-                    <div id="power">
-                        <input type="button" value="Restart" class="btn" id="restart"/>
-                        <input type="button" value="Turn Off" class="btn" id="power_off"/>
-                        <input type="button" value="Turn On" class="btn" id="power_on"/>
-                    </div>
-                    <br/>
                     <br/>
                     <br/>
                     <br/>
@@ -57,6 +51,13 @@
                     </select>
                     <br/>
                     <input type="button" value="Send Power Limit" class="btn" id="sendpwrlim"/>
+                    <br/>
+                    <div id="power">
+                        <input type="button" value="Restart" class="btn" id="restart"/>
+                        <input type="button" value="Turn Off" class="btn" id="power_off"/>
+                        <input type="button" value="Turn On" class="btn" id="power_on"/>
+                        <input type="button" value="Alarm Info" class="btn" id="alarminfo"/>
+                    </div>
                     <br/>
                     <p>Ctrl result: <span id="result">n/a</span></p>
                 </div>
@@ -182,6 +183,14 @@
                         break;
                 }
 
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            });
+
+            document.getElementById("alarminfo").addEventListener("click", function() {
+                var obj = new Object();
+                obj.id = get_selected_iv();
+                obj.cmd = "dev";
+                obj.val = 0x11;
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 

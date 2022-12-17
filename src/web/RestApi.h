@@ -251,7 +251,7 @@ class RestApi {
                     obj2[F("name")]     = String(iv->config->name);
                     obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
                     obj2[F("channels")] = iv->channels;
-                    obj2[F("version")]  = String(iv->fwVersion);
+                    obj2[F("version")]  = String(iv->getFwVersion());
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
                         obj2[F("ch_max_power")][j] = iv->config->chMaxPwr[j];
@@ -357,7 +357,7 @@ class RestApi {
                     invObj[F("enabled")]         = (bool)iv->config->enabled;
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
-                    invObj[F("version")]         = String(iv->fwVersion);
+                    invObj[F("version")]         = String(iv->getFwVersion());
                     invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp(), rec);
                     invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp(), rec);
                     invObj[F("ts_last_success")] = iv->getLastTs(rec);
@@ -500,6 +500,10 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
                 iv->devControlCmd = ActivePowerContr;
                 iv->devControlRequest = true;
+            }
+            else if(F("dev") == jsonIn[F("cmd")]) {
+                DPRINTLN(DBG_INFO, F("dev cmd"));
+                iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
             }
             else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";

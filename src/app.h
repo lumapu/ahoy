@@ -94,7 +94,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setRebootFlag() {
-            mShouldReboot = true;
+            once(std::bind(&app::tickReboot, this), 1);
         }
 
         const char *getVersion() {
@@ -118,7 +118,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setMqttDiscoveryFlag() {
-            mFlagSendDiscoveryConfig = true;
+            once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1);
         }
 
         bool getMqttIsConnected() {
@@ -153,32 +153,33 @@ class app : public IApp, public ah::Scheduler {
         void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
             if(0 == newTime)
-                mUpdateNtp = true;
+                mWifi.getNtpTime();
             else
                 Scheduler::setTimestamp(newTime);
         }
 
         HmSystemType *mSys;
-        bool mShouldReboot;
 
     private:
         void resetSystem(void);
+
+        void payloadEventListener(uint8_t cmd) {
+            #if !defined(AP_ONLY)
+            mMqtt.payloadEventListener(cmd);
+            #endif
+            #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+            mMonoDisplay.payloadEventListener(cmd);
+            #endif
+        }
 
         void mqttSubRxCb(JsonObject obj);
 
         void setupLed(void);
         void updateLed(void);
 
-        void tickSecond(void) {
-            if (mShouldReboot) {
-                DPRINTLN(DBG_INFO, F("Rebooting..."));
-                ESP.restart();
-            }
-
-            if (mUpdateNtp) {
-                mUpdateNtp = false;
-                mWifi.getNtpTime();
-            }
+        void tickReboot(void) {
+            DPRINTLN(DBG_INFO, F("Rebooting..."));
+            ESP.restart();
         }
 
         void tickNtpUpdate(void);
@@ -205,9 +206,6 @@ class app : public IApp, public ah::Scheduler {
             DPRINT(DBG_VERBOSE, F(" - max: ") + String(max) + "%");
             DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
         }
-
-        bool mUpdateNtp;
-        bool mFlagSendDiscoveryConfig;
 
         bool mShowRebootRequest;
 

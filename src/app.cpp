@@ -30,8 +30,6 @@ void app::setup() {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
-
-    everySec(std::bind(&app::tickSecond, this));
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
     #if !defined(AP_ONLY)
         once(std::bind(&app::tickNtpUpdate, this), 2);
@@ -44,6 +42,8 @@ void app::setup() {
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mPayload.addListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+
 
     #if !defined(AP_ONLY)
     mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
@@ -62,7 +62,6 @@ void app::setup() {
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
     if (mConfig->mqtt.broker[0] > 0) {
-        mPayload.addListener(std::bind(&PubMqttType::payloadEventListener, &mMqtt, std::placeholders::_1));
         everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
         everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
@@ -75,19 +74,10 @@ void app::setup() {
     everySec(std::bind(&WebType::tickSecond, &mWeb));
 
     mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
-    /*mApi.registerCb(apiCbScanNetworks, std::bind(&app::scanAvailNetworks, this));
-    #if !defined(AP_ONLY)
-        mApi.registerCb(apiCbMqttTxCnt, std::bind(&PubMqttType::getTxCnt, &mMqtt));
-        mApi.registerCb(apiCbMqttRxCnt, std::bind(&PubMqttType::getRxCnt, &mMqtt));
-        mApi.registerCb(apiCbMqttIsCon, std::bind(&PubMqttType::isConnected, &mMqtt));
-        mApi.registerCb(apiCbMqttDiscvry, std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt));
-        //mApi.registerCb(apiCbMqttDiscvry, std::bind(&app::setMqttDiscoveryFlag, this));
-    #endif*/
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
     mMonoDisplay.setup(mSys, &mTimestamp);
-    mPayload.addListener(std::bind(&MonoDisplayType::payloadEventListener, &mMonoDisplay, std::placeholders::_1));
     everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
 
@@ -106,11 +96,6 @@ void app::loop(void) {
     #endif
 
     mWeb.loop();
-
-    if (mFlagSendDiscoveryConfig) {
-        mFlagSendDiscoveryConfig = false;
-        mMqtt.sendDiscoveryConfig();
-    }
 
     mSys->Radio.loop();
 
@@ -252,10 +237,6 @@ void app::handleIntr(void) {
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-
-    mShouldReboot = false;
-    mUpdateNtp = false;
-    mFlagSendDiscoveryConfig = false;
 
 #ifdef AP_ONLY
     mTimestamp = 1;
