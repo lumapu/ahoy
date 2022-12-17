@@ -55,6 +55,7 @@
                 for (const [key, value] of Object.entries(obj)) {
                     if(!data.includes(key) || (typeof value == 'undefined')) continue;
                     var li = document.createElement("li");
+                    li.appendChild()
                     li.appendChild(document.createTextNode(key + ": " + value));
                     ul.appendChild(li);
                 }
@@ -86,10 +87,6 @@
                 if(null != obj) {
                     parseMenu(obj["menu"]);
                     parseSys(obj["system"]);
-                    parseSysInfo(obj["system"]);
-                    parseRadio(obj["system"]["radio"]);
-                    var e = document.getElementById("system");
-                    e.innerHTML = obj["html"];
 
                     if(null != obj["refresh"]) {
                         var meta = document.createElement('meta');
@@ -97,6 +94,12 @@
                         meta.content = obj["refresh"] + "; URL=" + obj["refresh_url"];
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     }
+                    else {
+                        parseSysInfo(obj["system"]);
+                        parseRadio(obj["system"]["radio"]);
+                    }
+                    var e = document.getElementById("system");
+                    e.innerHTML = obj["html"];
                 }
             }
 

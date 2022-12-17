@@ -30,15 +30,6 @@ void app::setup() {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
-    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
-    #if !defined(AP_ONLY)
-        once(std::bind(&app::tickNtpUpdate, this), 2);
-        if((mConfig->sun.lat) && (mConfig->sun.lon)) {
-            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-            once(std::bind(&app::tickCalcSunrise, this), 5);
-        }
-    #endif
-
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
@@ -50,6 +41,15 @@ void app::setup() {
     #endif
 
     mWifi.setup(mConfig, &mTimestamp);
+
+    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
+    #if !defined(AP_ONLY)
+        once(std::bind(&app::tickNtpUpdate, this), 2);
+        if((mConfig->sun.lat) && (mConfig->sun.lon)) {
+            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+            once(std::bind(&app::tickCalcSunrise, this), 5);
+        }
+    #endif
 
     if(mSys->Radio.isChipConnected()) {
         mSys->addInverters(&mConfig->inst);

@@ -203,6 +203,7 @@ class RestApi {
             getMenu(obj.createNestedObject(F("menu")));
             getSysInfo(obj.createNestedObject(F("system")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
+
         }
 
         void getHtmlLogout(JsonObject obj) {

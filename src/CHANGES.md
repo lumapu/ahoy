@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.56
+* factory reset formats entire little fs
+* renamed sunrise / sunset on indext.html to start / stop communication
+* show system information only if called directly from menu
+
 ## 0.5.55
 * fixed static IP save
 

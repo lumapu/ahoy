@@ -193,7 +193,7 @@ class settings {
         }
 
         bool saveSettings(void) {
-            DPRINTLN(DBG_INFO, F("save settings"));
+            DPRINTLN(DBG_DEBUG, F("save settings"));
             File fp = LittleFS.open("/settings.json", "w");
             if(!fp) {
                 DPRINTLN(DBG_ERROR, F("can't open settings file!"));
@@ -221,24 +221,32 @@ class settings {
         }
 
         bool eraseSettings(bool eraseWifi = false) {
-            loadDefaults(eraseWifi);
+            if(true == eraseWifi)
+                return LittleFS.format();
+            loadDefaults(!eraseWifi);
             return saveSettings();
         }
 
     private:
-        void loadDefaults(bool wifi = true) {
+        void loadDefaults(bool keepWifi = false) {
             DPRINTLN(DBG_VERBOSE, F("loadDefaults"));
-            if(wifi) {
-                snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
-                snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);
-            }
-            else {
-                cfgSys_t tmp;
+
+            cfgSys_t tmp;
+            if(keepWifi) {
+                // copy contents which should not be deleted
                 memset(&tmp.adminPwd, 0, PWD_LEN);
                 memcpy(&tmp, &mCfg.sys, sizeof(cfgSys_t));
-                memset(&mCfg, 0, sizeof(settings_t));
-                memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
             }
+            // erase all settings and reset to default
+            memset(&mCfg, 0, sizeof(settings_t));
+            // restore temp settings
+            if(keepWifi)
+                memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            else {
+                snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
+                snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
+            }
+
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
             mCfg.nrf.sendInterval      = SEND_INTERVAL;
