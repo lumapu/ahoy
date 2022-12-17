@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.55
+* fixed static IP save
+
 ## 0.5.54
 * changed sunrise / sunset calculation, angle is now `-3.5` instead of original `-0.83`
 * improved scheduler (removed -1 from `reload`) #483

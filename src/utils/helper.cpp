@@ -7,16 +7,16 @@
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
+        char tmp[16];
         memset(ip, 0, 4);
-        char *tmp = new char[strlen(ipStr)+1];
-        snprintf(tmp, strlen(ipStr), ipStr);
+        memset(tmp, 0, 16);
+        snprintf(tmp, 16, ipStr);
         char *p = strtok(tmp, ".");
         uint8_t i = 0;
         while(NULL != p) {
             ip[i++] = atoi(p);
             p = strtok(NULL, ".");
         }
-        delete[] tmp;
     }
 
     // note: char *str needs to be at least 16 bytes long
