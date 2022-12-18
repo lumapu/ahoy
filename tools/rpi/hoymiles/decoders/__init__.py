@@ -440,7 +440,7 @@ class Hm300Decode0B(StatusResponse):
     @property
     def temperature(self):
         """ Inverter temperature in °C """
-        return self.unpack('>H', 26)[0]/10
+        return self.unpack('>h', 26)[0]/10
 
 class Hm300Decode0C(Hm300Decode0B):
     """ 1121-series mirco-inverters status data """
@@ -527,7 +527,7 @@ class Hm600Decode0B(StatusResponse):
     @property
     def temperature(self):
         """ Inverter temperature in °C """
-        return self.unpack('>H', 38)[0]/10
+        return self.unpack('>h', 38)[0]/10
     @property
     def event_count(self):
         """ Event counter """
@@ -660,7 +660,7 @@ class Hm1200Decode0B(StatusResponse):
     @property
     def temperature(self):
         """ Inverter temperature in °C """
-        return self.unpack('>H', 58)[0]/10
+        return self.unpack('>h', 58)[0]/10
     @property
     def event_count(self):
         """ Event counter """
