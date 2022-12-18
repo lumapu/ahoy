@@ -128,9 +128,10 @@ function opt(val, html) {
     return o;
 }
 
-function div(cl) {
+function div(cl, h=null) {
     e = document.createElement('div');
     e.classList.add(...cl);
+    if(null != h) e.innerHTML = h;
     return e;
 }
 
