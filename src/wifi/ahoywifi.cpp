@@ -8,7 +8,6 @@
   #define F(sl) (sl)
 #endif
 #include "ahoywifi.h"
-#include <ESP8266HTTPClient.h>
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
