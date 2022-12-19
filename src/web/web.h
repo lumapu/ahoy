@@ -463,10 +463,12 @@ class Web {
                     mConfig->sun.lat = 0.0;
                     mConfig->sun.lon = 0.0;
                     mConfig->sun.disNightCom = false;
+                    mConfig->sun.offsetSec = 0;
                 } else {
                     mConfig->sun.lat = request->arg("sunLat").toFloat();
                     mConfig->sun.lon = request->arg("sunLon").toFloat();
                     mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
+                    mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
                 }
 
                 // mqtt

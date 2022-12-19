@@ -60,6 +60,7 @@ class RestApi {
             else if(path == "html/logout")    getHtmlLogout(root);
             else if(path == "html/save")      getHtmlSave(root);
             else if(path == "system")         getSysInfo(root);
+            else if(path == "generic")        getGeneric(root);
             else if(path == "reboot")         getReboot(root);
             else if(path == "statistics")     getStatistics(root);
             else if(path == "inverter/list")  getInverterList(root);
@@ -144,17 +145,23 @@ class RestApi {
             request->send(response);
         }
 
+        void getGeneric(JsonObject obj) {
+            obj[F("version")]      = String(mApp->getVersion());
+            obj[F("build")]        = String(AUTO_GIT_HASH);
+            obj[F("wifi_rssi")]    = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
+            obj[F("ts_uptime")]    = mApp->getUptime();
+
+        #if defined(ESP32)
+            obj[F("esp_type")]    = F("ESP32");
+        #else
+            obj[F("esp_type")]    = F("ESP8266");
+        #endif
+        }
+
         void getSysInfo(JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("device_name")]  = mConfig->sys.deviceName;
-            obj[F("version")]      = String(mApp->getVersion());
-            obj[F("build")]        = String(AUTO_GIT_HASH);
 
-            obj[F("ts_uptime")]    = mApp->getUptime();
-            obj[F("ts_now")]       = mApp->getTimestamp();
-            obj[F("ts_sunrise")]   = mApp->getSunrise();
-            obj[F("ts_sunset")]    = mApp->getSunset();
-            obj[F("wifi_rssi")]    = WiFi.RSSI();
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = WiFi.getHostname();
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
@@ -164,9 +171,10 @@ class RestApi {
             obj[F("heap_free")]    = ESP.getFreeHeap();
             obj[F("sketch_total")] = ESP.getFreeSketchSpace();
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
-
+            getGeneric(obj);
 
             getRadio(obj.createNestedObject(F("radio")));
+            getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
             obj[F("heap_total")]    = ESP.getHeapSize();
@@ -191,24 +199,19 @@ class RestApi {
         #endif
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
             //obj[F("littlefs_used")] = LittleFS.usedBytes();
-
-        #if defined(ESP32)
-            obj[F("esp_type")]    = F("ESP32");
-        #else
-            obj[F("esp_type")]    = F("ESP8266");
-        #endif
         }
 
         void getHtmlSystem(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
             getSysInfo(obj.createNestedObject(F("system")));
+            getGeneric(obj.createNestedObject(F("generic")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
 
         }
 
         void getHtmlLogout(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
-            getSysInfo(obj.createNestedObject(F("system")));
+            getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("succesfully logged out");
@@ -216,7 +219,7 @@ class RestApi {
 
         void getHtmlSave(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
-            getSysInfo(obj.createNestedObject(F("system")));
+            getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 2;
             obj[F("refresh_url")] = "/setup";
             obj[F("html")] = F("settings succesfully save");
@@ -224,7 +227,7 @@ class RestApi {
 
         void getReboot(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
-            getSysInfo(obj.createNestedObject(F("system")));
+            getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 10;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("reboot. Autoreload after 10 seconds");
@@ -282,6 +285,7 @@ class RestApi {
             obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
             obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
             obj[F("disnightcom")] = mConfig->sun.disNightCom;
+            obj[F("offs")] = mConfig->sun.offsetSec;
         }
 
         void getPinout(JsonObject obj) {
@@ -343,10 +347,12 @@ class RestApi {
 
         void getIndex(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
-            getSysInfo(obj.createNestedObject(F("system")));
-            getRadio(obj.createNestedObject(F("radio")));
-            getStatistics(obj.createNestedObject(F("statistics")));
-            obj["refresh_interval"] = mConfig->nrf.sendInterval;
+            getGeneric(obj.createNestedObject(F("generic")));
+
+            obj[F("ts_now")]       = mApp->getTimestamp();
+            obj[F("ts_sunrise")]   = mApp->getSunrise();
+            obj[F("ts_sunset")]    = mApp->getSunset();
+            obj[F("ts_offset")]    = mConfig->sun.offsetSec;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;
@@ -369,22 +375,27 @@ class RestApi {
             if(!mSys->Radio.isChipConnected())
                 warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
             else if(!mSys->Radio.isPVariant())
-                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible!"));
+                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
+            if(!mApp->getSettingsValid())
+                warn.add(F("your settings are invalid"));
+            if(mApp->getRebootRequestState())
+                warn.add(F("reboot your ESP to apply all your configuration changes"));
+            if(0 == mApp->getTimestamp())
+                warn.add(F("time not set. No communication to inverter possible"));
+            /*if(0 == mSys->getNumInverters())
+                warn.add(F("no inverter configured"));*/
 
             if((!mApp->getMqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
                 warn.add(F("MQTT is not connected"));
 
             JsonArray info = obj.createNestedArray(F("infos"));
-            if(mApp->getRebootRequestState())
-                info.add(F("reboot your ESP to apply all your configuration changes!"));
-            if(!mApp->getSettingsValid())
-                info.add(F("your settings are invalid"));
             if(mApp->getMqttIsConnected())
                 info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent, ") + String(mApp->getMqttRxCnt()) + F(" packets received"));
         }
 
         void getSetup(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
+            getGeneric(obj.createNestedObject(F("generic")));
             getSysInfo(obj.createNestedObject(F("system")));
             getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
@@ -402,7 +413,7 @@ class RestApi {
 
         void getLive(JsonObject obj) {
             getMenu(obj.createNestedObject(F("menu")));
-            getSysInfo(obj.createNestedObject(F("system")));
+            getGeneric(obj.createNestedObject(F("generic")));
             JsonArray invArr = obj.createNestedArray(F("inverter"));
             obj["refresh_interval"] = mConfig->nrf.sendInterval;
 

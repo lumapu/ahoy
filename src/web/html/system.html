@@ -15,12 +15,15 @@
                 <span></span>
             </a>
             <div id="topnav" class="hide"></div>
+            <div id="wifiicon" class="info"></div>
         </div>
         <div id="wrapper">
             <div id="content">
+                <pre id="stat"></pre>
                 <div id="info" class="col-sm-12 col-md-6 mt-3"></div>
                 <div id="radio" class="col-sm-12 col-md-6 mt-3"></div>
-                <div id="system" class="mt-3"></div>
+                <div id="sun" class="col-sm-12 col-md-6 mt-3"></div>
+                <div id="html" class="mt-3 mb-3"></div>
             </div>
         </div>
         <div id="footer">
@@ -40,9 +43,10 @@
             </div>
         </div>
         <script type="text/javascript">
-            function parseSys(obj) {
+            function parseGeneric(obj) {
                 parseVersion(obj);
                 parseESP(obj);
+                parseRssi(obj);
             }
 
             function genTabRow(key, value) {
@@ -54,7 +58,7 @@
 
             function parseSysInfo(obj) {
                 const data = ["sdk", "cpu_freq", "chip_revision",
-                    "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi",
+                    "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "ts_uptime",
                     "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
                     "max_free_blk", "version", "core_version", "reboot_reason"];
 
@@ -71,7 +75,7 @@
                 }
             }
 
-            function parseRadio(obj) {
+            function parseRadio(obj, stat) {
                 const pa = ["MIN", "LOW", "HIGH", "MAX"];
                 const datarate = ["1 MBps", "2 MBps", "250 kbps"];
 
@@ -88,12 +92,35 @@
                     main.appendChild(genTabRow("Datarate", datarate[obj["DataRate"]]));
                     main.appendChild(genTabRow("Power Level", pa[obj["power_level"]]));
                 }
+
+                main.append(
+                    genTabRow("RX success", stat["rx_success"]),
+                    genTabRow("RX fail", stat["rx_fail"]),
+                    genTabRow("RX no answer", stat["rx_fail_answer"]),
+                    genTabRow("RX frames received", stat["frame_cnt"]),
+                    genTabRow("TX count", stat["tx_cnt"])
+                );
+            }
+
+            function parseIndex(obj) {
+                var h = div(["head", "p-2"]);
+                var r = div(["row"]);
+                r.appendChild(div(["col", "a-c"], "Sun"));
+                h.appendChild(r);
+
+                document.getElementById("sun").append (
+                    h,
+                    genTabRow("Sunrise", new Date(obj["ts_sunrise"] * 1000).toLocaleString('de-DE')),
+                    genTabRow("Sunset", new Date(obj["ts_sunset"] * 1000).toLocaleString('de-DE')),
+                    genTabRow("Communication start", new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
+                    genTabRow("Communication stop", new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'))
+                );
             }
 
             function parse(obj) {
                 if(null != obj) {
                     parseMenu(obj["menu"]);
-                    parseSys(obj["system"]);
+                    parseGeneric(obj["generic"]);
 
                     if(null != obj["refresh"]) {
                         var meta = document.createElement('meta');
@@ -103,10 +130,10 @@
                     }
                     else {
                         parseSysInfo(obj["system"]);
-                        parseRadio(obj["system"]["radio"]);
+                        parseRadio(obj["system"]["radio"], obj["system"]["statistics"]);
+                        getAjax('/api/index', parseIndex);
                     }
-                    var e = document.getElementById("system");
-                    e.innerHTML = obj["html"];
+                    document.getElementById("html").innerHTML = obj["html"];
                 }
             }
 

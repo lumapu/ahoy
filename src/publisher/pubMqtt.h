@@ -40,14 +40,12 @@ class PubMqtt {
 
         ~PubMqtt() { }
 
-        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *sunrise, uint32_t *sunset) {
+        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
             mCfgMqtt        = cfg_mqtt;
             mDevName        = devName;
             mVersion        = version;
             mSys            = sys;
             mUtcTimestamp   = utcTs;
-            mSunrise        = sunrise;
-            mSunset         = sunset;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
@@ -93,9 +91,11 @@ class PubMqtt {
                 tickSunset();
         }
 
-        void tickerSun() {
-            publish("sunrise", String(*mSunrise).c_str(), true);
-            publish("sunset", String(*mSunset).c_str(), true);
+        void tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs) {
+            publish("sunrise", String(sunrise).c_str(), true);
+            publish("sunset", String(sunset).c_str(), true);
+            publish("comm_start", String(sunrise - offs).c_str(), true);
+            publish("comm_stop", String(sunset + offs).c_str(), true);
         }
 
         void tickSunrise() {
@@ -505,7 +505,6 @@ class PubMqtt {
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
         #endif
 
-        uint32_t *mSunrise, *mSunset;
         HMSYSTEM *mSys;
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;

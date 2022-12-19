@@ -31,16 +31,30 @@ h2 {
 }
 
 .topnav a.icon {
+    top: 0;
+    left: 0;
     background: #333;
     display: block;
     position: absolute;
-    left: 0;
-    top: 0;
 }
 
 .topnav a:hover {
     background-color: #044e86 !important;
     color: #000;
+}
+
+.topnav .info {
+    color: #fff;
+    position: absolute;
+    right: 24px;
+    top: 5px;
+}
+
+svg.icon {
+    vertical-align: middle;
+    display: inline-block;
+    margin-top:-4x;
+    padding: 5px 7px 5px 0px;
 }
 
 .title {
@@ -140,6 +154,13 @@ span.seperator {
 
     .topnav .hide {
         display: block;
+    }
+
+    .topnav .info {
+        top: auto !important;
+        right: auto !important;
+        bottom: 14px;
+        left: 24px;
     }
 
     #content {
@@ -376,11 +397,16 @@ div.ModPwr, div.ModName {
   display: inline-block;
 }
 
+div.hr {
+    height: 1px;
+    border-top: 1px solid #ccc;
+    margin: 10px 0px 10px;
+}
+
 #note {
-    margin: 50px 10px 10px 10px;
+    margin: 10px 10px 10px 10px;
     padding-top: 10px;
     width: 100%;
-    border-top: 1px solid #bbb;
 }
 
 @media(max-width: 500px) {
@@ -476,6 +502,12 @@ div.ModPwr, div.ModName {
 .mt-3  { margin-top: 1rem }
 .mt-4  { margin-top: 1.5rem }
 .mt-5  { margin-top: 3rem }
+
+.mb-1  { margin-bottom: 0.25rem }
+.mb-2  { margin-bottom: 0.5rem }
+.mb-3  { margin-bottom: 1rem }
+.mb-4  { margin-bottom: 1.5rem }
+.mb-5  { margin-bottom: 3rem }
 
 .a-r { text-align: right; }
 .a-c { text-align: center; }

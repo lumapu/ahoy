@@ -55,6 +55,7 @@ typedef struct {
     float lat;
     float lon;
     bool disNightCom; // disable night communication
+    uint16_t offsetSec;
 } cfgSun_t;
 
 typedef struct {
@@ -173,7 +174,7 @@ class settings {
                 //fp.seek(0, SeekSet);
                 DynamicJsonDocument root(4096);
                 DeserializationError err = deserializeJson(root, fp);
-                if(!err) {
+                if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
                     jsonWifi(root["wifi"]);
                     jsonNrf(root["nrf"]);
@@ -262,6 +263,7 @@ class settings {
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
             mCfg.sun.disNightCom = false;
+            mCfg.sun.offsetSec   = 0;
 
             mCfg.serial.interval = SERIAL_INTERVAL;
             mCfg.serial.showIv   = false;
@@ -334,13 +336,15 @@ class settings {
 
         void jsonSun(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("lat")] = mCfg.sun.lat;
-                obj[F("lon")] = mCfg.sun.lon;
-                obj[F("dis")] = mCfg.sun.disNightCom;
+                obj[F("lat")]  = mCfg.sun.lat;
+                obj[F("lon")]  = mCfg.sun.lon;
+                obj[F("dis")]  = mCfg.sun.disNightCom;
+                obj[F("offs")] = mCfg.sun.offsetSec;
             } else {
                 mCfg.sun.lat         = obj[F("lat")];
                 mCfg.sun.lon         = obj[F("lon")];
                 mCfg.sun.disNightCom = obj[F("dis")];
+                mCfg.sun.offsetSec   = obj[F("offs")];
             }
         }
 

@@ -104,8 +104,14 @@ class HmSystem {
         }
 
         uint8_t getNumInverters(void) {
-            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getNumInverters"));
-            return mNumInv;
+            uint8_t num = 0;
+            INVERTERTYPE *p;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                p = &mInverter[i];
+                if(p->config->serial.u64 != 0ULL)
+                    num++;
+            }
+            return num;
         }
 
         void enableDebug() {

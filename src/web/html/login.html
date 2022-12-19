@@ -33,10 +33,10 @@
         </div>
         <script type="text/javascript">
             function parse(obj) {
-                parseVersion(obj["system"]);
+                parseVersion(obj["general"]);
             }
 
-            getAjax("/api/index", parse);
+            getAjax("/api/generic", parse);
         </script>
     </body>
 </html>

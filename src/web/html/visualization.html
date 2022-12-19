@@ -16,6 +16,7 @@
                 <span></span>
             </a>
             <div id="topnav" class="hide"></div>
+            <div id="wifiicon" class="info"></div>
         </div>
         <div id="wrapper">
             <div id="content">
@@ -42,11 +43,12 @@
         <script type="text/javascript">
             var exeOnce = true;
 
-            function parseSys(obj) {
+            function parseGeneric(obj) {
                 if(true == exeOnce){
                     parseVersion(obj);
                     parseESP(obj);
                 }
+                parseRssi(obj);
             }
 
             function parseIv(obj, root) {
@@ -117,7 +119,7 @@
                 if(obj.length > 1) {
                     for(var j = 0; j < root.ch0_fld_names.length; j++) {
                         var val = Math.round(total[j] * 100) / 100;
-                        if(val > 0) {
+                        if((j == 2) || (j == 6) || (j == 7) || (j == 8) || (j == 10)) {
                             var sub = div(["subgrp"]);
                             sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
                             sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
@@ -133,7 +135,7 @@
                 if(null != obj) {
                     if(true == exeOnce)
                         parseMenu(obj["menu"]);
-                    parseSys(obj["system"]);
+                    parseGeneric(obj["generic"]);
                     parseIv(obj["inverter"], obj);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];
                     if(true == exeOnce) {

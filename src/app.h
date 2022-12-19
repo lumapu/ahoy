@@ -74,6 +74,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         bool saveSettings() {
+            mShowRebootRequest = true;
             return mSettings.saveSettings();
         }
 

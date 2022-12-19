@@ -297,6 +297,8 @@ class HmRadio {
         }
 
         uint8_t getDataRate(void) {
+            if(!mNrf24.isChipConnected())
+                return 3; // unkown
             return mNrf24.getDataRate();
         }
 

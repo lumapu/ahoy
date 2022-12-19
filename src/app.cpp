@@ -37,7 +37,7 @@ void app::setup() {
 
 
     #if !defined(AP_ONLY)
-    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp, &mSunrise, &mSunset);
+    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp);
     #endif
 
     mWifi.setup(mConfig, &mTimestamp);
@@ -126,7 +126,9 @@ void app::loop(void) {
             mPayload.process(true, mConfig->nrf.maxRetransPerPyld, &mStat);
     }
 
+#if !defined(AP_ONLY)
     mMqtt.loop();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -149,9 +151,9 @@ void app::tickCalcSunrise(void) {
     uint32_t nxtTrig = mTimestamp - ((mTimestamp - 10) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
-        once(std::bind(&PubMqttType::tickerSun, &mMqtt), 1);
-        onceAt(std::bind(&PubMqttType::tickSunrise, &mMqtt), mSunrise);
-        onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), mSunset);
+        mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec);
+        onceAt(std::bind(&PubMqttType::tickSunrise, &mMqtt), (mSunrise - mConfig->sun.offsetSec));
+        onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), (mSunset + mConfig->sun.offsetSec));
     }
 }
 
@@ -161,7 +163,7 @@ void app::tickSend(void) {
         DPRINTLN(DBG_WARN, "NRF24 not connected!");
         return;
     }
-    if ((mTimestamp > 0) && (!mConfig->sun.disNightCom || (mTimestamp >= mSunrise && mTimestamp <= mSunset))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
+    if ((mTimestamp > 0) && (!mConfig->sun.disNightCom || (mTimestamp >= (mSunrise - mConfig->sun.offsetSec) && mTimestamp <= (mSunset + mConfig->sun.offsetSec)))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
         if (!mSys->BufCtrl.empty()) {
             if (mConfig->serial.debug)
                 DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));

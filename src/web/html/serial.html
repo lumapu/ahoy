@@ -15,6 +15,7 @@
                 <span></span>
             </a>
             <div id="topnav" class="hide"></div>
+            <div id="wifiicon" class="info"></div>
         </div>
         <div id="wrapper">
             <div id="content">
@@ -83,7 +84,7 @@
             var con = document.getElementById("serial");
             var exeOnce = true;
 
-            function parseSys(obj) {
+            function parseGeneric(obj) {
                 var up = obj["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
                 var hrs  = parseInt(up / 3600) % 24;
@@ -94,10 +95,11 @@
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
 
+                parseRssi(obj);
                 if(true == exeOnce) {
                     parseVersion(obj);
                     parseESP(obj);
-                    window.setInterval("getAjax('/api/system', parseSys)", 10000);
+                    window.setInterval("getAjax('/api/generic', parseGeneric)", 10000);
                     exeOnce = false;
                     getAjax("/api/setup", parse);
                 }
@@ -201,7 +203,7 @@
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             });
 
-            getAjax("/api/system", parseSys);
+            getAjax("/api/generic", parseGeneric);
         </script>
     </body>
 </html>

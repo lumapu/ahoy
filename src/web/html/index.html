@@ -15,6 +15,7 @@
                 <span></span>
             </a>
             <div id="topnav" class="hide"></div>
+            <div id="wifiicon" class="info"></div>
         </div>
         <div id="wrapper">
             <div id="content">
@@ -35,23 +36,18 @@
                     <span class="des">Uptime: </span><span id="uptime"></span><br/>
                     <span class="des">ESP-Time: </span><span id="date"></span>
                 </p>
-                <div id="sun">
-                    <span class="des">Communication</span><br/>
-                    <span class="des">start: </span><span id="sunrise"></span><br>
-                    <span class="des">stop: </span><span id="sunset"></span>
-                </div>
-                <p><span class="des">WiFi RSSI: </span><span id="wifi_rssi"></span> dBm</p>
                 <p>
-                    <span class="des">System Infos: </span>
-                    <pre id="stat"></pre>
-                    <pre id="iv"></pre>
-                    <pre id="warn_info"></pre>
+                    <span class="des">System Infos:</span>
+                    <div id="iv"></div>
+                    <div class="hr"></div>
+                    <div id="warn_info"></div>
                 </p>
 
+                <div class="hr"></div>
                 <div id="note">
-                    Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a><br/>
                     <h3>Support this project:</h3>
                     <ul>
+                        <li>Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a></li>
                         <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
                         <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">documentation</a></li>
                         <li>Test <a href="https://github.com/lumapu/ahoy/actions/workflows/compile_development.yml"  target="_blank">development firmware</a></li>
@@ -83,6 +79,7 @@
             var exeOnce = true;
             var tickCnt = 0;
             var ts = 0;
+            var commInfo = "";
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -102,24 +99,28 @@
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 
-            function parseSys(obj) {
+            function ts2Span(ts) {
+                return span(new Date(ts * 1000).toLocaleString('de-DE'));
+            }
+
+            function parseGeneric(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
                 if(exeOnce){
                     parseVersion(obj);
                     parseESP(obj);
                 }
-                document.getElementById("wifi_rssi").innerHTML = obj["wifi_rssi"];
+                parseRssi(obj);
+            }
 
+            function parseSys(obj) {
                 ts = obj["ts_now"];
                 var date = new Date(obj["ts_now"] * 1000);
-                var up = obj["ts_uptime"];
+                var up = obj["generic"]["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
-                var sunrise = new Date(obj["ts_sunrise"] * 1000);
-                var sunset = new Date(obj["ts_sunset"] * 1000);
                 var e = document.getElementById("uptime");
                 e.innerHTML = days + " Day";
                 if(1 != days)
@@ -139,60 +140,73 @@
                     e.addEventListener("click", setTime);
                 }
 
-                if(0 == obj["ts_sunrise"]) {
-                    var e = document.getElementById("sun");
-                    if(null != e)
-                        e.parentNode.removeChild(e);
+                if(obj["ts_sunrise"] > 0) {
+                    if(((obj["ts_sunrise"] - obj["ts_offset"]) < obj["ts_now"])
+                        && ((obj["ts_sunset"] + obj["ts_offset"]) > obj["ts_now"])) {
+                        commInfo = "Polling inverter(s), will stop at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                    }
+                    else {
+                        commInfo = "Night time, no Communication to Inverter, ";
+                        if(obj["ts_now"] > (obj["ts_sunrise"] - obj["ts_offset"])) {
+                            commInfo += "stopped polling at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        }
+                        else {
+                            commInfo += "will start polling at " + (new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        }
+                    }
                 }
-                else {
-                    document.getElementById("sunrise").innerHTML = sunrise.toLocaleString('de-DE');
-                    document.getElementById("sunset").innerHTML = sunset.toLocaleString('de-DE');
-                }
-            }
-
-            function parseStat(obj) {
-                document.getElementById("stat").innerHTML = "RX success: " + obj["rx_success"]
-                    + "\nRX fail: " + obj["rx_fail"]
-                    + "\nRX no answer: " + obj["rx_fail_answer"]
-                    + "\nFrames received: " + obj["frame_cnt"]
-                    + "\nTX cnt: " + obj["tx_cnt"];
             }
 
             function parseIv(obj) {
-                var html = "";
+                var p = div(["none"]);
                 for(var i of obj) {
-                    html += "Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is ";
-                    if(false == i["is_avail"])
-                        html += "not yet available\n";
-                    else {
-                        html += "available and is ";
-                        if(false == i["is_producing"])
-                            html += "not ";
-                        html += "producing\n";
+                    var icon = iconWarn;
+                    var color = "#F70";
+                    avail = "";
+                    if(false == i["enabled"]) {
+                        avail = "disabled";
                     }
+                    else if(false == i["is_avail"]) {
+                        icon = iconInfo;
+                        color = "#00d";
+                        avail = "not yet available";
+                    }
+                    else {
+                        icon = iconSuccess;
+                        avail = "available and is ";
+                        if(false == i["is_producing"])
+                            avail += "not ";
+                        avail += "producing";
+                    }
+
+                    p.append(
+                        svg(icon, 20, 20, color, "icon"),
+                        span("Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is " + avail),
+                        br()
+                    );
 
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {
                             var date = new Date(i["ts_last_success"] * 1000);
-                            html += "-> last successful transmission: " + date.toLocaleString('de-DE') + "\n";
+                            p.append(span("-> last successful transmission: " + date.toLocaleString('de-DE')), br());
                         }
                     }
-                    if(false == i["enabled"])
-                        html += "-> disabled\n";
-
                 }
-                document.getElementById("iv").innerHTML = html;
+                document.getElementById("iv").replaceChildren(p);
             }
 
-            function parseWarnInfo(warn, info) {
-                var html = "";
+            function parseWarnInfo(warn, success) {
+                var p = div(["none"]);
                 for(var w of warn) {
-                    html += "WARN: " + w + "\n";
+                    p.append(svg(iconWarn, 20, 20, "#F70", "icon"), span(w), br());
                 }
-                for(var i of info) {
-                    html += "INFO: " + i + "\n";
+                for(var i of success) {
+                    p.append(svg(iconSuccess, 20, 20, "#090", "icon"), span(i), br());
                 }
-                document.getElementById("warn_info").innerHTML = html;
+
+                if(commInfo.length > 0)
+                    p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span(commInfo), br());
+                document.getElementById("warn_info").replaceChildren(p);
             }
 
             function tick() {
@@ -208,8 +222,8 @@
                 if(null != obj) {
                     if(exeOnce)
                         parseMenu(obj["menu"]);
-                    parseSys(obj["system"]);
-                    parseStat(obj["statistics"]);
+                    parseGeneric(obj["generic"]);
+                    parseSys(obj);
                     parseIv(obj["inverter"]);
                     parseWarnInfo(obj["warnings"], obj["infos"]);
                     if(exeOnce) {
@@ -217,8 +231,6 @@
                         exeOnce = false;
                     }
                 }
-                else
-                    document.getElementById("refresh").innerHTML = "n/a";
             }
 
             getAjax("/api/index", parse);

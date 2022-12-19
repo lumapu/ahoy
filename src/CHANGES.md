@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.57
+* improved stability
+* added icons to index.html, added wifi-strength symbol on each page
+* moved packet stats and sun to system.html
+* refactored communication offset (adjustable in minutes now)
+
 ## 0.5.56
 * factory reset formats entire little fs
 * renamed sunrise / sunset on indext.html to start / stop communication

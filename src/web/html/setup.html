@@ -26,6 +26,7 @@
                 <span></span>
             </a>
             <div id="topnav" class="hide"></div>
+            <div id="wifiicon" class="info"></div>
         </div>
         <div id="wrapper">
             <div id="content">
@@ -41,7 +42,7 @@
                         <input type="hidden" name="disclaimer" value="false" id="disclaimer">
                     </fieldset>
 
-                    <button type="button" class="s_collapsible">WiFi</button>
+                    <button type="button" class="s_collapsible">Network</button>
                     <div class="s_content">
                         <fieldset>
                             <legend class="des">WiFi</legend>
@@ -116,6 +117,8 @@
                         <input type="text" class="text" name="sunLat"/>
                         <label for="sunLon">Longitude (decimal)</label>
                         <input type="text" class="text" name="sunLon"/>
+                        <label for="sunOffs">Offset (pre sunrise, post sunset)</label>
+                        <select name="sunOffs"></select>
                         <br>
                         <label for="sunDisNightCom">disable night communication</label>
                         <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
@@ -337,8 +340,12 @@
                 var e = document.getElementsByName("adminpwd")[0];
                 if(!obj["pwd_set"])
                     e.value = "";
+            }
+
+            function parseGeneric(obj) {
                 parseVersion(obj);
                 parseESP(obj);
+                parseRssi(obj);
             }
 
             function parseStaticIp(obj) {
@@ -368,6 +375,10 @@
                 document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
                 document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
+                const sel = document.getElementsByName("sunOffs")[0];
+                for(var i = 0; i <= 60; i++) {
+                    sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));
+                }
             }
 
             function parsePinout(obj, type) {
@@ -452,6 +463,7 @@
                 if(null != root) {
                     parseMenu(root["menu"]);
                     parseSys(root["system"]);
+                    parseGeneric(root["generic"]);
                     parseStaticIp(root["static_ip"]);
                     parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
