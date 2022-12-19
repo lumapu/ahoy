@@ -12,13 +12,13 @@ import _libs2.file_handling as fh
 
 
 #some global variables
-__version_info__ = ('2022', '11', '13')
+__version_info__ = ('2022', '12', '19')
 __version_string__ = '%40s' % ('hm inverter handling version: ' + '-'.join(__version_info__))
 lck2 = threading.Lock()                     # used for AT-commands to access serial port
 com_stop = True
-promt = '/> '
-respo = '<< '
-sendi = '>> '
+PROMT = '/> '
+RESPO= '<< '
+SENDI = '>> '
 
 
 def get_version():
@@ -48,21 +48,23 @@ class AsyncComRead(threading.Thread):
                     line = line.replace('\n','').replace('\r','')
                     if len(line) > 2:                                                           # filter out empty lines
                         if self.addTS:
-                            urc.append('\n%s%s%s' % (timestamp(0), respo, line))
+                            urc.append('\n%s%s%s' % (timestamp(0), RESPO, line))
                         else:
-                            urc.append('\n%s%s' % (respo, line))
+                            urc.append('\n%s%s' % (RESPO, line))
                     
                     #todo: return values into callback function
                     
                     if not self.com.is_open or com_stop: break
             if urc:
+                print('\r', end='', flush=True)                                                   # return to line-start
                 fh.my_print('\n%s' % ( (' '.join(urc)).replace('\n ', '\n') ))
-                urc_millis = millis_since(0)
-                urc_ln = False
+                # urc_millis = millis_since(0)
+                # urc_ln = False
+                print('\n%s' % (PROMT,), end = '')                                                  # print promt
             
-            if (not urc_ln) and (millis_since(urc_millis) >= 3000):
-                urc_ln = True
-                print('\n%s' % (promt,), end = '')
+            # if (not urc_ln) and (millis_since(urc_millis) >= 3000):
+            #     urc_ln = True
+            #     print('\n%s' % (PROMT,), end = '')
             
             time.sleep(0.1)
         if self.debug: print('\n +++ Thread: com reader stopped', end='', flush=True)
@@ -121,8 +123,8 @@ def simple_terminal(_com, _debug):
     next = True
     while(next):
         time.sleep(1.0)
-        _cmd_in = input('\n%s'%(promt,))
-        fh.my_print('\n%s%s' % (promt, _cmd_in, ))
+        _cmd_in = input('%s'%(PROMT,))
+        fh.my_print('\n%s%s' % (PROMT, _cmd_in, ), False)
         
         if "start" in _cmd_in:
             #end terminal and return true
@@ -133,12 +135,12 @@ def simple_terminal(_com, _debug):
         elif '_time' in _cmd_in or '_tnow' in _cmd_in:
             _uartstr = 't{:d}'.format(int(time.time()))
             _com.write( _uartstr.encode('ascii') )
-            fh.my_print('\n%s%s%s' % (timestamp(0), sendi, _uartstr, ))
+            fh.my_print('\n%s%s%s' % (timestamp(0), SENDI, _uartstr, ))
             continue
         
         _uartstr = _cmd_in.encode('ascii') 
-        _com.write( ('%s%s' % (sendi, _uartstr, )).encode('ascii') )
-        fh.my_print('\n%s%s%s' % (timestamp(0), sendi, _uartstr, ))
+        _com.write( ('%s%s' % (SENDI, _uartstr, )).encode('ascii') )
+        fh.my_print('\n%s%s%s' % (timestamp(0), SENDI, _uartstr, ))
     
     return True
 

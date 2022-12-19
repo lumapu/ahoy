@@ -11,7 +11,7 @@ import binascii
 
 
 #some global variables
-__version_info__ = ('2022', '11', '13')
+__version_info__ = ('2022', '12', '19')
 __version_string__ = 'file handling version: ' + '-'.join(__version_info__)
 lck = threading.Lock()                      # used for log_sum writing
 log_sum = 'logstart... '
@@ -29,10 +29,11 @@ def get_log_stop():
     return log_stop
        
 
-def my_print(out):
+def my_print(out, _local_print=True):
     global lck
     global log_sum
-    print(out, end='', flush=True)
+    if (_local_print):
+        print(out, end='', flush=True)
     with lck: 
         log_sum += out
 

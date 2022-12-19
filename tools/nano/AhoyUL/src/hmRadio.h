@@ -328,6 +328,7 @@ class HmRadio {
             DHEX(buf[i]);
             if (i % 10 == 0) DBGPRINT(" ");
         }  // end for()
+        DBGPRINTLN(F(""));
     }
 
     /**
@@ -338,7 +339,6 @@ class HmRadio {
         if (_thisdebug <= DEBUG_LEVEL) {
             dumpBuf(info, buf, len);
         }  // end if(debug)
-        // DBGPRINTLN("");
     }
 
     bool isChipConnected(void) {
@@ -350,7 +350,8 @@ class HmRadio {
     bool mSerialDebug;
 
     /**
-     * send the buf content to the tx-channel, the rx-channel is switched to two higher index
+     * send the buf content to the tx-channel, the rx-channel is switched to two higher index or can be given additionally
+     * packet_t was extended by rf-channel, here used for tx-channel
      */
     uint8_t sendPacket_raw(uint8_t *_radio_id, packet_t *_p, uint8_t _rxch) {
         // void sendPacket_raw(uint64_t _radio_id64, packet_t *_p, uint8_t _rxch) {
@@ -358,7 +359,7 @@ class HmRadio {
         uint8_t _arc = 0;
 
         DPRINT(DBG_INFO, F("TXraw Ch"));
-        if (_p->rfch) _DPRINT(DBG_INFO, F("0"));
+        if (_p->rfch < 10) _DPRINT(DBG_INFO, F("0"));
         _DPRINT(DBG_INFO, _p->rfch);
         _DPRINT(DBG_INFO, F(" "));
         _DPRINT(DBG_INFO, _p->plen);
