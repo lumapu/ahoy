@@ -91,11 +91,12 @@ class PubMqtt {
                 tickSunset();
         }
 
-        void tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs) {
+        void tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
             publish("sunrise", String(sunrise).c_str(), true);
             publish("sunset", String(sunset).c_str(), true);
             publish("comm_start", String(sunrise - offs).c_str(), true);
             publish("comm_stop", String(sunset + offs).c_str(), true);
+            publish("dis_night_comm", ((disNightCom) ? "true" : "false"), true);
         }
 
         void tickSunrise() {

@@ -39,72 +39,59 @@ const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLe
 template<class HMSYSTEM>
 class Web {
     public:
-        Web(void) {
+        Web(void) : mWeb(80), mEvts("/events") {
             mProtected     = true;
             mLogoutTimeout = 0;
 
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
             mSerialBufFill     = 0;
-            mWebSerialTicker   = 0;
-            mWebSerialInterval = 1000; // [ms]
             mSerialAddTime     = true;
+            mSerialClientConnnected = false;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
             mApp     = app;
             mSys     = sys;
             mConfig  = config;
-            mWeb     = new AsyncWebServer(80);
-            mEvts    = new AsyncEventSource("/events");
 
-            DPRINTLN(DBG_VERBOSE, F("app::setup-begin"));
-            mWeb->begin();
             DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-            mWeb->on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1));
-            mWeb->on("/login",          HTTP_ANY,  std::bind(&Web::onLogin,        this, std::placeholders::_1));
-            mWeb->on("/logout",         HTTP_GET,  std::bind(&Web::onLogout,       this, std::placeholders::_1));
-            mWeb->on("/style.css",      HTTP_GET,  std::bind(&Web::onCss,          this, std::placeholders::_1));
-            mWeb->on("/api.js",         HTTP_GET,  std::bind(&Web::onApiJs,        this, std::placeholders::_1));
-            mWeb->on("/favicon.ico",    HTTP_GET,  std::bind(&Web::onFavicon,      this, std::placeholders::_1));
-            mWeb->onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
-            mWeb->on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
-            mWeb->on("/system",         HTTP_ANY,  std::bind(&Web::onSystem,       this, std::placeholders::_1));
-            mWeb->on("/erase",          HTTP_ANY,  std::bind(&Web::showErase,      this, std::placeholders::_1));
-            mWeb->on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
+            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1));
+            mWeb.on("/login",          HTTP_ANY,  std::bind(&Web::onLogin,        this, std::placeholders::_1));
+            mWeb.on("/logout",         HTTP_GET,  std::bind(&Web::onLogout,       this, std::placeholders::_1));
+            mWeb.on("/style.css",      HTTP_GET,  std::bind(&Web::onCss,          this, std::placeholders::_1));
+            mWeb.on("/api.js",         HTTP_GET,  std::bind(&Web::onApiJs,        this, std::placeholders::_1));
+            mWeb.on("/favicon.ico",    HTTP_GET,  std::bind(&Web::onFavicon,      this, std::placeholders::_1));
+            mWeb.onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
+            mWeb.on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
+            mWeb.on("/system",         HTTP_ANY,  std::bind(&Web::onSystem,       this, std::placeholders::_1));
+            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showErase,      this, std::placeholders::_1));
+            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
 
-            mWeb->on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
-            mWeb->on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
+            mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
+            mWeb.on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
 
-            mWeb->on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            mWeb->on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
+            mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
+            mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
         #ifdef ENABLE_JSON_EP
-            mWeb->on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
+            mWeb.on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
         #endif
         #ifdef ENABLE_PROMETHEUS_EP
-            mWeb->on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
+            mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
 
-            mWeb->on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
-            mWeb->on("/update",         HTTP_POST, std::bind(&Web::showUpdate,     this, std::placeholders::_1),
+            mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
+            mWeb.on("/update",         HTTP_POST, std::bind(&Web::showUpdate,     this, std::placeholders::_1),
                                                    std::bind(&Web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
-            mWeb->on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
 
 
-            mEvts->onConnect(std::bind(&Web::onConnect, this, std::placeholders::_1));
-            mWeb->addHandler(mEvts);
+            mEvts.onConnect(std::bind(&Web::onConnect, this, std::placeholders::_1));
+            mWeb.addHandler(&mEvts);
+
+            mWeb.begin();
 
             registerDebugCb(std::bind(&Web::serialCb, this, std::placeholders::_1)); // dbg.h
-        }
-
-        void loop(void) {
-            if(ah::checkTicker(&mWebSerialTicker, mWebSerialInterval)) {
-                if(mSerialBufFill > 0) {
-                    mEvts->send(mSerialBuf, "serial", millis());
-                    memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-                    mSerialBufFill = 0;
-                }
-            }
         }
 
         void tickSecond() {
@@ -117,10 +104,18 @@ class Web {
 
                 DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
             }
+
+            if(mSerialClientConnnected) {
+                if(mSerialBufFill > 0) {
+                    mEvts.send(mSerialBuf, "serial", millis());
+                    memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+                    mSerialBufFill = 0;
+                }
+            }
         }
 
         AsyncWebServer *getWebSrvPtr(void) {
-            return mWeb;
+            return &mWeb;
         }
 
         void setProtection(bool protect) {
@@ -151,6 +146,9 @@ class Web {
         }
 
         void serialCb(String msg) {
+            if(!mSerialClientConnnected)
+                return;
+
             msg.replace("\r\n", "<rn>");
             if(mSerialAddTime) {
                 if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
@@ -159,7 +157,7 @@ class Web {
                 }
                 else {
                     mSerialBufFill = 0;
-                    mEvts->send("webSerial, buffer overflow!", "serial", millis());
+                    mEvts.send("webSerial, buffer overflow!", "serial", millis());
                 }
                 mSerialAddTime = false;
             }
@@ -174,7 +172,7 @@ class Web {
             }
             else {
                 mSerialBufFill = 0;
-                mEvts->send("webSerial, buffer overflow!", "serial", millis());
+                mEvts.send("webSerial, buffer overflow!", "serial", millis());
             }
         }
 
@@ -211,6 +209,8 @@ class Web {
 
         void onConnect(AsyncEventSourceClient *client) {
             DPRINTLN(DBG_VERBOSE, "onConnect");
+
+            mSerialClientConnnected = true;
 
             if(client->lastId())
                 DPRINTLN(DBG_VERBOSE, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
@@ -262,6 +262,7 @@ class Web {
         }
 
         void onCss(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, F("onCss"));
             mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -373,136 +374,137 @@ class Web {
                 return;
             }
 
-            if(request->args() > 0) {
-                char buf[20] = {0};
+            if(request->args() == 0)
+                return;
 
-                // general
-                if(request->arg("ssid") != "")
-                    request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
-                if(request->arg("pwd") != "{PWD}")
-                    request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
-                if(request->arg("device") != "")
-                    request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
-                if(request->arg("adminpwd") != "{PWD}") {
-                    request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
-                    mProtected = (strlen(mConfig->sys.adminPwd) > 0);
+            char buf[20] = {0};
+
+            // general
+            if(request->arg("ssid") != "")
+                request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
+            if(request->arg("pwd") != "{PWD}")
+                request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
+            if(request->arg("device") != "")
+                request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
+            if(request->arg("adminpwd") != "{PWD}") {
+                request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
+                mProtected = (strlen(mConfig->sys.adminPwd) > 0);
+            }
+
+
+            // static ip
+            request->arg("ipAddr").toCharArray(buf, 20);
+            ah::ip2Arr(mConfig->sys.ip.ip, buf);
+            request->arg("ipMask").toCharArray(buf, 20);
+            ah::ip2Arr(mConfig->sys.ip.mask, buf);
+            request->arg("ipDns1").toCharArray(buf, 20);
+            ah::ip2Arr(mConfig->sys.ip.dns1, buf);
+            request->arg("ipDns2").toCharArray(buf, 20);
+            ah::ip2Arr(mConfig->sys.ip.dns2, buf);
+            request->arg("ipGateway").toCharArray(buf, 20);
+            ah::ip2Arr(mConfig->sys.ip.gateway, buf);
+
+
+            // inverter
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                iv = mSys->getInverterByPos(i, false);
+                // enable communication
+                iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
+                // address
+                request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
+                if(strlen(buf) == 0)
+                    memset(buf, 0, 20);
+                iv->config->serial.u64 = ah::Serial2u64(buf);
+                switch(iv->config->serial.b[4]) {
+                    case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
+                    case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
+                    case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
+                    default:  break;
                 }
 
+                // name
+                request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
-                // static ip
-                request->arg("ipAddr").toCharArray(buf, 20);
-                ah::ip2Arr(mConfig->sys.ip.ip, buf);
-                request->arg("ipMask").toCharArray(buf, 20);
-                ah::ip2Arr(mConfig->sys.ip.mask, buf);
-                request->arg("ipDns1").toCharArray(buf, 20);
-                ah::ip2Arr(mConfig->sys.ip.dns1, buf);
-                request->arg("ipDns2").toCharArray(buf, 20);
-                ah::ip2Arr(mConfig->sys.ip.dns2, buf);
-                request->arg("ipGateway").toCharArray(buf, 20);
-                ah::ip2Arr(mConfig->sys.ip.gateway, buf);
-
-
-                // inverter
-                Inverter<> *iv;
-                for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                    iv = mSys->getInverterByPos(i, false);
-                    // enable communication
-                    iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
-                    // address
-                    request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-                    if(strlen(buf) == 0)
-                        memset(buf, 0, 20);
-                    iv->config->serial.u64 = ah::Serial2u64(buf);
-                    switch(iv->config->serial.b[4]) {
-                        case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
-                        case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
-                        case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
-                        default:  break;
-                    }
-
-                    // name
-                    request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
-
-                    // max channel power / name
-                    for(uint8_t j = 0; j < 4; j++) {
-                        iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
-                        request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
-                    }
-                    iv->initialized = true;
+                // max channel power / name
+                for(uint8_t j = 0; j < 4; j++) {
+                    iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
+                    request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
                 }
+                iv->initialized = true;
+            }
 
-                if(request->arg("invInterval") != "")
-                    mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
-                if(request->arg("invRetry") != "")
-                    mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
+            if(request->arg("invInterval") != "")
+                mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
+            if(request->arg("invRetry") != "")
+                mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
 
-                // pinout
-                uint8_t pin;
-                for(uint8_t i = 0; i < 5; i ++) {
-                    pin = request->arg(String(pinArgNames[i])).toInt();
-                    switch(i) {
-                        default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                        case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                        case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                        case 3:  mConfig->led.led0 = pin; break;
-                        case 4:  mConfig->led.led1 = pin; break;
-                    }
+            // pinout
+            uint8_t pin;
+            for(uint8_t i = 0; i < 5; i ++) {
+                pin = request->arg(String(pinArgNames[i])).toInt();
+                switch(i) {
+                    default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
+                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
+                    case 3:  mConfig->led.led0 = pin; break;
+                    case 4:  mConfig->led.led1 = pin; break;
                 }
+            }
 
-                // nrf24 amplifier power
-                mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
+            // nrf24 amplifier power
+            mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
 
-                // ntp
-                if(request->arg("ntpAddr") != "") {
-                    request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
-                    mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
-                }
+            // ntp
+            if(request->arg("ntpAddr") != "") {
+                request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
+                mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
+            }
 
-                // sun
-                if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
-                    mConfig->sun.lat = 0.0;
-                    mConfig->sun.lon = 0.0;
-                    mConfig->sun.disNightCom = false;
-                    mConfig->sun.offsetSec = 0;
-                } else {
-                    mConfig->sun.lat = request->arg("sunLat").toFloat();
-                    mConfig->sun.lon = request->arg("sunLon").toFloat();
-                    mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
-                    mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
-                }
+            // sun
+            if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
+                mConfig->sun.lat = 0.0;
+                mConfig->sun.lon = 0.0;
+                mConfig->sun.disNightCom = false;
+                mConfig->sun.offsetSec = 0;
+            } else {
+                mConfig->sun.lat = request->arg("sunLat").toFloat();
+                mConfig->sun.lon = request->arg("sunLon").toFloat();
+                mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
+                mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
+            }
 
-                // mqtt
-                if(request->arg("mqttAddr") != "") {
-                    String addr = request->arg("mqttAddr");
-                    addr.trim();
-                    addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
-                }
-                else
-                    mConfig->mqtt.broker[0] = '\0';
-                request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
-                if(request->arg("mqttPwd") != "{PWD}")
-                    request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
-                request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
-                mConfig->mqtt.port = request->arg("mqttPort").toInt();
+            // mqtt
+            if(request->arg("mqttAddr") != "") {
+                String addr = request->arg("mqttAddr");
+                addr.trim();
+                addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
+            }
+            else
+                mConfig->mqtt.broker[0] = '\0';
+            request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
+            if(request->arg("mqttPwd") != "{PWD}")
+                request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
+            request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
+            mConfig->mqtt.port = request->arg("mqttPort").toInt();
 
-                // serial console
-                if(request->arg("serIntvl") != "") {
-                    mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
+            // serial console
+            if(request->arg("serIntvl") != "") {
+                mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
 
-                    mConfig->serial.debug  = (request->arg("serDbg") == "on");
-                    mConfig->serial.showIv = (request->arg("serEn") == "on");
-                    // Needed to log TX buffers to serial console
-                    mSys->Radio.mSerialDebug = mConfig->serial.debug;
-                }
-                mApp->saveSettings();
+                mConfig->serial.debug  = (request->arg("serDbg") == "on");
+                mConfig->serial.showIv = (request->arg("serEn") == "on");
+                // Needed to log TX buffers to serial console
+                mSys->Radio.mSerialDebug = mConfig->serial.debug;
+            }
+            mApp->saveSettings();
 
-                if(request->arg("reboot") == "on")
-                    onReboot(request);
-                else {
-                    AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
-                    response->addHeader(F("Content-Encoding"), "gzip");
-                    request->send(response);
-                }
+            if(request->arg("reboot") == "on")
+                onReboot(request);
+            else {
+                AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);
+                response->addHeader(F("Content-Encoding"), "gzip");
+                request->send(response);
             }
         }
 
@@ -632,7 +634,7 @@ class Web {
             }
             modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
 
-            mWeb->send(200, F("application/json"), modJson);
+            mWeb.send(200, F("application/json"), modJson);
         }
 #endif
 
@@ -663,7 +665,7 @@ class Web {
                 }
             }
 
-            mWeb->send(200, F("text/plain"), metrics);
+            mWeb.send(200, F("text/plain"), metrics);
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {
@@ -679,8 +681,8 @@ class Web {
         }
 #endif
 
-        AsyncWebServer *mWeb;
-        AsyncEventSource *mEvts;
+        AsyncWebServer mWeb;
+        AsyncEventSource mEvts;
         bool mProtected;
         uint32_t mLogoutTimeout;
         IApp *mApp;
@@ -691,8 +693,7 @@ class Web {
         bool mSerialAddTime;
         char mSerialBuf[WEB_SERIAL_BUF_SIZE];
         uint16_t mSerialBufFill;
-        uint32_t mWebSerialTicker;
-        uint32_t mWebSerialInterval;
+        bool mSerialClientConnnected;
 };
 
 #endif /*__WEB_H__*/

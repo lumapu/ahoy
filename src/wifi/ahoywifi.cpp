@@ -12,33 +12,31 @@
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
 
+enum {WIFI_NOT_FOUND = 0, WIFI_FOUND, WIFI_NOT_COMPLETE};
+
 
 //-----------------------------------------------------------------------------
-ahoywifi::ahoywifi() {
-    mCnt       = 0;
-    mConnected = false;
-    mReconnect = false;
+ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1), mApMask(255, 255, 255, 0) {
+    mDnsActive = false;
+    mClientCnt = 0;
+    mLoopCnt   = 250;
+    mExtScan   = false;
 }
 
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
+    mCnt       = 0;
+    mConnected = false;
+    mReconnect = false;
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
 
+    if(String(mConfig->sys.deviceName) != "")
+        WiFi.hostname(mConfig->sys.deviceName);
+
     #if !defined(FB_WIFI_OVERRIDDEN)
-        if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) == 0)
-            setupAp();
-    #endif
-    #if !defined(AP_ONLY)
-        if(mConfig->valid) {
-            #if !defined(FB_WIFI_OVERRIDDEN)
-                if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
-                    setupStation();
-            #else
-                setupStation();
-            #endif
-        }
+        setupAp();
     #endif
 
     #if defined(ESP8266)
@@ -59,19 +57,43 @@ void ahoywifi::loop() {
         if((mCnt % 50) == 0)
             WiFi.disconnect();
         else if((mCnt % 60) == 0) {
-            WiFi.reconnect();
+            DPRINTLN(DBG_INFO, F("[WiFi] reconnect"));
+            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
             mCnt = 0;
         }
     }
-    #endif
+    yield();
+    if(mDnsActive) {
+        mDns.processNextRequest();
+        uint8_t cnt = WiFi.softAPgetStationNum();
+        if(cnt != mClientCnt) {
+            mClientCnt = cnt;
+            DPRINTLN(DBG_INFO, String(cnt) + F(" client(s) connected"));
+        }
 
+        if(!mExtScan && (mLoopCnt == 240)) {
+            if(scanStationNetwork()) {
+                setupStation();
+                mLoopCnt = 0;
+            }
+        }
+
+        if(0 != mLoopCnt) {
+            if(++mLoopCnt > 250) {
+                mLoopCnt = 1;
+                if(!mExtScan)
+                    scanAvailNetworks(false);
+            }
+            delay(25);
+        }
+    }
+    #endif
 }
 
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setupAp(void) {
-    DPRINTLN(DBG_VERBOSE, F("wifi::setupAp"));
-    IPAddress apIp(192, 168, 4, 1);
+    DPRINTLN(DBG_INFO, F("wifi::setupAp"));
 
     DBGPRINTLN(F("\n---------\nAhoyDTU Info:"));
     DBGPRINT(F("Version: "));
@@ -83,20 +105,22 @@ void ahoywifi::setupAp(void) {
     DBGPRINTLN(WIFI_AP_SSID);
     DBGPRINT(F("PWD: "));
     DBGPRINTLN(WIFI_AP_PWD);
-    DBGPRINTLN("IP Address: http://" + apIp.toString());
+    DBGPRINTLN("IP Address: http://" + mApIp.toString());
     DBGPRINTLN(F("---------\n"));
 
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAPConfig(apIp, apIp, IPAddress(255, 255, 255, 0));
+    WiFi.softAPConfig(mApIp, mApIp, mApMask);
     WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PWD);
 
-    mDns.start(53, "*", apIp);
+    mDns.setErrorReplyCode(DNSReplyCode::NoError);
+    mDns.start(53, "*", WiFi.softAPIP());
+    mDnsActive = true;
 }
 
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setupStation(void) {
-    DPRINTLN(DBG_VERBOSE, F("wifi::setupStation"));
+    DPRINTLN(DBG_INFO, F("wifi::setupStation"));
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
         IPAddress mask(mConfig->sys.ip.mask);
@@ -107,12 +131,27 @@ void ahoywifi::setupStation(void) {
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
     WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
-    if(String(mConfig->sys.deviceName) != "")
-        WiFi.hostname(mConfig->sys.deviceName);
 
     DBGPRINT(F("connect to network '"));
     DBGPRINT(mConfig->sys.stationSsid);
-    DBGPRINTLN(F("' ..."));
+}
+
+
+//-----------------------------------------------------------------------------
+bool ahoywifi::scanStationNetwork(void) {
+    bool found = false;
+    int n = WiFi.scanComplete();
+    if(n > 0) {
+        for (int i = 0; i < n; i++) {
+            DPRINTLN(DBG_INFO, "found network: " + WiFi.SSID(i));
+            if(String(mConfig->sys.stationSsid) == WiFi.SSID(i)) {
+                found = true;
+                break;
+            }
+        }
+        WiFi.scanDelete();
+    }
+    return found;
 }
 
 
@@ -156,9 +195,10 @@ bool ahoywifi::getNtpTime(void) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::scanAvailNetworks(void) {
-    int n = WiFi.scanComplete();
-    if(n == -2)
+void ahoywifi::scanAvailNetworks(bool externalCall) {
+    if(externalCall)
+        mExtScan = true;
+    if(-2 == WiFi.scanComplete())
         WiFi.scanNetworks(true);
 }
 
@@ -182,6 +222,7 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
         }
         WiFi.scanDelete();
     }
+    mExtScan = false;
 }
 
 
@@ -215,6 +256,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
             DBGPRINTLN(F("\n[WiFi] Connected"));
             WiFi.mode(WIFI_STA);
             DBGPRINTLN(F("[WiFi] AP disabled"));
+            mDnsActive = false;
             mDns.stop();
 
             welcome(WiFi.localIP().toString() + F(" (Station)"));
@@ -245,6 +287,7 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
                     WiFi.mode(WIFI_STA);
                     WiFi.begin();
                     DBGPRINTLN(F("[WiFi] AP disabled"));
+                    mDnsActive = false;
                     mDns.stop();
                     mReconnect = false;
                 }

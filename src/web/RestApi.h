@@ -353,6 +353,7 @@ class RestApi {
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
             obj[F("ts_offset")]    = mConfig->sun.offsetSec;
+            obj[F("disNightComm")] = mConfig->sun.disNightCom;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;

@@ -151,8 +151,8 @@ class HmRadio {
         }
 
         void loop(void) {
-            DISABLE_IRQ;
             if(mIrqRcvd) {
+                DISABLE_IRQ;
                 mIrqRcvd = false;
                 bool tx_ok, tx_fail, rx_ready;
                 mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
@@ -175,9 +175,8 @@ class HmRadio {
                         break;
                 }
                 mNrf24.flush_rx(); // drop the packet
-            }
-            else
                 RESTORE_IRQ;
+            }
         }
 
         void enableDebug() {
@@ -185,7 +184,6 @@ class HmRadio {
         }
 
         void handleIntr(void) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:handleIntr"));
             mIrqRcvd = true;
         }
 
@@ -267,7 +265,8 @@ class HmRadio {
         }
 
         bool switchRxCh(uint16_t addLoop = 0) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:switchRxCh"));
+            if(!mNrf24.isChipConnected())
+                return true;
             mRxLoopCnt += addLoop;
             if(mRxLoopCnt != 0) {
                 mRxLoopCnt--;

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.58
+* improved stability
+* improved wifi initial connection - especially if station wifi is not available
+* removed new operators from web.h (reduce dynamic allocation)
+* improved sun calculation #515, #505
+* fixed wifi auto reconnect #509
+* added disable night communication flag to MQTT #505
+* changed MQTT publish of `available` and `available_text` to sunset #468
+
 ## 0.5.57
 * improved stability
 * added icons to index.html, added wifi-strength symbol on each page
@@ -8,7 +17,7 @@
 
 ## 0.5.56
 * factory reset formats entire little fs
-* renamed sunrise / sunset on indext.html to start / stop communication
+* renamed sunrise / sunset on index.html to start / stop communication
 * show system information only if called directly from menu
 * beautified system.html
 

@@ -45,18 +45,13 @@ void app::setup() {
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
     #if !defined(AP_ONLY)
         once(std::bind(&app::tickNtpUpdate, this), 2);
-        if((mConfig->sun.lat) && (mConfig->sun.lon)) {
-            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-            once(std::bind(&app::tickCalcSunrise, this), 5);
-        }
     #endif
 
-    if(mSys->Radio.isChipConnected()) {
-        mSys->addInverters(&mConfig->inst);
-        mPayload.setup(mSys);
-        mPayload.enableSerialDebug(mConfig->serial.debug);
-    }
-    else
+    mSys->addInverters(&mConfig->inst);
+    mPayload.setup(mSys);
+    mPayload.enableSerialDebug(mConfig->serial.debug);
+
+    if(!mSys->Radio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
@@ -95,8 +90,6 @@ void app::loop(void) {
     mWifi.loop();
     #endif
 
-    mWeb.loop();
-
     mSys->Radio.loop();
 
     yield();
@@ -134,26 +127,46 @@ void app::loop(void) {
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    if (mWifi.getNtpTime())
+    if (mWifi.getNtpTime()) {
         nxtTrig = 43200;    // check again in 12 h
+        if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
+            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+            tickCalcSunrise();
+        }
+    }
     once(std::bind(&app::tickNtpUpdate, this), nxtTrig);
 }
 
-
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
-    if (0 == mTimestamp) {
-        once(std::bind(&app::tickCalcSunrise, this), 5); // check again in 5 secs
-        return;
-    }
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
+    tickIVCommunication();
 
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 10) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
-        mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec);
+        mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom);
         onceAt(std::bind(&PubMqttType::tickSunrise, &mMqtt), (mSunrise - mConfig->sun.offsetSec));
-        onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), (mSunset + mConfig->sun.offsetSec));
+        onceAt(std::bind(&PubMqttType::tickSunset, &mMqtt), mSunset);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::tickIVCommunication(void) {
+    mIVCommunicationOn = !mConfig->sun.disNightCom; // if sun.disNightCom is false, communication is always on
+    if (!mIVCommunicationOn) {  // inverter communication only during the day
+        uint32_t nxtTrig;
+        if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
+            nxtTrig = mSunrise - mConfig->sun.offsetSec;
+        } else {
+            if (mTimestamp > (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
+                return;
+            } else { // current time lies within communication start/stop time, set next trigger to communication stop
+                mIVCommunicationOn = true;
+                nxtTrig = mSunset + mConfig->sun.offsetSec;
+            }
+        }
+        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
 }
 
@@ -163,7 +176,7 @@ void app::tickSend(void) {
         DPRINTLN(DBG_WARN, "NRF24 not connected!");
         return;
     }
-    if ((mTimestamp > 0) && (!mConfig->sun.disNightCom || (mTimestamp >= (mSunrise - mConfig->sun.offsetSec) && mTimestamp <= (mSunset + mConfig->sun.offsetSec)))) {  // Timestamp is set and (inverter communication only during the day if the option is activated and sunrise/sunset is set)
+    if (mIVCommunicationOn) {
         if (!mSys->BufCtrl.empty()) {
             if (mConfig->serial.debug)
                 DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));

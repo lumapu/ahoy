@@ -103,18 +103,21 @@
             }
 
             function parseIndex(obj) {
-                var h = div(["head", "p-2"]);
-                var r = div(["row"]);
-                r.appendChild(div(["col", "a-c"], "Sun"));
-                h.appendChild(r);
+                if(obj["ts_sunrise"] > 0) {
+                    var h = div(["head", "p-2"]);
+                    var r = div(["row"]);
+                    r.appendChild(div(["col", "a-c"], "Sun"));
+                    h.appendChild(r);
 
-                document.getElementById("sun").append (
-                    h,
-                    genTabRow("Sunrise", new Date(obj["ts_sunrise"] * 1000).toLocaleString('de-DE')),
-                    genTabRow("Sunset", new Date(obj["ts_sunset"] * 1000).toLocaleString('de-DE')),
-                    genTabRow("Communication start", new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
-                    genTabRow("Communication stop", new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'))
-                );
+                    document.getElementById("sun").append (
+                        h,
+                        genTabRow("Sunrise", new Date(obj["ts_sunrise"] * 1000).toLocaleString('de-DE')),
+                        genTabRow("Sunset", new Date(obj["ts_sunset"] * 1000).toLocaleString('de-DE')),
+                        genTabRow("Communication start", new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
+                        genTabRow("Communication stop", new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
+                        genTabRow("Night Communication", ((obj["disNightComm"]) ? "disabled" : "enabled"))
+                    );
+                }
             }
 
             function parse(obj) {

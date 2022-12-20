@@ -9,6 +9,7 @@
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 #include "../utils/handler.h"
+#include "../config/config.h"
 #include <Arduino.h>
 
 typedef struct {

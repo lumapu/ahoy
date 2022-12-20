@@ -184,31 +184,12 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickNtpUpdate(void);
-
         void tickCalcSunrise(void);
+        void tickIVCommunication(void);
         void tickSend(void);
 
-        void stats(void) {
-            DPRINTLN(DBG_VERBOSE, F("main.h:stats"));
-            #ifdef ESP8266
-                uint32_t free;
-                uint16_t max;
-                uint8_t frag;
-                ESP.getHeapStats(&free, &max, &frag);
-            #elif defined(ESP32)
-                uint32_t free;
-                uint32_t max;
-                uint8_t frag;
-                free = ESP.getFreeHeap();
-                max = ESP.getMaxAllocHeap();
-                frag = 0;
-            #endif
-            DPRINT(DBG_VERBOSE, F("free: ") + String(free));
-            DPRINT(DBG_VERBOSE, F(" - max: ") + String(max) + "%");
-            DPRINTLN(DBG_VERBOSE, F(" - frag: ") + String(frag));
-        }
-
         bool mShowRebootRequest;
+        bool mIVCommunicationOn;
 
         ahoywifi mWifi;
         WebType mWeb;
