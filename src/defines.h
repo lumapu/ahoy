@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       58
+#define VERSION_PATCH       59
 
 //-------------------------------------
 typedef struct {
@@ -86,9 +86,9 @@ union serial_u {
 #define NTP_ADDR_LEN            32 // DNS Name
 
 #define MQTT_ADDR_LEN           64 // DNS Name
-#define MQTT_USER_LEN           64
-#define MQTT_PWD_LEN            64
-#define MQTT_TOPIC_LEN          64
+#define MQTT_USER_LEN           65 // there is another byte necessary for \0
+#define MQTT_PWD_LEN            65
+#define MQTT_TOPIC_LEN          65
 
 #define MQTT_MAX_PACKET_SIZE    384
 

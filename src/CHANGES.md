@@ -3,6 +3,7 @@
 ## 0.5.59
 * fix night communication enable
 * improved different WiFi connection scenarios (STA WiFi not found, reconnect #509, redirect for AP to configuration)
+* increased MQTT user, pwd and topic length to 64 characters + `\0`. (The string end `\0` reduces the available size by one) #516
 
 ## 0.5.58
 * improved stability
