@@ -151,6 +151,10 @@ class app : public IApp, public ah::Scheduler {
             return mApi.getTimezoneOffset();
         }
 
+        void getSchedulerInfo(uint16_t *everyMax, uint16_t *atMax) {
+            return getStat(everyMax, atMax);
+        }
+
         void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
             if(0 == newTime)

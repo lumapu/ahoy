@@ -23,16 +23,18 @@ class ahoywifi {
         void setup(settings_t *config, uint32_t *utcTimestamp);
         void loop(void);
         bool getNtpTime(void);
-        void scanAvailNetworks(bool externalCall = true);
+        void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
     private:
+        void setupWifi(void);
         void setupAp(void);
         void setupStation(void);
-        bool scanStationNetwork(void);
         void sendNTPpacket(IPAddress& address);
         #if defined(ESP8266)
-        void onConnect(const WiFiEventStationModeGotIP& event);
+        void connectionEvent(bool connected);
+        void onConnect(const WiFiEventStationModeConnected& event);
+        void onGotIP(const WiFiEventStationModeGotIP& event);
         void onDisconnect(const WiFiEventStationModeDisconnected& event);
         #else
         void onWiFiEvent(WiFiEvent_t event);
@@ -43,11 +45,10 @@ class ahoywifi {
         settings_t *mConfig;
 
         DNSServer mDns;
-        IPAddress mApIp, mApMask;
+        IPAddress mApIp;
         WiFiUDP mUdp; // for time server
         #if defined(ESP8266)
-        WiFiEventHandler wifiConnectHandler;
-        WiFiEventHandler wifiDisconnectHandler;
+        WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
         #endif
 
         bool mConnected, mReconnect, mDnsActive;
@@ -55,7 +56,7 @@ class ahoywifi {
         uint32_t *mUtcTimestamp;
 
         uint8_t mLoopCnt;
-        bool mExtScan;
+        bool mScanActive;
 };
 
 #endif /*__AHOYWIFI_H__*/

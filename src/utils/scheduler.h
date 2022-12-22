@@ -93,9 +93,9 @@ namespace ah {
                 return mTimestamp;
             }
 
-            void stat() {
-                DPRINTLN(DBG_INFO, "max fill every: " + String(mStack.getMaxFill()));
-                DPRINTLN(DBG_INFO, "max fill at: " + String(mStackAt.getMaxFill()));
+            void getStat(uint16_t *everyMax, uint16_t *atMax) {
+                *everyMax = mStack.getMaxFill();
+                *atMax    = mStackAt.getMaxFill();
             }
 
         protected:

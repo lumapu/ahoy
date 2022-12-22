@@ -12,38 +12,49 @@
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
 
-enum {WIFI_NOT_FOUND = 0, WIFI_FOUND, WIFI_NOT_COMPLETE};
-
 
 //-----------------------------------------------------------------------------
-ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1), mApMask(255, 255, 255, 0) {
-    mDnsActive = false;
-    mClientCnt = 0;
-    mLoopCnt   = 250;
-    mExtScan   = false;
-}
+ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
 
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
-    mCnt       = 0;
-    mConnected = false;
-    mReconnect = false;
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
 
-    if(String(mConfig->sys.deviceName) != "")
-        WiFi.hostname(mConfig->sys.deviceName);
-
-    #if !defined(FB_WIFI_OVERRIDDEN)
-        setupAp();
-    #endif
+    mCnt        = 0;
+    mConnected  = false;
+    mReconnect  = false;
+    mScanActive = false;
 
     #if defined(ESP8266)
-    wifiConnectHandler = WiFi.onStationModeGotIP(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
+    wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
+    wifiGotIPHandler = WiFi.onStationModeGotIP(std::bind(&ahoywifi::onGotIP, this, std::placeholders::_1));
     wifiDisconnectHandler = WiFi.onStationModeDisconnected(std::bind(&ahoywifi::onDisconnect, this, std::placeholders::_1));
     #else
     WiFi.onEvent(std::bind(&ahoywifi::onWiFiEvent, this, std::placeholders::_1));
+    #endif
+
+    setupWifi();
+}
+
+
+//-----------------------------------------------------------------------------
+void ahoywifi::setupWifi(void) {
+    #if !defined(FB_WIFI_OVERRIDDEN)
+        //if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) == 0)
+        setupAp();
+        delay(1000);
+    #endif
+    #if !defined(AP_ONLY)
+        if(mConfig->valid) {
+            #if !defined(FB_WIFI_OVERRIDDEN)
+                if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
+                    setupStation();
+            #else
+                setupStation();
+            #endif
+        }
     #endif
 }
 
@@ -53,38 +64,29 @@ void ahoywifi::loop() {
     #if !defined(AP_ONLY)
     if(mReconnect) {
         delay(100);
-        mCnt++;
-        if((mCnt % 50) == 0)
-            WiFi.disconnect();
-        else if((mCnt % 60) == 0) {
-            DPRINTLN(DBG_INFO, F("[WiFi] reconnect"));
-            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
+        if (WiFi.softAPgetStationNum() > 0) { // do not reconnect if any AP connection exists
+            mDns.processNextRequest();
+            if((WIFI_AP_STA == WiFi.getMode()) && !mScanActive) {
+                DBGPRINTLN(F("AP client connected"));
+                welcome(mApIp.toString());
+                WiFi.mode(WIFI_AP);
+            }
+            return;
+        }
+        else if(WIFI_AP == WiFi.getMode()) {
             mCnt = 0;
+            WiFi.mode(WIFI_AP_STA);
         }
-    }
-    yield();
-    if(mDnsActive) {
-        mDns.processNextRequest();
-        uint8_t cnt = WiFi.softAPgetStationNum();
-        if(cnt != mClientCnt) {
-            mClientCnt = cnt;
-            DPRINTLN(DBG_INFO, String(cnt) + F(" client(s) connected"));
-        }
+        mCnt++;
 
-        if(!mExtScan && (mLoopCnt == 240)) {
-            if(scanStationNetwork()) {
-                setupStation();
-                mLoopCnt = 0;
-            }
+        if ((mCnt % 10) == 0) {
+            DBGPRINT(F("reconnect in "));
+            DBGPRINT(String((100-mCnt)/10));
+            DBGPRINTLN(F(" seconds"));
         }
-
-        if(0 != mLoopCnt) {
-            if(++mLoopCnt > 250) {
-                mLoopCnt = 1;
-                if(!mExtScan)
-                    scanAvailNetworks(false);
-            }
-            delay(25);
+        if((mCnt % 100) == 0) { // try to reconnect after 10 sec without connection
+            WiFi.reconnect();
+            mCnt = 0;
         }
     }
     #endif
@@ -93,7 +95,7 @@ void ahoywifi::loop() {
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setupAp(void) {
-    DPRINTLN(DBG_INFO, F("wifi::setupAp"));
+    DPRINTLN(DBG_VERBOSE, F("wifi::setupAp"));
 
     DBGPRINTLN(F("\n---------\nAhoyDTU Info:"));
     DBGPRINT(F("Version: "));
@@ -109,18 +111,16 @@ void ahoywifi::setupAp(void) {
     DBGPRINTLN(F("---------\n"));
 
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAPConfig(mApIp, mApIp, mApMask);
+    WiFi.softAPConfig(mApIp, mApIp, IPAddress(255, 255, 255, 0));
     WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PWD);
 
-    mDns.setErrorReplyCode(DNSReplyCode::NoError);
-    mDns.start(53, "*", WiFi.softAPIP());
-    mDnsActive = true;
+    mDns.start(53, "*", mApIp);
 }
 
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setupStation(void) {
-    DPRINTLN(DBG_INFO, F("wifi::setupStation"));
+    DPRINTLN(DBG_VERBOSE, F("wifi::setupStation"));
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
         IPAddress mask(mConfig->sys.ip.mask);
@@ -130,34 +130,18 @@ void ahoywifi::setupStation(void) {
         if(!WiFi.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
-    WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
+    mReconnect = (WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd) != WL_CONNECTED);
+    if(String(mConfig->sys.deviceName) != "")
+        WiFi.hostname(mConfig->sys.deviceName);
 
     DBGPRINT(F("connect to network '"));
     DBGPRINT(mConfig->sys.stationSsid);
-}
-
-
-//-----------------------------------------------------------------------------
-bool ahoywifi::scanStationNetwork(void) {
-    bool found = false;
-    int n = WiFi.scanComplete();
-    if(n > 0) {
-        for (int i = 0; i < n; i++) {
-            DPRINTLN(DBG_INFO, "found network: " + WiFi.SSID(i));
-            if(String(mConfig->sys.stationSsid) == WiFi.SSID(i)) {
-                found = true;
-                break;
-            }
-        }
-        WiFi.scanDelete();
-    }
-    return found;
+    DBGPRINTLN(F("' ..."));
 }
 
 
 //-----------------------------------------------------------------------------
 bool ahoywifi::getNtpTime(void) {
-    //DPRINTLN(DBG_VERBOSE, F("wifi::getNtpTime"));
     if(!mConnected)
         return false;
 
@@ -165,9 +149,10 @@ bool ahoywifi::getNtpTime(void) {
     uint8_t buf[NTP_PACKET_SIZE];
     uint8_t retry = 0;
 
-    WiFi.hostByName(mConfig->ntp.addr, timeServer);
-    mUdp.begin(mConfig->ntp.port);
+    if (WiFi.hostByName(mConfig->ntp.addr, timeServer) != 1)
+        return false;
 
+    mUdp.begin(mConfig->ntp.port);
     sendNTPpacket(timeServer);
 
     while(retry++ < 5) {
@@ -195,38 +180,6 @@ bool ahoywifi::getNtpTime(void) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::scanAvailNetworks(bool externalCall) {
-    if(externalCall)
-        mExtScan = true;
-    if(-2 == WiFi.scanComplete())
-        WiFi.scanNetworks(true);
-}
-
-
-//-----------------------------------------------------------------------------
-void ahoywifi::getAvailNetworks(JsonObject obj) {
-    JsonArray nets = obj.createNestedArray("networks");
-
-    int n = WiFi.scanComplete();
-    if(n > 0) {
-        int sort[n];
-        for (int i = 0; i < n; i++)
-            sort[i] = i;
-        for (int i = 0; i < n; i++)
-            for (int j = i + 1; j < n; j++)
-                if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                    std::swap(sort[i], sort[j]);
-        for (int i = 0; i < n; ++i) {
-            nets[i]["ssid"]   = WiFi.SSID(sort[i]);
-            nets[i]["rssi"]   = WiFi.RSSI(sort[i]);
-        }
-        WiFi.scanDelete();
-    }
-    mExtScan = false;
-}
-
-
-//-----------------------------------------------------------------------------
 void ahoywifi::sendNTPpacket(IPAddress& address) {
     //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
     uint8_t buf[NTP_PACKET_SIZE] = {0};
@@ -248,58 +201,96 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
 
 
 //-----------------------------------------------------------------------------
-#if defined(ESP8266)
-    void ahoywifi::onConnect(const WiFiEventStationModeGotIP& event) {
+void ahoywifi::scanAvailNetworks(void) {
+    if(-2 == WiFi.scanComplete()) {
+        mScanActive = true;
+        if(WIFI_AP == WiFi.getMode())
+            WiFi.mode(WIFI_AP_STA);
+        WiFi.scanNetworks(true);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void ahoywifi::getAvailNetworks(JsonObject obj) {
+    JsonArray nets = obj.createNestedArray("networks");
+
+    int n = WiFi.scanComplete();
+    if(n > 0) {
+        int sort[n];
+        for (int i = 0; i < n; i++)
+            sort[i] = i;
+        for (int i = 0; i < n; i++)
+            for (int j = i + 1; j < n; j++)
+                if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
+                    std::swap(sort[i], sort[j]);
+        for (int i = 0; i < n; ++i) {
+            nets[i]["ssid"]   = WiFi.SSID(sort[i]);
+            nets[i]["rssi"]   = WiFi.RSSI(sort[i]);
+        }
+        mScanActive = false;
+        WiFi.scanDelete();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+void ahoywifi::connectionEvent(bool connected) {
+    if (connected) {
         if(!mConnected) {
             mConnected = true;
             mReconnect = false;
             DBGPRINTLN(F("\n[WiFi] Connected"));
             WiFi.mode(WIFI_STA);
             DBGPRINTLN(F("[WiFi] AP disabled"));
-            mDnsActive = false;
             mDns.stop();
-
-            welcome(WiFi.localIP().toString() + F(" (Station)"));
         }
-    }
-
-
-    //-------------------------------------------------------------------------
-    void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
+    } else {
         if(mConnected) {
             mConnected = false;
             mReconnect = true;
-            mCnt       = 0;
+            mCnt       = 50;    // try to reconnect in 5 sec
+            setupWifi();        // reconnect with AP / Station setup
             DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
         }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+#if defined(ESP8266)
+    //-------------------------------------------------------------------------
+    void ahoywifi::onConnect(const WiFiEventStationModeConnected& event) {
+        connectionEvent(true);
+    }
+
+    //-------------------------------------------------------------------------
+    void ahoywifi::onGotIP(const WiFiEventStationModeGotIP& event) {
+        welcome(WiFi.localIP().toString() + F(" (Station)"));
+    }
+
+    //-------------------------------------------------------------------------
+    void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
+        connectionEvent(false);
     }
 
 #else
     //-------------------------------------------------------------------------
     void ahoywifi::onWiFiEvent(WiFiEvent_t event) {
+        DBGPRINT(F("Wifi event: "));
+        DBGPRINTLN(String(event));
+
         switch(event) {
+            case SYSTEM_EVENT_STA_CONNECTED:
+                connectionEvent(true);
+                break;
+
             case SYSTEM_EVENT_STA_GOT_IP:
-                if(!mConnected) {
-                    delay(1000);
-                    mConnected = true;
-                    DBGPRINTLN(F("\n[WiFi] Connected"));
-                    welcome(WiFi.localIP().toString() + F(" (Station)"));
-                    WiFi.mode(WIFI_STA);
-                    WiFi.begin();
-                    DBGPRINTLN(F("[WiFi] AP disabled"));
-                    mDnsActive = false;
-                    mDns.stop();
-                    mReconnect = false;
-                }
+                welcome(WiFi.localIP().toString() + F(" (Station)"));
                 break;
 
             case SYSTEM_EVENT_STA_DISCONNECTED:
-                if(mConnected) {
-                    mConnected = false;
-                    mReconnect = true;
-                    mCnt       = 0;
-                    DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
-                }
+                connectionEvent(false);
                 break;
 
             default:

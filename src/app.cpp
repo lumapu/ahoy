@@ -266,6 +266,7 @@ void app::resetSystem(void) {
 
     mSendLastIvId = 0;
     mShowRebootRequest = false;
+    mIVCommunicationOn = true;
 
     memset(&mStat, 0, sizeof(statistics_t));
 }

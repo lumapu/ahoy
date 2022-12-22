@@ -199,6 +199,11 @@ class RestApi {
         #endif
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
             //obj[F("littlefs_used")] = LittleFS.usedBytes();
+
+            uint16_t evry, at;
+            mApp->getSchedulerInfo(&evry, &at);
+            obj[F("schEvryMax")] = evry;
+            obj[F("schAtMax")] = at;
         }
 
         void getHtmlSystem(JsonObject obj) {

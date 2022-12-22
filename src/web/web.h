@@ -285,20 +285,10 @@ class Web {
         }
 
         void showNotFound(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("showNotFound - ") + request->url());
-            String msg = F("File Not Found\n\nURL: ");
-            msg += request->url();
-            msg += F("\nMethod: ");
-            msg += ( request->method() == HTTP_GET ) ? "GET" : "POST";
-            msg += F("\nArguments: ");
-            msg += request->args();
-            msg += "\n";
-
-            for(uint8_t i = 0; i < request->args(); i++ ) {
-                msg += " " + request->argName(i) + ": " + request->arg(i) + "\n";
-            }
-
-            request->send(404, F("text/plain"), msg);
+            if(mProtected)
+                request->redirect("/login");
+            else
+                request->redirect("/setup");
         }
 
         void onReboot(AsyncWebServerRequest *request) {

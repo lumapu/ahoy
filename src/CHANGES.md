@@ -1,17 +1,21 @@
 # Changelog
 
+## 0.5.59
+* fix night communication enable
+* improved different WiFi connection scenarios (STA WiFi not found, reconnect #509, redirect for AP to configuration)
+
 ## 0.5.58
 * improved stability
-* improved wifi initial connection - especially if station wifi is not available
+* improved WiFi initial connection - especially if station WiFi is not available
 * removed new operators from web.h (reduce dynamic allocation)
 * improved sun calculation #515, #505
-* fixed wifi auto reconnect #509
+* fixed WiFi auto reconnect #509
 * added disable night communication flag to MQTT #505
 * changed MQTT publish of `available` and `available_text` to sunset #468
 
 ## 0.5.57
 * improved stability
-* added icons to index.html, added wifi-strength symbol on each page
+* added icons to index.html, added WiFi-strength symbol on each page
 * moved packet stats and sun to system.html
 * refactored communication offset (adjustable in minutes now)
 
@@ -32,7 +36,7 @@
 
 ## 0.5.53
 * Mono-Display: show values in offline mode #498
-* improved wifi class #483
+* improved WiFi class #483
 * added communication enable / disable (to test mutliple DTUs with the same inverter)
 * fix factory reset #495
 
