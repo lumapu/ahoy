@@ -42,7 +42,6 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
 //-----------------------------------------------------------------------------
 void ahoywifi::setupWifi(void) {
     #if !defined(FB_WIFI_OVERRIDDEN)
-        //if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) == 0)
         setupAp();
         delay(1000);
     #endif

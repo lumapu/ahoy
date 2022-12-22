@@ -31,8 +31,8 @@ class ahoywifi {
         void setupAp(void);
         void setupStation(void);
         void sendNTPpacket(IPAddress& address);
-        #if defined(ESP8266)
         void connectionEvent(bool connected);
+        #if defined(ESP8266)
         void onConnect(const WiFiEventStationModeConnected& event);
         void onGotIP(const WiFiEventStationModeGotIP& event);
         void onDisconnect(const WiFiEventStationModeDisconnected& event);
