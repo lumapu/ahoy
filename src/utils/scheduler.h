@@ -72,8 +72,8 @@ namespace ah {
             }
 
             void once(scdCb c, uint32_t timeout)     { mStack.add(c, timeout, 0); }
-            void every(scdCb c, uint32_t interval)   { mStack.add(c, interval, interval); }
             void onceAt(scdCb c, uint32_t timestamp) { mStackAt.add(c, timestamp); }
+            uint8_t every(scdCb c, uint32_t interval){ return mStack.add(c, interval, interval)->id; }
 
             void everySec(scdCb c)  { mStack.add(c, SCD_SEC,  SCD_SEC);  }
             void everyMin(scdCb c)  { mStack.add(c, SCD_MIN,  SCD_MIN);  }
@@ -83,6 +83,20 @@ namespace ah {
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
+            }
+
+            bool resetEveryById(uint8_t id) {
+                sP *p = mStack.getFront();
+                while(NULL != p) {
+                    if(p->id == id)
+                        break;
+                    p = mStack.get(p);
+                }
+                if(NULL != p) {
+                    p->d.timeout = p->d.reload;
+                    return true;
+                }
+                return false;
             }
 
             uint32_t getUptime(void) {
@@ -135,7 +149,7 @@ namespace ah {
                 }
             }
 
-            llist<25, scdEvry_s, scdCb, uint32_t, uint32_t> mStack;
+            llist<20, scdEvry_s, scdCb, uint32_t, uint32_t> mStack;
             llist<10, scdAt_s, scdCb, uint32_t> mStackAt;
             uint32_t mMillis, mPrevMillis, mDiff;
             uint32_t mUptime;

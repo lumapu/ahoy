@@ -11,7 +11,7 @@ struct node_s {
     typedef T dT;
     node_s *pre;
     node_s *nxt;
-    uint32_t id;
+    uint8_t id;
     dT d;
     node_s() : pre(NULL), nxt(NULL), d() {}
     node_s(Args... args) : id(0), pre(NULL), nxt(NULL), d(args...) {}

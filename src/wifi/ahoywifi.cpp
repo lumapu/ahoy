@@ -59,7 +59,7 @@ void ahoywifi::setupWifi(void) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::loop() {
+void ahoywifi::tickWifiLoop() {
     #if !defined(AP_ONLY)
     if(mReconnect) {
         delay(100);
@@ -132,6 +132,7 @@ void ahoywifi::setupStation(void) {
     mReconnect = (WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd) != WL_CONNECTED);
     if(String(mConfig->sys.deviceName) != "")
         WiFi.hostname(mConfig->sys.deviceName);
+    WiFi.mode(WIFI_AP_STA);
 
     DBGPRINT(F("connect to network '"));
     DBGPRINT(mConfig->sys.stationSsid);

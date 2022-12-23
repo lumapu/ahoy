@@ -41,8 +41,11 @@ void app::setup() {
     #endif
 
     mWifi.setup(mConfig, &mTimestamp);
+    #if !defined(AP_ONLY)
+    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi));
+    #endif
 
-    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
+    mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
     #if !defined(AP_ONLY)
         once(std::bind(&app::tickNtpUpdate, this), 2);
     #endif
@@ -78,6 +81,7 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, mSys, &mTimestamp);
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval);
+    //everySec(std::bind(&app::tickSerial, this));
 }
 
 //-----------------------------------------------------------------------------
@@ -85,11 +89,6 @@ void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
 
     ah::Scheduler::loop();
-
-    #if !defined(AP_ONLY)
-    mWifi.loop();
-    #endif
-
     mSys->Radio.loop();
 
     yield();
@@ -142,7 +141,7 @@ void app::tickCalcSunrise(void) {
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
     tickIVCommunication();
 
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 10) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
         mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom);
@@ -263,6 +262,7 @@ void app::resetSystem(void) {
     mSunset  = 0;
 
     mRxTicker = 0;
+    mSendTickerId = 0xff; // invalid id
 
     mSendLastIvId = 0;
     mShowRebootRequest = false;

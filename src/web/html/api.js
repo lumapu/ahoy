@@ -129,7 +129,7 @@ function lbl(htmlfor, val, cl=null, id=null) {
     return e;
 }
 
-function inp(name, val, max=32, cl=["text"], id=null, type=null) {
+function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, title=null) {
     e = document.createElement('input');
     e.classList.add(...cl);
     e.name = name;
@@ -137,6 +137,8 @@ function inp(name, val, max=32, cl=["text"], id=null, type=null) {
     if(null != max) e.maxLength = max;
     if(null != id) e.id = id;
     if(null != type) e.type = type;
+    if(null != pattern) e.pattern = pattern;
+    if(null != title) e.title = title;
     return e;
 }
 

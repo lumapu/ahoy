@@ -138,7 +138,7 @@
                         <label for="mqttPwd">Password (optional)</label>
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic"/>
+                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9.-_]+" title="Invalid input" />
                         <label for="mqttBtn">Discovery Config (homeassistant)</label>
                         <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
                         <span id="apiResultMqtt"></span>
@@ -165,11 +165,15 @@
                     </fieldset>
                     </div>
 
-                    <label for="reboot">Reboot device after successful save</label>
-                    <input type="checkbox" class="cb" name="reboot" checked />
-                    <input type="submit" value="save" class="btn right"/><br/>
-                    <br/>
-                    <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values)
+                    <div class="mt-3">
+                        <label for="reboot">Reboot device after successful save</label>
+                        <input type="checkbox" class="cb" name="reboot" checked />
+                        <input type="submit" value="save" class="btn right"/>
+                    </div>
+                    <div class="hr mb-3 mt-3"></div>
+                    <div class="mb-4">
+                        <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values)
+                    </div>
                 </form>
             </div>
         </div>
@@ -305,28 +309,31 @@
                     })
                 });
 
-                for(var i of [["Name", "name", "Name*", 32]]) {
-                    iv.appendChild(lbl(id + i[0], i[2]));
-                    iv.appendChild(inp(id + i[0], obj[i[1]], i[3]));
-                }
+                iv.append(
+                    lbl(id + "Name", "Name*"),
+                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9.-_]+", "Invalid input")
+                );
 
-                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4], ["ModName", "ch_name", "Module Name", 16]]) {
+                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"], ["ModName", "ch_name", "Module Name", 16, "[A-Za-z0-9.-_]+"]]) {
                     var cl = (re.test(obj["serial"])) ? null : ["hide"];
                     iv.appendChild(lbl(null, j[2], cl, "lbl" + id + j[0]));
                     d = div([j[0]]);
                     i = 0;
                     cl = (re.test(obj["serial"])) ? ["text", "sh"] : ["text", "sh", "hide"];
                     for(it of obj[j[1]]) {
-                        d.appendChild(inp(id + j[0] + i, it, j[3], cl, id + j[0] + i));
+                        d.appendChild(inp(id + j[0] + i, it, j[3], cl, id + j[0] + i, "text", j[4], "Invalid input"));
                         i++;
                     }
                     iv.appendChild(d);
                 }
-                iv.appendChild(br());
-                iv.appendChild(lbl(id + "lbldel", "Delete"));
+
                 var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
-                iv.appendChild(del);
                 del.addEventListener("click", delIv);
+                iv.append(
+                    br(),
+                    lbl(id + "lbldel", "Delete"),
+                    del
+                );
             }
 
             function ivGlob(obj) {

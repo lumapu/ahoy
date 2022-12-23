@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.60
+* added regex to inverter name and MQTT topic (setup.html)
+* beautified serial.html
+* added ticker for wifi loop #515
+
 ## 0.5.59
 * fix night communication enable
 * improved different WiFi connection scenarios (STA WiFi not found, reconnect #509, redirect for AP to configuration)
