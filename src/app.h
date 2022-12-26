@@ -134,6 +134,10 @@ class app : public IApp, public ah::Scheduler {
             return mMqtt.getRxCnt();
         }
 
+        bool getProtection() {
+            return mWeb.getProtection();
+        }
+
         uint8_t getIrqPin(void) {
             return mConfig->nrf.pinIrq;
         }

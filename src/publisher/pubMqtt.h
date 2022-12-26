@@ -36,6 +36,7 @@ class PubMqtt {
             mSubscriptionCb = NULL;
             mIsDay = false;
             mIvAvail = true;
+            memset(mLastIvState, 0xff, MAX_NUM_INVERTERS);
         }
 
         ~PubMqtt() { }
@@ -77,6 +78,7 @@ class PubMqtt {
         }
 
         void tickerMinute() {
+            processIvStatus();
             char val[12];
             snprintf(val, 12, "%ld", millis() / 1000);
             publish("uptime", val);
@@ -368,6 +370,72 @@ class PubMqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
+        bool processIvStatus() {
+            // returns true if all inverters are available
+            bool allAvail = true;
+            bool first = true;
+            bool changed = false;
+            char topic[7 + MQTT_TOPIC_LEN], val[40];
+            Inverter<> *iv;
+            record_t<> *rec;
+            bool totalComplete = true;
+
+            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                iv = mSys->getInverterByPos(id);
+                if (NULL == iv)
+                    continue; // skip to next inverter
+
+                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                if(first)
+                    mIvAvail = false;
+                first = false;
+
+                // inverter status
+                uint8_t status = MQTT_STATUS_AVAIL_PROD;
+                if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
+                    status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                    if(iv->config->enabled) { // only change all-avail if inverter is enabled!
+                        totalComplete = false;
+                        allAvail = false;
+                    }
+                }
+                else if (!iv->isProducing(*mUtcTimestamp, rec)) {
+                    mIvAvail = true;
+                    if (MQTT_STATUS_AVAIL_PROD == status)
+                        status = MQTT_STATUS_AVAIL_NOT_PROD;
+                }
+                else
+                    mIvAvail = true;
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->config->name);
+                snprintf(val, 40, "%s%s%s%s",
+                    (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
+                    "available and ",
+                    (status == MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
+                    "producing"
+                );
+                publish(topic, val, true);
+
+                if(mLastIvState[id] != status) {
+                    mLastIvState[id] = status;
+
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
+                    snprintf(val, 40, "%d", status);
+                    publish(topic, val, true);
+
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
+                    snprintf(val, 40, "%d", iv->getLastTs(rec));
+                    publish(topic, val, true);
+                }
+            }
+
+            if(changed) {
+                snprintf(val, 32, "%s", ((allAvail) ? "online" : ((mIvAvail) ? "partial" : "offline")));
+                publish("status", val, true);
+            }
+
+            return totalComplete;
+        }
+
         void sendIvData(void) {
             if(mSendList.empty())
                 return;
@@ -375,9 +443,6 @@ class PubMqtt {
             char topic[7 + MQTT_TOPIC_LEN], val[40];
             float total[4];
             bool sendTotal = false;
-            bool totalIncomplete = false;
-            bool allAvail = true;
-            bool first = true;
 
             while(!mSendList.empty()) {
                 memset(total, 0, sizeof(float) * 4);
@@ -387,45 +452,6 @@ class PubMqtt {
                         continue; // skip to next inverter
 
                     record_t<> *rec = iv->getRecordStruct(mSendList.front());
-
-                    if(mSendList.front() == RealTimeRunData_Debug) {
-                        if(first)
-                            mIvAvail = false;
-                        first = false;
-
-                        // inverter status
-                        uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                        if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
-                            status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                            if(iv->config->enabled) { // only change all-avail if inverter is enabled!
-                                totalIncomplete = true;
-                                allAvail = false;
-                            }
-                        }
-                        else if (!iv->isProducing(*mUtcTimestamp, rec)) {
-                            mIvAvail = true;
-                            if (MQTT_STATUS_AVAIL_PROD == status)
-                                status = MQTT_STATUS_AVAIL_NOT_PROD;
-                        }
-                        else
-                            mIvAvail = true;
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available_text", iv->config->name);
-                        snprintf(val, 40, "%s%s%s%s",
-                            (status == MQTT_STATUS_NOT_AVAIL_NOT_PROD) ? "not " : "",
-                            "available and ",
-                            (status == MQTT_STATUS_AVAIL_NOT_PROD) ? "not " : "",
-                            "producing"
-                        );
-                        publish(topic, val, true);
-
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                        snprintf(val, 40, "%d", status);
-                        publish(topic, val, true);
-
-                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                        snprintf(val, 40, "%d", iv->getLastTs(rec));
-                        publish(topic, val, true);
-                    }
 
                     // data
                     if(iv->isAvailable(*mUtcTimestamp, rec)) {
@@ -471,10 +497,7 @@ class PubMqtt {
 
                 mSendList.pop(); // remove from list once all inverters were processed
 
-                snprintf(val, 32, "%s", ((allAvail) ? "online" : ((mIvAvail) ? "partial" : "offline")));
-                publish("status", val, true);
-
-                if ((true == sendTotal) && (false == totalIncomplete)) {
+                if ((true == sendTotal) && processIvStatus()) {
                     uint8_t fieldId;
                     for (uint8_t i = 0; i < 4; i++) {
                         switch (i) {
@@ -514,6 +537,7 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
         bool mIsDay;
         bool mIvAvail; // shows if at least one inverter is available
+        uint8_t mLastIvState[MAX_NUM_INVERTERS];
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];

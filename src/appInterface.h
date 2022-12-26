@@ -37,6 +37,8 @@ class IApp {
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
+
+        virtual bool getProtection() = 0;
 };
 
 #endif /*__IAPP_H__*/

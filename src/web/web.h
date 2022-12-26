@@ -121,6 +121,11 @@ class Web {
         void setProtection(bool protect) {
             mProtected = protect;
         }
+
+        bool getProtection() {
+            return mProtected;
+        }
+
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             if(!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
@@ -180,10 +185,12 @@ class Web {
         void onUpdate(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onUpdate"));
 
-            /*if(mProtected) {
-                request->redirect("/login");
-                return;
-            }*/
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
+            }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), update_html, update_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -221,9 +228,11 @@ class Web {
         void onIndex(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onIndex"));
 
-            if(mProtected) {
-                request->redirect("/login");
-                return;
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), index_html, index_html_len);
@@ -236,7 +245,7 @@ class Web {
 
             if(request->args() > 0) {
                 if(String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
-                    mProtected      = false;
+                    mProtected = false;
                     request->redirect("/");
                 }
             }
@@ -346,9 +355,11 @@ class Web {
         void onSetup(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
-            if(mProtected) {
-                request->redirect("/login");
-                return;
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), setup_html, setup_html_len);
@@ -376,11 +387,17 @@ class Web {
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
             if(request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
+
+            // protection
             if(request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
                 mProtected = (strlen(mConfig->sys.adminPwd) > 0);
             }
-
+            mConfig->sys.protectionMask = 0x0000;
+            for(uint8_t i = 0; i < 6; i++) {
+                if(request->arg("protMask" + String(i)) == "on")
+                    mConfig->sys.protectionMask |= (1 << i);
+            }
 
             // static ip
             request->arg("ipAddr").toCharArray(buf, 20);
@@ -501,9 +518,11 @@ class Web {
         void onLive(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLive"));
 
-            if(mProtected) {
-                request->redirect("/login");
-                return;
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), visualization_html, visualization_html_len);
@@ -579,9 +598,11 @@ class Web {
         void onSerial(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSerial"));
 
-            if(mProtected) {
-                request->redirect("/login");
-                return;
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), serial_html, serial_html_len);
@@ -592,9 +613,11 @@ class Web {
         void onSystem(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSystem"));
 
-            if(mProtected) {
-                request->redirect("/login");
-                return;
+            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM)) {
+                if(mProtected) {
+                    request->redirect("/login");
+                    return;
+                }
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html"), system_html, system_html_len);

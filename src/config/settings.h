@@ -18,6 +18,26 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
+
+#define PROT_MASK_INDEX     0x0001
+#define PROT_MASK_LIVE      0x0002
+#define PROT_MASK_SERIAL    0x0004
+#define PROT_MASK_SETUP     0x0008
+#define PROT_MASK_UPDATE    0x0010
+#define PROT_MASK_SYSTEM    0x0020
+#define PROT_MASK_API       0x0040
+#define PROT_MASK_MQTT      0x0080
+
+#define DEF_PROT_INDEX      0x0001
+#define DEF_PROT_LIVE       0x0000
+#define DEF_PROT_SERIAL     0x0004
+#define DEF_PROT_SETUP      0x0008
+#define DEF_PROT_UPDATE     0x0010
+#define DEF_PROT_SYSTEM     0x0020
+#define DEF_PROT_API        0x0000
+#define DEF_PROT_MQTT       0x0000
+
+
 typedef struct {
     uint8_t ip[4];      // ip address
     uint8_t mask[4];    // sub mask
@@ -29,6 +49,7 @@ typedef struct {
 typedef struct {
     char deviceName[DEVNAME_LEN];
     char adminPwd[PWD_LEN];
+    uint16_t protectionMask;
 
     // wifi
     char stationSsid[SSID_LEN];
@@ -240,6 +261,8 @@ class settings {
             }
             // erase all settings and reset to default
             memset(&mCfg, 0, sizeof(settings_t));
+            mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
+                                    | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
             // restore temp settings
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
@@ -288,6 +311,7 @@ class settings {
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
+                obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -298,11 +322,16 @@ class settings {
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,     "%s", obj[F("pwd")].as<const char*>());
                 snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, "%s", obj[F("dev")].as<const char*>());
                 snprintf(mCfg.sys.adminPwd,    PWD_LEN,     "%s", obj[F("adm")].as<const char*>());
+                mCfg.sys.protectionMask = obj[F("prot_mask")];
                 ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.dns2,    obj[F("dns2")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.gateway, obj[F("gtwy")].as<const char*>());
+
+                if(mCfg.sys.protectionMask == 0)
+                    mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
+                                            | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
             }
         }
 

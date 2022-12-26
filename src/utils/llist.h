@@ -70,8 +70,10 @@ class llist {
             elmType *t = p->nxt;
             p->nxt->pre = p->pre;
             p->pre->nxt = p->nxt;
-            if(root == p)
+            if((root == p) && (p->nxt == p))
                 root = NULL;
+            else
+                root = p->nxt;
             p->nxt = NULL;
             p->pre = NULL;
             p = NULL;

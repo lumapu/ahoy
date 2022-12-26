@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.61
+* fix #521 no reconnect at beginning of day
+* added immediate (each minute) report of inverter status MQTT #522
+* added protection mask to select which pages should be protected
+
 ## 0.5.60
 * added regex to inverter name and MQTT topic (setup.html)
 * beautified serial.html

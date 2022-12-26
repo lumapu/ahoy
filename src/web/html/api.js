@@ -129,7 +129,7 @@ function lbl(htmlfor, val, cl=null, id=null) {
     return e;
 }
 
-function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, title=null) {
+function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, title=null, checked=null) {
     e = document.createElement('input');
     e.classList.add(...cl);
     e.name = name;
@@ -139,6 +139,7 @@ function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, t
     if(null != type) e.type = type;
     if(null != pattern) e.pattern = pattern;
     if(null != title) e.title = title;
+    if(null != checked) e.checked = checked;
     return e;
 }
 

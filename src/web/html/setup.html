@@ -37,9 +37,6 @@
                         <legend class="des">Device Host Name</legend>
                         <label for="device">Device Name</label>
                         <input type="text" name="device" class="text"/>
-                        <label for="adminpwd">Admin Password</label>
-                        <input type="password" name="adminpwd" class="text" value="{PWD}"/>
-                        <input type="hidden" name="disclaimer" value="false" id="disclaimer">
                     </fieldset>
 
                     <button type="button" class="s_collapsible">Network</button>
@@ -74,6 +71,18 @@
                             <input type="text" name="ipDns2" class="text" maxlength="15" />
                             <label for="ipGateway">Gateway</label>
                             <input type="text" name="ipGateway" class="text" maxlength="15" />
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Protection</button>
+                    <div class="s_content">
+                        <fieldset>
+                            <legend class="des">Protection</legend>
+                            <label for="adminpwd">Admin Password</label>
+                            <input type="password" name="adminpwd" class="text" value="{PWD}"/>
+                            <input type="hidden" name="disclaimer" value="false" id="disclaimer">
+                            <p>Select pages which should be protected by password</p>
+                            <div id="prot_mask"></div>
                         </fieldset>
                     </div>
 
@@ -347,6 +356,17 @@
                 var e = document.getElementsByName("adminpwd")[0];
                 if(!obj["pwd_set"])
                     e.value = "";
+                var d = document.getElementById("prot_mask");
+                var a = ["Index", "Live", "Serial / Console", "Settings", "Update", "System"]
+                for(var i = 0; i < 6; i++) {
+                    var chkd = ((obj["prot_mask"] & (1 << i)) == (1 << i));
+                    var sp = lbl("protMask" + i, a[i]);
+                    var cb = inp("protMask" + i, null, null, ["cb"], "protMask" + i, "checkbox", null, null, chkd);
+                    if(0 == i)
+                        d.replaceChildren(sp, cb, br());
+                    else
+                        d.append(sp, cb, br());
+                }
             }
 
             function parseGeneric(obj) {

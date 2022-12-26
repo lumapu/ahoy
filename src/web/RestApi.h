@@ -165,6 +165,7 @@ class RestApi {
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = WiFi.getHostname();
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
+            obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
             obj[F("sdk")]          = ESP.getSdkVersion();
             obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
@@ -324,29 +325,41 @@ class RestApi {
         }
 
         void getMenu(JsonObject obj) {
-            obj["name"][0] = "Live";
-            obj["link"][0] = "/live";
-            obj["name"][1] = "Serial / Control";
-            obj["link"][1] = "/serial";
-            obj["name"][2] = "Settings";
-            obj["link"][2] = "/setup";
-            obj["name"][3] = "-";
-            obj["name"][4] = "REST API";
-            obj["link"][4] = "/api";
-            obj["trgt"][4] = "_blank";
-            obj["name"][5] = "-";
-            obj["name"][6] = "Update";
-            obj["link"][6] = "/update";
-            obj["name"][7] = "System";
-            obj["link"][7] = "/system";
-            obj["name"][8] = "-";
-            obj["name"][9] = "Documentation";
-            obj["link"][9] = "https://ahoydtu.de";
-            obj["trgt"][9] = "_blank";
-            if(strlen(mConfig->sys.adminPwd) > 0) {
-                obj["name"][10] = "-";
-                obj["name"][11] = "Logout";
-                obj["link"][11] = "/logout";
+            uint8_t i = 0;
+            uint16_t mask = (mApp->getProtection()) ? mConfig->sys.protectionMask : 0;
+            if(!CHECK_MASK(mask, PROT_MASK_LIVE)) {
+                obj[F("name")][i] = "Live";
+                obj[F("link")][i++] = "/live";
+            }
+            if(!CHECK_MASK(mask, PROT_MASK_SERIAL)) {
+                obj[F("name")][i] = "Serial / Control";
+                obj[F("link")][i++] = "/serial";
+            }
+            if(!CHECK_MASK(mask, PROT_MASK_SETUP)) {
+                obj[F("name")][i] = "Settings";
+                obj[F("link")][i++] = "/setup";
+            }
+            obj[F("name")][i++] = "-";
+            obj[F("name")][i] = "REST API";
+            obj[F("link")][i] = "/api";
+            obj[F("trgt")][i++] = "_blank";
+            obj[F("name")][i++] = "-";
+            if(!CHECK_MASK(mask, PROT_MASK_UPDATE)) {
+                obj[F("name")][i] = "Update";
+                obj[F("link")][i++] = "/update";
+            }
+            if(!CHECK_MASK(mask, PROT_MASK_SYSTEM)) {
+                obj[F("name")][i] = "System";
+                obj[F("link")][i++] = "/system";
+            }
+            obj[F("name")][i++] = "-";
+            obj[F("name")][i] = "Documentation";
+            obj[F("link")][i] = "https://ahoydtu.de";
+            obj[F("trgt")][i++] = "_blank";
+            if((strlen(mConfig->sys.adminPwd) > 0) && !mApp->getProtection()) {
+                obj[F("name")][i++] = "-";
+                obj[F("name")][i] = "Logout";
+                obj[F("link")][i++] = "/logout";
             }
         }
 
