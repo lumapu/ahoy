@@ -4,6 +4,7 @@
 * fix #521 no reconnect at beginning of day
 * added immediate (each minute) report of inverter status MQTT #522
 * added protection mask to select which pages should be protected
+* update of monochrome display, show values also if nothing changed
 
 ## 0.5.60
 * added regex to inverter name and MQTT topic (setup.html)
