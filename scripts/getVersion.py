@@ -1,4 +1,6 @@
 import os
+import shutil
+import gzip
 from datetime import date
 
 def genOtaBin(path):
@@ -24,6 +26,11 @@ def genOtaBin(path):
     with open(path + "ota.bin", "wb") as f:
         f.write(bytearray(arr))
 
+# write gzip firmware file
+def gzip_bin(bin_file, gzip_file):
+    with open(bin_file,"rb") as fp:
+        with gzip.open(gzip_file, "wb", compresslevel = 9) as f:
+            shutil.copyfileobj(fp, f)
 
 def readVersion(path, infile):
     f = open(path + infile, "r")
@@ -44,18 +51,40 @@ def readVersion(path, infile):
     
     os.mkdir(path + "firmware/")
     sha = os.getenv("SHA",default="sha")
+
     versionout = version[:-1] + "_esp8266_" + sha + ".bin"
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
-    
-    versionout = version[:-1] + "_esp8266_1m_" + sha + ".bin"
-    src = path + ".pio/build/esp8285-release/firmware.bin"
+
+    versionout = version[:-1] + "_esp8266_nokia5110_" + sha + ".bin"
+    src = path + ".pio/build/esp8266-nokia5110/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
+    versionout = version[:-1] + "_esp8266_ssd1306_" + sha + ".bin"
+    src = path + ".pio/build/esp8266-ssd1306/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+    
+    versionout = version[:-1] + "_esp8285_" + sha + ".bin"
+    src = path + ".pio/build/esp8285-release/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+    gzip_bin(dst, dst + ".gz")
+
     versionout = version[:-1] + "_esp32_" + sha + ".bin"
     src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_esp32_nokia5110_" + sha + ".bin"
+    src = path + ".pio/build/esp32-wroom32-nokia5110/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_esp32_ssd1306_" + sha + ".bin"
+    src = path + ".pio/build/esp32-wroom32-ssd1306/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 

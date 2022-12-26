@@ -68,19 +68,17 @@
 
                     for(var j = 0; j < root.ch0_fld_names.length; j++) {
                         var val = Math.round(iv["ch"][0][j] * 100) / 100;
-                        if(val > 0) {
-                            var sub = div(["subgrp"]);
-                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
-                            ch0.appendChild(sub);
+                        var sub = div(["subgrp"]);
+                        sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                        sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
+                        ch0.appendChild(sub);
 
-                            switch(j) {
-                                case 2:  total[j] += val; break; // P_AC
-                                case 6:  total[j] += val; break; // YieldTotal
-                                case 7:  total[j] += val; break; // YieldDay
-                                case 8:  total[j] += val; break; // P_DC
-                                case 10: total[j] += val; break; // Q_AC
-                            }
+                        switch(j) {
+                            case 2:  total[j] += val; break; // P_AC
+                            case 6:  total[j] += val; break; // YieldTotal
+                            case 7:  total[j] += val; break; // YieldDay
+                            case 8:  total[j] += val; break; // P_DC
+                            case 10: total[j] += val; break; // Q_AC
                         }
                     }
                     main.appendChild(ch0);
@@ -92,10 +90,8 @@
 
                         for(var j = 0; j < root.fld_names.length; j++) {
                             var val = Math.round(iv["ch"][i][j] * 100) / 100;
-                            if(val > 0) {
-                                ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                                ch.appendChild(span(root["fld_names"][j], ["info"]));
-                            }
+                            ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
+                            ch.appendChild(span(root["fld_names"][j], ["info"]));
                         }
                         main.appendChild(ch);
                     }

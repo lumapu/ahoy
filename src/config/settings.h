@@ -10,6 +10,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "../utils/dbg.h"
+#include "../utils/helper.h"
 #include "../defines.h"
 
 /**
@@ -97,6 +98,7 @@ typedef struct {
     cfgMqtt_t   mqtt;
     cfgLed_t    led;
     cfgInst_t   inst;
+    bool        valid;
 } settings_t;
 
 class settings {
@@ -106,7 +108,7 @@ class settings {
         void setup() {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
 
-            mValid = false;
+            mCfg.valid = false;
             #if !defined(ESP32)
                 LittleFSConfig cfg;
                 cfg.setAutoFormat(false);
@@ -144,7 +146,7 @@ class settings {
         }
 
         bool getValid(void) {
-            return mValid;
+            return mCfg.valid;
         }
 
         void getInfo(uint32_t *used, uint32_t *size) {
@@ -172,7 +174,7 @@ class settings {
                 DynamicJsonDocument root(4096);
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err) {
-                    mValid = true;
+                    mCfg.valid = true;
                     jsonWifi(root["wifi"]);
                     jsonNrf(root["nrf"]);
                     jsonNtp(root["ntp"]);
@@ -223,28 +225,9 @@ class settings {
             return saveSettings();
         }
 
-        String ip2Str(uint8_t ip[]) {
-            return String(ip[0]) + F(".")
-                + String(ip[1]) + F(".")
-                + String(ip[2]) + F(".")
-                + String(ip[3]);
-        }
-
-        void ip2Arr(uint8_t ip[], const char *ipStr) {
-            char *tmp = new char[strlen(ipStr)];
-            strncpy(tmp, ipStr, strlen(ipStr));
-            char *p = strtok(tmp, ".");
-            uint8_t i = 0;
-            while(NULL != p) {
-                ip[i++] = atoi(p);
-                p = strtok(NULL, ".");
-            }
-            delete[] tmp;
-        }
-
     private:
         void loadDefaults(bool wifi = true) {
-            DPRINTLN(DBG_INFO, F("loadDefaults"));
+            DPRINTLN(DBG_VERBOSE, F("loadDefaults"));
             if(wifi) {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN,    FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,     FB_WIFI_PWD);
@@ -288,25 +271,26 @@ class settings {
 
         void jsonWifi(JsonObject obj, bool set = false) {
             if(set) {
+                char buf[16];
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
-                obj[F("ip")]   = ip2Str(mCfg.sys.ip.ip);
-                obj[F("mask")] = ip2Str(mCfg.sys.ip.mask);
-                obj[F("dns1")] = ip2Str(mCfg.sys.ip.dns1);
-                obj[F("dns2")] = ip2Str(mCfg.sys.ip.dns2);
-                obj[F("gtwy")] = ip2Str(mCfg.sys.ip.gateway);
+                ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
+                ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
+                ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
+                ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")] = String(buf);
+                ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")] = String(buf);
             } else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN,    "%s", obj[F("ssid")].as<const char*>());
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,     "%s", obj[F("pwd")].as<const char*>());
                 snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, "%s", obj[F("dev")].as<const char*>());
                 snprintf(mCfg.sys.adminPwd,    PWD_LEN,     "%s", obj[F("adm")].as<const char*>());
-                ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")]);
-                ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")]);
-                ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")]);
-                ip2Arr(mCfg.sys.ip.dns2,    obj[F("dns2")]);
-                ip2Arr(mCfg.sys.ip.gateway, obj[F("gtwy")]);
+                ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
+                ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
+                ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
+                ah::ip2Arr(mCfg.sys.ip.dns2,    obj[F("dns2")].as<const char*>());
+                ah::ip2Arr(mCfg.sys.ip.gateway, obj[F("gtwy")].as<const char*>());
             }
         }
 
@@ -426,7 +410,6 @@ class settings {
         }
 
         settings_t mCfg;
-        bool mValid;
 };
 
 #endif /*__SETTINGS_H__*/
