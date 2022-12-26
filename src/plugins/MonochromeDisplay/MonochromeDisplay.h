@@ -77,10 +77,14 @@ class MonochromeDisplay {
         }
 
         void tickerSecond() {
-            if(mNewPayload) {
+            static int cnt=1;
+            if(mNewPayload || !(cnt % 10)) {
+                cnt=1;
                 mNewPayload = false;
                 DataScreen();
             }
+            else
+               cnt++;
         }
 
     private:
