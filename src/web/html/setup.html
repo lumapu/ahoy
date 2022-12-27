@@ -147,7 +147,7 @@
                         <label for="mqttPwd">Password (optional)</label>
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9.-_]+" title="Invalid input" />
+                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9.\-_\+]+" title="Invalid input" />
                         <label for="mqttBtn">Discovery Config (homeassistant)</label>
                         <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
                         <span id="apiResultMqtt"></span>
@@ -320,10 +320,10 @@
 
                 iv.append(
                     lbl(id + "Name", "Name*"),
-                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9.-_]+", "Invalid input")
+                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9.\\-_\\+]+", "Invalid input")
                 );
 
-                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"], ["ModName", "ch_name", "Module Name", 16, "[A-Za-z0-9.-_]+"]]) {
+                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"], ["ModName", "ch_name", "Module Name", 16, "[A-Za-z0-9.\\-_\\+]+"]]) {
                     var cl = (re.test(obj["serial"])) ? null : ["hide"];
                     iv.appendChild(lbl(null, j[2], cl, "lbl" + id + j[0]));
                     d = div([j[0]]);

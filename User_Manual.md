@@ -9,7 +9,42 @@ In the initial case or after click "erase settings" the fields for the inverter 
 
 Set at least the serial number and a name for each inverter, check "reboot after save" and click the "Save" button.
 
-## MQTT Output
+## MQTT Publish
+
+### Topic `<TOPIC>`
+
+| Topic | Example Value | Remarks |
+| `comm_start` | 1672123767 | inverter communication start, based on sunrise, UTC timestamp |
+| `comm_stop` | 1672155709 | inverter communication stop, based on sunset, UTC timestamp |
+| `device` | AHOY-DTU | configured device name |
+| `dis_night_comm` | true | setting if night communication is disabled |
+| `free_heap` | 17784 | free heap of ESP in bytes |
+| `mqtt` | connected | shows MQTT status |
+| `status` | offline | see table below |
+| `sunrise` | 1672124667 | sunrise, UTC timestamp |
+| `sunset` | 1672154809 | sunset, UTC timestamp |
+| `uptime` | 73630 | uptime in seconds |
+| `version` | 0.5.61 | current installed verison of AhoyDTU |
+| `wifi_rssi` | -75 | WiFi signal strength |
+
+| status code | Remarks |
+| 0 | offline |
+| 1 | partial |
+| 2 | online |
+
+
+### Topic `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/`
+
+| Topic | Example Value | Remarks |
+| `available` | 2 | see table below |
+| `last_success` | 1672155690 | UTC Timestamp |
+
+| status code | Remarks |
+| 0 | not available and not producing |
+| 1 | available but not producing |
+| 2 | available and producing |
+
+
 The AhoyDTU will publish on the following topics
 `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch0/#`
 

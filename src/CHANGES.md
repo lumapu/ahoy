@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.62
+* fix MQTT `status` update
+* removed MQTT `available_text` (can be deducted from `available`)
+* enhanced MQTT documentation in `User_Manual.md`
+* remvoed `tickSunset` and `tickSunrise` from MQTT. It's not needed any more because of minute wise check of status (`processIvStatus`)
+* changed MQTT topic `status` to nummeric value, check documentation in `User_Manual.md`
+* fix regular expression of `setup.html` for inverter name and channel name
+
 ## 0.5.61
 * fix #521 no reconnect at beginning of day
 * added immediate (each minute) report of inverter status MQTT #522

@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       61
+#define VERSION_PATCH       62
 
 //-------------------------------------
 typedef struct {
@@ -76,6 +76,8 @@ union serial_u {
 #define MQTT_STATUS_NOT_AVAIL_NOT_PROD      0
 #define MQTT_STATUS_AVAIL_NOT_PROD          1
 #define MQTT_STATUS_AVAIL_PROD              2
+
+enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
 //-------------------------------------
 // EEPROM
