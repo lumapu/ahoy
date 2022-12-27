@@ -11,7 +11,9 @@ Set at least the serial number and a name for each inverter, check "reboot after
 
 ## MQTT Publish
 
-### Topic `<TOPIC>`
+The AhoyDTU will publish on the following topics
+
+### `<TOPIC>/#`
 
 | Topic | Example Value | Remarks |
 |---|---|---|
@@ -21,7 +23,7 @@ Set at least the serial number and a name for each inverter, check "reboot after
 | `dis_night_comm` | true | setting if night communication is disabled |
 | `free_heap` | 17784 | free heap of ESP in bytes |
 | `mqtt` | connected | shows MQTT status |
-| `status` | offline | see table below |
+| `status` | 1 | see table below |
 | `sunrise` | 1672124667 | sunrise, UTC timestamp |
 | `sunset` | 1672154809 | sunset, UTC timestamp |
 | `uptime` | 73630 | uptime in seconds |
@@ -35,7 +37,7 @@ Set at least the serial number and a name for each inverter, check "reboot after
 | 2 | online |
 
 
-### Topic `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/`
+### `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/#`
 
 | Topic | Example Value | Remarks |
 |---|---|---|
@@ -49,8 +51,7 @@ Set at least the serial number and a name for each inverter, check "reboot after
 | 2 | available and producing |
 
 
-The AhoyDTU will publish on the following topics
-`<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch0/#`
+### `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch0/#`
 
 | Topic | Example Value | Remarks |
 |---|---|---|
@@ -73,7 +74,7 @@ The AhoyDTU will publish on the following topics
 |PowerLimit | 80.000|actual set point for power limit control AC active power in percent|
 |LastAlarmCode | 1.000| Last Alarm Code eg. "inverter start"|
 
-`<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#`
+### `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch<CHANNEL_NUMBER>/#`
 
 `<CHANNEL_NUMBER>` is in the range 1 to 4 depending on the inverter type
 
