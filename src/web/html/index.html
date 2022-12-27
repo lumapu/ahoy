@@ -81,6 +81,7 @@
             var tickCnt = 0;
             var ts = 0;
             var commInfo = "";
+            var release = null;
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
@@ -198,7 +199,7 @@
                 document.getElementById("iv").replaceChildren(p);
             }
 
-            function parseWarnInfo(warn, success) {
+            function parseWarnInfo(warn, success, version) {
                 var p = div(["none"]);
                 for(var w of warn) {
                     p.append(svg(iconWarn, 20, 20, "#F70", "icon"), span(w), br());
@@ -209,6 +210,14 @@
 
                 if(commInfo.length > 0)
                     p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span(commInfo), br());
+
+                if(null != release) {
+                    if(getVerInt(version) < getVerInt(release))
+                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("Update available, current released version: " + release), br());
+                    else if(getVerInt(version) > getVerInt(release))
+                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using a development version, current released version: " + release), br());
+                }
+
                 document.getElementById("warn_info").replaceChildren(p);
             }
 
@@ -228,12 +237,23 @@
                     parseGeneric(obj["generic"]);
                     parseSys(obj);
                     parseIv(obj["inverter"]);
-                    parseWarnInfo(obj["warnings"], obj["infos"]);
+                    parseWarnInfo(obj["warnings"], obj["infos"], obj["generic"]["version"]);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;
+                        getAjax("https://api.github.com/repos/lumapu/ahoy/releases/latest", parseRelease);
                     }
                 }
+            }
+
+
+            function getVerInt(ver) {
+                var a = ver.split('.');
+                return (a[0] << 24) | (a[1] << 16) | a[2];
+            }
+
+            function parseRelease(obj) {
+                release = obj["name"].substring(6);
             }
 
             getAjax("/api/index", parse);

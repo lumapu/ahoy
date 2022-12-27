@@ -54,7 +54,6 @@ class RestApi {
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
             JsonObject root = response->getRoot();
 
-            Inverter<> *iv = mSys->getInverterByPos(0, false);
             String path = request->url().substring(5);
             if(path == "html/system")         getHtmlSystem(root);
             else if(path == "html/logout")    getHtmlLogout(root);
