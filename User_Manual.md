@@ -14,6 +14,7 @@ Set at least the serial number and a name for each inverter, check "reboot after
 ### Topic `<TOPIC>`
 
 | Topic | Example Value | Remarks |
+|---|---|---|
 | `comm_start` | 1672123767 | inverter communication start, based on sunrise, UTC timestamp |
 | `comm_stop` | 1672155709 | inverter communication stop, based on sunset, UTC timestamp |
 | `device` | AHOY-DTU | configured device name |
@@ -28,6 +29,7 @@ Set at least the serial number and a name for each inverter, check "reboot after
 | `wifi_rssi` | -75 | WiFi signal strength |
 
 | status code | Remarks |
+|---|---|
 | 0 | offline |
 | 1 | partial |
 | 2 | online |
@@ -36,10 +38,12 @@ Set at least the serial number and a name for each inverter, check "reboot after
 ### Topic `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/`
 
 | Topic | Example Value | Remarks |
+|---|---|---|
 | `available` | 2 | see table below |
 | `last_success` | 1672155690 | UTC Timestamp |
 
 | status code | Remarks |
+|---|---|
 | 0 | not available and not producing |
 | 1 | available but not producing |
 | 2 | available and producing |
