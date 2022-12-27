@@ -3,6 +3,7 @@
 ## 0.5.63
 * fix Update button protection (prevent double click #527)
 * optimized scheduler #515 (thx @beegee3)
+* potential fix of #526 duplicates in API `/api/record/live`
 
 ## 0.5.62
 * fix MQTT `status` update

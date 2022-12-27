@@ -69,10 +69,10 @@ class RestApi {
             else if(path == "setup")          getSetup(root);
             else if(path == "setup/networks") getNetworks(root);
             else if(path == "live")           getLive(root);
-            else if(path == "record/info")    getRecord(root, iv->getRecordStruct(InverterDevInform_All));
-            else if(path == "record/alarm")   getRecord(root, iv->getRecordStruct(AlarmData));
-            else if(path == "record/config")  getRecord(root, iv->getRecordStruct(SystemConfigPara));
-            else if(path == "record/live")    getRecord(root, iv->getRecordStruct(RealTimeRunData_Debug));
+            else if(path == "record/info")    getRecord(root, InverterDevInform_All);
+            else if(path == "record/alarm")   getRecord(root, AlarmData);
+            else if(path == "record/config")  getRecord(root, SystemConfigPara);
+            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
             else
                 getNotFound(root, F("http://") + request->host() + F("/api/"));
 
@@ -484,14 +484,16 @@ class RestApi {
             }
         }
 
-        void getRecord(JsonObject obj, record_t<> *rec) {
+        void getRecord(JsonObject obj, uint8_t recType) {
             JsonArray invArr = obj.createNestedArray(F("inverter"));
 
             Inverter<> *iv;
+            record_t<> *rec;
             uint8_t pos;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
                 if(NULL != iv) {
+                    rec = iv->getRecordStruct(recType);
                     JsonArray obj2 = invArr.createNestedArray();
                     for(uint8_t j = 0; j < rec->length; j++) {
                         byteAssign_t *assign = iv->getByteAssign(j, rec);
