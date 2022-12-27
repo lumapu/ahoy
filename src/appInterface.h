@@ -28,7 +28,7 @@ class IApp {
         virtual void setTimestamp(uint32_t newTime) = 0;
         virtual String getTimeStr(uint32_t offset) = 0;
         virtual uint32_t getTimezoneOffset() = 0;
-        virtual void getSchedulerInfo(uint16_t *everyMax, uint16_t *atMax);
+        virtual void getSchedulerInfo(uint8_t *max) = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;

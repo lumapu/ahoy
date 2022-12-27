@@ -8,7 +8,6 @@
 #define __SCHEDULER_H__
 
 #include <functional>
-#include "llist.h"
 #include "dbg.h"
 
 namespace ah {
@@ -16,24 +15,17 @@ namespace ah {
 
     enum {SCD_SEC = 1, SCD_MIN = 60, SCD_HOUR = 3600, SCD_12H = 43200, SCD_DAY = 86400};
 
-    struct scdEvry_s {
+    struct sP {
         scdCb c;
         uint32_t timeout;
         uint32_t reload;
-        scdEvry_s() : c(NULL), timeout(0), reload(0) {}
-        scdEvry_s(scdCb a, uint32_t tmt, uint32_t rl) : c(a), timeout(tmt), reload(rl) {}
+        bool isTimestamp;
+        sP() : c(NULL), timeout(0), reload(0), isTimestamp(false) {}
+        sP(scdCb a, uint32_t tmt, uint32_t rl, bool its) : c(a), timeout(tmt), reload(rl), isTimestamp(its) {}
     };
 
-    struct scdAt_s {
-        scdCb c;
-        uint32_t timestamp;
-        scdAt_s() : c(NULL), timestamp(0) {}
-        scdAt_s(scdCb a, uint32_t ts) : c(a), timestamp(ts) {}
-    };
+    #define MAX_NUM_TICKER  30
 
-
-    typedef node_s<scdEvry_s, scdCb, uint32_t, uint32_t> sP;
-    typedef node_s<scdAt_s, scdCb, uint32_t> sPAt;
     class Scheduler {
         public:
             Scheduler() {}
@@ -41,7 +33,10 @@ namespace ah {
             void setup() {
                 mUptime     = 0;
                 mTimestamp  = 0;
+                mMax        = 0;
                 mPrevMillis = millis();
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
+                    mTickerInUse[i] = false;
             }
 
             void loop(void) {
@@ -66,37 +61,29 @@ namespace ah {
                 mUptime += mDiffSeconds;
                 if(0 != mTimestamp)
                     mTimestamp += mDiffSeconds;
-                checkEvery();
-                checkAt();
+                checkTicker();
 
             }
 
-            void once(scdCb c, uint32_t timeout)     { mStack.add(c, timeout, 0); }
-            void onceAt(scdCb c, uint32_t timestamp) { mStackAt.add(c, timestamp); }
-            uint8_t every(scdCb c, uint32_t interval){ return mStack.add(c, interval, interval)->id; }
+            void once(scdCb c, uint32_t timeout)     { addTicker(c, timeout, 0, false); }
+            void onceAt(scdCb c, uint32_t timestamp) { addTicker(c, timestamp, 0, true); }
+            uint8_t every(scdCb c, uint32_t interval){ return addTicker(c, interval, interval, false); }
 
-            void everySec(scdCb c)  { mStack.add(c, SCD_SEC,  SCD_SEC);  }
-            void everyMin(scdCb c)  { mStack.add(c, SCD_MIN,  SCD_MIN);  }
-            void everyHour(scdCb c) { mStack.add(c, SCD_HOUR, SCD_HOUR); }
-            void every12h(scdCb c)  { mStack.add(c, SCD_12H,  SCD_12H);  }
-            void everyDay(scdCb c)  { mStack.add(c, SCD_DAY,  SCD_DAY);  }
+            void everySec(scdCb c)  { every(c, SCD_SEC);  }
+            void everyMin(scdCb c)  { every(c, SCD_MIN);  }
+            void everyHour(scdCb c) { every(c, SCD_HOUR); }
+            void every12h(scdCb c)  { every(c, SCD_12H);  }
+            void everyDay(scdCb c)  { every(c, SCD_DAY);  }
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
             }
 
             bool resetEveryById(uint8_t id) {
-                sP *p = mStack.getFront();
-                while(NULL != p) {
-                    if(p->id == id)
-                        break;
-                    p = mStack.get(p);
-                }
-                if(NULL != p) {
-                    p->d.timeout = p->d.reload;
-                    return true;
-                }
-                return false;
+                if (mTickerInUse[id] == false)
+                    return false;
+                mTicker[id].timeout = mTicker[id].reload;
+                return true;
             }
 
             uint32_t getUptime(void) {
@@ -107,53 +94,57 @@ namespace ah {
                 return mTimestamp;
             }
 
-            void getStat(uint16_t *everyMax, uint16_t *atMax) {
-                *everyMax = mStack.getMaxFill();
-                *atMax    = mStackAt.getMaxFill();
+            void getStat(uint8_t *max) {
+                *max = mMax;
             }
 
         protected:
             uint32_t mTimestamp;
 
         private:
-            inline void checkEvery(void) {
-                sP *p = mStack.getFront();
-                while(NULL != p) {
-                    if(mDiffSeconds >= p->d.timeout) { // expired
-                        (p->d.c)();
-                        yield();
-                        if(0 == p->d.reload)
-                            p = mStack.rem(p);
-                        else {
-                            p->d.timeout = p->d.reload;
-                            p = mStack.get(p);
+            inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp) {
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
+                    if (!mTickerInUse[i]) {
+                        mTickerInUse[i] = true;
+                        mTicker[i].c = c;
+                        mTicker[i].timeout = timeout;
+                        mTicker[i].reload = reload;
+                        mTicker[i].isTimestamp = isTimestamp;
+                        if(mMax == i)
+                            mMax = i + 1;
+                        return i;
+                    }
+                }
+                return 0xff;
+            }
+
+            inline void checkTicker(void) {
+                bool inUse[MAX_NUM_TICKER];
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
+                    inUse[i] = mTickerInUse[i];
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
+                    if (inUse[i]) {
+                        if (mTicker[i].timeout <= ((mTicker[i].isTimestamp) ? mTimestamp : mDiffSeconds)) { // expired
+                            if(0 == mTicker[i].reload)
+                                mTickerInUse[i] = false;
+                            else
+                                mTicker[i].timeout = mTicker[i].reload;
+                            (mTicker[i].c)();
+                            yield();
                         }
-                    }
-                    else { // not expired
-                        p->d.timeout -= mDiffSeconds;
-                        p = mStack.get(p);
+                        else // not expired
+                            if (!mTicker[i].isTimestamp)
+                                mTicker[i].timeout -= mDiffSeconds;
                     }
                 }
             }
 
-            inline void checkAt(void) {
-                sPAt *p = mStackAt.getFront();
-                while(NULL != p) {
-                    if((p->d.timestamp) <= mTimestamp) {
-                        (p->d.c)();
-                        yield();
-                        p = mStackAt.rem(p);
-                    }
-                    else
-                        p = mStackAt.get(p);
-                }
-            }
-
-            llist<20, scdEvry_s, scdCb, uint32_t, uint32_t> mStack;
-            llist<10, scdAt_s, scdCb, uint32_t> mStackAt;
+            sP mTicker[MAX_NUM_TICKER];
+            bool mTickerInUse[MAX_NUM_TICKER];
             uint32_t mMillis, mPrevMillis, mDiff;
             uint32_t mUptime;
             uint8_t mDiffSeconds;
+            uint8_t mMax;
     };
 }
 

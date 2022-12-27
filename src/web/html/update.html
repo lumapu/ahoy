@@ -19,9 +19,11 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <form method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                    <input type="file" name="update"><input type="submit" value="Update">
+                <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
+                    <input type="file" name="update">
+                    <input type="button" class="btn" value="Update" onclick="hide()">
                 </form>
+
             </div>
         </div>
         <div id="footer">
@@ -52,6 +54,12 @@
                     parseMenu(obj["menu"]);
                     parseGeneric(obj["generic"]);
                 }
+            }
+
+            function hide() {
+                document.getElementById("form").submit();
+                var e = document.getElementById("content");
+                e.replaceChildren(span("update started"));
             }
 
             getAjax("/api/index", parse);

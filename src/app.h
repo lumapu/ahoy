@@ -155,8 +155,8 @@ class app : public IApp, public ah::Scheduler {
             return mApi.getTimezoneOffset();
         }
 
-        void getSchedulerInfo(uint16_t *everyMax, uint16_t *atMax) {
-            return getStat(everyMax, atMax);
+        void getSchedulerInfo(uint8_t *max) {
+            return getStat(max);
         }
 
         void setTimestamp(uint32_t newTime) {
