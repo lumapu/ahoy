@@ -35,15 +35,17 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
     WiFi.onEvent(std::bind(&ahoywifi::onWiFiEvent, this, std::placeholders::_1));
     #endif
 
-    setupWifi();
+    setupWifi(true);
 }
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::setupWifi(void) {
+void ahoywifi::setupWifi(bool startAP = false) {
     #if !defined(FB_WIFI_OVERRIDDEN)
-        setupAp();
-        delay(1000);
+        if(startAP) {
+            setupAp();
+            delay(1000);
+        }
     #endif
     #if !defined(AP_ONLY)
         if(mConfig->valid) {
@@ -62,7 +64,6 @@ void ahoywifi::setupWifi(void) {
 void ahoywifi::tickWifiLoop() {
     #if !defined(AP_ONLY)
     if(mReconnect) {
-        delay(100);
         if (WiFi.softAPgetStationNum() > 0) { // do not reconnect if any AP connection exists
             mDns.processNextRequest();
             if((WIFI_AP_STA == WiFi.getMode()) && !mScanActive) {
@@ -78,12 +79,10 @@ void ahoywifi::tickWifiLoop() {
         }
         mCnt++;
 
-        if ((mCnt % 10) == 0) {
-            DBGPRINT(F("reconnect in "));
-            DBGPRINT(String((100-mCnt)/10));
-            DBGPRINTLN(F(" seconds"));
-        }
-        if((mCnt % 100) == 0) { // try to reconnect after 10 sec without connection
+        DBGPRINT(F("reconnect in "));
+        DBGPRINT(String((100-mCnt)/10));
+        DBGPRINTLN(F(" seconds"));
+        if((mCnt % 10) == 0) { // try to reconnect after 10 sec without connection
             WiFi.reconnect();
             mCnt = 0;
         }

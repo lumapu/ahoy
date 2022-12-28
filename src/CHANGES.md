@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.64
+* channel name can use any character, not limited any more
+* added `/` to MQTT topic and Inverter name
+* trigger for `calcSunrise` is now using local time #515
+* fix reconnect timeout for WiFi #509
+* start AP only after boot, not on WiFi connection loss
+* improved /system `free_heap` value (measured before JSON-tree is built)
+
 ## 0.5.63
 * fix Update button protection (prevent double click #527)
 * optimized scheduler #515 (thx @beegee3)

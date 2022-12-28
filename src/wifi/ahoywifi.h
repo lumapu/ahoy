@@ -27,7 +27,7 @@ class ahoywifi {
         void getAvailNetworks(JsonObject obj);
 
     private:
-        void setupWifi(void);
+        void setupWifi(bool startAP);
         void setupAp(void);
         void setupStation(void);
         void sendNTPpacket(IPAddress& address);

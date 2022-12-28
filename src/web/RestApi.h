@@ -19,6 +19,7 @@ class RestApi {
     public:
         RestApi() {
             mTimezoneOffset = 0;
+            mFreeHeap = 0;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
@@ -51,6 +52,8 @@ class RestApi {
 
     private:
         void onApi(AsyncWebServerRequest *request) {
+            mFreeHeap = ESP.getFreeHeap();
+
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
             JsonObject root = response->getRoot();
 
@@ -168,7 +171,7 @@ class RestApi {
 
             obj[F("sdk")]          = ESP.getSdkVersion();
             obj[F("cpu_freq")]     = ESP.getCpuFreqMHz();
-            obj[F("heap_free")]    = ESP.getFreeHeap();
+            obj[F("heap_free")]    = mFreeHeap;
             obj[F("sketch_total")] = ESP.getFreeSketchSpace();
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(obj);
@@ -571,6 +574,7 @@ class RestApi {
         settings_t *mConfig;
 
         uint32_t mTimezoneOffset;
+        uint32_t mFreeHeap;
 };
 
 #endif /*__WEB_API_H__*/

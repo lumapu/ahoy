@@ -156,7 +156,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void getSchedulerInfo(uint8_t *max) {
-            return getStat(max);
+            getStat(max);
         }
 
         void setTimestamp(uint32_t newTime) {

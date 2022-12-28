@@ -141,7 +141,7 @@ void app::tickCalcSunrise(void) {
     ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
     tickIVCommunication();
 
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 10) % 86400) + 86400; // next midnight, -10 for safety that it is certain next day
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp + mCalculatedTimezoneOffset - 10) % 86400) + 86400;; // next midnight, -10 for safety that it is certain next day, local timezone
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
     if (mConfig->mqtt.broker[0] > 0) {
         mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom);
