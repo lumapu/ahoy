@@ -1,6 +1,6 @@
-# Changelog v0.5.65
+# Changelog v0.5.66
 
-**Note:** Version `0.5.42` to `0.5.64` were development versions. Last release version before this release was `0.5.41`
+**Note:** Version `0.5.42` to `0.5.65` were development versions. Last release version was `0.5.41`
 Detailed change log (development changes): https://github.com/lumapu/ahoy/blob/945a671d27d10d0f7c175ebbf2fbb2806f9cd79a/src/CHANGES.md
 
 

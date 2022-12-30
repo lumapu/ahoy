@@ -148,7 +148,7 @@ void ahoywifi::setupStation(void) {
 
 //-----------------------------------------------------------------------------
 bool ahoywifi::getNtpTime(void) {
-    if(CONNECTED != mStaConn)
+    if(GOT_IP != mStaConn)
         return false;
 
     IPAddress timeServer;
