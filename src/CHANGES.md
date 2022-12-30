@@ -1,148 +1,36 @@
-# Changelog
+# Changelog v0.5.65
 
-## 0.5.65
-* wifi, code optimization #509
+**Note:** Version `0.5.42` to `0.5.64` were development versions. Last release version before this release was `0.5.41`
+Detailed change log (development changes): https://github.com/lumapu/ahoy/blob/945a671d27d10d0f7c175ebbf2fbb2806f9cd79a/src/CHANGES.md
 
-## 0.5.64
-* channel name can use any character, not limited any more
-* added `/` to MQTT topic and Inverter name
-* trigger for `calcSunrise` is now using local time #515
-* fix reconnect timeout for WiFi #509
-* start AP only after boot, not on WiFi connection loss
-* improved /system `free_heap` value (measured before JSON-tree is built)
 
-## 0.5.63
-* fix Update button protection (prevent double click #527)
-* optimized scheduler #515 (thx @beegee3)
-* potential fix of #526 duplicates in API `/api/record/live`
-* added update information to `index.html`
-
-## 0.5.62
-* fix MQTT `status` update
-* removed MQTT `available_text` (can be deducted from `available`)
-* enhanced MQTT documentation in `User_Manual.md`
-* remvoed `tickSunset` and `tickSunrise` from MQTT. It's not needed any more because of minute wise check of status (`processIvStatus`)
-* changed MQTT topic `status` to nummeric value, check documentation in `User_Manual.md`
-* fix regular expression of `setup.html` for inverter name and channel name
-
-## 0.5.61
-* fix #521 no reconnect at beginning of day
-* added immediate (each minute) report of inverter status MQTT #522
-* added protection mask to select which pages should be protected
-* update of monochrome display, show values also if nothing changed
-
-## 0.5.60
-* added regex to inverter name and MQTT topic (setup.html)
-* beautified serial.html
-* added ticker for wifi loop #515
-
-## 0.5.59
-* fix night communication enable
-* improved different WiFi connection scenarios (STA WiFi not found, reconnect #509, redirect for AP to configuration)
-* increased MQTT user, pwd and topic length to 64 characters + `\0`. (The string end `\0` reduces the available size by one) #516
-
-## 0.5.58
-* improved stability
-* improved WiFi initial connection - especially if station WiFi is not available
-* removed new operators from web.h (reduce dynamic allocation)
-* improved sun calculation #515, #505
-* fixed WiFi auto reconnect #509
-* added disable night communication flag to MQTT #505
-* changed MQTT publish of `available` and `available_text` to sunset #468
-
-## 0.5.57
-* improved stability
-* added icons to index.html, added WiFi-strength symbol on each page
-* moved packet stats and sun to system.html
-* refactored communication offset (adjustable in minutes now)
-
-## 0.5.56
-* factory reset formats entire little fs
-* renamed sunrise / sunset on index.html to start / stop communication
-* show system information only if called directly from menu
-* beautified system.html
-
-## 0.5.55
-* fixed static IP save
-
-## 0.5.54
-* changed sunrise / sunset calculation, angle is now `-3.5` instead of original `-0.83`
-* improved scheduler (removed -1 from `reload`) #483
-* improved reboot flag in `app.h`
-* fixed #493 no MQTT payload once display is defined
-
-## 0.5.53
-* Mono-Display: show values in offline mode #498
-* improved WiFi class #483
-* added communication enable / disable (to test mutliple DTUs with the same inverter)
-* fix factory reset #495
-
-## 0.5.52
-* improved ahoyWifi class
-* added interface class for app
-* refactored web and webApi -> RestApi
-* fix calcSunrise was not called every day
-* added MQTT RX counter to index.html
-* all values are displayed on /live even if they are 0
-* added MQTT <TOPIC>/status to show status over all inverters
-
-## 0.5.51
-* improved scheduler, @beegee3 #483
-* refactored get NTP time, @beegee3 #483
-* generate `bin.gz` only for 1M device ESP8285
-* fix calcSunrise was not called every day
-* incresed number of allowed characters for MQTT user, broker and password, @DanielR92
-* added NRF24 info to Systeminfo, @DanielR92
-* added timezone for monochrome displays, @gh-fx2
-* added support for second inverter for monochrome displays, @gh-fx2
-
-## 0.5.50
-* fixed scheduler, uptime and timestamp counted too fast
-* added / renamed automatically build outputs
-* fixed MQTT ESP uptime on reconnect (not zero any more)
-* changed uptime on index.html to count each second, synced with ESP each 10 seconds
-
-## 0.5.49
-* fixed AP mode on brand new ESP modules
-* fixed `last_success` MQTT message
-* fixed MQTT inverter available status at sunset
-* reordered enqueue commands after boot up to prevent same payload length for successive commands
-* added automatic build for Nokia5110 and SSD1306 displays (ESP8266)
-
-## 0.5.48
-* added MQTT message send at sunset
-* added monochrome display support
-* added `once` and `onceAt` to scheduler to make code cleaner
-* improved sunrise / sunset calculation
-
-## 0.5.47
-* refactored ahoyWifi class: AP is opened on every boot, once station connection is successful the AP will be closed
-* improved NTP sync after boot, faster sync
-* fix NRF24 details only on valid SPI connection
-
-## 0.5.46
-* fix sunrise / sunset calculation
-* improved setup.html: `reboot on save` is checked as default
-
-## 0.5.45
-* changed MQTT last will topic from `status` to `mqtt`
-* fix sunrise / sunset calculation
-* fix time of serial web console
-
-## 0.5.44
-* marked some MQTT messages as retained
-* moved global functions to global location (no duplicates)
-* changed index.html inverval to static 10 seconds
-* fix static IP
-* fix NTP with static IP
-* print MQTT info only if MQTT was configured
-
-## 0.5.43
 * updated REST API and MQTT (both of them use the same functionality)
-* added ESP-heap information as MQTT message
-* changed output name of automatic development build to fixed name (to have a static link from https://ahoydtu.de)
-* updated user manual to latest MQTT and API changes
-
-## 0.5.42
+* improved stability
+* Regular expressions for input fields which are used for MQTT to be compliant to MQTT
+* WiFi optimization (AP Mode and STA in parallel, reconnect if local STA is unavailable)
+* improved display of `/system`
+* fix Update button protection (prevent double click #527)
+* optimized scheduler #515
+* fix of duplicates in API `/api/record/live` (#526)
+* added update information to `index.html` (check for update with github.com)
 * fix web logout (auto logout)
 * switched MQTT library
+* removed MQTT `available_text` (can be deducted from `available`)
+* enhanced MQTT documentation in `User_Manual.md`
+* changed MQTT topic `status` to nummeric value, check documentation in `User_Manual.md`
+* added immediate (each minute) report of inverter status MQTT #522
+* increased MQTT user, pwd and topic length to 64 characters + `\0`. (The string end `\0` reduces the available size by one) #516
+* added disable night communication flag to MQTT #505
+* added MQTT <TOPIC>/status to show status over all inverters
+* added MQTT RX counter to index.html
+* added protection mask to select which pages should be protected
+* added monochrome display that show values also if nothing changed and in offline mode #498
+* added icons to index.html, added WiFi-strength symbol on each page
+* refactored communication offset (adjustable in minutes now)
+* factory reset formats entire little fs
+* renamed sunrise / sunset on index.html to start / stop communication
+* fixed static IP save
+* fix NTP with static IP
+* all values are displayed on /live even if they are 0
+* added NRF24 info to Systeminfo
+* reordered enqueue commands after boot up to prevent same payload length for successive commands
