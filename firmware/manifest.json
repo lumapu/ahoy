@@ -10,13 +10,13 @@
         { "path": "/firmware/bootloader.bin", "offset": 4096 },
         { "path": "/firmware/partitions.bin", "offset": 32768 },
         { "path": "/firmware/ota.bin", "offset": 57344 },
-        { "path": "/firmware/221119_ahoy_0.5.41_esp32_dec333f.bin", "offset": 65536 }
+        { "path": "/firmware/221230_ahoy_0.5.65_esp32_ded5e70.bin", "offset": 65536 }
       ]
     },
     {
       "chipFamily": "ESP8266",
       "parts": [
-        { "path": "/firmware/221119_ahoy_0.5.41_esp8266_dec333f.bin", "offset": 0 }
+        { "path": "/firmware/221230_ahoy_0.5.65_esp8266_ded5e70.bin", "offset": 0 }
       ]
     }
   ]
