@@ -27,11 +27,19 @@ class ahoywifi {
         void getAvailNetworks(JsonObject obj);
 
     private:
+        typedef enum WiFiStatus
+        {
+            DISCONNECTED = 0,
+            CONNECTING,
+            CONNECTED,
+            GOT_IP
+        } WiFiStatus_t;
+
         void setupWifi(bool startAP);
         void setupAp(void);
         void setupStation(void);
         void sendNTPpacket(IPAddress& address);
-        void connectionEvent(bool connected);
+        void connectionEvent(WiFiStatus_t status);
         #if defined(ESP8266)
         void onConnect(const WiFiEventStationModeConnected& event);
         void onGotIP(const WiFiEventStationModeGotIP& event);
@@ -51,8 +59,8 @@ class ahoywifi {
         WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
         #endif
 
-        bool mConnected, mReconnect, mDnsActive;
-        uint8_t mCnt, mClientCnt;
+        WiFiStatus_t mStaConn;
+        uint8_t mCnt;
         uint32_t *mUtcTimestamp;
 
         uint8_t mLoopCnt;

@@ -22,9 +22,8 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
 
+    mStaConn    = DISCONNECTED;
     mCnt        = 0;
-    mConnected  = false;
-    mReconnect  = false;
     mScanActive = false;
 
     #if defined(ESP8266)
@@ -63,7 +62,7 @@ void ahoywifi::setupWifi(bool startAP = false) {
 //-----------------------------------------------------------------------------
 void ahoywifi::tickWifiLoop() {
     #if !defined(AP_ONLY)
-    if(mReconnect) {
+    if(mStaConn != GOT_IP) {
         if (WiFi.softAPgetStationNum() > 0) { // do not reconnect if any AP connection exists
             mDns.processNextRequest();
             if((WIFI_AP_STA == WiFi.getMode()) && !mScanActive) {
@@ -79,10 +78,17 @@ void ahoywifi::tickWifiLoop() {
         }
         mCnt++;
 
+        uint8_t timeout = 10; // seconds
+
+        if (mStaConn == CONNECTED) // connected but no ip
+            timeout = 20;
+
         DBGPRINT(F("reconnect in "));
-        DBGPRINT(String((100-mCnt)/10));
+        DBGPRINT(String(timeout-mCnt));
         DBGPRINTLN(F(" seconds"));
-        if((mCnt % 10) == 0) { // try to reconnect after 10 sec without connection
+        if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
+            if(mStaConn != CONNECTED)
+                mStaConn = CONNECTING;
             WiFi.reconnect();
             mCnt = 0;
         }
@@ -128,10 +134,11 @@ void ahoywifi::setupStation(void) {
         if(!WiFi.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
-    mReconnect = (WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd) != WL_CONNECTED);
+    mStaConn = (WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd) != WL_CONNECTED) ? DISCONNECTED : CONNECTED;
     if(String(mConfig->sys.deviceName) != "")
         WiFi.hostname(mConfig->sys.deviceName);
     WiFi.mode(WIFI_AP_STA);
+
 
     DBGPRINT(F("connect to network '"));
     DBGPRINT(mConfig->sys.stationSsid);
@@ -141,7 +148,7 @@ void ahoywifi::setupStation(void) {
 
 //-----------------------------------------------------------------------------
 bool ahoywifi::getNtpTime(void) {
-    if(!mConnected)
+    if(CONNECTED != mStaConn)
         return false;
 
     IPAddress timeServer;
@@ -234,24 +241,34 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::connectionEvent(bool connected) {
-    if (connected) {
-        if(!mConnected) {
-            mConnected = true;
-            mReconnect = false;
-            DBGPRINTLN(F("\n[WiFi] Connected"));
-            WiFi.mode(WIFI_STA);
-            DBGPRINTLN(F("[WiFi] AP disabled"));
-            mDns.stop();
-        }
-    } else {
-        if(mConnected) {
-            mConnected = false;
-            mReconnect = true;
-            mCnt       = 50;    // try to reconnect in 5 sec
-            setupWifi();        // reconnect with AP / Station setup
-            DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
-        }
+void ahoywifi::connectionEvent(WiFiStatus_t status) {
+    switch(status) {
+        case CONNECTED:
+            if(mStaConn != CONNECTED) {
+                mStaConn = CONNECTED;
+                DBGPRINTLN(F("\n[WiFi] Connected"));
+                WiFi.mode(WIFI_STA);
+                DBGPRINTLN(F("[WiFi] AP disabled"));
+                mDns.stop();
+            }
+            break;
+
+        case GOT_IP:
+            mStaConn = GOT_IP;
+            welcome(WiFi.localIP().toString() + F(" (Station)"));
+            break;
+
+        case DISCONNECTED:
+            if(mStaConn != CONNECTING) {
+                mStaConn = DISCONNECTED;
+                mCnt       = 5;     // try to reconnect in 5 sec
+                setupWifi();        // reconnect with AP / Station setup
+                DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+            }
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -260,17 +277,17 @@ void ahoywifi::connectionEvent(bool connected) {
 #if defined(ESP8266)
     //-------------------------------------------------------------------------
     void ahoywifi::onConnect(const WiFiEventStationModeConnected& event) {
-        connectionEvent(true);
+        connectionEvent(CONNECTED);
     }
 
     //-------------------------------------------------------------------------
     void ahoywifi::onGotIP(const WiFiEventStationModeGotIP& event) {
-        welcome(WiFi.localIP().toString() + F(" (Station)"));
+        connectionEvent(GOT_IP);
     }
 
     //-------------------------------------------------------------------------
     void ahoywifi::onDisconnect(const WiFiEventStationModeDisconnected& event) {
-        connectionEvent(false);
+        connectionEvent(DISCONNECTED);
     }
 
 #else
@@ -281,15 +298,15 @@ void ahoywifi::connectionEvent(bool connected) {
 
         switch(event) {
             case SYSTEM_EVENT_STA_CONNECTED:
-                connectionEvent(true);
+                connectionEvent(CONNECTED);
                 break;
 
             case SYSTEM_EVENT_STA_GOT_IP:
-                welcome(WiFi.localIP().toString() + F(" (Station)"));
+                connectionEvent(GOT_IP);
                 break;
 
             case SYSTEM_EVENT_STA_DISCONNECTED:
-                connectionEvent(false);
+                connectionEvent(DISCONNECTED);
                 break;
 
             default:

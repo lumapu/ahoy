@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.65
+* wifi, code optimization #509
+
 ## 0.5.64
 * channel name can use any character, not limited any more
 * added `/` to MQTT topic and Inverter name
