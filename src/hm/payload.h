@@ -41,7 +41,6 @@ class Payload : public Handler<payloadListenerType> {
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
             memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
-            mLastPacketId = 0x00;
             mSerialDebug  = false;
         }
 
