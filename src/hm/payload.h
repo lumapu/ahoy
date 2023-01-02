@@ -42,6 +42,7 @@ class Payload : public Handler<payloadListenerType> {
             mTimestamp  = timestamp;
             memset(mPayload, 0, (MAX_NUM_INVERTERS * sizeof(invPayload_t)));
             mSerialDebug  = false;
+            mHighPrioIv = NULL;
         }
 
         void enableSerialDebug(bool enable) {
@@ -54,22 +55,35 @@ class Payload : public Handler<payloadListenerType> {
             }
         }
 
-        void ivSend(Inverter<> *iv) {
-            if (!mPayload[iv->id].complete)
-                process(false);
+        void loop() {
+            if(NULL != mHighPrioIv) {
+                ivSend(mHighPrioIv, true);
+                mHighPrioIv = NULL;
+            }
+        }
 
-            if (!mPayload[iv->id].complete) {
-                if (0 == mPayload[iv->id].maxPackId)
-                    mStat->rxFailNoAnser++;
-                else
-                    mStat->rxFail++;
+        void ivSendHighPrio(Inverter<> *iv) {
+            mHighPrioIv = iv;
+        }
 
-                iv->setQueuedCmdFinished();  // command failed
-                if (mSerialDebug)
-                    DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                if (mSerialDebug) {
-                    DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
-                    DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
+        void ivSend(Inverter<> *iv, bool highPrio = false) {
+            if(!highPrio) {
+                if (!mPayload[iv->id].complete)
+                    process(false);
+
+                if (!mPayload[iv->id].complete) {
+                    if (0 == mPayload[iv->id].maxPackId)
+                        mStat->rxFailNoAnser++;
+                    else
+                        mStat->rxFail++;
+
+                    iv->setQueuedCmdFinished();  // command failed
+                    if (mSerialDebug)
+                        DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                    if (mSerialDebug) {
+                        DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
+                        DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
+                    }
                 }
             }
 
@@ -180,7 +194,7 @@ class Payload : public Handler<payloadListenerType> {
                                         mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                         DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
                                         mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
-                                    } else if (mPayload[iv->id].maxPackId != 0) {
+                                    } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
                                             if (mPayload[iv->id].len[i] == 0) {
                                                 DPRINTLN(DBG_WARN, F("while retrieving data: Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
@@ -264,6 +278,7 @@ class Payload : public Handler<payloadListenerType> {
         uint32_t *mTimestamp;
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
+        Inverter<> *mHighPrioIv;
 };
 
 #endif /*__PAYLOAD_H_*/

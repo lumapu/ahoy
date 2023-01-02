@@ -534,6 +534,7 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
                 iv->devControlCmd = ActivePowerContr;
                 iv->devControlRequest = true;
+                mApp->ivSendHighPrio(iv);
             }
             else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));

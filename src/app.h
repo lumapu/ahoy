@@ -122,6 +122,10 @@ class app : public IApp, public ah::Scheduler {
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1);
         }
 
+        void ivSendHighPrio(Inverter<> *iv) {
+            mPayload.ivSendHighPrio(iv);
+        }
+
         bool getMqttIsConnected() {
             return mMqtt.isConnected();
         }

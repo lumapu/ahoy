@@ -90,6 +90,7 @@ void app::loop(void) {
 
     ah::Scheduler::loop();
     mSys->Radio.loop();
+    mPayload.loop();
 
     yield();
 
@@ -116,8 +117,6 @@ void app::loop(void) {
 
         if (rxRdy)
             mPayload.process(true);
-
-        mRxTicker = 0;
     }
 
 #if !defined(AP_ONLY)
