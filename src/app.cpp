@@ -74,7 +74,7 @@ void app::setup() {
     mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
-    #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+    #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
     mMonoDisplay.setup(mSys, &mTimestamp);
     everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
