@@ -46,7 +46,7 @@ typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
     #include "plugins/MonochromeDisplay/MonochromeDisplay.h"
     typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
 #endif
@@ -180,7 +180,7 @@ class app : public IApp, public ah::Scheduler {
             #if !defined(AP_ONLY)
             mMqtt.payloadEventListener(cmd);
             #endif
-            #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+            #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
             mMonoDisplay.payloadEventListener(cmd);
             #endif
         }
@@ -244,7 +244,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise, mSunset;
 
         // plugins
-        #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+        #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
         MonoDisplayType mMonoDisplay;
         #endif
 };
