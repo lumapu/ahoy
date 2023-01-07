@@ -51,7 +51,7 @@ void app::setup() {
     #endif
 
     mSys->addInverters(&mConfig->inst);
-    mPayload.setup(mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.setup(this, mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 
     if(!mSys->Radio.isChipConnected())
@@ -162,14 +162,17 @@ void app::tickIVCommunication(void) {
             nxtTrig = mSunrise - mConfig->sun.offsetSec;
         } else {
             if (mTimestamp > (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
-                return;
+                nxtTrig = 0;
             } else { // current time lies within communication start/stop time, set next trigger to communication stop
                 mIVCommunicationOn = true;
                 nxtTrig = mSunset + mConfig->sun.offsetSec;
             }
         }
-        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
+        if (nxtTrig != 0)
+            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
+    if (mConfig->mqtt.broker[0] > 0)
+        mMqtt.tickerComm(mIVCommunicationOn);
 }
 
 //-----------------------------------------------------------------------------

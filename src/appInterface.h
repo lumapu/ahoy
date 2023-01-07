@@ -34,6 +34,7 @@ class IApp {
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
+        virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
 
         virtual void ivSendHighPrio(Inverter<> *iv) = 0;
 

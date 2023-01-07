@@ -276,11 +276,12 @@ class RestApi {
         }
 
         void getMqtt(JsonObject obj) {
-            obj[F("broker")] = String(mConfig->mqtt.broker);
-            obj[F("port")]   = String(mConfig->mqtt.port);
-            obj[F("user")]   = String(mConfig->mqtt.user);
-            obj[F("pwd")]    = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
-            obj[F("topic")]  = String(mConfig->mqtt.topic);
+            obj[F("broker")]   = String(mConfig->mqtt.broker);
+            obj[F("port")]     = String(mConfig->mqtt.port);
+            obj[F("user")]     = String(mConfig->mqtt.user);
+            obj[F("pwd")]      = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
+            obj[F("topic")]    = String(mConfig->mqtt.topic);
+            obj[F("interval")] = String(mConfig->mqtt.interval);
         }
 
         void getNtp(JsonObject obj) {
@@ -357,10 +358,15 @@ class RestApi {
             obj[F("name")][i] = "Documentation";
             obj[F("link")][i] = "https://ahoydtu.de";
             obj[F("trgt")][i++] = "_blank";
-            if((strlen(mConfig->sys.adminPwd) > 0) && !mApp->getProtection()) {
+            if(strlen(mConfig->sys.adminPwd) > 0) {
                 obj[F("name")][i++] = "-";
-                obj[F("name")][i] = "Logout";
-                obj[F("link")][i++] = "/logout";
+                if(mApp->getProtection()) {
+                    obj[F("name")][i] = "Login";
+                    obj[F("link")][i++] = "/login";
+                } else {
+                    obj[F("name")][i] = "Logout";
+                    obj[F("link")][i++] = "/logout";
+                }
             }
         }
 
@@ -411,6 +417,8 @@ class RestApi {
             JsonArray info = obj.createNestedArray(F("infos"));
             if(mApp->getMqttIsConnected())
                 info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent, ") + String(mApp->getMqttRxCnt()) + F(" packets received"));
+            if(mConfig->mqtt.interval > 0)
+                info.add(F("MQTT publishes in a fixed interval of ") + String(mConfig->mqtt.interval) + F(" seconds"));
         }
 
         void getSetup(JsonObject obj) {
