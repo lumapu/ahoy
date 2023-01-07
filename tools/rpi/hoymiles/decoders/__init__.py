@@ -511,7 +511,7 @@ class Hm600Decode0B(StatusResponse):
     @property
     def ac_current_0(self):
         """ Phase 1 ampere """
-        return self.unpack('>H', 34)[0]/10
+        return self.unpack('>H', 34)[0]/100
     @property
     def ac_power_0(self):
         """ Phase 1 watts """
