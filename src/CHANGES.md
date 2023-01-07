@@ -3,6 +3,7 @@
 (starting from release version `0.5.66`)
 
 ## 0.5.70
+* corrected MQTT `comm_disabled` #529
 
 ## 0.5.69
 * merged SH1106 1.3" Display, thx @dAjaY85

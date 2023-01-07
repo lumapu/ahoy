@@ -68,7 +68,7 @@ def readVersion(path, infile):
     os.rename(src, dst)
 
     versionout = version[:-1] + "_" + sha + "_esp8266_sh1106.bin"
-    src = path + ".pio/build/esp8266_sh1106/firmware.bin"
+    src = path + ".pio/build/esp8266-sh1106/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
     

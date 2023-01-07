@@ -172,7 +172,7 @@ void app::tickIVCommunication(void) {
             onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
     if (mConfig->mqtt.broker[0] > 0)
-        mMqtt.tickerComm(mIVCommunicationOn);
+        mMqtt.tickerComm(!mIVCommunicationOn);
 }
 
 //-----------------------------------------------------------------------------
