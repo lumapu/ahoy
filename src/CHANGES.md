@@ -2,6 +2,8 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.70
+
 ## 0.5.69
 * merged SH1106 1.3" Display, thx @dAjaY85
 * added SH1106 to automatic build
@@ -12,6 +14,7 @@
 * added `development` to second changelog link in `index.html` #543
 * added interval for MQTT (as option). With this settings MQTT live data is published in a fixed timing (only if inverter is available) #542, #523
 * added MQTT `comm_disabled` #529
+* changed name of binaries, moved GIT-Sha to the front #538
 
 ## 0.5.68
 * repaired receive payload
