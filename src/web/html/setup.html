@@ -147,7 +147,7 @@
                         <label for="mqttPwd">Password (optional)</label>
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9.\-_\+\/]+" title="Invalid input" />
+                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" />
                         <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
                         <label for="mqttIntvl">Interval [s]</label>
                         <input type="text" class="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" />
