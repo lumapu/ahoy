@@ -209,6 +209,10 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     if not topic:
         topic = f'hoymiles/{inverter_ser}'
 
+    # Global Head
+    if data['time'] is not None:
+        broker.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
+    
     # AC Data
     phase_id = 0
     for phase in data['phases']:
@@ -220,10 +224,11 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     # DC Data
     string_id = 0
     for string in data['strings']:
-        broker.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
-        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
         broker.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
         broker.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
         string_id = string_id + 1
     # Global
     if data['powerfactor'] is not None:
