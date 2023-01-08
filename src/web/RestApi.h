@@ -134,17 +134,34 @@ class RestApi {
             ep[F("record/config")] = url + F("record/config");
             ep[F("record/live")]   = url + F("record/live");
         }
+
         void onDwnldSetup(AsyncWebServerRequest *request) {
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
-            JsonObject root = response->getRoot();
+            AsyncWebServerResponse *response;
 
-            getSetup(root);
+            File fp = LittleFS.open("/settings.json", "r");
+            if(!fp) {
+                DPRINTLN(DBG_ERROR, F("failed to load settings"));
+                response = request->beginResponse(200, F("application/json"), "{}");
+            }
+            else {
+                String tmp = fp.readString();
+                int i = 0;
+                // remove all passwords
+                while (i != -1) {
+                    i = tmp.indexOf("\"pwd\":", i);
+                    if(-1 != i) {
+                        i+=7;
+                        tmp.remove(i, tmp.indexOf("\"", i)-i);
+                    }
+                }
+                response = request->beginResponse(200, F("application/json"), tmp);
+            }
 
-            response->setLength();
             response->addHeader("Content-Type", "application/octet-stream");
             response->addHeader("Content-Description", "File Transfer");
             response->addHeader("Content-Disposition", "attachment; filename=ahoy_setup.json");
             request->send(response);
+            fp.close();
         }
 
         void getGeneric(JsonObject obj) {
@@ -165,7 +182,7 @@ class RestApi {
             obj[F("device_name")]  = mConfig->sys.deviceName;
 
             obj[F("mac")]          = WiFi.macAddress();
-            obj[F("hostname")]     = WiFi.getHostname();
+            obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
 
@@ -263,6 +280,7 @@ class RestApi {
                     obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
                     obj2[F("channels")] = iv->channels;
                     obj2[F("version")]  = String(iv->getFwVersion());
+                    obj2[F("yieldCor")] = iv->config->yieldCor;
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
                         obj2[F("ch_max_power")][j] = iv->config->chMaxPwr[j];
@@ -276,12 +294,15 @@ class RestApi {
         }
 
         void getMqtt(JsonObject obj) {
-            obj[F("broker")]   = String(mConfig->mqtt.broker);
-            obj[F("port")]     = String(mConfig->mqtt.port);
-            obj[F("user")]     = String(mConfig->mqtt.user);
-            obj[F("pwd")]      = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
-            obj[F("topic")]    = String(mConfig->mqtt.topic);
-            obj[F("interval")] = String(mConfig->mqtt.interval);
+            obj[F("broker")]     = String(mConfig->mqtt.broker);
+            obj[F("port")]       = String(mConfig->mqtt.port);
+            obj[F("user")]       = String(mConfig->mqtt.user);
+            obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
+            obj[F("topic")]      = String(mConfig->mqtt.topic);
+            obj[F("interval")]   = String(mConfig->mqtt.interval);
+            obj[F("rstMid")]     = (bool)mConfig->mqtt.rstYieldMidNight;
+            obj[F("rstNAvail")]  = (bool)mConfig->mqtt.rstValsNotAvail;
+            obj[F("rstComStop")] = (bool)mConfig->mqtt.rstValsCommStop;
         }
 
         void getNtp(JsonObject obj) {
