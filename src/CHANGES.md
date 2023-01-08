@@ -4,6 +4,14 @@
 
 ## 0.5.70
 * corrected MQTT `comm_disabled` #529
+* fix Prometheus and JSON endpoints (`config_override.h`) #561
+* publish MQTT with fixed interval even if inverter is not available #542
+* added JSON settings upload. NOTE: settings JSON download changed, so only settings should be uploaded starting from version `0.5.70` #551
+* MQTT topic and inverter name have more allowed characters: `[A-Za-z0-9./#$%&=+_-]+`, thx: @Mo Demman
+* improved potential issue with `checkTicker`, thx @cbscpe
+* MQTT option for reset values on midnight / not avail / communication stop #539
+* small fix in `tickIVCommunication` #534
+* add `YieldTotal` correction, eg. to have the option to zero at year start #512
 
 ## 0.5.69
 * merged SH1106 1.3" Display, thx @dAjaY85

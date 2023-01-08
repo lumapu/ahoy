@@ -15,7 +15,7 @@ namespace ah {
             *ticker = mil + interval;
             return true;
         }
-        else if(mil < (*ticker - interval)) {
+        else if((mil + interval) < (*ticker)) {
             *ticker = mil + interval;
             return true;
         }

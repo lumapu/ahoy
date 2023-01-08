@@ -129,6 +129,7 @@ namespace ah {
                                 mTickerInUse[i] = false;
                             else
                                 mTicker[i].timeout = mTicker[i].reload;
+                            //DPRINTLN(DBG_INFO, "checkTick " + String(i) + " reload: " + String(mTicker[i].reload) + ", timeout: " + String(mTicker[i].timeout));
                             (mTicker[i].c)();
                             yield();
                         }

@@ -27,8 +27,7 @@ class ahoywifi {
         void getAvailNetworks(JsonObject obj);
 
     private:
-        typedef enum WiFiStatus
-        {
+        typedef enum WiFiStatus {
             DISCONNECTED = 0,
             CONNECTING,
             CONNECTED,

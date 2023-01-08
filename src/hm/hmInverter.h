@@ -233,11 +233,13 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
-                        if(FLD_T == rec->assign[pos].fieldId) {
+                        if (FLD_T == rec->assign[pos].fieldId) {
                             // temperature is a signed value!
                             rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
-                        }
-                        else {
+                        } else if ((FLD_YT == rec->assign[pos].fieldId)
+                                    && (config->yieldCor != 0)) {
+                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) - (REC_TYP)config->yieldCor;
+                        } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
                             else
@@ -284,6 +286,16 @@ class Inverter {
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
+        }
+
+        bool setValue(uint8_t pos, record_t<> *rec, REC_TYP val) {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:setValue"));
+            if(NULL == rec)
+                return false;
+            if(pos > rec->length)
+                return false;
+            rec->record[pos] = val;
+            return true;
         }
 
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
