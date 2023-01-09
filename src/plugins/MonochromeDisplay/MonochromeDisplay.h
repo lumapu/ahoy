@@ -1,19 +1,13 @@
 #ifndef __MONOCHROME_DISPLAY__
 #define __MONOCHROME_DISPLAY__
 
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
+/* esp8266 : SCL = 5, SDA = 4 */
+/* ewsp32  : SCL = 22, SDA = 21 */
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+#include <U8g2lib.h>
 #ifdef ENA_NOKIA
-    #include <U8g2lib.h>
     #define DISP_PROGMEM U8X8_PROGMEM
-#else // ENA_SSD1306 || ENA_SH1106
-    /* esp8266 : SCL = 5, SDA = 4 */
-    /* ewsp32  : SCL = 22, SDA = 21 */
-    #include <Wire.h>
-    #ifdef ENA_SSD1306
-        #include <SSD1306Wire.h>
-    # else //ENA_SH1106
-        #include <SH1106Wire.h>
-    #endif
+#else // ENA_SSD1306
     #define DISP_PROGMEM PROGMEM
 #endif
 
@@ -21,6 +15,23 @@
 
 #include "../../utils/helper.h"
 #include "../../hm/hmSystem.h"
+
+/**
+ * Made with Marlin Bitmap Converter
+ * https://marlinfw.org/tools/u8glib/converter.html
+ *
+ * This bitmap from the file 'logo1_small.png'
+ */
+#pragma once
+
+#define VEMIU_BMPWIDTH  16
+
+static uint8_t bmp_logo[] PROGMEM = {
+  B00000000,B00000000,B00000000,B00000000,B00001100,B00100000,B00001111,B11100000,
+  B00000000,B00000000,B00000000,B00000000,B00000000,B00000010,B00000000,B00101000,
+  B00000000,B10101000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,
+  B00000110,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000,B00000000
+};
 
 static uint8_t bmp_arrow[] DISP_PROGMEM = {
     B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
@@ -38,12 +49,10 @@ class MonochromeDisplay {
             mNewPayload = false;
             mExtra      = 0;
         }
-        #else // ENA_SSD1306 || ENA_SH1106
-        MonochromeDisplay() : mDisplay(0x3c, SDA, SCL), mCE(CEST, CET) {
+        #else // ENA_SSD1306
+        MonochromeDisplay() : mDisplay(U8G2_R0, SCL, SDA, U8X8_PIN_NONE), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
-            mRx         = 0;
-            mUp         = 1;
         }
         #endif
 
@@ -53,23 +62,8 @@ class MonochromeDisplay {
             memset( mToday, 0, sizeof(float)*MAX_NUM_INVERTERS );
             memset( mTotal, 0, sizeof(float)*MAX_NUM_INVERTERS );
             mLastHour = 25;
-            #if defined(ENA_NOKIA)
                 mDisplay.begin();
                 ShowInfoText("booting...");
-            #else
-                mDisplay.init();
-                mDisplay.flipScreenVertically();
-                mDisplay.setContrast(63);
-                mDisplay.setBrightness(63);
-
-                mDisplay.clear();
-                mDisplay.setFont(ArialMT_Plain_24);
-                mDisplay.setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-
-                mDisplay.drawString(64,22,"Starting...");
-                mDisplay.display();
-                mDisplay.setTextAlignment(TEXT_ALIGN_LEFT);
-            #endif
         }
 
         void loop(void) {
@@ -92,7 +86,6 @@ class MonochromeDisplay {
         }
 
     private:
-        #if defined(ENA_NOKIA)
         void ShowInfoText(const char *txt) {
             /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
             mDisplay.clear();
@@ -116,10 +109,9 @@ class MonochromeDisplay {
                 mDisplay.sendBuffer();
             } while( mDisplay.nextPage() );
         }
-        #endif
 
         void DataScreen(void) {
-            String timeStr = ah::getDateTimeStr(mCE.toLocal(*mUtcTs)).substring(2, 22);
+            String timeStr = ah::getDateTimeStr(mCE.toLocal(*mUtcTs)).substring(2, 16);
             int hr = timeStr.substring(9,2).toInt();
             IPAddress ip = WiFi.localIP();
             float totalYield = 0.0, totalYieldToday = 0.0, totalActual = 0.0;
@@ -167,139 +159,137 @@ class MonochromeDisplay {
             }
             /* u8g2_font_open_iconic_embedded_2x_t 'D' + 'G' + 'J' */
             mDisplay.clear();
-            #if defined(ENA_NOKIA)
                 mDisplay.firstPage();
                 do {
-                    if(ucnt) {
-                        mDisplay.drawXBMP(10,1,8,17,bmp_arrow);
-                        mDisplay.setFont(u8g2_font_logisoso16_tr);
-                        mDisplay.setCursor(25,17);
-                        sprintf(fmtText,"%3.0f",totalActual);
-                        mDisplay.print(String(fmtText)+F(" W"));
-                    }
-                    else
-                    {
-                        mDisplay.setFont(u8g2_font_logisoso16_tr  );
-                        mDisplay.setCursor(10,17);
-                        mDisplay.print(String(F("offline")));
-                    }
-                    mDisplay.drawHLine(2,20,78);
-                    mDisplay.setFont(u8g2_font_5x8_tr);
-                    mDisplay.setCursor(5,29);
-                    if (( num_inv < 2 ) || !(mExtra%2))
-                    {
-                        sprintf(fmtText,"%4.0f",totalYieldToday);
-                        mDisplay.print(F("today ")+String(fmtText)+F(" Wh"));
-                        mDisplay.setCursor(5,37);
-                        sprintf(fmtText,"%.1f",totalYield);
-                        mDisplay.print(F("total ")+String(fmtText)+F(" kWh"));
-                    }
-                    else
-                    {
-                        int id1=(mExtra/2)%(num_inv-1);
-                        if( pow_i[id1] )
-                            mDisplay.print(F("#")+String(id1+1)+F("  ")+String(pow_i[id1])+F(" W"));
+                    #ifdef ENA_NOKIA
+                        if(ucnt) {
+                            mDisplay.drawXBMP(10,1,8,17,bmp_arrow);
+                            mDisplay.setFont(u8g2_font_logisoso16_tr);
+                            mDisplay.setCursor(25,17);
+                            sprintf(fmtText,"%3.0f",totalActual);
+                            mDisplay.print(String(fmtText)+F(" W"));
+                        }
                         else
-                            mDisplay.print(F("#")+String(id1+1)+F("  -----"));
-                        mDisplay.setCursor(5,37);
-                        if( pow_i[id1+1] )
-                            mDisplay.print(F("#")+String(id1+2)+F("  ")+String(pow_i[id1+1])+F(" W"));
+                        {
+                            mDisplay.setFont(u8g2_font_logisoso16_tr  );
+                            mDisplay.setCursor(10,17);
+                            mDisplay.print(String(F("offline")));
+                        }
+                        mDisplay.drawHLine(2,20,78);
+                        mDisplay.setFont(u8g2_font_5x8_tr);
+                        mDisplay.setCursor(5,29);
+                        if (( num_inv < 2 ) || !(mExtra%2))
+                        {
+                            sprintf(fmtText,"%4.0f",totalYieldToday);
+                            mDisplay.print(F("today ")+String(fmtText)+F(" Wh"));
+                            mDisplay.setCursor(5,37);
+                            sprintf(fmtText,"%.1f",totalYield);
+                            mDisplay.print(F("total ")+String(fmtText)+F(" kWh"));
+                        }
                         else
-                            mDisplay.print(F("#")+String(id1+2)+F("  -----"));
-                    }
-                    if ( !(mExtra%10) && ip ) {
-                        mDisplay.setCursor(5,47);
-                        mDisplay.print(ip.toString());
-                    }
-                    else {
-                        mDisplay.setCursor(0,47);
-                        mDisplay.print(timeStr);
-                    }
-
+                        {
+                            int id1=(mExtra/2)%(num_inv-1);
+                            if( pow_i[id1] )
+                                mDisplay.print(F("#")+String(id1+1)+F("  ")+String(pow_i[id1])+F(" W"));
+                            else
+                                mDisplay.print(F("#")+String(id1+1)+F("  -----"));
+                            mDisplay.setCursor(5,37);
+                            if( pow_i[id1+1] )
+                                mDisplay.print(F("#")+String(id1+2)+F("  ")+String(pow_i[id1+1])+F(" W"));
+                            else
+                                mDisplay.print(F("#")+String(id1+2)+F("  -----"));
+                        }
+                        if ( !(mExtra%10) && ip ) {
+                            mDisplay.setCursor(5,47);
+                            mDisplay.print(ip.toString());
+                        }
+                        else {
+                            mDisplay.setCursor(5,47);
+                            mDisplay.print(timeStr);
+                        }
+                    #else // ENA_SSD1306
+                        //mDisplay.drawXBM(100,5,16,16,bmp_logo);
+                        mDisplay.setFont(u8g2_font_ncenB08_tr);
+                        mDisplay.setCursor(90,63);
+                        mDisplay.print(F("AHOY"));
+                        if(ucnt) {
+                            //=====> Actual Production
+                            mDisplay.setPowerSave(false);
+                            displaySleep=false;
+                            mDisplay.setFont(u8g2_font_logisoso18_tr);
+                            mDisplay.drawXBM(10,5,8,17,bmp_arrow);
+                            mDisplay.setCursor(25,20);
+                            if (totalActual>999){
+                                sprintf(fmtText,"%3.0f",(totalActual/1000));
+                                mDisplay.print(String(fmtText)+F(" kW"));
+                            } else {
+                                sprintf(fmtText,"%3.0f",totalActual);
+                                mDisplay.print(String(fmtText)+F(" W"));
+                            }
+                            //<=======================
+                        }
+                        else
+                        {
+                            //=====> Offline
+                            if(!displaySleep) {
+                                displaySleepTimer = millis();
+                                displaySleep=true;
+                            }
+                            mDisplay.setFont(u8g2_font_logisoso18_tr);
+                            mDisplay.setCursor(10,20);
+                            mDisplay.print(String(F("offline")));
+                            if ((millis() - displaySleepTimer) > displaySleepDelay) {
+                                mDisplay.setPowerSave(true);
+                            }
+                            //<=======================
+                        }
+                        mDisplay.drawLine(1, 23, 123, 23);
+                        mDisplay.setFont(u8g2_font_ncenB10_tr);
+                        mDisplay.setCursor(5,36);
+                        if (( num_inv < 2 ) || !(mExtra%2))
+                        {
+                            //=====> Today & Total Production
+                            sprintf(fmtText,"%5.0f",totalYieldToday);
+                            mDisplay.print(F("today: ")+String(fmtText)+F(" Wh"));
+                            mDisplay.setCursor(5,50);
+                            sprintf(fmtText,"%.1f",totalYield);
+                            mDisplay.print(F("total: ")+String(fmtText)+F(" kWh"));
+                            //<=======================
+                        }
+                        else
+                        {
+                            int id1=(mExtra/2)%(num_inv-1);
+                            if( pow_i[id1] )
+                                mDisplay.print(F("#")+String(id1+1)+F("  ")+String(pow_i[id1])+F(" W"));
+                            else
+                                mDisplay.print(F("#")+String(id1+1)+F("  -----"));
+                            mDisplay.setCursor(5,50);
+                            if( pow_i[id1+1] )
+                                mDisplay.print(F("#")+String(id1+2)+F("  ")+String(pow_i[id1+1])+F(" W"));
+                            else
+                                mDisplay.print(F("#")+String(id1+2)+F("  -----"));
+                        }
+                        mDisplay.setFont(u8g2_font_5x8_tr);
+                        if ( !(mExtra%10) && ip ) {
+                            mDisplay.setCursor(5,63);
+                            mDisplay.print(ip.toString());
+                        }
+                        else {
+                            mDisplay.setCursor(5,63);
+                            mDisplay.print(timeStr);
+                        }
+                    #endif
                     mDisplay.sendBuffer();
                 } while( mDisplay.nextPage() );
+                delay(2000);
                 mExtra++;
-        #else // ENA_SSD1306 || ENA_SH1106
-            if(mUp) {
-                mRx += 2;
-                if(mRx >= 20)
-                mUp = 0;
-            } else {
-                mRx -= 2;
-                if(mRx <= 0)
-                mUp = 1;
-            }
-            int ex = 2*( mExtra % 5 );
-
-            if(ucnt) {
-                mDisplay.setBrightness(63);
-                mDisplay.drawXbm(10+ex,5,8,17,bmp_arrow);
-                mDisplay.setFont(ArialMT_Plain_24);
-                sprintf(fmtText,"%3.0f",totalActual);
-                mDisplay.drawString(25+ex,0,String(fmtText)+F(" W"));
-            }
-            else
-            {
-                mDisplay.setBrightness(1);
-                mDisplay.setFont(ArialMT_Plain_24);
-                mDisplay.drawString(25+ex,0,String(F("offline")));
-            }
-            mDisplay.setFont(ArialMT_Plain_16);
-
-            if (( num_inv < 2 ) || !(mExtra%2))
-            {
-                sprintf(fmtText,"%4.0f",totalYieldToday);
-                mDisplay.drawString(5,22,F("today ")+String(fmtText)+F(" Wh"));
-                sprintf(fmtText,"%.1f",totalYield);
-                mDisplay.drawString(5,35,F("total  ")+String(fmtText)+F(" kWh"));
-            }
-            else
-            {
-                int id1=(mExtra/2)%(num_inv-1);
-                if( pow_i[id1] )
-                    mDisplay.drawString(15,22,F("#")+String(id1+1)+F("  ")+String(pow_i[id1])+F(" W"));
-                else
-                    mDisplay.drawString(15,22,F("#")+String(id1+1)+F("  -----"));
-                if( pow_i[id1+1] )
-                    mDisplay.drawString(15,35,F("#")+String(id1+2)+F("  ")+String(pow_i[id1+1])+F(" W"));
-                else
-                    mDisplay.drawString(15,35,F("#")+String(id1+2)+F("  -----"));
-            }
-            mDisplay.drawLine(2,23,123,23);
-
-            if ( (!(mExtra%10) && ip )|| (timeStr.length()<16))
-            {
-                mDisplay.drawString(5,49,ip.toString());
-            }
-            else
-            {
-                int w=mDisplay.getStringWidth(timeStr.c_str(),timeStr.length(),0);
-                if ( w>127 )
-                {
-                    String tt=timeStr.substring(9,17);
-                    w=mDisplay.getStringWidth(tt.c_str(),tt.length(),0);
-                    mDisplay.drawString(127-w-mRx,49,tt);
-                }
-                else
-                    mDisplay.drawString(0,49,timeStr);
-            }
-
-            mDisplay.display();
-            mExtra++;
-        #endif
         }
 
         // private member variables
         #if defined(ENA_NOKIA)
             U8G2_PCD8544_84X48_1_4W_HW_SPI mDisplay;
         #else // ENA_SSD1306
-            #ifdef ENA_SSD1306
-                SSD1306Wire mDisplay;
-            # else //ENA_SH1106
-                SH1106Wire mDisplay;
-            #endif
-            int mRx;
-            char mUp;
+            U8G2_SSD1306_128X64_NONAME_1_HW_I2C mDisplay;
         #endif
         int mExtra;
         bool mNewPayload;
@@ -309,6 +299,9 @@ class MonochromeDisplay {
         int mLastHour;
         HMSYSTEM *mSys;
         Timezone mCE;
+        bool displaySleep;
+        uint32_t displaySleepTimer;
+        const uint32_t displaySleepDelay= 60000;
 };
 #endif
 
