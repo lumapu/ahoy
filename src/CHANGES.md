@@ -2,6 +2,29 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.70
+* corrected MQTT `comm_disabled` #529
+* fix Prometheus and JSON endpoints (`config_override.h`) #561
+* publish MQTT with fixed interval even if inverter is not available #542
+* added JSON settings upload. NOTE: settings JSON download changed, so only settings should be uploaded starting from version `0.5.70` #551
+* MQTT topic and inverter name have more allowed characters: `[A-Za-z0-9./#$%&=+_-]+`, thx: @Mo Demman
+* improved potential issue with `checkTicker`, thx @cbscpe
+* MQTT option for reset values on midnight / not avail / communication stop #539
+* small fix in `tickIVCommunication` #534
+* add `YieldTotal` correction, eg. to have the option to zero at year start #512
+
+## 0.5.69
+* merged SH1106 1.3" Display, thx @dAjaY85
+* added SH1106 to automatic build
+* added IP address to MQTT (version, device and IP are retained and only transmitted once after boot) #556
+* added `set_power_limit` acknowledge MQTT publish #553
+* changed: version, device name are only published via MQTT once after boot
+* added `Login` to menu if admin password is set #554
+* added `development` to second changelog link in `index.html` #543
+* added interval for MQTT (as option). With this settings MQTT live data is published in a fixed timing (only if inverter is available) #542, #523
+* added MQTT `comm_disabled` #529
+* changed name of binaries, moved GIT-Sha to the front #538
+
 ## 0.5.68
 * repaired receive payload
 * Powerlimit is transfered immediately to inverter

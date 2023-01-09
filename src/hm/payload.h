@@ -35,7 +35,8 @@ class Payload : public Handler<payloadListenerType> {
     public:
         Payload() : Handler() {}
 
-        void setup(HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+            mApp        = app;
             mSys        = sys;
             mStat       = stat;
             mMaxRetrans = maxRetransmits;
@@ -141,7 +142,11 @@ class Payload : public Handler<payloadListenerType> {
                 iv->devControlRequest = false;
 
                 if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
-                    String msg = (p->packet[10] == 0x00 && p->packet[11] == 0x00) ? "" : "NOT ";
+                    String msg = "";
+                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00)) {
+                        msg = "NOT ";
+                        mApp->setMqttPowerLimitAck(iv);
+                    }
                     DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
                 }
                 iv->devControlCmd = Init;
@@ -272,6 +277,7 @@ class Payload : public Handler<payloadListenerType> {
         }
 
     private:
+        IApp *mApp;
         HMSYSTEM *mSys;
         statistics_t *mStat;
         uint8_t mMaxRetrans;

@@ -78,6 +78,10 @@ class app : public IApp, public ah::Scheduler {
             return mSettings.saveSettings();
         }
 
+        bool readSettings(const char *path) {
+            return mSettings.readSettings(path);
+        }
+
         bool eraseSettings(bool eraseWifi = false) {
             return mSettings.eraseSettings(eraseWifi);
         }
@@ -95,7 +99,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setRebootFlag() {
-            once(std::bind(&app::tickReboot, this), 1);
+            once(std::bind(&app::tickReboot, this), 3);
         }
 
         const char *getVersion() {
@@ -120,6 +124,10 @@ class app : public IApp, public ah::Scheduler {
 
         void setMqttDiscoveryFlag() {
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1);
+        }
+
+        void setMqttPowerLimitAck(Inverter<> *iv) {
+            mMqtt.setPowerLimitAck(iv);
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
@@ -199,6 +207,7 @@ class app : public IApp, public ah::Scheduler {
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
         void tickSend(void);
+        void tickMidnight(void);
         /*void tickSerial(void) {
             if(Serial.available() == 0)
                 return;

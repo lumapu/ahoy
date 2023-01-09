@@ -15,6 +15,7 @@ class IApp {
     public:
         virtual ~IApp() {}
         virtual bool saveSettings() = 0;
+        virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
@@ -34,6 +35,7 @@ class IApp {
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
+        virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
 
         virtual void ivSendHighPrio(Inverter<> *iv) = 0;
 

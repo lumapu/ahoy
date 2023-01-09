@@ -29,6 +29,7 @@ The AhoyDTU will publish on the following topics
 | `uptime` | 73630 | uptime in seconds | false |
 | `version` | 0.5.61 | current installed verison of AhoyDTU | true |
 | `wifi_rssi` | -75 | WiFi signal strength | false |
+| `ip_addr` | 192.168.178.25 | WiFi Station IP Address | true |
 
 | status code | Remarks |
 |---|---|
@@ -43,6 +44,7 @@ The AhoyDTU will publish on the following topics
 |---|---|---|---|
 | `available` | 2 | see table below | true |
 | `last_success` | 1672155690 | UTC Timestamp | true |
+| `ack_pwr_limit` | true | fast information if inverter has accepted power limit | false |
 
 | status code | Remarks |
 |---|---|

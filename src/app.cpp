@@ -51,7 +51,7 @@ void app::setup() {
     #endif
 
     mSys->addInverters(&mConfig->inst);
-    mPayload.setup(mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.setup(this, mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 
     if(!mSys->Radio.isChipConnected())
@@ -62,6 +62,9 @@ void app::setup() {
     if (mConfig->mqtt.broker[0] > 0) {
         everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
         everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
+        uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+        if(mConfig->mqtt.rstYieldMidNight)
+            onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
     #endif
@@ -161,15 +164,18 @@ void app::tickIVCommunication(void) {
         if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
             nxtTrig = mSunrise - mConfig->sun.offsetSec;
         } else {
-            if (mTimestamp > (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
-                return;
+            if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
+                nxtTrig = 0;
             } else { // current time lies within communication start/stop time, set next trigger to communication stop
                 mIVCommunicationOn = true;
                 nxtTrig = mSunset + mConfig->sun.offsetSec;
             }
         }
-        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
+        if (nxtTrig != 0)
+            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
+    if (mConfig->mqtt.broker[0] > 0)
+        mMqtt.tickerComm(!mIVCommunicationOn);
 }
 
 //-----------------------------------------------------------------------------
@@ -202,6 +208,15 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
+}
+
+//-----------------------------------------------------------------------------
+void app::tickMidnight(void) {
+    // only used and enabled by MQTT (see setup())
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+    onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
+
+    mMqtt.tickerMidnight();
 }
 
 //-----------------------------------------------------------------------------

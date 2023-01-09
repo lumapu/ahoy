@@ -96,6 +96,10 @@ typedef struct {
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
+    uint16_t interval;
+    bool rstYieldMidNight;
+    bool rstValsNotAvail;
+    bool rstValsCommStop;
 } cfgMqtt_t;
 
 typedef struct {
@@ -104,6 +108,7 @@ typedef struct {
     serial_u serial;
     uint16_t chMaxPwr[4];
     char chName[4][MAX_NAME_LENGTH];
+    uint32_t yieldCor; // YieldTotal correction value
 } cfgIv_t;
 
 typedef struct {
@@ -154,7 +159,7 @@ class settings {
             else
                 DPRINTLN(DBG_INFO, F(" .. done"));
 
-            readSettings();
+            readSettings("/settings.json");
         }
 
         // should be used before OTA
@@ -185,9 +190,10 @@ class settings {
             #endif
         }
 
-        void readSettings(void) {
+        bool readSettings(const char* path) {
+            bool success = false;
             loadDefaults();
-            File fp = LittleFS.open("/settings.json", "r");
+            File fp = LittleFS.open(path, "r");
             if(!fp)
                 DPRINTLN(DBG_WARN, F("failed to load json, using default config"));
             else {
@@ -205,6 +211,7 @@ class settings {
                     jsonMqtt(root["mqtt"]);
                     jsonLed(root["led"]);
                     jsonInst(root["inst"]);
+                    success = true;
                 }
                 else {
                     Serial.println(F("failed to parse json, using default config"));
@@ -212,6 +219,7 @@ class settings {
 
                 fp.close();
             }
+            return success;
         }
 
         bool saveSettings(void) {
@@ -297,6 +305,10 @@ class settings {
             snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", DEF_MQTT_USER);
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
+            mCfg.mqtt.interval = 0; // off
+            mCfg.mqtt.rstYieldMidNight  = false;
+            mCfg.mqtt.rstValsNotAvail = false;
+            mCfg.mqtt.rstValsCommStop   = false;
 
             mCfg.led.led0 = DEF_LED0_PIN;
             mCfg.led.led1 = DEF_LED1_PIN;
@@ -396,8 +408,17 @@ class settings {
                 obj[F("user")]   = mCfg.mqtt.user;
                 obj[F("pwd")]    = mCfg.mqtt.pwd;
                 obj[F("topic")]  = mCfg.mqtt.topic;
+                obj[F("intvl")]  = mCfg.mqtt.interval;
+                obj[F("rstMidNight")] = (bool)mCfg.mqtt.rstYieldMidNight;
+                obj[F("rstNotAvail")] = (bool)mCfg.mqtt.rstValsNotAvail;
+                obj[F("rstComStop")]  = (bool)mCfg.mqtt.rstValsCommStop;
+
             } else {
-                mCfg.mqtt.port = obj[F("port")];
+                mCfg.mqtt.port     = obj[F("port")];
+                mCfg.mqtt.interval = obj[F("intvl")];
+                mCfg.mqtt.rstYieldMidNight = (bool)obj["rstMidNight"];
+                mCfg.mqtt.rstValsNotAvail  = (bool)obj["rstNotAvail"];
+                mCfg.mqtt.rstValsCommStop  = (bool)obj["rstComStop"];
                 snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", obj[F("broker")].as<const char*>());
                 snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", obj[F("user")].as<const char*>());
                 snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", obj[F("pwd")].as<const char*>());
@@ -434,9 +455,10 @@ class settings {
 
         void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj[F("en")]   = (bool)cfg->enabled;
-                obj[F("name")] = cfg->name;
-                obj[F("sn")]   = cfg->serial.u64;
+                obj[F("en")]    = (bool)cfg->enabled;
+                obj[F("name")]  = cfg->name;
+                obj[F("sn")]    = cfg->serial.u64;
+                obj[F("yield")] = cfg->yieldCor;
                 for(uint8_t i = 0; i < 4; i++) {
                     obj[F("pwr")][i]  = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
@@ -445,6 +467,7 @@ class settings {
                 cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
+                cfg->yieldCor   = obj[F("yield")];
                 for(uint8_t i = 0; i < 4; i++) {
                     cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
