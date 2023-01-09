@@ -172,7 +172,7 @@ class MonochromeDisplay {
                             mDisplay.setFont(u8g2_font_logisoso16_tr);
                             mDisplay.setCursor(25,17);
                             if (totalActual>999){
-                                sprintf(fmtText,"%3.0f",(totalActual/1000));
+                                sprintf(fmtText,"%2.1f",(totalActual/1000));
                                 mDisplay.print(String(fmtText)+F(" kW"));
                             } else {
                                 sprintf(fmtText,"%3.0f",totalActual);
@@ -234,7 +234,7 @@ class MonochromeDisplay {
                             mDisplay.drawXBM(10,5,8,17,bmp_arrow);
                             mDisplay.setCursor(25,20);
                             if (totalActual>999){
-                                sprintf(fmtText,"%3.0f",(totalActual/1000));
+                                sprintf(fmtText,"%2.1f",(totalActual/1000));
                                 mDisplay.print(String(fmtText)+F(" kW"));
                             } else {
                                 sprintf(fmtText,"%3.0f",totalActual);
