@@ -224,8 +224,6 @@ class MonochromeDisplay {
                     #else // ENA_SSD1306
                         mDisplay.drawXBM(106,5,16,16,bmp_logo);
                         mDisplay.setFont(u8g2_font_ncenB08_tr);
-                        mDisplay.setCursor(90,63);
-                        mDisplay.print(F("AHOY"));
                         if(ucnt) {
                             //=====> Actual Production
                             mDisplay.setPowerSave(false);
