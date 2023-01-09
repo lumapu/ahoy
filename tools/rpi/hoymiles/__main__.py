@@ -219,6 +219,7 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
         broker.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
         broker.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
         broker.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+        broker.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
         phase_id = phase_id + 1
 
     # DC Data
