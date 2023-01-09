@@ -3,11 +3,11 @@
 
 /* esp8266 : SCL = 5, SDA = 4 */
 /* ewsp32  : SCL = 22, SDA = 21 */
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
 #include <U8g2lib.h>
 #ifdef ENA_NOKIA
     #define DISP_PROGMEM U8X8_PROGMEM
-#else // ENA_SSD1306
+#else // ENA_SSD1306 || ENA_SH1106
     #define DISP_PROGMEM PROGMEM
 #endif
 
@@ -15,6 +15,27 @@
 
 #include "../../utils/helper.h"
 #include "../../hm/hmSystem.h"
+
+
+static uint8_t bmp_logo[] PROGMEM = {
+  B00000000,B00000000, // ................
+  B11101100,B00110111, // ..##.######.##..
+  B11101100,B00110111, // ..##.######.##..
+  B11100000,B00000111, // .....######.....
+  B11010000,B00001011, // ....#.####.#....
+  B10011000,B00011001, // ...##..##..##...
+  B10000000,B00000001, // .......##.......
+  B00000000,B00000000, // ................
+  B01111000,B00011110, // ...####..####...
+  B11111100,B00111111, // ..############..
+  B01111100,B00111110, // ..#####..#####..
+  B00000000,B00000000, // ................
+  B11111100,B00111111, // ..############..
+  B11111110,B01111111, // .##############.
+  B01111110,B01111110, // .######..######.
+  B00000000,B00000000  // ................
+};
+
 
 static uint8_t bmp_arrow[] DISP_PROGMEM = {
     B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
@@ -27,12 +48,12 @@ static TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central Eu
 template<class HMSYSTEM>
 class MonochromeDisplay {
     public:
-        #if defined(ENA_NOKIA)
+        #ifdef ENA_NOKIA
         MonochromeDisplay() : mDisplay(U8G2_R0, 5, 4, 16), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
         }
-        #else // ENA_SSD1306
+        #else // ENA_SSD1306 || ENA_SH1106
         MonochromeDisplay() : mDisplay(U8G2_R0, SCL, SDA, U8X8_PIN_NONE), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
@@ -146,17 +167,27 @@ class MonochromeDisplay {
                 do {
                     #ifdef ENA_NOKIA
                         if(ucnt) {
+                            //=====> Actual Production
                             mDisplay.drawXBMP(10,1,8,17,bmp_arrow);
                             mDisplay.setFont(u8g2_font_logisoso16_tr);
                             mDisplay.setCursor(25,17);
-                            sprintf(fmtText,"%3.0f",totalActual);
-                            mDisplay.print(String(fmtText)+F(" W"));
+                            if (totalActual>999){
+                                sprintf(fmtText,"%3.0f",(totalActual/1000));
+                                mDisplay.print(String(fmtText)+F(" kW"));
+                            } else {
+                                sprintf(fmtText,"%3.0f",totalActual);
+                                mDisplay.print(String(fmtText)+F(" W"));
+                            }
+                            //<=======================
                         }
                         else
                         {
+                            //=====> Offline
                             mDisplay.setFont(u8g2_font_logisoso16_tr  );
                             mDisplay.setCursor(10,17);
                             mDisplay.print(String(F("offline")));
+                            //<=======================
+
                         }
                         mDisplay.drawHLine(2,20,78);
                         mDisplay.setFont(u8g2_font_5x8_tr);
@@ -191,7 +222,7 @@ class MonochromeDisplay {
                             mDisplay.print(timeStr);
                         }
                     #else // ENA_SSD1306
-                        //mDisplay.drawXBM(100,5,16,16,bmp_logo);
+                        mDisplay.drawXBM(106,5,16,16,bmp_logo);
                         mDisplay.setFont(u8g2_font_ncenB08_tr);
                         mDisplay.setCursor(90,63);
                         mDisplay.print(F("AHOY"));
@@ -226,7 +257,7 @@ class MonochromeDisplay {
                             }
                             //<=======================
                         }
-                        mDisplay.drawLine(1, 23, 123, 23);
+                        mDisplay.drawLine(2, 23, 123, 23);
                         mDisplay.setFont(u8g2_font_ncenB10_tr);
                         mDisplay.setCursor(5,36);
                         if (( num_inv < 2 ) || !(mExtra%2))
@@ -264,15 +295,17 @@ class MonochromeDisplay {
                     #endif
                     mDisplay.sendBuffer();
                 } while( mDisplay.nextPage() );
-                delay(2000);
+                delay(500);
                 mExtra++;
         }
 
         // private member variables
-        #if defined(ENA_NOKIA)
+        #ifdef ENA_NOKIA
             U8G2_PCD8544_84X48_1_4W_HW_SPI mDisplay;
-        #else // ENA_SSD1306
+        #elif defined(ENA_SSD1306)
             U8G2_SSD1306_128X64_NONAME_1_HW_I2C mDisplay;
+        #elif defined(ENA_SH1106)
+            U8G2_SH1106_128X64_NONAME_1_HW_I2C mDisplay;
         #endif
         int mExtra;
         bool mNewPayload;
