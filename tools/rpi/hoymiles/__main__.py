@@ -345,8 +345,8 @@ if __name__ == '__main__':
     if global_config.verbose:
         hoymiles.HOYMILES_DEBUG_LOGGING=True
 
-    mqtt_config = ahoy_config.get('mqtt', [])
-    if not mqtt_config.get('disabled', False):
+    mqtt_config = ahoy_config.get('mqtt', {})
+    if mqtt_config and not mqtt_config.get('disabled', False):
         mqtt_client = paho.mqtt.client.Client()
         
         if mqtt_config.get('useTLS',False):
