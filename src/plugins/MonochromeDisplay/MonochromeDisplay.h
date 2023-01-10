@@ -222,15 +222,18 @@ class MonochromeDisplay {
                             mDisplay.print(timeStr);
                         }
                     #else // ENA_SSD1306
-                        mDisplay.drawXBM(106,5,16,16,bmp_logo);
+                    mDisplay.setContrast(60);
+                    // pxZittern in +x (0 - 8 px)
+                    int ex = 2*( mExtra % 5 );
+                        mDisplay.drawXBM(100+ex,2,16,16,bmp_logo);
                         mDisplay.setFont(u8g2_font_ncenB08_tr);
                         if(ucnt) {
                             //=====> Actual Production
                             mDisplay.setPowerSave(false);
                             displaySleep=false;
                             mDisplay.setFont(u8g2_font_logisoso18_tr);
-                            mDisplay.drawXBM(10,5,8,17,bmp_arrow);
-                            mDisplay.setCursor(25,20);
+                            mDisplay.drawXBM(10+ex,2,8,17,bmp_arrow);
+                            mDisplay.setCursor(25+ex,20);
                             if (totalActual>999){
                                 sprintf(fmtText,"%2.1f",(totalActual/1000));
                                 mDisplay.print(String(fmtText)+F(" kW"));
@@ -248,52 +251,47 @@ class MonochromeDisplay {
                                 displaySleep=true;
                             }
                             mDisplay.setFont(u8g2_font_logisoso18_tr);
-                            mDisplay.setCursor(10,20);
+                            mDisplay.setCursor(10+ex,20);
                             mDisplay.print(String(F("offline")));
                             if ((millis() - displaySleepTimer) > displaySleepDelay) {
                                 mDisplay.setPowerSave(true);
                             }
                             //<=======================
                         }
-                        mDisplay.drawLine(2, 23, 123, 23);
+                        mDisplay.drawLine(2+ex, 23, 123, 23);
                         mDisplay.setFont(u8g2_font_ncenB10_tr);
-                        mDisplay.setCursor(5,36);
+                        mDisplay.setCursor(2+ex,36);
                         if (( num_inv < 2 ) || !(mExtra%2))
                         {
                             //=====> Today & Total Production
                             sprintf(fmtText,"%5.0f",totalYieldToday);
                             mDisplay.print(F("today: ")+String(fmtText)+F(" Wh"));
-                            mDisplay.setCursor(5,50);
+                            mDisplay.setCursor(2+ex,50);
                             sprintf(fmtText,"%.1f",totalYield);
                             mDisplay.print(F("total: ")+String(fmtText)+F(" kWh"));
                             //<=======================
-                        }
-                        else
-                        {
+                        } else {
                             int id1=(mExtra/2)%(num_inv-1);
                             if( pow_i[id1] )
                                 mDisplay.print(F("#")+String(id1+1)+F("  ")+String(pow_i[id1])+F(" W"));
                             else
                                 mDisplay.print(F("#")+String(id1+1)+F("  -----"));
-                            mDisplay.setCursor(5,50);
+                            mDisplay.setCursor(5+ex,50);
                             if( pow_i[id1+1] )
                                 mDisplay.print(F("#")+String(id1+2)+F("  ")+String(pow_i[id1+1])+F(" W"));
                             else
                                 mDisplay.print(F("#")+String(id1+2)+F("  -----"));
                         }
                         mDisplay.setFont(u8g2_font_5x8_tr);
-                        if ( !(mExtra%10) && ip ) {
-                            mDisplay.setCursor(5,63);
+                        mDisplay.setCursor(5+ex,63);
+                        if ( !(mExtra%10) && ip )
                             mDisplay.print(ip.toString());
-                        }
-                        else {
-                            mDisplay.setCursor(5,63);
+                        else
                             mDisplay.print(timeStr);
-                        }
                     #endif
                     mDisplay.sendBuffer();
                 } while( mDisplay.nextPage() );
-                delay(500);
+                delay(200);
                 mExtra++;
         }
 
@@ -301,9 +299,9 @@ class MonochromeDisplay {
         #ifdef ENA_NOKIA
             U8G2_PCD8544_84X48_1_4W_HW_SPI mDisplay;
         #elif defined(ENA_SSD1306)
-            U8G2_SSD1306_128X64_NONAME_1_HW_I2C mDisplay;
+            U8G2_SSD1306_128X64_NONAME_F_HW_I2C mDisplay;
         #elif defined(ENA_SH1106)
-            U8G2_SH1106_128X64_NONAME_1_HW_I2C mDisplay;
+            U8G2_SH1106_128X64_NONAME_F_HW_I2C mDisplay;
         #endif
         int mExtra;
         bool mNewPayload;
