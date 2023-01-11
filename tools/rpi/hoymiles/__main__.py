@@ -187,14 +187,16 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                         command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
-                    mqtt_send_status(mqtt_client, inverter_ser, data,
-                            topic=inverter.get('mqtt', {}).get('topic', None))
+                    # mqtt_send_status(mqtt_client, inverter_ser, data, topic=inverter.get('mqtt', {}).get('topic', None))
+                    mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
+                    
                 if influx_client:
                     influx_client.store_status(result)
 
                 if volkszaehler_client:
                     volkszaehler_client.store_status(result)
 
+"""
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
     Publish StatusResponse object
@@ -238,6 +240,7 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     broker.publish(f'{topic}/temperature', data['temperature'])
     if data['energy_total'] is not None:
         broker.publish(f'{topic}/total', data['energy_total']/1000)
+"""
 
 def mqtt_on_command(client, userdata, message):
     """
