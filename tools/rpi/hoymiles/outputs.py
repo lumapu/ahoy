@@ -101,18 +101,20 @@ class InfluxOutputPlugin(OutputPluginFactory):
         # AC Data
         phase_id = 0
         for phase in data['phases']:
-            data_stack.append(f'{measurement},phase={phase_id},type=power value={phase["power"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=voltage value={phase["voltage"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=current value={phase["current"]} {ctime}')
+            data_stack.append(f'{measurement},phase={phase_id},type=power value={phase["power"]} {ctime}')
+            data_stack.append(f'{measurement},phase={phase_id},type=Q_AC value={phase["reactive_power"]} {ctime}')
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            data_stack.append(f'{measurement},string={string_id},type=total value={string["energy_total"]/1000:.4f} {ctime}')
-            data_stack.append(f'{measurement},string={string_id},type=power value={string["power"]:.2f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=voltage value={string["voltage"]:.3f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=current value={string["current"]:3f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=power value={string["power"]:.2f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=YieldDay value={string["energy_daily"]:.2f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=YieldTotal value={string["energy_total"]/1000:.4f} {ctime}')
             string_id = string_id + 1
         # Global
         if data['event_count'] is not None:
@@ -241,19 +243,20 @@ class VzInverterOutput:
         # AC Data
         phase_id = 0
         for phase in data['phases']:
-            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
             self.try_publish(ts, f'ac_voltage{phase_id}', phase['voltage'])
             self.try_publish(ts, f'ac_current{phase_id}', phase['current'])
+            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
+            self.try_publish(ts, f'ac_Q{phase_id}', phase['reactive_power'])
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            self.try_publish(ts, f'dc_power{string_id}', string['power'])
             self.try_publish(ts, f'dc_voltage{string_id}', string['voltage'])
             self.try_publish(ts, f'dc_current{string_id}', string['current'])
-            self.try_publish(ts, f'dc_total{string_id}', string['energy_total'])
-            self.try_publish(ts, f'dc_daily{string_id}', string['energy_daily'])
+            self.try_publish(ts, f'dc_power{string_id}', string['power'])
+            self.try_publish(ts, f'dc_YieldDay{string_id}', string['energy_daily'])
+            self.try_publish(ts, f'dc_YieldTotal{string_id}', string['energy_total'])
             string_id = string_id + 1
         # Global
         if data['powerfactor'] is not None:
