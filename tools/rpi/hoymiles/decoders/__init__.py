@@ -333,7 +333,11 @@ class HardwareInfoResponse(UnknownResponse):
             { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
             { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
             { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
-            { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
+            { FLD_unknown,              UNIT_NONE,   CH0,  6, 2, 1 },
+            { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 },
+            { FLD_unknown,              UNIT_NONE,   CH0, 10, 2, 1 },
+            { FLD_unknown,              UNIT_NONE,   CH0, 12, 2, 1 },
+            { FLD_CRC-M,                UNIT_NONE,   CH0, 14, 2, 1 }
         };
         self.response = bytes('\x27\x1a\x07\xe5\x04\x4d\x03\x4a\x00\x68\x00\x00\x00\x00\xe6\xfb', 'latin1')
         """
@@ -345,6 +349,8 @@ class HardwareInfoResponse(UnknownResponse):
         fw_build_mm = int(fw_build_mmdd / 100)
         fw_build_dd = int(fw_build_mmdd % 100)
         logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
+        responce_info = self.response
+        logging.debug(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
 
 class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
