@@ -168,18 +168,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 data = result.__dict__()
 
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    dbg = f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}'
-                    if data['powerfactor'] is not None:
-                        dbg += f', pf={data["powerfactor"]}'
-                    phase_id = 0
-                    for phase in data['phases']:
-                        dbg += f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}'
-                        phase_id = phase_id + 1
-                    string_id = 0
-                    for string in data['strings']:
-                        dbg += f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}'
-                        string_id = string_id + 1
-                    logging.debug(dbg)
+                    logging.debug(f'{c_datetime} Decoded: {result.__dict__()}')
 
                 if 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
