@@ -118,6 +118,8 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
     :type retries: int
     """
     inverter_ser = inverter.get('serial')
+    inverter_name = inverter.get('name')
+    inverter_strings = inverter.get('strings')
 
     # Queue at least status data request
     inv_str = str(inverter_ser)
@@ -161,7 +163,10 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
-                    inverter_ser=inverter_ser
+                    inverter_ser=inverter_ser,
+                    inverter_name=inverter_name,
+                    dtu_ser=dtu_ser,
+                    strings=inverter_strings
                     )
             result = decoder.decode()
             if isinstance(result, hoymiles.decoders.StatusResponse):
