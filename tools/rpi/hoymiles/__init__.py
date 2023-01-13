@@ -144,6 +144,9 @@ class ResponseDecoder(ResponseDecoderFactory):
     def __init__(self, response, **params):
         """Initialize ResponseDecoder"""
         ResponseDecoderFactory.__init__(self, response, **params)
+        self.inv_name=params.get('inverter_name', None)
+        self.dtu_ser=params.get('dtu_ser', None)
+        self.strings=params.get('strings', None)
 
     def decode(self):
         """
@@ -164,7 +167,10 @@ class ResponseDecoder(ResponseDecoderFactory):
 
         return device(self.response,
                 time_rx=self.time_rx,
-                inverter_ser=self.inverter_ser
+                inverter_ser=self.inverter_ser,
+                inverter_name=self.inv_name,
+                dtu_ser=self.dtu_ser,
+                strings=self.strings
                 )
 
 class InverterPacketFragment:
