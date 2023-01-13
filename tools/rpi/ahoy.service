@@ -1,0 +1,34 @@
+######################################################################
+# systemd.service configuration for ahoy (lumapu)
+# users can modify the lines:
+#  - Description
+#  - ExecStart (for example: name of config file)
+#  - WorkingDirectory
+# To change other configs, please consult systemd documentation
+#
+# to activate this service, create a link like:
+# $ mkdir -p $HOME/.config/systemd/user && ln -sf $(pwd)/ahoy/tools/rpi/ahoy.service -t $HOME/.config/systemd/user
+# $ systemctl --user status ahoy
+# $ systemctl --user enable ahoy
+# $ systemctl --user start ahoy
+#
+# 2023.01 <PaeserBastelstube>
+######################################################################
+
+[Unit]
+
+Description=ahoy (lumapu) as Service
+After=network.target local-fs.target time-sync.target
+
+[Service]
+ExecStart=/usr/bin/env python3 -um hoymiles --log-transactions --verbose  --config ahoy.yml
+RestartSec=10
+Restart=on-failure
+Type=simple
+
+# WorkingDirectory must be an absolute path - not relative path
+WorkingDirectory=/home/pi/ahoy/tools/rpi
+EnvironmentFile=/etc/environment
+
+[Install]
+WantedBy=default.target
