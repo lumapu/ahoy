@@ -137,7 +137,7 @@ class MqttOutputPlugin(OutputPluginFactory):
     """ Mqtt output plugin """
     client = None
 
-    def __init__(self, *args, **params):
+    def __init__(self, config, **params):
         """
         Initialize MqttOutputPlugin
 
@@ -158,11 +158,14 @@ class MqttOutputPlugin(OutputPluginFactory):
         :param topic: custom mqtt topic prefix (default: hoymiles/{inverter_ser})
         :type topic: str
         """
-        super().__init__(*args, **params)
+        super().__init__(**params)
 
         mqtt_client = paho.mqtt.client.Client()
-        mqtt_client.username_pw_set(params.get('user', None), params.get('password', None))
-        mqtt_client.connect(params.get('host', '127.0.0.1'), params.get('port', 1883))
+        if config.get('useTLS',False):
+           mqtt_client.tls_set()
+           mqtt_client.tls_insecure_set(config.get('insecureTLS',False))
+        mqtt_client.username_pw_set(config.get('user', None), config.get('password', None))
+        mqtt_client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
         mqtt_client.loop_start()
 
         self.client = mqtt_client
@@ -182,8 +185,11 @@ class MqttOutputPlugin(OutputPluginFactory):
             raise ValueError('Data needs to be instance of StatusResponse')
 
         data = response.__dict__()
+        topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
 
-        topic = params.get('topic', f'hoymiles/{data["inverter_ser"]}')
+        # Global Head
+        if data['time'] is not None:
+           self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
 
         # AC Data
         phase_id = 0
@@ -191,16 +197,18 @@ class MqttOutputPlugin(OutputPluginFactory):
             self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
             self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
             self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+            self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
             self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
             self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
+            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
             string_id = string_id + 1
+
         # Global
         if data['powerfactor'] is not None:
             self.client.publish(f'{topic}/pf', data['powerfactor'])
