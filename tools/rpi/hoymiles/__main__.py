@@ -185,7 +185,6 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 if volkszaehler_client:
                     volkszaehler_client.store_status(result)
 
-"""
 def mqtt_send_status(broker, inverter_ser, data, topic=None):
     """
     Publish StatusResponse object
@@ -229,7 +228,6 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     broker.publish(f'{topic}/temperature', data['temperature'])
     if data['energy_total'] is not None:
         broker.publish(f'{topic}/total', data['energy_total']/1000)
-"""
 
 def mqtt_on_command(client, userdata, message):
     """
@@ -326,8 +324,6 @@ if __name__ == '__main__':
     for radio_config in ahoy_config.get('nrf', [{}]):
         hmradio = hoymiles.HoymilesNRF(**radio_config)
 
-    mqtt_client = None
-
     event_message_index = {}
     command_queue = {}
     mqtt_command_topic_subs = []
@@ -337,18 +333,11 @@ if __name__ == '__main__':
     if global_config.verbose:
         hoymiles.HOYMILES_DEBUG_LOGGING=True
 
+    mqtt_client = None
     mqtt_config = ahoy_config.get('mqtt', {})
     if mqtt_config and not mqtt_config.get('disabled', False):
-        mqtt_client = paho.mqtt.client.Client()
-        
-        if mqtt_config.get('useTLS',False):
-            mqtt_client.tls_set()
-            mqtt_client.tls_insecure_set(mqtt_config.get('insecureTLS',False))
-
-        mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
-        mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
-        mqtt_client.loop_start()
-        mqtt_client.on_message = mqtt_on_command
+       from .outputs import MqttOutputPlugin
+       mqtt_client = MqttOutputPlugin(mqtt_config)
 
     influx_client = None
     influx_config = ahoy_config.get('influxdb', {})
