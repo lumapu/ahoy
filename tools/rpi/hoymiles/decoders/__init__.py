@@ -74,8 +74,10 @@ class Response:
         self.inverter_ser = params.get('inverter_ser', None)
         self.inverter_name = params.get('inverter_name', None)
         self.dtu_ser = params.get('dtu_ser', None)
-
         self.response = args[0]
+
+        strings = params.get('strings', None)
+        self.inv_strings = strings
 
         if isinstance(params.get('time_rx', None), datetime):
             self.time_rx = params['time_rx']
@@ -91,7 +93,7 @@ class Response:
 
 class StatusResponse(Response):
     """Inverter StatusResponse object"""
-    e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor', 'reactive_power']
+    e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor', 'reactive_power', 'irradiation']
     temperature = None
     frequency = None
     powerfactor = None
@@ -333,7 +335,7 @@ class HardwareInfoResponse(UnknownResponse):
             { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
             { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
             { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
-            { FLD_unknown,              UNIT_NONE,   CH0,  6, 2, 1 },
+            { FLD_FW_Build_Hour_Minute, UNIT_NONE,   CH0,  6, 2, 1 },
             { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 },
             { FLD_unknown,              UNIT_NONE,   CH0, 10, 2, 1 },
             { FLD_unknown,              UNIT_NONE,   CH0, 12, 2, 1 },
@@ -341,16 +343,21 @@ class HardwareInfoResponse(UnknownResponse):
         };
         self.response = bytes('\x27\x1a\x07\xe5\x04\x4d\x03\x4a\x00\x68\x00\x00\x00\x00\xe6\xfb', 'latin1')
         """
-        fw_version, fw_build_yyyy, fw_build_mmdd, unknown, hw_id = struct.unpack('>HHHHH', self.response[0:10])
+        fw_version, fw_build_yyyy, fw_build_mmdd, fw_build_hhmm, hw_id = struct.unpack('>HHHHH', self.response[0:10])
+
+        responce_info = self.response
+        logging.debug(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
 
         fw_version_maj = int((fw_version / 10000))
         fw_version_min = int((fw_version % 10000) / 100)
         fw_version_pat = int((fw_version %   100))
         fw_build_mm = int(fw_build_mmdd / 100)
         fw_build_dd = int(fw_build_mmdd % 100)
-        logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} build at {fw_build_dd}/{fw_build_mm}/{fw_build_yyyy}, HW revision {hw_id}')
-        responce_info = self.response
-        logging.debug(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+        fw_build_HH = int(fw_build_hhmm / 100)
+        fw_build_MM = int(fw_build_hhmm % 100)
+        logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} '\
+                      f'build at {fw_build_dd:>02}/{fw_build_mm:>02}/{fw_build_yyyy}T{fw_build_HH:>02}:{fw_build_MM:>02}, '\
+                      f'HW revision {hw_id}')
 
 class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
@@ -426,6 +433,12 @@ class Hm300Decode0B(StatusResponse):
     def dc_energy_daily_0(self):
         """ String 1 daily energy in Wh """
         return self.unpack('>H', 12)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 1 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
     def ac_voltage_0(self):
@@ -492,6 +505,12 @@ class Hm600Decode0B(StatusResponse):
     def dc_energy_daily_0(self):
         """ String 1 daily energy in Wh """
         return self.unpack('>H', 22)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 1 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
     def dc_voltage_1(self):
@@ -513,6 +532,12 @@ class Hm600Decode0B(StatusResponse):
     def dc_energy_daily_1(self):
         """ String 2 daily energy in Wh """
         return self.unpack('>H', 24)[0]
+    @property
+    def dc_irradiation_1(self):
+        """ String 2 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 12)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
     def ac_voltage_0(self):
@@ -587,6 +612,12 @@ class Hm1200Decode0B(StatusResponse):
     def dc_energy_daily_0(self):
         """ String 1 daily energy in Wh """
         return self.unpack('>H', 20)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 1 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 8)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
     def dc_voltage_1(self):
@@ -608,6 +639,12 @@ class Hm1200Decode0B(StatusResponse):
     def dc_energy_daily_1(self):
         """ String 2 daily energy in Wh """
         return self.unpack('>H', 22)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 2 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 10)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
     def dc_voltage_2(self):
@@ -629,6 +666,12 @@ class Hm1200Decode0B(StatusResponse):
     def dc_energy_daily_2(self):
         """ String 3 daily energy in Wh """
         return self.unpack('>H', 42)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 3 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 30)[0]/10/self.inv_strings[2]['s_maxpower']*100, 3)
 
     @property
     def dc_voltage_3(self):
@@ -650,6 +693,12 @@ class Hm1200Decode0B(StatusResponse):
     def dc_energy_daily_3(self):
         """ String 4 daily energy in Wh """
         return self.unpack('>H', 44)[0]
+    @property
+    def dc_irradiation_0(self):
+        """ String 4 irratiation in percent """
+        if self.inv_strings is None:
+          return None
+        return round(self.unpack('>H', 32)[0]/10/self.inv_strings[3]['s_maxpower']*100, 3)
 
     @property
     def ac_voltage_0(self):
