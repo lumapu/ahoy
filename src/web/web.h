@@ -494,6 +494,7 @@ class Web {
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
+            mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // serial console
             if(request->arg("serIntvl") != "") {

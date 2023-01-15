@@ -51,7 +51,7 @@ void app::setup() {
     #endif
 
     mSys->addInverters(&mConfig->inst);
-    mPayload.setup(mSys);
+    mPayload.setup(this, mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 
     if(!mSys->Radio.isChipConnected())
@@ -74,7 +74,7 @@ void app::setup() {
     mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
-    #if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+    #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
     mMonoDisplay.setup(mSys, &mTimestamp);
     everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
@@ -90,6 +90,7 @@ void app::loop(void) {
 
     ah::Scheduler::loop();
     mSys->Radio.loop();
+    mPayload.loop();
 
     yield();
 
@@ -115,7 +116,7 @@ void app::loop(void) {
         yield();
 
         if (rxRdy)
-            mPayload.process(true, mConfig->nrf.maxRetransPerPyld, &mStat);
+            mPayload.process(true);
     }
 
 #if !defined(AP_ONLY)
@@ -138,14 +139,18 @@ void app::tickNtpUpdate(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
-    ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
+    if (mSunrise == 0)                                          // on boot/reboot calc sun values for current time
+        ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
+
+    if (mTimestamp > (mSunset + mConfig->sun.offsetSec))        // current time is past communication stop, calc sun values for next day
+        ah::calculateSunriseSunset(mTimestamp + 86400, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
+
     tickIVCommunication();
 
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp + mCalculatedTimezoneOffset - 10) % 86400) + 86400;; // next midnight, -10 for safety that it is certain next day, local timezone
+    uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
-    if (mConfig->mqtt.broker[0] > 0) {
+    if (mConfig->mqtt.broker[0] > 0)
         mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom);
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -157,14 +162,17 @@ void app::tickIVCommunication(void) {
             nxtTrig = mSunrise - mConfig->sun.offsetSec;
         } else {
             if (mTimestamp > (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
-                return;
+                nxtTrig = 0;
             } else { // current time lies within communication start/stop time, set next trigger to communication stop
                 mIVCommunicationOn = true;
                 nxtTrig = mSunset + mConfig->sun.offsetSec;
             }
         }
-        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
+        if (nxtTrig != 0)
+            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
+    if (mConfig->mqtt.broker[0] > 0)
+        mMqtt.tickerComm(!mIVCommunicationOn);
 }
 
 //-----------------------------------------------------------------------------
@@ -187,49 +195,8 @@ void app::tickSend(void) {
         } while ((NULL == iv) && ((maxLoop--) > 0));
 
         if (NULL != iv) {
-            if(iv->config->enabled) {
-                if (!mPayload.isComplete(iv))
-                    mPayload.process(false, mConfig->nrf.maxRetransPerPyld, &mStat);
-
-                if (!mPayload.isComplete(iv)) {
-                    if (0 == mPayload.getMaxPacketId(iv))
-                        mStat.rxFailNoAnser++;
-                    else
-                        mStat.rxFail++;
-
-                    iv->setQueuedCmdFinished();  // command failed
-                    if (mConfig->serial.debug)
-                        DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                    if (mConfig->serial.debug) {
-                        DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
-                        DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload.getRetransmits(iv)) + ")");
-                    }
-                }
-
-                mPayload.reset(iv, mTimestamp);
-                mPayload.request(iv);
-
-                yield();
-                if (mConfig->serial.debug) {
-                    DPRINTLN(DBG_DEBUG, F("app:loop WiFi WiFi.status ") + String(WiFi.status()));
-                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
-                }
-
-                if (iv->devControlRequest) {
-                    if (mConfig->serial.debug)
-                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request ") + String(iv->devControlCmd) + F(" power limit ") + String(iv->powerLimit[0]));
-                    mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
-                    mPayload.setTxCmd(iv, iv->devControlCmd);
-                    iv->clearCmdQueue();
-                    iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
-                } else {
-                    uint8_t cmd = iv->getQueuedCmd();
-                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
-                    mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload.getTs(iv), iv->alarmMesIndex);
-                    mPayload.setTxCmd(iv, cmd);
-                    mRxTicker = 0;
-                }
-            }
+            if(iv->config->enabled)
+                mPayload.ivSend(iv);
         }
     } else {
         if (mConfig->serial.debug)

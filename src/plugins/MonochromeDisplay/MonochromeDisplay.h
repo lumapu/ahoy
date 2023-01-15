@@ -1,15 +1,19 @@
 #ifndef __MONOCHROME_DISPLAY__
 #define __MONOCHROME_DISPLAY__
 
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306)
+#if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
 #ifdef ENA_NOKIA
     #include <U8g2lib.h>
     #define DISP_PROGMEM U8X8_PROGMEM
-#else // ENA_SSD1306
+#else // ENA_SSD1306 || ENA_SH1106
     /* esp8266 : SCL = 5, SDA = 4 */
     /* ewsp32  : SCL = 22, SDA = 21 */
     #include <Wire.h>
-    #include <SSD1306Wire.h>
+    #ifdef ENA_SSD1306
+        #include <SSD1306Wire.h>
+    # else //ENA_SH1106
+        #include <SH1106Wire.h>
+    #endif
     #define DISP_PROGMEM PROGMEM
 #endif
 
@@ -34,7 +38,7 @@ class MonochromeDisplay {
             mNewPayload = false;
             mExtra      = 0;
         }
-        #else // ENA_SSD1306
+        #else // ENA_SSD1306 || ENA_SH1106
         MonochromeDisplay() : mDisplay(0x3c, SDA, SCL), mCE(CEST, CET) {
             mNewPayload = false;
             mExtra      = 0;
@@ -215,7 +219,7 @@ class MonochromeDisplay {
                     mDisplay.sendBuffer();
                 } while( mDisplay.nextPage() );
                 mExtra++;
-        #else // ENA_SSD1306
+        #else // ENA_SSD1306 || ENA_SH1106
             if(mUp) {
                 mRx += 2;
                 if(mRx >= 20)
@@ -289,7 +293,11 @@ class MonochromeDisplay {
         #if defined(ENA_NOKIA)
             U8G2_PCD8544_84X48_1_4W_HW_SPI mDisplay;
         #else // ENA_SSD1306
-            SSD1306Wire mDisplay;
+            #ifdef ENA_SSD1306
+                SSD1306Wire mDisplay;
+            # else //ENA_SH1106
+                SH1106Wire mDisplay;
+            #endif
             int mRx;
             char mUp;
         #endif

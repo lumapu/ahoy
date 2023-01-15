@@ -41,11 +41,13 @@ class PubMqtt {
         ~PubMqtt() { }
 
         void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
-            mCfgMqtt        = cfg_mqtt;
-            mDevName        = devName;
-            mVersion        = version;
-            mSys            = sys;
-            mUtcTimestamp   = utcTs;
+            mCfgMqtt         = cfg_mqtt;
+            mDevName         = devName;
+            mVersion         = version;
+            mSys             = sys;
+            mUtcTimestamp    = utcTs;
+            mExeOnce         = true;
+            mIntervalTimeout = 1;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
@@ -73,7 +75,16 @@ class PubMqtt {
         }
 
         void tickerSecond() {
-            sendIvData();
+            if(0 == mCfgMqtt->interval) // no fixed interval, publish once new data were received (from inverter)
+                sendIvData();
+            else { // send mqtt data in a fixed interval
+                if(--mIntervalTimeout == 0) {
+                    mIntervalTimeout = mCfgMqtt->interval;
+                    mSendList.push(RealTimeRunData_Debug);
+                    sendIvData();
+                }
+            }
+
         }
 
         void tickerMinute() {
@@ -98,9 +109,16 @@ class PubMqtt {
             publish("dis_night_comm", ((disNightCom) ? "true" : "false"), true);
         }
 
+        void tickerComm(bool disabled) {
+            publish("comm_disabled", ((disabled) ? "true" : "false"), true);
+            publish("comm_dis_ts", String(*mUtcTimestamp).c_str(), true);
+        }
+
         void payloadEventListener(uint8_t cmd) {
-            if(mClient.connected()) // prevent overflow if MQTT broker is not reachable but set
-                mSendList.push(cmd);
+            if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
+                if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
+                    mSendList.push(cmd);
+            }
         }
 
         void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true) {
@@ -188,6 +206,15 @@ class PubMqtt {
             }
         }
 
+        void setPowerLimitAck(Inverter<> *iv) {
+            if (NULL != iv) {
+                char topic[7 + MQTT_TOPIC_LEN];
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ack_pwr_limit", iv->config->name);
+                publish(topic, "true", true);
+            }
+        }
+
     private:
         #if defined(ESP8266)
         void onWifiConnect(const WiFiEventStationModeGotIP& event) {
@@ -223,8 +250,12 @@ class PubMqtt {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
             mEnReconnect = true;
 
-            publish("version", mVersion, true);
-            publish("device", mDevName, true);
+            if(mExeOnce) {
+                publish("version", mVersion, true);
+                publish("device", mDevName, true);
+                publish("ip_addr", WiFi.localIP().toString().c_str(), true);
+                mExeOnce = false;
+            }
             tickerMinute();
             publish(mLwtTopic, mLwtOnline, true, false);
 
@@ -494,6 +525,8 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
         bool mIvAvail; // shows if at least one inverter is available
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
+        bool mExeOnce;
+        uint16_t mIntervalTimeout;
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
