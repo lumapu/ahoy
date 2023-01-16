@@ -6,6 +6,7 @@
 * improved wifi handling and tickers, many thanks to @beegee3 #571
 * fixed YieldTotal correction calculation #589
 * fixed serial output of power limit acknowledge #569
+* reviewed `sendDiscoveryConfig` #565
 
 ## 0.5.70
 * corrected MQTT `comm_disabled` #529

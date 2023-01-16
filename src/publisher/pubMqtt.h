@@ -182,50 +182,51 @@ class PubMqtt {
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
-            char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
+            char topic[64], buffer[512], name[32], uniq_id[32];
+            DynamicJsonDocument doc(512);
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
-                if (NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    DynamicJsonDocument deviceDoc(128);
-                    deviceDoc[F("name")] = iv->config->name;
-                    deviceDoc[F("ids")] = String(iv->config->serial.u64, HEX);
-                    deviceDoc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
-                    deviceDoc[F("mf")] = F("Hoymiles");
-                    deviceDoc[F("mdl")] = iv->config->name;
-                    JsonObject deviceObj = deviceDoc.as<JsonObject>();
-                    DynamicJsonDocument doc(384);
+                if (NULL == iv)
+                    continue;
 
-                    for (uint8_t i = 0; i < rec->length; i++) {
-                        if (rec->assign[i].ch == CH0) {
-                            snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
-                        } else {
-                            snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                        }
-                        snprintf(stateTopic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                        const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                        const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                doc.clear();
+                doc[F("name")] = iv->config->name;
+                doc[F("ids")] = String(iv->config->serial.u64, HEX);
+                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+                doc[F("mf")] = F("Hoymiles");
+                doc[F("mdl")] = iv->config->name;
+                JsonObject deviceObj = doc.as<JsonObject>();
 
-                        doc[F("name")] = name;
-                        doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(stateTopic);
-                        doc[F("unit_of_meas")] = iv->getUnit(i, rec);
-                        doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
-                        doc[F("dev")] = deviceObj;
-                        doc[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                        if (devCls != NULL)
-                            doc[F("dev_cla")] = devCls;
-                        if (stateCls != NULL)
-                            doc[F("stat_cla")] = stateCls;
+                for (uint8_t i = 0; i < rec->length; i++) {
+                    if (rec->assign[i].ch == CH0)
+                        snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
+                    else
+                        snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    snprintf(topic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
+                    snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
 
-                        serializeJson(doc, buffer);
-                        publish(discoveryTopic, buffer, true, false);
-                        doc.clear();
-                    }
+                    const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
+                    const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
-                    yield();
+                    doc.clear();
+                    doc[F("name")] = name;
+                    doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
+                    doc[F("unit_of_meas")] = iv->getUnit(i, rec);
+                    doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
+                    doc[F("dev")] = deviceObj;
+                    doc[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                    if (devCls != NULL)
+                        doc[F("dev_cla")] = String(devCls);
+                    if (stateCls != NULL)
+                        doc[F("stat_cla")] = String(stateCls);
+
+                    snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    serializeJson(doc, buffer);
+                    publish(topic, buffer, true, false);
                 }
+
+                yield();
             }
         }
 
