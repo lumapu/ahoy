@@ -101,26 +101,32 @@ class InfluxOutputPlugin(OutputPluginFactory):
         # AC Data
         phase_id = 0
         for phase in data['phases']:
-            data_stack.append(f'{measurement},phase={phase_id},type=power value={phase["power"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=voltage value={phase["voltage"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=current value={phase["current"]} {ctime}')
+            data_stack.append(f'{measurement},phase={phase_id},type=power value={phase["power"]} {ctime}')
+            data_stack.append(f'{measurement},phase={phase_id},type=Q_AC value={phase["reactive_power"]} {ctime}')
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            data_stack.append(f'{measurement},string={string_id},type=total value={string["energy_total"]/1000:.4f} {ctime}')
-            data_stack.append(f'{measurement},string={string_id},type=power value={string["power"]:.2f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=voltage value={string["voltage"]:.3f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=current value={string["current"]:3f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=power value={string["power"]:.2f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=YieldDay value={string["energy_daily"]:.2f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=YieldTotal value={string["energy_total"]/1000:.4f} {ctime}')
+            if 'irradiation' in string:
+              data_stack.append(f'{measurement},string={string_id},type=Irradiation value={string["irradiation"]:.2f} {ctime}')
             string_id = string_id + 1
+
         # Global
         if data['event_count'] is not None:
             data_stack.append(f'{measurement},type=total_events value={data["event_count"]} {ctime}')
         if data['powerfactor'] is not None:
             data_stack.append(f'{measurement},type=pf value={data["powerfactor"]:f} {ctime}')
         data_stack.append(f'{measurement},type=frequency value={data["frequency"]:.3f} {ctime}')
-        data_stack.append(f'{measurement},type=temperature value={data["temperature"]:.2f} {ctime}')
+
+        data_stack.append(f'{measurement},type=Temp value={data["temperature"]:.2f} {ctime}')
         if data['energy_total'] is not None:
             data_stack.append(f'{measurement},type=total value={data["energy_total"]/1000:.3f} {ctime}')
 
@@ -135,7 +141,7 @@ class MqttOutputPlugin(OutputPluginFactory):
     """ Mqtt output plugin """
     client = None
 
-    def __init__(self, *args, **params):
+    def __init__(self, config, **params):
         """
         Initialize MqttOutputPlugin
 
@@ -156,11 +162,14 @@ class MqttOutputPlugin(OutputPluginFactory):
         :param topic: custom mqtt topic prefix (default: hoymiles/{inverter_ser})
         :type topic: str
         """
-        super().__init__(*args, **params)
+        super().__init__(**params)
 
         mqtt_client = paho.mqtt.client.Client()
-        mqtt_client.username_pw_set(params.get('user', None), params.get('password', None))
-        mqtt_client.connect(params.get('host', '127.0.0.1'), params.get('port', 1883))
+        if config.get('useTLS',False):
+           mqtt_client.tls_set()
+           mqtt_client.tls_insecure_set(config.get('insecureTLS',False))
+        mqtt_client.username_pw_set(config.get('user', None), config.get('password', None))
+        mqtt_client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
         mqtt_client.loop_start()
 
         self.client = mqtt_client
@@ -180,8 +189,11 @@ class MqttOutputPlugin(OutputPluginFactory):
             raise ValueError('Data needs to be instance of StatusResponse')
 
         data = response.__dict__()
+        topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
 
-        topic = params.get('topic', f'hoymiles/{data["inverter_ser"]}')
+        # Global Head
+        if data['time'] is not None:
+           self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
 
         # AC Data
         phase_id = 0
@@ -189,21 +201,27 @@ class MqttOutputPlugin(OutputPluginFactory):
             self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
             self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
             self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+            self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
             self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
             self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+            self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
+            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
+            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
+            if 'irradiation' in string:
+              self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
             string_id = string_id + 1
+
         # Global
         if data['powerfactor'] is not None:
             self.client.publish(f'{topic}/pf', data['powerfactor'])
         self.client.publish(f'{topic}/frequency', data['frequency'])
-        self.client.publish(f'{topic}/temperature', data['temperature'])
+
+        self.client.publish(f'{topic}/Temp', data['temperature'])
         if data['energy_total'] is not None:
             self.client.publish(f'{topic}/total', data['energy_total']/1000)
 
@@ -241,26 +259,30 @@ class VzInverterOutput:
         # AC Data
         phase_id = 0
         for phase in data['phases']:
-            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
             self.try_publish(ts, f'ac_voltage{phase_id}', phase['voltage'])
             self.try_publish(ts, f'ac_current{phase_id}', phase['current'])
+            self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
+            self.try_publish(ts, f'ac_Q{phase_id}', phase['reactive_power'])
             phase_id = phase_id + 1
 
         # DC Data
         string_id = 0
         for string in data['strings']:
-            self.try_publish(ts, f'dc_power{string_id}', string['power'])
             self.try_publish(ts, f'dc_voltage{string_id}', string['voltage'])
             self.try_publish(ts, f'dc_current{string_id}', string['current'])
-            self.try_publish(ts, f'dc_total{string_id}', string['energy_total'])
-            self.try_publish(ts, f'dc_daily{string_id}', string['energy_daily'])
+            self.try_publish(ts, f'dc_power{string_id}', string['power'])
+            self.try_publish(ts, f'dc_YieldDay{string_id}', string['energy_daily'])
+            self.try_publish(ts, f'dc_YieldTotal{string_id}', string['energy_total'])
+            if 'irradiation' in string:
+              self.try_publish(ts, f'dc_Irradiation{string_id}', string['irradiation'])
             string_id = string_id + 1
+
         # Global
         if data['powerfactor'] is not None:
             self.try_publish(ts, f'powerfactor', data['powerfactor'])
         self.try_publish(ts, f'frequency', data['frequency'])
-        self.try_publish(ts, f'temperature', data['temperature'])
 
+        self.try_publish(ts, f'Temp', data['temperature'])
         if data['energy_total'] is not None:
             self.try_publish(ts, f'total', data['energy_total'])
 

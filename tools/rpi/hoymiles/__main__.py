@@ -118,6 +118,8 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
     :type retries: int
     """
     inverter_ser = inverter.get('serial')
+    inverter_name = inverter.get('name')
+    inverter_strings = inverter.get('strings')
 
     # Queue at least status data request
     inv_str = str(inverter_ser)
@@ -161,25 +163,17 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                 logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
-                    inverter_ser=inverter_ser
+                    inverter_ser=inverter_ser,
+                    inverter_name=inverter_name,
+                    dtu_ser=dtu_ser,
+                    strings=inverter_strings
                     )
             result = decoder.decode()
             if isinstance(result, hoymiles.decoders.StatusResponse):
                 data = result.__dict__()
 
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    dbg = f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}'
-                    if data['powerfactor'] is not None:
-                        dbg += f', pf={data["powerfactor"]}'
-                    phase_id = 0
-                    for phase in data['phases']:
-                        dbg += f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}'
-                        phase_id = phase_id + 1
-                    string_id = 0
-                    for string in data['strings']:
-                        dbg += f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}'
-                        string_id = string_id + 1
-                    logging.debug(dbg)
+                    logging.debug(f'{c_datetime} Decoded: {result.__dict__()}')
 
                 if 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
@@ -187,8 +181,9 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                         command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
-                    mqtt_send_status(mqtt_client, inverter_ser, data,
-                            topic=inverter.get('mqtt', {}).get('topic', None))
+                    # mqtt_send_status(mqtt_client, inverter_ser, data, topic=inverter.get('mqtt', {}).get('topic', None))
+                    mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
+                    
                 if influx_client:
                     influx_client.store_status(result)
 
@@ -209,21 +204,27 @@ def mqtt_send_status(broker, inverter_ser, data, topic=None):
     if not topic:
         topic = f'hoymiles/{inverter_ser}'
 
+    # Global Head
+    if data['time'] is not None:
+        broker.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
+    
     # AC Data
     phase_id = 0
     for phase in data['phases']:
         broker.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
         broker.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
         broker.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+        broker.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
         phase_id = phase_id + 1
 
     # DC Data
     string_id = 0
     for string in data['strings']:
-        broker.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
-        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
         broker.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
         broker.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
+        broker.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
         string_id = string_id + 1
     # Global
     if data['powerfactor'] is not None:
@@ -328,8 +329,6 @@ if __name__ == '__main__':
     for radio_config in ahoy_config.get('nrf', [{}]):
         hmradio = hoymiles.HoymilesNRF(**radio_config)
 
-    mqtt_client = None
-
     event_message_index = {}
     command_queue = {}
     mqtt_command_topic_subs = []
@@ -339,18 +338,11 @@ if __name__ == '__main__':
     if global_config.verbose:
         hoymiles.HOYMILES_DEBUG_LOGGING=True
 
-    mqtt_config = ahoy_config.get('mqtt', [])
-    if not mqtt_config.get('disabled', False):
-        mqtt_client = paho.mqtt.client.Client()
-        
-        if mqtt_config.get('useTLS',False):
-            mqtt_client.tls_set()
-            mqtt_client.tls_insecure_set(mqtt_config.get('insecureTLS',False))
-
-        mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
-        mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
-        mqtt_client.loop_start()
-        mqtt_client.on_message = mqtt_on_command
+    mqtt_client = None
+    mqtt_config = ahoy_config.get('mqtt', {})
+    if mqtt_config and not mqtt_config.get('disabled', False):
+       from .outputs import MqttOutputPlugin
+       mqtt_client = MqttOutputPlugin(mqtt_config)
 
     influx_client = None
     influx_config = ahoy_config.get('influxdb', {})
