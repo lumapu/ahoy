@@ -343,10 +343,14 @@ class HardwareInfoResponse(UnknownResponse):
         };
         self.response = bytes('\x27\x1a\x07\xe5\x04\x4d\x03\x4a\x00\x68\x00\x00\x00\x00\xe6\xfb', 'latin1')
         """
-        fw_version, fw_build_yyyy, fw_build_mmdd, fw_build_hhmm, hw_id = struct.unpack('>HHHHH', self.response[0:10])
+
+    def __dict__(self):
+        """ Base values, availabe in each __dict__ call """
 
         responce_info = self.response
-        logging.debug(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+        logging.info(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+
+        fw_version, fw_build_yyyy, fw_build_mmdd, fw_build_hhmm, hw_id = struct.unpack('>HHHHH', self.response[0:10])
 
         fw_version_maj = int((fw_version / 10000))
         fw_version_min = int((fw_version % 10000) / 100)
@@ -355,9 +359,21 @@ class HardwareInfoResponse(UnknownResponse):
         fw_build_dd = int(fw_build_mmdd % 100)
         fw_build_HH = int(fw_build_hhmm / 100)
         fw_build_MM = int(fw_build_hhmm % 100)
-        logging.debug(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} '\
+        logging.info(f'Firmware: {fw_version_maj}.{fw_version_min}.{fw_version_pat} '\
                       f'build at {fw_build_dd:>02}/{fw_build_mm:>02}/{fw_build_yyyy}T{fw_build_HH:>02}:{fw_build_MM:>02}, '\
                       f'HW revision {hw_id}')
+
+        data = super().__dict__()
+        data['FW_ver_maj'] = fw_version_maj
+        data['FW_ver_min'] = fw_version_min
+        data['FW_ver_pat'] = fw_version_pat
+        data['FW_build_yy'] = fw_build_yyyy
+        data['FW_build_mm'] = fw_build_mm
+        data['FW_build_dd'] = fw_build_dd
+        data['FW_build_HH'] = fw_build_HH
+        data['FW_build_MM'] = fw_build_MM
+        data['FW_HW_ID'] = hw_id
+        return data
 
 class DebugDecodeAny(UnknownResponse):
     """Default decoder"""
@@ -405,10 +421,10 @@ class DebugDecodeAny(UnknownResponse):
 
 # 1121-Series Intervers, 1 MPPT, 1 Phase
 class Hm300Decode01(HardwareInfoResponse):
-    """ Firmware version / date """
+    """ 1121-series Firmware version / date """
 
 class Hm300Decode02(EventsResponse):
-    """ Inverter generic events log """
+    """ 1121-series Inverter generic events log """
 
 class Hm300Decode0B(StatusResponse):
     """ 1121-series mirco-inverters status data """
@@ -469,18 +485,18 @@ class Hm300Decode0C(Hm300Decode0B):
     """ 1121-series mirco-inverters status data """
 
 class Hm300Decode11(EventsResponse):
-    """ Inverter generic events log """
+    """ 1121-series Inverter generic events log """
 
 class Hm300Decode12(EventsResponse):
-    """ Inverter major events log """
+    """ 1121-series Inverter major events log """
 
 
 # 1141-Series Inverters, 2 MPPT, 1 Phase
 class Hm600Decode01(HardwareInfoResponse):
-    """ Firmware version / date """
+    """ 1141-Series Firmware version / date """
 
 class Hm600Decode02(EventsResponse):
-    """ Inverter generic events log """
+    """ 1141-Series Inverter generic events log """
 
 class Hm600Decode0B(StatusResponse):
     """ 1141-series mirco-inverters status data """
@@ -576,18 +592,18 @@ class Hm600Decode0C(Hm600Decode0B):
     """ 1141-series mirco-inverters status data """
 
 class Hm600Decode11(EventsResponse):
-    """ Inverter generic events log """
+    """ 1141-Series Inverter generic events log """
 
 class Hm600Decode12(EventsResponse):
-    """ Inverter major events log """
+    """ 1141-Series Inverter major events log """
 
 
 # 1161-Series Inverters, 2 MPPT, 1 Phase
 class Hm1200Decode01(HardwareInfoResponse):
-    """ Firmware version / date """
+    """ 1161-Series Firmware version / date """
 
 class Hm1200Decode02(EventsResponse):
-    """ Inverter generic events log """
+    """ 1161-Series Inverter generic events log """
 
 class Hm1200Decode0B(StatusResponse):
     """ 1161-series mirco-inverters status data """
@@ -737,7 +753,7 @@ class Hm1200Decode0C(Hm1200Decode0B):
     """ 1161-series mirco-inverters status data """
 
 class Hm1200Decode11(EventsResponse):
-    """ Inverter generic events log """
+    """ 1161-Series Inverter generic events log """
 
 class Hm1200Decode12(EventsResponse):
-    """ Inverter major events log """
+    """ 1161-Series Inverter major events log """
