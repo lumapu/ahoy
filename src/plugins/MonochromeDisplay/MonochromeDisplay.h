@@ -60,7 +60,8 @@ class MonochromeDisplay {
         }
         #endif
 
-        void setup(HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs) {
+            mCfg   = cfg;
             mSys   = sys;
             mUtcTs = utcTs;
             memset( mToday, 0, sizeof(float)*MAX_NUM_INVERTERS );
@@ -222,7 +223,7 @@ class MonochromeDisplay {
                             mDisplay.print(timeStr);
                         }
                     #else // ENA_SSD1306
-                    mDisplay.setContrast(60);
+                    mDisplay.setContrast(mCfg->contrast);
                     // pxZittern in +x (0 - 8 px)
                     int ex = 2*( mExtra % 5 );
                         mDisplay.drawXBM(100+ex,2,16,16,bmp_logo);
@@ -253,8 +254,9 @@ class MonochromeDisplay {
                             mDisplay.setFont(u8g2_font_logisoso18_tr);
                             mDisplay.setCursor(10+ex,20);
                             mDisplay.print(String(F("offline")));
-                            if ((millis() - displaySleepTimer) > displaySleepDelay) {
-                                mDisplay.setPowerSave(true);
+                            if(mCfg->pwrSaveAtIvOffline) {
+                                if ((millis() - displaySleepTimer) > displaySleepDelay)
+                                    mDisplay.setPowerSave(true);
                             }
                             //<=======================
                         }
@@ -309,6 +311,7 @@ class MonochromeDisplay {
         float mToday[ MAX_NUM_INVERTERS ];
         uint32_t *mUtcTs;
         int mLastHour;
+        display_t *mCfg;
         HMSYSTEM *mSys;
         Timezone mCE;
         bool displaySleep;

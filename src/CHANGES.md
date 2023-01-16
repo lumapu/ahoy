@@ -7,6 +7,7 @@
 * fixed YieldTotal correction calculation #589
 * fixed serial output of power limit acknowledge #569
 * reviewed `sendDiscoveryConfig` #565
+* merged PR `Monodisplay`, many thanks to @dAjaY85 #566, Note: (settings are introduced but not able to be modified, will be included in next version)
 
 ## 0.5.70
 * corrected MQTT `comm_disabled` #529

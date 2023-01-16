@@ -70,7 +70,7 @@ void app::setup() {
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-    mMonoDisplay.setup(mSys, &mTimestamp);
+    mMonoDisplay.setup(&mConfig->plugin.display, mSys, &mTimestamp);
     #endif
 
     mPubSerial.setup(mConfig, mSys, &mTimestamp);

@@ -117,6 +117,17 @@ typedef struct {
 } cfgInst_t;
 
 typedef struct {
+    bool pwrSaveAtIvOffline;
+    uint32_t wakeUp;
+    uint32_t sleepAt;
+    uint8_t contrast;
+} display_t;
+
+typedef struct {
+    display_t display;
+} plugins_t;
+
+typedef struct {
     cfgSys_t    sys;
     cfgNrf24_t  nrf;
     cfgNtp_t    ntp;
@@ -125,6 +136,7 @@ typedef struct {
     cfgMqtt_t   mqtt;
     cfgLed_t    led;
     cfgInst_t   inst;
+    plugins_t   plugin;
     bool        valid;
 } settings_t;
 
@@ -314,6 +326,9 @@ class settings {
             mCfg.led.led1 = DEF_LED1_PIN;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
+
+            mCfg.plugin.display.pwrSaveAtIvOffline = false;
+            mCfg.plugin.display.contrast = 60;
         }
 
         void jsonWifi(JsonObject obj, bool set = false) {
