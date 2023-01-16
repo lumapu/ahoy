@@ -35,19 +35,15 @@ void app::setup() {
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
     mPayload.addListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
-
-    #if !defined(AP_ONLY)
-    mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp);
+    #if defined(AP_ONLY)
+    mInnerLoopCb = std::bind(&app::loopStandard, this);
+    #else
+    mInnerLoopCb = std::bind(&app::loopWifi, this);
     #endif
 
-    mWifi.setup(mConfig, &mTimestamp);
+    mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onWifi, this, std::placeholders::_1));
     #if !defined(AP_ONLY)
     everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi));
-    #endif
-
-    mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
-    #if !defined(AP_ONLY)
-        once(std::bind(&app::tickNtpUpdate, this), 2);
     #endif
 
     mSys->addInverters(&mConfig->inst);
@@ -59,12 +55,9 @@ void app::setup() {
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
-    if (mConfig->mqtt.broker[0] > 0) {
-        everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
-        everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
-        uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
-        if(mConfig->mqtt.rstYieldMidNight)
-            onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
+    mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
+    if (mMqttEnabled) {
+        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
     }
     #endif
@@ -72,26 +65,27 @@ void app::setup() {
 
     mWeb.setup(this, mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
-    everySec(std::bind(&WebType::tickSecond, &mWeb));
 
     mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
     mMonoDisplay.setup(mSys, &mTimestamp);
-    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
 
     mPubSerial.setup(mConfig, mSys, &mTimestamp);
-    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval);
-    //everySec(std::bind(&app::tickSerial, this));
+
+    regularTickers();
 }
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     DPRINTLN(DBG_VERBOSE, F("app::loop"));
+    mInnerLoopCb();
+}
 
-    ah::Scheduler::loop();
+//-----------------------------------------------------------------------------
+void app::loopStandard(void) {
     mSys->Radio.loop();
     mPayload.loop();
 
@@ -123,14 +117,59 @@ void app::loop(void) {
     }
 
 #if !defined(AP_ONLY)
-    mMqtt.loop();
+    if(mMqttEnabled)
+        mMqtt.loop();
 #endif
+}
+
+//-----------------------------------------------------------------------------
+void app::loopWifi(void) {
+    DPRINTLN(DBG_VERBOSE, F("app::loop Wifi"));
+
+    ah::Scheduler::loop();
+    yield();
+}
+
+//-----------------------------------------------------------------------------
+void app::onWifi(bool gotIp) {
+    ah::Scheduler::resetTicker();
+    regularTickers();   // reinstall regular tickers
+    if (gotIp) {
+        mInnerLoopCb = std::bind(&app::loopStandard, this);
+        mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
+        mMqttReconnect = true;
+        once(std::bind(&app::tickNtpUpdate, this), 2);
+    }
+    else {
+        mInnerLoopCb = std::bind(&app::loopWifi, this);
+        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi));
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::regularTickers(void) {
+    everySec(std::bind(&WebType::tickSecond, &mWeb));
+    // Plugins
+    #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
+    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
+    #endif
+    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval);
 }
 
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
     if (mWifi.getNtpTime()) {
+        if (mMqttReconnect && mMqttEnabled) {
+            mMqtt.connect();
+            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
+            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
+            uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+            if(mConfig->mqtt.rstYieldMidNight)
+                onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
+            mMqttReconnect = false;
+        }
+
         nxtTrig = 43200;    // check again in 12 h
         if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
@@ -152,8 +191,8 @@ void app::tickCalcSunrise(void) {
 
     uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
-    if (mConfig->mqtt.broker[0] > 0)
-        mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom);
+    if (mMqttEnabled)
+        tickSun();
 }
 
 //-----------------------------------------------------------------------------
@@ -174,8 +213,22 @@ void app::tickIVCommunication(void) {
         if (nxtTrig != 0)
             onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
     }
-    if (mConfig->mqtt.broker[0] > 0)
-        mMqtt.tickerComm(!mIVCommunicationOn);
+    if (mMqttEnabled)
+        tickComm();
+}
+
+//-----------------------------------------------------------------------------
+void app::tickSun(void) {
+    // only used and enabled by MQTT (see setup())
+    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom))
+        once(std::bind(&app::tickSun, this), 1);    // MQTT not connected, retry
+}
+
+//-----------------------------------------------------------------------------
+void app::tickComm(void) {
+    // only used and enabled by MQTT (see setup())
+    if (!mMqtt.tickerComm(!mIVCommunicationOn))
+        once(std::bind(&app::tickComm, this), 1);    // MQTT not connected, retry
 }
 
 //-----------------------------------------------------------------------------

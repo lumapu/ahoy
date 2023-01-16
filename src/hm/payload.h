@@ -143,10 +143,10 @@ class Payload : public Handler<payloadListenerType> {
 
                 if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
                     String msg = "";
-                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00)) {
-                        msg = "NOT ";
+                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00))
                         mApp->setMqttPowerLimitAck(iv);
-                    }
+                    else
+                        msg = "NOT ";
                     DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
                 }
                 iv->devControlCmd = Init;

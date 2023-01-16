@@ -32,7 +32,6 @@ class PubMqtt {
         PubMqtt() {
             mRxCnt = 0;
             mTxCnt = 0;
-            mEnReconnect = false;
             mSubscriptionCb = NULL;
             mIvAvail = true;
             memset(mLastIvState, 0xff, MAX_NUM_INVERTERS);
@@ -51,13 +50,6 @@ class PubMqtt {
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
-            #if defined(ESP8266)
-            mHWifiCon = WiFi.onStationModeGotIP(std::bind(&PubMqtt::onWifiConnect, this, std::placeholders::_1));
-            mHWifiDiscon = WiFi.onStationModeDisconnected(std::bind(&PubMqtt::onWifiDisconnect, this, std::placeholders::_1));
-            #else
-            WiFi.onEvent(std::bind(&PubMqtt::onWiFiEvent, this, std::placeholders::_1));
-            #endif
-
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
             mClient.setClientId(mDevName); // TODO: add mac?
@@ -72,6 +64,11 @@ class PubMqtt {
             #if defined(ESP8266)
             mClient.loop();
             #endif
+        }
+
+        void connect() {
+            if(!mClient.connected())
+                mClient.connect();
         }
 
         void tickerSecond() {
@@ -94,27 +91,32 @@ class PubMqtt {
             publish("uptime", val);
             publish("wifi_rssi", String(WiFi.RSSI()).c_str());
             publish("free_heap", String(ESP.getFreeHeap()).c_str());
-
-            if(!mClient.connected()) {
-                if(mEnReconnect)
-                    mClient.connect();
-            }
         }
 
-        void tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+            if (!mClient.connected())
+                return false;
+
             publish("sunrise", String(sunrise).c_str(), true);
             publish("sunset", String(sunset).c_str(), true);
             publish("comm_start", String(sunrise - offs).c_str(), true);
             publish("comm_stop", String(sunset + offs).c_str(), true);
             publish("dis_night_comm", ((disNightCom) ? "true" : "false"), true);
+
+            return true;
         }
 
-        void tickerComm(bool disabled) {
+        bool tickerComm(bool disabled) {
+             if (!mClient.connected())
+                return false;
+
             publish("comm_disabled", ((disabled) ? "true" : "false"), true);
             publish("comm_dis_ts", String(*mUtcTimestamp).c_str(), true);
 
             if(disabled && (mCfgMqtt->rstValsCommStop))
                 zeroAllInverters();
+
+            return true;
         }
 
         void tickerMidnight() {
@@ -237,39 +239,8 @@ class PubMqtt {
         }
 
     private:
-        #if defined(ESP8266)
-        void onWifiConnect(const WiFiEventStationModeGotIP& event) {
-            DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
-            mClient.connect();
-            mEnReconnect = true;
-        }
-
-        void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
-            mEnReconnect = false;
-        }
-
-        #else
-        void onWiFiEvent(WiFiEvent_t event) {
-            switch(event) {
-                case SYSTEM_EVENT_STA_GOT_IP:
-                    DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
-                    mClient.connect();
-                    mEnReconnect = true;
-                    break;
-
-                case SYSTEM_EVENT_STA_DISCONNECTED:
-                    mEnReconnect = false;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        #endif
-
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
-            mEnReconnect = true;
 
             if(mExeOnce) {
                 publish("version", mVersion, true);
@@ -290,6 +261,7 @@ class PubMqtt {
             switch (reason) {
                 case espMqttClientTypes::DisconnectReason::TCP_DISCONNECTED:
                     DBGPRINTLN(F("TCP disconnect"));
+                    connect();
                     break;
                 case espMqttClientTypes::DisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
                     DBGPRINTLN(F("wrong protocol version"));
@@ -590,7 +562,6 @@ class PubMqtt {
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;
         std::queue<uint8_t> mSendList;
-        bool mEnReconnect;
         subscriptionCb mSubscriptionCb;
         bool mIvAvail; // shows if at least one inverter is available
         uint8_t mLastIvState[MAX_NUM_INVERTERS];

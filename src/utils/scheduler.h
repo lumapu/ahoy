@@ -35,8 +35,7 @@ namespace ah {
                 mTimestamp  = 0;
                 mMax        = 0;
                 mPrevMillis = millis();
-                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
-                    mTickerInUse[i] = false;
+                resetTicker();
             }
 
             void loop(void) {
@@ -92,6 +91,11 @@ namespace ah {
 
             uint32_t getTimestamp(void) {
                 return mTimestamp;
+            }
+
+            inline void resetTicker(void) {
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
+                    mTickerInUse[i] = false;
             }
 
             void getStat(uint8_t *max) {

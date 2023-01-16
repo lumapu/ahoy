@@ -18,9 +18,12 @@ class app;
 
 class ahoywifi {
     public:
+        typedef std::function<void(bool)> appWifiCb;
+
         ahoywifi();
 
-        void setup(settings_t *config, uint32_t *utcTimestamp);
+
+        void setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb);
         void tickWifiLoop(void);
         bool getNtpTime(void);
         void scanAvailNetworks(void);
@@ -50,6 +53,7 @@ class ahoywifi {
 
 
         settings_t *mConfig;
+        appWifiCb mAppWifiCb;
 
         DNSServer mDns;
         IPAddress mApIp;

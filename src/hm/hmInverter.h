@@ -238,7 +238,7 @@ class Inverter {
                             rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
                         } else if ((FLD_YT == rec->assign[pos].fieldId)
                                     && (config->yieldCor != 0)) {
-                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) - (REC_TYP)config->yieldCor;
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) - ((REC_TYP)config->yieldCor);
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);

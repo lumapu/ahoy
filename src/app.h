@@ -59,6 +59,10 @@ class app : public IApp, public ah::Scheduler {
 
         void setup(void);
         void loop(void);
+        void loopStandard(void);
+        void loopWifi(void);
+        void onWifi(bool gotIp);
+        void regularTickers(void);
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
@@ -182,6 +186,8 @@ class app : public IApp, public ah::Scheduler {
         HmSystemType *mSys;
 
     private:
+        typedef std::function<void()> innerLoopCb;
+
         void resetSystem(void);
 
         void payloadEventListener(uint8_t cmd) {
@@ -206,6 +212,8 @@ class app : public IApp, public ah::Scheduler {
         void tickNtpUpdate(void);
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
+        void tickSun(void);
+        void tickComm(void);
         void tickSend(void);
         void tickMidnight(void);
         /*void tickSerial(void) {
@@ -222,6 +230,8 @@ class app : public IApp, public ah::Scheduler {
             }
             DBGPRINTLN("");
         }*/
+
+        innerLoopCb mInnerLoopCb;
 
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
@@ -246,7 +256,8 @@ class app : public IApp, public ah::Scheduler {
 
         // mqtt
         PubMqttType mMqtt;
-        bool mMqttActive;
+        bool mMqttReconnect;
+        bool mMqttEnabled;
 
         // sun
         int32_t mCalculatedTimezoneOffset;

@@ -18,9 +18,10 @@ ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp) {
+void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
+    mAppWifiCb = cb;
 
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
@@ -256,6 +257,7 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
         case GOT_IP:
             mStaConn = GOT_IP;
             welcome(WiFi.localIP().toString() + F(" (Station)"));
+            mAppWifiCb(true);
             break;
 
         case DISCONNECTED:
@@ -263,6 +265,7 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
                 mStaConn = DISCONNECTED;
                 mCnt       = 5;     // try to reconnect in 5 sec
                 setupWifi();        // reconnect with AP / Station setup
+                mAppWifiCb(false);
                 DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
             }
             break;
