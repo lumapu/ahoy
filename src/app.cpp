@@ -80,12 +80,13 @@ void app::setup() {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::loop"));
     mInnerLoopCb();
 }
 
 //-----------------------------------------------------------------------------
 void app::loopStandard(void) {
+    ah::Scheduler::loop();
+
     mSys->Radio.loop();
     mPayload.loop();
 
@@ -124,14 +125,13 @@ void app::loopStandard(void) {
 
 //-----------------------------------------------------------------------------
 void app::loopWifi(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::loop Wifi"));
-
     ah::Scheduler::loop();
     yield();
 }
 
 //-----------------------------------------------------------------------------
 void app::onWifi(bool gotIp) {
+    DPRINTLN(DBG_DEBUG, F("onWifi"));
     ah::Scheduler::resetTicker();
     regularTickers();   // reinstall regular tickers
     if (gotIp) {
@@ -148,6 +148,7 @@ void app::onWifi(bool gotIp) {
 
 //-----------------------------------------------------------------------------
 void app::regularTickers(void) {
+    DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb));
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
