@@ -40,6 +40,15 @@ namespace ah {
         return String(str);
     }
 
+    String getTimeStr(time_t t) {
+        char str[9];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else
+            sprintf(str, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+        return String(str);
+    }
+
     uint64_t Serial2u64(const char *val) {
         char tmp[3];
         uint64_t ret = 0ULL;

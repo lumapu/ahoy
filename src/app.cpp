@@ -92,7 +92,7 @@ void app::loopStandard(void) {
 
     yield();
 
-    if (ah::checkTicker(&mRxTicker, 5)) {
+    if (ah::checkTicker(&mRxTicker, 4)) {
         bool rxRdy = mSys->Radio.switchRxCh();
 
         if (!mSys->BufCtrl.empty()) {

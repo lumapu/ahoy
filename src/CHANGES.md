@@ -2,6 +2,13 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.73
+* improved payload handling (request / retransmit) #464
+* included alarm ID parse to serial console (in development)
+
+## 0.5.72
+* repaired system, scheduler was not called any more #596
+
 ## 0.5.71
 * improved wifi handling and tickers, many thanks to @beegee3 #571
 * fixed YieldTotal correction calculation #589

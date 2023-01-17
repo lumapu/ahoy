@@ -66,7 +66,6 @@ class app : public IApp, public ah::Scheduler {
         void handleIntr(void);
         void cbMqtt(char* topic, byte* payload, unsigned int length);
         void saveValues(void);
-        void resetPayload(Inverter<>* iv);
         bool getWifiApActive(void);
 
         uint32_t getUptime() {

@@ -20,6 +20,7 @@ class RestApi {
         RestApi() {
             mTimezoneOffset = 0;
             mFreeHeap = 0;
+            nr = 0;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
@@ -539,6 +540,7 @@ class RestApi {
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
+            bool accepted = true;
             if(NULL == iv) {
                 jsonOut[F("error")] = F("inverter index invalid: ") + jsonIn[F("id")].as<String>();
                 return false;
@@ -546,10 +548,10 @@ class RestApi {
 
             if(F("power") == jsonIn[F("cmd")]) {
                 iv->devControlCmd = (jsonIn[F("val")] == 1) ? TurnOn : TurnOff;
-                iv->devControlRequest = true;
+                accepted = iv->setDevControlRequest();
             } else if(F("restart") == jsonIn[F("restart")]) {
                 iv->devControlCmd = Restart;
-                iv->devControlRequest = true;
+                accepted = iv->setDevControlRequest();
             }
             else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
                 iv->powerLimit[0] = jsonIn["val"];
@@ -562,8 +564,9 @@ class RestApi {
                 else if(F("limit_nonpersistent_absolute") == jsonIn[F("cmd")])
                     iv->powerLimit[1] = AbsolutNonPersistent;
                 iv->devControlCmd = ActivePowerContr;
-                iv->devControlRequest = true;
-                mApp->ivSendHighPrio(iv);
+                accepted = iv->setDevControlRequest();
+                if(accepted)
+                    mApp->ivSendHighPrio(iv);
             }
             else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
@@ -571,6 +574,11 @@ class RestApi {
             }
             else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
+                return false;
+            }
+
+            if(!accepted) {
+                jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
                 return false;
             }
 
@@ -605,6 +613,7 @@ class RestApi {
 
         uint32_t mTimezoneOffset;
         uint32_t mFreeHeap;
+        uint16_t nr;
 };
 
 #endif /*__WEB_API_H__*/

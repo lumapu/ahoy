@@ -71,7 +71,7 @@ class Web {
             mWeb.on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
+            //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
         #ifdef ENABLE_JSON_EP
             mWeb.on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
@@ -584,7 +584,7 @@ class Web {
             request->send(response);
         }
 
-        void showWebApi(AsyncWebServerRequest *request) {
+        /*void showWebApi(AsyncWebServerRequest *request) {
             // TODO: remove
             DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
             DPRINTLN(DBG_DEBUG, request->arg("plain"));
@@ -647,7 +647,7 @@ class Web {
                 }
             }
             request->send(200, "text/json", "{success:true}");
-        }
+        }*/
 
         void onSerial(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSerial"));

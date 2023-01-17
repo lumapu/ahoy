@@ -148,10 +148,10 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            char topic[(MQTT_TOPIC_LEN << 1) + 2];
-            snprintf(topic, ((MQTT_TOPIC_LEN << 1) + 2), "%s/%s", mCfgMqtt->topic, subTopic);
-            if(addTopic)
-                mClient.publish(topic, QOS_0, retained, payload);
+            if(addTopic) {
+                String topic = String(mCfgMqtt->topic) + "/" + String(subTopic);
+                mClient.publish(topic.c_str(), QOS_0, retained, payload);
+            }
             else
                 mClient.publish(subTopic, QOS_0, retained, payload);
             mTxCnt++;

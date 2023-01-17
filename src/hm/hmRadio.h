@@ -195,7 +195,7 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
-            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: ") + String(cmd));
+            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: 0x") + String(cmd, HEX));
             sendCmdPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME, false);
             uint8_t cnt = 0;
             mTxBuf[10 + cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
@@ -219,7 +219,7 @@ class HmRadio {
         }
 
         void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
-            DPRINTLN(DBG_INFO, F("sendTimePacket ") + String(cmd, HEX));
+            DPRINTLN(DBG_DEBUG, F("sendTimePacket 0x") + String(cmd, HEX));
             sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
