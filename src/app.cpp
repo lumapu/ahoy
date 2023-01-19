@@ -147,7 +147,7 @@ void app::regularTickers(void) {
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
+    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay), "disp");
     #endif
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
 }
