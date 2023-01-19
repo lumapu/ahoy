@@ -162,10 +162,11 @@ class settings {
             if(!LittleFS.begin(LITTLFS_FALSE)) {
                 DPRINTLN(DBG_INFO, F(".. format .."));
                 LittleFS.format();
-                if(LittleFS.begin(LITTLFS_TRUE))
+                if(LittleFS.begin(LITTLFS_TRUE)) {
                     DPRINTLN(DBG_INFO, F(".. success"));
-                else
+                } else {
                     DPRINTLN(DBG_INFO, F(".. failed"));
+                }
 
             }
             else

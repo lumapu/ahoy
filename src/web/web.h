@@ -86,6 +86,7 @@ class Web {
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            mWeb.on("/debug",          HTTP_GET,  std::bind(&Web::onDebug,        this, std::placeholders::_1));
 
 
             mEvts.onConnect(std::bind(&Web::onConnect, this, std::placeholders::_1));
@@ -189,12 +190,15 @@ class Web {
             msg.replace("\r\n", "<rn>");
             if(mSerialAddTime) {
                 if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
-                    strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
-                    mSerialBufFill += 9;
+                    if(mApp->getTimestamp() > 0) {
+                        strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
+                        mSerialBufFill += 9;
+                    }
                 }
                 else {
                     mSerialBufFill = 0;
-                    mEvts.send("webSerial, buffer overflow!", "serial", millis());
+                    mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
+                    return;
                 }
                 mSerialAddTime = false;
             }
@@ -209,7 +213,7 @@ class Web {
             }
             else {
                 mSerialBufFill = 0;
-                mEvts.send("webSerial, buffer overflow!", "serial", millis());
+                mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
             }
         }
 
@@ -648,6 +652,12 @@ class Web {
             }
             request->send(200, "text/json", "{success:true}");
         }*/
+
+        void onDebug(AsyncWebServerRequest *request) {
+            mApp->getSchedulerNames();
+            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), "ok");
+            request->send(response);
+        }
 
         void onSerial(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSerial"));

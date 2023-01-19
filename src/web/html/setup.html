@@ -30,14 +30,6 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
-                <fieldset>
-                    <legend class="des">Upload JSON Settings</legend>
-                    <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
-                        <input type="file" name="upload">
-                        <input type="button" class="btn" value="Upload" onclick="hide()">
-                    </form>
-                </fieldset>
                 <form method="post" action="/save">
                     <fieldset>
                         <legend class="des">Device Host Name</legend>
@@ -196,7 +188,15 @@
                     </div>
                     <div class="hr mb-3 mt-3"></div>
                     <div class="mb-4">
-                        <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values, passwords will be removed!)
+                        <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                        <fieldset>
+                            <legend class="des">Upload / Store JSON Settings</legend>
+                            <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
+                                <input type="file" name="upload">
+                                <input type="button" class="btn" value="Upload" onclick="hide()">
+                            </form>
+                        </fieldset>
+                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a> (only saved values, passwords will be removed!)
                     </div>
                 </form>
             </div>

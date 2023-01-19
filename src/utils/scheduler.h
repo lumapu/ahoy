@@ -20,8 +20,9 @@ namespace ah {
         uint32_t timeout;
         uint32_t reload;
         bool isTimestamp;
-        sP() : c(NULL), timeout(0), reload(0), isTimestamp(false) {}
-        sP(scdCb a, uint32_t tmt, uint32_t rl, bool its) : c(a), timeout(tmt), reload(rl), isTimestamp(its) {}
+        char name[6];
+        sP() : c(NULL), timeout(0), reload(0), isTimestamp(false), name("\n") {}
+        sP(scdCb a, uint32_t tmt, uint32_t rl, bool its) : c(a), timeout(tmt), reload(rl), isTimestamp(its), name("\n") {}
     };
 
     #define MAX_NUM_TICKER  30
@@ -64,15 +65,15 @@ namespace ah {
 
             }
 
-            void once(scdCb c, uint32_t timeout)     { addTicker(c, timeout, 0, false); }
-            void onceAt(scdCb c, uint32_t timestamp) { addTicker(c, timestamp, 0, true); }
-            uint8_t every(scdCb c, uint32_t interval){ return addTicker(c, interval, interval, false); }
+            void once(scdCb c, uint32_t timeout, const char *name)     { addTicker(c, timeout, 0, false, name); }
+            void onceAt(scdCb c, uint32_t timestamp, const char *name) { addTicker(c, timestamp, 0, true, name); }
+            uint8_t every(scdCb c, uint32_t interval, const char *name){ return addTicker(c, interval, interval, false, name); }
 
-            void everySec(scdCb c)  { every(c, SCD_SEC);  }
-            void everyMin(scdCb c)  { every(c, SCD_MIN);  }
-            void everyHour(scdCb c) { every(c, SCD_HOUR); }
-            void every12h(scdCb c)  { every(c, SCD_12H);  }
-            void everyDay(scdCb c)  { every(c, SCD_DAY);  }
+            void everySec(scdCb c, const char *name)  { every(c, SCD_SEC, name);  }
+            void everyMin(scdCb c, const char *name)  { every(c, SCD_MIN, name);  }
+            void everyHour(scdCb c, const char *name) { every(c, SCD_HOUR, name); }
+            void every12h(scdCb c, const char *name)  { every(c, SCD_12H, name);  }
+            void everyDay(scdCb c, const char *name)  { every(c, SCD_DAY, name);  }
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
@@ -102,11 +103,19 @@ namespace ah {
                 *max = mMax;
             }
 
+            void printSchedulers() {
+                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
+                    if (mTickerInUse[i]) {
+                        DPRINTLN(DBG_INFO, String(mTicker[i].name) + ", tmt: " + String(mTicker[i].timeout) + ", rel: " + String(mTicker[i].reload));
+                    }
+                }
+            }
+
         protected:
             uint32_t mTimestamp;
 
         private:
-            inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp) {
+            inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
                 for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
                     if (!mTickerInUse[i]) {
                         mTickerInUse[i] = true;
@@ -114,6 +123,8 @@ namespace ah {
                         mTicker[i].timeout = timeout;
                         mTicker[i].reload = reload;
                         mTicker[i].isTimestamp = isTimestamp;
+                        memset(mTicker[i].name, 0, 6);
+                        strncpy(mTicker[i].name, name, (strlen(name) < 6) ? strlen(name) : 5);
                         if(mMax == i)
                             mMax = i + 1;
                         return i;

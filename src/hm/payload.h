@@ -103,14 +103,14 @@ class Payload : public Handler<payloadListenerType> {
             if (iv->getDevControlRequest()) {
                 if (mSerialDebug)
                     DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request 0x") + String(iv->devControlCmd, HEX) + F(" power limit ") + String(iv->powerLimit[0]));
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
+                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
                 //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket")); // + String(cmd, HEX));
-                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex);
+                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }
         }
@@ -177,7 +177,9 @@ class Payload : public Handler<payloadListenerType> {
                 }
 
                 if (!mPayload[iv->id].complete) {
-                    if (!build(iv->id)) { // payload not complete
+                    bool crcPass, pyldComplete;
+                    crcPass = build(iv->id, &pyldComplete);
+                    if (!crcPass && !pyldComplete) { // payload not complete
                         if ((mPayload[iv->id].requested) && (retransmit)) {
                             if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
                                 // This is required to prevent retransmissions without answer.
@@ -185,7 +187,7 @@ class Payload : public Handler<payloadListenerType> {
                                 mPayload[iv->id].retransmits = mMaxRetrans;
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit);
+                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
                             } else {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
@@ -193,12 +195,12 @@ class Payload : public Handler<payloadListenerType> {
                                         DPRINTLN(DBG_WARN, F("nothing received: Request Complete Retransmit"));
                                         mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                         DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex);
+                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                     } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
                                             if (mPayload[iv->id].len[i] == 0) {
                                                 DPRINTLN(DBG_WARN, F("Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true, true);
                                                 break;  // only request retransmit one frame per loop
                                             }
                                             yield();
@@ -207,6 +209,14 @@ class Payload : public Handler<payloadListenerType> {
                                     mSys->Radio.switchRxCh(100);
                                 }
                             }
+                        }
+                    } else if(!crcPass && pyldComplete) { // crc error on complete Payload
+                        if (mPayload[iv->id].retransmits < mMaxRetrans) {
+                            mPayload[iv->id].retransmits++;
+                            DPRINTLN(DBG_WARN, F("CRC Error: Request Complete Retransmit"));
+                            mPayload[iv->id].txCmd = iv->getQueuedCmd();
+                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
+                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
                     } else {  // payload complete
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
@@ -269,11 +279,20 @@ class Payload : public Handler<payloadListenerType> {
         }
 
     private:
-        bool build(uint8_t id) {
+        bool build(uint8_t id, bool *complete) {
             DPRINTLN(DBG_VERBOSE, F("build"));
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
                 mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
+
+            // check if all fragments are there
+            *complete = true;
+            for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
+                if(mPayload[id].len[i] == 0)
+                    *complete = false;
+            }
+            if(!*complete)
+                return false;
 
             for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
                 if (mPayload[id].len[i] > 0) {

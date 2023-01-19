@@ -3,11 +3,6 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#if defined(ESP32) && defined(F)
-#undef F
-#define F(sl) (sl)
-#endif
-
 #include "app.h"
 #include <ArduinoJson.h>
 #include "utils/sun.h"
@@ -43,7 +38,7 @@ void app::setup() {
 
     mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onWifi, this, std::placeholders::_1));
     #if !defined(AP_ONLY)
-    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi));
+    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     #endif
 
     mSys->addInverters(&mConfig->inst);
@@ -136,48 +131,49 @@ void app::onWifi(bool gotIp) {
     regularTickers();   // reinstall regular tickers
     if (gotIp) {
         mInnerLoopCb = std::bind(&app::loopStandard, this);
-        mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval);
+        mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         mMqttReconnect = true;
-        once(std::bind(&app::tickNtpUpdate, this), 2);
+        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
     }
     else {
         mInnerLoopCb = std::bind(&app::loopWifi, this);
-        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi));
+        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
-    everySec(std::bind(&WebType::tickSecond, &mWeb));
+    everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
     #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
     everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay));
     #endif
-    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval);
+    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
 }
 
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    if (mWifi.getNtpTime()) {
+    if (mWifi.getNtpTime(&nxtTrig)) {
         if (mMqttReconnect && mMqttEnabled) {
             mMqtt.connect();
-            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt));
-            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt));
+            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
+            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
             uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
             if(mConfig->mqtt.rstYieldMidNight)
-                onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
+                onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "midNi");
             mMqttReconnect = false;
         }
 
-        nxtTrig = 43200;    // check again in 12 h
+        nxtTrig = 43200;
+
         if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             tickCalcSunrise();
         }
     }
-    once(std::bind(&app::tickNtpUpdate, this), nxtTrig);
+    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
 }
 
 //-----------------------------------------------------------------------------
@@ -191,7 +187,7 @@ void app::tickCalcSunrise(void) {
     tickIVCommunication();
 
     uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
-    onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig);
+    onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig, "Sunri");
     if (mMqttEnabled)
         tickSun();
 }
@@ -212,7 +208,7 @@ void app::tickIVCommunication(void) {
             }
         }
         if (nxtTrig != 0)
-            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig);
+            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
     }
     if (mMqttEnabled)
         tickComm();
@@ -222,14 +218,14 @@ void app::tickIVCommunication(void) {
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom))
-        once(std::bind(&app::tickSun, this), 1);    // MQTT not connected, retry
+        once(std::bind(&app::tickSun, this), 1, "mqSun");    // MQTT not connected, retry
 }
 
 //-----------------------------------------------------------------------------
 void app::tickComm(void) {
     // only used and enabled by MQTT (see setup())
     if (!mMqtt.tickerComm(!mIVCommunicationOn))
-        once(std::bind(&app::tickComm, this), 1);    // MQTT not connected, retry
+        once(std::bind(&app::tickComm, this), 1, "mqCom");    // MQTT not connected, retry
 }
 
 //-----------------------------------------------------------------------------
@@ -268,7 +264,7 @@ void app::tickSend(void) {
 void app::tickMidnight(void) {
     // only used and enabled by MQTT (see setup())
     uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
-    onceAt(std::bind(&app::tickMidnight, this), nxtTrig);
+    onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
     mMqtt.tickerMidnight();
 }
@@ -285,8 +281,6 @@ void app::resetSystem(void) {
 
 #ifdef AP_ONLY
     mTimestamp = 1;
-#else
-    mTimestamp = 0;
 #endif
 
     mSunrise = 0;
@@ -329,8 +323,7 @@ void app::updateLed(void) {
     if(mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys->getInverterByPos(0);
         if (NULL != iv) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            if(iv->isProducing(mTimestamp, rec))
+            if(iv->isProducing(mTimestamp))
                 digitalWrite(mConfig->led.led0, LOW); // LED on
             else
                 digitalWrite(mConfig->led.led0, HIGH); // LED off

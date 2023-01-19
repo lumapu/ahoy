@@ -89,6 +89,7 @@ class HmRadio {
             mRxLoopCnt  = RF_LOOP_CNT;
 
             mSendCnt       = 0;
+            mRetransmits   = 0;
 
             mSerialDebug = false;
             mIrqRcvd     = false;
@@ -194,7 +195,7 @@ class HmRadio {
             return mRfChLst[mTxChIdx];
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data) {
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
             DPRINTLN(DBG_INFO, F("sendControlPacket cmd: 0x") + String(cmd, HEX));
             sendCmdPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME, false);
             uint8_t cnt = 0;
@@ -215,12 +216,12 @@ class HmRadio {
             // crc over all
             mTxBuf[10 + cnt] = ah::crc8(mTxBuf, 10 + cnt);
 
-            sendPacket(invId, mTxBuf, 10 + cnt + 1, true);
+            sendPacket(invId, mTxBuf, 10 + cnt + 1, isRetransmit, true);
         }
 
-        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId) {
+        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit) {
             DPRINTLN(DBG_DEBUG, F("sendTimePacket 0x") + String(cmd, HEX));
-            sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, false);
+            sendCmdPacket(invId, TX_REQ_INFO, ALL_FRAMES, isRetransmit, false);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
@@ -233,10 +234,10 @@ class HmRadio {
             mTxBuf[25] = (crc     ) & 0xff;
             mTxBuf[26] = ah::crc8(mTxBuf, 26);
 
-            sendPacket(invId, mTxBuf, 27, true);
+            sendPacket(invId, mTxBuf, 27, isRetransmit, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool calcCrc = true) {
+        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool calcCrc = true) {
             DPRINTLN(DBG_VERBOSE, F("sendCmdPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
@@ -245,7 +246,7 @@ class HmRadio {
             mTxBuf[9]  = pid;
             if(calcCrc) {
                 mTxBuf[10] = ah::crc8(mTxBuf, 10);
-                sendPacket(invId, mTxBuf, 11, false);
+                sendPacket(invId, mTxBuf, 11, isRetransmit, false);
             }
         }
 
@@ -308,11 +309,12 @@ class HmRadio {
 
 
         uint32_t mSendCnt;
+        uint32_t mRetransmits;
 
         bool mSerialDebug;
 
     private:
-        void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool clear=false) {
+        void sendPacket(uint64_t invId, uint8_t buf[], uint8_t len, bool isRetransmit, bool clear=false) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
             //dumpBuf("SEN ", buf, len);
@@ -347,7 +349,10 @@ class HmRadio {
             mNrf24.startListening();
 
             RESTORE_IRQ;
-            mSendCnt++;
+            if(isRetransmit)
+                mRetransmits++;
+            else
+                mSendCnt++;
         }
 
         uint8_t getTxNxtChannel(void) {

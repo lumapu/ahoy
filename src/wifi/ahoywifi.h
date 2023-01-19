@@ -25,7 +25,7 @@ class ahoywifi {
 
         void setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb);
         void tickWifiLoop(void);
-        bool getNtpTime(void);
+        bool getNtpTime(uint32_t *nxtTrig);
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
@@ -68,6 +68,7 @@ class ahoywifi {
 
         uint8_t mLoopCnt;
         bool mScanActive;
+        uint8_t mRetries;
 };
 
 #endif /*__AHOYWIFI_H__*/

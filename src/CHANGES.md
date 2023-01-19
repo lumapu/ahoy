@@ -2,6 +2,16 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.74
+* improved payload handling (retransmit all fragments on CRC error)
+* improved `isAvailable`, checkes all record structs, inverter becomes available more early because version is check first
+* fix tickers were not set if NTP is not available
+* disabled annoying `FlashStringHelper` it gives randomly Expeptions during development, feels more stable since then
+* moved erase button to the bottom in settings, not nice but more functional
+* split `tx_count` to `tx_cnt` and `retransmits` in `system.html`
+* fix mqtt retransmit IP address #602
+* added debug infos for `scheduler` (web -> `/debug` as trigger prints list of tickers to serial console)
+
 ## 0.5.73
 * improved payload handling (request / retransmit) #464
 * included alarm ID parse to serial console (in development)

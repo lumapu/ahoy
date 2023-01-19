@@ -94,11 +94,12 @@
                 }
 
                 main.append(
+                    genTabRow("TX count", stat["tx_cnt"]),
                     genTabRow("RX success", stat["rx_success"]),
                     genTabRow("RX fail", stat["rx_fail"]),
                     genTabRow("RX no answer", stat["rx_fail_answer"]),
-                    genTabRow("RX frames received", stat["frame_cnt"]),
-                    genTabRow("TX count", stat["tx_cnt"])
+                    genTabRow("RX fragments", stat["frame_cnt"]),
+                    genTabRow("TX retransmits", stat["retransmits"])
                 );
             }
 

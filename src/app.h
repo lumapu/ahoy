@@ -102,7 +102,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setRebootFlag() {
-            once(std::bind(&app::tickReboot, this), 3);
+            once(std::bind(&app::tickReboot, this), 3, "rboot");
         }
 
         const char *getVersion() {
@@ -126,7 +126,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setMqttDiscoveryFlag() {
-            once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1);
+            once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1, "disCf");
         }
 
         void setMqttPowerLimitAck(Inverter<> *iv) {
@@ -174,10 +174,16 @@ class app : public IApp, public ah::Scheduler {
             getStat(max);
         }
 
+        void getSchedulerNames(void) {
+            printSchedulers();
+        }
+
         void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
-            if(0 == newTime)
-                mWifi.getNtpTime();
+            if(0 == newTime) {
+                uint32_t tmp;
+                mWifi.getNtpTime(&tmp);
+            }
             else
                 Scheduler::setTimestamp(newTime);
         }

@@ -164,7 +164,7 @@ class Inverter {
                 if (getFwVersion() == 0)
                     enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
                 enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
-                if (actPowerLimit == 0xffff)
+                if ((actPowerLimit == 0xffff) && isConnected)
                     enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }
             return _commandQueue.front().get()->getCmd();
@@ -220,9 +220,11 @@ class Inverter {
             return 0;
         }
 
-        bool setDevControlRequest() {
-            if(isConnected)
+        bool setDevControlRequest(uint8_t cmd) {
+            if(isConnected) {
                 mDevControlRequest = true;
+                devControlCmd = cmd;
+            }
             return isConnected;
         }
 
@@ -333,16 +335,23 @@ class Inverter {
             }
         }
 
-        bool isAvailable(uint32_t timestamp, record_t<> *rec) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isAvailable"));
-            return ((timestamp - rec->ts) < INACT_THRES_SEC);
+        bool isAvailable(uint32_t timestamp) {
+           if((timestamp - recordMeas.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordInfo.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordConfig.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordAlarm.ts) < INACT_THRES_SEC)
+                return true;
+            return false;
         }
 
-        bool isProducing(uint32_t timestamp, record_t<> *rec) {
+        bool isProducing(uint32_t timestamp) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
-            if(isAvailable(timestamp, rec)) {
-                uint8_t pos = getPosByChFld(CH0, FLD_PAC, rec);
-                return (getValue(pos, rec) > INACT_PWR_THRESH);
+            if(isAvailable(timestamp)) {
+                uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
+                return (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
             }
             return false;
         }

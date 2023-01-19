@@ -14,6 +14,11 @@
 
 #include "../appInterface.h"
 
+#if defined(F) //defined(ESP32) &&
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 template<class HMSYSTEM>
 class RestApi {
     public:
@@ -265,6 +270,7 @@ class RestApi {
             obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
             obj[F("frame_cnt")]      = stat->frmCnt;
             obj[F("tx_cnt")]         = mSys->Radio.mSendCnt;
+            obj[F("retransmits")]    = mSys->Radio.mRetransmits;
         }
 
         void getInverterList(JsonObject obj) {
@@ -413,8 +419,8 @@ class RestApi {
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
                     invObj[F("version")]         = String(iv->getFwVersion());
-                    invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp(), rec);
-                    invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp(), rec);
+                    invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp());
+                    invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp());
                     invObj[F("ts_last_success")] = iv->getLastTs(rec);
                 }
             }
@@ -546,13 +552,10 @@ class RestApi {
                 return false;
             }
 
-            if(F("power") == jsonIn[F("cmd")]) {
-                iv->devControlCmd = (jsonIn[F("val")] == 1) ? TurnOn : TurnOff;
-                accepted = iv->setDevControlRequest();
-            } else if(F("restart") == jsonIn[F("restart")]) {
-                iv->devControlCmd = Restart;
-                accepted = iv->setDevControlRequest();
-            }
+            if(F("power") == jsonIn[F("cmd")])
+                accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);
+            else if(F("restart") == jsonIn[F("restart")])
+                accepted = iv->setDevControlRequest(Restart);
             else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
                 iv->powerLimit[0] = jsonIn["val"];
                 if(F("limit_persistent_relative") == jsonIn[F("cmd")])
@@ -563,10 +566,8 @@ class RestApi {
                     iv->powerLimit[1] = RelativNonPersistent;
                 else if(F("limit_nonpersistent_absolute") == jsonIn[F("cmd")])
                     iv->powerLimit[1] = AbsolutNonPersistent;
-                iv->devControlCmd = ActivePowerContr;
-                accepted = iv->setDevControlRequest();
-                if(accepted)
-                    mApp->ivSendHighPrio(iv);
+
+                accepted = iv->setDevControlRequest(ActivePowerContr);
             }
             else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
@@ -580,7 +581,8 @@ class RestApi {
             if(!accepted) {
                 jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
                 return false;
-            }
+            } else
+                mApp->ivSendHighPrio(iv);
 
             return true;
         }

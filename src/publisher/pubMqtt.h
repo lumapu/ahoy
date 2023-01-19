@@ -45,7 +45,6 @@ class PubMqtt {
             mVersion         = version;
             mSys             = sys;
             mUtcTimestamp    = utcTs;
-            mExeOnce         = true;
             mIntervalTimeout = 1;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
@@ -243,12 +242,9 @@ class PubMqtt {
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
 
-            if(mExeOnce) {
-                publish("version", mVersion, true);
-                publish("device", mDevName, true);
-                publish("ip_addr", WiFi.localIP().toString().c_str(), true);
-                mExeOnce = false;
-            }
+            publish("version", mVersion, true);
+            publish("device", mDevName, true);
+            publish("ip_addr", WiFi.localIP().toString().c_str(), true);
             tickerMinute();
             publish(mLwtTopic, mLwtOnline, true, false);
 
@@ -381,7 +377,7 @@ class PubMqtt {
 
                 // inverter status
                 uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
+                if ((!iv->isAvailable(*mUtcTimestamp)) || (!iv->config->enabled)) {
                     status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
                     if(iv->config->enabled) { // only change all-avail if inverter is enabled!
                         totalComplete = false;
@@ -390,7 +386,7 @@ class PubMqtt {
                 }
                 else {
                     mIvAvail = true;
-                    if (!iv->isProducing(*mUtcTimestamp, rec)) {
+                    if (!iv->isProducing(*mUtcTimestamp)) {
                         if (MQTT_STATUS_AVAIL_PROD == status)
                             status = MQTT_STATUS_AVAIL_NOT_PROD;
                     }
@@ -566,7 +562,6 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
         bool mIvAvail; // shows if at least one inverter is available
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
-        bool mExeOnce;
         uint16_t mIntervalTimeout;
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'

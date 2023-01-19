@@ -11,7 +11,7 @@
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
-
+#define NTP_RETRIES         5
 
 //-----------------------------------------------------------------------------
 ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
@@ -26,6 +26,7 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
+    mRetries    = NTP_RETRIES;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -148,7 +149,17 @@ void ahoywifi::setupStation(void) {
 
 
 //-----------------------------------------------------------------------------
-bool ahoywifi::getNtpTime(void) {
+bool ahoywifi::getNtpTime(uint32_t *nxtTrig) {
+    if(0 != mRetries) {
+        DPRINTLN(DBG_INFO, "try to getNtpTime");
+        *nxtTrig = 43200; // check again in 12h (if NTP was successful)
+        mRetries--;
+    } else if(0 != *mUtcTimestamp) { // time is availabe, but NTP not
+        *nxtTrig = 5; // check again 5s
+        mRetries = NTP_RETRIES;
+        return true; // true is necessary to enable all timers even if NTP was not reachable
+    }
+
     if(GOT_IP != mStaConn)
         return false;
 
@@ -267,6 +278,7 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
                 setupWifi();        // reconnect with AP / Station setup
                 mAppWifiCb(false);
                 DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+                mRetries = NTP_RETRIES;
             }
             break;
 

@@ -31,6 +31,7 @@ class IApp {
         virtual String getTimeStr(uint32_t offset) = 0;
         virtual uint32_t getTimezoneOffset() = 0;
         virtual void getSchedulerInfo(uint8_t *max) = 0;
+        virtual void getSchedulerNames() = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
