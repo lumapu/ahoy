@@ -8,7 +8,7 @@ Hoymiles output plugin library
 import socket
 import logging
 from datetime import datetime, timezone
-from hoymiles.decoders import StatusResponse
+from hoymiles.decoders import StatusResponse, HardwareInfoResponse
 
 try:
     from influxdb_client import InfluxDBClient
@@ -185,45 +185,56 @@ class MqttOutputPlugin(OutputPluginFactory):
         :raises ValueError: when response is not instance of StatusResponse
         """
 
-        if not isinstance(response, StatusResponse):
-            raise ValueError('Data needs to be instance of StatusResponse')
-
         data = response.__dict__()
         topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
 
-        # Global Head
-        if data['time'] is not None:
-           self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
+        if isinstance(response, StatusResponse):
 
-        # AC Data
-        phase_id = 0
-        for phase in data['phases']:
-            self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
-            self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
-            self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
-            self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
-            phase_id = phase_id + 1
+            # Global Head
+            if data['time'] is not None:
+               self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
 
-        # DC Data
-        string_id = 0
-        for string in data['strings']:
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
-            self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
-            if 'irradiation' in string:
-              self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
-            string_id = string_id + 1
+            # AC Data
+            phase_id = 0
+            for phase in data['phases']:
+                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
+                phase_id = phase_id + 1
 
-        # Global
-        if data['powerfactor'] is not None:
-            self.client.publish(f'{topic}/pf', data['powerfactor'])
-        self.client.publish(f'{topic}/frequency', data['frequency'])
+            # DC Data
+            string_id = 0
+            for string in data['strings']:
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
+                if 'irradiation' in string:
+                    self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
+                string_id = string_id + 1
 
-        self.client.publish(f'{topic}/Temp', data['temperature'])
-        if data['energy_total'] is not None:
-            self.client.publish(f'{topic}/total', data['energy_total']/1000)
+            # Global
+            if data['powerfactor'] is not None:
+               self.client.publish(f'{topic}/pf', data['powerfactor'])
+            self.client.publish(f'{topic}/frequency', data['frequency'])
+
+            self.client.publish(f'{topic}/Temp', data['temperature'])
+            if data['energy_total'] is not None:
+               self.client.publish(f'{topic}/total', data['energy_total']/1000)
+
+        elif isinstance(response, HardwareInfoResponse):
+            self.client.publish(f'{topic}/Firmware/Version',\
+                 f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}')
+
+            self.client.publish(f'{topic}/Firmware/Build_at',\
+                 f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}')
+
+            self.client.publish(f'{topic}/Firmware/HWPartId', f'{data["FW_HW_ID"]}')
+
+        else:
+             raise ValueError('Data needs to be instance of StatusResponse or a instance of HardwareInfoResponse')
 
 try:
     import requests
@@ -237,6 +248,7 @@ class VzInverterOutput:
         self.serial = config.get('serial')
         self.baseurl = config.get('url', 'http://localhost/middleware/')
         self.channels = dict()
+
         for channel in config.get('channels', []):
             uid = channel.get('uid')
             ctype = channel.get('type')
@@ -286,6 +298,7 @@ class VzInverterOutput:
         if data['energy_total'] is not None:
             self.try_publish(ts, f'total', data['energy_total'])
 
+
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
             return
@@ -307,6 +320,7 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
 
         self.session = requests.Session()
         self.inverters = dict()
+
         for inverterconfig in config.get('inverters', []):
             serial = inverterconfig.get('serial')
             output = VzInverterOutput(inverterconfig, self.session)
@@ -320,6 +334,8 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
 
         :raises ValueError: when response is not instance of StatusResponse
         """
+
+        # check decoder object for output
         if not isinstance(response, StatusResponse):
             raise ValueError('Data needs to be instance of StatusResponse')
 
