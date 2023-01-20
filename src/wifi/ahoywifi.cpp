@@ -11,7 +11,6 @@
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
-#define NTP_RETRIES         5
 
 //-----------------------------------------------------------------------------
 ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
@@ -26,7 +25,7 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
-    mRetries    = NTP_RETRIES;
+    mLastNtpFailed = false;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -149,26 +148,25 @@ void ahoywifi::setupStation(void) {
 
 
 //-----------------------------------------------------------------------------
-bool ahoywifi::getNtpTime(uint32_t *nxtTrig) {
-    if(0 != mRetries) {
-        DPRINTLN(DBG_INFO, "try to getNtpTime");
-        *nxtTrig = 43200; // check again in 12h (if NTP was successful)
-        mRetries--;
-    } else if(0 != *mUtcTimestamp) { // time is availabe, but NTP not
-        *nxtTrig = 5; // check again 5s
-        mRetries = NTP_RETRIES;
+bool ahoywifi::getNtpTime() {
+    if(mLastNtpFailed && (0 != *mUtcTimestamp)) { // time is available, but NTP not maybe it was set by "sync with browser"
+        mLastNtpFailed = false;
         return true; // true is necessary to enable all timers even if NTP was not reachable
     }
 
-    if(GOT_IP != mStaConn)
+    if(GOT_IP != mStaConn) {
+        mLastNtpFailed = true;
         return false;
+    }
 
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
     uint8_t retry = 0;
 
-    if (WiFi.hostByName(mConfig->ntp.addr, timeServer) != 1)
+    if (WiFi.hostByName(mConfig->ntp.addr, timeServer) != 1) {
+        mLastNtpFailed = true;
         return false;
+    }
 
     mUdp.begin(mConfig->ntp.port);
     sendNTPpacket(timeServer);
@@ -193,6 +191,7 @@ bool ahoywifi::getNtpTime(uint32_t *nxtTrig) {
     }
 
     DPRINTLN(DBG_INFO, F("[NTP]: getNtpTime failed"));
+    mLastNtpFailed = true;
     return false;
 }
 
@@ -275,10 +274,10 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
             if(mStaConn != CONNECTING) {
                 mStaConn = DISCONNECTED;
                 mCnt       = 5;     // try to reconnect in 5 sec
+                mLastNtpFailed = false;
                 setupWifi();        // reconnect with AP / Station setup
                 mAppWifiCb(false);
                 DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
-                mRetries = NTP_RETRIES;
             }
             break;
 

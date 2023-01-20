@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.75
+* fix wakeup issue, once wifi was lost during night the communication didn't start in the morning
+* reenabled FlashStringHelper because of lacking RAM
+* complete rewrite of monochrome display class, thx to @dAjaY85 -> displays are now configurable in setup
+
 ## 0.5.74
 * improved payload handling (retransmit all fragments on CRC error)
 * improved `isAvailable`, checkes all record structs, inverter becomes available more early because version is check first

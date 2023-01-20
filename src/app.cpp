@@ -64,9 +64,8 @@ void app::setup() {
     mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
-    #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-    mMonoDisplay.setup(&mConfig->plugin.display, mSys, &mTimestamp);
-    #endif
+    if(mConfig->plugin.display.type != 0)
+        mMonoDisplay.setup(&mConfig->plugin.display, mSys, &mTimestamp, 0xff, mVersion);
 
     mPubSerial.setup(mConfig, mSys, &mTimestamp);
 
@@ -133,6 +132,7 @@ void app::onWifi(bool gotIp) {
         mInnerLoopCb = std::bind(&app::loopStandard, this);
         mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         mMqttReconnect = true;
+        mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
     }
     else {
@@ -146,27 +146,27 @@ void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
-    #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-    everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay), "disp");
-    #endif
+    if(mConfig->plugin.display.type != 0)
+        everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
 }
 
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    if (mWifi.getNtpTime(&nxtTrig)) {
+    if (mWifi.getNtpTime()) {
         if (mMqttReconnect && mMqttEnabled) {
             mMqtt.connect();
             everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
             everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
-            uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
-            if(mConfig->mqtt.rstYieldMidNight)
-                onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "midNi");
+            if(mConfig->mqtt.rstYieldMidNight) {
+                uint32_t midTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+                onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
+            }
             mMqttReconnect = false;
         }
 
-        nxtTrig = 43200;
+        nxtTrig = 43200; // check again in 12h
 
         if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;

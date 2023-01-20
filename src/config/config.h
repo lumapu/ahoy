@@ -52,8 +52,6 @@
     #define DEF_CE_PIN              2
     #define DEF_IRQ_PIN             0
 #endif
-#define DEF_LED0_PIN            255 // off
-#define DEF_LED1_PIN            255 // off
 
 // default NRF24 power, possible values (0 - 3)
 #define DEF_AMPLIFIERPOWER      1

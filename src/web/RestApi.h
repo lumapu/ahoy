@@ -14,7 +14,7 @@
 
 #include "../appInterface.h"
 
-#if defined(F) //defined(ESP32) &&
+#if defined(F) && defined(ESP32)
   #undef F
   #define F(sl) (sl)
 #endif
@@ -354,6 +354,16 @@ class RestApi {
             ah::ip2Char(mConfig->sys.ip.gateway, buf); obj[F("gateway")] = String(buf);
         }
 
+        void getDisplay(JsonObject obj) {
+            obj[F("disp_type")] = (uint8_t)mConfig->plugin.display.type;
+            obj[F("disp_pwr")]  = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
+            obj[F("logo_en")]   = (bool)mConfig->plugin.display.logoEn;
+            obj[F("px_shift")]  = (bool)mConfig->plugin.display.pxShift;
+            obj[F("contrast")]  = (uint8_t)mConfig->plugin.display.contrast;
+            obj[F("pinDisp0")]  = mConfig->plugin.display.pin0;
+            obj[F("pinDisp1")]  = mConfig->plugin.display.pin1;
+        }
+
         void getMenu(JsonObject obj) {
             uint8_t i = 0;
             uint16_t mask = (mApp->getProtection()) ? mConfig->sys.protectionMask : 0;
@@ -461,6 +471,7 @@ class RestApi {
             getRadio(obj.createNestedObject(F("radio")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
+            getDisplay(obj.createNestedObject(F("display")));
         }
 
         void getNetworks(JsonObject obj) {

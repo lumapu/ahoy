@@ -17,6 +17,7 @@
  * More info:
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
+#define DEF_PIN_OFF         255
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -117,10 +118,15 @@ typedef struct {
 } cfgInst_t;
 
 typedef struct {
+    uint8_t type;
     bool pwrSaveAtIvOffline;
-    uint32_t wakeUp;
-    uint32_t sleepAt;
+    bool logoEn;
+    bool pxShift;
+    uint16_t wakeUp;
+    uint16_t sleepAt;
     uint8_t contrast;
+    uint8_t pin0;
+    uint8_t pin1;
 } display_t;
 
 typedef struct {
@@ -216,14 +222,15 @@ class settings {
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
-                    jsonWifi(root["wifi"]);
-                    jsonNrf(root["nrf"]);
-                    jsonNtp(root["ntp"]);
-                    jsonSun(root["sun"]);
-                    jsonSerial(root["serial"]);
-                    jsonMqtt(root["mqtt"]);
-                    jsonLed(root["led"]);
-                    jsonInst(root["inst"]);
+                    jsonWifi(root[F("wifi")]);
+                    jsonNrf(root[F("nrf")]);
+                    jsonNtp(root[F("ntp")]);
+                    jsonSun(root[F("sun")]);
+                    jsonSerial(root[F("serial")]);
+                    jsonMqtt(root[F("mqtt")]);
+                    jsonLed(root[F("led")]);
+                    jsonPlugin(root[F("plugin")]);
+                    jsonInst(root[F("inst")]);
                     success = true;
                 }
                 else {
@@ -252,6 +259,7 @@ class settings {
             jsonSerial(root.createNestedObject(F("serial")), true);
             jsonMqtt(root.createNestedObject(F("mqtt")), true);
             jsonLed(root.createNestedObject(F("led")), true);
+            jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
             if(0 == serializeJson(root, fp)) {
@@ -323,13 +331,17 @@ class settings {
             mCfg.mqtt.rstValsNotAvail = false;
             mCfg.mqtt.rstValsCommStop   = false;
 
-            mCfg.led.led0 = DEF_LED0_PIN;
-            mCfg.led.led1 = DEF_LED1_PIN;
+            mCfg.led.led0 = DEF_PIN_OFF;
+            mCfg.led.led1 = DEF_PIN_OFF;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
-            mCfg.plugin.display.contrast = 60;
+            mCfg.plugin.display.contrast           = 60;
+            mCfg.plugin.display.logoEn             = true;
+            mCfg.plugin.display.pxShift            = true;
+            mCfg.plugin.display.pin0               = DEF_PIN_OFF; // SCL
+            mCfg.plugin.display.pin1               = DEF_PIN_OFF; // SDA
         }
 
         void jsonWifi(JsonObject obj, bool set = false) {
@@ -449,6 +461,32 @@ class settings {
             } else {
                 mCfg.led.led0 = obj[F("0")];
                 mCfg.led.led1 = obj[F("1")];
+            }
+        }
+
+        void jsonPlugin(JsonObject obj, bool set = false) {
+            if(set) {
+                JsonObject disp = obj.createNestedObject("disp");
+                disp[F("type")]     = mCfg.plugin.display.type;
+                disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
+                disp[F("logo")]     = (bool)mCfg.plugin.display.logoEn;
+                disp[F("pxShift")]  = (bool)mCfg.plugin.display.pxShift;
+                disp[F("wake")]     = mCfg.plugin.display.wakeUp;
+                disp[F("sleep")]    = mCfg.plugin.display.sleepAt;
+                disp[F("contrast")] = mCfg.plugin.display.contrast;
+                disp[F("pin0")]     = mCfg.plugin.display.pin0;
+                disp[F("pin1")]     = mCfg.plugin.display.pin1;
+            } else {
+                JsonObject disp = obj["disp"];
+                mCfg.plugin.display.type               = disp[F("type")];
+                mCfg.plugin.display.pwrSaveAtIvOffline = (bool) disp[F("pwrSafe")];
+                mCfg.plugin.display.logoEn             = (bool) disp[F("logo")];
+                mCfg.plugin.display.pxShift            = (bool) disp[F("pxShift")];
+                mCfg.plugin.display.wakeUp             = disp[F("wake")];
+                mCfg.plugin.display.sleepAt            = disp[F("sleep")];
+                mCfg.plugin.display.contrast           = disp[F("contrast")];
+                mCfg.plugin.display.pin0               = disp[F("pin0")];
+                mCfg.plugin.display.pin1               = disp[F("pin1")];
             }
         }
 

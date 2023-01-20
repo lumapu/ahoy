@@ -315,6 +315,22 @@ class Inverter {
             return true;
         }
 
+        REC_TYP getChannelFieldValue(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
+            uint8_t pos = 0;
+            if(NULL != rec) {
+                for(; pos < rec->length; pos++) {
+                    if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
+                        break;
+                }
+                if(pos >= rec->length)
+                    return 0;
+
+                return rec->record[pos];
+            }
+            else
+                return 0;
+        }
+
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getValue"));
             if(NULL == rec)

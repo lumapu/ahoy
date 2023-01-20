@@ -165,7 +165,7 @@
                     <div class="s_content">
                     <fieldset>
                         <legend class="des">System Config</legend>
-                        <p class="des">Pinout (Wemos)</p>
+                        <p class="des">Pinout</p>
                         <div id="pinout"></div>
 
                         <p class="des">Radio (NRF24L01+)</p>
@@ -178,6 +178,25 @@
                         <input type="checkbox" class="cb" name="serDbg"/><br/>
                         <label for="serIntvl">Interval [s]</label>
                         <input type="text" class="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Display Config</button>
+                    <div class="s_content">
+                    <fieldset>
+                        <legend class="des">Display Config</legend>
+                        <div id="dispType"></div>
+                        <label for="logoEn">Show Logo</label>
+                        <input type="checkbox" class="cb" name="logoEn"/><br/>
+                        <label for="dispPwr">Turn off while inverters are offline</label>
+                        <input type="checkbox" class="cb" name="dispPwr"/><br/>
+                        <label for="dispPxSh">Enable pixel shifting</label>
+                        <input type="checkbox" class="cb" name="dispPxSh"/><br/>
+
+                        <label for="dispCont">Contrast</label>
+                        <select name="dispCont" id="contrast"></select>
+                        <p class="des">Pinout</p>
+                        <div id="dispPins"></div>
                     </fieldset>
                     </div>
 
@@ -220,6 +239,56 @@
         <script type="text/javascript">
             var highestId = 0;
             var maxInv = 0;
+
+            var esp8266pins = [
+                [255, "off / default"],
+                [0, "D3 (GPIO0)"],
+                [1, "TX (GPIO1)"],
+                [2, "D4 (GPIO2)"],
+                [3, "RX (GPIO3)"],
+                [4, "D2 (GPIO4, SDA)"],
+                [5, "D1 (GPIO5, SCL)"],
+                [6, "GPIO6"],
+                [7, "GPIO7"],
+                [8, "GPIO8"],
+                [9, "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "D6 (GPIO12)"],
+                [13, "D7 (GPIO13)"],
+                [14, "D5 (GPIO14)"],
+                [15, "D8 (GPIO15)"],
+                [16, "D0 (GPIO16 - no IRQ!)"]
+            ];
+            var esp32pins = [
+                [255, "off / default"],
+                [0,  "GPIO0"],
+                [1,  "TX (GPIO1)"],
+                [2,  "GPIO2 (LED)"],
+                [3,  "RX (GPIO3)"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19"],
+                [21, "GPIO21 (SDA)"],
+                [22, "GPIO22 (SCL)"],
+                [23, "GPIO23"],
+                [25, "GPIO25"],
+                [26, "GPIO26"],
+                [27, "GPIO27"],
+                [32, "GPIO32"],
+                [33, "GPIO33"],
+                [34, "GPIO34"],
+                [35, "GPIO35"],
+                [36, "VP (GPIO36)"],
+                [39, "VN (GPIO39)"]
+            ];
 
             const re = /11[2,4,6]1.*/;
 
@@ -443,59 +512,7 @@
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
                 for(p of pins) {
                     e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    if("ESP8266" == type) {
-                        e.appendChild(sel(p[1], [
-                            [255, "off / default"],
-                            [0, "D3 (GPIO0)"],
-                            [1, "TX (GPIO1)"],
-                            [2, "D4 (GPIO2)"],
-                            [3, "RX (GPIO3)"],
-                            [4, "D2 (GPIO4)"],
-                            [5, "D1 (GPIO5)"],
-                            [6, "GPIO6"],
-                            [7, "GPIO7"],
-                            [8, "GPIO8"],
-                            [9, "GPIO9"],
-                            [10, "GPIO10"],
-                            [11, "GPIO11"],
-                            [12, "D6 (GPIO12)"],
-                            [13, "D7 (GPIO13)"],
-                            [14, "D5 (GPIO14)"],
-                            [15, "D8 (GPIO15)"],
-                            [16, "D0 (GPIO16 - no IRQ!)"]
-                        ], obj[p[0]]));
-                    }
-                    else {
-                        e.appendChild(sel(p[1], [
-                            [255, "off / default"],
-                            [0,  "GPIO0"],
-                            [1,  "TX (GPIO1)"],
-                            [2,  "GPIO2 (LED)"],
-                            [3,  "RX (GPIO3)"],
-                            [4,  "GPIO4"],
-                            [5,  "GPIO5"],
-                            [12, "GPIO12"],
-                            [13, "GPIO13"],
-                            [14, "GPIO14"],
-                            [15, "GPIO15"],
-                            [16, "GPIO16"],
-                            [17, "GPIO17"],
-                            [18, "GPIO18"],
-                            [19, "GPIO19"],
-                            [21, "GPIO21"],
-                            [22, "GPIO22"],
-                            [23, "GPIO23"],
-                            [25, "GPIO25"],
-                            [26, "GPIO26"],
-                            [27, "GPIO27"],
-                            [32, "GPIO32"],
-                            [33, "GPIO33"],
-                            [34, "GPIO34"],
-                            [35, "GPIO35"],
-                            [36, "VP (GPIO36)"],
-                            [39, "VN (GPIO39)"]
-                        ], obj[p[0]]));
-                    }
+                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]]));
                 }
             }
 
@@ -516,6 +533,29 @@
                 document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
+            function parseDisplay(obj, type) {
+                for(var i of [["logoEn", "logo_en"], ["dispPwr", "disp_pwr"], ["dispPxSh", "px_shift"]])
+                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+
+                var e = document.getElementById("dispPins");
+                pins = [['SCL / CS', 'pinDisp0'], ['SDA / DC', 'pinDisp1']];
+                for(p of pins) {
+                    e.appendChild(lbl(p[1], p[0].toUpperCase()));
+                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]]));
+                }
+
+                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                document.getElementById("dispType").append(
+                    lbl("dispType", "Type"),
+                    sel("dispType", opts, obj["disp_type"])
+                );
+
+                e = document.getElementById("contrast");
+                for(var i = 30; i < 101; i += 2) {
+                    e.appendChild(opt(i, i, (i == obj["contrast"])));
+                }
+            }
+
             function parse(root) {
                 if(null != root) {
                     parseMenu(root["menu"]);
@@ -529,6 +569,7 @@
                     parsePinout(root["pinout"], root["system"]["esp_type"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
+                    parseDisplay(root["display"], root["system"]["esp_type"]);
                 }
             }
 
@@ -555,7 +596,7 @@
             hiddenInput = document.getElementById("disclaimer")
             hiddenInput.value = sessionStorage.getItem("gDisclaimer");
 
-            getAjax("/api/setup", parse);
+            getAjax("http://10.20.3.44/api/setup", parse);
 
         </script>
     </body>

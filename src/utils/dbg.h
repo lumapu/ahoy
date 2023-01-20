@@ -5,7 +5,7 @@
 
 #ifndef __DBG_H__
 #define __DBG_H__
-#if defined(F) //defined(ESP32) &&
+#if defined(F) && defined(ESP32)
   #undef F
   #define F(sl) (sl)
 #endif

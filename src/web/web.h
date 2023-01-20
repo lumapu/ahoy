@@ -562,6 +562,17 @@ class Web {
                 // Needed to log TX buffers to serial console
                 mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
+
+            // display
+            mConfig->plugin.display.pwrSaveAtIvOffline  = (request->arg("dispPwr") == "on");
+            mConfig->plugin.display.logoEn  = (request->arg("logoEn") == "on");
+            mConfig->plugin.display.pxShift  = (request->arg("dispPxSh") == "on");
+            mConfig->plugin.display.type  = request->arg("dispType").toInt();
+            mConfig->plugin.display.contrast  = request->arg("dispCont").toInt();
+            mConfig->plugin.display.pin0  = request->arg("pinDisp0").toInt();
+            mConfig->plugin.display.pin1  = request->arg("pinDisp1").toInt();
+
+
             mApp->saveSettings();
 
             if(request->arg("reboot") == "on")

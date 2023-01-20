@@ -46,10 +46,8 @@ typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
-#if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-    #include "plugins/MonochromeDisplay/MonochromeDisplay.h"
-    typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
-#endif
+#include "plugins/MonochromeDisplay/MonochromeDisplay.h"
+typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
 
 
 class app : public IApp, public ah::Scheduler {
@@ -180,10 +178,8 @@ class app : public IApp, public ah::Scheduler {
 
         void setTimestamp(uint32_t newTime) {
             DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
-            if(0 == newTime) {
-                uint32_t tmp;
-                mWifi.getNtpTime(&tmp);
-            }
+            if(0 == newTime)
+                mWifi.getNtpTime();
             else
                 Scheduler::setTimestamp(newTime);
         }
@@ -269,9 +265,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise, mSunset;
 
         // plugins
-        #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
         MonoDisplayType mMonoDisplay;
-        #endif
 };
 
 #endif /*__APP_H__*/
