@@ -138,7 +138,7 @@ class MonochromeDisplay {
 
                     for (uint8_t fld = 0; fld < 3; fld++) {
                         pos = iv->getPosByChFld(CH0, list[fld],rec);
-                        int isprod = iv->isProducing(*mUtcTs,rec);
+                        int isprod = iv->isProducing(*mUtcTs);
 
                         if(fld == 1)
                         {
