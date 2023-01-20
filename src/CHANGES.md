@@ -6,6 +6,7 @@
 * fix wakeup issue, once wifi was lost during night the communication didn't start in the morning
 * reenabled FlashStringHelper because of lacking RAM
 * complete rewrite of monochrome display class, thx to @dAjaY85 -> displays are now configurable in setup
+* fix power limit not possible #607
 
 ## 0.5.74
 * improved payload handling (retransmit all fragments on CRC error)

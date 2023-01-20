@@ -282,6 +282,7 @@ class Inverter {
                 else if (rec->assign == InfoAssignment) {
                     DPRINTLN(DBG_DEBUG, "add info");
                     // eg. fw version ...
+                    isConnected = true;
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
@@ -289,7 +290,6 @@ class Inverter {
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
                         DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
-                        isConnected = true;
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {
