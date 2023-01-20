@@ -56,21 +56,6 @@ def readVersion(path, infile):
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp8266_nokia5110.bin"
-    src = path + ".pio/build/esp8266-nokia5110/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp8266_ssd1306.bin"
-    src = path + ".pio/build/esp8266-ssd1306/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp8266_sh1106.bin"
-    src = path + ".pio/build/esp8266-sh1106/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
     
     versionout = version[:-1] + "_" + sha + "_esp8285.bin"
     src = path + ".pio/build/esp8285-release/firmware.bin"
@@ -80,21 +65,6 @@ def readVersion(path, infile):
 
     versionout = version[:-1] + "_" + sha + "_esp32.bin"
     src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp32_nokia5110.bin"
-    src = path + ".pio/build/esp32-wroom32-nokia5110/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp32_ssd1306.bin"
-    src = path + ".pio/build/esp32-wroom32-ssd1306/firmware.bin"
-    dst = path + "firmware/" + versionout
-    os.rename(src, dst)
-
-    versionout = version[:-1] + "_" + sha + "_esp32_sh1106.bin"
-    src = path + ".pio/build/esp32-wroom32-sh1106/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
