@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.76
+* reduce MQTT retry interval from maximum speed to one second
+* fixed homeassistant autodiscovery #565
+
 ## 0.5.75
 * fix wakeup issue, once wifi was lost during night the communication didn't start in the morning
 * reenabled FlashStringHelper because of lacking RAM

@@ -46,6 +46,7 @@ class PubMqtt {
             mSys             = sys;
             mUtcTimestamp    = utcTs;
             mIntervalTimeout = 1;
+            mReconnectRequest = false;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
@@ -66,6 +67,7 @@ class PubMqtt {
         }
 
         void connect() {
+            mReconnectRequest = false;
             if(!mClient.connected())
                 mClient.connect();
         }
@@ -80,7 +82,10 @@ class PubMqtt {
                     sendIvData();
                 }
             }
-
+            if(mReconnectRequest) {
+                connect();
+                return;
+            }
         }
 
         void tickerMinute() {
@@ -147,12 +152,21 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            if(addTopic) {
-                String topic = String(mCfgMqtt->topic) + "/" + String(subTopic);
-                mClient.publish(topic.c_str(), QOS_0, retained, payload);
-            }
-            else
-                mClient.publish(subTopic, QOS_0, retained, payload);
+            String topic = "";
+            if(addTopic)
+                topic = String(mCfgMqtt->topic) + "/";
+            topic += String(subTopic);
+
+            do {
+                if(0 != mClient.publish(topic.c_str(), QOS_0, retained, payload))
+                    break;
+                if(!mClient.connected())
+                    break;
+
+                mClient.loop();
+                yield();
+            } while(1);
+
             mTxCnt++;
         }
 
@@ -181,7 +195,7 @@ class PubMqtt {
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
-            char topic[64], buffer[512], name[32], uniq_id[32];
+            char topic[64], name[32], uniq_id[32];
             DynamicJsonDocument doc(512);
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
@@ -221,8 +235,12 @@ class PubMqtt {
                         doc[F("stat_cla")] = String(stateCls);
 
                     snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                    serializeJson(doc, buffer);
-                    publish(topic, buffer, true, false);
+                    size_t size = measureJson(doc) + 1;
+                    char *buf = new char[size];
+                    memset(buf, 0, size);
+                    serializeJson(doc, buf, size);
+                    publish(topic, buf, true, false);
+                    delete[] buf;
                 }
 
                 yield();
@@ -258,7 +276,7 @@ class PubMqtt {
             switch (reason) {
                 case espMqttClientTypes::DisconnectReason::TCP_DISCONNECTED:
                     DBGPRINTLN(F("TCP disconnect"));
-                    connect();
+                    mReconnectRequest = true;
                     break;
                 case espMqttClientTypes::DisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
                     DBGPRINTLN(F("wrong protocol version"));
@@ -561,6 +579,7 @@ class PubMqtt {
         std::queue<uint8_t> mSendList;
         subscriptionCb mSubscriptionCb;
         bool mIvAvail; // shows if at least one inverter is available
+        bool mReconnectRequest;
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 

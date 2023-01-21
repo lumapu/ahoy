@@ -43,8 +43,6 @@ static TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central Eu
 template<class HMSYSTEM>
 class MonochromeDisplay {
     public:
-        uint8_t dispContrast = 60;
-
         MonochromeDisplay() : mCE(CEST, CET) {}
 
         void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
@@ -75,6 +73,7 @@ class MonochromeDisplay {
                 mDisplay->clearBuffer();
                 mDisplay->setContrast(mCfg->contrast);
                 printText("Ahoy!", 0, 35);
+                printText("ahoydtu.de", 2, 20);
                 printText(version, 3, 46);
                 mDisplay->sendBuffer();
             }
@@ -193,7 +192,7 @@ class MonochromeDisplay {
 
         void printText(const char* text, uint8_t line, uint8_t dispX = 5) {
             if(!mIsLarge)
-                dispX = 5;
+                dispX = (line == 0) ? 10 : 5;
             setFont(line);
             if(mCfg->pxShift)
                 dispX += (_mExtra % 7); // add pixel movement
