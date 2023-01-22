@@ -25,7 +25,6 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
-    mLastNtpFailed = false;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -70,6 +69,7 @@ void ahoywifi::tickWifiLoop() {
                 DBGPRINTLN(F("AP client connected"));
                 welcome(mApIp.toString());
                 WiFi.mode(WIFI_AP);
+                mAppWifiCb(true);
             }
             return;
         }
@@ -148,25 +148,16 @@ void ahoywifi::setupStation(void) {
 
 
 //-----------------------------------------------------------------------------
-bool ahoywifi::getNtpTime() {
-    if(mLastNtpFailed && (0 != *mUtcTimestamp)) { // time is available, but NTP not maybe it was set by "sync with browser"
-        mLastNtpFailed = false;
-        return true; // true is necessary to enable all timers even if NTP was not reachable
-    }
-
-    if(GOT_IP != mStaConn) {
-        mLastNtpFailed = true;
+bool ahoywifi::getNtpTime(void) {
+    if(GOT_IP != mStaConn)
         return false;
-    }
 
     IPAddress timeServer;
     uint8_t buf[NTP_PACKET_SIZE];
     uint8_t retry = 0;
 
-    if (WiFi.hostByName(mConfig->ntp.addr, timeServer) != 1) {
-        mLastNtpFailed = true;
+    if (WiFi.hostByName(mConfig->ntp.addr, timeServer) != 1)
         return false;
-    }
 
     mUdp.begin(mConfig->ntp.port);
     sendNTPpacket(timeServer);
@@ -191,7 +182,6 @@ bool ahoywifi::getNtpTime() {
     }
 
     DPRINTLN(DBG_INFO, F("[NTP]: getNtpTime failed"));
-    mLastNtpFailed = true;
     return false;
 }
 
@@ -274,7 +264,6 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
             if(mStaConn != CONNECTING) {
                 mStaConn = DISCONNECTED;
                 mCnt       = 5;     // try to reconnect in 5 sec
-                mLastNtpFailed = false;
                 setupWifi();        // reconnect with AP / Station setup
                 mAppWifiCb(false);
                 DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");

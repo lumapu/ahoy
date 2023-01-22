@@ -28,7 +28,7 @@ void app::setup() {
     mSys = new HmSystemType();
     mSys->enableDebug();
     mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mPayload.addListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
     #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
@@ -54,6 +54,7 @@ void app::setup() {
     if (mMqttEnabled) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
+        mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
     #endif
     setupLed();
@@ -134,6 +135,8 @@ void app::onWifi(bool gotIp) {
         mMqttReconnect = true;
         mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+        if(WIFI_AP == WiFi.getMode())
+            everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     }
     else {
         mInnerLoopCb = std::bind(&app::loopWifi, this);
@@ -154,7 +157,8 @@ void app::regularTickers(void) {
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    if (mWifi.getNtpTime()) {
+    bool isOK = mWifi.getNtpTime();
+    if (isOK || mTimestamp != 0) {
         if (mMqttReconnect && mMqttEnabled) {
             mMqtt.connect();
             everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
@@ -166,7 +170,7 @@ void app::tickNtpUpdate(void) {
             mMqttReconnect = false;
         }
 
-        nxtTrig = 43200; // check again in 12h
+        nxtTrig = isOK ? 43200 : 60; // depending on NTP update success check again in 12 h or in 1 min
 
         if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;

@@ -26,6 +26,13 @@
 
 typedef std::function<void(JsonObject)> subscriptionCb;
 
+struct alarm_t {
+    uint16_t code;
+    uint32_t start;
+    uint32_t end;
+    alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
+};
+
 template<class HMSYSTEM>
 class PubMqtt {
     public:
@@ -145,6 +152,12 @@ class PubMqtt {
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
                 if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
                     mSendList.push(cmd);
+            }
+        }
+
+        void alarmEventListener(uint16_t code, uint32_t start, uint32_t endTime) {
+            if(mClient.connected()) {
+                mAlarmList.push(alarm_t(code, start, endTime));
             }
         }
 
@@ -436,6 +449,19 @@ class PubMqtt {
             return totalComplete;
         }
 
+        void sendAlarmData() {
+            if(mAlarmList.empty())
+                return;
+            Inverter<> *iv = mSys->getInverterByPos(0, false);
+            while(!mAlarmList.empty()) {
+                alarm_t alarm = mAlarmList.front();
+                publish("alarm", iv->getAlarmStr(alarm.code).c_str());
+                publish("alarm_start", String(alarm.start).c_str());
+                publish("alarm_end", String(alarm.end).c_str());
+                mAlarmList.pop();
+            }
+        }
+
         void sendIvData(bool sendTotals = true) {
             if(mSendList.empty())
                 return;
@@ -577,6 +603,7 @@ class PubMqtt {
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;
         std::queue<uint8_t> mSendList;
+        std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
         bool mIvAvail; // shows if at least one inverter is available
         bool mReconnectRequest;

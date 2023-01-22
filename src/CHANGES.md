@@ -5,6 +5,8 @@
 ## 0.5.76
 * reduce MQTT retry interval from maximum speed to one second
 * fixed homeassistant autodiscovery #565
+* implemented `getNTPTime` improvements #609 partially #611
+* added alarm messages to MQTT #177, #600, #608
 
 ## 0.5.75
 * fix wakeup issue, once wifi was lost during night the communication didn't start in the morning

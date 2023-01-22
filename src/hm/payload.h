@@ -8,7 +8,6 @@
 
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
-#include "../utils/handler.h"
 #include "../config/config.h"
 #include <Arduino.h>
 
@@ -29,12 +28,13 @@ typedef struct {
 
 
 typedef std::function<void(uint8_t)> payloadListenerType;
+typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
 
 
 template<class HMSYSTEM>
-class Payload : public Handler<payloadListenerType> {
+class Payload {
     public:
-        Payload() : Handler() {}
+        Payload() {}
 
         void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
@@ -53,10 +53,12 @@ class Payload : public Handler<payloadListenerType> {
             mSerialDebug = enable;
         }
 
-        void notify(uint8_t val) {
-            for(typename std::list<payloadListenerType>::iterator it = mList.begin(); it != mList.end(); ++it) {
-               (*it)(val);
-            }
+        void addPayloadListener(payloadListenerType cb) {
+            mCbPayload = cb;
+        }
+
+        void addAlarmListener(alarmListenerType cb) {
+            mCbAlarm = cb;
         }
 
         void loop() {
@@ -258,9 +260,13 @@ class Payload : public Handler<payloadListenerType> {
 
                             if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
+                                uint16_t code;
+                                uint32_t start, end;
                                 while(1) {
-                                    if(!iv->parseAlarmLog(i++, payload, payloadLen))
+                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                                    if(0 == code)
                                         break;
+                                    (mCbAlarm)(code, start, end);
                                     yield();
                                 }
                             }
@@ -279,6 +285,14 @@ class Payload : public Handler<payloadListenerType> {
         }
 
     private:
+        void notify(uint8_t val) {
+            (mCbPayload)(val);
+        }
+
+        void notify(uint16_t code, uint32_t start, uint32_t endTime) {
+            (mCbAlarm)(code, start, endTime);
+        }
+
         bool build(uint8_t id, bool *complete) {
             DPRINTLN(DBG_VERBOSE, F("build"));
             uint16_t crc = 0xffff, crcRcv = 0x0000;
@@ -329,6 +343,9 @@ class Payload : public Handler<payloadListenerType> {
         invPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
         Inverter<> *mHighPrioIv;
+
+        alarmListenerType mCbAlarm;
+        payloadListenerType mCbPayload;
 };
 
 #endif /*__PAYLOAD_H_*/

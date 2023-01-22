@@ -25,7 +25,7 @@ class ahoywifi {
 
         void setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb);
         void tickWifiLoop(void);
-        bool getNtpTime();
+        bool getNtpTime(void);
         void scanAvailNetworks(void);
         void getAvailNetworks(JsonObject obj);
 
@@ -68,7 +68,10 @@ class ahoywifi {
 
         uint8_t mLoopCnt;
         bool mScanActive;
-        bool mLastNtpFailed;
+
+        void sortRSSI(int *sort, int n);
+        void getBSSIDs(void);
+        std::list<uint8_t> mBSSIDList;
 };
 
 #endif /*__AHOYWIFI_H__*/

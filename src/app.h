@@ -195,9 +195,8 @@ class app : public IApp, public ah::Scheduler {
             #if !defined(AP_ONLY)
             mMqtt.payloadEventListener(cmd);
             #endif
-            #if defined(ENA_NOKIA) || defined(ENA_SSD1306) || defined(ENA_SH1106)
-            mMonoDisplay.payloadEventListener(cmd);
-            #endif
+            if(mConfig->plugin.display.type != 0)
+                mMonoDisplay.payloadEventListener(cmd);
         }
 
         void mqttSubRxCb(JsonObject obj);

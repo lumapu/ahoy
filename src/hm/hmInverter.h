@@ -286,7 +286,6 @@ class Inverter {
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
-                    // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
                         DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
@@ -451,10 +450,10 @@ class Inverter {
             }
         }
 
-        bool parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
+        uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
-                return false;
+                return 0;
 
             uint16_t wCode = ((uint16_t)pyld[startOff]) << 8 | pyld[startOff+1];
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
@@ -464,11 +463,11 @@ class Inverter {
             if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
                 endTimeOffset = 12 * 60 * 60;
 
-            uint32_t start = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
-            uint32_t end   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
+            *start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
+            *endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
 
-            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(end));
-            return true;
+            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(*start) + ", end: " + ah::getTimeStr(*endTime));
+            return pyld[startOff+1];
         }
 
         String getAlarmStr(uint16_t alarmCode) {
