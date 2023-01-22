@@ -1,4 +1,13 @@
 
+
+
+
+### do not use further, location of file moved
+
+
+
+
+
 package main;
 use strict;
 use warnings;
@@ -133,7 +142,7 @@ sub ahoyUL_Read($)
   #Log3 $name, 5, "ahoyUL ($name) - received: $buf"; 
 
 	my $pandata = $hash->{PARTIAL};
-	Log3 $name, 5, "ahoyUL/RAW: $pandata + $buf";
+	Log3 $name, 4, "ahoyUL_Read: $pandata + $buf";
 	$pandata .= $buf;
 
 	while ( $pandata =~ m/\n/ ) {											        # while-loop as long as "\n" in $pandata
@@ -150,7 +159,7 @@ sub ahoyUL_Read($)
 sub ahoyUL_Parse($$$$)
 {
     my ( $hash, $iohash, $name, $rmsg) = @_;
-    Log3 $name, 3, "ahoyUL: $rmsg";
+    Log3 $name, 3, "ahoyUL_Parse: $rmsg";
 
     $last_hour = $hour;
     ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst) = localtime();
@@ -179,7 +188,8 @@ sub ahoyUL_Parse($$$$)
             #stop rmac collection insufficiently if OK missed
             $hash->{RMAC_started} = 0;
             $hash->{RMAC_complete} = 0;
-        }
+
+        }#end if-elsif()
     
     } elsif($rmsg =~ m/payload/) {
         # user payload
@@ -189,7 +199,7 @@ sub ahoyUL_Parse($$$$)
         # decoded message from arduino
         readingsSingleUpdate($hash, "dec_$1", $rmsg , 1);
         if ($1 eq "ch00") {
-            #end
+            #end of decoding output
             readingsSingleUpdate($hash, "yield_dc", "day $yield_day Wh  total $yield_total kWh" , 1);
             $yield_day = 0;
             $yield_total = 0;

@@ -472,8 +472,10 @@ class SerialUtils {
      *
      *
      * prints the byte array either as 3 digit uint8_t or 2digit hex string
+     * 
+     * hint: for ESP8266 *_sep and *_end must not be NULL, otherwise Crash, Arduino Nano works with NULL
      */
-    void print_bytes(uint8_t *_buf, uint8_t _blen, const char *_sep, bool _asHex) {
+    void print_bytes(uint8_t *_buf, uint8_t _blen, const char *_sep, bool _asHex, const char *_end = "" ) {
         volatile uint8_t _i = 0;
 
         if (_asHex) {
@@ -490,7 +492,10 @@ class SerialUtils {
             }
             _i++;
         }  // end while()
-    }      // end print_bytes
+
+        if(*_end) Serial.print(_end);
+
+    } // end print_bytes
 
    private:
 };
