@@ -175,8 +175,9 @@ class PubMqtt {
                     break;
                 if(!mClient.connected())
                     break;
-
+                #if defined(ESP8266)
                 mClient.loop();
+                #endif
                 yield();
             } while(1);
 
