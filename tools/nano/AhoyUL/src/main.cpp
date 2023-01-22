@@ -172,7 +172,7 @@ void setup() {
     // radio_id[0] = (uint8_t) 0x01;
     // swap_bytes( &radio_id[1], (uint32_t)IV1_RADIO_ID );
 
-    // assign inverter ID to the payload structure
+    // assign inverter ID to the payload structure at index 0 for default inverter
     mPayload[0].invId[0] = (uint8_t)0x01;
     swap_bytes(&mPayload[0].invId[1], (uint32_t)IV1_RADIO_ID);  // high byte is at lowest index
     mPayload[0].invType = (uint16_t)(IV1_RADIO_ID >> 32);       // keep just upper 6 and 5th byte (e.g.0x1141) of interter plate id for type
@@ -864,8 +864,8 @@ void mSwitchCasesSer(char _inSer) {
                         // get inverter index and inverter ID from parameter 2 and 3
                         if (utSer.uart_cmd_add_inverter_parsing(&mParams[1], MAX_SER_PARAM, &invIX, &invType, &invID5[0])) {
                             // write to inverter structure at given index
-                            //mPayload[invIX].invType = invType;
-                            //memcpy(mPayload[invIX].invId, &invID5[0], 5);
+                            mPayload[invIX].invType = invType;
+                            memcpy(mPayload[invIX].invId, &invID5[0], 5);
                             m_inv_ix = invIX;
                             DPRINT(DBG_INFO, F(" OK"));
                             // todo: save inverter list to eeprom depending on 4th parameter (e.g ":eep:" )
@@ -935,7 +935,7 @@ void mSwitchCasesSer(char _inSer) {
                             payload_used[m_inv_ix] = !resetPayload(&mPayload[m_inv_ix]);
                             mPayload[m_inv_ix].isMACPacket = true;  // MAC must be enabled to show the full MAC packet, no need for user_payload
                             mPayload[m_inv_ix].receive = false;
-                            hmRadio.sendPacket_raw(&mPayload[0].invId[0], &rfTX_packet, rxch);  // 2022-10-30: byte array transfer working
+                            hmRadio.sendPacket_raw(&mPayload[m_inv_ix].invId[0], &rfTX_packet, rxch);               // 2022-10-30: byte array transfer working first time
                             mPayload[m_inv_ix].requested = true;
                             mPayload[m_inv_ix].invType = 0x1111;  // used as dummy type, decode works external only with known type
 
