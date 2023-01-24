@@ -359,6 +359,7 @@ class RestApi {
             obj[F("disp_pwr")]  = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
             obj[F("logo_en")]   = (bool)mConfig->plugin.display.logoEn;
             obj[F("px_shift")]  = (bool)mConfig->plugin.display.pxShift;
+            obj[F("rot180")]    = (bool)mConfig->plugin.display.rot180;
             obj[F("contrast")]  = (uint8_t)mConfig->plugin.display.contrast;
             obj[F("pinDisp0")]  = mConfig->plugin.display.pin0;
             obj[F("pinDisp1")]  = mConfig->plugin.display.pin1;

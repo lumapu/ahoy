@@ -565,12 +565,13 @@ class Web {
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline  = (request->arg("dispPwr") == "on");
-            mConfig->plugin.display.logoEn  = (request->arg("logoEn") == "on");
+            mConfig->plugin.display.logoEn   = (request->arg("logoEn") == "on");
             mConfig->plugin.display.pxShift  = (request->arg("dispPxSh") == "on");
-            mConfig->plugin.display.type  = request->arg("dispType").toInt();
-            mConfig->plugin.display.contrast  = request->arg("dispCont").toInt();
-            mConfig->plugin.display.pin0  = request->arg("pinDisp0").toInt();
-            mConfig->plugin.display.pin1  = request->arg("pinDisp1").toInt();
+            mConfig->plugin.display.rot180   = (request->arg("disp180") == "on");
+            mConfig->plugin.display.type     = request->arg("dispType").toInt();
+            mConfig->plugin.display.contrast = request->arg("dispCont").toInt();
+            mConfig->plugin.display.pin0     = request->arg("pinDisp0").toInt();
+            mConfig->plugin.display.pin1     = request->arg("pinDisp1").toInt();
 
 
             mApp->saveSettings();
@@ -735,34 +736,76 @@ class Web {
         void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
             String metrics;
-            char headline[80];
+            char infoline[90];
 
-            snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mConfig->sys.deviceName);
-            metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
+            // System info
+            snprintf(infoline, sizeof(infoline), "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mConfig->sys.deviceName);
+            metrics += "# TYPE ahoy_solar_info gauge\n" + String(infoline) + "\n";
             Inverter<> *iv;
             record_t<> *rec;
-            char type[60], topic[60], val[25];
+            char type[60], topic[80], val[25];
             for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 iv = mSys->getInverterByPos(id);
                 if(NULL == iv)
                     continue;
+                // Inverter info
+                snprintf(infoline, sizeof(infoline), "ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\",enabled=\"%d\"} 1",
+                    iv->config->name, iv->config->serial.u64,iv->config->enabled);
+                metrics += "# TYPE ahoy_solar_inverter_info gauge\n" + String(infoline) + "\n";
 
+                // AC
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 for(uint8_t i = 0; i < rec->length; i++) {
                     uint8_t channel = rec->assign[i].ch;
                     if(channel == 0) {
                         String promUnit, promType;
                         std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(i, rec));
-                        snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i, rec), promUnit.c_str(), promType.c_str());
-                        snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i, rec), promUnit.c_str(), iv->config->name);
-                        snprintf(val, 25, "%.3f", iv->getValue(i, rec));
+                        snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i, rec), promUnit.c_str(), promType.c_str());
+                        snprintf(topic, sizeof(topic), "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i, rec), promUnit.c_str(), iv->config->name);
+                        snprintf(val, sizeof(val), "%.3f", iv->getValue(i, rec));
+                        metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
+                    }
+                }
+                // channels DC
+                for(uint8_t j = 1; j <= iv->channels; j ++) {
+                    uint8_t pos;
+                    for (uint8_t k = 0; k < 6; k++) {
+                        switch(k) {
+                            default: pos = (iv->getPosByChFld(j, FLD_UDC, rec)); break;
+                            case 1:  pos = (iv->getPosByChFld(j, FLD_IDC, rec)); break;
+                            case 2:  pos = (iv->getPosByChFld(j, FLD_PDC, rec)); break;
+                            case 3:  pos = (iv->getPosByChFld(j, FLD_YD, rec));  break;
+                            case 4:  pos = (iv->getPosByChFld(j, FLD_YT, rec));  break;
+                            case 5:  pos = (iv->getPosByChFld(j, FLD_IRR, rec)); break;
+                        }
+                        String promUnit, promType;
+                        std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(pos, rec));
+                        snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(pos, rec), promUnit.c_str(), promType.c_str());
+                        snprintf(topic, sizeof(topic), "ahoy_solar_%s_%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(pos, rec), promUnit.c_str(), iv->config->name, iv->config->chName[j-1]);
+                        snprintf(val, sizeof(val), "%.3f", iv->getValue(pos, rec));
                         metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
                     }
                 }
             }
 
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), metrics);
+            // NRF Statistics
+            statistics_t *stat = mApp->getStatistics();
+            metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
+            metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
+            metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
+            metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
+            metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
+
+            AsyncWebServerResponse *response = request->beginResponse(200, F("text/plain"), metrics);
             request->send(response);
+        }
+
+        String radioStatistic(String statistic, uint32_t value) {
+            char type[60], topic[80], val[25];
+            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s gauge",statistic.c_str());
+            snprintf(topic, sizeof(topic), "ahoy_solar_radio_%s",statistic.c_str());
+            snprintf(val, sizeof(val), "%d", value);
+            return ( String(type) + "\n" + String(topic) + " " + String(val) + "\n");
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {

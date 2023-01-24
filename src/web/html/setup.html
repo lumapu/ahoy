@@ -192,6 +192,8 @@
                         <input type="checkbox" class="cb" name="dispPwr"/><br/>
                         <label for="dispPxSh">Enable pixel shifting</label>
                         <input type="checkbox" class="cb" name="dispPxSh"/><br/>
+                        <label for="disp180">Rotate 180 degree</label>
+                        <input type="checkbox" class="cb" name="disp180"/><br/>
 
                         <label for="dispCont">Contrast</label>
                         <select name="dispCont" id="contrast"></select>
@@ -534,7 +536,7 @@
             }
 
             function parseDisplay(obj, type) {
-                for(var i of [["logoEn", "logo_en"], ["dispPwr", "disp_pwr"], ["dispPxSh", "px_shift"]])
+                for(var i of [["logoEn", "logo_en"], ["dispPwr", "disp_pwr"], ["dispPxSh", "px_shift"], ["disp180", "rot180"]])
                     document.getElementsByName(i[0])[0].checked = obj[i[1]];
 
                 var e = document.getElementById("dispPins");

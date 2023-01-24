@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.77
+* fix wrong filename for automatically created manifest (online installer) #620
+* added rotate display feature #619
+* improved Prometheus endpoint #615, thx to fsck-block
+
 ## 0.5.76
 * reduce MQTT retry interval from maximum speed to one second
 * fixed homeassistant autodiscovery #565

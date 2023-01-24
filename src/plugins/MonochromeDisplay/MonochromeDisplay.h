@@ -51,18 +51,20 @@ class MonochromeDisplay {
             mUtcTs = utcTs;
             mNewPayload = false;
             mLoopCnt = 0;
-
             mTimeout = DISP_DEFAULT_TIMEOUT; // power off timeout (after inverters go offline)
+
+            u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot180) ? U8G2_R2 : U8G2_R0);
+
             if(mCfg->type) {
                 switch(mCfg->type) {
                     case 1:
-                        mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(U8G2_R0, mCfg->pin0, mCfg->pin1, disp_reset);
+                        mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(rot, mCfg->pin0, mCfg->pin1, disp_reset);
                         break;
                     case 2:
-                        mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(U8G2_R0, disp_reset, mCfg->pin0, mCfg->pin1);
+                        mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, disp_reset, mCfg->pin0, mCfg->pin1);
                         break;
                     case 3:
-                        mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(U8G2_R0, disp_reset, mCfg->pin0, mCfg->pin1);
+                        mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, disp_reset, mCfg->pin0, mCfg->pin1);
                         break;
                 }
                 mDisplay->begin();

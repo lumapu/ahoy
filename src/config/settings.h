@@ -122,6 +122,7 @@ typedef struct {
     bool pwrSaveAtIvOffline;
     bool logoEn;
     bool pxShift;
+    bool rot180;
     uint16_t wakeUp;
     uint16_t sleepAt;
     uint8_t contrast;
@@ -340,6 +341,7 @@ class settings {
             mCfg.plugin.display.contrast           = 60;
             mCfg.plugin.display.logoEn             = true;
             mCfg.plugin.display.pxShift            = true;
+            mCfg.plugin.display.rot180             = false;
             mCfg.plugin.display.pin0               = DEF_PIN_OFF; // SCL
             mCfg.plugin.display.pin1               = DEF_PIN_OFF; // SDA
         }
@@ -471,6 +473,7 @@ class settings {
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
                 disp[F("logo")]     = (bool)mCfg.plugin.display.logoEn;
                 disp[F("pxShift")]  = (bool)mCfg.plugin.display.pxShift;
+                disp[F("rot180")]   = (bool)mCfg.plugin.display.rot180;
                 disp[F("wake")]     = mCfg.plugin.display.wakeUp;
                 disp[F("sleep")]    = mCfg.plugin.display.sleepAt;
                 disp[F("contrast")] = mCfg.plugin.display.contrast;
@@ -482,6 +485,7 @@ class settings {
                 mCfg.plugin.display.pwrSaveAtIvOffline = (bool) disp[F("pwrSafe")];
                 mCfg.plugin.display.logoEn             = (bool) disp[F("logo")];
                 mCfg.plugin.display.pxShift            = (bool) disp[F("pxShift")];
+                mCfg.plugin.display.rot180             = (bool) disp[F("rot180")];
                 mCfg.plugin.display.wakeUp             = disp[F("wake")];
                 mCfg.plugin.display.sleepAt            = disp[F("sleep")];
                 mCfg.plugin.display.contrast           = disp[F("contrast")];
