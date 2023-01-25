@@ -93,7 +93,8 @@ class Response:
 
 class StatusResponse(Response):
     """Inverter StatusResponse object"""
-    e_keys  = ['voltage','current','power','energy_total','energy_daily','powerfactor', 'reactive_power', 'irradiation']
+    phase_keys  = ['voltage','current','power','reactive_power','frequency']
+    string_keys  = ['voltage','current','power','energy_total','energy_daily', 'irradiation']
     temperature = None
     frequency = None
     powerfactor = None
@@ -125,7 +126,7 @@ class StatusResponse(Response):
             p_exists = False
             phase_id = len(phases)
             phase = {}
-            for key in self.e_keys:
+            for key in self.phase_keys:
                 prop = f'ac_{key}_{phase_id}'
                 if hasattr(self, prop):
                     p_exists = True
@@ -149,7 +150,7 @@ class StatusResponse(Response):
             s_exists = False
             string_id = len(strings)
             string = {}
-            for key in self.e_keys:
+            for key in self.string_keys:
                 prop = f'dc_{key}_{string_id}'
                 if hasattr(self, prop):
                     s_exists = True
@@ -170,14 +171,27 @@ class StatusResponse(Response):
         data['phases'] = self.phases
         data['strings'] = self.strings
         data['temperature'] = self.temperature
-        data['frequency'] = self.frequency
         data['powerfactor'] = self.powerfactor
+
+        data['yield_total'] = 0.0
+        data['yield_today'] = 0.0
+        for string in data['strings']:
+            data['yield_total'] += string['energy_total']
+            data['yield_today'] += string['energy_daily']
+
+        ac_sum_power = 0.0
+        for phase in data['phases']:
+            ac_sum_power += phase['power']
+        dc_sum_power = 0.0
+        for string in data['strings']:
+            dc_sum_power += string['power']
+        if dc_sum_power != 0:
+           data['efficiency'] = round(ac_sum_power * 100 / dc_sum_power, 2)
+        else:
+           data['efficiency'] = 0.0
+
         data['event_count'] = self.event_count
         data['time'] = self.time_rx
-
-        data['energy_total'] = 0.0
-        for string in data['strings']:
-            data['energy_total'] += string['energy_total']
 
         return data
 
@@ -469,7 +483,7 @@ class Hm300Decode0B(StatusResponse):
         """ Phase 1 watts """
         return self.unpack('>H', 18)[0]/10
     @property
-    def frequency(self):
+    def ac_frequency_0(self):
         """ Grid frequency in Hertz """
         return self.unpack('>H', 16)[0]/100
     @property
@@ -568,7 +582,7 @@ class Hm600Decode0B(StatusResponse):
         """ Phase 1 watts """
         return self.unpack('>H', 30)[0]/10
     @property
-    def frequency(self):
+    def ac_frequency_0(self):
         """ Grid frequency in Hertz """
         return self.unpack('>H', 28)[0]/100
     @property
@@ -729,7 +743,7 @@ class Hm1200Decode0B(StatusResponse):
         """ Phase 1 watts """
         return self.unpack('>H', 50)[0]/10
     @property
-    def frequency(self):
+    def ac_frequency_0(self):
         """ Grid frequency in Hertz """
         return self.unpack('>H', 48)[0]/100
     @property

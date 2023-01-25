@@ -10,11 +10,6 @@ import logging
 from datetime import datetime, timezone
 from hoymiles.decoders import StatusResponse, HardwareInfoResponse
 
-try:
-    from influxdb_client import InfluxDBClient
-except ModuleNotFoundError:
-    pass
-
 class OutputPluginFactory:
     def __init__(self, **params):
         """
@@ -59,10 +54,19 @@ class InfluxOutputPlugin(OutputPluginFactory):
         """
         super().__init__(**params)
 
+        try:
+            from influxdb_client import InfluxDBClient
+        except ModuleNotFoundError:
+            ErrorText1 = f'Module "influxdb_client" for INFLUXDB necessary.'
+            ErrorText2 = f'Install module with command: python3 -m pip install influxdb_client'
+            print(ErrorText1, ErrorText2)
+            logging.error(ErrorText1)
+            logging.error(ErrorText2)
+            exit()
+
         self._bucket = params.get('bucket', 'hoymiles/autogen')
         self._org = params.get('org', '')
-        self._measurement = params.get('measurement',
-                f'inverter,host={socket.gethostname()}')
+        self._measurement = params.get('measurement', f'inverter,host={socket.gethostname()}')
 
         client = InfluxDBClient(url, token, bucket=self._bucket)
         self.api = client.write_api()
@@ -105,6 +109,7 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},phase={phase_id},type=current value={phase["current"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=power value={phase["power"]} {ctime}')
             data_stack.append(f'{measurement},phase={phase_id},type=Q_AC value={phase["reactive_power"]} {ctime}')
+            data_stack.append(f'{measurement},phase={phase_id},type=frequency value={phase["frequency"]:.3f} {ctime}')
             phase_id = phase_id + 1
 
         # DC Data
@@ -115,27 +120,22 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},string={string_id},type=power value={string["power"]:.2f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=YieldDay value={string["energy_daily"]:.2f} {ctime}')
             data_stack.append(f'{measurement},string={string_id},type=YieldTotal value={string["energy_total"]/1000:.4f} {ctime}')
-            if 'irradiation' in string:
-              data_stack.append(f'{measurement},string={string_id},type=Irradiation value={string["irradiation"]:.2f} {ctime}')
+            data_stack.append(f'{measurement},string={string_id},type=Irradiation value={string["irradiation"]:.2f} {ctime}')
             string_id = string_id + 1
 
         # Global
         if data['event_count'] is not None:
             data_stack.append(f'{measurement},type=total_events value={data["event_count"]} {ctime}')
         if data['powerfactor'] is not None:
-            data_stack.append(f'{measurement},type=pf value={data["powerfactor"]:f} {ctime}')
-        data_stack.append(f'{measurement},type=frequency value={data["frequency"]:.3f} {ctime}')
-
+            data_stack.append(f'{measurement},type=PF_AC value={data["powerfactor"]:f} {ctime}')
         data_stack.append(f'{measurement},type=Temp value={data["temperature"]:.2f} {ctime}')
-        if data['energy_total'] is not None:
-            data_stack.append(f'{measurement},type=total value={data["energy_total"]/1000:.3f} {ctime}')
+        if data['yield_total'] is not None:
+            data_stack.append(f'{measurement},type=YieldTotal value={data["yield_total"]/1000:.3f} {ctime}')
+        if data['yield_today'] is not None:
+            data_stack.append(f'{measurement},type=YieldToday value={data["yield_today"]/1000:.3f} {ctime}')
+        data_stack.append(f'{measurement},type=Efficiency value={data["efficiency"]:.2f} {ctime}')
 
         self.api.write(self._bucket, self._org, data_stack)
-
-try:
-    import paho.mqtt.client
-except ModuleNotFoundError:
-    pass
 
 class MqttOutputPlugin(OutputPluginFactory):
     """ Mqtt output plugin """
@@ -163,6 +163,16 @@ class MqttOutputPlugin(OutputPluginFactory):
         :type topic: str
         """
         super().__init__(**params)
+
+        try:
+            import paho.mqtt.client
+        except ModuleNotFoundError:
+            ErrorText1 = f'Module "paho.mqtt.client" for MQTT-output necessary.'
+            ErrorText2 = f'Install module with command: python3 -m pip install paho-mqtt'
+            print(ErrorText1, ErrorText2)
+            logging.error(ErrorText1)
+            logging.error(ErrorText2)
+            exit()
 
         mqtt_client = paho.mqtt.client.Client()
         if config.get('useTLS',False):
@@ -196,33 +206,41 @@ class MqttOutputPlugin(OutputPluginFactory):
 
             # AC Data
             phase_id = 0
+            phase_sum_power = 0
             for phase in data['phases']:
-                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
                 self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
                 self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
                 self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/frequency', phase['frequency'])
                 phase_id = phase_id + 1
+                phase_sum_power += phase['power']
 
             # DC Data
             string_id = 0
+            string_sum_power = 0
             for string in data['strings']:
                 self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
                 self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
                 self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
                 self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
                 self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
-                if 'irradiation' in string:
-                    self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
                 string_id = string_id + 1
+                string_sum_power += string['power']
 
             # Global
+            if data['event_count'] is not None:
+               self.client.publish(f'{topic}/total_events', data['event_count'])
             if data['powerfactor'] is not None:
-               self.client.publish(f'{topic}/pf', data['powerfactor'])
-            self.client.publish(f'{topic}/frequency', data['frequency'])
-
+               self.client.publish(f'{topic}/PF_AC', data['powerfactor'])
             self.client.publish(f'{topic}/Temp', data['temperature'])
-            if data['energy_total'] is not None:
-               self.client.publish(f'{topic}/total', data['energy_total']/1000)
+            if data['yield_total'] is not None:
+               self.client.publish(f'{topic}/YieldTotal', data['yield_total']/1000)
+            if data['yield_today'] is not None:
+               self.client.publish(f'{topic}/YieldToday', data['yield_today']/1000)
+            self.client.publish(f'{topic}/Efficiency', data['efficiency'])
+
 
         elif isinstance(response, HardwareInfoResponse):
             self.client.publish(f'{topic}/Firmware/Version',\
@@ -235,12 +253,6 @@ class MqttOutputPlugin(OutputPluginFactory):
 
         else:
              raise ValueError('Data needs to be instance of StatusResponse or a instance of HardwareInfoResponse')
-
-try:
-    import requests
-    import time
-except ModuleNotFoundError:
-    pass
 
 class VzInverterOutput:
     def __init__(self, config, session):
@@ -274,7 +286,8 @@ class VzInverterOutput:
             self.try_publish(ts, f'ac_voltage{phase_id}', phase['voltage'])
             self.try_publish(ts, f'ac_current{phase_id}', phase['current'])
             self.try_publish(ts, f'ac_power{phase_id}', phase['power'])
-            self.try_publish(ts, f'ac_Q{phase_id}', phase['reactive_power'])
+            self.try_publish(ts, f'ac_reactive_power{phase_id}', phase['reactive_power'])
+            self.try_publish(ts, f'ac_frequency{phase_id}', phase['frequency'])
             phase_id = phase_id + 1
 
         # DC Data
@@ -283,33 +296,39 @@ class VzInverterOutput:
             self.try_publish(ts, f'dc_voltage{string_id}', string['voltage'])
             self.try_publish(ts, f'dc_current{string_id}', string['current'])
             self.try_publish(ts, f'dc_power{string_id}', string['power'])
-            self.try_publish(ts, f'dc_YieldDay{string_id}', string['energy_daily'])
-            self.try_publish(ts, f'dc_YieldTotal{string_id}', string['energy_total'])
-            if 'irradiation' in string:
-              self.try_publish(ts, f'dc_Irradiation{string_id}', string['irradiation'])
+            self.try_publish(ts, f'dc_energy_daily{string_id}', string['energy_daily'])
+            self.try_publish(ts, f'dc_energy_total{string_id}', string['energy_total'])
+            self.try_publish(ts, f'dc_irradiation{string_id}', string['irradiation'])
             string_id = string_id + 1
 
         # Global
+        if data['event_count'] is not None:
+            self.try_publish(ts, f'event_count', data['event_count'])
         if data['powerfactor'] is not None:
             self.try_publish(ts, f'powerfactor', data['powerfactor'])
-        self.try_publish(ts, f'frequency', data['frequency'])
-
-        self.try_publish(ts, f'Temp', data['temperature'])
-        if data['energy_total'] is not None:
-            self.try_publish(ts, f'total', data['energy_total'])
-
+        self.try_publish(ts, f'temperature', data['temperature'])
+        if data['yield_total'] is not None:
+            self.try_publish(ts, f'yield_total', data['yield_total'])
+        if data['yield_today'] is not None:
+            self.try_publish(ts, f'yield_today', data['yield_today'])
+        self.try_publish(ts, f'efficiency', data['efficiency'])
 
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
+            logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
             return
         uid = self.channels[ctype]
         url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
         try:
             r = self.session.get(url)
-            if r.status_code != 200:
-                raise ValueError('Could not send request (%s)' % url)
-        except requests.exceptions.ConnectionError as e:
-            raise ValueError('Could not send request (%s)' % e)
+            if r.status_code == 404:
+                logging.critical('VZ-DB not reachable, please check "middleware"')
+            if r.status_code == 400:
+                logging.critical('UUID not configured in VZ-DB')
+            elif r.status_code != 200:
+               raise ValueError(f'Transmit result {url}')
+        except ConnectionError as e:
+            raise ValueError(f'Could not connect VZ-DB {type(e)} {e.keys()}')
 
 class VolkszaehlerOutputPlugin(OutputPluginFactory):
     def __init__(self, config, **params):
@@ -317,6 +336,17 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
         Initialize VolkszaehlerOutputPlugin
         """
         super().__init__(**params)
+
+        try:
+            import requests
+            import time
+        except ModuleNotFoundError:
+            ErrorText1 = f'Module "requests" and "time" for VolkszaehlerOutputPlugin necessary.'
+            ErrorText2 = f'Install module with command: python3 -m pip install requests'
+            print(ErrorText1, ErrorText2)
+            logging.error(ErrorText1)
+            logging.error(ErrorText2)
+            exit(1)
 
         self.session = requests.Session()
         self.inverters = dict()
