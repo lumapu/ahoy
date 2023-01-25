@@ -5,7 +5,8 @@
 ## 0.5.77
 * fix wrong filename for automatically created manifest (online installer) #620
 * added rotate display feature #619
-* improved Prometheus endpoint #615, thx to fsck-block
+* improved Prometheus endpoint #615, thx to @fsck-block
+* improved wifi to connect always to strongest RSSI, thx to @beegee3 #611
 
 ## 0.5.76
 * reduce MQTT retry interval from maximum speed to one second

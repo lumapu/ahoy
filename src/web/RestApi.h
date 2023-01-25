@@ -601,6 +601,7 @@ class RestApi {
 
         bool setSetup(JsonObject jsonIn, JsonObject jsonOut) {
             if(F("scan_wifi") == jsonIn[F("cmd")]) {
+                DPRINTLN(DBG_INFO, F("rqst scan"));
                 mApp->scanAvailNetworks();
             }
             else if(F("set_time") == jsonIn[F("cmd")])

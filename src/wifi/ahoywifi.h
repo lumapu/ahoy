@@ -50,7 +50,8 @@ class ahoywifi {
         void onWiFiEvent(WiFiEvent_t event);
         #endif
         void welcome(String msg);
-
+        void sortRSSI(int *sort, int n);
+        void getBSSIDs(void);
 
         settings_t *mConfig;
         appWifiCb mAppWifiCb;
@@ -68,9 +69,8 @@ class ahoywifi {
 
         uint8_t mLoopCnt;
         bool mScanActive;
+        uint8_t mLastApClients;
 
-        void sortRSSI(int *sort, int n);
-        void getBSSIDs(void);
         std::list<uint8_t> mBSSIDList;
 };
 
