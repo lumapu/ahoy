@@ -17,7 +17,7 @@ from suntimes import SunTimes
 import argparse
 import yaml
 from yaml.loader import SafeLoader
-import paho.mqtt.client
+# import paho.mqtt.client
 import hoymiles
 import logging
 
@@ -174,7 +174,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
             # get decoder object
             result = decoder.decode()
             if hoymiles.HOYMILES_DEBUG_LOGGING:
-               logging.debug(f'{c_datetime} Decoded: {result.__dict__()}')
+               logging.info(f'{c_datetime} Decoded: {result.__dict__()}')
 
             # check decoder object for output
             if isinstance(result, hoymiles.decoders.StatusResponse):
@@ -284,7 +284,7 @@ if __name__ == '__main__':
         logging.error("Could not load config file. Try --help")
         sys.exit(2)
     except yaml.YAMLError as e_yaml:
-        logging.error('Failed to load config file {global_config.config_file}: {e_yaml}')
+        logging.error(f'Failed to load config file {global_config.config_file}: {e_yaml}')
         sys.exit(1)
 
     # read AHOY configuration file and prepare logging

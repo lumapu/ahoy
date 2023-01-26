@@ -159,7 +159,7 @@ class ResponseDecoder(ResponseDecoderFactory):
         command = self.request_command
 
         c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
-        logging.debug(f'{c_datetime} model_decoder: {model}Decode{command.upper()}')
+        logging.info(f'{c_datetime} model_decoder: {model}Decode{command.upper()}')
 
         model_decoders = __import__('hoymiles.decoders')
         if hasattr(model_decoders, f'{model}Decode{command.upper()}'):
