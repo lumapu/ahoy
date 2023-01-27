@@ -852,6 +852,7 @@ void mSwitchCasesSer(char _inSer) {
                 uint8_t invID5[5] = {0x01, 0x44, 0x33, 0x22, 0x11};
                 mParams = utSer.getParamsBuf();
                 tmp8 = utSer.read_uart_cmd_param(mParams);
+                mCountdown_noSignal = SEND_REPEAT;                                  //trigger sending if before no resonse
 
                 if (tmp8 > 0) {
                     // get polling interval from first parameter

@@ -5,4 +5,6 @@
 .vscode/ipch
 .log
 config_override.h
+smac_examples.txt
+
 
