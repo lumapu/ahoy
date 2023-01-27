@@ -1,6 +1,5 @@
 
 // 2022 mb for AHOY-UL (Arduino Nano, USB light IF)
-// todo: make class
 
 #include <Arduino.h>
 #include <stdint.h>

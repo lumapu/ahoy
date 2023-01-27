@@ -10,7 +10,7 @@
 ###
 # 1. option: python Terminal or other serial Terminal to read and send from/to AhoyUL in Arduino-Nano or ESP8266/ESP32:
 
-# 1.2 successful sync and HM800 response detected:
+# 1.1 successful sync and HM800 response detected:
 mb@mb-5580:~/tools/nano/AhoyUL$ python3 hm_terminal.py -p /dev/ttyUSB0                                                            # this is my python test terminal "hm_terminal.py" in root dir of my project
 
  +++ starting AhoyUL Terminal ...                                                                                                 # output of my simple python terminal
@@ -693,7 +693,7 @@ mb@mb-5580:~/tools/nano/AhoyUL$ python3 hm_terminal.py -p /dev/ttyUSB0          
 
 
 ###
-# 1.1 no response when it is dark:
+# 1.2 no response when it is dark:
 
 # example: start the python hm-terminal app from Linux terminal
 mb@mb-5580:~/tools/nano/AhoyUL$ python3 hm_terminal.py -p /dev/ttyUSB0 -b 57600

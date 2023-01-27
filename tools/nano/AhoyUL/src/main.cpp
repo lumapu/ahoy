@@ -12,7 +12,7 @@
 // - automode: one REQUEST message is polled periodically and decoded payload is given by serial-IF (@57600baud), some comfig inputs possible
 // - mac-mode: -> The hoymiles specific REQUEST messages must be given as input via serial-IF (@57600baud) smac-packet
 //             <- The full sorted RESPONSE is given to the serial-IF as rmac-packet (to be used with python, fhem, etc.) -- todo
-// - scanmode: get trigger on rx-ch03 and then start scanning on all channels for the next 5sec
+// - scanmode: todo: get trigger on rx-ch03 and then start scanning on all channels for the next 5sec
 //
 
 #include <Arduino.h>
@@ -86,7 +86,7 @@ static RadioType hmRadio;
 // static uint8_t radio_id[5];                       //todo: use the mPayload[].id field   ,this defines the radio-id (domain) of the rf24 transmission, will be derived from inverter id
 // static uint64_t radio_id64 = 0ULL;
 
-#define DEF_VERSION "\n version 2023-01-22 14:55"
+#define DEF_VERSION "\n version 2023-01-27 22:42"
 #define P(x) (__FlashStringHelper *)(x)  // PROGMEM-Makro for variables
 static const char COMPILE_DATE[] PROGMEM = {__DATE__};
 static const char COMPILE_TIME[] PROGMEM = {__TIME__};
@@ -127,7 +127,7 @@ static bool smac_send = false;                                // flag indicates 
 static volatile uint16_t tmp16 = 0;
 static uint8_t tmp8 = 0;
 static uint8_t tmp81 = 0;
-static uint8_t tmp32 = 0;
+static uint32_t tmp32 = 0;
 // static uint32_t min_SEND_SYNC_msec = MIN_SEND_INTERVAL_ms;
 static uint8_t mCountdown_noSignal = SEND_REPEAT;               // counter down of number of Inverter Requests if no response received, in dark or no signal
 static volatile uint32_t mSendInterval_ms = SEND_NOSIGNAL_SHORT * ONE_SECOND;
@@ -416,7 +416,7 @@ static uint32_t swap_bytes(uint32_t _v) {
 
 // maps a byte array to uint32_t (lowest index to higest byte in uint32_t)
 static uint32_t swap_bytes(uint8_t *_inbuf) {
-    volatile uint32_t _res = 0x00;
+    volatile uint32_t _res = 0x00L;
     volatile uint8_t _i = 0;
     for (_i = 0; _i<4; _i++) {
         _res = _res << 8;
@@ -732,7 +732,7 @@ static bool out_uart_smac_resp_ERR(invPayload_t *_payload) {
 }
 
 /**
- *  output of pure user payload message
+ *  output of pure user payload message of TX_REQ_INFO (req15-80 --> resp95-81...83)
  */
 static uint8_t collect_and_return_userPayload(invPayload_t *_payload, uint8_t *_user_payload, uint8_t _ulen) {
     // iv->ts = mPayload[iv->id].ts;
@@ -765,7 +765,14 @@ static uint8_t collect_and_return_userPayload(invPayload_t *_payload, uint8_t *_
  */
 static void decode_userPayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ulen, uint32_t _ts, char *_strout, uint8_t _strlen, uint16_t _invtype, uint32_t _plateID) {
     volatile uint32_t _val = 0L;
-    byteAssign_t _bp;
+    
+    #if defined(ESP8266)
+    // for esp8266 environment
+    byteAssign_t _bp;                                                                  //volatile byteAssign_t not compiling ESP8266
+    #else
+    volatile byteAssign_t _bp;                                                         //must be volatile for Arduino-Nano, otherwise _bp.ch stays zero
+    #endif
+    
     volatile uint8_t _x;
     volatile uint8_t _end;
     volatile float _fval;
@@ -778,27 +785,18 @@ static void decode_userPayload(uint8_t _cmd, uint8_t *_user_payload, uint8_t _ul
     if (_cmd == 0x95 and _ulen == 42) {
         //!!! simple HM600/700/800 2ch decoding for cmd=0x95 only !!!!
 
-        // snprintf_P(_strout, _strlen, PSTR("\nHM800/%04Xxxxxxxxx/"), _invtype);
-        // Serial.print(_strout);
-
         for (_x = 0; _x < HM2CH_LIST_LEN; _x++) {
             // read values from given positions in payload
             _bp = hm2chAssignment[_x];
             _val = 0L;
             _end = _bp.start + _bp.num;
             if (_tmp8 != _bp.ch) {
-                snprintf_P(_strout, _strlen, PSTR("\nHM800/%04X%08X/ch%02d "), _invtype, _plateID, _bp.ch);
+                snprintf_P(_strout, _strlen, PSTR("\nHM800/%04X%08lX/ch%02d "), _invtype, _plateID, _bp.ch);            //must be a small "l" in %08lX for Arduino-Nano
                 Serial.print(_strout);
                 // snprintf_P(_strout, _strlen, PSTR("ch%02d/"), _bp.ch);
                 // Serial.print(_strout);
             }
             _tmp8 = _bp.ch;
-
-            // Serial.print(F("\nHM800/ch"));
-            // Serial.print(_bp.ch);
-            // Serial.print(F("/"));
-            // strncpy_P(_strout, (PGM_P)pgm_read_word(&(PGM_fields[_bp.fieldId])), _strlen);               // this read from PROGMEM array into RAM, works for A-Nano, not for esp8266
-            // snprintf_P(_strout, );
 
             if (CMD_CALC != _bp.div && _bp.div != 0) {
                 strncpy_P(_strout, &(PGM_fields[_bp.fieldId][0]), _strlen);
@@ -894,6 +892,7 @@ void mSwitchCasesSer(char _inSer) {
                 Serial.print(F("\nd"));
                 // simple decoding, can only handle the current active inverter index, maybe erased if new data arrive, switch other inverter via interter indexing in automode settings
                 tmp32 = swap_bytes(&mPayload[m_inv_ix].invId[1]);
+                //Serial.print("\nd tmp32 hex: "); Serial.print(tmp32,HEX);
                 decode_userPayload(TX_REQ_INFO + 0x80, user_payload, 42, user_pl_ts, utSer.mStrOutBuf, MAX_STRING_LEN, mPayload[m_inv_ix].invType, tmp32);
                 m_sread_len = utSer.serBlockRead_ms(utSer.mSerBuffer);
                 doDecode = (bool)utSer.uart_eval_decimal_val(F("decoding "), utSer.mSerBuffer, m_sread_len, 0, 255, 1);

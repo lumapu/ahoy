@@ -5,6 +5,9 @@
 
 //2022 mb using PROGMEM for lage char* arrays, used and tested for HM800 decoding (2channel), no calculation yet
 
+//todo: make a decoding class out of this
+
+
 #ifndef __HM_DEFINES_H__
 #define __HM_DEFINES_H__
 
