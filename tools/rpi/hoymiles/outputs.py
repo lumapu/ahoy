@@ -179,10 +179,23 @@ class MqttOutputPlugin(OutputPluginFactory):
            mqtt_client.tls_set()
            mqtt_client.tls_insecure_set(config.get('insecureTLS',False))
         mqtt_client.username_pw_set(config.get('user', None), config.get('password', None))
+
+        last_will = config.get('last_will', None)
+        if last_will:
+            lw_topic = last_will.get('topic', 'last will hoymiles')
+            lw_payload = last_will.get('payload', 'last will')
+            mqtt_client.will_set(str(lw_topic), str(lw_payload))
+
         mqtt_client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
         mqtt_client.loop_start()
 
         self.client = mqtt_client
+        self.qos = config.get('QoS', 0)         # Quality of Service
+        self.ret = config.get('Retain', True)   # Retain Message
+
+    def disco(self, **params):
+        self.client.loop_stop()    # Stop loop 
+        self.client.disconnect()   # disconnect
 
     def store_status(self, response, **params):
         """
@@ -202,17 +215,17 @@ class MqttOutputPlugin(OutputPluginFactory):
 
             # Global Head
             if data['time'] is not None:
-               self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"))
+               self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"), self.qos, self.ret)
 
             # AC Data
             phase_id = 0
             phase_sum_power = 0
             for phase in data['phases']:
-                self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
-                self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
-                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
-                self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'])
-                self.client.publish(f'{topic}/emeter/{phase_id}/frequency', phase['frequency'])
+                self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter/{phase_id}/frequency', phase['frequency'], self.qos, self.ret)
                 phase_id = phase_id + 1
                 phase_sum_power += phase['power']
 
@@ -220,36 +233,38 @@ class MqttOutputPlugin(OutputPluginFactory):
             string_id = 0
             string_sum_power = 0
             for string in data['strings']:
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'])
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'])
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000, self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'], self.qos, self.ret)
                 string_id = string_id + 1
                 string_sum_power += string['power']
 
             # Global
             if data['event_count'] is not None:
-               self.client.publish(f'{topic}/total_events', data['event_count'])
+               self.client.publish(f'{topic}/total_events', data['event_count'], self.qos, self.ret)
             if data['powerfactor'] is not None:
-               self.client.publish(f'{topic}/PF_AC', data['powerfactor'])
-            self.client.publish(f'{topic}/Temp', data['temperature'])
+               self.client.publish(f'{topic}/PF_AC', data['powerfactor'], self.qos, self.ret)
+            self.client.publish(f'{topic}/Temp', data['temperature'], self.qos, self.ret)
             if data['yield_total'] is not None:
-               self.client.publish(f'{topic}/YieldTotal', data['yield_total']/1000)
+               self.client.publish(f'{topic}/YieldTotal', data['yield_total']/1000, self.qos, self.ret)
             if data['yield_today'] is not None:
-               self.client.publish(f'{topic}/YieldToday', data['yield_today']/1000)
-            self.client.publish(f'{topic}/Efficiency', data['efficiency'])
+               self.client.publish(f'{topic}/YieldToday', data['yield_today']/1000, self.qos, self.ret)
+            self.client.publish(f'{topic}/Efficiency', data['efficiency'], self.qos, self.ret)
 
 
         elif isinstance(response, HardwareInfoResponse):
             self.client.publish(f'{topic}/Firmware/Version',\
-                 f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}')
+                 f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}', self.qos, self.ret)
 
             self.client.publish(f'{topic}/Firmware/Build_at',\
-                 f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}')
+                 f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}',\
+                 self.qos, self.ret)
 
-            self.client.publish(f'{topic}/Firmware/HWPartId', f'{data["FW_HW_ID"]}')
+            self.client.publish(f'{topic}/Firmware/HWPartId',\
+                 f'{data["FW_HW_ID"]}', self.qos, self.ret)
 
         else:
              raise ValueError('Data needs to be instance of StatusResponse or a instance of HardwareInfoResponse')
