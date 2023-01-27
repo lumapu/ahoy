@@ -179,7 +179,12 @@ class MqttOutputPlugin(OutputPluginFactory):
            mqtt_client.tls_set()
            mqtt_client.tls_insecure_set(config.get('insecureTLS',False))
         mqtt_client.username_pw_set(config.get('user', None), config.get('password', None))
-        mqtt_client.will_set(str(config.get('last_will', {}).get('topic', 'hoymiles')), str(config.get('last_will', None).get('payload', None)))
+
+        last_will = config.get('last_will', None)
+        if last_will:
+            lw_topic = last_will.get('topic', 'last will hoymiles')
+            lw_payload = last_will.get('payload', 'last will')
+            mqtt_client.will_set(str(lw_topic), str(lw_payload))
 
         mqtt_client.connect(config.get('host', '127.0.0.1'), config.get('port', 1883))
         mqtt_client.loop_start()
