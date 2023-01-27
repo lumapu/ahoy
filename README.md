@@ -8,7 +8,7 @@
 List of approaches
 
 - [ESP8266/ESP32, C++](tools/esp8266/) 👈 the most effort is spent here
-- [Arduino Nano, C++](tools/nano/NRF24_SendRcv/) -> adapt. v0.5.17 to nano, serial IF only (AhoyUL) e.g. for FHEM, Python
+- [Arduino Nano, C++](tools/nano/AhoyUL/) -> adapt. v0.5.17 to nano, serial IF only (AhoyUL) e.g. for FHEM, Python
 - [Raspberry Pi, Python](tools/rpi/)
 - [Others, C/C++](tools/nano/NRF24_SendRcv/)
 
