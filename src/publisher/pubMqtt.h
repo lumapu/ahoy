@@ -236,23 +236,24 @@ class PubMqtt {
                     const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
                     const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
-                    doc.clear();
-                    doc[F("name")] = name;
-                    doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
-                    doc[F("unit_of_meas")] = iv->getUnit(i, rec);
-                    doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
-                    doc[F("dev")] = deviceObj;
-                    doc[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                    DynamicJsonDocument doc2(512);
+                    doc2.clear();
+                    doc2[F("name")] = name;
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
+                    doc2[F("unit_of_meas")] = iv->getUnit(i, rec);
+                    doc2[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
+                    doc2[F("dev")] = deviceObj;
+                    doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                     if (devCls != NULL)
-                        doc[F("dev_cla")] = String(devCls);
+                        doc2[F("dev_cla")] = String(devCls);
                     if (stateCls != NULL)
-                        doc[F("stat_cla")] = String(stateCls);
+                        doc2[F("stat_cla")] = String(stateCls);
 
                     snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                    size_t size = measureJson(doc) + 1;
+                    size_t size = measureJson(doc2) + 1;
                     char *buf = new char[size];
                     memset(buf, 0, size);
-                    serializeJson(doc, buf, size);
+                    serializeJson(doc2, buf, size);
                     publish(topic, buf, true, false);
                     delete[] buf;
                 }
