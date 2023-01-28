@@ -133,6 +133,7 @@ class PubMqtt {
         void tickerMidnight() {
             Inverter<> *iv;
             record_t<> *rec;
+            char topic[7 + MQTT_TOPIC_LEN], val[4];
 
             // set YieldDay to zero
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
@@ -142,10 +143,11 @@ class PubMqtt {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 uint8_t pos = iv->getPosByChFld(CH0, FLD_YD, rec);
                 iv->setValue(pos, rec, 0.0f);
-            }
 
-            mSendList.push(RealTimeRunData_Debug);
-            sendIvData();
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch0/%s", iv->config->name, fields[FLD_YD]);
+                snprintf(val, 4, "0.0");
+                publish(topic, val, true);
+            }
         }
 
         void payloadEventListener(uint8_t cmd) {
@@ -210,7 +212,10 @@ class PubMqtt {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char topic[64], name[32], uniq_id[32];
-            DynamicJsonDocument doc(512);
+            DynamicJsonDocument doc(128);
+
+            uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
+
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL == iv)
@@ -218,41 +223,55 @@ class PubMqtt {
 
                 record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 doc.clear();
+
                 doc[F("name")] = iv->config->name;
                 doc[F("ids")] = String(iv->config->serial.u64, HEX);
                 doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
                 doc[F("mf")] = F("Hoymiles");
                 doc[F("mdl")] = iv->config->name;
-                JsonObject deviceObj = doc.as<JsonObject>();
+                JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
 
-                for (uint8_t i = 0; i < rec->length; i++) {
-                    if (rec->assign[i].ch == CH0)
-                        snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
-                    else
-                        snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                    snprintf(topic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                    snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
+                for (uint8_t i = 0; i < (rec->length + 4); i++) {
+                    const char *devCls, *stateCls;
+                    if(i < rec->length) {
+                        if (rec->assign[i].ch == CH0)
+                            snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
+                        else
+                            snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(topic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
 
-                    const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                    const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
+                        devCls = getFieldDeviceClass(rec->assign[i].fieldId);
+                        stateCls = getFieldStateClass(rec->assign[i].fieldId);
+                    }
+                    else { // total values
+                        snprintf(name, 32, "Total %s", fields[fldTotal[i-rec->length]]);
+                        snprintf(topic, 64, "/%s", fields[fldTotal[i-rec->length]]);
+                        snprintf(uniq_id, 32, "total_%s", fields[fldTotal[i-rec->length]]);
+                        devCls = getFieldDeviceClass(fldTotal[i-rec->length]);
+                        stateCls = getFieldStateClass(fldTotal[i-rec->length]);
+                    }
 
-                    doc.clear();
-                    doc[F("name")] = name;
-                    doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
-                    doc[F("unit_of_meas")] = iv->getUnit(i, rec);
-                    doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
-                    doc[F("dev")] = deviceObj;
-                    doc[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                    DynamicJsonDocument doc2(512);
+                    doc2[F("name")] = name;
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
+                    doc2[F("unit_of_meas")] = iv->getUnit(((i < rec->length) ? i : (i - rec->length)), rec);
+                    doc2[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
+                    doc2[F("dev")] = deviceObj;
+                    doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                     if (devCls != NULL)
-                        doc[F("dev_cla")] = String(devCls);
+                        doc2[F("dev_cla")] = String(devCls);
                     if (stateCls != NULL)
-                        doc[F("stat_cla")] = String(stateCls);
+                        doc2[F("stat_cla")] = String(stateCls);
 
-                    snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                    size_t size = measureJson(doc) + 1;
+                    if(i < rec->length)
+                        snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    else // total values
+                        snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, fields[fldTotal[i-rec->length]]);
+                    size_t size = measureJson(doc2) + 1;
                     char *buf = new char[size];
                     memset(buf, 0, size);
-                    serializeJson(doc, buf, size);
+                    serializeJson(doc2, buf, size);
                     publish(topic, buf, true, false);
                     delete[] buf;
                 }
@@ -582,6 +601,7 @@ class PubMqtt {
                         case FLD_FW_BUILD_HOUR_MINUTE:
                         case FLD_HW_ID:
                         case FLD_ACT_ACTIVE_PWR_LIMIT:
+                            fld++;
                             continue;
                             break;
                     }

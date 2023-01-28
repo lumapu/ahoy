@@ -98,7 +98,12 @@ void ahoywifi::tickWifiLoop() {
         }
         mCnt++;
 
-        if(!mScanActive && mBSSIDList.empty()) { // start scanning APs with the given SSID
+        uint8_t timeout = 10; // seconds
+        if (mStaConn == CONNECTED) // connected but no ip
+            timeout = 20;
+
+
+        if(!mScanActive && mBSSIDList.empty() && ((mCnt % timeout) == 0)) { // start scanning APs with the given SSID
             DBGPRINT(F("scanning APs with SSID "));
             DBGPRINTLN(String(mConfig->sys.stationSsid));
             mScanCnt = 0;
@@ -110,20 +115,14 @@ void ahoywifi::tickWifiLoop() {
             #endif
             return;
         }
-
-        uint8_t timeout = 10; // seconds
-
-        if (mStaConn == CONNECTED) // connected but no ip
-            timeout = 20;
-
         DBGPRINT(F("reconnect in "));
         DBGPRINT(String(timeout-mCnt));
         DBGPRINTLN(F(" seconds"));
         if(mScanActive) {
             getBSSIDs();
-            if(!mScanActive)        // scan completed
-                if ((mCnt % timeout) < 8)
-                    mCnt = timeout - 2;
+            //if(!mScanActive)        // scan completed
+            //    if ((mCnt % timeout) < 8)
+            //        mCnt = timeout - 2;
         }
         if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
             if(mStaConn != CONNECTED)
