@@ -70,6 +70,7 @@ class ahoywifi {
         uint8_t mLoopCnt;
         bool mScanActive;
         uint8_t mLastApClients;
+        uint8_t mScanCnt;
 
         std::list<uint8_t> mBSSIDList;
 };
