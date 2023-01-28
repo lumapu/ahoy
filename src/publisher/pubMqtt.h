@@ -258,8 +258,72 @@ class PubMqtt {
                     delete[] buf;
                 }
 
-                yield();
+               yield();
             }
+//Début modif
+
+            String node_mac = WiFi.macAddress().substring(12,14)+ WiFi.macAddress().substring(15,17);
+            String node_id = "AHOY_DTU_" + node_mac;
+            doc.clear();
+            doc[F("name")] = node_id;
+            doc[F("ids")] = node_id;
+            doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+            doc[F("mf")] = F("Hoymiles");
+            doc[F("mdl")] = "AHOY_DTU";
+            JsonObject deviceObj = doc.as<JsonObject>();
+
+            uint8_t fieldId;
+            String fieldUnit;
+            for (uint8_t i = 0; i < 4; i++) {
+                switch (i) {
+                    default:
+                    case 0:
+                        fieldId = FLD_PAC;
+                        fieldUnit = "W";
+                        break;
+                    case 1:
+                        fieldId = FLD_YT;
+                        fieldUnit = "kWh";
+                        break;
+                    case 2:
+                        fieldId = FLD_YD;
+                        fieldUnit = "Wh";
+                        break;
+                    case 3:
+                        fieldId = FLD_PDC;
+                        fieldUnit = "W";
+                        break;
+                }
+
+                snprintf(name, 32, "Total %s", fields[fieldId]);
+                snprintf(topic, 64, "/%s", fields[fieldId]);
+
+
+                const char *devCls = getFieldDeviceClass(fieldId);
+                const char *stateCls = getFieldStateClass(fieldId);
+
+                DynamicJsonDocument doc2(512);
+                doc2.clear();
+                doc2[F("name")] = String(name);
+                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/total" + String(topic);
+                doc2[F("unit_of_meas")] = fieldUnit;
+                doc2[F("uniq_id")] = String(node_id) + "_" + String(fields[fieldId]);
+                doc2[F("dev")] = deviceObj;
+                doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                if (devCls != NULL)
+                    doc2[F("dev_cla")] = String(devCls);
+                if (stateCls != NULL)
+                    doc2[F("stat_cla")] = String(stateCls);
+
+                snprintf(topic, 64, "%s/sensor/%s/Total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(),fields[fieldId]);
+                size_t size = measureJson(doc2) + 1;
+                char *buf = new char[size];
+                memset(buf, 0, size);
+                serializeJson(doc2, buf, size);
+                publish(topic, buf, true, false);
+                delete[] buf;
+            }
+                yield();
         }
 
         void setPowerLimitAck(Inverter<> *iv) {
@@ -388,6 +452,14 @@ class PubMqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
+        const char *getFieldUnit(uint8_t fieldId) {
+            uint8_t pos = 0;
+            for (; pos < DEVICE_CLS_ASSIGN_LIST_LEN; pos++) {
+                if (deviceFieldAssignment[pos].fieldId == fieldId)
+                    break;
+            }
+            return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : deviceClasses[deviceFieldAssignment[pos].deviceClsId];
+        }
         bool processIvStatus() {
             // returns true if all inverters are available
             bool allAvail = true;
