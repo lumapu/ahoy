@@ -217,24 +217,39 @@ class PubMqtt {
             uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
             const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
 
-            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if (NULL == iv)
-                    continue;
+            String node_mac = WiFi.macAddress().substring(12,14)+ WiFi.macAddress().substring(15,17);
+            String node_id = "AHOY_DTU_" + node_mac;
+            bool total = false;
 
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            for (uint8_t id = 0; id < mSys->getNumInverters() ; id++) {
                 doc.clear();
 
-                doc[F("name")] = iv->config->name;
-                doc[F("ids")] = String(iv->config->serial.u64, HEX);
+                if (total) // total become true at iv = NULL next cycle
+                    continue;
+
+                Inverter<> *iv = mSys->getInverterByPos(id);
+                if (NULL == iv)
+                    total = true;
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+                if (!total) {
+                    doc[F("name")] = iv->config->name;
+                    doc[F("ids")] = String(iv->config->serial.u64, HEX);
+                    doc[F("mdl")] = iv->config->name;
+                }
+                else {
+                    doc[F("name")] = node_id;
+                    doc[F("ids")] = node_id;
+                    doc[F("mdl")] = node_id;
+                }
+
                 doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
                 doc[F("mf")] = F("Hoymiles");
-                doc[F("mdl")] = iv->config->name;
                 JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
 
-                for (uint8_t i = 0; i < (rec->length + 4); i++) {
+                for (uint8_t i = 0; i < ((!total) ? (rec->length) : (4) ) ; i++) {
                     const char *devCls, *stateCls;
-                    if(i < rec->length) {
+                    if (!total) {
                         if (rec->assign[i].ch == CH0)
                             snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
                         else
@@ -245,19 +260,20 @@ class PubMqtt {
                         devCls = getFieldDeviceClass(rec->assign[i].fieldId);
                         stateCls = getFieldStateClass(rec->assign[i].fieldId);
                     }
+
                     else { // total values
-                        snprintf(name, 32, "Total %s", fields[fldTotal[i-rec->length]]);
-                        snprintf(topic, 64, "/%s", fields[fldTotal[i-rec->length]]);
-                        snprintf(uniq_id, 32, "total_%s", fields[fldTotal[i-rec->length]]);
-                        devCls = getFieldDeviceClass(fldTotal[i-rec->length]);
-                        stateCls = getFieldStateClass(fldTotal[i-rec->length]);
+                        snprintf(name, 32, "Total %s", fields[fldTotal[i]]);
+                        snprintf(topic, 64, "/%s", fields[fldTotal[i]]);
+                        snprintf(uniq_id, 32, "total_%s", fields[fldTotal[i]]);
+                        devCls = getFieldDeviceClass(fldTotal[i]);
+                        stateCls = getFieldStateClass(fldTotal[i]);
                     }
 
                     DynamicJsonDocument doc2(512);
                     doc2[F("name")] = name;
-                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((i < rec->length) ? String(iv->config->name) : "total" ) + String(topic);
-                    doc2[F("unit_of_meas")] = ((i < rec->length) ? (iv->getUnit(i,rec)) : (unitTotal[i-rec->length]));
-                    doc2[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
+                    doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
+                    doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
                     doc2[F("dev")] = deviceObj;
                     doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                     if (devCls != NULL)
@@ -265,10 +281,10 @@ class PubMqtt {
                     if (stateCls != NULL)
                         doc2[F("stat_cla")] = String(stateCls);
 
-                    if(i < rec->length)
+                    if (!total)
                         snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
                     else // total values
-                        snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, fields[fldTotal[i-rec->length]]);
+                        snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(),fields[fldTotal[i]]);
                     size_t size = measureJson(doc2) + 1;
                     char *buf = new char[size];
                     memset(buf, 0, size);
