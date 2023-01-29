@@ -25,6 +25,8 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
+    mLastApClients = 0;
+    mScanCnt = 0;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -64,33 +66,79 @@ void ahoywifi::tickWifiLoop() {
     #if !defined(AP_ONLY)
     if(mStaConn != GOT_IP) {
         if (WiFi.softAPgetStationNum() > 0) { // do not reconnect if any AP connection exists
-            mDns.processNextRequest();
-            if((WIFI_AP_STA == WiFi.getMode()) && !mScanActive) {
-                DBGPRINTLN(F("AP client connected"));
-                welcome(mApIp.toString());
-                WiFi.mode(WIFI_AP);
-                mAppWifiCb(true);
+            if(WIFI_AP_STA == WiFi.getMode()) {
+                 // first time switch to AP Mode
+                if(mScanActive && (mLastApClients != WiFi.softAPgetStationNum()))
+                    mScanActive = false;
+
+                // scan is finished
+                if(!mScanActive) {
+                    WiFi.mode(WIFI_AP);
+                    mDns.start(53, "*", mApIp);
+                }
+
+                // only once a client connects to AP
+                if(mLastApClients != WiFi.softAPgetStationNum()) {
+                    mLastApClients = WiFi.softAPgetStationNum();
+                    WiFi.scanDelete();
+                    mAppWifiCb(false);
+                    DBGPRINTLN(F("AP client connected"));
+                    welcome(mApIp.toString());
+                }
             }
+            mDns.processNextRequest();
             return;
         }
         else if(WIFI_AP == WiFi.getMode()) {
+            mLastApClients = 0;
             mCnt = 0;
+            DPRINTLN(DBG_INFO, "DNS stop");
+            mDns.stop();
             WiFi.mode(WIFI_AP_STA);
         }
         mCnt++;
 
         uint8_t timeout = 10; // seconds
-
         if (mStaConn == CONNECTED) // connected but no ip
             timeout = 20;
 
+
+        if(!mScanActive && mBSSIDList.empty() && ((mCnt % timeout) == 0)) { // start scanning APs with the given SSID
+            DBGPRINT(F("scanning APs with SSID "));
+            DBGPRINTLN(String(mConfig->sys.stationSsid));
+            mScanCnt = 0;
+            mScanActive = true;
+            #if defined(ESP8266)
+            WiFi.scanNetworks(true, false, 0U, (uint8_t *)mConfig->sys.stationSsid);
+            #else
+            WiFi.scanNetworks(true, false, false, 300U, 0U, mConfig->sys.stationSsid);
+            #endif
+            return;
+        }
         DBGPRINT(F("reconnect in "));
         DBGPRINT(String(timeout-mCnt));
         DBGPRINTLN(F(" seconds"));
+        if(mScanActive) {
+            getBSSIDs();
+            //if(!mScanActive)        // scan completed
+            //    if ((mCnt % timeout) < 8)
+            //        mCnt = timeout - 2;
+        }
         if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
             if(mStaConn != CONNECTED)
                 mStaConn = CONNECTING;
-            WiFi.reconnect();
+            if(mBSSIDList.size() > 0) { // get first BSSID in list
+                DBGPRINT("try to connect to AP with BSSID:");
+                uint8_t bssid[6];
+                for (int j = 0; j < 6; j++) {
+                    bssid[j] = mBSSIDList.front();
+                    mBSSIDList.pop_front();
+                    DBGPRINT(" "  + String(bssid[j], HEX));
+                }
+                DBGPRINTLN("");
+                WiFi.disconnect();
+                WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
+            }
             mCnt = 0;
         }
     }
@@ -135,7 +183,7 @@ void ahoywifi::setupStation(void) {
         if(!WiFi.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
-    mStaConn = (WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd) != WL_CONNECTED) ? DISCONNECTED : CONNECTED;
+    mBSSIDList.clear();
     if(String(mConfig->sys.deviceName) != "")
         WiFi.hostname(mConfig->sys.deviceName);
     WiFi.mode(WIFI_AP_STA);
@@ -206,6 +254,15 @@ void ahoywifi::sendNTPpacket(IPAddress& address) {
     mUdp.endPacket();
 }
 
+//-----------------------------------------------------------------------------
+void ahoywifi::sortRSSI(int *sort, int n) {
+    for (int i = 0; i < n; i++)
+        sort[i] = i;
+    for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+            if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
+                std::swap(sort[i], sort[j]);
+}
 
 //-----------------------------------------------------------------------------
 void ahoywifi::scanAvailNetworks(void) {
@@ -217,29 +274,50 @@ void ahoywifi::scanAvailNetworks(void) {
     }
 }
 
-
 //-----------------------------------------------------------------------------
 void ahoywifi::getAvailNetworks(JsonObject obj) {
     JsonArray nets = obj.createNestedArray("networks");
 
     int n = WiFi.scanComplete();
+    if (n < 0)
+        return;
     if(n > 0) {
         int sort[n];
-        for (int i = 0; i < n; i++)
-            sort[i] = i;
-        for (int i = 0; i < n; i++)
-            for (int j = i + 1; j < n; j++)
-                if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                    std::swap(sort[i], sort[j]);
+        sortRSSI(&sort[0], n);
         for (int i = 0; i < n; ++i) {
-            nets[i]["ssid"]   = WiFi.SSID(sort[i]);
-            nets[i]["rssi"]   = WiFi.RSSI(sort[i]);
+            nets[i]["ssid"] = WiFi.SSID(sort[i]);
+            nets[i]["rssi"] = WiFi.RSSI(sort[i]);
         }
-        mScanActive = false;
-        WiFi.scanDelete();
     }
+    mScanActive = false;
+    WiFi.scanDelete();
 }
 
+//-----------------------------------------------------------------------------
+void ahoywifi::getBSSIDs() {
+    int n = WiFi.scanComplete();
+    if (n < 0){
+        mScanCnt++;
+        if (mScanCnt < 20)
+            return;
+    }
+    if(n > 0) {
+        mBSSIDList.clear();
+        int sort[n];
+        sortRSSI(&sort[0], n);
+        for (int i = 0; i < n; i++) {
+            DBGPRINT("BSSID " + String(i) + ":");
+            uint8_t *bssid = WiFi.BSSID(sort[i]);
+            for (int j = 0; j < 6; j++){
+                DBGPRINT(" " + String(bssid[j], HEX));
+                mBSSIDList.push_back(bssid[j]);
+            }
+            DBGPRINTLN("");
+        }
+    }
+    mScanActive = false;
+    WiFi.scanDelete();
+}
 
 //-----------------------------------------------------------------------------
 void ahoywifi::connectionEvent(WiFiStatus_t status) {
@@ -248,15 +326,19 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
             if(mStaConn != CONNECTED) {
                 mStaConn = CONNECTED;
                 DBGPRINTLN(F("\n[WiFi] Connected"));
-                WiFi.mode(WIFI_STA);
-                DBGPRINTLN(F("[WiFi] AP disabled"));
-                mDns.stop();
             }
             break;
 
         case GOT_IP:
             mStaConn = GOT_IP;
+            if (mScanActive) {  // maybe another scan has started
+                 WiFi.scanDelete();
+                 mScanActive = false;
+            }
             welcome(WiFi.localIP().toString() + F(" (Station)"));
+            mDns.stop();
+            WiFi.mode(WIFI_STA);
+            DBGPRINTLN(F("[WiFi] AP disabled"));
             mAppWifiCb(true);
             break;
 
