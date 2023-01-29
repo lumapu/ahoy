@@ -275,7 +275,8 @@ class PubMqtt {
                     doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
                     doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
                     doc2[F("dev")] = deviceObj;
-                    doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                    if (!(total && String(stateCls) == String("total_increasing")))
+                        doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                     if (devCls != NULL)
                         doc2[F("dev_cla")] = String(devCls);
                     if (stateCls != NULL)
