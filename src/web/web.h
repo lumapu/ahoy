@@ -733,70 +733,93 @@ class Web {
 #endif
 
 #ifdef ENABLE_PROMETHEUS_EP
+        enum {
+            metricsStateStart, metricsStateInverter, metricStateChannel,metricsStateEnd
+        } metricsStep;
+        int metricsInverterId,metricsChannelId;
+
         void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
-            String metrics;
-            char infoline[90];
 
-            // System info
-            snprintf(infoline, sizeof(infoline), "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mConfig->sys.deviceName);
-            metrics += "# TYPE ahoy_solar_info gauge\n" + String(infoline) + "\n";
-            Inverter<> *iv;
-            record_t<> *rec;
-            char type[60], topic[80], val[25];
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                iv = mSys->getInverterByPos(id);
-                if(NULL == iv)
-                    continue;
-                // Inverter info
-                snprintf(infoline, sizeof(infoline), "ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\",enabled=\"%d\"} 1",
-                    iv->config->name, iv->config->serial.u64,iv->config->enabled);
-                metrics += "# TYPE ahoy_solar_inverter_info gauge\n" + String(infoline) + "\n";
+            metricsStep = metricsStateStart;
+            AsyncWebServerResponse *response = request->beginChunkedResponse(F("text/plain"),
+                                                                             [this](uint8_t *buffer, size_t maxLen, size_t filledLength) -> size_t
+            {
+                Inverter<> *iv;
+                record_t<> *rec;
+                statistics_t *stat;
+                String metrics;
+                char type[60], topic[100], val[25];
+                size_t len = 0;
 
-                // AC
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                for(uint8_t i = 0; i < rec->length; i++) {
-                    uint8_t channel = rec->assign[i].ch;
-                    if(channel == 0) {
-                        String promUnit, promType;
-                        std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(i, rec));
-                        snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i, rec), promUnit.c_str(), promType.c_str());
-                        snprintf(topic, sizeof(topic), "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i, rec), promUnit.c_str(), iv->config->name);
-                        snprintf(val, sizeof(val), "%.3f", iv->getValue(i, rec));
-                        metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
-                    }
-                }
-                // channels DC
-                for(uint8_t j = 1; j <= iv->channels; j ++) {
-                    uint8_t pos;
-                    for (uint8_t k = 0; k < 6; k++) {
-                        switch(k) {
-                            default: pos = (iv->getPosByChFld(j, FLD_UDC, rec)); break;
-                            case 1:  pos = (iv->getPosByChFld(j, FLD_IDC, rec)); break;
-                            case 2:  pos = (iv->getPosByChFld(j, FLD_PDC, rec)); break;
-                            case 3:  pos = (iv->getPosByChFld(j, FLD_YD, rec));  break;
-                            case 4:  pos = (iv->getPosByChFld(j, FLD_YT, rec));  break;
-                            case 5:  pos = (iv->getPosByChFld(j, FLD_IRR, rec)); break;
+                switch (metricsStep) {
+                    case metricsStateStart: // System Info & NRF Statistics : fit to one packet
+                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_info gauge\nahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",
+                            mApp->getVersion(), mConfig->sys.deviceName);
+                        metrics = topic;
+                        // NRF Statistics
+                        stat = mApp->getStatistics();
+                        metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
+                        metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
+                        metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
+                        metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
+                        metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
+
+                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        // Start Inverter loop
+                        metricsInverterId = 0;
+                        metricsStep = metricsStateInverter;
+                        break;
+
+                    case metricsStateInverter: // Inverter loop
+                        if (metricsInverterId < mSys->getNumInverters()) {
+                            iv = mSys->getInverterByPos(metricsInverterId);
+                            if(NULL != iv) {
+                                // Inverter info
+                                len = snprintf((char *)buffer, maxLen, "ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\",enabled=\"%d\"} 1\n",
+                                    iv->config->name, iv->config->serial.u64,iv->config->enabled);
+                                // Start Channel loop for this inverter
+                                metricsChannelId = 0;
+                                metricsStep = metricStateChannel;
+                            }
+                        } else {
+                            metricsStep = metricsStateEnd;
                         }
-                        String promUnit, promType;
-                        std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(pos, rec));
-                        snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(pos, rec), promUnit.c_str(), promType.c_str());
-                        snprintf(topic, sizeof(topic), "ahoy_solar_%s_%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(pos, rec), promUnit.c_str(), iv->config->name, iv->config->chName[j-1]);
-                        snprintf(val, sizeof(val), "%.3f", iv->getValue(pos, rec));
-                        metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
-                    }
+                        break;
+
+                    case metricStateChannel: // Channel loop
+                        iv = mSys->getInverterByPos(metricsInverterId);
+                        rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                        if (metricsChannelId < rec->length) {
+                            uint8_t channel = rec->assign[metricsChannelId].ch;
+                            String promUnit, promType;
+                            std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
+                            snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
+                            if (0 == channel) {
+                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                            } else {
+                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                            }
+                            snprintf(val, sizeof(val), "%.3f", iv->getValue(metricsChannelId, rec));
+                            len = snprintf((char*)buffer,maxLen,"%s\n%s %s\n",type,topic,val);
+
+                            metricsChannelId++;
+                        } else {
+                            len = snprintf((char*)buffer,maxLen,"#\n"); // At least one char to send otherwise the transmission ends.
+
+                            // All channels processed --> try next inverter
+                            metricsInverterId++;
+                            metricsStep = metricsStateInverter;
+                        }
+                        break;
+
+                    case metricsStateEnd:
+                    default: // end of transmission
+                        len = 0;
+                        break;
                 }
-            }
-
-            // NRF Statistics
-            statistics_t *stat = mApp->getStatistics();
-            metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
-            metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
-            metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
-            metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-            metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
-
-            AsyncWebServerResponse *response = request->beginResponse(200, F("text/plain"), metrics);
+                return len;
+            });
             request->send(response);
         }
 
@@ -809,18 +832,18 @@ class Web {
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {
-            if(shortUnit == "A")    return {"ampere", "gauge"};
-            if(shortUnit == "V")    return {"volt", "gauge"};
-            if(shortUnit == "%")    return {"ratio", "gauge"};
-            if(shortUnit == "W")    return {"watt", "gauge"};
-            if(shortUnit == "Wh")   return {"watt_daily", "counter"};
-            if(shortUnit == "kWh")  return {"watt_total", "counter"};
-            if(shortUnit == "°C")   return {"celsius", "gauge"};
-
+            if(shortUnit == "A")    return {"_ampere", "gauge"};
+            if(shortUnit == "V")    return {"_volt", "gauge"};
+            if(shortUnit == "%")    return {"_ratio", "gauge"};
+            if(shortUnit == "W")    return {"_watt", "gauge"};
+            if(shortUnit == "Wh")   return {"_wattHours", "counter"};
+            if(shortUnit == "kWh")  return {"_kilowattHours", "counter"};
+            if(shortUnit == "°C")   return {"_celsius", "gauge"};
+            if(shortUnit == "var")  return {"_var", "gauge"};
+            if(shortUnit == "Hz")   return {"_hertz", "gauge"};
             return {"", "gauge"};
         }
 #endif
-
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
         bool mProtected;
