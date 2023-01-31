@@ -148,7 +148,10 @@ class PubMqtt {
                 snprintf(val, 4, "0.0");
                 publish(topic, val, true);
             }
-        }
+            // set Total YieldDay to zero
+            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
+            snprintf(val, 4, "0.0");
+            publish(topic, val, true);        }
 
         void payloadEventListener(uint8_t cmd) {
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
@@ -275,7 +278,7 @@ class PubMqtt {
                     doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
                     doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
                     doc2[F("dev")] = deviceObj;
-                    if (!(total && String(stateCls) == String("total_increasing")))
+                    if (!(String(stateCls) == String("total_increasing")))
                         doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
                     if (devCls != NULL)
                         doc2[F("dev_cla")] = String(devCls);
@@ -525,6 +528,8 @@ class PubMqtt {
                             switch (rec->assign[i].fieldId) {
                                 case FLD_YT:
                                 case FLD_YD:
+                                    if ((rec->assign[i].ch == CH0) && (!iv->isProducing(*mUtcTimestamp))) // avoids returns to 0 on restart
+                                        continue;
                                     retained = true;
                                     break;
                             }

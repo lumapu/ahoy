@@ -99,7 +99,7 @@
 #define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
 
 // default mqtt interval
-#define MQTT_INTERVAL           60
+#define MQTT_INTERVAL           90
 
 // default MQTT broker uri
 #define DEF_MQTT_BROKER         "\0"
