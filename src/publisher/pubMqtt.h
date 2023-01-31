@@ -145,12 +145,12 @@ class PubMqtt {
                 iv->setValue(pos, rec, 0.0f);
 
                 snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch0/%s", iv->config->name, fields[FLD_YD]);
-                snprintf(val, 4, "0.0");
+                snprintf(val, 2, "0");
                 publish(topic, val, true);
             }
             // set Total YieldDay to zero
             snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
-            snprintf(val, 4, "0.0");
+            snprintf(val, 2, "0");
             publish(topic, val, true);        }
 
         void payloadEventListener(uint8_t cmd) {
@@ -484,7 +484,7 @@ class PubMqtt {
             if(changed) {
                 snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((mIvAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
                 publish("status", val, true);
-                sendIvData(false); // false prevents loop of same function
+                //sendIvData(false); // false prevents loop of same function
             }
 
             return totalComplete;
