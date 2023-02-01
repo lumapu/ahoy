@@ -31,7 +31,7 @@ ahoy:
     QoS: 0
     Retain: True
     last_will:
-        topic: Appelweg_PV/114181807700     # defaults to 'hoymiles/{serial}'
+        topic: hoymiles/114172220003     # defaults to 'hoymiles/{serial}'
         payload: "LAST-WILL-MESSAGE: Please check my HOST and Process!"
 
   # Influx2 output
