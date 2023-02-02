@@ -78,8 +78,12 @@ cd examples_linux/
 python3 getting_started.py # to test and see whether RF24 class can be loaded as module in python correctly
 ```
 
+If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
 
-``` for bullseye - Debian 11 on 64 bit operating system
+
+for Debian 11 (bullseye) 64 bit operating system
+-------------------------------------------------
+```code
 [ $(lscpu | grep Architecture | awk '{print $2}') != "aarch64" ]] && echo "Not a 64 bit architecture for this step!"
 
 git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
@@ -87,15 +91,12 @@ cd pyRF24
 python -m pip install . -v     # this step takes about 5 minutes!
 ```
 
-
-If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
-
 Required python modules
 -----------------------
 
 Some modules are not installed by default on a RaspberryPi, therefore add them manually:
 
-```
+```code
 pip install crcmod pyyaml paho-mqtt SunTimes
 ```
 
@@ -122,7 +123,7 @@ Python parameters
 
 
 The application describes itself
-```
+```code
 python3 -m hoymiles --help
 usage: hoymiles [-h] -c [CONFIG_FILE] [--log-transactions] [--verbose]
 

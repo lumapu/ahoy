@@ -170,15 +170,15 @@ class ResponseDecoder(ResponseDecoderFactory):
         model = self.inverter_model
         command = self.request_command
 
-        c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
-        logging.info(f'{c_datetime} model_decoder: {model}Decode{command.upper()}')
+        if HOYMILES_DEBUG_LOGGING:
+            c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
+            logging.info(f'{c_datetime} model_decoder: {model}Decode{command.upper()}')
 
         model_decoders = __import__('hoymiles.decoders')
         if hasattr(model_decoders, f'{model}Decode{command.upper()}'):
             device = getattr(model_decoders, f'{model}Decode{command.upper()}')
         else:
-            if HOYMILES_DEBUG_LOGGING:
-                device = getattr(model_decoders, 'DebugDecodeAny')
+            device = getattr(model_decoders, 'DebugDecodeAny')
 
         return device(self.response,
                 time_rx=self.time_rx,

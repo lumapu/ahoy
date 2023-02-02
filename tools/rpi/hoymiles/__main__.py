@@ -179,8 +179,8 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
 
         # Handle the response data if any
         if response:
-            c_datetime = datetime.now()
             if hoymiles.HOYMILES_DEBUG_LOGGING:
+                c_datetime = datetime.now()
                 logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
 
             # prepare decoder object
@@ -195,6 +195,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
             # get decoder object
             result = decoder.decode()
             if hoymiles.HOYMILES_DEBUG_LOGGING:
+               c_datetime = datetime.now()
                logging.info(f'{c_datetime} Decoded: {result.__dict__()}')
 
             # check decoder object for output
