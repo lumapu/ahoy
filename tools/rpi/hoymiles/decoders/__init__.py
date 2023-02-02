@@ -110,6 +110,9 @@ class StatusResponse(Response):
         :rtype: tuple
         """
         size = struct.calcsize(fmt)
+        if (len(self.response) < base+size):
+           logging.error(f'base: {base} size: {size} len: {len(self.response)} fmt: {fmt} rep: {self.response}')
+           return [0]
         return struct.unpack(fmt, self.response[base:base+size])
 
     @property
@@ -331,10 +334,12 @@ class EventsResponse(UnknownResponse):
 
             logging.debug(' '.join([f'{byte:02x}' for byte in chunk]) + ': ')
 
-            opcode, a_code, a_count, uptime_sec = struct.unpack('>BBHH', chunk[0:6])
-            a_text = self.alarm_codes.get(a_code, 'N/A')
-
-            logging.debug(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
+            if (len(chunk[0:6]) == 6):
+                opcode, a_code, a_count, uptime_sec = struct.unpack('>BBHH', chunk[0:6])
+                a_text = self.alarm_codes.get(a_code, 'N/A')
+                logging.debug(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
+            else:
+                logging.error(f'length of chunk must be greater or equal 6 bytes: {chunk}')
 
             dbg = ''
             for fmt in ['BBHHHHH']:
@@ -362,7 +367,10 @@ class HardwareInfoResponse(UnknownResponse):
         """ Base values, availabe in each __dict__ call """
 
         responce_info = self.response
-        logging.info(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+        if (len(responce_info) >= 16):
+            logging.info(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+        else:
+            logging.error(f'wrong length of HardwareInfoResponse: {responce_info}')
 
         fw_version, fw_build_yyyy, fw_build_mmdd, fw_build_hhmm, hw_id = struct.unpack('>HHHHH', self.response[0:10])
 
