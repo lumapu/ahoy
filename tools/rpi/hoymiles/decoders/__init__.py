@@ -327,9 +327,9 @@ class EventsResponse(UnknownResponse):
             #logging.debug(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
-        status = struct.unpack('>H', self.response[:2])[0]
-        a_text = self.alarm_codes.get(status, 'N/A')
-        logging.info (f' Inverter status: {a_text} ({status})')
+        self.status = struct.unpack('>H', self.response[:2])[0]
+        self.a_text = self.alarm_codes.get(self.status, 'N/A')
+        logging.info (f' Inverter status: {self.a_text} ({self.status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):
@@ -349,6 +349,14 @@ class EventsResponse(UnknownResponse):
             for fmt in ['BBHHHHH']:
                 dbg += f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk))
             logging.debug(dbg)
+
+    def __dict__(self):
+        """ Base values, availabe in each __dict__ call """
+
+        data = super().__dict__()
+        data['inv_stat_num'] = self.status
+        data['inv_stat_txt'] = self.a_text
+        return data
 
 class HardwareInfoResponse(UnknownResponse):
     def __init__(self, *args, **params):
@@ -371,7 +379,6 @@ class HardwareInfoResponse(UnknownResponse):
         """ Base values, availabe in each __dict__ call """
 
         data = super().__dict__()
-        responce_info = self.response
 
         if (len(self.response) != 16):
             logging.error(f'HardwareInfoResponse: data length should be 16 bytes - measured {len(self.response)} bytes')

@@ -84,9 +84,14 @@ If there are no error messages on the last step, then the NRF24 Wrapper has been
 Building RF24 Wrapper for Debian 11 (bullseye) 64 bit operating system
 ----------------------------------------------------------------------
 The description above does not work on Debian 11 (bullseye) 64 bit operating system.
-There are 2 possible sollutions to install the RF24 Wrapper.
+Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
+ - `uname -a` search for aarch64
+ - `lsb_release -d`
+ - `cat /etc/debian_version`
 
- * `1. solution:`
+There are 2 possible solutions to install the RF24 wrapper:
+
+ * `1. Solution:`
 ```code
 sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
@@ -101,13 +106,13 @@ cd RF24
 rm -rf build Makefile.inc 
 ./configure --driver=SPIDEV
 ```
- * edit `Makefile.inc` with your prefered editor e.g. nano or vi
- old:
+ # edit `Makefile.inc` with your prefered editor e.g. nano or vi
+ - old:
 ```code
  CPUFLAGS=-marm -march=armv6zk -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
  CFLAGS=-marm -march=armv6zk -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -Ofast -Wall -pthread
 ```
- new:
+ - new:
 ```code
  CPUFLAGS=
  CFLAGS=-Ofast -Wall -pthread
@@ -125,8 +130,7 @@ python3 -m pip list #watch for RF24 module - if its there its installed
 ```
 
 
-
- * `2. solution:`
+ * `2. Solution:`
 ```code
 sudo apt install git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
@@ -134,6 +138,14 @@ git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
 cd pyRF24
 python3 -m pip install . -v     # this step takes about 5 minutes on my RPI-4 !
 ```
+
+If you have problems with your radio module from ahoi, 
+e.g.: cannot interpret received data,
+please try to reduce the speed of the radio module!
+Add the following line to your ahoy.yml configuration file in "nrf" section:
+* `spispeed: 600000`
+
+
 
 Required python modules
 -----------------------
