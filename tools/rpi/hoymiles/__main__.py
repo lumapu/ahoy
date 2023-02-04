@@ -174,12 +174,13 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                     response = com.get_payload()
                     payload_ttl = 0
                 except Exception as e_all:
-                    logging.error(f'Error while retrieving data: {e_all}')
+                    if hoymiles.HOYMILES_TRANSACTION_LOGGING:
+                        logging.error(f'Error while retrieving data: {e_all}')
                     pass
 
         # Handle the response data if any
         if response:
-            if hoymiles.HOYMILES_DEBUG_LOGGING:
+            if hoymiles.HOYMILES_TRANSACTION_LOGGING:
                 c_datetime = datetime.now()
                 logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
 
@@ -195,8 +196,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
             # get decoder object
             result = decoder.decode()
             if hoymiles.HOYMILES_DEBUG_LOGGING:
-               c_datetime = datetime.now()
-               logging.info(f'{c_datetime} Decoded: {result.__dict__()}')
+               logging.info(f'Decoded: {result.__dict__()}')
 
             # check decoder object for output
             if isinstance(result, hoymiles.decoders.StatusResponse):
@@ -282,6 +282,12 @@ def init_logging(ahoy_config):
             lvl = logging.WARNING
         elif level == 'ERROR':
             lvl = logging.ERROR
+        elif level == 'FATAL':
+            lvl = logging.FATAL
+    if hoymiles.HOYMILES_TRANSACTION_LOGGING and hoymiles.HOYMILES_DEBUG_LOGGING:
+        lvl = logging.DEBUG
+    if not hoymiles.HOYMILES_TRANSACTION_LOGGING and not hoymiles.HOYMILES_DEBUG_LOGGING:
+        lvl = logging.INFO
     logging.basicConfig(filename=fn, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
 
 if __name__ == '__main__':
@@ -309,14 +315,14 @@ if __name__ == '__main__':
         logging.error(f'Failed to load config file {global_config.config_file}: {e_yaml}')
         sys.exit(1)
 
-    # read AHOY configuration file and prepare logging
-    ahoy_config = dict(cfg.get('ahoy', {}))
-    init_logging(ahoy_config)
-
     if global_config.log_transactions:
         hoymiles.HOYMILES_TRANSACTION_LOGGING=True
     if global_config.verbose:
         hoymiles.HOYMILES_DEBUG_LOGGING=True
+
+    # read AHOY configuration file and prepare logging
+    ahoy_config = dict(cfg.get('ahoy', {}))
+    init_logging(ahoy_config)
 
     # Prepare for multiple transceivers, makes them configurable
     for radio_config in ahoy_config.get('nrf', [{}]):

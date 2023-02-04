@@ -81,14 +81,58 @@ python3 getting_started.py # to test and see whether RF24 class can be loaded as
 If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
 
 
-for Debian 11 (bullseye) 64 bit operating system
--------------------------------------------------
+Building RF24 Wrapper for Debian 11 (bullseye) 64 bit operating system
+----------------------------------------------------------------------
+The description above does not work on Debian 11 (bullseye) 64 bit operating system.
+There are 2 possible sollutions to install the RF24 Wrapper.
+
+ * `1. solution:`
 ```code
-[ $(lscpu | grep Architecture | awk '{print $2}') != "aarch64" ]] && echo "Not a 64 bit architecture for this step!"
+sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
+
+sudo ln -s $(ls /usr/lib/$(ls /usr/lib/gcc | \
+     head -1)/libboost_python3*.so | \
+     tail -1) /usr/lib/$(ls /usr/lib/gcc | \
+     head -1)/libboost_python3.so
+
+git clone https://github.com/nRF24/RF24.git
+cd RF24
+
+rm -rf build Makefile.inc 
+./configure --driver=SPIDEV
+```
+ * edit `Makefile.inc` with your prefered editor e.g. nano or vi
+ old:
+```code
+ CPUFLAGS=-marm -march=armv6zk -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard
+ CFLAGS=-marm -march=armv6zk -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -Ofast -Wall -pthread
+```
+ new:
+```code
+ CPUFLAGS=
+ CFLAGS=-Ofast -Wall -pthread
+```
+ * continue with 
+```code
+make
+sudo make install
+
+cd pyRF24
+rm -r ./build/ ./dist/ ./RF24.egg-info/ ./__pycache__/ #just to make sure there is no old stuff
+python3 -m pip install --upgrade pip
+python3 -m pip install .
+python3 -m pip list #watch for RF24 module - if its there its installed
+```
+
+
+
+ * `2. solution:`
+```code
+sudo apt install git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
 git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
 cd pyRF24
-python -m pip install . -v     # this step takes about 5 minutes!
+python3 -m pip install . -v     # this step takes about 5 minutes on my RPI-4 !
 ```
 
 Required python modules

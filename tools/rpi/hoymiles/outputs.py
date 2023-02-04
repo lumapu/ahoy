@@ -9,6 +9,7 @@ import socket
 import logging
 from datetime import datetime, timezone
 from hoymiles.decoders import StatusResponse, HardwareInfoResponse
+from hoymiles import HOYMILES_TRANSACTION_LOGGING, HOYMILES_DEBUG_LOGGING
 
 class OutputPluginFactory:
     def __init__(self, **params):
@@ -277,9 +278,10 @@ class VzInverterOutput:
         self.channels = dict()
 
         for channel in config.get('channels', []):
-            uid = channel.get('uid')
+            uid = channel.get('uid', None)
             ctype = channel.get('type')
-            if uid and ctype:
+            # if uid and ctype:
+            if ctype:
                 self.channels[ctype] = uid
 
     def store_status(self, data, session):
@@ -330,10 +332,17 @@ class VzInverterOutput:
 
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
-            logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
+            if HOYMILES_DEBUG_LOGGING:
+                logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
             return
+
         uid = self.channels[ctype]
         url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
+        if uid == None:
+            if HOYMILES_DEBUG_LOGGING:
+                logging.warning(f'ctype \"{ctype}\" has no configured uid-value in ahoy.yml')
+            return
+
         try:
             r = self.session.get(url)
             if r.status_code == 404:
