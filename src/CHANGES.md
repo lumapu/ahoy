@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.79
+* fixed mixed reset flags #648
+* fixed `mCbAlarm` if MQTT is not used #653
+
 ## 0.5.78
 * further improvements regarding wifi #611, fix connection if only one AP with same SSID is there
 * fix endless loop in `zerovalues` #564

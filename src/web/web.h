@@ -550,8 +550,8 @@ class Web {
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
             mConfig->mqtt.rstYieldMidNight = (request->arg("mqttRstMid") == "on");
-            mConfig->mqtt.rstValsNotAvail  = (request->arg("mqttRstComStop") == "on");
-            mConfig->mqtt.rstValsCommStop  = (request->arg("mqttRstNotAvail") == "on");
+            mConfig->mqtt.rstValsCommStop  = (request->arg("mqttRstComStop") == "on");
+            mConfig->mqtt.rstValsNotAvail  = (request->arg("mqttRstNotAvail") == "on");
 
             // serial console
             if(request->arg("serIntvl") != "") {

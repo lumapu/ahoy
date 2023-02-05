@@ -47,6 +47,7 @@ class Payload {
             }
             mSerialDebug  = false;
             mHighPrioIv = NULL;
+            mCbAlarm = NULL;
         }
 
         void enableSerialDebug(bool enable) {
@@ -266,7 +267,8 @@ class Payload {
                                     code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
                                     if(0 == code)
                                         break;
-                                    (mCbAlarm)(code, start, end);
+                                    if(NULL != mCbAlarm)
+                                        (mCbAlarm)(code, start, end);
                                     yield();
                                 }
                             }
@@ -290,7 +292,8 @@ class Payload {
         }
 
         void notify(uint16_t code, uint32_t start, uint32_t endTime) {
-            (mCbAlarm)(code, start, endTime);
+            if(NULL != mCbAlarm)
+                (mCbAlarm)(code, start, endTime);
         }
 
         bool build(uint8_t id, bool *complete) {
