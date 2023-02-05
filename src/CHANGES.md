@@ -5,6 +5,11 @@
 ## 0.5.79
 * fixed mixed reset flags #648
 * fixed `mCbAlarm` if MQTT is not used #653
+* next changes from @beegee many thanks for your contribution!
+* replaced `CircularBuffer` by `std::queue`
+* reworked `hmRadio.h` completely (interrupts, packaging)
+* fix exception while `reboot`
+* cleanup MQTT coding
 
 ## 0.5.78
 * further improvements regarding wifi #611, fix connection if only one AP with same SSID is there
