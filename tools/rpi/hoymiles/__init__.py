@@ -12,18 +12,26 @@ from datetime import datetime
 import logging
 import crcmod
 from .decoders import *
+from os import environ
 
 try:
   # OSI Layer 2 driver for nRF24L01 on Arduino & Raspberry Pi/Linux Devices
   # https://github.com/nRF24/RF24.git
   from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
-except ModuleNotFoundError:
+  if environ.get('TERM') is not None:
+    print('Using python Module: RF24')
+except ModuleNotFoundError as e:
+  if environ.get('TERM') is not None:
+    print(f'{e} - try to use module: RF24')
   try:
     # Repo for pyRF24 package
     # https://github.com/nRF24/pyRF24.git
     from pyrf24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
-  except ModuleNotFoundError:
-    print("Module for RF24 not found - exit")
+    if environ.get('TERM') is not None:
+      print(f'{e} - Using python Module: pyrf24')
+  except ModuleNotFoundError as e:
+    if environ.get('TERM') is not None:
+      print(f'{e} - exit')
     exit()
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
@@ -171,8 +179,19 @@ class ResponseDecoder(ResponseDecoderFactory):
         command = self.request_command
 
         if HOYMILES_DEBUG_LOGGING:
-            c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
-            logging.info(f'{c_datetime} model_decoder: {model}Decode{command.upper()}')
+            if   command.upper() == '01':
+                model_desc = "Firmware version / date"
+            elif command.upper() == '02':
+                model_desc = "Inverter generic events log"
+            elif command.upper() == '0B':
+                model_desc = "mirco-inverters status data"
+            elif command.upper() == '0C':
+                model_desc = "mirco-inverters status data"
+            elif command.upper() == '11':
+                model_desc = "Inverter generic events log"
+            elif command.upper() == '12':
+                model_desc = "Inverter major events log"
+            logging.info(f'model_decoder: {model}Decode{command.upper()} - {model_desc}')
 
         model_decoders = __import__('hoymiles.decoders')
         if hasattr(model_decoders, f'{model}Decode{command.upper()}'):

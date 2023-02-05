@@ -6,11 +6,10 @@
 #   WorkingDirectory         (absolute path to your private ahoy dir)
 # To change other config parameter, please consult systemd documentation
 #
-# To activate this service, create a link, enable and start the ahoy.service
-# $ mkdir -p $HOME/.config/systemd/user 
-# $ ln -sf $(pwd)/ahoy/tools/rpi/ahoy.service -t $HOME/.config/systemd/user
+# To activate this service, create a link with enable and start the ahoy.service
+# $ mkdir -p $HOME/.config/systemd/user
+# $ systemctl --user enable $(pwd)/ahoy/tools/rpi/ahoy.service
 # $ systemctl --user status ahoy
-# $ systemctl --user enable ahoy
 # $ systemctl --user start ahoy
 # $ systemctl --user status ahoy
 #
