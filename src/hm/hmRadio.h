@@ -82,7 +82,6 @@ class HmRadio {
         void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
-            attachInterrupt(digitalPinToInterrupt(irq), []()IRAM_ATTR{ mIrqRcvd = true;  }, FALLING);
 
             uint32_t dtuSn = 0x87654321;
             uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
@@ -164,6 +163,10 @@ class HmRadio {
             //DBGPRINTLN("RX not finished: 300 time used: " + String(millis()-debug_ms)+ " ms");
             mNrf24.stopListening();
             return true;
+        }
+
+        void handleIntr(void) {
+            mIrqRcvd = true;
         }
 
         bool isChipConnected(void) {

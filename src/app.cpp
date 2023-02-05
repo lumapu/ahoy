@@ -13,6 +13,7 @@ app::app() : ah::Scheduler() {}
 
 //-----------------------------------------------------------------------------
 void app::setup() {
+    mSys = NULL;
     Serial.begin(115200);
     while (!Serial)
         yield();

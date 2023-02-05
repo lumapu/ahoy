@@ -60,6 +60,11 @@ class app : public IApp, public ah::Scheduler {
         void onWifi(bool gotIp);
         void regularTickers(void);
 
+        void handleIntr(void) {
+            if(NULL != mSys)
+                mSys->Radio.handleIntr();
+        }
+
         uint32_t getUptime() {
             return Scheduler::getUptime();
         }
