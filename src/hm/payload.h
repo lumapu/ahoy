@@ -46,7 +46,8 @@ class Payload {
                 reset(i);
             }
             mSerialDebug  = false;
-            mHighPrioIv = NULL;
+            mHighPrioIv   = NULL;
+            mCbAlarm      = NULL;
         }
 
         void enableSerialDebug(bool enable) {
@@ -117,7 +118,7 @@ class Payload {
             }
         }
 
-        void add(packet_t *p, uint8_t len) {
+        void add(packet_t *p) {
             Inverter<> *iv = mSys->findInverter(&p->packet[1]);
 
             if(NULL == iv)
@@ -132,8 +133,8 @@ class Payload {
                 } else {
                     DPRINTLN(DBG_DEBUG, "PID: 0x" + String(*pid, HEX));
                     if ((*pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {
-                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], len - 11);
-                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = len - 11;
+                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], p->len - 11);
+                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->len - 11;
                         mPayload[iv->id].gotFragment = true;
                     }
 
@@ -194,21 +195,24 @@ class Payload {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     if(false == mPayload[iv->id].gotFragment) {
+                                        /*
                                         DPRINTLN(DBG_WARN, F("nothing received: Request Complete Retransmit"));
                                         mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                         DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
                                         mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                                        */
+                                        DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
+                                        mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
                                             if (mPayload[iv->id].len[i] == 0) {
                                                 DPRINTLN(DBG_WARN, F("Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true, true);
+                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
                                             }
                                             yield();
                                         }
                                     }
-                                    mSys->Radio.switchRxCh(100);
                                 }
                             }
                         }
@@ -241,13 +245,13 @@ class Payload {
 
                         if (mSerialDebug) {
                             DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                            mSys->Radio.dumpBuf(NULL, payload, payloadLen);
+                            mSys->Radio.dumpBuf(payload, payloadLen);
                         }
 
                         if (NULL == rec) {
                             DPRINTLN(DBG_ERROR, F("record is NULL!"));
                         } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
-                            if (mPayload[iv->id].txId == (TX_REQ_INFO + 0x80))
+                            if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
                                 mStat->rxSuccess++;
 
                             rec->ts = mPayload[iv->id].ts;
@@ -266,7 +270,8 @@ class Payload {
                                     code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
                                     if(0 == code)
                                         break;
-                                    (mCbAlarm)(code, start, end);
+                                    if (NULL != mCbAlarm)
+                                        (mCbAlarm)(code, start, end);
                                     yield();
                                 }
                             }
@@ -278,9 +283,7 @@ class Payload {
                         iv->setQueuedCmdFinished();
                     }
                 }
-
                 yield();
-
             }
         }
 
@@ -290,7 +293,8 @@ class Payload {
         }
 
         void notify(uint16_t code, uint32_t start, uint32_t endTime) {
-            (mCbAlarm)(code, start, endTime);
+            if (NULL != mCbAlarm)
+                (mCbAlarm)(code, start, endTime);
         }
 
         bool build(uint8_t id, bool *complete) {
