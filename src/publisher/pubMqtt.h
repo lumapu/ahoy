@@ -15,7 +15,6 @@
 #endif
 
 #include "../utils/dbg.h"
-#include "../utils/ahoyTimer.h"
 #include "../config/config.h"
 #include <espMqttClient.h>
 #include <ArduinoJson.h>
@@ -40,8 +39,7 @@ class PubMqtt {
             mRxCnt = 0;
             mTxCnt = 0;
             mSubscriptionCb = NULL;
-            mIvAvail = true;
-            memset(mLastIvState, 0xff, MAX_NUM_INVERTERS);
+            memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
         }
 
         ~PubMqtt() { }
@@ -70,6 +68,7 @@ class PubMqtt {
         void loop() {
             #if defined(ESP8266)
             mClient.loop();
+            yield();
             #endif
         }
 
@@ -408,13 +407,12 @@ class PubMqtt {
 
         bool processIvStatus() {
             // returns true if all inverters are available
-            bool allAvail = true;
-            bool first = true;
+            bool allAvail = true;   // shows if all enabled inverters are available
+            bool anyAvail = false;  // shows if at least one enabled inverter is available
             bool changed = false;
             char topic[7 + MQTT_TOPIC_LEN], val[40];
             Inverter<> *iv;
             record_t<> *rec;
-            bool totalComplete = true;
 
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 iv = mSys->getInverterByPos(id);
@@ -422,32 +420,21 @@ class PubMqtt {
                     continue; // skip to next inverter
 
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                if(first)
-                    mIvAvail = false;
-                first = false;
 
                 // inverter status
-                uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                if ((!iv->isAvailable(*mUtcTimestamp)) || (!iv->config->enabled)) {
-                    status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                    if(iv->config->enabled) { // only change all-avail if inverter is enabled!
-                        totalComplete = false;
+                uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                if (iv->config->enabled) {
+                    if (iv->isAvailable(*mUtcTimestamp))
+                        status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
+                    else // inverter is enabled but not available
                         allAvail = false;
-                    }
-                }
-                else {
-                    mIvAvail = true;
-                    if (!iv->isProducing(*mUtcTimestamp)) {
-                        if (MQTT_STATUS_AVAIL_PROD == status)
-                            status = MQTT_STATUS_AVAIL_NOT_PROD;
-                    }
                 }
 
                 if(mLastIvState[id] != status) {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    if(mCfgMqtt->rstValsNotAvail)
+                    if((MQTT_STATUS_NOT_AVAIL_NOT_PROD == status) && (mCfgMqtt->rstValsNotAvail))
                         zeroValues(iv);
 
                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
@@ -461,12 +448,12 @@ class PubMqtt {
             }
 
             if(changed) {
-                snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((mIvAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
+                snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
                 publish("status", val, true);
                 sendIvData(false); // false prevents loop of same function
             }
 
-            return totalComplete;
+            return allAvail;
         }
 
         void sendAlarmData() {
@@ -494,7 +481,7 @@ class PubMqtt {
                 memset(total, 0, sizeof(float) * 4);
                 for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
-                    if (NULL == iv)
+                    if ((NULL == iv) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD == mLastIvState[id]))
                         continue; // skip to next inverter
 
                     record_t<> *rec = iv->getRecordStruct(mSendList.front());
@@ -626,7 +613,6 @@ class PubMqtt {
         std::queue<uint8_t> mSendList;
         std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
-        bool mIvAvail; // shows if at least one inverter is available
         bool mReconnectRequest;
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
