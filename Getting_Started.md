@@ -6,9 +6,12 @@
 - [Things needed](#things-needed)
     - [There are fake NRF24L01+ Modules out there](#there-are-fake-nrf24l01-modules-out-there)
 - [Wiring things up](#wiring-things-up)
-    - [ESP8266 wiring example](#esp8266-wiring-example)
+    - [ESP8266 wiring example on WEMOS D1](#esp8266-wiring-example)
       - [Schematic](#schematic)
       - [Symbolic view](#symbolic-view)
+    - [ESP8266 wiring example on 30pin Lolin NodeMCU v3](#esp8266-wiring-example-2)
+      - [Schematic](#schematic-2)
+      - [Symbolic view](#symbolic-view-2)
     - [ESP32 wiring example](#esp32-wiring-example)
       - [Schematic](#schematic-1)
       - [Symbolic view](#symbolic-view-1)
@@ -69,8 +72,9 @@ Make sure the NRF24L01+ module has the "+" in its name as we depend on the 250kb
 
 | **Parts** | **Price** |
 | --- | --- |
-| D1 ESP8266 Mini WLAN Board Mikrokontroller | 4,40 Euro |
+| D1 ESP8266 Mini WLAN Board Microcontroller | 4,40 Euro |
 | NRF24L01+ SMD Modul 2,4 GHz Wi-Fi Funkmodul | 3,45 Euro |
+| 100µF / 10V Capacitor Kondensator | 0,15 Euro |
 | Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
 | **Total costs** | **10,34 Euro** |
 
@@ -80,6 +84,7 @@ To also run our sister project OpenDTU and be upwards compatible for the future 
 | --- | --- |
 | ESP32 Dev Board NodeMCU WROOM32 WiFi | 7,90 Euro |
 | NRF24L01+ PA LNA SMA mit Antenne Long | 4,50 Euro |
+| 100µF / 10V Capacitor Kondensator | 0,15 Euro |
 | Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
 | **Total costs** | **14,89 Euro** |
 
@@ -88,6 +93,18 @@ To also run our sister project OpenDTU and be upwards compatible for the future 
 Watch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
 An example can be found in [Issue #230](https://github.com/lumapu/ahoy/issues/230).<br/>
 You are welcome to add more examples of faked chips. We will add that information here.<br/>
+
+Some users reported better connection or longer range through more walls when using the
+"E01-ML01DP5" EBYTE 2,4 GHz Wireless Modul nRF24L01 + PA + LNA RF Modul, SMA-K Antenna connector,
+which has an eye-catching HF cover. But beware: It comes without the antenna!
+
+In any case you should stabilize the Vcc power by a capacitor and don't exceed the Amplifier Power Level "LOW".
+Users reporting good connection over 10m through walls / ceilings with Amplifier Power Level "MIN".
+It is not always the bigger the better...
+
+Power levels "HIGH" and "MAX" are meant to wirings where the nRF24 is supplied by an extra 3.3 Volt regulator.
+The bultin regulator on ESP boards has only low reserves in case WiFi and nRF are sending simultaneously.
+If you operate additional interfaces like a display, the reserve is again reduced.
 
 ## Wiring things up
 
@@ -107,7 +124,7 @@ Additional, there are 3 pins, which can be set individual:
 
 *These pins can be changed from the /setup URL.*
 
-#### ESP8266 wiring example
+#### ESP8266 wiring example on WEMOS D1
 
 This is an example wiring using a Wemos D1 mini.<br>
 
@@ -118,6 +135,18 @@ This is an example wiring using a Wemos D1 mini.<br>
 ##### Symbolic view
 
 ![Symbolic](doc/AhoyWemos_Steckplatine.jpg)
+
+#### ESP8266 wiring example on 30pin Lolin NodeMCU v3
+
+This is an example wiring using a NodeMCU V3.<br>
+
+##### Schematic
+
+![Schematic](doc/ESP8266_nRF24L01+_Schaltplan.jpg)
+
+##### Symbolic view
+
+![Symbolic](doc/ESP8266_nRF24L01+_bb.png)
 
 #### ESP32 wiring example
 

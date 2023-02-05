@@ -47,7 +47,7 @@ jobs:
       run: python convert.py
 
     - name: Run PlatformIO
-      run: pio run -d src --environment esp8266-release --environment esp8285-release --environment esp8266-nokia5110 --environment esp8266-ssd1306 --environment esp32-wroom32-release --environment esp32-wroom32-nokia5110 --environment esp32-wroom32-ssd1306
+      run: pio run -d src --environment esp8266-release --environment esp8285-release --environment esp32-wroom32-release
 
     - name: Rename Binary files
       id: rename-binary-files

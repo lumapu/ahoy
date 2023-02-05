@@ -30,8 +30,6 @@
         </div>
         <div id="wrapper">
             <div id="content">
-                <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
-
                 <form method="post" action="/save">
                     <fieldset>
                         <legend class="des">Device Host Name</legend>
@@ -94,7 +92,7 @@
                         <input type="button" id="btnAdd" class="btn" value="Add Inverter"/>
                         <p class="subdes">General</p>
                         <label for="invInterval">Interval [s]</label>
-                        <input type="text" class="text" name="invInterval"/>
+                        <input type="text" class="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/>
                         <label for="invRetry">Max retries per Payload</label>
                         <input type="text" class="text" name="invRetry"/>
                     </fieldset>
@@ -147,7 +145,16 @@
                         <label for="mqttPwd">Password (optional)</label>
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9.\-_\+\/]+" title="Invalid input" />
+                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" />
+                        <label for="mqttRstMid">Reset YieldDay at Midnight</label>
+                        <input type="checkbox" class="cb" name="mqttRstMid"/><br/>
+                        <label for="mqttRstComStop">Reset Values at Communication stop</label>
+                        <input type="checkbox" class="cb" name="mqttRstComStop"/><br/>
+                        <label for="mqttRstNotAvail">Reset Values on 'not available'</label>
+                        <input type="checkbox" class="cb" name="mqttRstNotAvail"/><br/>
+                        <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
+                        <label for="mqttIntvl">Interval [s]</label>
+                        <input type="text" class="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" />
                         <label for="mqttBtn">Discovery Config (homeassistant)</label>
                         <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
                         <span id="apiResultMqtt"></span>
@@ -158,7 +165,7 @@
                     <div class="s_content">
                     <fieldset>
                         <legend class="des">System Config</legend>
-                        <p class="des">Pinout (Wemos)</p>
+                        <p class="des">Pinout</p>
                         <div id="pinout"></div>
 
                         <p class="des">Radio (NRF24L01+)</p>
@@ -170,7 +177,28 @@
                         <label for="serDbg">Serial Debug</label>
                         <input type="checkbox" class="cb" name="serDbg"/><br/>
                         <label for="serIntvl">Interval [s]</label>
-                        <input type="text" class="text" name="serIntvl"/>
+                        <input type="text" class="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Display Config</button>
+                    <div class="s_content">
+                    <fieldset>
+                        <legend class="des">Display Config</legend>
+                        <div id="dispType"></div>
+                        <label for="logoEn">Show Logo</label>
+                        <input type="checkbox" class="cb" name="logoEn"/><br/>
+                        <label for="dispPwr">Turn off while inverters are offline</label>
+                        <input type="checkbox" class="cb" name="dispPwr"/><br/>
+                        <label for="dispPxSh">Enable pixel shifting</label>
+                        <input type="checkbox" class="cb" name="dispPxSh"/><br/>
+                        <label for="disp180">Rotate 180 degree</label>
+                        <input type="checkbox" class="cb" name="disp180"/><br/>
+
+                        <label for="dispCont">Contrast</label>
+                        <select name="dispCont" id="contrast"></select>
+                        <p class="des">Pinout</p>
+                        <div id="dispPins"></div>
                     </fieldset>
                     </div>
 
@@ -181,7 +209,15 @@
                     </div>
                     <div class="hr mb-3 mt-3"></div>
                     <div class="mb-4">
-                        <a href="/get_setup" target="_blank">Download your settings (JSON file)</a> (only saved values)
+                        <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                        <fieldset>
+                            <legend class="des">Upload / Store JSON Settings</legend>
+                            <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
+                                <input type="file" name="upload">
+                                <input type="button" class="btn" value="Upload" onclick="hide()">
+                            </form>
+                        </fieldset>
+                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a> (only saved values, passwords will be removed!)
                     </div>
                 </form>
             </div>
@@ -206,11 +242,62 @@
             var highestId = 0;
             var maxInv = 0;
 
+            var esp8266pins = [
+                [255, "off / default"],
+                [0, "D3 (GPIO0)"],
+                [1, "TX (GPIO1)"],
+                [2, "D4 (GPIO2)"],
+                [3, "RX (GPIO3)"],
+                [4, "D2 (GPIO4, SDA)"],
+                [5, "D1 (GPIO5, SCL)"],
+                [6, "GPIO6"],
+                [7, "GPIO7"],
+                [8, "GPIO8"],
+                [9, "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "D6 (GPIO12)"],
+                [13, "D7 (GPIO13)"],
+                [14, "D5 (GPIO14)"],
+                [15, "D8 (GPIO15)"],
+                [16, "D0 (GPIO16 - no IRQ!)"]
+            ];
+            var esp32pins = [
+                [255, "off / default"],
+                [0,  "GPIO0"],
+                [1,  "TX (GPIO1)"],
+                [2,  "GPIO2 (LED)"],
+                [3,  "RX (GPIO3)"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19"],
+                [21, "GPIO21 (SDA)"],
+                [22, "GPIO22 (SCL)"],
+                [23, "GPIO23"],
+                [25, "GPIO25"],
+                [26, "GPIO26"],
+                [27, "GPIO27"],
+                [32, "GPIO32"],
+                [33, "GPIO33"],
+                [34, "GPIO34"],
+                [35, "GPIO35"],
+                [36, "VP (GPIO36)"],
+                [39, "VN (GPIO39)"]
+            ];
+
             const re = /11[2,4,6]1.*/;
 
             document.getElementById("btnAdd").addEventListener("click", function() {
-                if(highestId <= (maxInv-1))
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId + 1);
+                if(highestId <= (maxInv-1)) {
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId);
+                }
             });
 
             function apiCbWifi(obj) {
@@ -265,6 +352,12 @@
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
+            function hide() {
+                document.getElementById("form").submit();
+                var e = document.getElementById("content");
+                e.replaceChildren(span("upload started"));
+            }
+
             function delIv() {
                 var id = this.id.substring(0,4);
                 var e = document.getElementsByName(id + "Addr")[0];
@@ -275,8 +368,8 @@
             }
 
             function ivHtml(obj, id) {
-                highestId = id;
-                if(highestId == (maxInv - 1))
+                highestId = id + 1;
+                if(highestId == maxInv)
                     setHide("btnAdd", true);
                 iv = document.getElementById("inverter");
                 iv.appendChild(des("Inverter " + id));
@@ -289,7 +382,7 @@
                 iv.appendChild(br());
 
                 iv.appendChild(lbl(id + "Addr", "Serial Number (12 digits)*"));
-                var addr = inp(id + "Addr", obj["serial"], 12);
+                var addr = inp(id + "Addr", obj["serial"], 12, ["text"], null, "text", "[0-9]+", "Invalid input");
                 iv.appendChild(addr);
                 ['keyup', 'change'].forEach(function(evt) {
                     addr.addEventListener(evt, (e) => {
@@ -320,7 +413,7 @@
 
                 iv.append(
                     lbl(id + "Name", "Name*"),
-                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9.\\-_\\+\\/]+", "Invalid input")
+                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")
                 );
 
                 for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"], ["ModName", "ch_name", "Module Name", 16, null]]) {
@@ -336,10 +429,15 @@
                     iv.appendChild(d);
                 }
 
+                iv.append(
+                    br(),
+                    lbl(id + "YieldCor", "Yield Total Correction (will be subtracted) [kWh]"),
+                    inp(id + "YieldCor", obj["yieldCor"], 32, ["text"], null, "text", "[0-9]+", "Invalid input")
+                );
+
                 var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
                 del.addEventListener("click", delIv);
                 iv.append(
-                    br(),
                     lbl(id + "lbldel", "Delete"),
                     del
                 );
@@ -389,8 +487,11 @@
             }
 
             function parseMqtt(obj) {
-                for(var i of [["Addr", "broker"], ["Port", "port"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"]])
+                for(var i of [["Addr", "broker"], ["Port", "port"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
+
+                for(var i of [["Mid", "rstMid"], ["ComStop", "rstNAvail"], ["NotAvail", "rstComStop"]])
+                    document.getElementsByName("mqttRst"+i[0])[0].checked = obj[i[1]];
             }
 
             function parseNtp(obj) {
@@ -413,59 +514,7 @@
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
                 for(p of pins) {
                     e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    if("ESP8266" == type) {
-                        e.appendChild(sel(p[1], [
-                            [255, "off / default"],
-                            [0, "D3 (GPIO0)"],
-                            [1, "TX (GPIO1)"],
-                            [2, "D4 (GPIO2)"],
-                            [3, "RX (GPIO3)"],
-                            [4, "D2 (GPIO4)"],
-                            [5, "D1 (GPIO5)"],
-                            [6, "GPIO6"],
-                            [7, "GPIO7"],
-                            [8, "GPIO8"],
-                            [9, "GPIO9"],
-                            [10, "GPIO10"],
-                            [11, "GPIO11"],
-                            [12, "D6 (GPIO12)"],
-                            [13, "D7 (GPIO13)"],
-                            [14, "D5 (GPIO14)"],
-                            [15, "D8 (GPIO15)"],
-                            [16, "D0 (GPIO16 - no IRQ!)"]
-                        ], obj[p[0]]));
-                    }
-                    else {
-                        e.appendChild(sel(p[1], [
-                            [255, "off / default"],
-                            [0,  "GPIO0"],
-                            [1,  "TX (GPIO1)"],
-                            [2,  "GPIO2 (LED)"],
-                            [3,  "RX (GPIO3)"],
-                            [4,  "GPIO4"],
-                            [5,  "GPIO5"],
-                            [12, "GPIO12"],
-                            [13, "GPIO13"],
-                            [14, "GPIO14"],
-                            [15, "GPIO15"],
-                            [16, "GPIO16"],
-                            [17, "GPIO17"],
-                            [18, "GPIO18"],
-                            [19, "GPIO19"],
-                            [21, "GPIO21"],
-                            [22, "GPIO22"],
-                            [23, "GPIO23"],
-                            [25, "GPIO25"],
-                            [26, "GPIO26"],
-                            [27, "GPIO27"],
-                            [32, "GPIO32"],
-                            [33, "GPIO33"],
-                            [34, "GPIO34"],
-                            [35, "GPIO35"],
-                            [36, "VP (GPIO36)"],
-                            [39, "VN (GPIO39)"]
-                        ], obj[p[0]]));
-                    }
+                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]]));
                 }
             }
 
@@ -486,6 +535,29 @@
                 document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
+            function parseDisplay(obj, type) {
+                for(var i of [["logoEn", "logo_en"], ["dispPwr", "disp_pwr"], ["dispPxSh", "px_shift"], ["disp180", "rot180"]])
+                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+
+                var e = document.getElementById("dispPins");
+                pins = [['SCL / CS', 'pinDisp0'], ['SDA / DC', 'pinDisp1']];
+                for(p of pins) {
+                    e.appendChild(lbl(p[1], p[0].toUpperCase()));
+                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]]));
+                }
+
+                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                document.getElementById("dispType").append(
+                    lbl("dispType", "Type"),
+                    sel("dispType", opts, obj["disp_type"])
+                );
+
+                e = document.getElementById("contrast");
+                for(var i = 30; i < 101; i += 2) {
+                    e.appendChild(opt(i, i, (i == obj["contrast"])));
+                }
+            }
+
             function parse(root) {
                 if(null != root) {
                     parseMenu(root["menu"]);
@@ -499,6 +571,7 @@
                     parsePinout(root["pinout"], root["system"]["esp_type"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
+                    parseDisplay(root["display"], root["system"]["esp_type"]);
                 }
             }
 

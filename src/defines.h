@@ -13,11 +13,12 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       66
+#define VERSION_PATCH       78
 
 //-------------------------------------
 typedef struct {
-    uint8_t rxCh;
+    uint8_t ch;
+    uint8_t len;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 

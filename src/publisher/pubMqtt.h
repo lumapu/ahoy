@@ -15,7 +15,6 @@
 #endif
 
 #include "../utils/dbg.h"
-#include "../utils/ahoyTimer.h"
 #include "../config/config.h"
 #include <espMqttClient.h>
 #include <ArduinoJson.h>
@@ -26,35 +25,35 @@
 
 typedef std::function<void(JsonObject)> subscriptionCb;
 
+struct alarm_t {
+    uint16_t code;
+    uint32_t start;
+    uint32_t end;
+    alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
+};
+
 template<class HMSYSTEM>
 class PubMqtt {
     public:
         PubMqtt() {
             mRxCnt = 0;
             mTxCnt = 0;
-            mEnReconnect = false;
             mSubscriptionCb = NULL;
-            mIvAvail = true;
-            memset(mLastIvState, 0xff, MAX_NUM_INVERTERS);
+            memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
         }
 
         ~PubMqtt() { }
 
         void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
-            mCfgMqtt        = cfg_mqtt;
-            mDevName        = devName;
-            mVersion        = version;
-            mSys            = sys;
-            mUtcTimestamp   = utcTs;
+            mCfgMqtt         = cfg_mqtt;
+            mDevName         = devName;
+            mVersion         = version;
+            mSys             = sys;
+            mUtcTimestamp    = utcTs;
+            mIntervalTimeout = 1;
+            mReconnectRequest = false;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
-
-            #if defined(ESP8266)
-            mHWifiCon = WiFi.onStationModeGotIP(std::bind(&PubMqtt::onWifiConnect, this, std::placeholders::_1));
-            mHWifiDiscon = WiFi.onStationModeDisconnected(std::bind(&PubMqtt::onWifiDisconnect, this, std::placeholders::_1));
-            #else
-            WiFi.onEvent(std::bind(&PubMqtt::onWiFiEvent, this, std::placeholders::_1));
-            #endif
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
@@ -69,11 +68,30 @@ class PubMqtt {
         void loop() {
             #if defined(ESP8266)
             mClient.loop();
+            yield();
             #endif
         }
 
+        void connect() {
+            mReconnectRequest = false;
+            if(!mClient.connected())
+                mClient.connect();
+        }
+
         void tickerSecond() {
-            sendIvData();
+            if(0 == mCfgMqtt->interval) // no fixed interval, publish once new data were received (from inverter)
+                sendIvData();
+            else { // send mqtt data in a fixed interval
+                if(--mIntervalTimeout == 0) {
+                    mIntervalTimeout = mCfgMqtt->interval;
+                    mSendList.push(RealTimeRunData_Debug);
+                    sendIvData();
+                }
+            }
+            if(mReconnectRequest) {
+                connect();
+                return;
+            }
         }
 
         void tickerMinute() {
@@ -83,36 +101,87 @@ class PubMqtt {
             publish("uptime", val);
             publish("wifi_rssi", String(WiFi.RSSI()).c_str());
             publish("free_heap", String(ESP.getFreeHeap()).c_str());
-
-            if(!mClient.connected()) {
-                if(mEnReconnect)
-                    mClient.connect();
-            }
         }
 
-        void tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+            if (!mClient.connected())
+                return false;
+
             publish("sunrise", String(sunrise).c_str(), true);
             publish("sunset", String(sunset).c_str(), true);
             publish("comm_start", String(sunrise - offs).c_str(), true);
             publish("comm_stop", String(sunset + offs).c_str(), true);
             publish("dis_night_comm", ((disNightCom) ? "true" : "false"), true);
+
+            return true;
+        }
+
+        bool tickerComm(bool disabled) {
+             if (!mClient.connected())
+                return false;
+
+            publish("comm_disabled", ((disabled) ? "true" : "false"), true);
+            publish("comm_dis_ts", String(*mUtcTimestamp).c_str(), true);
+
+            if(disabled && (mCfgMqtt->rstValsCommStop))
+                zeroAllInverters();
+
+            return true;
+        }
+
+        void tickerMidnight() {
+            Inverter<> *iv;
+            record_t<> *rec;
+            char topic[7 + MQTT_TOPIC_LEN], val[4];
+
+            // set YieldDay to zero
+            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                iv = mSys->getInverterByPos(id);
+                if (NULL == iv)
+                    continue; // skip to next inverter
+                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                uint8_t pos = iv->getPosByChFld(CH0, FLD_YD, rec);
+                iv->setValue(pos, rec, 0.0f);
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch0/%s", iv->config->name, fields[FLD_YD]);
+                snprintf(val, 4, "0.0");
+                publish(topic, val, true);
+            }
         }
 
         void payloadEventListener(uint8_t cmd) {
-            if(mClient.connected()) // prevent overflow if MQTT broker is not reachable but set
-                mSendList.push(cmd);
+            if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
+                if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
+                    mSendList.push(cmd);
+            }
+        }
+
+        void alarmEventListener(uint16_t code, uint32_t start, uint32_t endTime) {
+            if(mClient.connected()) {
+                mAlarmList.push(alarm_t(code, start, endTime));
+            }
         }
 
         void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true) {
             if(!mClient.connected())
                 return;
 
-            char topic[(MQTT_TOPIC_LEN << 1) + 2];
-            snprintf(topic, ((MQTT_TOPIC_LEN << 1) + 2), "%s/%s", mCfgMqtt->topic, subTopic);
+            String topic = "";
             if(addTopic)
-                mClient.publish(topic, QOS_0, retained, payload);
-            else
-                mClient.publish(subTopic, QOS_0, retained, payload);
+                topic = String(mCfgMqtt->topic) + "/";
+            topic += String(subTopic);
+
+            do {
+                if(0 != mClient.publish(topic.c_str(), QOS_0, retained, payload))
+                    break;
+                if(!mClient.connected())
+                    break;
+                #if defined(ESP8266)
+                mClient.loop();
+                #endif
+                yield();
+            } while(1);
+
             mTxCnt++;
         }
 
@@ -141,90 +210,91 @@ class PubMqtt {
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
-            char stateTopic[64], discoveryTopic[64], buffer[512], name[32], uniq_id[32];
+            char topic[64], name[32], uniq_id[32];
+            DynamicJsonDocument doc(128);
+
+            uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
+
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
-                if (NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    DynamicJsonDocument deviceDoc(128);
-                    deviceDoc[F("name")] = iv->config->name;
-                    deviceDoc[F("ids")] = String(iv->config->serial.u64, HEX);
-                    deviceDoc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
-                    deviceDoc[F("mf")] = F("Hoymiles");
-                    deviceDoc[F("mdl")] = iv->config->name;
-                    JsonObject deviceObj = deviceDoc.as<JsonObject>();
-                    DynamicJsonDocument doc(384);
+                if (NULL == iv)
+                    continue;
 
-                    for (uint8_t i = 0; i < rec->length; i++) {
-                        if (rec->assign[i].ch == CH0) {
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                doc.clear();
+
+                doc[F("name")] = iv->config->name;
+                doc[F("ids")] = String(iv->config->serial.u64, HEX);
+                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+                doc[F("mf")] = F("Hoymiles");
+                doc[F("mdl")] = iv->config->name;
+                JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
+
+                for (uint8_t i = 0; i < (rec->length + 4); i++) {
+                    const char *devCls, *stateCls;
+                    if(i < rec->length) {
+                        if (rec->assign[i].ch == CH0)
                             snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
-                        } else {
+                        else
                             snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                        }
-                        snprintf(stateTopic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(discoveryTopic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                        snprintf(topic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
                         snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                        const char *devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                        const char *stateCls = getFieldStateClass(rec->assign[i].fieldId);
 
-                        doc[F("name")] = name;
-                        doc[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(stateTopic);
-                        doc[F("unit_of_meas")] = iv->getUnit(i, rec);
-                        doc[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
-                        doc[F("dev")] = deviceObj;
-                        doc[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                        if (devCls != NULL)
-                            doc[F("dev_cla")] = devCls;
-                        if (stateCls != NULL)
-                            doc[F("stat_cla")] = stateCls;
-
-                        serializeJson(doc, buffer);
-                        publish(discoveryTopic, buffer, true, false);
-                        doc.clear();
+                        devCls = getFieldDeviceClass(rec->assign[i].fieldId);
+                        stateCls = getFieldStateClass(rec->assign[i].fieldId);
+                    }
+                    else { // total values
+                        snprintf(name, 32, "Total %s", fields[fldTotal[i-rec->length]]);
+                        snprintf(topic, 64, "/%s", fields[fldTotal[i-rec->length]]);
+                        snprintf(uniq_id, 32, "total_%s", fields[fldTotal[i-rec->length]]);
+                        devCls = getFieldDeviceClass(fldTotal[i-rec->length]);
+                        stateCls = getFieldStateClass(fldTotal[i-rec->length]);
                     }
 
-                    yield();
+                    DynamicJsonDocument doc2(512);
+                    doc2[F("name")] = name;
+                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + String(iv->config->name) + String(topic);
+                    doc2[F("unit_of_meas")] = iv->getUnit(((i < rec->length) ? i : (i - rec->length)), rec);
+                    doc2[F("uniq_id")] = String(iv->config->serial.u64, HEX) + "_" + uniq_id;
+                    doc2[F("dev")] = deviceObj;
+                    doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                    if (devCls != NULL)
+                        doc2[F("dev_cla")] = String(devCls);
+                    if (stateCls != NULL)
+                        doc2[F("stat_cla")] = String(stateCls);
+
+                    if(i < rec->length)
+                        snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
+                    else // total values
+                        snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, fields[fldTotal[i-rec->length]]);
+                    size_t size = measureJson(doc2) + 1;
+                    char *buf = new char[size];
+                    memset(buf, 0, size);
+                    serializeJson(doc2, buf, size);
+                    publish(topic, buf, true, false);
+                    delete[] buf;
                 }
+
+                yield();
+            }
+        }
+
+        void setPowerLimitAck(Inverter<> *iv) {
+            if (NULL != iv) {
+                char topic[7 + MQTT_TOPIC_LEN];
+
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ack_pwr_limit", iv->config->name);
+                publish(topic, "true", true);
             }
         }
 
     private:
-        #if defined(ESP8266)
-        void onWifiConnect(const WiFiEventStationModeGotIP& event) {
-            DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
-            mClient.connect();
-            mEnReconnect = true;
-        }
-
-        void onWifiDisconnect(const WiFiEventStationModeDisconnected& event) {
-            mEnReconnect = false;
-        }
-
-        #else
-        void onWiFiEvent(WiFiEvent_t event) {
-            switch(event) {
-                case SYSTEM_EVENT_STA_GOT_IP:
-                    DPRINTLN(DBG_VERBOSE, F("MQTT connecting"));
-                    mClient.connect();
-                    mEnReconnect = true;
-                    break;
-
-                case SYSTEM_EVENT_STA_DISCONNECTED:
-                    mEnReconnect = false;
-                    break;
-
-                default:
-                    break;
-            }
-        }
-        #endif
-
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
-            mEnReconnect = true;
 
             publish("version", mVersion, true);
             publish("device", mDevName, true);
+            publish("ip_addr", WiFi.localIP().toString().c_str(), true);
             tickerMinute();
             publish(mLwtTopic, mLwtOnline, true, false);
 
@@ -238,6 +308,7 @@ class PubMqtt {
             switch (reason) {
                 case espMqttClientTypes::DisconnectReason::TCP_DISCONNECTED:
                     DBGPRINTLN(F("TCP disconnect"));
+                    mReconnectRequest = true;
                     break;
                 case espMqttClientTypes::DisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
                     DBGPRINTLN(F("wrong protocol version"));
@@ -336,13 +407,12 @@ class PubMqtt {
 
         bool processIvStatus() {
             // returns true if all inverters are available
-            bool allAvail = true;
-            bool first = true;
+            bool allAvail = true;   // shows if all enabled inverters are available
+            bool anyAvail = false;  // shows if at least one enabled inverter is available
             bool changed = false;
             char topic[7 + MQTT_TOPIC_LEN], val[40];
             Inverter<> *iv;
             record_t<> *rec;
-            bool totalComplete = true;
 
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 iv = mSys->getInverterByPos(id);
@@ -350,30 +420,22 @@ class PubMqtt {
                     continue; // skip to next inverter
 
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                if(first)
-                    mIvAvail = false;
-                first = false;
 
                 // inverter status
-                uint8_t status = MQTT_STATUS_AVAIL_PROD;
-                if ((!iv->isAvailable(*mUtcTimestamp, rec)) || (!iv->config->enabled)) {
-                    status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                    if(iv->config->enabled) { // only change all-avail if inverter is enabled!
-                        totalComplete = false;
+                uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
+                if (iv->config->enabled) {
+                    if (iv->isAvailable(*mUtcTimestamp))
+                        status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
+                    else // inverter is enabled but not available
                         allAvail = false;
-                    }
                 }
-                else if (!iv->isProducing(*mUtcTimestamp, rec)) {
-                    mIvAvail = true;
-                    if (MQTT_STATUS_AVAIL_PROD == status)
-                        status = MQTT_STATUS_AVAIL_NOT_PROD;
-                }
-                else
-                    mIvAvail = true;
 
                 if(mLastIvState[id] != status) {
                     mLastIvState[id] = status;
                     changed = true;
+
+                    if((MQTT_STATUS_NOT_AVAIL_NOT_PROD == status) && (mCfgMqtt->rstValsNotAvail))
+                        zeroValues(iv);
 
                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                     snprintf(val, 40, "%d", status);
@@ -386,14 +448,28 @@ class PubMqtt {
             }
 
             if(changed) {
-                snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((mIvAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
+                snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
                 publish("status", val, true);
+                sendIvData(false); // false prevents loop of same function
             }
 
-            return totalComplete;
+            return allAvail;
         }
 
-        void sendIvData(void) {
+        void sendAlarmData() {
+            if(mAlarmList.empty())
+                return;
+            Inverter<> *iv = mSys->getInverterByPos(0, false);
+            while(!mAlarmList.empty()) {
+                alarm_t alarm = mAlarmList.front();
+                publish("alarm", iv->getAlarmStr(alarm.code).c_str());
+                publish("alarm_start", String(alarm.start).c_str());
+                publish("alarm_end", String(alarm.end).c_str());
+                mAlarmList.pop();
+            }
+        }
+
+        void sendIvData(bool sendTotals = true) {
             if(mSendList.empty())
                 return;
 
@@ -405,54 +481,57 @@ class PubMqtt {
                 memset(total, 0, sizeof(float) * 4);
                 for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                     Inverter<> *iv = mSys->getInverterByPos(id);
-                    if (NULL == iv)
+                    if ((NULL == iv) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD == mLastIvState[id]))
                         continue; // skip to next inverter
 
                     record_t<> *rec = iv->getRecordStruct(mSendList.front());
 
                     // data
-                    if(iv->isAvailable(*mUtcTimestamp, rec)) {
-                        for (uint8_t i = 0; i < rec->length; i++) {
-                            bool retained = false;
-                            if (mSendList.front() == RealTimeRunData_Debug) {
+                    //if(iv->isAvailable(*mUtcTimestamp, rec) || (0 != mCfgMqtt->interval)) { // is avail or fixed pulish interval was set
+                    for (uint8_t i = 0; i < rec->length; i++) {
+                        bool retained = false;
+                        if (mSendList.front() == RealTimeRunData_Debug) {
+                            switch (rec->assign[i].fieldId) {
+                                case FLD_YT:
+                                case FLD_YD:
+                                    retained = true;
+                                    break;
+                            }
+                        }
+
+                        snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                        snprintf(val, 40, "%g", ah::round3(iv->getValue(i, rec)));
+                        publish(topic, val, retained);
+
+                        // calculate total values for RealTimeRunData_Debug
+                        if (mSendList.front() == RealTimeRunData_Debug) {
+                            if (CH0 == rec->assign[i].ch) {
                                 switch (rec->assign[i].fieldId) {
+                                    case FLD_PAC:
+                                        total[0] += iv->getValue(i, rec);
+                                        break;
                                     case FLD_YT:
+                                        total[1] += iv->getValue(i, rec);
+                                        break;
                                     case FLD_YD:
-                                        retained = true;
+                                        total[2] += iv->getValue(i, rec);
+                                        break;
+                                    case FLD_PDC:
+                                        total[3] += iv->getValue(i, rec);
                                         break;
                                 }
                             }
-
-                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                            snprintf(val, 40, "%g", ah::round3(iv->getValue(i, rec)));
-                            publish(topic, val, retained);
-
-                            // calculate total values for RealTimeRunData_Debug
-                            if (mSendList.front() == RealTimeRunData_Debug) {
-                                if (CH0 == rec->assign[i].ch) {
-                                    switch (rec->assign[i].fieldId) {
-                                        case FLD_PAC:
-                                            total[0] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_YT:
-                                            total[1] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_YD:
-                                            total[2] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_PDC:
-                                            total[3] += iv->getValue(i, rec);
-                                            break;
-                                    }
-                                }
-                                sendTotal = true;
-                            }
-                            yield();
+                            sendTotal = true;
                         }
+                        yield();
                     }
+                    //}
                 }
 
                 mSendList.pop(); // remove from list once all inverters were processed
+
+                if(!sendTotals) // skip total value calculation
+                    continue;
 
                 if ((true == sendTotal) && processIvStatus()) {
                     uint8_t fieldId;
@@ -480,6 +559,48 @@ class PubMqtt {
             }
         }
 
+        void zeroAllInverters() {
+            Inverter<> *iv;
+
+            // set values to zero, exept yields
+            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                iv = mSys->getInverterByPos(id);
+                if (NULL == iv)
+                    continue; // skip to next inverter
+
+                zeroValues(iv);
+            }
+            sendIvData();
+        }
+
+        void zeroValues(Inverter<> *iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            for(uint8_t ch = 0; ch <= iv->channels; ch++) {
+                uint8_t pos = 0;
+                uint8_t fld = 0;
+                while(0xff != pos) {
+                    switch(fld) {
+                        case FLD_YD:
+                        case FLD_YT:
+                        case FLD_FW_VERSION:
+                        case FLD_FW_BUILD_YEAR:
+                        case FLD_FW_BUILD_MONTH_DAY:
+                        case FLD_FW_BUILD_HOUR_MINUTE:
+                        case FLD_HW_ID:
+                        case FLD_ACT_ACTIVE_PWR_LIMIT:
+                            fld++;
+                            continue;
+                            break;
+                    }
+                    pos = iv->getPosByChFld(ch, fld, rec);
+                    iv->setValue(pos, rec, 0.0f);
+                    fld++;
+                }
+            }
+
+            mSendList.push(RealTimeRunData_Debug);
+        }
+
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt;
         #if defined(ESP8266)
@@ -490,10 +611,11 @@ class PubMqtt {
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;
         std::queue<uint8_t> mSendList;
-        bool mEnReconnect;
+        std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
-        bool mIvAvail; // shows if at least one inverter is available
+        bool mReconnectRequest;
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
+        uint16_t mIntervalTimeout;
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];

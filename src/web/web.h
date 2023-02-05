@@ -18,7 +18,6 @@
 #include "../appInterface.h"
 
 #include "../hm/hmSystem.h"
-#include "../utils/ahoyTimer.h"
 #include "../utils/helper.h"
 
 #include "html/h/index_html.h"
@@ -71,7 +70,7 @@ class Web {
             mWeb.on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
+            //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
         #ifdef ENABLE_JSON_EP
             mWeb.on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
@@ -82,8 +81,11 @@ class Web {
 
             mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/update",         HTTP_POST, std::bind(&Web::showUpdate,     this, std::placeholders::_1),
-                                                   std::bind(&Web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+                                                  std::bind(&Web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+            mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
+                                                  std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            mWeb.on("/debug",          HTTP_GET,  std::bind(&Web::onDebug,        this, std::placeholders::_1));
 
 
             mEvts.onConnect(std::bind(&Web::onConnect, this, std::placeholders::_1));
@@ -92,6 +94,8 @@ class Web {
             mWeb.begin();
 
             registerDebugCb(std::bind(&Web::serialCb, this, std::placeholders::_1)); // dbg.h
+
+            mUploadFail = false;
         }
 
         void tickSecond() {
@@ -127,6 +131,8 @@ class Web {
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            mApp->setOnUpdate();
+            
             if(!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
         #ifndef ESP32
@@ -150,6 +156,34 @@ class Web {
             }
         }
 
+        void onUpload2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            if(!index) {
+                mUploadFail = false;
+                mUploadFp = LittleFS.open("/tmp.json", "w");
+                if(!mUploadFp) {
+                    DPRINTLN(DBG_ERROR, F("can't open file!"));
+                    mUploadFail = true;
+                    mUploadFp.close();
+                }
+            }
+            mUploadFp.write(data, len);
+            if(final) {
+                mUploadFp.close();
+                File fp = LittleFS.open("/tmp.json", "r");
+                if(!fp)
+                    mUploadFail = true;
+                else {
+                    if(!mApp->readSettings("tmp.json")) {
+                        mUploadFail = true;
+                        DPRINTLN(DBG_ERROR, F("upload JSON error!"));
+                    }
+                    else
+                        mApp->saveSettings();
+                }
+                DPRINTLN(DBG_INFO, F("upload finished!"));
+            }
+        }
+
         void serialCb(String msg) {
             if(!mSerialClientConnnected)
                 return;
@@ -157,12 +191,15 @@ class Web {
             msg.replace("\r\n", "<rn>");
             if(mSerialAddTime) {
                 if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
-                    strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
-                    mSerialBufFill += 9;
+                    if(mApp->getTimestamp() > 0) {
+                        strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
+                        mSerialBufFill += 9;
+                    }
                 }
                 else {
                     mSerialBufFill = 0;
-                    mEvts.send("webSerial, buffer overflow!", "serial", millis());
+                    mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
+                    return;
                 }
                 mSerialAddTime = false;
             }
@@ -177,7 +214,7 @@ class Web {
             }
             else {
                 mSerialBufFill = 0;
-                mEvts.send("webSerial, buffer overflow!", "serial", millis());
+                mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
             }
         }
 
@@ -210,7 +247,24 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), html);
             response->addHeader("Connection", "close");
             request->send(response);
+            //if(reboot)
+                mApp->setRebootFlag();
+        }
+
+        void onUpload(AsyncWebServerRequest *request) {
+            bool reboot = !mUploadFail;
+
+            String html = F("<!doctype html><html><head><title>Upload</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Upload: ");
             if(reboot)
+                html += "success";
+            else
+                html += "failed";
+            html += F("<br/><br/>rebooting ... auto reload after 20s</body></html>");
+
+            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), html);
+            response->addHeader("Connection", "close");
+            request->send(response);
+            //if(reboot)
                 mApp->setRebootFlag();
         }
 
@@ -429,6 +483,7 @@ class Web {
                     case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
                     default:  break;
                 }
+                iv->config->yieldCor = request->arg("inv" + String(i) + "YieldCor").toInt();
 
                 // name
                 request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
@@ -494,6 +549,10 @@ class Web {
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
+            mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+            mConfig->mqtt.rstYieldMidNight = (request->arg("mqttRstMid") == "on");
+            mConfig->mqtt.rstValsNotAvail  = (request->arg("mqttRstNotAvail") == "on");
+            mConfig->mqtt.rstValsCommStop  = (request->arg("mqttRstComStop") == "on");
 
             // serial console
             if(request->arg("serIntvl") != "") {
@@ -504,6 +563,18 @@ class Web {
                 // Needed to log TX buffers to serial console
                 mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
+
+            // display
+            mConfig->plugin.display.pwrSaveAtIvOffline  = (request->arg("dispPwr") == "on");
+            mConfig->plugin.display.logoEn   = (request->arg("logoEn") == "on");
+            mConfig->plugin.display.pxShift  = (request->arg("dispPxSh") == "on");
+            mConfig->plugin.display.rot180   = (request->arg("disp180") == "on");
+            mConfig->plugin.display.type     = request->arg("dispType").toInt();
+            mConfig->plugin.display.contrast = request->arg("dispCont").toInt();
+            mConfig->plugin.display.pin0     = request->arg("pinDisp0").toInt();
+            mConfig->plugin.display.pin1     = request->arg("pinDisp1").toInt();
+
+
             mApp->saveSettings();
 
             if(request->arg("reboot") == "on")
@@ -530,7 +601,7 @@ class Web {
             request->send(response);
         }
 
-        void showWebApi(AsyncWebServerRequest *request) {
+        /*void showWebApi(AsyncWebServerRequest *request) {
             // TODO: remove
             DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
             DPRINTLN(DBG_DEBUG, request->arg("plain"));
@@ -593,6 +664,12 @@ class Web {
                 }
             }
             request->send(200, "text/json", "{success:true}");
+        }*/
+
+        void onDebug(AsyncWebServerRequest *request) {
+            mApp->getSchedulerNames();
+            AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), "ok");
+            request->send(response);
         }
 
         void onSerial(AsyncWebServerRequest *request) {
@@ -626,74 +703,148 @@ class Web {
         }
 
 #ifdef ENABLE_JSON_EP
-        void showJson(void) {
+        void showJson(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showJson"));
             String modJson;
+            Inverter<> *iv;
+            record_t<> *rec;
+                char topic[40], val[25];
 
             modJson = F("{\n");
             for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    char topic[40], val[25];
-                    snprintf(topic, 30, "\"%s\": {\n", iv->name);
-                    modJson += String(topic);
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
-                        snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
-                        modJson += String(topic) + ": " + String(val) + F(",\n");
-                    }
-                    modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(iv->ts) + F("\"\n\t},\n");
-                }
-            }
-            modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
+                iv = mSys->getInverterByPos(id);
+                if(NULL == iv)
+                    continue;
 
-            mWeb.send(200, F("application/json"), modJson);
+                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                snprintf(topic, 30, "\"%s\": {\n", iv->config->name);
+                modJson += String(topic);
+                for(uint8_t i = 0; i < rec->length; i++) {
+                    snprintf(topic, 40, "\t\"ch%d/%s\"", rec->assign[i].ch, iv->getFieldName(i, rec));
+                    snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i, rec), iv->getUnit(i, rec));
+                    modJson += String(topic) + ": " + String(val) + F(",\n");
+                }
+                modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(rec->ts) + F("\"\n\t},\n");
+            }
+            modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mApp->getTimestamp())) + F("\"\n}\n");
+
+            AsyncWebServerResponse *response = request->beginResponse(200, F("application/json"), modJson);
+            request->send(response);
         }
 #endif
 
 #ifdef ENABLE_PROMETHEUS_EP
-        void showMetrics(void) {
+        enum {
+            metricsStateStart, metricsStateInverter, metricStateChannel,metricsStateEnd
+        } metricsStep;
+        int metricsInverterId,metricsChannelId;
+
+        void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
-            String metrics;
-            char headline[80];
 
-            snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mconfig->sys.deviceName);
-            metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
+            metricsStep = metricsStateStart;
+            AsyncWebServerResponse *response = request->beginChunkedResponse(F("text/plain"),
+                                                                             [this](uint8_t *buffer, size_t maxLen, size_t filledLength) -> size_t
+            {
+                Inverter<> *iv;
+                record_t<> *rec;
+                statistics_t *stat;
+                String metrics;
+                char type[60], topic[100], val[25];
+                size_t len = 0;
 
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    char type[60], topic[60], val[25];
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        uint8_t channel = iv->assign[i].ch;
-                        if(channel == 0) {
-                            String promUnit, promType;
-                            std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i) );
-                            snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i), promUnit.c_str(), promType.c_str());
-                            snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i), promUnit.c_str(), iv->name);
-                            snprintf(val, 25, "%.3f", iv->getValue(i));
-                            metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
+                switch (metricsStep) {
+                    case metricsStateStart: // System Info & NRF Statistics : fit to one packet
+                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_info gauge\nahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",
+                            mApp->getVersion(), mConfig->sys.deviceName);
+                        metrics = topic;
+                        // NRF Statistics
+                        stat = mApp->getStatistics();
+                        metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
+                        metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
+                        metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
+                        metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
+                        metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
+
+                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        // Start Inverter loop
+                        metricsInverterId = 0;
+                        metricsStep = metricsStateInverter;
+                        break;
+
+                    case metricsStateInverter: // Inverter loop
+                        if (metricsInverterId < mSys->getNumInverters()) {
+                            iv = mSys->getInverterByPos(metricsInverterId);
+                            if(NULL != iv) {
+                                // Inverter info
+                                len = snprintf((char *)buffer, maxLen, "ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\",enabled=\"%d\"} 1\n",
+                                    iv->config->name, iv->config->serial.u64,iv->config->enabled);
+                                // Start Channel loop for this inverter
+                                metricsChannelId = 0;
+                                metricsStep = metricStateChannel;
+                            }
+                        } else {
+                            metricsStep = metricsStateEnd;
                         }
-                    }
-                }
-            }
+                        break;
 
-            mWeb.send(200, F("text/plain"), metrics);
+                    case metricStateChannel: // Channel loop
+                        iv = mSys->getInverterByPos(metricsInverterId);
+                        rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                        if (metricsChannelId < rec->length) {
+                            uint8_t channel = rec->assign[metricsChannelId].ch;
+                            String promUnit, promType;
+                            std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
+                            snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
+                            if (0 == channel) {
+                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                            } else {
+                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                            }
+                            snprintf(val, sizeof(val), "%.3f", iv->getValue(metricsChannelId, rec));
+                            len = snprintf((char*)buffer,maxLen,"%s\n%s %s\n",type,topic,val);
+
+                            metricsChannelId++;
+                        } else {
+                            len = snprintf((char*)buffer,maxLen,"#\n"); // At least one char to send otherwise the transmission ends.
+
+                            // All channels processed --> try next inverter
+                            metricsInverterId++;
+                            metricsStep = metricsStateInverter;
+                        }
+                        break;
+
+                    case metricsStateEnd:
+                    default: // end of transmission
+                        len = 0;
+                        break;
+                }
+                return len;
+            });
+            request->send(response);
+        }
+
+        String radioStatistic(String statistic, uint32_t value) {
+            char type[60], topic[80], val[25];
+            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s gauge",statistic.c_str());
+            snprintf(topic, sizeof(topic), "ahoy_solar_radio_%s",statistic.c_str());
+            snprintf(val, sizeof(val), "%d", value);
+            return ( String(type) + "\n" + String(topic) + " " + String(val) + "\n");
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {
-            if(shortUnit == "A")    return {"ampere", "gauge"};
-            if(shortUnit == "V")    return {"volt", "gauge"};
-            if(shortUnit == "%")    return {"ratio", "gauge"};
-            if(shortUnit == "W")    return {"watt", "gauge"};
-            if(shortUnit == "Wh")   return {"watt_daily", "counter"};
-            if(shortUnit == "kWh")  return {"watt_total", "counter"};
-            if(shortUnit == "°C")   return {"celsius", "gauge"};
-
+            if(shortUnit == "A")    return {"_ampere", "gauge"};
+            if(shortUnit == "V")    return {"_volt", "gauge"};
+            if(shortUnit == "%")    return {"_ratio", "gauge"};
+            if(shortUnit == "W")    return {"_watt", "gauge"};
+            if(shortUnit == "Wh")   return {"_wattHours", "counter"};
+            if(shortUnit == "kWh")  return {"_kilowattHours", "counter"};
+            if(shortUnit == "°C")   return {"_celsius", "gauge"};
+            if(shortUnit == "var")  return {"_var", "gauge"};
+            if(shortUnit == "Hz")   return {"_hertz", "gauge"};
             return {"", "gauge"};
         }
 #endif
-
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
         bool mProtected;
@@ -707,6 +858,9 @@ class Web {
         char mSerialBuf[WEB_SERIAL_BUF_SIZE];
         uint16_t mSerialBufFill;
         bool mSerialClientConnnected;
+
+        File mUploadFp;
+        bool mUploadFail;
 };
 
 #endif /*__WEB_H__*/

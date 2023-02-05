@@ -7,6 +7,7 @@
 #define __IAPP_H__
 
 #include "defines.h"
+#include "hm/hmSystem.h"
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -14,7 +15,9 @@ class IApp {
     public:
         virtual ~IApp() {}
         virtual bool saveSettings() = 0;
+        virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
+        virtual void setOnUpdate() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
         virtual statistics_t *getStatistics() = 0;
@@ -29,10 +32,14 @@ class IApp {
         virtual String getTimeStr(uint32_t offset) = 0;
         virtual uint32_t getTimezoneOffset() = 0;
         virtual void getSchedulerInfo(uint8_t *max) = 0;
+        virtual void getSchedulerNames() = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
+        virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
+
+        virtual void ivSendHighPrio(Inverter<> *iv) = 0;
 
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;

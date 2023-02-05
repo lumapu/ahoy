@@ -28,8 +28,8 @@ class PubSerial {
                     Inverter<> *iv = mSys->getInverterByPos(id);
                     if (NULL != iv) {
                         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                        if (iv->isAvailable(*mUtcTimestamp, rec)) {
-                            DPRINTLN(DBG_INFO, F("Inverter: ") + String(id));
+                        if (iv->isAvailable(*mUtcTimestamp)) {
+                            DPRINTLN(DBG_INFO, "Iv: " + String(id));
                             for (uint8_t i = 0; i < rec->length; i++) {
                                 if (0.0f != iv->getValue(i, rec)) {
                                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));

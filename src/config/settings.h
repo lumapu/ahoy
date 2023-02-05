@@ -17,6 +17,7 @@
  * More info:
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
+#define DEF_PIN_OFF         255
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -96,6 +97,10 @@ typedef struct {
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
+    uint16_t interval;
+    bool rstYieldMidNight;
+    bool rstValsNotAvail;
+    bool rstValsCommStop;
 } cfgMqtt_t;
 
 typedef struct {
@@ -104,12 +109,30 @@ typedef struct {
     serial_u serial;
     uint16_t chMaxPwr[4];
     char chName[4][MAX_NAME_LENGTH];
+    uint32_t yieldCor; // YieldTotal correction value
 } cfgIv_t;
 
 typedef struct {
     bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 } cfgInst_t;
+
+typedef struct {
+    uint8_t type;
+    bool pwrSaveAtIvOffline;
+    bool logoEn;
+    bool pxShift;
+    bool rot180;
+    uint16_t wakeUp;
+    uint16_t sleepAt;
+    uint8_t contrast;
+    uint8_t pin0;
+    uint8_t pin1;
+} display_t;
+
+typedef struct {
+    display_t display;
+} plugins_t;
 
 typedef struct {
     cfgSys_t    sys;
@@ -120,6 +143,7 @@ typedef struct {
     cfgMqtt_t   mqtt;
     cfgLed_t    led;
     cfgInst_t   inst;
+    plugins_t   plugin;
     bool        valid;
 } settings_t;
 
@@ -145,16 +169,17 @@ class settings {
             if(!LittleFS.begin(LITTLFS_FALSE)) {
                 DPRINTLN(DBG_INFO, F(".. format .."));
                 LittleFS.format();
-                if(LittleFS.begin(LITTLFS_TRUE))
+                if(LittleFS.begin(LITTLFS_TRUE)) {
                     DPRINTLN(DBG_INFO, F(".. success"));
-                else
+                } else {
                     DPRINTLN(DBG_INFO, F(".. failed"));
+                }
 
             }
             else
                 DPRINTLN(DBG_INFO, F(" .. done"));
 
-            readSettings();
+            readSettings("/settings.json");
         }
 
         // should be used before OTA
@@ -185,9 +210,10 @@ class settings {
             #endif
         }
 
-        void readSettings(void) {
+        bool readSettings(const char* path) {
+            bool success = false;
             loadDefaults();
-            File fp = LittleFS.open("/settings.json", "r");
+            File fp = LittleFS.open(path, "r");
             if(!fp)
                 DPRINTLN(DBG_WARN, F("failed to load json, using default config"));
             else {
@@ -197,14 +223,16 @@ class settings {
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
-                    jsonWifi(root["wifi"]);
-                    jsonNrf(root["nrf"]);
-                    jsonNtp(root["ntp"]);
-                    jsonSun(root["sun"]);
-                    jsonSerial(root["serial"]);
-                    jsonMqtt(root["mqtt"]);
-                    jsonLed(root["led"]);
-                    jsonInst(root["inst"]);
+                    jsonWifi(root[F("wifi")]);
+                    jsonNrf(root[F("nrf")]);
+                    jsonNtp(root[F("ntp")]);
+                    jsonSun(root[F("sun")]);
+                    jsonSerial(root[F("serial")]);
+                    jsonMqtt(root[F("mqtt")]);
+                    jsonLed(root[F("led")]);
+                    jsonPlugin(root[F("plugin")]);
+                    jsonInst(root[F("inst")]);
+                    success = true;
                 }
                 else {
                     Serial.println(F("failed to parse json, using default config"));
@@ -212,6 +240,7 @@ class settings {
 
                 fp.close();
             }
+            return success;
         }
 
         bool saveSettings(void) {
@@ -231,6 +260,7 @@ class settings {
             jsonSerial(root.createNestedObject(F("serial")), true);
             jsonMqtt(root.createNestedObject(F("mqtt")), true);
             jsonLed(root.createNestedObject(F("led")), true);
+            jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
             if(0 == serializeJson(root, fp)) {
@@ -297,11 +327,23 @@ class settings {
             snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", DEF_MQTT_USER);
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
+            mCfg.mqtt.interval = 0; // off
+            mCfg.mqtt.rstYieldMidNight  = false;
+            mCfg.mqtt.rstValsNotAvail = false;
+            mCfg.mqtt.rstValsCommStop   = false;
 
-            mCfg.led.led0 = DEF_LED0_PIN;
-            mCfg.led.led1 = DEF_LED1_PIN;
+            mCfg.led.led0 = DEF_PIN_OFF;
+            mCfg.led.led1 = DEF_PIN_OFF;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
+
+            mCfg.plugin.display.pwrSaveAtIvOffline = false;
+            mCfg.plugin.display.contrast           = 60;
+            mCfg.plugin.display.logoEn             = true;
+            mCfg.plugin.display.pxShift            = true;
+            mCfg.plugin.display.rot180             = false;
+            mCfg.plugin.display.pin0               = DEF_PIN_OFF; // SCL
+            mCfg.plugin.display.pin1               = DEF_PIN_OFF; // SDA
         }
 
         void jsonWifi(JsonObject obj, bool set = false) {
@@ -396,8 +438,17 @@ class settings {
                 obj[F("user")]   = mCfg.mqtt.user;
                 obj[F("pwd")]    = mCfg.mqtt.pwd;
                 obj[F("topic")]  = mCfg.mqtt.topic;
+                obj[F("intvl")]  = mCfg.mqtt.interval;
+                obj[F("rstMidNight")] = (bool)mCfg.mqtt.rstYieldMidNight;
+                obj[F("rstNotAvail")] = (bool)mCfg.mqtt.rstValsNotAvail;
+                obj[F("rstComStop")]  = (bool)mCfg.mqtt.rstValsCommStop;
+
             } else {
-                mCfg.mqtt.port = obj[F("port")];
+                mCfg.mqtt.port     = obj[F("port")];
+                mCfg.mqtt.interval = obj[F("intvl")];
+                mCfg.mqtt.rstYieldMidNight = (bool)obj["rstMidNight"];
+                mCfg.mqtt.rstValsNotAvail  = (bool)obj["rstNotAvail"];
+                mCfg.mqtt.rstValsCommStop  = (bool)obj["rstComStop"];
                 snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", obj[F("broker")].as<const char*>());
                 snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", obj[F("user")].as<const char*>());
                 snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", obj[F("pwd")].as<const char*>());
@@ -412,6 +463,34 @@ class settings {
             } else {
                 mCfg.led.led0 = obj[F("0")];
                 mCfg.led.led1 = obj[F("1")];
+            }
+        }
+
+        void jsonPlugin(JsonObject obj, bool set = false) {
+            if(set) {
+                JsonObject disp = obj.createNestedObject("disp");
+                disp[F("type")]     = mCfg.plugin.display.type;
+                disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
+                disp[F("logo")]     = (bool)mCfg.plugin.display.logoEn;
+                disp[F("pxShift")]  = (bool)mCfg.plugin.display.pxShift;
+                disp[F("rot180")]   = (bool)mCfg.plugin.display.rot180;
+                disp[F("wake")]     = mCfg.plugin.display.wakeUp;
+                disp[F("sleep")]    = mCfg.plugin.display.sleepAt;
+                disp[F("contrast")] = mCfg.plugin.display.contrast;
+                disp[F("pin0")]     = mCfg.plugin.display.pin0;
+                disp[F("pin1")]     = mCfg.plugin.display.pin1;
+            } else {
+                JsonObject disp = obj["disp"];
+                mCfg.plugin.display.type               = disp[F("type")];
+                mCfg.plugin.display.pwrSaveAtIvOffline = (bool) disp[F("pwrSafe")];
+                mCfg.plugin.display.logoEn             = (bool) disp[F("logo")];
+                mCfg.plugin.display.pxShift            = (bool) disp[F("pxShift")];
+                mCfg.plugin.display.rot180             = (bool) disp[F("rot180")];
+                mCfg.plugin.display.wakeUp             = disp[F("wake")];
+                mCfg.plugin.display.sleepAt            = disp[F("sleep")];
+                mCfg.plugin.display.contrast           = disp[F("contrast")];
+                mCfg.plugin.display.pin0               = disp[F("pin0")];
+                mCfg.plugin.display.pin1               = disp[F("pin1")];
             }
         }
 
@@ -434,9 +513,10 @@ class settings {
 
         void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj[F("en")]   = (bool)cfg->enabled;
-                obj[F("name")] = cfg->name;
-                obj[F("sn")]   = cfg->serial.u64;
+                obj[F("en")]    = (bool)cfg->enabled;
+                obj[F("name")]  = cfg->name;
+                obj[F("sn")]    = cfg->serial.u64;
+                obj[F("yield")] = cfg->yieldCor;
                 for(uint8_t i = 0; i < 4; i++) {
                     obj[F("pwr")][i]  = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
@@ -445,6 +525,7 @@ class settings {
                 cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
+                cfg->yieldCor   = obj[F("yield")];
                 for(uint8_t i = 0; i < 4; i++) {
                     cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());

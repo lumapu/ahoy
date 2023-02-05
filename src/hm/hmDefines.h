@@ -106,7 +106,7 @@ const byteAssign_t AlarmDataAssignment[] = {
 };
 #define HMALARMDATA_LIST_LEN     (sizeof(AlarmDataAssignment) / sizeof(byteAssign_t))
 #define HMALARMDATA_PAYLOAD_LEN  0 // 0: means check is off
-
+#define ALARM_LOG_ENTRY_SIZE    12
 
 
 //-------------------------------------
