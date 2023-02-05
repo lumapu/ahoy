@@ -18,7 +18,6 @@
 #include "../appInterface.h"
 
 #include "../hm/hmSystem.h"
-#include "../utils/ahoyTimer.h"
 #include "../utils/helper.h"
 
 #include "html/h/index_html.h"
@@ -132,6 +131,8 @@ class Web {
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            mApp->setOnUpdate();
+            
             if(!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
         #ifndef ESP32
@@ -246,7 +247,7 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), html);
             response->addHeader("Connection", "close");
             request->send(response);
-            if(reboot)
+            //if(reboot)
                 mApp->setRebootFlag();
         }
 
@@ -263,7 +264,7 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html"), html);
             response->addHeader("Connection", "close");
             request->send(response);
-            if(reboot)
+            //if(reboot)
                 mApp->setRebootFlag();
         }
 

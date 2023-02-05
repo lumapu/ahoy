@@ -18,10 +18,8 @@
 #include "config/settings.h"
 #include "defines.h"
 #include "utils/crc.h"
-#include "utils/ahoyTimer.h"
 #include "utils/scheduler.h"
 
-#include "hm/CircularBuffer.h"
 #include "hm/hmSystem.h"
 #include "hm/payload.h"
 #include "wifi/ahoywifi.h"
@@ -61,10 +59,6 @@ class app : public IApp, public ah::Scheduler {
         void loopWifi(void);
         void onWifi(bool gotIp);
         void regularTickers(void);
-        void handleIntr(void);
-        void cbMqtt(char* topic, byte* payload, unsigned int length);
-        void saveValues(void);
-        bool getWifiApActive(void);
 
         uint32_t getUptime() {
             return Scheduler::getUptime();
@@ -97,6 +91,10 @@ class app : public IApp, public ah::Scheduler {
 
         void getAvailNetworks(JsonObject obj) {
             mWifi.getAvailNetworks(obj);
+        }
+
+        void setOnUpdate() {
+            onWifi(false);
         }
 
         void setRebootFlag() {
@@ -206,6 +204,9 @@ class app : public IApp, public ah::Scheduler {
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
+            onWifi(false);
+            ah::Scheduler::resetTicker();
+            WiFi.disconnect();
             ESP.restart();
         }
 
@@ -247,12 +248,8 @@ class app : public IApp, public ah::Scheduler {
         settings_t *mConfig;
 
         uint8_t mSendLastIvId;
-        uint8_t mSendTickerId;
 
         statistics_t mStat;
-
-        // timer
-        uint32_t mRxTicker;
 
         // mqtt
         PubMqttType mMqtt;

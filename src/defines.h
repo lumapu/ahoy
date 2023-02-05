@@ -17,7 +17,8 @@
 
 //-------------------------------------
 typedef struct {
-    uint8_t rxCh;
+    uint8_t ch;
+    uint8_t len;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 

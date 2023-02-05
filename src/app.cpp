@@ -82,40 +82,26 @@ void app::loop(void) {
 void app::loopStandard(void) {
     ah::Scheduler::loop();
 
-    mSys->Radio.loop();
+    if (mSys->Radio.loop()) {
+        while (!mSys->Radio.mBufCtrl.empty()) {
+            packet_t *p = &mSys->Radio.mBufCtrl.front();
+
+            if (mConfig->serial.debug) {
+                DPRINT(DBG_INFO, "RX " + String(p->len) + "B Ch" + String(p->ch) + " | ");
+                mSys->Radio.dumpBuf(p->packet, p->len);
+            }
+            mStat.frmCnt++;
+
+            mPayload.add(p);
+            mSys->Radio.mBufCtrl.pop();
+            yield();
+        }
+        mPayload.process(true);
+    }
     mPayload.loop();
 
-    yield();
-
-    if (ah::checkTicker(&mRxTicker, 4)) {
-        bool rxRdy = mSys->Radio.switchRxCh();
-
-        if (!mSys->BufCtrl.empty()) {
-            uint8_t len;
-            packet_t *p = mSys->BufCtrl.getBack();
-
-            if (mSys->Radio.checkPaketCrc(p->packet, &len, p->rxCh)) {
-                if (mConfig->serial.debug) {
-                    DPRINT(DBG_INFO, "RX " + String(len) + "B Ch" + String(p->rxCh) + " | ");
-                    mSys->Radio.dumpBuf(NULL, p->packet, len);
-                }
-                mStat.frmCnt++;
-
-                if (0 != len)
-                    mPayload.add(p, len);
-            }
-            mSys->BufCtrl.popBack();
-        }
-        yield();
-
-        if (rxRdy)
-            mPayload.process(true);
-    }
-
-#if !defined(AP_ONLY)
     if(mMqttEnabled)
         mMqtt.loop();
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -131,12 +117,14 @@ void app::onWifi(bool gotIp) {
     regularTickers();   // reinstall regular tickers
     if (gotIp) {
         mInnerLoopCb = std::bind(&app::loopStandard, this);
-        mSendTickerId = every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+        every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         mMqttReconnect = true;
         mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-        if(WIFI_AP == WiFi.getMode())
+        if(WIFI_AP == WiFi.getMode()) {
+            mMqttEnabled = false;
             everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+        }
     }
     else {
         mInnerLoopCb = std::bind(&app::loopWifi, this);
@@ -233,15 +221,24 @@ void app::tickComm(void) {
 }
 
 //-----------------------------------------------------------------------------
+void app::tickMidnight(void) {
+    // only used and enabled by MQTT (see setup())
+    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+    onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
+
+    mMqtt.tickerMidnight();
+}
+
+//-----------------------------------------------------------------------------
 void app::tickSend(void) {
     if(!mSys->Radio.isChipConnected()) {
         DPRINTLN(DBG_WARN, "NRF24 not connected!");
         return;
     }
     if (mIVCommunicationOn) {
-        if (!mSys->BufCtrl.empty()) {
+        if (!mSys->Radio.mBufCtrl.empty()) {
             if (mConfig->serial.debug)
-                DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->BufCtrl.getFill()));
+                DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->Radio.mBufCtrl.size()));
         }
 
         int8_t maxLoop = MAX_NUM_INVERTERS;
@@ -265,21 +262,6 @@ void app::tickSend(void) {
 }
 
 //-----------------------------------------------------------------------------
-void app::tickMidnight(void) {
-    // only used and enabled by MQTT (see setup())
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
-    onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
-
-    mMqtt.tickerMidnight();
-}
-
-//-----------------------------------------------------------------------------
-void app::handleIntr(void) {
-    DPRINTLN(DBG_VERBOSE, F("app::handleIntr"));
-    mSys->Radio.handleIntr();
-}
-
-//-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
@@ -290,8 +272,7 @@ void app::resetSystem(void) {
     mSunrise = 0;
     mSunset  = 0;
 
-    mRxTicker = 0;
-    mSendTickerId = 0xff; // invalid id
+    mMqttEnabled = false;
 
     mSendLastIvId = 0;
     mShowRebootRequest = false;
