@@ -5,6 +5,7 @@
 ## 0.5.79
 * fixed mixed reset flags #648
 * fixed `mCbAlarm` if MQTT is not used #653
+* fixed MQTT `autodiscover` #630 thanks to @antibill51
 * next changes from @beegee many thanks for your contribution!
 * replaced `CircularBuffer` by `std::queue`
 * reworked `hmRadio.h` completely (interrupts, packaging)
