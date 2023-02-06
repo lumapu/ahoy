@@ -9,6 +9,7 @@
 #include "../utils/dbg.h"
 #include <RF24.h>
 #include "../utils/crc.h"
+#include "../config/config.h"
 
 #define SPI_SPEED           1000000
 
@@ -42,8 +43,6 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 })
 
 #define BIT_CNT(x)  ((x)<<3)
-
-static volatile bool mIrqRcvd;
 
 //-----------------------------------------------------------------------------
 // HM Radio class
@@ -313,6 +312,7 @@ class HmRadio {
                 mSendCnt++;
         }
 
+        volatile bool mIrqRcvd;
         uint64_t DTU_RADIO_ID;
 
         uint8_t mRfChLst[RF_CHANNELS];

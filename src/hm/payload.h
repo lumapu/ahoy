@@ -48,7 +48,6 @@ class Payload {
             mSerialDebug  = false;
             mHighPrioIv   = NULL;
             mCbAlarm      = NULL;
-            mCbAlarm = NULL;
         }
 
         void enableSerialDebug(bool enable) {

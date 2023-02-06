@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.80
+* fixed communication #656
+
 ## 0.5.79
 * fixed mixed reset flags #648
 * fixed `mCbAlarm` if MQTT is not used #653
