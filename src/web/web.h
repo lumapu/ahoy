@@ -132,7 +132,7 @@ class Web {
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             mApp->setOnUpdate();
-            
+
             if(!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
         #ifndef ESP32
@@ -735,7 +735,7 @@ class Web {
 
 #ifdef ENABLE_PROMETHEUS_EP
         enum {
-            metricsStateStart, metricsStateInverter, metricStateChannel,metricsStateEnd
+            metricsStateStart, metricsStateInverter, metricStateRealtimeData,metricsStateAlarmData,metricsStateEnd
         } metricsStep;
         int metricsInverterId,metricsChannelId;
 
@@ -749,15 +749,22 @@ class Web {
                 Inverter<> *iv;
                 record_t<> *rec;
                 statistics_t *stat;
+                String promUnit, promType;
                 String metrics;
                 char type[60], topic[100], val[25];
                 size_t len = 0;
+                int alarmChannelId;
 
                 switch (metricsStep) {
                     case metricsStateStart: // System Info & NRF Statistics : fit to one packet
-                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_info gauge\nahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_info gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",
                             mApp->getVersion(), mConfig->sys.deviceName);
-                        metrics = topic;
+                        metrics = String(type) + String(topic);
+
+                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_freeheap gauge\nahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
+                        metrics += String(topic);
+
                         // NRF Statistics
                         stat = mApp->getStatistics();
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
@@ -776,24 +783,40 @@ class Web {
                         if (metricsInverterId < mSys->getNumInverters()) {
                             iv = mSys->getInverterByPos(metricsInverterId);
                             if(NULL != iv) {
-                                // Inverter info
-                                len = snprintf((char *)buffer, maxLen, "ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\",enabled=\"%d\"} 1\n",
-                                    iv->config->name, iv->config->serial.u64,iv->config->enabled);
-                                // Start Channel loop for this inverter
+                                // Inverter info : fit to one packet
+                                snprintf(type,sizeof(type),"# TYPE ahoy_solar_inverter_info gauge\n");
+                                snprintf(topic,sizeof(topic),"ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\"} 1\n",
+                                    iv->config->name, iv->config->serial.u64);
+                                metrics = String(type) + String(topic);
+
+                                snprintf(type,sizeof(type),"# TYPE ahoy_solar_inverter_is_enabled gauge\n");
+                                snprintf(topic,sizeof(topic),"ahoy_solar_inverter_is_enabled {inverter=\"%s\"} %d\n",iv->config->name,iv->config->enabled);
+                                metrics += String(type) + String(topic);
+
+                                snprintf(type,sizeof(type),"# TYPE ahoy_solar_inverter_is_available gauge\n");
+                                snprintf(topic,sizeof(topic),"ahoy_solar_inverter_is_available {inverter=\"%s\"} %d\n",iv->config->name,iv->isAvailable(mApp->getTimestamp()));
+                                metrics += String(type) + String(topic);
+
+                                snprintf(type,sizeof(type),"# TYPE ahoy_solar_inverter_is_producing gauge\n");
+                                snprintf(topic,sizeof(topic),"ahoy_solar_inverter_is_producing {inverter=\"%s\"} %d\n",iv->config->name,iv->isProducing(mApp->getTimestamp()));
+                                metrics += String(type) + String(topic);
+
+                                len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+
+                                // Start Realtime Data Channel loop for this inverter
                                 metricsChannelId = 0;
-                                metricsStep = metricStateChannel;
+                                metricsStep = metricStateRealtimeData;
                             }
                         } else {
                             metricsStep = metricsStateEnd;
                         }
                         break;
 
-                    case metricStateChannel: // Channel loop
+                    case metricStateRealtimeData: // Realtime Data Channel loop
                         iv = mSys->getInverterByPos(metricsInverterId);
                         rec = iv->getRecordStruct(RealTimeRunData_Debug);
                         if (metricsChannelId < rec->length) {
                             uint8_t channel = rec->assign[metricsChannelId].ch;
-                            String promUnit, promType;
                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
                             snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
                             if (0 == channel) {
@@ -808,10 +831,32 @@ class Web {
                         } else {
                             len = snprintf((char*)buffer,maxLen,"#\n"); // At least one char to send otherwise the transmission ends.
 
-                            // All channels processed --> try next inverter
-                            metricsInverterId++;
-                            metricsStep = metricsStateInverter;
+                            // All realtime data channels processed --> try alarm data
+                            metricsStep = metricsStateAlarmData;
                         }
+                        break;
+
+                    case metricsStateAlarmData: // Alarm Info loop
+                        iv = mSys->getInverterByPos(metricsInverterId);
+                        rec = iv->getRecordStruct(AlarmData);
+                        // simple hack : there is only one channel with alarm data
+                        // TODO: find the right one channel with the alarm id
+                        alarmChannelId = 0;
+                        // printf("AlarmData Length %d\n",rec->length);
+                        if (alarmChannelId < rec->length)
+                        {
+                            //uint8_t channel = rec->assign[alarmChannelId].ch;
+                            std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
+                            snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), promType.c_str());
+                            snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
+                            snprintf(val, sizeof(val), "%.3f", iv->getValue(alarmChannelId, rec));
+                            len = snprintf((char*)buffer,maxLen,"%s\n%s %s\n",type,topic,val);
+                        } else {
+                            len = snprintf((char*)buffer,maxLen,"#\n"); // At least one char to send otherwise the transmission ends.
+                        }
+                        // alarm channel processed --> try next inverter
+                        metricsInverterId++;
+                        metricsStep = metricsStateInverter;
                         break;
 
                     case metricsStateEnd:
