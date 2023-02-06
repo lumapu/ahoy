@@ -32,9 +32,9 @@ typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> al
 
 
 template<class HMSYSTEM>
-class Payload {
+class HmPayload {
     public:
-        Payload() {}
+        HmPayload() {}
 
         void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;

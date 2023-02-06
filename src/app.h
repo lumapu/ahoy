@@ -21,7 +21,7 @@
 #include "utils/scheduler.h"
 
 #include "hm/hmSystem.h"
-#include "hm/payload.h"
+#include "hm/hmPayload.h"
 #include "wifi/ahoywifi.h"
 #include "web/web.h"
 #include "web/RestApi.h"
@@ -37,7 +37,7 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef Payload<HmSystemType> PayloadType;
+typedef HmPayload<HmSystemType> PayloadType;
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
