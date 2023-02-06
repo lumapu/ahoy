@@ -9,6 +9,9 @@
 #include "../utils/dbg.h"
 #include <cstdint>
 
+// inverter generations
+enum {IV_HM = 0, IV_MI};
+
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
 const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%", "var", ""};

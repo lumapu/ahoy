@@ -13,7 +13,6 @@ app::app() : ah::Scheduler() {}
 
 //-----------------------------------------------------------------------------
 void app::setup() {
-    mSys = NULL;
     Serial.begin(115200);
     while (!Serial)
         yield();
@@ -26,9 +25,8 @@ void app::setup() {
     mSettings.getPtr(mConfig);
     DPRINTLN(DBG_INFO, F("Settings valid: ") + String((mSettings.getValid()) ? F("true") : F("false")));
 
-    mSys = new HmSystemType();
-    mSys->enableDebug();
-    mSys->setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mSys.enableDebug();
+    mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
     mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
     #if defined(AP_ONLY)
@@ -42,34 +40,37 @@ void app::setup() {
     everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     #endif
 
-    mSys->addInverters(&mConfig->inst);
-    mPayload.setup(this, mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mSys.addInverters(&mConfig->inst);
+    mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
 
-    if(!mSys->Radio.isChipConnected())
+    mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mMiPayload.enableSerialDebug(mConfig->serial.debug);
+
+    if(!mSys.Radio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, mSys, &mTimestamp);
+        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
     #endif
     setupLed();
 
-    mWeb.setup(this, mSys, mConfig);
+    mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mApi.setup(this, mSys, mWeb.getWebSrvPtr(), mConfig);
+    mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     if(mConfig->plugin.display.type != 0)
-        mMonoDisplay.setup(&mConfig->plugin.display, mSys, &mTimestamp, 0xff, mVersion);
+        mMonoDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, 0xff, mVersion);
 
-    mPubSerial.setup(mConfig, mSys, &mTimestamp);
+    mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     regularTickers();
 }
@@ -83,23 +84,31 @@ void app::loop(void) {
 void app::loopStandard(void) {
     ah::Scheduler::loop();
 
-    if (mSys->Radio.loop()) {
-        while (!mSys->Radio.mBufCtrl.empty()) {
-            packet_t *p = &mSys->Radio.mBufCtrl.front();
+    if (mSys.Radio.loop()) {
+        while (!mSys.Radio.mBufCtrl.empty()) {
+            packet_t *p = &mSys.Radio.mBufCtrl.front();
 
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, "RX " + String(p->len) + "B Ch" + String(p->ch) + " | ");
-                mSys->Radio.dumpBuf(p->packet, p->len);
+                mSys.Radio.dumpBuf(p->packet, p->len);
             }
             mStat.frmCnt++;
 
-            mPayload.add(p);
-            mSys->Radio.mBufCtrl.pop();
+            Inverter<> *iv = mSys.findInverter(&p->packet[1]);
+            if(NULL == iv) {
+                if(IV_HM == iv->ivGen)
+                    mPayload.add(iv, p);
+                else
+                    mMiPayload.add(iv, p);
+            }
+            mSys.Radio.mBufCtrl.pop();
             yield();
         }
         mPayload.process(true);
+        mMiPayload.process(true);
     }
     mPayload.loop();
+    mMiPayload.loop();
 
     if(mMqttEnabled)
         mMqtt.loop();
@@ -232,26 +241,30 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(!mSys->Radio.isChipConnected()) {
+    if(!mSys.Radio.isChipConnected()) {
         DPRINTLN(DBG_WARN, "NRF24 not connected!");
         return;
     }
     if (mIVCommunicationOn) {
-        if (!mSys->Radio.mBufCtrl.empty()) {
+        if (!mSys.Radio.mBufCtrl.empty()) {
             if (mConfig->serial.debug)
-                DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys->Radio.mBufCtrl.size()));
+                DPRINTLN(DBG_DEBUG, F("recbuf not empty! #") + String(mSys.Radio.mBufCtrl.size()));
         }
 
         int8_t maxLoop = MAX_NUM_INVERTERS;
-        Inverter<> *iv = mSys->getInverterByPos(mSendLastIvId);
+        Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
         do {
             mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
-            iv = mSys->getInverterByPos(mSendLastIvId);
+            iv = mSys.getInverterByPos(mSendLastIvId);
         } while ((NULL == iv) && ((maxLoop--) > 0));
 
         if (NULL != iv) {
-            if(iv->config->enabled)
-                mPayload.ivSend(iv);
+            if(iv->config->enabled) {
+                if(iv->ivGen == IV_HM)
+                    mPayload.ivSend(iv);
+                else
+                    mMiPayload.ivSend(iv);
+            }
         }
     } else {
         if (mConfig->serial.debug)
@@ -307,7 +320,7 @@ void app::setupLed(void) {
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
     if(mConfig->led.led0 != 0xff) {
-        Inverter<> *iv = mSys->getInverterByPos(0);
+        Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
             if(iv->isProducing(mTimestamp))
                 digitalWrite(mConfig->led.led0, LOW); // LED on

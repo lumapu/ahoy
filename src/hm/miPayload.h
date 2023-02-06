@@ -1,10 +1,10 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2023 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-#ifndef __HM_PAYLOAD_H__
-#define __HM_PAYLOAD_H__
+#ifndef __MI_PAYLOAD_H__
+#define __MI_PAYLOAD_H__
 
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
@@ -12,29 +12,29 @@
 #include <Arduino.h>
 
 typedef struct {
+    uint32_t ts;
+    bool requested;
     uint8_t txCmd;
+    uint8_t len[MAX_PAYLOAD_ENTRIES];
+    /*
     uint8_t txId;
     uint8_t invId;
-    uint32_t ts;
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
-    uint8_t len[MAX_PAYLOAD_ENTRIES];
     bool complete;
     uint8_t maxPackId;
     bool lastFound;
     uint8_t retransmits;
-    bool requested;
-    bool gotFragment;
-} invPayload_t;
+    bool gotFragment;*/
+} miPayload_t;
 
 
-typedef std::function<void(uint8_t)> payloadListenerType;
-typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
+typedef std::function<void(uint8_t)> miPayloadListenerType;
 
 
 template<class HMSYSTEM>
-class HmPayload {
+class MiPayload {
     public:
-        HmPayload() {}
+        MiPayload() {}
 
         void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
@@ -46,57 +46,21 @@ class HmPayload {
                 reset(i);
             }
             mSerialDebug  = false;
-            mHighPrioIv   = NULL;
-            mCbAlarm      = NULL;
-            mCbPayload    = NULL;
+            mCbMiPayload  = NULL;
         }
 
         void enableSerialDebug(bool enable) {
             mSerialDebug = enable;
         }
 
-        void addPayloadListener(payloadListenerType cb) {
-            mCbPayload = cb;
+        void addPayloadListener(miPayloadListenerType cb) {
+            mCbMiPayload = cb;
         }
 
-        void addAlarmListener(alarmListenerType cb) {
-            mCbAlarm = cb;
-        }
+        void loop() {}
 
-        void loop() {
-            if(NULL != mHighPrioIv) {
-                ivSend(mHighPrioIv, true);
-                mHighPrioIv = NULL;
-            }
-        }
 
-        void ivSendHighPrio(Inverter<> *iv) {
-            mHighPrioIv = iv;
-        }
-
-        void ivSend(Inverter<> *iv, bool highPrio = false) {
-            if(!highPrio) {
-                if (mPayload[iv->id].requested) {
-                    if (!mPayload[iv->id].complete)
-                        process(false); // no retransmit
-
-                    if (!mPayload[iv->id].complete) {
-                        if (MAX_PAYLOAD_ENTRIES == mPayload[iv->id].maxPackId)
-                            mStat->rxFailNoAnser++; // got nothing
-                        else
-                            mStat->rxFail++; // got fragments but not complete response
-
-                        iv->setQueuedCmdFinished();  // command failed
-                        if (mSerialDebug)
-                            DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
-                        if (mSerialDebug) {
-                            DPRINT(DBG_INFO, F("(#") + String(iv->id) + ") ");
-                            DPRINTLN(DBG_INFO, F("no Payload received! (retransmits: ") + String(mPayload[iv->id].retransmits) + ")");
-                        }
-                    }
-                }
-            }
-
+        void ivSend(Inverter<> *iv) {
             reset(iv->id);
             mPayload[iv->id].requested = true;
 
@@ -104,23 +68,16 @@ class HmPayload {
             if (mSerialDebug)
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
 
-            if (iv->getDevControlRequest()) {
-                if (mSerialDebug)
-                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Devcontrol request 0x") + String(iv->devControlCmd, HEX) + F(" power limit ") + String(iv->powerLimit[0]));
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
-                mPayload[iv->id].txCmd = iv->devControlCmd;
-                //iv->clearCmdQueue();
-                //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
-            } else {
-                uint8_t cmd = iv->getQueuedCmd();
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket")); // + String(cmd, HEX));
-                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
-                mPayload[iv->id].txCmd = cmd;
-            }
+            uint8_t cmd = 0x09; //iv->getQueuedCmd();
+            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
+            mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
+            mPayload[iv->id].txCmd = cmd;
         }
 
         void add(Inverter<> *iv, packet_t *p) {
-            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+            DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
+
+            /*if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                 uint8_t *pid = &p->packet[9];
@@ -160,7 +117,7 @@ class HmPayload {
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
                 }
                 iv->devControlCmd = Init;
-            }
+            }*/
         }
 
         void process(bool retransmit) {
@@ -169,7 +126,7 @@ class HmPayload {
                 if (NULL == iv)
                     continue; // skip to next inverter
 
-                if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
+                /*if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
                     // no processing needed if txId is not 0x95
                     mPayload[iv->id].complete = true;
                     continue; // skip to next inverter
@@ -191,12 +148,6 @@ class HmPayload {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     if(false == mPayload[iv->id].gotFragment) {
-                                        /*
-                                        DPRINTLN(DBG_WARN, F("nothing received: Request Complete Retransmit"));
-                                        mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
-                                        */
                                         DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else {
@@ -278,24 +229,19 @@ class HmPayload {
 
                         iv->setQueuedCmdFinished();
                     }
-                }
+                }*/
                 yield();
             }
         }
 
     private:
         void notify(uint8_t val) {
-            if(NULL != mCbPayload)
-                (mCbPayload)(val);
-        }
-
-        void notify(uint16_t code, uint32_t start, uint32_t endTime) {
-            if (NULL != mCbAlarm)
-                (mCbAlarm)(code, start, endTime);
+            if(NULL != mCbMiPayload)
+                (mCbMiPayload)(val);
         }
 
         bool build(uint8_t id, bool *complete) {
-            DPRINTLN(DBG_VERBOSE, F("build"));
+            /*DPRINTLN(DBG_VERBOSE, F("build"));
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
                 mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
@@ -320,18 +266,20 @@ class HmPayload {
                 yield();
             }
 
-            return (crc == crcRcv) ? true : false;
+            return (crc == crcRcv) ? true : false;*/
+            return true;
         }
 
         void reset(uint8_t id) {
             DPRINTLN(DBG_INFO, "resetPayload: id: " + String(id));
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
-            mPayload[id].txCmd       = 0;
+            /*
             mPayload[id].gotFragment = false;
             mPayload[id].retransmits = 0;
             mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;
             mPayload[id].lastFound   = false;
-            mPayload[id].complete    = false;
+            mPayload[id].complete    = false;*/
+            mPayload[id].txCmd       = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
         }
@@ -341,12 +289,10 @@ class HmPayload {
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;
-        invPayload_t mPayload[MAX_NUM_INVERTERS];
+        miPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
-        Inverter<> *mHighPrioIv;
 
-        alarmListenerType mCbAlarm;
-        payloadListenerType mCbPayload;
+        payloadListenerType mCbMiPayload;
 };
 
-#endif /*__HM_PAYLOAD_H__*/
+#endif /*__MI_PAYLOAD_H__*/

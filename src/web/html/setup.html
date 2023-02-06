@@ -224,7 +224,7 @@
         </div>
         <div id="footer">
             <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2022</a>
+                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
                 <ul>
                     <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
                     <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
@@ -395,10 +395,17 @@
                         setHide("lbl"+id+"ModPwr", true);
                         setHide("lbl"+id+"ModName", true);
 
-                        if(serial === "1161") max = 4;
-                        else if(serial === "1141") max = 2;
-                        else if(serial === "1121") max = 1;
-                        else max = 0;
+                        if(serial.charAt(0) == 1) {
+                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1)) {
+                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2)) {
+                                    switch(serial.charAt(2)) {
+                                        case "2": max = 1; break;
+                                        case "4": max = 2; break;
+                                        case "6": max = 4; break;
+                                    }
+                                }
+                            }
+                        }
 
                         if(max != 0) {
                             for(var i=0;i<max;i++) {

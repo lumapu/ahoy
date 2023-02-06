@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.81
+* started implementation of MI inverters (setup.html, own processing `MiPayload.h`)
+
 ## 0.5.80
 * fixed communication #656
 

@@ -105,6 +105,7 @@ const calcFunc_t<T> calcFunctions[] = {
 template <class REC_TYP>
 class Inverter {
     public:
+        uint8_t       ivGen;             // generation of inverter (HM / MI)
         cfgIv_t       *config;           // stored settings
         uint8_t       id;                // unique id
         uint8_t       type;              // integer which refers to inverter type
@@ -123,6 +124,7 @@ class Inverter {
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
 
         Inverter() {
+            ivGen              = IV_HM;
             powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
             powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
