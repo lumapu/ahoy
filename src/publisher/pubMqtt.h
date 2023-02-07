@@ -123,34 +123,17 @@ class PubMqtt {
             publish("comm_disabled", ((disabled) ? "true" : "false"), true);
             publish("comm_dis_ts", String(*mUtcTimestamp).c_str(), true);
 
-            if(disabled && (mCfgMqtt->rstValsCommStop))
-                zeroAllInverters();
-
             return true;
         }
 
         void tickerMidnight() {
-            Inverter<> *iv;
-            record_t<> *rec;
             char topic[7 + MQTT_TOPIC_LEN], val[4];
 
-            // set YieldDay to zero
-            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                iv = mSys->getInverterByPos(id);
-                if (NULL == iv)
-                    continue; // skip to next inverter
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                uint8_t pos = iv->getPosByChFld(CH0, FLD_YD, rec);
-                iv->setValue(pos, rec, 0.0f);
-
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch0/%s", iv->config->name, fields[FLD_YD]);
-                snprintf(val, 2, "0");
-                publish(topic, val, true);
-            }
             // set Total YieldDay to zero
             snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
             snprintf(val, 2, "0");
-            publish(topic, val, true);        }
+            publish(topic, val, true);
+        }
 
         void payloadEventListener(uint8_t cmd) {
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
@@ -455,9 +438,6 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    if((MQTT_STATUS_NOT_AVAIL_NOT_PROD == status) && (mCfgMqtt->rstValsNotAvail))
-                        zeroValues(iv);
-
                     snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                     snprintf(val, 40, "%d", status);
                     publish(topic, val, true);
@@ -580,48 +560,6 @@ class PubMqtt {
                     }
                 }
             }
-        }
-
-        void zeroAllInverters() {
-            Inverter<> *iv;
-
-            // set values to zero, exept yields
-            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                iv = mSys->getInverterByPos(id);
-                if (NULL == iv)
-                    continue; // skip to next inverter
-
-                zeroValues(iv);
-            }
-            sendIvData();
-        }
-
-        void zeroValues(Inverter<> *iv) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            for(uint8_t ch = 0; ch <= iv->channels; ch++) {
-                uint8_t pos = 0;
-                uint8_t fld = 0;
-                while(0xff != pos) {
-                    switch(fld) {
-                        case FLD_YD:
-                        case FLD_YT:
-                        case FLD_FW_VERSION:
-                        case FLD_FW_BUILD_YEAR:
-                        case FLD_FW_BUILD_MONTH_DAY:
-                        case FLD_FW_BUILD_HOUR_MINUTE:
-                        case FLD_HW_ID:
-                        case FLD_ACT_ACTIVE_PWR_LIMIT:
-                            fld++;
-                            continue;
-                            break;
-                    }
-                    pos = iv->getPosByChFld(ch, fld, rec);
-                    iv->setValue(pos, rec, 0.0f);
-                    fld++;
-                }
-            }
-
-            mSendList.push(RealTimeRunData_Debug);
         }
 
         espMqttClient mClient;

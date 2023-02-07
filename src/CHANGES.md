@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.82
+* fixed communication error #652
+* reset values is no bound to MQTT any more, setting moved to `inverter` #649
+* fixed wording on `index.hmtl` #661
+
 ## 0.5.81
 * started implementation of MI inverters (setup.html, own processing `MiPayload.h`)
 

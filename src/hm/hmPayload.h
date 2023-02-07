@@ -70,6 +70,41 @@ class HmPayload {
             }
         }
 
+        void zeroYieldDay(Inverter<> *iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            uint8_t pos = iv->getPosByChFld(CH0, FLD_YD, rec);
+            iv->setValue(pos, rec, 0.0f);
+        }
+
+        void zeroInverterValues(Inverter<> *iv) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            for(uint8_t ch = 0; ch <= iv->channels; ch++) {
+                uint8_t pos = 0;
+                uint8_t fld = 0;
+                while(0xff != pos) {
+                    switch(fld) {
+                        case FLD_YD:
+                        case FLD_YT:
+                        case FLD_FW_VERSION:
+                        case FLD_FW_BUILD_YEAR:
+                        case FLD_FW_BUILD_MONTH_DAY:
+                        case FLD_FW_BUILD_HOUR_MINUTE:
+                        case FLD_HW_ID:
+                        case FLD_ACT_ACTIVE_PWR_LIMIT:
+                            fld++;
+                            continue;
+                            break;
+                    }
+                    pos = iv->getPosByChFld(ch, fld, rec);
+                    iv->setValue(pos, rec, 0.0f);
+                    fld++;
+                }
+            }
+
+            iv->doCalculations();
+            notify(RealTimeRunData_Debug);
+        }
+
         void ivSendHighPrio(Inverter<> *iv) {
             mHighPrioIv = iv;
         }
@@ -167,6 +202,9 @@ class HmPayload {
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL == iv)
+                    continue; // skip to next inverter
+
+                if (IV_MI == iv->ivGen) // only process HM inverters
                     continue; // skip to next inverter
 
                 if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {

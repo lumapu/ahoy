@@ -500,6 +500,9 @@ class Web {
                 mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
             if(request->arg("invRetry") != "")
                 mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
+            mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
+            mConfig->inst.rstValsCommStop  = (request->arg("invRstComStop") == "on");
+            mConfig->inst.rstValsNotAvail  = (request->arg("invRstNotAvail") == "on");
 
             // pinout
             uint8_t pin;
@@ -550,9 +553,6 @@ class Web {
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
-            mConfig->mqtt.rstYieldMidNight = (request->arg("mqttRstMid") == "on");
-            mConfig->mqtt.rstValsCommStop  = (request->arg("mqttRstComStop") == "on");
-            mConfig->mqtt.rstValsNotAvail  = (request->arg("mqttRstNotAvail") == "on");
 
             // serial console
             if(request->arg("serIntvl") != "") {

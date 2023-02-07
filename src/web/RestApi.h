@@ -298,6 +298,9 @@ class RestApi {
             obj[F("interval")]          = String(mConfig->nrf.sendInterval);
             obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
+            obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
+            obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
+            obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
         }
 
         void getMqtt(JsonObject obj) {
@@ -307,9 +310,6 @@ class RestApi {
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");
             obj[F("topic")]      = String(mConfig->mqtt.topic);
             obj[F("interval")]   = String(mConfig->mqtt.interval);
-            obj[F("rstMid")]     = (bool)mConfig->mqtt.rstYieldMidNight;
-            obj[F("rstNAvail")]  = (bool)mConfig->mqtt.rstValsNotAvail;
-            obj[F("rstComStop")] = (bool)mConfig->mqtt.rstValsCommStop;
         }
 
         void getNtp(JsonObject obj) {

@@ -95,6 +95,13 @@
                         <input type="text" class="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/>
                         <label for="invRetry">Max retries per Payload</label>
                         <input type="text" class="text" name="invRetry"/>
+
+                        <label for="invRstMid">Reset Values and YieldDay at Midnight</label>
+                        <input type="checkbox" class="cb" name="invRstMid"/><br/>
+                        <label for="invRstComStop">Reset Values at Communication stop</label>
+                        <input type="checkbox" class="cb" name="invRstComStop"/><br/>
+                        <label for="invRstNotAvail">Reset Values on 'not available'</label>
+                        <input type="checkbox" class="cb" name="invRstNotAvail"/><br/>
                     </fieldset>
                     </div>
 
@@ -146,12 +153,6 @@
                         <input type="password" class="text" name="mqttPwd"/>
                         <label for="mqttTopic">Topic</label>
                         <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" />
-                        <label for="mqttRstMid">Reset YieldDay at Midnight</label>
-                        <input type="checkbox" class="cb" name="mqttRstMid"/><br/>
-                        <label for="mqttRstComStop">Reset Values at Communication stop</label>
-                        <input type="checkbox" class="cb" name="mqttRstComStop"/><br/>
-                        <label for="mqttRstNotAvail">Reset Values on 'not available'</label>
-                        <input type="checkbox" class="cb" name="mqttRstNotAvail"/><br/>
                         <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
                         <label for="mqttIntvl">Interval [s]</label>
                         <input type="text" class="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" />
@@ -453,6 +454,8 @@
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"], ["invRetry", "retries"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
+                for(var i of [["Mid", "rstMid"], ["ComStop", "rstComStop"], ["NotAvail", "rstNAvail"]])
+                    document.getElementsByName("invRst"+i[0])[0].checked = obj[i[1]];
             }
 
             function parseSys(obj) {
@@ -496,9 +499,6 @@
             function parseMqtt(obj) {
                 for(var i of [["Addr", "broker"], ["Port", "port"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
-
-                for(var i of [["Mid", "rstMid"], ["ComStop", "rstNAvail"], ["NotAvail", "rstComStop"]])
-                    document.getElementsByName("mqttRst"+i[0])[0].checked = obj[i[1]];
             }
 
             function parseNtp(obj) {

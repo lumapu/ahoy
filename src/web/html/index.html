@@ -173,6 +173,10 @@
                         color = "#00d";
                         avail = "not yet available";
                     }
+                    else if(0 == i["ts_last_success"]) {
+                        icon = iconSuccess;
+                        avail = "available but no data was received until now";
+                    }
                     else {
                         icon = iconSuccess;
                         avail = "available and is ";

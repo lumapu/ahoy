@@ -98,9 +98,6 @@ typedef struct {
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
     uint16_t interval;
-    bool rstYieldMidNight;
-    bool rstValsNotAvail;
-    bool rstValsCommStop;
 } cfgMqtt_t;
 
 typedef struct {
@@ -115,6 +112,10 @@ typedef struct {
 typedef struct {
     bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
+
+    bool rstYieldMidNight;
+    bool rstValsNotAvail;
+    bool rstValsCommStop;
 } cfgInst_t;
 
 typedef struct {
@@ -328,9 +329,10 @@ class settings {
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
-            mCfg.mqtt.rstYieldMidNight  = false;
-            mCfg.mqtt.rstValsNotAvail = false;
-            mCfg.mqtt.rstValsCommStop   = false;
+
+            mCfg.inst.rstYieldMidNight = false;
+            mCfg.inst.rstValsNotAvail  = false;
+            mCfg.inst.rstValsCommStop  = false;
 
             mCfg.led.led0 = DEF_PIN_OFF;
             mCfg.led.led1 = DEF_PIN_OFF;
@@ -439,16 +441,10 @@ class settings {
                 obj[F("pwd")]    = mCfg.mqtt.pwd;
                 obj[F("topic")]  = mCfg.mqtt.topic;
                 obj[F("intvl")]  = mCfg.mqtt.interval;
-                obj[F("rstMidNight")] = (bool)mCfg.mqtt.rstYieldMidNight;
-                obj[F("rstNotAvail")] = (bool)mCfg.mqtt.rstValsNotAvail;
-                obj[F("rstComStop")]  = (bool)mCfg.mqtt.rstValsCommStop;
 
             } else {
                 mCfg.mqtt.port     = obj[F("port")];
                 mCfg.mqtt.interval = obj[F("intvl")];
-                mCfg.mqtt.rstYieldMidNight = (bool)obj["rstMidNight"];
-                mCfg.mqtt.rstValsNotAvail  = (bool)obj["rstNotAvail"];
-                mCfg.mqtt.rstValsCommStop  = (bool)obj["rstComStop"];
                 snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", obj[F("broker")].as<const char*>());
                 snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", obj[F("user")].as<const char*>());
                 snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", obj[F("pwd")].as<const char*>());
@@ -495,10 +491,18 @@ class settings {
         }
 
         void jsonInst(JsonObject obj, bool set = false) {
-            if(set)
+            if(set) {
                 obj[F("en")] = (bool)mCfg.inst.enabled;
-            else
+                obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
+                obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
+            }
+            else {
                 mCfg.inst.enabled = (bool)obj[F("en")];
+                mCfg.inst.rstYieldMidNight = (bool)obj["rstMidNight"];
+                mCfg.inst.rstValsNotAvail  = (bool)obj["rstNotAvail"];
+                mCfg.inst.rstValsCommStop  = (bool)obj["rstComStop"];
+            }
 
             JsonArray ivArr;
             if(set)
