@@ -191,9 +191,9 @@ class HmRadio {
             sendPacket(invId, cnt, isRetransmit, true);
         }
 
-        void sendTimePacket(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit) {
-            DPRINTLN(DBG_DEBUG, F("sendTimePacket 0x") + String(cmd, HEX));
-            initPacket(invId, TX_REQ_INFO, ALL_FRAMES);
+        void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+            DPRINTLN(DBG_DEBUG, F("prepareDevInformCmd 0x") + String(cmd, HEX));
+            initPacket(invId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
