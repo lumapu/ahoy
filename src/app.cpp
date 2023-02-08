@@ -27,7 +27,6 @@ void app::setup() {
 
     mSys.enableDebug();
     mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
-    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
     #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
@@ -43,6 +42,7 @@ void app::setup() {
     mSys.addInverters(&mConfig->inst);
     mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
+    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
     mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
