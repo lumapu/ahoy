@@ -148,8 +148,8 @@ class HmPayload {
                 //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket")); // + String(cmd, HEX));
-                mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
+                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd")); // + String(cmd, HEX));
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }
         }
@@ -232,8 +232,8 @@ class HmPayload {
                                         /*
                                         DPRINTLN(DBG_WARN, F("nothing received: Request Complete Retransmit"));
                                         mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
-                                        mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
+                                        mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         */
                                         DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
@@ -255,8 +255,8 @@ class HmPayload {
                             mPayload[iv->id].retransmits++;
                             DPRINTLN(DBG_WARN, F("CRC Error: Request Complete Retransmit"));
                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
-                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
+                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
                     } else {  // payload complete
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));

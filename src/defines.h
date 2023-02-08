@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       5
-#define VERSION_PATCH       82
+#define VERSION_PATCH       821
 
 //-------------------------------------
 typedef struct {
@@ -69,7 +69,7 @@ union serial_u {
     uint8_t  b[8];
 };
 
-#define MIN_SERIAL_INTERVAL     5
+#define MIN_SERIAL_INTERVAL     2 // 5
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
 

@@ -16,11 +16,14 @@ typedef struct {
     bool requested;
     uint8_t txCmd;
     uint8_t len[MAX_PAYLOAD_ENTRIES];
-    /*
+    bool complete;
+    bool stsa;
+    bool stsb;
     uint8_t txId;
     uint8_t invId;
+    /*
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
-    bool complete;
+
     uint8_t maxPackId;
     bool lastFound;
     uint8_t retransmits;
@@ -68,14 +71,95 @@ class MiPayload {
             if (mSerialDebug)
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
 
-            uint8_t cmd = 0x09; //iv->getQueuedCmd();
-            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket"));
-            mSys->Radio.sendTimePacket(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
+            uint8_t cmd = iv->type == INV_TYPE_4CH ? 0x36 : 0x09; //iv->getQueuedCmd();
+            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd"));
+            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
             mPayload[iv->id].txCmd = cmd;
         }
 
         void add(Inverter<> *iv, packet_t *p) {
             DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
+
+            if (p->packet[0] == (0x08 + ALL_FRAMES)) { // MI status response to 0x09
+                mPayload[iv->id].stsa = true;
+                /*decode here or memcopy payload for later decoding?
+                for decoding see
+                void MI600StsMsg (NRF24_packet_t *p){
+                  STAT = (int)((p->packet[11] << 8) + p->packet[12]);
+                  FCNT = (int)((p->packet[13] << 8) + p->packet[14]);
+                  FCODE = (int)((p->packet[15] << 8) + p->packet[16]);
+                #ifdef ESP8266
+                  VALUES[PV][5]=STAT;
+                  VALUES[PV][6]=FCNT;
+                  VALUES[PV][7]=FCODE;
+                #endif
+                }
+                */
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
+            } else if (p->packet[0] == (0x12 + ALL_FRAMES)) { // MI status response to 0x11
+                mPayload[iv->id].stsb = true;
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
+            } else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
+                mPayload[iv->id].txId = p->packet[0];
+                if (INV_TYPE_2CH == iv->type) {
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
+                    mPayload[iv->id].complete = true;
+                }
+                /*decode here or memcopy payload for later decoding?
+                void MI600DataMsg(NRF24_packet_t *p){
+                  U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
+                  I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
+                  U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
+                  F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
+                  P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
+                  Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
+                  TEMP =  (float) ((p->packet[23] << 8) + p->packet[24])/10;
+
+                  if ((30<U_DC<50) && (0<I_DC<15) && (200<U_AC<300) && (45<F_AC<55) && (0<P_DC<420) && (0<TEMP<80))
+                   DataOK = 1;  //we need to check this, if no crc
+                  else { DEBUG_OUT.printf("Data Wrong!!\r\n");DataOK =0; return;}
+
+                  if (p->packet[2] == 0x89)  {PV= 0; TotalP[1]=P_DC; pvCnt[0]=1;}//port 1
+                  if (p->packet[2] == 0x91)  {PV= 1; TotalP[2]=P_DC; pvCnt[1]=1;}//port 2
+
+                  TotalP[0]=TotalP[1]+TotalP[2]+TotalP[3]+TotalP[4];//in TotalP[0] is the totalPV power
+                  if((P_DC>400) || (P_DC<0) || (TotalP[0]>MAXPOWER)){// cant be!!
+                    TotalP[0]=0;
+                    return;
+                    }
+                #ifdef ESP8266
+                  VALUES[PV][0]=PV;
+                  VALUES[PV][1]=P_DC;
+                  VALUES[PV][2]=U_DC;
+                  VALUES[PV][3]=I_DC;
+                  VALUES[PV][4]=Q_DC;
+                #endif
+                  PMI=TotalP[0];
+                  LIM=(uint16_t)Limit;
+                  PrintOutValues();
+                }*/
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
+
+
+            } else if (p->packet[0] == (0x11 + ALL_FRAMES)) { // MI data response to 0x11
+                mPayload[iv->id].txId = p->packet[0];
+                mPayload[iv->id].complete = true;
+                //decode here or memcopy payload for later decoding?
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
+
+
+            } else if (p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] <= (0x39 + ALL_FRAMES)) { // MI 1500 data response to 0x11
+                mPayload[iv->id].txId = p->packet[0];
+                if (p->packet[0] < (0x39 + ALL_FRAMES)) {
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                } else {
+                    mPayload[iv->id].complete = true;
+                }
+                //decode here or memcopy payload for later decoding?
+                DPRINTLN(DBG_INFO, F("Inverter MI1500 ") + String(iv->id) + F(": data msg ") + p->packet[0]);
+
+            }
 
             /*if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->packet[0];
@@ -171,8 +255,8 @@ class MiPayload {
                             mPayload[iv->id].retransmits++;
                             DPRINTLN(DBG_WARN, F("CRC Error: Request Complete Retransmit"));
                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") sendTimePacket 0x") + String(mPayload[iv->id].txCmd, HEX));
-                            mSys->Radio.sendTimePacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
+                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
                     } else {  // payload complete
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
@@ -280,11 +364,13 @@ class MiPayload {
             mPayload[id].gotFragment = false;
             mPayload[id].retransmits = 0;
             mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;
-            mPayload[id].lastFound   = false;
-            mPayload[id].complete    = false;*/
+            mPayload[id].lastFound   = false;*/
+            mPayload[id].complete    = false;
             mPayload[id].txCmd       = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
+            mPayload[id].stsa        = false;
+            mPayload[id].stsb        = false;
         }
 
         IApp *mApp;
