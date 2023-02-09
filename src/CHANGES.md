@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.83
+* fix MQTT publishing, `callback` was set but reset by following `setup()`
+
 ## 0.5.82
 * fixed communication error #652
 * reset values is no bound to MQTT any more, setting moved to `inverter` #649
