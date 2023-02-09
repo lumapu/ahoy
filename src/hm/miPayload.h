@@ -50,6 +50,7 @@ class MiPayload {
                 reset(i);
             }
             mSerialDebug  = false;
+            mHighPrioIv   = NULL;
             mCbMiPayload  = NULL;
         }
 
@@ -64,8 +65,16 @@ class MiPayload {
         void addAlarmListener(alarmListenerType cb) {
             mCbMiAlarm = cb;
         }
-        void loop() {}
+        void loop() {
+            /*if(NULL != mHighPrioIv) {
+                iv->ivSend(mHighPrioIv, true); // should request firmware version etc.?
+                mHighPrioIv = NULL;
+            }*/
+        }
 
+        void ivSendHighPrio(Inverter<> *iv) {
+            mHighPrioIv = iv;
+        }
 
         void ivSend(Inverter<> *iv) {
             reset(iv->id);
@@ -114,6 +123,7 @@ class MiPayload {
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
                 } else {
                     mPayload[iv->id].complete = true;
+                    //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
                     iv->setQueuedCmdFinished();
                 }
 
@@ -247,10 +257,12 @@ class MiPayload {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINTLN(DBG_INFO, F("retransmit power limit"));
                                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
-                            } /*else {
+                            } else {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
-                                    if(false == mPayload[iv->id].gotFragment) {
+                                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                                    mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getQueuedCmd(), 24, true);
+                                    /*if(false == mPayload[iv->id].gotFragment) {
                                         DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else {
@@ -262,9 +274,9 @@ class MiPayload {
                                             }
                                             yield();
                                         }
-                                    }
+                                    }*/
                                 }
-                            }*/
+                            }
                         }
                     } else if(!crcPass && pyldComplete) { // crc error on complete Payload
                         if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -343,92 +355,23 @@ class MiPayload {
                 (mCbMiPayload)(val);
         }
 
-        void addMiValue(uint8_t pos, packet_t *p, record_t<> *rec, uint8_t ptr, uint8_t end) {
-            DPRINTLN(DBG_VERBOSE, F("miPAyload.h:addMiValue"));
-
-            /*
-            pos = iv->getPosByChFld(ch, fld, rec);
-                    iv->setValue(pos, rec, 0.0f);
-            */
-            /*if(NULL != rec) {
-                //uint8_t  ptr = rec->assign[pos].start;
-                //uint8_t  end = ptr + rec->assign[pos].num;
-                uint16_t div = rec->assign[pos].div;
-
-                if(NULL != rec) {
-                    if(CMD_CALC != div) {
-                        uint32_t val = 0;
-                        do {
-                            val <<= 8;
-                            val |= p->[ptr];
-                        } while(++ptr != end);
-                        if (FLD_T == rec->assign[pos].fieldId) {
-                            // temperature is a signed value!
-                            rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
-                        } else if ((FLD_YT == rec->assign[pos].fieldId)
-                                    && (config->yieldCor != 0)) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) - ((REC_TYP)config->yieldCor);
-                        } else {
-                            if ((REC_TYP)(div) > 1)
-                                rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
-                            else
-                                rec->record[pos] = (REC_TYP)(val);
-                        }
-                    }
-                }
-
-                if(rec == &recordMeas) {
-                    DPRINTLN(DBG_VERBOSE, "add real time");
-
-                    // get last alarm message index and save it in the inverter object
-                    if (getPosByChFld(0, FLD_EVT, rec) == pos){
-                        if (alarmMesIndex < rec->record[pos]){
-                            alarmMesIndex = rec->record[pos];
-                            //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
-
-                            DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(alarmMesIndex));
-                            enqueCommand<InfoCommand>(AlarmData);
-                        }
-                    }
-                }
-                else if (rec->assign == InfoAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add info");
-                    // eg. fw version ...
-                    isConnected = true;
-                }
-                else if (rec->assign == SystemConfigParaAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add config");
-                    if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
-                        actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
-                    }
-                }
-                else if (rec->assign == AlarmDataAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add alarm");
-                    if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
-                        lastAlarmMsg = getAlarmStr(rec->record[pos]);
-                    }
-                }
-                else
-                    DPRINTLN(DBG_WARN, F("add with unknown assginment"));
-            }
-            else
-                DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
-                */
-        }
-
         void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = 1) {
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
             rec->ts = mPayload[iv->id].ts;
-            //addMiValue(uint8_t pos, packet_t *p, record_t<> *rec, uint8_t  ptr, uint8_t  end)
-            iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
+            iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12])); // most likely wrong!
+
+            if (INV_TYPE_1CH == iv->type)
+                iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
+
             //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
-            iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[15] << 8) + p->packet[16]));
-            //addMiValue(FLD_EVT, p, rec, 11, 12);
-                        /*
-            pos = iv->getPosByChFld(ch, fld, rec);
-                    iv->setValue(pos, rec, 0.0f);
-            */
+
+            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[15] << 8) + p->packet[16]));
+            if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
+                iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
+
+                DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
+                iv->enqueCommand<InfoCommand>(AlarmData);
+            }
 
 
             /*    for decoding see
@@ -456,39 +399,45 @@ class MiPayload {
                            4;
 
             // U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[11] << 8) + p->packet[12])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/10);
             yield();
             // I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[13] << 8) + p->packet[14])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/10);
             yield();
             //      U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
-            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[15] << 8) + p->packet[16])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[21] << 8) + p->packet[22])/10);
             yield();
             //      F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
-            iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/100);
+            iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[23] << 8) + p->packet[24])/100);
             yield();
             //      P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[25] << 8) + p->packet[26])/10);
             yield();
             //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
             iv->setValue(iv->getPosByChFld(chan, FLD_Q, rec), rec, (float)((p->packet[21] << 8) + p->packet[22])/1);
             yield();
-            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23] << 8) + p->packet[24])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[29] << 8) + p->packet[30])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[23] << 8) + p->packet[24])/100);
             yield();
+            //FLD_YD
 
             if (p->packet[2] >= (0x36 + ALL_FRAMES) ) {
                 /*STAT = (uint8_t)(p->packet[25] );
                 FCNT = (uint8_t)(p->packet[26]);
                 FCODE = (uint8_t)(p->packet[27]); // MI300: (int)((p->packet[15] << 8) + p->packet[16]); */
-                iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (uint8_t)(p->packet[25]));
+                //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (uint8_t)(p->packet[25]));
+                //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
                 iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
                 yield();
-            }
+                if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
+                    iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
 
-            /*                for (uint8_t i = 0; i < rec->length; i++) {
-                                iv->addValue(i, payload, rec);
-                                yield();
-                            }*/
+                    DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
+                    iv->enqueCommand<InfoCommand>(AlarmData);
+                }
+            }
+            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0); // (getValue(iv->getPosByChFld(1, FLD_YD, rec), rec) + getValue(iv->getPosByChFld(2, FLD_YD, rec), rec)));
+
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd);
 /*
@@ -603,6 +552,7 @@ class MiPayload {
         miPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
 
+        Inverter<> *mHighPrioIv;
         alarmListenerType mCbMiAlarm;
         payloadListenerType mCbMiPayload;
 };
