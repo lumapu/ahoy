@@ -6,6 +6,7 @@
 #ifndef __MI_PAYLOAD_H__
 #define __MI_PAYLOAD_H__
 
+//#include "hmInverter.h"
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 #include "../config/config.h"
@@ -21,12 +22,12 @@ typedef struct {
     bool stsb;
     uint8_t txId;
     uint8_t invId;
+    uint8_t retransmits;
     /*
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
 
     uint8_t maxPackId;
     bool lastFound;
-    uint8_t retransmits;
     bool gotFragment;*/
 } miPayload_t;
 
@@ -60,6 +61,9 @@ class MiPayload {
             mCbMiPayload = cb;
         }
 
+        void addAlarmListener(alarmListenerType cb) {
+            mCbMiAlarm = cb;
+        }
         void loop() {}
 
 
@@ -80,88 +84,42 @@ class MiPayload {
         void add(Inverter<> *iv, packet_t *p) {
             DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
-            if (p->packet[0] == (0x08 + ALL_FRAMES)) { // MI status response to 0x09
+            if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
                 mPayload[iv->id].stsa = true;
-                /*decode here or memcopy payload for later decoding?
-                for decoding see
-                void MI600StsMsg (NRF24_packet_t *p){
-                  STAT = (int)((p->packet[11] << 8) + p->packet[12]);
-                  FCNT = (int)((p->packet[13] << 8) + p->packet[14]);
-                  FCODE = (int)((p->packet[15] << 8) + p->packet[16]);
-                #ifdef ESP8266
-                  VALUES[PV][5]=STAT;
-                  VALUES[PV][6]=FCNT;
-                  VALUES[PV][7]=FCODE;
-                #endif
-                }
-                */
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
-            } else if (p->packet[0] == (0x12 + ALL_FRAMES)) { // MI status response to 0x11
+                miStsDecode(iv, p);
+            } else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
                 mPayload[iv->id].stsb = true;
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
+                miStsDecode(iv, p, 2);
             } else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
                 mPayload[iv->id].txId = p->packet[0];
+                miDataDecode(iv,p);
                 if (INV_TYPE_2CH == iv->type) {
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
                 } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
                     mPayload[iv->id].complete = true;
+                    iv->setQueuedCmdFinished();
                 }
-                /*decode here or memcopy payload for later decoding?
-                void MI600DataMsg(NRF24_packet_t *p){
-                  U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-                  I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-                  U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
-                  F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
-                  P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-                  Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-                  TEMP =  (float) ((p->packet[23] << 8) + p->packet[24])/10;
-
-                  if ((30<U_DC<50) && (0<I_DC<15) && (200<U_AC<300) && (45<F_AC<55) && (0<P_DC<420) && (0<TEMP<80))
-                   DataOK = 1;  //we need to check this, if no crc
-                  else { DEBUG_OUT.printf("Data Wrong!!\r\n");DataOK =0; return;}
-
-                  if (p->packet[2] == 0x89)  {PV= 0; TotalP[1]=P_DC; pvCnt[0]=1;}//port 1
-                  if (p->packet[2] == 0x91)  {PV= 1; TotalP[2]=P_DC; pvCnt[1]=1;}//port 2
-
-                  TotalP[0]=TotalP[1]+TotalP[2]+TotalP[3]+TotalP[4];//in TotalP[0] is the totalPV power
-                  if((P_DC>400) || (P_DC<0) || (TotalP[0]>MAXPOWER)){// cant be!!
-                    TotalP[0]=0;
-                    return;
-                    }
-                #ifdef ESP8266
-                  VALUES[PV][0]=PV;
-                  VALUES[PV][1]=P_DC;
-                  VALUES[PV][2]=U_DC;
-                  VALUES[PV][3]=I_DC;
-                  VALUES[PV][4]=Q_DC;
-                #endif
-                  PMI=TotalP[0];
-                  LIM=(uint16_t)Limit;
-                  PrintOutValues();
-                }*/
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
 
 
             } else if (p->packet[0] == (0x11 + ALL_FRAMES)) { // MI data response to 0x11
                 mPayload[iv->id].txId = p->packet[0];
                 mPayload[iv->id].complete = true;
-                //decode here or memcopy payload for later decoding?
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
+                miDataDecode(iv,p);
+                iv->setQueuedCmdFinished();
 
-
-            } else if (p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] <= (0x39 + ALL_FRAMES)) { // MI 1500 data response to 0x11
+            } else if (p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME)) { // MI 1500 data response to 0x36, 0x37, 0x38 and 0x39
                 mPayload[iv->id].txId = p->packet[0];
+                miDataDecode(iv,p);
                 if (p->packet[0] < (0x39 + ALL_FRAMES)) {
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
                 } else {
                     mPayload[iv->id].complete = true;
+                    iv->setQueuedCmdFinished();
                 }
-                //decode here or memcopy payload for later decoding?
-                DPRINTLN(DBG_INFO, F("Inverter MI1500 ") + String(iv->id) + F(": data msg ") + p->packet[0]);
 
-            }
+            /*}
 
-            /*if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                 uint8_t *pid = &p->packet[9];
@@ -184,6 +142,7 @@ class MiPayload {
                         }
                     }
                 }
+            } */
             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                 DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
 
@@ -201,7 +160,64 @@ class MiPayload {
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
                 }
                 iv->devControlCmd = Init;
-            }*/
+            } else {  // some other response; copied from hmPayload:process; might not be correct to do that here!!!
+                DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
+                DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
+                //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
+                record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
+                mPayload[iv->id].complete = true;
+
+                uint8_t payload[128];
+                uint8_t payloadLen = 0;
+
+                memset(payload, 0, 128);
+
+                /*for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
+                    memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                    payloadLen += (mPayload[iv->id].len[i]);
+                    yield();
+                }*/
+                payloadLen -= 2;
+
+                if (mSerialDebug) {
+                    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                    mSys->Radio.dumpBuf(payload, payloadLen);
+                }
+
+                if (NULL == rec) {
+                    DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
+                    if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
+                        mStat->rxSuccess++;
+
+                    rec->ts = mPayload[iv->id].ts;
+                    for (uint8_t i = 0; i < rec->length; i++) {
+                        iv->addValue(i, payload, rec);
+                        yield();
+                    }
+                    iv->doCalculations();
+                    notify(mPayload[iv->id].txCmd);
+
+                    if(AlarmData == mPayload[iv->id].txCmd) {
+                        uint8_t i = 0;
+                        uint16_t code;
+                        uint32_t start, end;
+                        while(1) {
+                            code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                            if(0 == code)
+                                break;
+                            if (NULL != mCbMiAlarm)
+                                (mCbMiAlarm)(code, start, end);
+                            yield();
+                        }
+                    }
+                } else {
+                    DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
+                    mStat->rxFail++;
+                }
+
+                iv->setQueuedCmdFinished();
+            }
         }
 
         void process(bool retransmit) {
@@ -217,7 +233,7 @@ class MiPayload {
                     // no processing needed if txId is not 0x95
                     mPayload[iv->id].complete = true;
                     continue; // skip to next inverter
-                }
+                }*/
 
                 if (!mPayload[iv->id].complete) {
                     bool crcPass, pyldComplete;
@@ -231,7 +247,7 @@ class MiPayload {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINTLN(DBG_INFO, F("retransmit power limit"));
                                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
-                            } else {
+                            } /*else {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     if(false == mPayload[iv->id].gotFragment) {
@@ -248,7 +264,7 @@ class MiPayload {
                                         }
                                     }
                                 }
-                            }
+                            }*/
                         }
                     } else if(!crcPass && pyldComplete) { // crc error on complete Payload
                         if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -258,7 +274,7 @@ class MiPayload {
                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
-                    } else {  // payload complete
+                    } /*else {  // payload complete
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
                         DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                         DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
@@ -315,8 +331,8 @@ class MiPayload {
                         }
 
                         iv->setQueuedCmdFinished();
-                    }
-                }*/
+                    }*/
+                }
                 yield();
             }
         }
@@ -325,6 +341,212 @@ class MiPayload {
         void notify(uint8_t val) {
             if(NULL != mCbMiPayload)
                 (mCbMiPayload)(val);
+        }
+
+        void addMiValue(uint8_t pos, packet_t *p, record_t<> *rec, uint8_t ptr, uint8_t end) {
+            DPRINTLN(DBG_VERBOSE, F("miPAyload.h:addMiValue"));
+
+            /*
+            pos = iv->getPosByChFld(ch, fld, rec);
+                    iv->setValue(pos, rec, 0.0f);
+            */
+            /*if(NULL != rec) {
+                //uint8_t  ptr = rec->assign[pos].start;
+                //uint8_t  end = ptr + rec->assign[pos].num;
+                uint16_t div = rec->assign[pos].div;
+
+                if(NULL != rec) {
+                    if(CMD_CALC != div) {
+                        uint32_t val = 0;
+                        do {
+                            val <<= 8;
+                            val |= p->[ptr];
+                        } while(++ptr != end);
+                        if (FLD_T == rec->assign[pos].fieldId) {
+                            // temperature is a signed value!
+                            rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
+                        } else if ((FLD_YT == rec->assign[pos].fieldId)
+                                    && (config->yieldCor != 0)) {
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) - ((REC_TYP)config->yieldCor);
+                        } else {
+                            if ((REC_TYP)(div) > 1)
+                                rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
+                            else
+                                rec->record[pos] = (REC_TYP)(val);
+                        }
+                    }
+                }
+
+                if(rec == &recordMeas) {
+                    DPRINTLN(DBG_VERBOSE, "add real time");
+
+                    // get last alarm message index and save it in the inverter object
+                    if (getPosByChFld(0, FLD_EVT, rec) == pos){
+                        if (alarmMesIndex < rec->record[pos]){
+                            alarmMesIndex = rec->record[pos];
+                            //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
+
+                            DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(alarmMesIndex));
+                            enqueCommand<InfoCommand>(AlarmData);
+                        }
+                    }
+                }
+                else if (rec->assign == InfoAssignment) {
+                    DPRINTLN(DBG_DEBUG, "add info");
+                    // eg. fw version ...
+                    isConnected = true;
+                }
+                else if (rec->assign == SystemConfigParaAssignment) {
+                    DPRINTLN(DBG_DEBUG, "add config");
+                    if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
+                        actPowerLimit = rec->record[pos];
+                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
+                    }
+                }
+                else if (rec->assign == AlarmDataAssignment) {
+                    DPRINTLN(DBG_DEBUG, "add alarm");
+                    if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
+                        lastAlarmMsg = getAlarmStr(rec->record[pos]);
+                    }
+                }
+                else
+                    DPRINTLN(DBG_WARN, F("add with unknown assginment"));
+            }
+            else
+                DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
+                */
+        }
+
+        void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = 1) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
+            rec->ts = mPayload[iv->id].ts;
+            //addMiValue(uint8_t pos, packet_t *p, record_t<> *rec, uint8_t  ptr, uint8_t  end)
+            iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
+            //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
+            iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[15] << 8) + p->packet[16]));
+            //addMiValue(FLD_EVT, p, rec, 11, 12);
+                        /*
+            pos = iv->getPosByChFld(ch, fld, rec);
+                    iv->setValue(pos, rec, 0.0f);
+            */
+
+
+            /*    for decoding see
+                void MI600StsMsg (NRF24_packet_t *p){
+                  STAT = (int)((p->packet[11] << 8) + p->packet[12]);
+                  FCNT = (int)((p->packet[13] << 8) + p->packet[14]);
+                  FCODE = (int)((p->packet[15] << 8) + p->packet[16]);
+                #ifdef ESP8266
+                  VALUES[PV][5]=STAT;
+                  VALUES[PV][6]=FCNT;
+                  VALUES[PV][7]=FCODE;
+                #endif
+                }
+                */
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
+        }
+
+        void miDataDecode(Inverter<> *iv, packet_t *p) {
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
+            rec->ts = mPayload[iv->id].ts;
+
+            uint8_t chan = ( p->packet[2] == 0x89 || p->packet[2] == (0x36 + ALL_FRAMES) ) ? 1 :
+                           ( p->packet[2] == 0x91 || p->packet[2] == (0x37 + ALL_FRAMES) ) ? 2 :
+                           p->packet[2] == (0x38 + ALL_FRAMES) ? 3 :
+                           4;
+
+            // U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
+            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[11] << 8) + p->packet[12])/10);
+            yield();
+            // I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
+            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[13] << 8) + p->packet[14])/10);
+            yield();
+            //      U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
+            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[15] << 8) + p->packet[16])/10);
+            yield();
+            //      F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
+            iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/100);
+            yield();
+            //      P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
+            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/10);
+            yield();
+            //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
+            iv->setValue(iv->getPosByChFld(chan, FLD_Q, rec), rec, (float)((p->packet[21] << 8) + p->packet[22])/1);
+            yield();
+            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23] << 8) + p->packet[24])/10);
+            yield();
+
+            if (p->packet[2] >= (0x36 + ALL_FRAMES) ) {
+                /*STAT = (uint8_t)(p->packet[25] );
+                FCNT = (uint8_t)(p->packet[26]);
+                FCODE = (uint8_t)(p->packet[27]); // MI300: (int)((p->packet[15] << 8) + p->packet[16]); */
+                iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (uint8_t)(p->packet[25]));
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
+                yield();
+            }
+
+            /*                for (uint8_t i = 0; i < rec->length; i++) {
+                                iv->addValue(i, payload, rec);
+                                yield();
+                            }*/
+                            iv->doCalculations();
+                            notify(mPayload[iv->id].txCmd);
+/*
+                            if(AlarmData == mPayload[iv->id].txCmd) {
+                                uint8_t i = 0;
+                                uint16_t code;
+                                uint32_t start, end;
+                                while(1) {
+                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                                    if(0 == code)
+                                        break;
+                                    if (NULL != mCbMiAlarm)
+                                        (mCbAlarm)(code, start, end);
+                                    yield();
+                                }
+                            }*/
+/*decode here or memcopy payload for later decoding?
+                void MI600DataMsg(NRF24_packet_t *p){
+                  U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
+                  I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
+                  U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
+                  F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
+                  P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
+                  Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
+                  TEMP =  (float) ((p->packet[23] << 8) + p->packet[24])/10;  //(int16_t)
+
+                  if ((30<U_DC<50) && (0<I_DC<15) && (200<U_AC<300) && (45<F_AC<55) && (0<P_DC<420) && (0<TEMP<80))
+                   DataOK = 1;  //we need to check this, if no crc
+                  else { DEBUG_OUT.printf("Data Wrong!!\r\n");DataOK =0; return;}
+
+                  if (p->packet[2] == 0x89)  {PV= 0; TotalP[1]=P_DC; pvCnt[0]=1;}//port 1
+                  if (p->packet[2] == 0x91)  {PV= 1; TotalP[2]=P_DC; pvCnt[1]=1;}//port 2
+
+                  TotalP[0]=TotalP[1]+TotalP[2]+TotalP[3]+TotalP[4];//in TotalP[0] is the totalPV power
+                  if((P_DC>400) || (P_DC<0) || (TotalP[0]>MAXPOWER)){// cant be!!
+                    TotalP[0]=0;
+                    return;
+                    }
+                #ifdef ESP8266
+                  VALUES[PV][0]=PV;
+                  VALUES[PV][1]=P_DC;
+                  VALUES[PV][2]=U_DC;
+                  VALUES[PV][3]=I_DC;
+                  VALUES[PV][4]=Q_DC;
+                #endif
+                  PMI=TotalP[0];
+                  LIM=(uint16_t)Limit;
+                  PrintOutValues();
+                }*/
+
+                /*For MI1500:
+                if (MI1500) {
+  STAT = (uint8_t)(p->packet[25] );
+  FCNT = (uint8_t)(p->packet[26]);
+  FCODE = (uint8_t)(p->packet[27]);
+  }
+                */
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
         }
 
         bool build(uint8_t id, bool *complete) {
@@ -362,9 +584,9 @@ class MiPayload {
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
             /*
             mPayload[id].gotFragment = false;
-            mPayload[id].retransmits = 0;
             mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;
             mPayload[id].lastFound   = false;*/
+            mPayload[id].retransmits = 0;
             mPayload[id].complete    = false;
             mPayload[id].txCmd       = 0;
             mPayload[id].requested   = false;
@@ -381,6 +603,7 @@ class MiPayload {
         miPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
 
+        alarmListenerType mCbMiAlarm;
         payloadListenerType mCbMiPayload;
 };
 
