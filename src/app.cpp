@@ -164,7 +164,8 @@ void app::tickNtpUpdate(void) {
             mMqttReconnect = false;
         }
 
-        everyMin(std::bind(&app::tickMinute, this), "tMin");
+        if(mConfig->inst.rstValsNotAvail)
+            everyMin(std::bind(&app::tickMinute, this), "tMin");
         if(mConfig->inst.rstYieldMidNight) {
             uint32_t midTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
             onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
@@ -175,6 +176,12 @@ void app::tickNtpUpdate(void) {
         if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             tickCalcSunrise();
+        }
+
+        // immediately start communicating
+        if(isOK && mSendFirst) {
+            mSendFirst = false;
+            once(std::bind(&app::tickSend, this), 2, "senOn");
         }
     }
     once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
@@ -246,17 +253,17 @@ void app::tickComm(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickMinute(void) {
-    if(mConfig->inst.rstValsNotAvail) {
-        Inverter<> *iv;
-        // set values to zero, except yields
-        for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-            iv = mSys.getInverterByPos(id);
-            if (NULL == iv)
-                continue; // skip to next inverter
+    // only triggered if 'reset values on no avail is enabled'
 
-            if(!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
-                mPayload.zeroInverterValues(iv);
-        }
+    Inverter<> *iv;
+    // set values to zero, except yields
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        iv = mSys.getInverterByPos(id);
+        if (NULL == iv)
+            continue; // skip to next inverter
+
+        if(!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
+            mPayload.zeroInverterValues(iv);
     }
 }
 
@@ -324,6 +331,8 @@ void app::resetSystem(void) {
 #ifdef AP_ONLY
     mTimestamp = 1;
 #endif
+
+    mSendFirst = true;
 
     mSunrise = 0;
     mSunset  = 0;

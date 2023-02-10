@@ -93,7 +93,6 @@ class HmPayload {
                         case FLD_ACT_ACTIVE_PWR_LIMIT:
                             fld++;
                             continue;
-                            break;
                     }
                     pos = iv->getPosByChFld(ch, fld, rec);
                     iv->setValue(pos, rec, 0.0f);

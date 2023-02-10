@@ -385,8 +385,7 @@ class PubMqtt {
             /*char out[128];
             serializeJson(root, out, 128);
             DPRINTLN(DBG_INFO, "json: " + String(out));*/
-            if(NULL != mSubscriptionCb)
-                (mSubscriptionCb)(root);
+            (mSubscriptionCb)(root);
 
             mRxCnt++;
         }

@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.84
+* fix blue LED lights up all the time #672
+* added an instant start communication (once NTP is synced)
+
 ## 0.5.83
 * fix MQTT publishing, `callback` was set but reset by following `setup()`
 

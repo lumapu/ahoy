@@ -256,6 +256,7 @@ class app : public IApp, public ah::Scheduler {
         settings_t *mConfig;
 
         uint8_t mSendLastIvId;
+        bool mSendFirst;
 
         statistics_t mStat;
 

@@ -118,6 +118,8 @@ class HmRadio {
             DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[ampPwr]));
             mNrf24.setPALevel(ampPwr & 0x03);
 
+            mNrf24.startListening();
+
             if(mNrf24.isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
                 mNrf24.printPrettyDetails();
@@ -138,7 +140,6 @@ class HmRadio {
             // start listening on the default RX channel
             mRxChIdx = 0;
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
-            mNrf24.startListening();
 
             //uint32_t debug_ms = millis();
             uint16_t cnt = 300; // that is 60 times 5 channels
@@ -160,7 +161,6 @@ class HmRadio {
             }
             // not finished but time is over
             //DBGPRINTLN("RX not finished: 300 time used: " + String(millis()-debug_ms)+ " ms");
-            mNrf24.stopListening();
             return true;
         }
 
@@ -299,6 +299,7 @@ class HmRadio {
                 dumpBuf(mTxBuf, len);
             }
 
+            mNrf24.stopListening();
             mNrf24.setChannel(mRfChLst[mTxChIdx]);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
