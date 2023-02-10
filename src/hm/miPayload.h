@@ -102,13 +102,14 @@ class MiPayload {
             } else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
+                iv->setQueuedCmdFinished();
                 if (INV_TYPE_2CH == iv->type) {
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
                 } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
                     mPayload[iv->id].complete = true;
-                    iv->setQueuedCmdFinished();
+                    //iv->setQueuedCmdFinished();
                 }
-
 
             } else if (p->packet[0] == (0x11 + ALL_FRAMES)) { // MI data response to 0x11
                 mPayload[iv->id].txId = p->packet[0];
@@ -119,12 +120,14 @@ class MiPayload {
             } else if (p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME)) { // MI 1500 data response to 0x36, 0x37, 0x38 and 0x39
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
+                iv->setQueuedCmdFinished();
                 if (p->packet[0] < (0x39 + ALL_FRAMES)) {
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
                 } else {
                     mPayload[iv->id].complete = true;
                     //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
-                    iv->setQueuedCmdFinished();
+                    //iv->setQueuedCmdFinished();
                 }
 
             /*}
@@ -358,14 +361,17 @@ class MiPayload {
         void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = 1) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
             rec->ts = mPayload[iv->id].ts;
-            iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12])); // most likely wrong!
 
-            if (INV_TYPE_1CH == iv->type)
-                iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
+            int8_t offset = -2;
+
+            //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11+6] << 8) + p->packet[12+6])); // was 11/12, might be wrong!
+
+            //if (INV_TYPE_1CH == iv->type)
+                //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, (int)((p->packet[11+6] << 8) + p->packet[12+6]));
 
             //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
 
-            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[15] << 8) + p->packet[16]));
+            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[11+offset] << 8) + p->packet[12+offset]));
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
 
@@ -397,27 +403,27 @@ class MiPayload {
                            ( p->packet[2] == 0x91 || p->packet[2] == (0x37 + ALL_FRAMES) ) ? 2 :
                            p->packet[2] == (0x38 + ALL_FRAMES) ? 3 :
                            4;
-
+            int8_t offset = -2;
             // U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[11+offset] << 8) + p->packet[12+offset])/10);
             yield();
             // I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[13+offset] << 8) + p->packet[14+offset])/10);
             yield();
             //      U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
-            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[21] << 8) + p->packet[22])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[15+offset] << 8) + p->packet[16+offset])/10);
             yield();
             //      F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
-            iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[23] << 8) + p->packet[24])/100);
-            yield();
+            //iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
+            //yield();
             //      P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[25] << 8) + p->packet[26])/10);
+            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
             yield();
             //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-            iv->setValue(iv->getPosByChFld(chan, FLD_Q, rec), rec, (float)((p->packet[21] << 8) + p->packet[22])/1);
+            iv->setValue(iv->getPosByChFld(chan, FLD_Q, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
             yield();
-            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[29] << 8) + p->packet[30])/10);
-            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[23] << 8) + p->packet[24])/100);
+            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100); //23 is freq or IAC?
             yield();
             //FLD_YD
 
@@ -427,7 +433,7 @@ class MiPayload {
                 FCODE = (uint8_t)(p->packet[27]); // MI300: (int)((p->packet[15] << 8) + p->packet[16]); */
                 //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (uint8_t)(p->packet[25]));
                 //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
-                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[21+offset]));
                 yield();
                 if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];

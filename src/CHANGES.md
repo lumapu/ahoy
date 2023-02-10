@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.84
+* add MI 3rd generation inverters (10x2 serial numbers)
+* first decodings of messages from MI 2nd generation inverters
+
 ## 0.5.83
 * fix MQTT publishing, `callback` was set but reset by following `setup()`
 
