@@ -9,6 +9,7 @@
 * improved zero values on triggers #671
 * hardcoded MQTT subtopics, because wildcard `#` leads to errors
 * rephrased some messages on webif, thx to @Argafal #638
+* fixed 'polling stop message' on `index.html` #639
 
 ## 0.5.84
 * fix blue LED lights up all the time #672
