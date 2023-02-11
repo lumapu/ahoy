@@ -223,6 +223,7 @@ class app : public IApp, public ah::Scheduler {
         void tickComm(void);
         void tickSend(void);
         void tickMinute(void);
+        void tickZeroValues(void);
         void tickMidnight(void);
         /*void tickSerial(void) {
             if(Serial.available() == 0)

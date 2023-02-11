@@ -104,6 +104,7 @@ class HmRadio {
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
+            mNrf24.startListening();
             mNrf24.setDataRate(RF24_250KBPS);
             mNrf24.setAutoAck(true);
             mNrf24.enableDynamicPayloads();
@@ -117,8 +118,6 @@ class HmRadio {
             DPRINT(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_"));
             DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[ampPwr]));
             mNrf24.setPALevel(ampPwr & 0x03);
-
-            mNrf24.startListening();
 
             if(mNrf24.isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
@@ -140,6 +139,7 @@ class HmRadio {
             // start listening on the default RX channel
             mRxChIdx = 0;
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
+            mNrf24.startListening();
 
             //uint32_t debug_ms = millis();
             uint16_t cnt = 300; // that is 60 times 5 channels
@@ -150,7 +150,6 @@ class HmRadio {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
                             //DBGPRINTLN("RX finished Cnt: " + String(300-cnt) + " time used: " + String(millis()-debug_ms)+ " ms");
-                            mNrf24.stopListening();
                             return true;
                         }
                     }

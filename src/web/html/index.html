@@ -145,12 +145,12 @@
                 if(obj["ts_sunrise"] > 0) {
                     if(((obj["ts_sunrise"] - obj["ts_offset"]) < obj["ts_now"])
                         && ((obj["ts_sunset"] + obj["ts_offset"]) > obj["ts_now"])) {
-                        commInfo = "Polling inverter(s), will stop at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        commInfo = "Polling inverter(s), will stop at sunset " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
                     }
                     else if(obj["disNightComm"]) {
-                        commInfo = "Night time, no Communication to Inverter, ";
+                        commInfo = "Night time, inverter polling disabled, ";
                         if(obj["ts_now"] > (obj["ts_sunrise"] - obj["ts_offset"])) {
-                            commInfo += "stopped polling at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                            commInfo += "stopped at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
                         }
                         else {
                             commInfo += "will start polling at " + (new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE'));

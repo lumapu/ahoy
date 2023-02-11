@@ -72,7 +72,7 @@ class PubMqtt {
             #endif
         }
 
-        void connect() {
+        inline void connect() {
             mReconnectRequest = false;
             if(!mClient.connected())
                 mClient.connect();
@@ -136,6 +136,7 @@ class PubMqtt {
         }
 
         void payloadEventListener(uint8_t cmd) {
+            connect();
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
                 if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
                     mSendList.push(cmd);
@@ -302,8 +303,12 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic, mLwtOnline, true, false);
 
-            subscribe("ctrl/#");
-            subscribe("setup/#");
+            subscribe("ctrl/limit_persistent_relative");
+            subscribe("ctrl/limit_persistent_absolute");
+            subscribe("ctrl/limit_nonpersistent_relative");
+            subscribe("ctrl/limit_nonpersistent_absolute");
+            subscribe("setup/set_time");
+            subscribe("setup/sync_ntp");
             //subscribe("status/#");
         }
 

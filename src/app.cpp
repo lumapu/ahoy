@@ -161,14 +161,16 @@ void app::tickNtpUpdate(void) {
             mMqtt.connect();
             everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
             everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
-            mMqttReconnect = false;
         }
 
-        if(mConfig->inst.rstValsNotAvail)
-            everyMin(std::bind(&app::tickMinute, this), "tMin");
-        if(mConfig->inst.rstYieldMidNight) {
-            uint32_t midTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
-            onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
+        // only install schedulers once even if NTP wasn't successful in first loop
+        if(mMqttReconnect) { // @TODO: mMqttReconnect is wrong name here
+            if(mConfig->inst.rstValsNotAvail)
+                everyMin(std::bind(&app::tickMinute, this), "tMin");
+            if(mConfig->inst.rstYieldMidNight) {
+                uint32_t midTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
+                onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
+            }
         }
 
         nxtTrig = isOK ? 43200 : 60; // depending on NTP update success check again in 12 h or in 1 min
@@ -183,6 +185,8 @@ void app::tickNtpUpdate(void) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 2, "senOn");
         }
+
+        mMqttReconnect = false;
     }
     once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
 }
@@ -233,21 +237,25 @@ void app::tickSun(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickComm(void) {
-    if(!mIVCommunicationOn && (mConfig->inst.rstValsCommStop)) {
-        Inverter<> *iv;
-        // set values to zero, except yields
-        for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-            iv = mSys.getInverterByPos(id);
-            if (NULL == iv)
-                continue; // skip to next inverter
-
-            mPayload.zeroInverterValues(iv);
-        }
-    }
+    if((!mIVCommunicationOn) && (mConfig->inst.rstValsCommStop))
+        once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
 
     if (mMqttEnabled) {
         if (!mMqtt.tickerComm(!mIVCommunicationOn))
             once(std::bind(&app::tickComm, this), 5, "mqCom");    // MQTT not connected, retry after 5s
+    }
+}
+
+//-----------------------------------------------------------------------------
+void app::tickZeroValues(void) {
+    Inverter<> *iv;
+    // set values to zero, except yields
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        iv = mSys.getInverterByPos(id);
+        if (NULL == iv)
+            continue; // skip to next inverter
+
+        mPayload.zeroInverterValues(iv);
     }
 }
 
@@ -272,6 +280,8 @@ void app::tickMidnight(void) {
     // only triggered if 'reset values at midnight is enabled'
     uint32_t nxtTrig = mTimestamp - ((mTimestamp - 1) % 86400) + 86400; // next midnight
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
+
+    DPRINTLN(DBG_INFO, "tickMidnight " + String(nxtTrig));
 
     Inverter<> *iv;
     // set values to zero, except yield total

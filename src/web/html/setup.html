@@ -96,11 +96,12 @@
                         <label for="invRetry">Max retries per Payload</label>
                         <input type="text" class="text" name="invRetry"/>
 
-                        <label for="invRstMid">Reset Values and YieldDay at Midnight</label>
+
+                        <label for="invRstMid">Reset values and YieldDay at midnight</label>
                         <input type="checkbox" class="cb" name="invRstMid"/><br/>
-                        <label for="invRstComStop">Reset Values at Communication stop</label>
+                        <label for="invRstComStop">Reset values when inverter polling stops at sunset</label>
                         <input type="checkbox" class="cb" name="invRstComStop"/><br/>
-                        <label for="invRstNotAvail">Reset Values on 'not available'</label>
+                        <label for="invRstNotAvail">Reset values when inverter status is 'not available'</label>
                         <input type="checkbox" class="cb" name="invRstNotAvail"/><br/>
                     </fieldset>
                     </div>
@@ -125,7 +126,7 @@
                     <fieldset>
                     <legend class="des">Sunrise & Sunset</legend>
                         <p>
-                            Latitude and Longitude must be set to be stored! decimal separator: '.' (dot)
+                            Use a decimal separator: '.' (dot) for Latitude and Longitude
                         </p>
                         <label for="sunLat">Latitude (decimal)</label>
                         <input type="text" class="text" name="sunLat"/>
@@ -134,7 +135,7 @@
                         <label for="sunOffs">Offset (pre sunrise, post sunset)</label>
                         <select name="sunOffs"></select>
                         <br>
-                        <label for="sunDisNightCom">disable night communication</label>
+                        <label for="sunDisNightCom">Stop polling inverters during night</label>
                         <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
                     </fieldset>
                     </div>

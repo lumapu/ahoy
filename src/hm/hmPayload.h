@@ -71,36 +71,31 @@ class HmPayload {
         }
 
         void zeroYieldDay(Inverter<> *iv) {
+            DPRINTLN(DBG_INFO, "zeroYieldDay");
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            uint8_t pos = iv->getPosByChFld(CH0, FLD_YD, rec);
-            iv->setValue(pos, rec, 0.0f);
+            uint8_t pos;
+            for(uint8_t ch = 0; ch < iv->channels; ch++) {
+                pos = iv->getPosByChFld(CH0, FLD_YD, rec);
+                iv->setValue(pos, rec, 0.0f);
+            }
         }
 
         void zeroInverterValues(Inverter<> *iv) {
+            DPRINTLN(DBG_INFO, "zeroInverterValues");
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             for(uint8_t ch = 0; ch <= iv->channels; ch++) {
                 uint8_t pos = 0;
-                uint8_t fld = 0;
-                while(0xff != pos) {
+                for(uint8_t fld = 0; fld < FLD_EVT; fld++) {
                     switch(fld) {
                         case FLD_YD:
                         case FLD_YT:
-                        case FLD_FW_VERSION:
-                        case FLD_FW_BUILD_YEAR:
-                        case FLD_FW_BUILD_MONTH_DAY:
-                        case FLD_FW_BUILD_HOUR_MINUTE:
-                        case FLD_HW_ID:
-                        case FLD_ACT_ACTIVE_PWR_LIMIT:
-                            fld++;
                             continue;
                     }
                     pos = iv->getPosByChFld(ch, fld, rec);
                     iv->setValue(pos, rec, 0.0f);
-                    fld++;
                 }
             }
 
-            iv->doCalculations();
             notify(RealTimeRunData_Debug);
         }
 
@@ -217,16 +212,16 @@ class HmPayload {
                     crcPass = build(iv->id, &pyldComplete);
                     if (!crcPass && !pyldComplete) { // payload not complete
                         if ((mPayload[iv->id].requested) && (retransmit)) {
-                            if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
-                                // This is required to prevent retransmissions without answer.
-                                DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
-                                mPayload[iv->id].retransmits = mMaxRetrans;
-                            } else if(iv->devControlCmd == ActivePowerContr) {
-                                DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
-                            } else {
-                                if (mPayload[iv->id].retransmits < mMaxRetrans) {
-                                    mPayload[iv->id].retransmits++;
+                            if (mPayload[iv->id].retransmits < mMaxRetrans) {
+                                mPayload[iv->id].retransmits++;
+                                if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
+                                    // This is required to prevent retransmissions without answer.
+                                    DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
+                                    mPayload[iv->id].retransmits = mMaxRetrans;
+                                } else if(iv->devControlCmd == ActivePowerContr) {
+                                    DPRINTLN(DBG_INFO, F("retransmit power limit"));
+                                    mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
+                                } else {
                                     if(false == mPayload[iv->id].gotFragment) {
                                         /*
                                         DPRINTLN(DBG_WARN, F("nothing received: Request Complete Retransmit"));
