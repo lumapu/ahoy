@@ -256,7 +256,7 @@ class Inverter {
                             // temperature is a signed value!
                             rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch]);
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);

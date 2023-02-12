@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.87
+* fix yield total correction as module (inverter input) value #570
+
 ## 0.5.86
 * prevent send devcontrol request during disabled night communication
 * changed yield total correction as module (inverter input) value #570
