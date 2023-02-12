@@ -4,6 +4,7 @@
 
 ## 0.5.87
 * fix yield total correction as module (inverter input) value #570
+* reneabled instant start communication (once NTP is synced) #674
 
 ## 0.5.86
 * prevent send devcontrol request during disabled night communication

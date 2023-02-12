@@ -181,11 +181,11 @@ void app::tickNtpUpdate(void) {
         }
 
         // immediately start communicating
-        // @TODO: leads to reboot loops, everytime if there is no asynchronous function #674
-        /*if(isOK && mSendFirst) {
+        // @TODO: leads to reboot loops? not sure #674
+        if(isOK && mSendFirst) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 2, "senOn");
-        }*/
+        }
 
         mMqttReconnect = false;
     }
