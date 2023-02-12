@@ -311,6 +311,8 @@ void ahoywifi::getBSSIDs() {
 
 //-----------------------------------------------------------------------------
 void ahoywifi::connectionEvent(WiFiStatus_t status) {
+    DPRINTLN(DBG_INFO, "connectionEvent");
+
     switch(status) {
         case CONNECTED:
             if(mStaConn != CONNECTED) {

@@ -136,7 +136,8 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
-            mPayload.ivSendHighPrio(iv);
+            if(mIVCommunicationOn) // only send commands if communcation is enabled
+                mPayload.ivSendHighPrio(iv);
         }
 
         bool getMqttIsConnected() {

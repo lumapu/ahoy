@@ -238,7 +238,7 @@ class HmRadio {
         bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
-            DBGPRINTLN("RX whatHappened Ch" + String(mRfChLst[mRxChIdx]) + " " + String(tx_ok) + String(tx_fail) + String(rx_ready));
+            //DBGPRINTLN("RX whatHappened Ch" + String(mRfChLst[mRxChIdx]) + " " + String(tx_ok) + String(tx_fail) + String(rx_ready));
 
             bool isLastPackage = false;
             while(mNrf24.available()) {

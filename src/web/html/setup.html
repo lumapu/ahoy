@@ -298,7 +298,7 @@
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""]}'), highestId);
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
                 }
             });
 
@@ -393,9 +393,11 @@
                         for(var i=0;i<4;i++) {
                             setHide(id+"ModPwr"+i, true);
                             setHide(id+"ModName"+i, true);
+                            setHide(id+"YieldCor"+i, true);
                         }
                         setHide("lbl"+id+"ModPwr", true);
                         setHide("lbl"+id+"ModName", true);
+                        setHide("lbl"+id+"YieldCor", true);
 
                         if(serial.charAt(0) == 1) {
                             if((serial.charAt(1) == 0) || (serial.charAt(1) == 1)) {
@@ -413,9 +415,11 @@
                             for(var i=0;i<max;i++) {
                                 setHide(id+"ModPwr"+i, false);
                                 setHide(id+"ModName"+i, false);
+                                setHide(id+"YieldCor"+i, false);
                             }
                             setHide("lbl"+id+"ModPwr", false);
                             setHide("lbl"+id+"ModName", false);
+                            setHide("lbl"+id+"YieldCor", false);
                         }
                     })
                 });
@@ -425,7 +429,10 @@
                     inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")
                 );
 
-                for(var j of [["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"], ["ModName", "ch_name", "Module Name", 16, null]]) {
+                for(var j of [
+                    ["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"],
+                    ["ModName", "ch_name", "Module Name", 16, null],
+                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 16, "[0-9]+"]]) {
                     var cl = (re.test(obj["serial"])) ? null : ["hide"];
                     iv.appendChild(lbl(null, j[2], cl, "lbl" + id + j[0]));
                     d = div([j[0]]);
@@ -437,13 +444,6 @@
                     }
                     iv.appendChild(d);
                 }
-
-                iv.append(
-                    br(),
-                    lbl(id + "YieldCor", "Yield Total Correction (will be subtracted) [kWh]"),
-                    inp(id + "YieldCor", obj["yieldCor"], 32, ["text"], null, "text", "[0-9]+", "Invalid input")
-                );
-
                 var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
                 del.addEventListener("click", delIv);
                 iv.append(

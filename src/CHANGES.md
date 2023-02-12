@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.86
+* prevent send devcontrol request during disabled night communication
+* changed yield total correction as module (inverter input) value #570
+* MQTT Yield Day zero, next try to fix #671
+
 ## 0.5.85
 * fix power-limit was not checked for max retransmits #667
 * fix blue LED lights up all the time #672

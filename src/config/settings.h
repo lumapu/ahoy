@@ -105,8 +105,8 @@ typedef struct {
     char name[MAX_NAME_LENGTH];
     serial_u serial;
     uint16_t chMaxPwr[4];
+    int32_t yieldCor[4]; // signed YieldTotal correction value
     char chName[4][MAX_NAME_LENGTH];
-    uint32_t yieldCor; // YieldTotal correction value
 } cfgIv_t;
 
 typedef struct {
@@ -220,7 +220,7 @@ class settings {
             else {
                 //DPRINTLN(DBG_INFO, fp.readString());
                 //fp.seek(0, SeekSet);
-                DynamicJsonDocument root(4096);
+                DynamicJsonDocument root(4500);
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
@@ -252,7 +252,7 @@ class settings {
                 return false;
             }
 
-            DynamicJsonDocument json(4096);
+            DynamicJsonDocument json(4500);
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
@@ -520,17 +520,17 @@ class settings {
                 obj[F("en")]    = (bool)cfg->enabled;
                 obj[F("name")]  = cfg->name;
                 obj[F("sn")]    = cfg->serial.u64;
-                obj[F("yield")] = cfg->yieldCor;
                 for(uint8_t i = 0; i < 4; i++) {
-                    obj[F("pwr")][i]  = cfg->chMaxPwr[i];
+                    obj[F("yield")][i]  = cfg->yieldCor[i];
+                    obj[F("pwr")][i]    = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
                 }
             } else {
                 cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
-                cfg->yieldCor   = obj[F("yield")];
                 for(uint8_t i = 0; i < 4; i++) {
+                    cfg->yieldCor[i] = obj[F("yield")][i];
                     cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
                 }

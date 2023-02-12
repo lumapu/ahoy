@@ -287,11 +287,11 @@ class RestApi {
                     obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
                     obj2[F("channels")] = iv->channels;
                     obj2[F("version")]  = String(iv->getFwVersion());
-                    obj2[F("yieldCor")] = iv->config->yieldCor;
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
+                        obj2[F("ch_yield_cor")][j] = iv->config->yieldCor[j];
                         obj2[F("ch_max_power")][j] = iv->config->chMaxPwr[j];
-                        obj2[F("ch_name")][j] = iv->config->chName[j];
+                        obj2[F("ch_name")][j]      = iv->config->chName[j];
                     }
                 }
             }

@@ -483,13 +483,13 @@ class Web {
                     case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
                     default:  break;
                 }
-                iv->config->yieldCor = request->arg("inv" + String(i) + "YieldCor").toInt();
 
                 // name
                 request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
                 // max channel power / name
                 for(uint8_t j = 0; j < 4; j++) {
+                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toInt();
                     iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
                 }

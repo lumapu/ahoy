@@ -393,7 +393,7 @@ div.ts {
     padding: 7px;
 }
 
-div.ModPwr, div.ModName {
+div.ModPwr, div.ModName, div.YieldCor {
   width:70%;
   display: inline-block;
 }

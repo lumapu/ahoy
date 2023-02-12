@@ -474,7 +474,7 @@ class PubMqtt {
             }
         }
 
-        void sendIvData(bool sendTotals = true) {
+        void sendIvData() {
             if(mSendList.empty())
                 return;
 
@@ -527,8 +527,8 @@ class PubMqtt {
                                         total[3] += iv->getValue(i, rec);
                                         break;
                                 }
+                                sendTotal = true;
                             }
-                            sendTotal = true;
                         }
                         yield();
                     }
@@ -536,9 +536,6 @@ class PubMqtt {
                 }
 
                 mSendList.pop(); // remove from list once all inverters were processed
-
-                if(!sendTotals) // skip total value calculation
-                    continue;
 
                 if ((true == sendTotal) && processIvStatus()) {
                     uint8_t fieldId;
