@@ -61,6 +61,10 @@ TSUN Inverters:
 - [TSOL-M800/TSOL-M800(DE)](https://www.tsun-ess.com/Micro-Inverter/M800)
 - others may work as well (need to be verified).
 
+Solenso Inverters:
+
+- SOL-H350
+
 ## Things needed
 
 In order to build your own Ahoy DTU, you will need some things.<br/>
