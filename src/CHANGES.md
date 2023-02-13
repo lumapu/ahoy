@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.88
+* MQTT Yield Day zero, next try to fix #671, thx @beegee3
+* added Solenso inverter to supported devices
+* improved reconnection of MQTT #650
+
 ## 0.5.87
 * fix yield total correction as module (inverter input) value #570
 * reneabled instant start communication (once NTP is synced) #674

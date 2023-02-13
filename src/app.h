@@ -198,7 +198,8 @@ class app : public IApp, public ah::Scheduler {
 
         void payloadEventListener(uint8_t cmd) {
             #if !defined(AP_ONLY)
-            mMqtt.payloadEventListener(cmd);
+            if (mMqttEnabled)
+                mMqtt.payloadEventListener(cmd);
             #endif
             if(mConfig->plugin.display.type != 0)
                 mMonoDisplay.payloadEventListener(cmd);
