@@ -59,9 +59,8 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            char clientId[64];
-            snprintf(clientId, 64, "%s_%s-%s-%s", mDevName, WiFi.macAddress().substring(9,11).c_str(), WiFi.macAddress().substring(12,14).c_str(), WiFi.macAddress().substring(15,17).c_str());
-            mClient.setClientId(clientId);
+            snprintf(mClientId, 24, "%s-%s%s%s", mDevName, WiFi.macAddress().substring(9,11).c_str(), WiFi.macAddress().substring(12,14).c_str(), WiFi.macAddress().substring(15,17).c_str());
+            mClient.setClientId(mClientId);
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
             mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
@@ -598,6 +597,7 @@ class PubMqtt {
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
+        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
 };
 
 #endif /*__PUB_MQTT_H__*/

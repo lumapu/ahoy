@@ -183,7 +183,7 @@ void app::tickNtpUpdate(void) {
     bool isOK = mWifi.getNtpTime();
     if (isOK || mTimestamp != 0) {
         if (mMqttReconnect && mMqttEnabled) {
-            mMqtt.tickerMinute();
+            mMqtt.tickerSecond();
             everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
             everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
         }
