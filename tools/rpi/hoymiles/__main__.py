@@ -33,6 +33,12 @@ def signal_handler(sig_num, frame):
   if mqtt_client:
      mqtt_client.disco()
 
+  if influx_client:
+     influx_client.disco()
+
+  if volkszaehler_client:
+     volkszaehler_client.disco()
+
   sys.exit(0)
 
 signal(SIGINT,  signal_handler)   # Interrupt from keyboard (CTRL + C)
@@ -75,7 +81,6 @@ class SunsetHandler:
         else:
             logging.info('Sunset disabled.')
 
-
     def checkWaitForSunrise(self):
         if not self.suntimes:
             return
@@ -94,6 +99,23 @@ class SunsetHandler:
                 time.sleep(time_to_sleep)
                 logging.info (f'Woke up...')
 
+    def sun_status2mqtt(self, dtu_ser, dtu_name):
+        if not mqtt_client:
+            return
+        local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+        local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+        local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
+        if self.suntimes:
+            mqtt_client.info2mqtt({'topic' : f'{dtu_name}/{dtu_ser}'}, \
+                         {'dis_night_comm' : 'True', \
+                           'local_sunrise' : local_sunrise, \
+                            'local_sunset' : local_sunset,
+                              'local_zone' : local_zone})
+        else:
+            mqtt_client.sun_info2mqtt({'sun_topic': f'{dtu_name}/{dtu_ser}'}, \
+                                 {'dis_night_comm': 'False'})
+  
+
 def main_loop(ahoy_config):
     """Main loop"""
     inverters = [
@@ -101,7 +123,9 @@ def main_loop(ahoy_config):
             if not inverter.get('disabled', False)]
 
     sunset = SunsetHandler(ahoy_config.get('sunset'))
-    dtu_ser = ahoy_config.get('dtu', {}).get('serial')
+    dtu_ser = ahoy_config.get('dtu', {}).get('serial', None)
+    dtu_name = ahoy_config.get('dtu', {}).get('name', 'hoymiles-dtu')
+    sunset.sun_status2mqtt(dtu_ser, dtu_name)
     loop_interval = ahoy_config.get('interval', 1)
 
     try:
@@ -112,6 +136,11 @@ def main_loop(ahoy_config):
             t_loop_start = time.time()
 
             for inverter in inverters:
+                if not 'name' in inverter:
+                    inverter['name'] = 'hoymiles'
+                if not 'serial' in inverter:
+                   logging.error("No inverter serial number found in ahoy.yml - exit")
+                   sys.exit(999)
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
                     logging.info(f'Poll inverter name={inverter["name"]} ser={inverter["serial"]}')
                 poll_inverter(inverter, dtu_ser, do_init, 3)
@@ -122,8 +151,6 @@ def main_loop(ahoy_config):
                 if time_to_sleep > 0:
                     time.sleep(time_to_sleep)
 
-    except KeyboardInterrupt:
-        sys.exit()
     except Exception as e:
         logging.fatal('Exception catched: %s' % e)
         logging.fatal(traceback.print_exc())
@@ -284,11 +311,11 @@ def init_logging(ahoy_config):
             lvl = logging.ERROR
         elif level == 'FATAL':
             lvl = logging.FATAL
-    if hoymiles.HOYMILES_TRANSACTION_LOGGING and hoymiles.HOYMILES_DEBUG_LOGGING:
-        lvl = logging.DEBUG
-    if not hoymiles.HOYMILES_TRANSACTION_LOGGING and not hoymiles.HOYMILES_DEBUG_LOGGING:
-        lvl = logging.INFO
+    if hoymiles.HOYMILES_TRANSACTION_LOGGING:
+       lvl = logging.DEBUG
     logging.basicConfig(filename=fn, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
+    dtu_name = ahoy_config.get('dtu',{}).get('name','hoymiles-dtu')
+    logging.info(f'start logging for {dtu_name} with level: {logging.root.level}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway', prog="hoymiles")
@@ -330,14 +357,14 @@ if __name__ == '__main__':
 
     # create MQTT - client object
     mqtt_client = None
-    mqtt_config = ahoy_config.get('mqtt', {})
+    mqtt_config = ahoy_config.get('mqtt', None)
     if mqtt_config and not mqtt_config.get('disabled', False):
        from .outputs import MqttOutputPlugin
        mqtt_client = MqttOutputPlugin(mqtt_config)
 
     # create INFLUX - client object
     influx_client = None
-    influx_config = ahoy_config.get('influxdb', {})
+    influx_config = ahoy_config.get('influxdb', None)
     if influx_config and not influx_config.get('disabled', False):
         from .outputs import InfluxOutputPlugin
         influx_client = InfluxOutputPlugin(
