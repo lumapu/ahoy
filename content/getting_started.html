@@ -44,7 +44,7 @@ draft: false
                         <td>NRF24L01+</td>
                         <td>1</td>
                         <td>3,45 €</td>
-                        <td><a href="https://www.makershop.de/unkategorisiert/nrf24l01-smd-modul-24-ghz-wi-fi-funkmodul-arduino-raspberry-pi/" target="_blank">link</a></td>
+                        <td><a href="https://www.makershop.de/module/funk/nrf24l01/" target="_blank">link</a></td>
                         <td>-</td>
                     </tr>
                     <tr>
@@ -95,9 +95,12 @@ draft: false
             <p class="lead">
                 Für den Zusammenbau wird in der Regel ein Lötkolben benötigt. Es gibt zwei verschiedene Vorgehen, steckbar (mit Dunpont Kabeln) und fest verdrahtet.<br/>
                 Es wird die feste Verdrahtung empfohlen, da sie weniger anfällig ist.<br/><br/>
-                Optional kann noch für die Stabilität ein 100uF (oder größer) Kondensator an das NRF24 Modul gebaut werden, da dieses beim Senden hohe Ströme fordert.<br/>
+                Für die Stabilität ist es wichtig, einen 100uF (oder größeren) Kondensator an das NRF24 Modul anzubinden, da dieses beim Senden hohe Ströme fordert.<br/>
                 Dieser Kondensator sollte möglichst nahe am NRF24 an Pin 1 (sw) und Pin 2 (rt) positioniert werden.
             </p>
+            <div class="alert alert-primary" role="alert">
+                <strong>Hinweis: </strong>Es kann auch zuerst der ESP geflasht werden, dann hängen noch nicht so viele Kabel dran.
+            </div>
         </div>
         <div class="col-10 col-sm-8 col-lg-6">
             <a href="/img/fritzing/AhoyWemos_Steckplatine.jpg" target="_blank"><img src="/img/fritzing/AhoyWemos_Steckplatine.jpg" class="d-block mx-lg-auto img-fluid" alt="schematics" width="450" loading="lazy"></a>
@@ -116,11 +119,12 @@ draft: false
             <p class="lead">
                 Ist die Hardware zusammengebaut / -gesteckt kann über den Web-Installer die Firmware (letztes Release) auf den ESP geladen werden.
             </p>
-            <p class="lead" > 
+            <p class="lead" >
                 Hierzu die Ahoy-Hardware per USB Kabel an den PC stecken und evtl. warten, bis die Treiber installiert sind. Anschließend auf den <strong>connect</strong> Button klicken.
             </p>
             <div class="alert alert-primary" role="alert">
-                <strong>Hinweis: </strong>Der Web Installer kann sowohl für ESP8266 als auch ESP32 verwendet werden.
+                <strong>Hinweis: </strong>Der Web Installer kann sowohl für ESP8266 als auch ESP32 verwendet werden.<br/>
+                Beim ESP32 ist es notwendig den BOOT-Button gedrückt zu halten während man kurz den EN-Button drückt (um in den Bootloader zu kommen). Danach kann der BOOT-Button wieder losgelassen werden und der Flashvorgang gestartet werden.
             </div>
         </div>
         <div class="col-10 col-sm-8 col-lg-6">
