@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ void ahoywifi::tickWifiLoop() {
                     mScanActive = false;
                 }
                 DBGPRINTLN(F("AP client connected"));
-                welcome(mApIp.toString());
+                welcome(mApIp.toString(), "");
                 WiFi.mode(WIFI_AP);
                 mDns.start(53, "*", mApIp);
                 mAppWifiCb(true);
@@ -118,7 +118,7 @@ void ahoywifi::tickWifiLoop() {
             if(mStaConn != CONNECTED)
                 mStaConn = CONNECTING;
             if(mBSSIDList.size() > 0) { // get first BSSID in list
-                DBGPRINT("try to connect to AP with BSSID:");
+                DBGPRINT(F("try to connect to AP with BSSID:"));
                 uint8_t bssid[6];
                 for (int j = 0; j < 6; j++) {
                     bssid[j] = mBSSIDList.front();
@@ -142,7 +142,11 @@ void ahoywifi::setupAp(void) {
 
     DBGPRINTLN(F("\n---------\nAhoyDTU Info:"));
     DBGPRINT(F("Version: "));
-    DBGPRINTLN(String(VERSION_MAJOR) + F(".") + String(VERSION_MINOR) + F(".") + String(VERSION_PATCH));
+    DBGPRINT(String(VERSION_MAJOR));
+    DBGPRINT(F("."));
+    DBGPRINT(String(VERSION_MINOR));
+    DBGPRINT(F("."));
+    DBGPRINTLN(String(VERSION_PATCH));
     DBGPRINT(F("Github Hash: "));
     DBGPRINTLN(String(AUTO_GIT_HASH));
 
@@ -150,7 +154,8 @@ void ahoywifi::setupAp(void) {
     DBGPRINTLN(WIFI_AP_SSID);
     DBGPRINT(F("PWD: "));
     DBGPRINTLN(WIFI_AP_PWD);
-    DBGPRINTLN("IP Address: http://" + mApIp.toString());
+    DBGPRINT(F("IP Address: http://"));
+    DBGPRINTLN(mApIp.toString());
     DBGPRINTLN(F("---------\n"));
 
     WiFi.mode(WIFI_AP_STA);
@@ -327,9 +332,11 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
                  WiFi.scanDelete();
                  mScanActive = false;
             }
-            welcome(WiFi.localIP().toString() + F(" (Station)"));
+            welcome(WiFi.localIP().toString(), F(" (Station)"));
+            WiFi.softAPdisconnect();
             WiFi.mode(WIFI_STA);
             DBGPRINTLN(F("[WiFi] AP disabled"));
+            delay(100);
             mAppWifiCb(true);
             break;
 
@@ -393,11 +400,12 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
 
 
 //-----------------------------------------------------------------------------
-void ahoywifi::welcome(String msg) {
+void ahoywifi::welcome(String ip, String mode) {
     DBGPRINTLN(F("\n\n--------------------------------"));
     DBGPRINTLN(F("Welcome to AHOY!"));
     DBGPRINT(F("\npoint your browser to http://"));
-    DBGPRINTLN(msg);
+    DBGPRINT(ip);
+    DBGPRINTLN(mode);
     DBGPRINTLN(F("to configure your device"));
     DBGPRINTLN(F("--------------------------------\n"));
 }

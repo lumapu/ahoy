@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2023 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -20,6 +20,8 @@
 #include <ArduinoJson.h>
 #include "../defines.h"
 #include "../hm/hmSystem.h"
+
+#include "pubMqttDefs.h"
 
 #define QOS_0   0
 
@@ -57,9 +59,11 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            mClient.setClientId(mDevName); // TODO: add mac?
+            char clientId[64];
+            snprintf(clientId, 64, "%s_%s-%s-%s", mDevName, WiFi.macAddress().substring(9,11).c_str(), WiFi.macAddress().substring(12,14).c_str(), WiFi.macAddress().substring(15,17).c_str());
+            mClient.setClientId(clientId);
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
-            mClient.setWill(mLwtTopic, QOS_0, true, mLwtOffline);
+            mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
             mClient.onDisconnect(std::bind(&PubMqtt::onDisconnect, this, std::placeholders::_1));
             mClient.onMessage(std::bind(&PubMqtt::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
@@ -72,10 +76,6 @@ class PubMqtt {
             #endif
         }
 
-        inline void connect() {
-            if(!mClient.connected())
-                mClient.connect();
-        }
 
         void tickerSecond() {
             if (mIntervalTimeout > 0)
@@ -100,20 +100,20 @@ class PubMqtt {
         void tickerMinute() {
             char val[12];
             snprintf(val, 12, "%ld", millis() / 1000);
-            publish("uptime", val);
-            publish("wifi_rssi", String(WiFi.RSSI()).c_str());
-            publish("free_heap", String(ESP.getFreeHeap()).c_str());
+            publish(subtopics[MQTT_UPTIME], val);
+            publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
+            publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
         }
 
         bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
             if (!mClient.connected())
                 return false;
 
-            publish("sunrise", String(sunrise).c_str(), true);
-            publish("sunset", String(sunset).c_str(), true);
-            publish("comm_start", String(sunrise - offs).c_str(), true);
-            publish("comm_stop", String(sunset + offs).c_str(), true);
-            publish("dis_night_comm", ((disNightCom) ? "true" : "false"), true);
+            publish(subtopics[MQTT_SUNRISE], String(sunrise).c_str(), true);
+            publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
+            publish(subtopics[MQTT_COMM_START], String(sunrise - offs).c_str(), true);
+            publish(subtopics[MQTT_COMM_STOP], String(sunset + offs).c_str(), true);
+            publish(subtopics[MQTT_DIS_NIGHT_COMM], ((disNightCom) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
         }
@@ -122,8 +122,8 @@ class PubMqtt {
              if (!mClient.connected())
                 return false;
 
-            publish("comm_disabled", ((disabled) ? "true" : "false"), true);
-            publish("comm_dis_ts", String(*mUtcTimestamp).c_str(), true);
+            publish(subtopics[MQTT_COMM_DISABLED], ((disabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            publish(subtopics[MQTT_COMM_DIS_TS], String(*mUtcTimestamp).c_str(), true);
 
             return true;
         }
@@ -138,7 +138,6 @@ class PubMqtt {
         }
 
         void payloadEventListener(uint8_t cmd) {
-            connect();
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
                 if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
                     mSendList.push(cmd);
@@ -290,7 +289,7 @@ class PubMqtt {
             if (NULL != iv) {
                 char topic[7 + MQTT_TOPIC_LEN];
 
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ack_pwr_limit", iv->config->name);
+                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
                 publish(topic, "true", true);
             }
         }
@@ -299,18 +298,18 @@ class PubMqtt {
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
 
-            publish("version", mVersion, true);
-            publish("device", mDevName, true);
-            publish("ip_addr", WiFi.localIP().toString().c_str(), true);
+            publish(subtopics[MQTT_VERSION], mVersion, true);
+            publish(subtopics[MQTT_DEVICE], mDevName, true);
+            publish(subtopics[MQTT_IP_ADDR], WiFi.localIP().toString().c_str(), true);
             tickerMinute();
-            publish(mLwtTopic, mLwtOnline, true, false);
+            publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            subscribe("ctrl/limit_persistent_relative");
-            subscribe("ctrl/limit_persistent_absolute");
-            subscribe("ctrl/limit_nonpersistent_relative");
-            subscribe("ctrl/limit_nonpersistent_absolute");
-            subscribe("setup/set_time");
-            subscribe("setup/sync_ntp");
+            subscribe(subscr[MQTT_SUBS_LMT_PERI_REL]);
+            subscribe(subscr[MQTT_SUBS_LMT_PERI_ABS]);
+            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_REL]);
+            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_ABS]);
+            subscribe(subscr[MQTT_SUBS_SET_TIME]);
+            subscribe(subscr[MQTT_SUBS_SYNC_NTP]);
             //subscribe("status/#");
         }
 
@@ -341,16 +340,14 @@ class PubMqtt {
         }
 
         void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
-            DPRINTLN(DBG_INFO, F("MQTT got topic: ") + String(topic));
+            DPRINT(DBG_INFO, mqttStr[MQTT_STR_GOT_TOPIC]);
+            DBGPRINTLN(String(topic));
             if(NULL == mSubscriptionCb)
                 return;
 
-            char *tpc = new char[strlen(topic) + 1];
-            uint8_t cnt = 0;
             DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
 
-            strncpy(tpc, topic, strlen(topic) + 1);
             if(len > 0) {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
@@ -359,34 +356,28 @@ class PubMqtt {
                 delete[] pyld;
             }
 
-            char *p = strtok(tpc, "/");
-            p = strtok(NULL, "/"); // remove mCfgMqtt->topic
-            while(NULL != p) {
-                if(0 == cnt) {
-                    if(0 == strncmp(p, "ctrl", 4)) {
-                        if(NULL != (p = strtok(NULL, "/"))) {
-                            root[F("path")] = F("ctrl");
-                            root[F("cmd")] = p;
-                        }
-                    } else if(0 == strncmp(p, "setup", 5)) {
-                        if(NULL != (p = strtok(NULL, "/"))) {
-                            root[F("path")] = F("setup");
-                            root[F("cmd")] = p;
-                        }
-                    } else if(0 == strncmp(p, "status", 6)) {
-                        if(NULL != (p = strtok(NULL, "/"))) {
-                            root[F("path")] = F("status");
-                            root[F("cmd")] = p;
-                        }
+            const char *p = topic;
+            uint8_t pos = 0;
+            uint8_t elm = 0;
+            char tmp[30];
+
+            while(1) {
+                if(('/' == p[pos]) || ('\0' == p[pos])) {
+                    strncpy(tmp, p, pos);
+                    tmp[pos] = '\0';
+                    switch(elm++) {
+                        case 1: root[F("path")] = String(tmp); break;
+                        case 2: root[F("cmd")]  = String(tmp); break;
+                        case 3: root[F("id")]   = atoi(tmp);   break;
+                        default: break;
                     }
+                    if('\0' == p[pos])
+                        break;
+                    p = p + pos + 1;
+                    pos = 0;
                 }
-                else if(1 == cnt) {
-                    root[F("id")] = atoi(p);
-                }
-                p = strtok(NULL, "/");
-                cnt++;
+                pos++;
             }
-            delete[] tpc;
 
             /*char out[128];
             serializeJson(root, out, 128);
@@ -447,11 +438,11 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, mqttStr[MQTT_STR_AVAILABLE]);
                     snprintf(val, 40, "%d", status);
                     publish(topic, val, true);
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, mqttStr[MQTT_STR_LAST_SUCCESS]);
                     snprintf(val, 40, "%d", iv->getLastTs(rec));
                     publish(topic, val, true);
                 }
@@ -459,7 +450,7 @@ class PubMqtt {
 
             if(changed) {
                 snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
-                publish("status", val, true);
+                publish(subtopics[MQTT_STATUS], val, true);
             }
 
             return anyAvail;
@@ -471,9 +462,9 @@ class PubMqtt {
             Inverter<> *iv = mSys->getInverterByPos(0, false);
             while(!mAlarmList.empty()) {
                 alarm_t alarm = mAlarmList.front();
-                publish("alarm", iv->getAlarmStr(alarm.code).c_str());
-                publish("alarm_start", String(alarm.start).c_str());
-                publish("alarm_end", String(alarm.end).c_str());
+                publish(subtopics[MQTT_ALARM], iv->getAlarmStr(alarm.code).c_str());
+                publish(subtopics[MQTT_ALARM_START], String(alarm.start).c_str());
+                publish(subtopics[MQTT_ALARM_END], String(alarm.end).c_str());
                 mAlarmList.pop();
             }
         }
@@ -573,7 +564,7 @@ class PubMqtt {
                                     fieldId = FLD_PDC;
                                     break;
                             }
-                            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
+                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", mqttStr[MQTT_STR_TOTAL], fields[fieldId]);
                             snprintf(val, 40, "%g", ah::round3(total[i]));
                             publish(topic, val, true);
                         }
@@ -606,8 +597,6 @@ class PubMqtt {
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
-        const char* mLwtOnline = "connected";
-        const char* mLwtOffline = "not connected";
         const char *mDevName, *mVersion;
 };
 

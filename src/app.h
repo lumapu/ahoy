@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2023 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -182,7 +182,8 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setTimestamp(uint32_t newTime) {
-            DPRINTLN(DBG_DEBUG, F("setTimestamp: ") + String(newTime));
+            DPRINT(DBG_DEBUG, F("setTimestamp: "));
+            DBGPRINTLN(String(newTime));
             if(0 == newTime)
                 mWifi.getNtpTime();
             else

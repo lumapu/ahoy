@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -176,7 +176,8 @@ class HmRadio {
         }
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
-            DPRINTLN(DBG_INFO, F("sendControlPacket cmd: 0x") + String(cmd, HEX));
+            DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
+            DBGPRINTLN(String(cmd, HEX));
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
             mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
@@ -294,7 +295,11 @@ class HmRadio {
             len++;
 
             if(mSerialDebug) {
-                DPRINT(DBG_INFO, "TX " + String(len) + "B Ch" + String(mRfChLst[mTxChIdx]) + " | ");
+                DPRINT(DBG_INFO, F("TX "));
+                DBGPRINT(String(len));
+                DBGPRINT("B Ch");
+                DBGPRINT(String(mRfChLst[mTxChIdx]));
+                DBGPRINT(F(" | "));
                 dumpBuf(mTxBuf, len);
             }
 

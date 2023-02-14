@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -18,6 +18,8 @@
 #define DBG_INFO        3
 #define DBG_DEBUG       4
 #define DBG_VERBOSE     5
+
+//#define LOG_MAX_MSG_LEN 100
 
 
 //-----------------------------------------------------------------------------
@@ -58,7 +60,7 @@
                 mCb(String(b, HEX));
             }
         }
-        inline void DHEX(uint16_t b) {
+        /*inline void DHEX(uint16_t b) {
             if( b<0x10 ) DSERIAL.print(F("000"));
             else if( b<0x100 ) DSERIAL.print(F("00"));
             else if( b<0x1000 ) DSERIAL.print(F("0"));
@@ -89,7 +91,7 @@
                 else if( b<0x10000000 ) mCb(F("0"));
                 mCb(String(b, HEX));
             }
-        }
+        }*/
     #endif
 #endif
 
@@ -153,5 +155,53 @@
         default:        PVERBLN(str); break; \
     }\
 })
+
+/*class ahoyLog {
+    public:
+        ahoyLog() {}
+
+        inline void logMsg(uint8_t lvl, bool newLine, const char *fmt, va_list args) {
+            snprintf(mLogBuf, LOG_MAX_MSG_LEN, fmt, args);
+            DSERIAL.print(mLogBuf);
+            if(NULL != mCb)
+                mCb(mLogBuf);
+            if(newLine) {
+                DSERIAL.print(F("\r\n"));
+                if(NULL != mCb)
+                    mCb(F("\r\n"));
+            }
+        }
+
+        inline void logError(const char *fmt, ...) {
+            #if DEBUG_LEVEL >= DBG_ERROR
+                va_list args;
+                va_start(args, fmt);
+                logMsg(DBG_ERROR, true, fmt, args);
+                va_end(args);
+            #endif
+        }
+
+        inline void logWarn(const char *fmt, ...) {
+            #if DEBUG_LEVEL >= DBG_WARN
+                va_list args;
+                va_start(args, fmt);
+                logMsg(DBG_ERROR, true, fmt, args);
+                va_end(args);
+            #endif
+        }
+
+        inline void logInfo(const char *fmt, ...) {
+            #if DEBUG_LEVEL >= DBG_INFO
+                va_list args;
+                va_start(args, fmt);
+                logMsg(DBG_ERROR, true, fmt, args);
+                va_end(args);
+            #endif
+        }
+
+    private:
+        char mLogBuf[LOG_MAX_MSG_LEN];
+        DBG_CB mCb = NULL;
+};*/
 
 #endif /*__DBG_H__*/

@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2023 Ahoy, https://ahoydtu.de
 // Lukas Pusch, lukas@lpusch.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
@@ -106,7 +106,11 @@ namespace ah {
             void printSchedulers() {
                 for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
                     if (mTickerInUse[i]) {
-                        DPRINTLN(DBG_INFO, String(mTicker[i].name) + ", tmt: " + String(mTicker[i].timeout) + ", rel: " + String(mTicker[i].reload));
+                        DPRINT(DBG_INFO, String(mTicker[i].name));
+                        DBGPRINT(", tmt: ");
+                        DBGPRINT(String(mTicker[i].timeout));
+                        DBGPRINT(", rel: ");
+                        DBGPRINTLN(String(mTicker[i].reload));
                     }
                 }
             }

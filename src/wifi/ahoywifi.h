@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -52,7 +52,7 @@ class ahoywifi {
         #else
         void onWiFiEvent(WiFiEvent_t event);
         #endif
-        void welcome(String msg);
+        void welcome(String ip, String mode);
 
 
         settings_t *mConfig;

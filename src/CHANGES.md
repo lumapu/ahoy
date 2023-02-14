@@ -2,6 +2,12 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.89
+* reduced heap fragmentation (removed `strtok` completely) #644, #645, #682
+* added part of mac address to MQTT client ID to seperate multiple ESPs in same network
+* added dictionary for MQTT to reduce heap-fragmentation
+* removed `last Alarm` from Live view, because it showed always the same alarm - will change in future
+
 ## 0.5.88
 * MQTT Yield Day zero, next try to fix #671, thx @beegee3
 * added Solenso inverter to supported devices
