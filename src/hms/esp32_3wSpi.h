@@ -11,6 +11,10 @@
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
 
+#define CLK_PIN     18
+#define MOSI_PIN    23
+#define MISO_PIN    -1
+
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
 template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4, uint8_t GPIO3_PIN=15>

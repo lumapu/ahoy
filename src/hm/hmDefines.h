@@ -10,7 +10,7 @@
 #include <cstdint>
 
 // inverter generations
-enum {IV_HM = 0, IV_MI};
+enum {IV_HM = 0, IV_MI, IV_HMS, IV_HMT};
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};

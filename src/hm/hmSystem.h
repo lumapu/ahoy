@@ -24,9 +24,12 @@ class HmSystem {
                 if (0ULL != config->iv[i].serial.u64) {
                     if (NULL != iv) {
                         DPRINT(DBG_INFO, "added inverter ");
-                        if(iv->config->serial.b[5] == 0x11)
-                            DBGPRINT("HM");
-                        else {
+                        if(iv->config->serial.b[5] == 0x11) {
+                            if((iv->config->serial.b[4] & 0x0f) == 0x04)
+                                DBGPRINT("HMS");
+                            else
+                                DBGPRINT("HM");
+                        } else {
                             DBGPRINT(((iv->config->serial.b[4] & 0x03) == 0x01) ? " (2nd Gen) " : " (3rd Gen) ");
                         }
 
@@ -56,6 +59,7 @@ class HmSystem {
                     case 0x21: p->type = INV_TYPE_1CH; break;
                     case 0x42:
                     case 0x41: p->type = INV_TYPE_2CH; break;
+                    case 0x64: // HMS2000
                     case 0x62:
                     case 0x61: p->type = INV_TYPE_4CH; break;
                     default:
@@ -63,8 +67,12 @@ class HmSystem {
                         break;
                 }
 
-                if(p->config->serial.b[5] == 0x11)
-                    p->ivGen = IV_HM;
+                if(p->config->serial.b[5] == 0x11) {
+                    if((p->config->serial.b[4] & 0x0f) == 0x04)
+                        p->ivGen = IV_HMS;
+                    else
+                        p->ivGen = IV_HM;
+                }
                 else if((p->config->serial.b[4] & 0x03) == 0x02) // MI 3rd Gen -> same as HM
                     p->ivGen = IV_HM;
                 else // MI 2nd Gen

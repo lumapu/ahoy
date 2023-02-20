@@ -212,7 +212,7 @@ class RestApi {
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(obj);
 
-            getRadio(obj.createNestedObject(F("radio")));
+            getRadioNrf(obj.createNestedObject(F("radio")));
             getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
@@ -345,11 +345,19 @@ class RestApi {
             obj[F("led1")] = mConfig->led.led1;
         }
 
-        void getRadio(JsonObject obj) {
+        void getRadioCmt(JsonObject obj) {
+            obj[F("csb")]  = mConfig->cmt.pinCsb;
+            obj[F("fcsb")] = mConfig->cmt.pinFcsb;
+            obj[F("irq")]  = mConfig->cmt.pinIrq;
+            obj[F("en")]   = (bool) mConfig->cmt.enabled;
+        }
+
+        void getRadioNrf(JsonObject obj) {
             obj[F("power_level")] = mConfig->nrf.amplifierPower;
             obj[F("isconnected")] = mRadio->isChipConnected();
             obj[F("DataRate")] = mRadio->getDataRate();
             obj[F("isPVariant")] = mRadio->isPVariant();
+            obj[F("en")]         = (bool) mConfig->nrf.enabled;
         }
 
         void getSerial(JsonObject obj) {
@@ -482,7 +490,8 @@ class RestApi {
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));
-            getRadio(obj.createNestedObject(F("radio")));
+            getRadioCmt(obj.createNestedObject(F("radioCmt")));
+            getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));

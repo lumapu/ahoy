@@ -33,7 +33,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template<class HMSYSTEM>
 class Web {
@@ -512,13 +512,20 @@ class Web {
                     default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
                     case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3:  mConfig->led.led0 = pin; break;
-                    case 4:  mConfig->led.led1 = pin; break;
+                    case 3:  mConfig->led.led0     = pin; break;
+                    case 4:  mConfig->led.led1     = pin; break;
+                    case 5:  mConfig->cmt.pinCsb   = pin; break;
+                    case 6:  mConfig->cmt.pinFcsb  = pin; break;
+                    case 7:  mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
             // nrf24 amplifier power
             mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
+            mConfig->nrf.enabled = (request->arg("rf24Enable") == "on");
+
+            // cmt
+            mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
 
             // ntp
             if(request->arg("ntpAddr") != "") {

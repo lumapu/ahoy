@@ -234,6 +234,9 @@ class settings {
                     mCfg.valid = true;
                     jsonWifi(root[F("wifi")]);
                     jsonNrf(root[F("nrf")]);
+                    #if defined(ESP32)
+                    jsonCmt(root[F("cmt")]);
+                    #endif
                     jsonNtp(root[F("ntp")]);
                     jsonSun(root[F("sun")]);
                     jsonSerial(root[F("serial")]);
@@ -263,6 +266,9 @@ class settings {
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
+            #if defined(ESP32)
+            jsonCmt(root.createNestedObject(F("cmt")), true);
+            #endif
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
             jsonSerial(root.createNestedObject(F("serial")), true);
@@ -317,6 +323,12 @@ class settings {
             mCfg.nrf.pinCe             = DEF_CE_PIN;
             mCfg.nrf.pinIrq            = DEF_IRQ_PIN;
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
+            mCfg.nrf.enabled           = true;
+
+            mCfg.cmt.pinCsb            = DEF_PIN_OFF;
+            mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
+            mCfg.cmt.pinIrq            = DEF_PIN_OFF;
+            mCfg.cmt.enabled           = false;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
             mCfg.ntp.port = DEF_NTP_PORT;
@@ -394,6 +406,7 @@ class settings {
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
                 obj[F("pwr")]       = mCfg.nrf.amplifierPower;
+                obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
                 mCfg.nrf.sendInterval      = obj[F("intvl")];
                 mCfg.nrf.maxRetransPerPyld = obj[F("maxRetry")];
@@ -401,6 +414,21 @@ class settings {
                 mCfg.nrf.pinCe             = obj[F("ce")];
                 mCfg.nrf.pinIrq            = obj[F("irq")];
                 mCfg.nrf.amplifierPower    = obj[F("pwr")];
+                mCfg.nrf.enabled           = (bool) obj[F("en")];
+            }
+        }
+
+        void jsonCmt(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("csb")]  = mCfg.cmt.pinCsb;
+                obj[F("fcsb")] = mCfg.cmt.pinFcsb;
+                obj[F("irq")]  = mCfg.cmt.pinIrq;
+                obj[F("en")]   = (bool) mCfg.cmt.enabled;
+            } else {
+                mCfg.cmt.pinCsb  = obj[F("csb")];
+                mCfg.cmt.pinFcsb = obj[F("fcsb")];
+                mCfg.cmt.pinIrq  = obj[F("irq")];
+                mCfg.cmt.enabled = (bool) obj[F("en")];
             }
         }
 
