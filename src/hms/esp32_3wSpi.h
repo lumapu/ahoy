@@ -6,15 +6,10 @@
 #ifndef __ESP32_3WSPI_H__
 #define __ESP32_3WSPI_H__
 
+#include "Arduino.h"
+#if defined(ESP32)
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
-#include "Arduino.h"
-
-#if defined(ESP32)
-    #define CLK_PIN     18
-    #define MOSI_PIN    23
-    #define MISO_PIN    -1
-#endif
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
@@ -134,5 +129,6 @@ class esp32_3wSpi {
     private:
         spi_device_handle_t spi_reg, spi_fifo;
 };
+#endif
 
 #endif /*__ESP32_3WSPI_H__*/
