@@ -33,9 +33,11 @@ class HmsRadio {
                 generateDtuSn();
             if(!mCmt.resetCMT())
                 DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
+            else
+                mCmt.goRx();
 
             mSendCnt        = 0;
-            mRetransmits    = 0
+            mRetransmits    = 0;
             mSerialDebug    = false;
             mIvIdChannelSet = NULL;
             mIrqRcvd        = false;
@@ -47,11 +49,12 @@ class HmsRadio {
                 return;
             mIrqRcvd = false;
             getRx();
+            mCmt.goRx();
         }
 
         void tickSecond() {
             if(NULL != mIvIdChannelSet)
-                prepareSwitchFreqCmd(mIvIdChannelSet);
+                prepareSwitchChannelCmd(mIvIdChannelSet);
         }
 
         void handeIntr(void) {
@@ -64,7 +67,7 @@ class HmsRadio {
 
         void setIvBackChannel(const uint32_t *ivId) {
             mIvIdChannelSet = ivId;
-            prepareSwitchFreqCmd();
+            prepareSwitchChannelCmd(mIvIdChannelSet);
 
         }
 
@@ -112,8 +115,6 @@ class HmsRadio {
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
                 DBGPRINT(String(len));
-                DBGPRINT("B Ch");
-                DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 ah::dumpBuf(mTxBuf, len);
             }
@@ -155,9 +156,9 @@ class HmsRadio {
             uint64_t MAC = ESP.getEfuseMac();
             chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
             #endif
-            dtuSn = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
+            mDtuSn = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
             for(int i = 0; i < 7; i++) {
-                dtuSn |= (chipID % 10) << (i * 4);
+                mDtuSn |= (chipID % 10) << (i * 4);
                 chipID /= 10;
             }
         }
@@ -182,7 +183,7 @@ class HmsRadio {
 
         CmtType mCmt;
         uint32_t mDtuSn;
-        uint8_t[27] mTxBuf;
+        uint8_t mTxBuf[27];
         bool mSerialDebug;
         uint32_t *mIvIdChannelSet;
         bool mIrqRcvd;

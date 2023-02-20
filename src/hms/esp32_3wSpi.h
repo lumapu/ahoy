@@ -37,7 +37,7 @@ class esp32_3wSpi {
                 .dummy_bits = 0,
                 .mode = 0,                 // SPI mode 0
                 .clock_speed_hz = SPI_CLK, // 1 MHz
-                .spics_io_num = CS_PIN,
+                .spics_io_num = CSB_PIN,
                 .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 .queue_size = 1,
                 .pre_cb = NULL,
@@ -56,7 +56,7 @@ class esp32_3wSpi {
                 .cs_ena_pretrans = 2,
                 .cs_ena_posttrans = (uint8_t)(1 / (SPI_CLK * 10e6 * 2) + 2), // >2 us
                 .clock_speed_hz = SPI_CLK,                                   // 1 MHz
-                .spics_io_num = FCS_PIN,
+                .spics_io_num = FCSB_PIN,
                 .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 .queue_size = 1,
                 .pre_cb = NULL,
@@ -67,7 +67,7 @@ class esp32_3wSpi {
             esp_rom_gpio_connect_out_signal(MOSI_PIN, spi_periph_signal[SPI2_HOST].spid_out, true, false);
             delay(100);
 
-            pinMode(INTR_PIN, INPUT);
+            pinMode(GPIO3_PIN, INPUT);
         }
 
         void writeReg(uint8_t addr, uint8_t reg) {

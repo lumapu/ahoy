@@ -10,6 +10,11 @@
 
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
+#define CMT2300A_MASK_CFG_RETAIN        0x10
+#define CMT2300A_MASK_RSTN_IN_EN        0x20
+#define CMT2300A_MASK_LOCKING_EN        0x20
+#define CMT2300A_MASK_CHIP_MODE_STA     0x0F
+
 #define CMT2300A_CUS_MODE_CTL           0x60    // [7] go_switch
                                                 // [6] go_tx
                                                 // [5] go_tfs
@@ -159,7 +164,7 @@ static uint8_t cmtConfig[0x60] PROGMEM {
     0x00, 0x07, 0x50, 0x00, 0x8A, 0x18, 0x3F, 0x7F
 };
 
-enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_ERR_REG_VAL};
+enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
 
 template<class SPI>
 class Cmt2300a {
@@ -175,9 +180,11 @@ class Cmt2300a {
         // call as often as possible
         void loop() {
             if(mTxPending) {
-                if(CMT2300A_MASK_TX_DONE_FLG != spi3w.readReg(CMT2300A_CUS_INT_CLR1)) {
-                    if(cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
+                if(CMT2300A_MASK_TX_DONE_FLG != mSpi.readReg(CMT2300A_CUS_INT_CLR1)) {
+                    if(cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY)) {
                         mTxPending = false;
+                        goRx();
+                    }
                 }
             }
         }
@@ -195,7 +202,7 @@ class Cmt2300a {
             mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mRxTxCh);
         }
 
-        uint8_t checkRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
+        uint8_t goRx(void) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
@@ -224,56 +231,24 @@ class Cmt2300a {
 
             if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX))
                 return CMT_ERR_SWITCH_STATE;
+        }
 
-            uint8_t state    = 0x00;
-            uint16_t timeout = 5000;
-            for(uint8_t i = 0; i < 52; i++) {
-                state = mSpi.readReg(CMT2300A_CUS_INT_FLAG);
-                if(0x00 != state)
-                    break;
-            }
+        uint8_t checkRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
+            if(mTxPending)
+                return CMT_ERR_TX_PENDING;
 
-            if((state & 0x10) == 0x10) {
-                while(0 == digitalRead(INTR_PIN)) {
-                    usleep(10);
-                    if(0 == --timeout)
-                        break;
-                }
-                if(0 != timeout) {
-                    uint16_t timeout2 = 5000;
-                    while(0x18 != (state & 0x18)) {
-                        state = mSpi.readReg(CMT2300A_CUS_INT_FLAG);
-                        if(0 == timeout2--)
-                            break;
-                    }
-                }
-            }
-
-            if(0 != digitalRead(INTR_PIN)) {
-                uint32_t loops = 0;
-                while((state & 0x1b) != 0x1b) {
-                    state = mSpi.readReg(CMT2300A_CUS_INT_FLAG);
-
-                    if((state & 0x20) == 0x20)
-                        return CMT_ERR_REG_VAL;
-                    else if((state & 0x40) == 0x40)
-                        return CMT_ERR_REG_VAL;
-                    if(++loops > 5000)
-                        break;
-                }
-            }
+            if(0x1b != (mSpi.readReg(CMT2300A_CUS_INT_FLAG) & 0x1b))
+                return CMT_FIFO_EMPTY;
 
             // receive ok (pream, sync, node, crc)
-            if((state & 0x1b) == 0x1b) {
-                if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
-                    return CMT_ERR_SWITCH_STATE;
+            if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
+                return CMT_ERR_SWITCH_STATE;
 
-                mSpi.readFifo(buf, len);
-                *rssi = mSpi.readReg(CMT2300A_CUS_RSSI_DBM) - 128;
+            mSpi.readFifo(buf, len);
+            *rssi = mSpi.readReg(CMT2300A_CUS_RSSI_DBM) - 128;
 
-                if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
-                    return CMT_ERR_SWITCH_STATE;
-            }
+            if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
+                return CMT_ERR_SWITCH_STATE;
 
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return CMT_ERR_SWITCH_STATE;
@@ -285,25 +260,25 @@ class Cmt2300a {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
-            spi3w.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
+            mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
-            if(0x00 == spi3w.readReg(CMT2300A_CUS_INT_FLAG)) {
+            if(0x00 == mSpi.readReg(CMT2300A_CUS_INT_FLAG)) {
                 // no data received
-                spi3w.readReg(CMT2300A_CUS_INT_CLR1);
-                spi3w.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
-                spi3w.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
+                mSpi.readReg(CMT2300A_CUS_INT_CLR1);
+                mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
+                mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
 
-                //spi3w.readReg(CMT2300A_CUS_FIFO_CTL); // necessary?
-                spi3w.writeReg(CMT2300A_CUS_FIFO_CTL, 0x07);
-                spi3w.writeReg(CMT2300A_CUS_FIFO_CLR, 0x01);
+                //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary?
+                mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x07);
+                mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x01);
 
-                spi3w.writeReg(0x45, 0x01);
-                spi3w.writeReg(0x46, len); // payload length
+                mSpi.writeReg(0x45, 0x01);
+                mSpi.writeReg(0x46, len); // payload length
 
-                spi3w.writeFifo(buf, len);
+                mSpi.writeFifo(buf, len);
 
                 // send only on base frequency: here 863.0 MHz
-                spi3w.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00);
+                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00);
 
                 if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
                     return CMT_ERR_SWITCH_STATE;
@@ -318,7 +293,7 @@ class Cmt2300a {
         }
 
         // initialize CMT2300A, returns true on success
-        bool void reset(void) {
+        bool reset(void) {
             mSpi.writeReg(0x7f, 0xff); // soft reset
             delay(30);
 
@@ -420,6 +395,10 @@ class Cmt2300a {
             }
             //Serial.println("status wait for: " + String(waitFor, HEX) + " read: " + String(getChipStatus(), HEX));
             return false;
+        }
+
+        inline uint8_t getChipStatus(void) {
+            return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
         SpiType mSpi;

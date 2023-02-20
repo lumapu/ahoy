@@ -20,7 +20,7 @@
 
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
-//#include "hms/hmsRadio.h"
+#include "hms/hmsRadio.h"
 #include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "wifi/ahoywifi.h"
