@@ -194,7 +194,7 @@ class MiPayload {
 
                 if (mSerialDebug) {
                     DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                    mSys->Radio.dumpBuf(payload, payloadLen);
+                    ah::dumpBuf(payload, payloadLen);
                 }
 
                 if (NULL == rec) {

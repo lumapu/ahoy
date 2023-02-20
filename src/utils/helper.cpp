@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 #include "helper.h"
+#include "dbg.h"
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
@@ -63,5 +64,13 @@ namespace ah {
             ret |= (u64 << ((5-i) << 3));
         }
         return ret;
+    }
+
+    void dumpBuf(uint8_t buf[], uint8_t len) {
+        for(uint8_t i = 0; i < len; i++) {
+            DHEX(buf[i]);
+            DBGPRINT(" ");
+        }
+        DBGPRINTLN("");
     }
 }

@@ -66,6 +66,10 @@ class app : public IApp, public ah::Scheduler {
             mSys.Radio.handleIntr();
         }
 
+        void handleHmsIntr(void) {
+            //mSys.Radio.handleHmsIntr();
+        }
+
         uint32_t getUptime() {
             return Scheduler::getUptime();
         }
@@ -158,6 +162,10 @@ class app : public IApp, public ah::Scheduler {
 
         uint8_t getIrqPin(void) {
             return mConfig->nrf.pinIrq;
+        }
+
+        uint8_t getHmsIrqPin(void) {
+            return mConfig->cmt.pinIrq;
         }
 
         String getTimeStr(uint32_t offset = 0) {

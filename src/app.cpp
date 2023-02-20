@@ -115,7 +115,7 @@ void app::loopStandard(void) {
                 DBGPRINT(F("B Ch"));
                 DBGPRINT(String(p->ch));
                 DBGPRINT(F(" | "));
-                mSys.Radio.dumpBuf(p->packet, p->len);
+                ah::dumpBuf(p->packet, p->len);
             }
             mStat.frmCnt++;
 

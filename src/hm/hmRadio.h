@@ -188,7 +188,7 @@ class HmRadio {
                 mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
                 mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
             }
-            sendPacket(invId, cnt, isRetransmit, true);
+            sendPacket(invId, cnt, isRetransmit);
         }
 
         void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
@@ -201,21 +201,12 @@ class HmRadio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(invId, 24, isRetransmit, true);
+            sendPacket(invId, 24, isRetransmit);
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit) {
             initPacket(invId, mid, pid);
-            sendPacket(invId, 10, isRetransmit, false);
-        }
-
-        void dumpBuf(uint8_t buf[], uint8_t len) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:dumpBuf"));
-            for(uint8_t i = 0; i < len; i++) {
-                DHEX(buf[i]);
-                DBGPRINT(" ");
-            }
-            DBGPRINTLN("");
+            sendPacket(invId, 10, isRetransmit);
         }
 
         uint8_t getDataRate(void) {
@@ -279,7 +270,7 @@ class HmRadio {
             mTxBuf[9]  = pid;
         }
 
-        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool clear=false) {
+        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
 
@@ -300,7 +291,7 @@ class HmRadio {
                 DBGPRINT("B Ch");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
-                dumpBuf(mTxBuf, len);
+                ah::dumpBuf(mTxBuf, len);
             }
 
             mNrf24.stopListening();

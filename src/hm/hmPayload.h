@@ -307,7 +307,7 @@ class HmPayload {
                             DPRINT(DBG_INFO, F("Payload ("));
                             DBGPRINT(String(payloadLen));
                             DBGPRINT(F("): "));
-                            mSys->Radio.dumpBuf(payload, payloadLen);
+                            ah::dumpBuf(payload, payloadLen);
                         }
 
                         if (NULL == rec) {

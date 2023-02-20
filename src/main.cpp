@@ -15,13 +15,18 @@ IRAM_ATTR void handleIntr(void) {
     myApp.handleIntr();
 }
 
+//-----------------------------------------------------------------------------
+IRAM_ATTR void handleHmsIntr(void) {
+    myApp.handleHmsIntr();
+}
+
 
 //-----------------------------------------------------------------------------
 void setup() {
     myApp.setup();
 
-    // TODO: move to HmRadio
     attachInterrupt(digitalPinToInterrupt(myApp.getIrqPin()), handleIntr, FALLING);
+    attachInterrupt(digitalPinToInterrupt(myApp.getHmsIrqPin()), handleHmsIntr, RISING);
 }
 
 

@@ -69,6 +69,12 @@ typedef struct {
 } cfgNrf24_t;
 
 typedef struct {
+    uint8_t pinCsb;
+    uint8_t pinFcsb;
+    uint8_t pinIrq;
+} cfgCmt_t;
+
+typedef struct {
     char addr[NTP_ADDR_LEN];
     uint16_t port;
 } cfgNtp_t;
@@ -138,6 +144,7 @@ typedef struct {
 typedef struct {
     cfgSys_t    sys;
     cfgNrf24_t  nrf;
+    cfgCmt_t    cmt;
     cfgNtp_t    ntp;
     cfgSun_t    sun;
     cfgSerial_t serial;

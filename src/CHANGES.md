@@ -7,6 +7,7 @@
 * added part of mac address to MQTT client ID to seperate multiple ESPs in same network
 * added dictionary for MQTT to reduce heap-fragmentation
 * removed `last Alarm` from Live view, because it showed always the same alarm - will change in future
+* #671, #650
 
 ## 0.5.88
 * MQTT Yield Day zero, next try to fix #671, thx @beegee3

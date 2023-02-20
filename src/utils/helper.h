@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2023 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -23,6 +23,7 @@ namespace ah {
     String getDateTimeStr(time_t t);
     String getTimeStr(time_t t);
     uint64_t Serial2u64(const char *val);
+    void dumpBuf(uint8_t buf[], uint8_t len);
 }
 
 #endif /*__HELPER_H__*/
