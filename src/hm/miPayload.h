@@ -35,14 +35,15 @@ typedef struct {
 typedef std::function<void(uint8_t)> miPayloadListenerType;
 
 
-template<class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class MiPayload {
     public:
         MiPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
+            mRadio      = radio;
             mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
@@ -86,7 +87,7 @@ class MiPayload {
 
             uint8_t cmd = iv->type == INV_TYPE_4CH ? 0x36 : 0x09; //iv->getQueuedCmd();
             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd"));
-            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+            mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
             mPayload[iv->id].txCmd = cmd;
         }
 
@@ -104,8 +105,8 @@ class MiPayload {
                 miDataDecode(iv,p);
                 iv->setQueuedCmdFinished();
                 if (INV_TYPE_2CH == iv->type) {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                    //mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                    mRadio->prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
                 } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
                     mPayload[iv->id].complete = true;
                     //iv->setQueuedCmdFinished();
@@ -122,8 +123,8 @@ class MiPayload {
                 miDataDecode(iv,p);
                 iv->setQueuedCmdFinished();
                 if (p->packet[0] < (0x39 + ALL_FRAMES)) {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                    //mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                    mRadio->prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
                 } else {
                     mPayload[iv->id].complete = true;
                     //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
@@ -259,12 +260,12 @@ class MiPayload {
                                 mPayload[iv->id].retransmits = mMaxRetrans;
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
+                                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
                             } else {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
-                                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
-                                    mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getQueuedCmd(), 24, true);
+                                    //mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                                    mRadio->sendCmdPacket(iv->radioId.u64, iv->getQueuedCmd(), 24, true);
                                     /*if(false == mPayload[iv->id].gotFragment) {
                                         DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
@@ -272,7 +273,7 @@ class MiPayload {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
                                             if (mPayload[iv->id].len[i] == 0) {
                                                 DPRINTLN(DBG_WARN, F("Frame ") + String(i + 1) + F(" missing: Request Retransmit"));
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                                                mRadio->sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
                                             }
                                             yield();
@@ -287,7 +288,7 @@ class MiPayload {
                             DPRINTLN(DBG_WARN, F("CRC Error: Request Complete Retransmit"));
                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
-                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            mRadio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
                     } /*else {  // payload complete
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
@@ -310,7 +311,7 @@ class MiPayload {
 
                         if (mSerialDebug) {
                             DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                            mSys->Radio.dumpBuf(payload, payloadLen);
+                            ah::dumpBuf(payload, payloadLen);
                         }
 
                         if (NULL == rec) {
@@ -552,6 +553,7 @@ class MiPayload {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;

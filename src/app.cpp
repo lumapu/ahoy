@@ -35,8 +35,11 @@ void app::setup() {
     else
         DBGPRINTLN(F("false"));
 
-    mSys.enableDebug();
-    mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mSys.setup();
+    if(mConfig->nrf.enabled) {
+        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+        mNrfRadio.enableDebug();
+    }
 
     #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
@@ -50,19 +53,21 @@ void app::setup() {
     #endif
 
     mSys.addInverters(&mConfig->inst);
-    mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-    mPayload.enableSerialDebug(mConfig->serial.debug);
-    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+    if(mConfig->nrf.enabled) {
+        mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mPayload.enableSerialDebug(mConfig->serial.debug);
+        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
-    mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-    mMiPayload.enableSerialDebug(mConfig->serial.debug);
+        mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mMiPayload.enableSerialDebug(mConfig->serial.debug);
+    }
 
     /*DBGPRINTLN("--- after payload");
     DBGPRINTLN(String(ESP.getFreeHeap()));
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
     DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
-    if(!mSys.Radio.isChipConnected())
+    if(!mNrfRadio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
@@ -79,7 +84,7 @@ void app::setup() {
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
+    mApi.setup(this, &mSys, &mNrfRadio, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     if(mConfig->plugin.display.type != 0)
@@ -105,9 +110,9 @@ void app::loop(void) {
 void app::loopStandard(void) {
     ah::Scheduler::loop();
 
-    if (mSys.Radio.loop()) {
-        while (!mSys.Radio.mBufCtrl.empty()) {
-            packet_t *p = &mSys.Radio.mBufCtrl.front();
+    if (mNrfRadio.loop()) {
+        while (!mNrfRadio.mBufCtrl.empty()) {
+            packet_t *p = &mNrfRadio.mBufCtrl.front();
 
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
@@ -126,7 +131,7 @@ void app::loopStandard(void) {
                 else
                     mMiPayload.add(iv, p);
             }
-            mSys.Radio.mBufCtrl.pop();
+            mNrfRadio.mBufCtrl.pop();
             yield();
         }
         mPayload.process(true);
@@ -324,15 +329,15 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(!mSys.Radio.isChipConnected()) {
+    if(!mNrfRadio.isChipConnected()) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
     }
     if (mIVCommunicationOn) {
-        if (!mSys.Radio.mBufCtrl.empty()) {
+        if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_DEBUG, F("recbuf not empty! #"));
-                DBGPRINTLN(String(mSys.Radio.mBufCtrl.size()));
+                DBGPRINTLN(String(mNrfRadio.mBufCtrl.size()));
             }
         }
 

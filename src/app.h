@@ -9,8 +9,6 @@
 
 #include "utils/dbg.h"
 #include <Arduino.h>
-#include <RF24.h>
-#include <RF24_config.h>
 #include <ArduinoJson.h>
 
 #include "appInterface.h"
@@ -21,6 +19,8 @@
 #include "utils/scheduler.h"
 
 #include "hm/hmSystem.h"
+#include "hm/hmRadio.h"
+//#include "hms/hmsRadio.h"
 #include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "wifi/ahoywifi.h"
@@ -38,10 +38,10 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef HmPayload<HmSystemType> PayloadType;
-typedef MiPayload<HmSystemType> MiPayloadType;
+typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
+typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
 typedef Web<HmSystemType> WebType;
-typedef RestApi<HmSystemType> RestApiType;
+typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
@@ -63,7 +63,7 @@ class app : public IApp, public ah::Scheduler {
         void regularTickers(void);
 
         void handleIntr(void) {
-            mSys.Radio.handleIntr();
+            mNrfRadio.handleIntr();
         }
 
         void handleHmsIntr(void) {
@@ -160,11 +160,24 @@ class app : public IApp, public ah::Scheduler {
             return mWeb.getProtection();
         }
 
-        uint8_t getIrqPin(void) {
+        void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
+            *sendCnt = mNrfRadio.mSendCnt;
+            *retransmits = mNrfRadio.mRetransmits;
+        }
+
+        bool getNrfEnabled(void) {
+            return mConfig->nrf.enabled;
+        }
+
+        bool getCmtEnabled(void) {
+            return mConfig->cmt.enabled;
+        }
+
+        uint8_t getNrfIrqPin(void) {
             return mConfig->nrf.pinIrq;
         }
 
-        uint8_t getHmsIrqPin(void) {
+        uint8_t getCmtIrqPin(void) {
             return mConfig->cmt.pinIrq;
         }
 
@@ -199,6 +212,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         HmSystemType mSys;
+        HmRadio<> mNrfRadio;
 
     private:
         typedef std::function<void()> innerLoopCb;

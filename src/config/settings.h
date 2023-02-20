@@ -60,6 +60,7 @@ typedef struct {
 } cfgSys_t;
 
 typedef struct {
+    bool enabled;
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
     uint8_t pinCs;
@@ -69,6 +70,7 @@ typedef struct {
 } cfgNrf24_t;
 
 typedef struct {
+    bool enabled;
     uint8_t pinCsb;
     uint8_t pinFcsb;
     uint8_t pinIrq;

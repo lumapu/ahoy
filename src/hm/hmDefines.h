@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 

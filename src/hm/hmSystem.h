@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -7,23 +7,14 @@
 #define __HM_SYSTEM_H__
 
 #include "hmInverter.h"
-#include "hmRadio.h"
 
 template <uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
     public:
-        HmRadio<> Radio;
-
         HmSystem() {}
 
         void setup() {
             mNumInv = 0;
-            Radio.setup();
-        }
-
-        void setup(uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin) {
-            mNumInv = 0;
-            Radio.setup(ampPwr, irqPin, cePin, csPin);
         }
 
         void addInverters(cfgInst_t *config) {
@@ -122,10 +113,6 @@ class HmSystem {
             }
             return num;*/
             return MAX_NUM_INVERTERS;
-        }
-
-        void enableDebug() {
-            Radio.enableDebug();
         }
 
     private:

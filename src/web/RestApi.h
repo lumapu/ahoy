@@ -24,7 +24,7 @@
   #define F(sl) (sl)
 #endif
 
-template<class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class RestApi {
     public:
         RestApi() {
@@ -35,10 +35,11 @@ class RestApi {
             nr = 0;
         }
 
-        void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, AsyncWebServer *srv, settings_t *config) {
             mApp     = app;
             mSrv     = srv;
             mSys     = sys;
+            mRadio   = radio;
             mConfig  = config;
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
@@ -281,8 +282,8 @@ class RestApi {
             obj[F("rx_fail")]        = stat->rxFail;
             obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
             obj[F("frame_cnt")]      = stat->frmCnt;
-            obj[F("tx_cnt")]         = mSys->Radio.mSendCnt;
-            obj[F("retransmits")]    = mSys->Radio.mRetransmits;
+            obj[F("tx_cnt")]         = mRadio->mSendCnt;
+            obj[F("retransmits")]    = mRadio->mRetransmits;
         }
 
         void getInverterList(JsonObject obj) {
@@ -346,9 +347,9 @@ class RestApi {
 
         void getRadio(JsonObject obj) {
             obj[F("power_level")] = mConfig->nrf.amplifierPower;
-            obj[F("isconnected")] = mSys->Radio.isChipConnected();
-            obj[F("DataRate")] = mSys->Radio.getDataRate();
-            obj[F("isPVariant")] = mSys->Radio.isPVariant();
+            obj[F("isconnected")] = mRadio->isChipConnected();
+            obj[F("DataRate")] = mRadio->getDataRate();
+            obj[F("isPVariant")] = mRadio->isPVariant();
         }
 
         void getSerial(JsonObject obj) {
@@ -449,9 +450,9 @@ class RestApi {
             }
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mSys->Radio.isChipConnected())
+            if(!mRadio->isChipConnected())
                 warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
-            else if(!mSys->Radio.isPVariant())
+            else if(!mRadio->isPVariant())
                 warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
@@ -633,6 +634,7 @@ class RestApi {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         AsyncWebServer *mSrv;
         settings_t *mConfig;
 
