@@ -20,18 +20,18 @@ typedef struct {
 #define U32_B0(val) ((uint8_t)((val      ) & 0xff))
 
 template<class SPI, uint32_t DTU_SN = 0x87654321>
-class HmsRadio {
+class CmtRadio {
     typedef SPI SpiType;
     typedef Cmt2300a<SpiType> CmtType;
     public:
-        HmsRadio() {
+        CmtRadio() {
             mDtuSn = DTU_SN;
         }
 
         void setup(bool genDtuSn = true) {
             if(genDtuSn)
                 generateDtuSn();
-            if(!mCmt.resetCMT())
+            if(!mCmt.reset())
                 DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
             else
                 mCmt.goRx();
@@ -43,13 +43,14 @@ class HmsRadio {
             mIrqRcvd        = false;
         }
 
-        void loop() {
+        bool loop() {
             mCmt.loop();
             if(!mIrqRcvd)
-                return;
+                return false;
             mIrqRcvd = false;
             getRx();
             mCmt.goRx();
+            return true;
         }
 
         void tickSecond() {
@@ -57,7 +58,7 @@ class HmsRadio {
                 prepareSwitchChannelCmd(mIvIdChannelSet);
         }
 
-        void handeIntr(void) {
+        void handleIntr(void) {
             mIrqRcvd = true;
         }
 

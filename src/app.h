@@ -37,6 +37,7 @@
 #define ASIN(x) (degrees(asin(x)))
 #define ACOS(x) (degrees(acos(x)))
 
+typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
@@ -67,7 +68,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void handleHmsIntr(void) {
-            //mSys.Radio.handleHmsIntr();
+            mCmtRadio.handleIntr();
         }
 
         uint32_t getUptime() {
@@ -213,6 +214,7 @@ class app : public IApp, public ah::Scheduler {
 
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
+        CmtRadioType mCmtRadio;
 
     private:
         typedef std::function<void()> innerLoopCb;

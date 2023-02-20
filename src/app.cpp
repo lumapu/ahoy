@@ -40,6 +40,12 @@ void app::setup() {
         mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
         mNrfRadio.enableDebug();
     }
+    #if defined(ESP32)
+    if(mConfig->cmt.enabled) {
+        mCmtRadio.setup();
+        mCmtRadio.enableDebug();
+    }
+    #endif
 
     #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
@@ -67,7 +73,7 @@ void app::setup() {
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
     DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
-    if(!mNrfRadio.isChipConnected())
+    if(!mNrfRadio.isChipConnected() && mConfig->nrf.enabled)
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
@@ -137,6 +143,22 @@ void app::loopStandard(void) {
         mPayload.process(true);
         mMiPayload.process(true);
     }
+    #if defined(ESP32)
+    if (mCmtRadio.loop()) {
+        while (!mCmtRadio.mBufCtrl.empty()) {
+            hmsPacket_t *p = &mCmtRadio.mBufCtrl.front();
+            if (mConfig->serial.debug) {
+                DPRINT(DBG_INFO, F("RX "));
+                DBGPRINT(String(p->data[0]));
+                DBGPRINT(F("RSSI "));
+                DBGPRINT(String(p->rssi));
+                DBGPRINT(F("dBm | "));
+                ah::dumpBuf(&p->data[1], p->data[0]);
+            }
+            mCmtRadio.mBufCtrl.pop();
+        }
+    }
+    #endif
     mPayload.loop();
     mMiPayload.loop();
 
@@ -158,6 +180,10 @@ void app::onWifi(bool gotIp) {
     if (gotIp) {
         mInnerLoopCb = std::bind(&app::loopStandard, this);
         every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+        #if defined(ESP32)
+        if(mConfig->cmt.enabled)
+            everySec(std::bind(&CmtRadioType::tickSecond, mCmtRadio), "tsCmt");
+        #endif
         mMqttReconnect = true;
         mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
