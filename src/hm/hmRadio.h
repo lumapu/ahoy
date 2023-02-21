@@ -24,27 +24,6 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
 //-----------------------------------------------------------------------------
-// MACROS
-//-----------------------------------------------------------------------------
-#define CP_U32_LittleEndian(buf, v) ({ \
-    uint8_t *b = buf; \
-    b[0] = ((v >> 24) & 0xff); \
-    b[1] = ((v >> 16) & 0xff); \
-    b[2] = ((v >>  8) & 0xff); \
-    b[3] = ((v      ) & 0xff); \
-})
-
-#define CP_U32_BigEndian(buf, v) ({ \
-    uint8_t *b = buf; \
-    b[3] = ((v >> 24) & 0xff); \
-    b[2] = ((v >> 16) & 0xff); \
-    b[1] = ((v >>  8) & 0xff); \
-    b[0] = ((v      ) & 0xff); \
-})
-
-#define BIT_CNT(x)  ((x)<<3)
-
-//-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
 template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW>

@@ -21,6 +21,7 @@
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
 #include "hms/hmsRadio.h"
+#include "hms/hmsPayload.h"
 #include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "wifi/ahoywifi.h"
@@ -41,6 +42,7 @@ typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
+typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
@@ -212,10 +214,6 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        HmSystemType mSys;
-        HmRadio<> mNrfRadio;
-        CmtRadioType mCmtRadio;
-
     private:
         typedef std::function<void()> innerLoopCb;
 
@@ -269,6 +267,10 @@ class app : public IApp, public ah::Scheduler {
 
         innerLoopCb mInnerLoopCb;
 
+        HmSystemType mSys;
+        HmRadio<> mNrfRadio;
+        CmtRadioType mCmtRadio;
+
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
 
@@ -277,6 +279,7 @@ class app : public IApp, public ah::Scheduler {
         RestApiType mApi;
         PayloadType mPayload;
         MiPayloadType mMiPayload;
+        HmsPayloadType mHmsPayload;
         PubSerialType mPubSerial;
 
         char mVersion[12];

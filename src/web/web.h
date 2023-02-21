@@ -506,17 +506,17 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for(uint8_t i = 0; i < 5; i ++) {
+            for(uint8_t i = 0; i < 8; i ++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
-                    default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3:  mConfig->led.led0     = pin; break;
-                    case 4:  mConfig->led.led1     = pin; break;
-                    case 5:  mConfig->cmt.pinCsb   = pin; break;
-                    case 6:  mConfig->cmt.pinFcsb  = pin; break;
-                    case 7:  mConfig->cmt.pinIrq   = pin; break;
+                    case 0: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                    case 1: mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
+                    case 2: mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
+                    case 3: mConfig->led.led0     = pin; break;
+                    case 4: mConfig->led.led1     = pin; break;
+                    case 5: mConfig->cmt.pinCsb   = pin; break;
+                    case 6: mConfig->cmt.pinFcsb  = pin; break;
+                    case 7: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 

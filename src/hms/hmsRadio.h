@@ -19,7 +19,7 @@ typedef struct {
 #define U32_B1(val) ((uint8_t)((val >>  8) & 0xff))
 #define U32_B0(val) ((uint8_t)((val      ) & 0xff))
 
-template<class SPI, uint32_t DTU_SN = 0x87654321>
+template<class SPI, uint32_t DTU_SN = 0x81001765>
 class CmtRadio {
     typedef SPI SpiType;
     typedef Cmt2300a<SpiType> CmtType;
@@ -28,23 +28,25 @@ class CmtRadio {
             mDtuSn = DTU_SN;
         }
 
-        void setup(bool genDtuSn = true) {
-            if(genDtuSn)
-                generateDtuSn();
-            if(!mCmt.reset())
-                DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
-            else
-                mCmt.goRx();
+        void setup(uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+            mCmt.setup(pinCsb, pinFcsb);
+            reset(genDtuSn);
+        }
 
-            mSendCnt        = 0;
-            mRetransmits    = 0;
-            mSerialDebug    = false;
-            mIvIdChannelSet = NULL;
-            mIrqRcvd        = false;
+        void setup(bool genDtuSn = true) {
+            mCmt.setup();
+            reset(genDtuSn);
         }
 
         bool loop() {
             mCmt.loop();
+
+            if(++mCnt > 30000) {
+                mCnt = 0;
+                if(NULL != mIvIdChannelSet)
+                    prepareSwitchChannelCmd(mIvIdChannelSet);
+            }
+
             if(!mIrqRcvd)
                 return false;
             mIrqRcvd = false;
@@ -54,8 +56,6 @@ class CmtRadio {
         }
 
         void tickSecond() {
-            if(NULL != mIvIdChannelSet)
-                prepareSwitchChannelCmd(mIvIdChannelSet);
         }
 
         void handleIntr(void) {
@@ -66,28 +66,24 @@ class CmtRadio {
             mSerialDebug = true;
         }
 
-        void setIvBackChannel(const uint32_t *ivId) {
+        void setIvBackChannel(const uint64_t *ivId) {
             mIvIdChannelSet = ivId;
             prepareSwitchChannelCmd(mIvIdChannelSet);
 
         }
 
-        void prepareDevInformCmd(const uint32_t *ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+        void prepareDevInformCmd(const uint64_t *ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             initPacket(ivId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd;
-            mTxBuf[12] = U32_B3(ts);
-            mTxBuf[13] = U32_B2(ts);
-            mTxBuf[14] = U32_B1(ts);
-            mTxBuf[15] = U32_B0(ts);
+            CP_U32_LittleEndian(&mTxBuf[12], ts);
             /*if (cmd == RealTimeRunData_Debug || cmd == AlarmData ) {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }*/
-            mCmt.swichChannel(true);
             sendPacket(24, isRetransmit);
         }
 
-        inline void prepareSwitchChannelCmd(const uint32_t *ivId, uint8_t freqSel = 0x0c) {
+        inline void prepareSwitchChannelCmd(const uint64_t *ivId, uint8_t freqSel = 0x0c) {
             /** freqSel:
              * 0x0c: 863.00 MHz
              * 0x0d: 863.24 MHz
@@ -100,7 +96,6 @@ class CmtRadio {
             mTxBuf[11] = 0x21;
             mTxBuf[12] = freqSel;
             mTxBuf[13] = 0x14;
-            mCmt.swichChannel();
             sendPacket(14, false);
         }
 
@@ -124,6 +119,8 @@ class CmtRadio {
             if(CMT_SUCCESS != status) {
                 DPRINT(DBG_WARN, F("CMT TX failed, code: "));
                 DBGPRINTLN(String(status));
+                if(CMT_ERR_RX_IN_FIFO == status)
+                    mIrqRcvd = true;
             }
 
             if(isRetransmit)
@@ -137,16 +134,26 @@ class CmtRadio {
         std::queue<hmsPacket_t> mBufCtrl;
 
     private:
-        void initPacket(const uint32_t *ivId, uint8_t mid, uint8_t pid) {
+        inline void reset(bool genDtuSn) {
+            if(genDtuSn)
+                generateDtuSn();
+            if(!mCmt.reset())
+                DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
+            else
+                mCmt.goRx();
+
+            mSendCnt        = 0;
+            mRetransmits    = 0;
+            mSerialDebug    = false;
+            mIvIdChannelSet = NULL;
+            mIrqRcvd        = false;
+            mCnt            = 0;
+        }
+
+        void initPacket(const uint64_t *ivId, uint8_t mid, uint8_t pid) {
             mTxBuf[0] = mid;
-            mTxBuf[1] = U32_B3(*ivId);
-            mTxBuf[2] = U32_B2(*ivId);
-            mTxBuf[3] = U32_B1(*ivId);
-            mTxBuf[4] = U32_B0(*ivId);
-            mTxBuf[5] = U32_B3(mDtuSn);
-            mTxBuf[6] = U32_B2(mDtuSn);
-            mTxBuf[7] = U32_B1(mDtuSn);
-            mTxBuf[8] = U32_B0(mDtuSn);
+            CP_U32_BigEndian(&mTxBuf[1], (*ivId) >> 8);
+            CP_U32_LittleEndian(&mTxBuf[5], mDtuSn);
             mTxBuf[9] = pid;
             memset(&mTxBuf[10], 0x00, 17);
         }
@@ -170,15 +177,15 @@ class CmtRadio {
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
             if(NULL != mIvIdChannelSet) {
-                if(U32_B3(*mIvIdChannelSet) != p.data[2])
+                if(U32_B3((*mIvIdChannelSet) >> 8) != p.data[2])
                     return;
-                if(U32_B2(*mIvIdChannelSet) != p.data[3])
+                if(U32_B2((*mIvIdChannelSet) >> 8) != p.data[3])
                     return;
-                if(U32_B1(*mIvIdChannelSet) != p.data[4])
+                if(U32_B1((*mIvIdChannelSet) >> 8) != p.data[4])
                     return;
-                if(U32_B0(*mIvIdChannelSet) != p.data[5])
+                if(U32_B0((*mIvIdChannelSet) >> 8) != p.data[5])
                     return;
-                *mIvIdChannelSet = NULL;
+                mIvIdChannelSet = NULL;
             }
         }
 
@@ -186,8 +193,10 @@ class CmtRadio {
         uint32_t mDtuSn;
         uint8_t mTxBuf[27];
         bool mSerialDebug;
-        uint32_t *mIvIdChannelSet;
+        const uint64_t *mIvIdChannelSet;
         bool mIrqRcvd;
+
+        uint16_t mCnt;
 };
 
 #endif /*__HMS_RADIO_H__*/

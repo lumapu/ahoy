@@ -17,11 +17,14 @@
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
-template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4, uint8_t GPIO3_PIN=15>
+template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4> //, uint8_t GPIO3_PIN=15>
 class esp32_3wSpi {
     public:
-        esp32_3wSpi() {}
-        void setup() {
+        esp32_3wSpi() {
+            mInitialized = false;
+        }
+
+        void setup(uint8_t pinCsb = CSB_PIN, uint8_t pinFcsb = FCSB_PIN) { //, uint8_t pinGpio3 = GPIO3_PIN) {
             spi_bus_config_t buscfg = {
                 .mosi_io_num = MOSI_PIN,
                 .miso_io_num = MISO_PIN,
@@ -35,8 +38,8 @@ class esp32_3wSpi {
                 .address_bits = 0,
                 .dummy_bits = 0,
                 .mode = 0,                 // SPI mode 0
-                .clock_speed_hz = SPI_CLK, // 1 MHz
-                .spics_io_num = CSB_PIN,
+                .clock_speed_hz = SPI_CLK,
+                .spics_io_num = pinCsb,
                 .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 .queue_size = 1,
                 .pre_cb = NULL,
@@ -54,8 +57,8 @@ class esp32_3wSpi {
                 .mode = 0, // SPI mode 0
                 .cs_ena_pretrans = 2,
                 .cs_ena_posttrans = (uint8_t)(1 / (SPI_CLK * 10e6 * 2) + 2), // >2 us
-                .clock_speed_hz = SPI_CLK,                                   // 1 MHz
-                .spics_io_num = FCSB_PIN,
+                .clock_speed_hz = SPI_CLK,
+                .spics_io_num = pinFcsb,
                 .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
                 .queue_size = 1,
                 .pre_cb = NULL,
@@ -66,10 +69,14 @@ class esp32_3wSpi {
             esp_rom_gpio_connect_out_signal(MOSI_PIN, spi_periph_signal[SPI2_HOST].spid_out, true, false);
             delay(100);
 
-            pinMode(GPIO3_PIN, INPUT);
+            //pinMode(pinGpio3, INPUT);
+            mInitialized = true;
         }
 
         void writeReg(uint8_t addr, uint8_t reg) {
+            if(!mInitialized)
+                return;
+
             uint8_t tx_data[2];
             tx_data[0] = ~addr;
             tx_data[1] = ~reg;
@@ -83,6 +90,9 @@ class esp32_3wSpi {
         }
 
         uint8_t readReg(uint8_t addr) {
+            if(!mInitialized)
+                return 0;
+
             uint8_t tx_data, rx_data;
             tx_data = ~(addr | 0x80); // negation and MSB high (read command)
             spi_transaction_t t = {
@@ -97,6 +107,8 @@ class esp32_3wSpi {
         }
 
         void writeFifo(uint8_t buf[], uint8_t len) {
+            if(!mInitialized)
+                return;
             uint8_t tx_data;
 
             spi_transaction_t t = {
@@ -114,6 +126,8 @@ class esp32_3wSpi {
         }
 
         void readFifo(uint8_t buf[], uint8_t len) {
+            if(!mInitialized)
+                return;
             uint8_t rx_data;
 
             spi_transaction_t t = {
@@ -132,6 +146,7 @@ class esp32_3wSpi {
 
     private:
         spi_device_handle_t spi_reg, spi_fifo;
+        bool mInitialized;
 };
 #endif
 

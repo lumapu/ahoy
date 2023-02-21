@@ -22,10 +22,14 @@ IRAM_ATTR void handleHmsIntr(void) {
 void setup() {
     myApp.setup();
 
-    if(myApp.getNrfEnabled())
-        attachInterrupt(digitalPinToInterrupt(myApp.getNrfIrqPin()), handleIntr, FALLING);
-    if(myApp.getCmtEnabled())
-        attachInterrupt(digitalPinToInterrupt(myApp.getCmtIrqPin()), handleHmsIntr, RISING);
+    if(myApp.getNrfEnabled()) {
+        if(DEF_PIN_OFF != myApp.getNrfIrqPin())
+            attachInterrupt(digitalPinToInterrupt(myApp.getNrfIrqPin()), handleIntr, FALLING);
+    }
+    if(myApp.getCmtEnabled()) {
+        if(DEF_PIN_OFF != myApp.getCmtIrqPin())
+            attachInterrupt(digitalPinToInterrupt(myApp.getCmtIrqPin()), handleHmsIntr, RISING);
+    }
 }
 
 

@@ -297,7 +297,7 @@
                 [39, "VN (GPIO39)"]
             ];
 
-            const re = /11[2,4,6]1.*/;
+            const re = /11[2,4,6][1,2,4].*/;
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
@@ -383,8 +383,7 @@
                 iv.appendChild(lbl(id + "Enable", "Communication Enable"));
                 var en = inp(id + "Enable", null, null, ["cb"], id + "Enable", "checkbox");
                 en.checked = obj["enabled"];
-                iv.appendChild(en);
-                iv.appendChild(br());
+                iv.append(en, br());
 
                 iv.appendChild(lbl(id + "Addr", "Serial Number (12 digits)*"));
                 var addr = inp(id + "Addr", obj["serial"], 12, ["text"], null, "text", "[0-9]+", "Invalid input");
@@ -410,9 +409,8 @@
                                         case "4": max = 2; break;
                                         case "6": max = 4; break;
                                     }
-                                }
-                                else if(serial.charAt(2) == 6) {
-                                    switch(serial.charAt(3) == 4) {
+                                } else if(serial.charAt(2) == 6) {
+                                    switch(serial.charAt(3)) {
                                         case "4": max = 4; break;
                                     }
                                 }
@@ -536,14 +534,14 @@
                 }
             }
 
-            function parseNrfRadio(obj) {
+            function parseNrfRadio(obj, type) {
                 var e = document.getElementById("rf24");
                 var en = inp("rf24Enable", null, null, ["cb"], "rf24Enable", "checkbox");
                 en.checked = obj["en"];
 
                 e.append(
-                    lbl("rf24Enable", "NRF24 Radio Enable"),
-                    en,
+                    lbl("rf24Enable", "NRF24 Enable"),
+                    en, br(),
                     lbl("rf24Power", "Amplifier Power Level"),
                     sel("rf24Power", [
                         [0, "MIN"],
@@ -561,14 +559,14 @@
                 }
             }
 
-            function parseCmtRadio(obj) {
+            function parseCmtRadio(obj, type) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 en.checked = obj["en"];
 
                 e.append(
-                    lbl("cmtEnable", "CMT2300A Radio Enable"),
-                    en
+                    lbl("cmtEnable", "CMT2300A Enable"),
+                    en, br()
                 );
                 pins = [['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['irq', 'pinGpio3']];
                 for(p of pins) {
@@ -619,9 +617,9 @@
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"]);
-                    parseNrfRadio(root["radioNrf"]);
+                    parseNrfRadio(root["radioNrf"], root["system"]["esp_type"]);
                     if(root["generic"]["esp_type"] == "ESP32")
-                        parseCmtRadio(root["radioCmt"]);
+                        parseCmtRadio(root["radioCmt"], root["system"]["esp_type"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"]);
                 }
@@ -635,8 +633,7 @@
                     for(i = 0; i < root["networks"].length; i++) {
                         s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
                     }
-                }
-                else
+                } else
                     s.appendChild(opt("-1", "no network found"));
             }
 

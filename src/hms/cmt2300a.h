@@ -172,9 +172,14 @@ class Cmt2300a {
     public:
         Cmt2300a() {}
 
+        void setup(uint8_t pinCsb, uint8_t pinFcsb) {
+            mSpi.setup(pinCsb, pinFcsb);
+            init();
+        }
+
         void setup() {
             mSpi.setup();
-            mTxPending = false;
+            init();
         }
 
         // call as often as possible
@@ -189,22 +194,12 @@ class Cmt2300a {
             }
         }
 
-        inline void swichChannel(bool reset = true, uint8_t start = 0x00, uint8_t end = 0x22) {
-            if(reset)
-                mRxTxCh = start;
-            else if(++mRxTxCh > end)
-                mRxTxCh = start;
-            // 0: 868.00MHz
-            // 1: 868.23MHz
-            // 2: 868.46MHz
-            // 3: 868.72MHz
-            // 4: 868.97MHz
-            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mRxTxCh);
-        }
-
         uint8_t goRx(void) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
+
+            if(mInRxMode)
+                return CMT_SUCCESS;
 
             mSpi.readReg(CMT2300A_CUS_INT1_CTL);
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
@@ -229,8 +224,14 @@ class Cmt2300a {
 
             mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00); // 863.0 MHz
 
-            if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX))
+            if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX)) {
+                Serial.println("Go RX");
                 return CMT_ERR_SWITCH_STATE;
+            }
+
+            mInRxMode = true;
+
+            return CMT_SUCCESS;
         }
 
         uint8_t checkRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
@@ -253,16 +254,26 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return CMT_ERR_SWITCH_STATE;
 
+            mInRxMode   = false;
+            mCusIntFlag = mSpi.readReg(CMT2300A_CUS_INT_FLAG);
+
             return CMT_SUCCESS;
         }
 
-        bool tx(uint8_t buf[], uint8_t len) {
+        uint8_t tx(uint8_t buf[], uint8_t len) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
+            if(mInRxMode) {
+                mInRxMode = false;
+                if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
+                    return CMT_ERR_SWITCH_STATE;
+            }
+
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
-            if(0x00 == mSpi.readReg(CMT2300A_CUS_INT_FLAG)) {
+            //mCusIntFlag == mSpi.readReg(CMT2300A_CUS_INT_FLAG);
+            //if(0x00 == mCusIntFlag) {
                 // no data received
                 mSpi.readReg(CMT2300A_CUS_INT_CLR1);
                 mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
@@ -278,16 +289,16 @@ class Cmt2300a {
                 mSpi.writeFifo(buf, len);
 
                 // send only on base frequency: here 863.0 MHz
-                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00);
+                swichChannel((len != 15));
 
                 if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
                     return CMT_ERR_SWITCH_STATE;
 
                 // wait for tx done
-                mTxPending = CMT_SUCCESS;
-            }
-            else
-                return CMT_ERR_RX_IN_FIFO;
+                mTxPending = true;
+            //}
+            //else
+            //    return CMT_ERR_RX_IN_FIFO;
 
             return CMT_SUCCESS;
         }
@@ -297,7 +308,7 @@ class Cmt2300a {
             mSpi.writeReg(0x7f, 0xff); // soft reset
             delay(30);
 
-            if(cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
+            if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
 
             if(0xAA != mSpi.readReg(0x48))
@@ -384,6 +395,13 @@ class Cmt2300a {
         }
 
     private:
+        void init() {
+            mTxPending  = false;
+            mInRxMode   = false;
+            mCusIntFlag = 0x00;
+            mCnt        = 0;
+        }
+
         // CMT state machine, wait for next state, true on success
         bool cmtSwitchStatus(uint8_t cmd, uint8_t waitFor, uint16_t cycles = 40) {
             mSpi.writeReg(CMT2300A_CUS_MODE_CTL, cmd);
@@ -397,13 +415,35 @@ class Cmt2300a {
             return false;
         }
 
+        inline void swichChannel(bool def = true, uint8_t start = 0x00, uint8_t end = 0x22) {
+            if(!def) {
+                if(++mCnt > 2) {
+                    if(++mRxTxCh > end)
+                        mRxTxCh = start;
+                    mCnt = 0;
+                }
+            }
+            // 0: 868.00MHz
+            // 1: 868.23MHz
+            // 2: 868.46MHz
+            // 3: 868.72MHz
+            // 4: 868.97MHz
+            if(!def)
+                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mRxTxCh);
+            else
+                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00);
+        }
+
         inline uint8_t getChipStatus(void) {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
         SpiType mSpi;
+        uint8_t mCnt;
         bool mTxPending;
         uint8_t mRxTxCh;
+        bool mInRxMode;
+        uint8_t mCusIntFlag;
 };
 
 #endif /*__CMT2300A_H__*/

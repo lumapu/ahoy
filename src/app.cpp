@@ -42,7 +42,7 @@ void app::setup() {
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup();
+        mCmtRadio.setup(mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
         mCmtRadio.enableDebug();
     }
     #endif
@@ -66,6 +66,13 @@ void app::setup() {
 
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
+
+        if(!mNrfRadio.isChipConnected())
+            DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+    }
+    if(mConfig->cmt.enabled) {
+        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
+        mHmsPayload.enableSerialDebug(mConfig->serial.debug);
     }
 
     /*DBGPRINTLN("--- after payload");
@@ -73,8 +80,6 @@ void app::setup() {
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
     DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
-    if(!mNrfRadio.isChipConnected() && mConfig->nrf.enabled)
-        DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
@@ -182,7 +187,7 @@ void app::onWifi(bool gotIp) {
         every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         #if defined(ESP32)
         if(mConfig->cmt.enabled)
-            everySec(std::bind(&CmtRadioType::tickSecond, mCmtRadio), "tsCmt");
+            everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
         #endif
         mMqttReconnect = true;
         mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
@@ -355,10 +360,10 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(!mNrfRadio.isChipConnected()) {
+    /*if(!mNrfRadio.isChipConnected()) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
-    }
+    }*/
     if (mIVCommunicationOn) {
         if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
@@ -366,6 +371,14 @@ void app::tickSend(void) {
                 DBGPRINTLN(String(mNrfRadio.mBufCtrl.size()));
             }
         }
+        #if defined(ESP32)
+        if (!mCmtRadio.mBufCtrl.empty()) {
+            if (mConfig->serial.debug) {
+                DPRINT(DBG_INFO, F("recbuf not empty! #"));
+                DBGPRINTLN(String(mCmtRadio.mBufCtrl.size()));
+            }
+        }
+        #endif
 
         int8_t maxLoop = MAX_NUM_INVERTERS;
         Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
@@ -378,8 +391,12 @@ void app::tickSend(void) {
             if(iv->config->enabled) {
                 if(iv->ivGen == IV_HM)
                     mPayload.ivSend(iv);
-                else
+                else if(iv->ivGen == IV_MI)
                     mMiPayload.ivSend(iv);
+                #if defined(ESP32)
+                else if(iv->ivGen == IV_HMS)
+                    mHmsPayload.ivSend(iv);
+                #endif
             }
         }
     } else {
