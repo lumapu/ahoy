@@ -68,6 +68,10 @@ class CmtRadio {
 
         void setIvBackChannel(const uint64_t *ivId) {
             mIvIdChannelSet = ivId;
+            Serial.println("Byte 3 " + String(U32_B3((*mIvIdChannelSet) >> 8), HEX));
+            Serial.println("Byte 2 " + String(U32_B2((*mIvIdChannelSet) >> 8), HEX));
+            Serial.println("Byte 1 " + String(U32_B1((*mIvIdChannelSet) >> 8), HEX));
+            Serial.println("Byte 0 " + String(U32_B0((*mIvIdChannelSet) >> 8), HEX));
             prepareSwitchChannelCmd(mIvIdChannelSet);
 
         }
@@ -177,13 +181,13 @@ class CmtRadio {
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
             if(NULL != mIvIdChannelSet) {
-                if(U32_B3((*mIvIdChannelSet) >> 8) != p.data[2])
+                if(U32_B3((*mIvIdChannelSet) >> 8) != p.data[5])
                     return;
-                if(U32_B2((*mIvIdChannelSet) >> 8) != p.data[3])
+                if(U32_B2((*mIvIdChannelSet) >> 8) != p.data[4])
                     return;
-                if(U32_B1((*mIvIdChannelSet) >> 8) != p.data[4])
+                if(U32_B1((*mIvIdChannelSet) >> 8) != p.data[3])
                     return;
-                if(U32_B0((*mIvIdChannelSet) >> 8) != p.data[5])
+                if(U32_B0((*mIvIdChannelSet) >> 8) != p.data[2])
                     return;
                 mIvIdChannelSet = NULL;
             }
