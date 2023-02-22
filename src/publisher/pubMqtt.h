@@ -339,6 +339,8 @@ class PubMqtt {
         }
 
         void onMessage(const espMqttClientTypes::MessageProperties& properties, const char* topic, const uint8_t* payload, size_t len, size_t index, size_t total) {
+            if(len == 0)
+                return;
             DPRINT(DBG_INFO, mqttStr[MQTT_STR_GOT_TOPIC]);
             DBGPRINTLN(String(topic));
             if(NULL == mSubscriptionCb)

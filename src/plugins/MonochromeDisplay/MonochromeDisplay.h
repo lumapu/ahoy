@@ -37,13 +37,10 @@ static uint8_t bmp_arrow[] PROGMEM = {
 };
 
 
-static TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
-static TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Tim
-
 template<class HMSYSTEM>
 class MonochromeDisplay {
     public:
-        MonochromeDisplay() : mCE(CEST, CET) {}
+        MonochromeDisplay() {}
 
         void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
             mCfg   = cfg;
@@ -166,9 +163,9 @@ class MonochromeDisplay {
             } else {
                 // Get current time
                 if(mIsLarge)
-                    printText(ah::getDateTimeStr(mCE.toLocal(*mUtcTs)).c_str(), 3);
+                    printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
                 else
-                    printText(ah::getTimeStr(mCE.toLocal(*mUtcTs)).c_str(), 3);
+                    printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
             }
             mDisplay->sendBuffer();
 
@@ -215,7 +212,6 @@ class MonochromeDisplay {
         uint8_t mLineOffsets[5];
         display_t *mCfg;
         HMSYSTEM *mSys;
-        Timezone mCE;
 };
 
 #endif /*__MONOCHROME_DISPLAY__*/

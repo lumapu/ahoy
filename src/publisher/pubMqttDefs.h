@@ -79,7 +79,7 @@ const char* const subtopics[] PROGMEM = {
     "alarm_start",
     "alarm_end",
     "connected",
-    "not connected",
+    "not_connected",
     "ack_pwr_limit"
 };
 

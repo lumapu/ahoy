@@ -26,6 +26,10 @@
 #define DEF_RF24_IRQ_PIN        16
 
 
+// Offset for midnight Ticker Example: 1 second before midnight (local time)
+#undef MIDNIGHTTICKER_OFFSET
+#define MIDNIGHTTICKER_OFFSET (mCalculatedTimezoneOffset + 1)
+
 // To enable the json endpoint at /json
 // #define ENABLE_JSON_EP
 

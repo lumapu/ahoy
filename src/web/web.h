@@ -190,7 +190,7 @@ class Web {
 
             msg.replace("\r\n", "<rn>");
             if(mSerialAddTime) {
-                if((9 + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+                if((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                     if(mApp->getTimestamp() > 0) {
                         strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
                         mSerialBufFill += 9;
@@ -208,7 +208,7 @@ class Web {
                 mSerialAddTime = true;
 
             uint16_t length = msg.length();
-            if((length + mSerialBufFill) <= WEB_SERIAL_BUF_SIZE) {
+            if((length + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                 strncpy(&mSerialBuf[mSerialBufFill], msg.c_str(), length);
                 mSerialBufFill += length;
             }

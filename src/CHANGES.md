@@ -2,6 +2,13 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.90
+* merged PR #684, #698, #705
+* webserial minor overflow fix #660
+* web `index.html` improve version information #701
+* fix MQTT sets power limit to zero (0) #692
+* changed `reset at midnight` with timezone #697
+
 ## 0.5.89
 * reduced heap fragmentation (removed `strtok` completely) #644, #645, #682
 * added part of mac address to MQTT client ID to seperate multiple ESPs in same network
