@@ -11,7 +11,11 @@
 #include <cstring>
 #include <stdio.h>
 #include <stdlib.h>
-#include <TimeLib.h>
+#include <Timezone.h>
+
+static TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120}; // Central European Summer Time
+static TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};   // Central European Standard Time
+static Timezone gTimezone(CEST, CET);
 
 
 #define CHECK_MASK(a,b) ((a & b) == b)

@@ -193,7 +193,8 @@ void app::tickNtpUpdate(void) {
             if(mConfig->inst.rstValsNotAvail)
                 everyMin(std::bind(&app::tickMinute, this), "tMin");
             if(mConfig->inst.rstYieldMidNight) {
-                uint32_t midTrig = mTimestamp - ((mTimestamp + MIDNIGHTTICKER_OFFSET) % 86400) + 86400; // next midnight
+                uint32_t localTime = gTimezone.toLocal(mTimestamp);
+                uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400); // next midnight local time
                 onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
             }
         }
@@ -304,7 +305,8 @@ void app::tickMinute(void) {
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
     // only triggered if 'reset values at midnight is enabled'
-    uint32_t nxtTrig = mTimestamp - ((mTimestamp + MIDNIGHTTICKER_OFFSET) % 86400) + 86400; // next midnight
+    uint32_t localTime = gTimezone.toLocal(mTimestamp);
+    uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400); // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
     Inverter<> *iv;

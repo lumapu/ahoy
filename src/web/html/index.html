@@ -219,7 +219,9 @@
                     if(getVerInt(version) < getVerInt(release))
                         p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("Update available, current released version: " + release), br());
                     else if(getVerInt(version) > getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using a development version, current released version: " + release), br());
+                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using development version " + version +". In case of issues you may want to try the current stable release: " + release), br());
+                                       else 
+                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using the current stable release: " + release), br());
                 }
 
                 document.getElementById("warn_info").replaceChildren(p);
