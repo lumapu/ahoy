@@ -173,7 +173,7 @@ class CmtRadio {
 
         inline void getRx(void) {
             hmsPacket_t p;
-            uint8_t status = mCmt.checkRx(p.data, 28, &p.rssi);
+            uint8_t status = mCmt.getRx(p.data, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
             if(NULL != mIvIdChannelSet) {

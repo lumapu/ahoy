@@ -149,15 +149,15 @@ static uint8_t cmtConfig[0x60] PROGMEM {
     0x91, 0x02, 0x02, 0xD0, 0xAE, 0xE0, 0x35, 0x00,
     // 0x10 - 0x1f
     0x00, 0xF4, 0x10, 0xE2, 0x42, 0x20, 0x0C, 0x81,
-    0x42, 0xCF, 0xA7, 0x8C, 0x42, 0xC4, 0x4E, 0x1C,
+    0x42, 0x6D, 0x80, 0x86, 0x42, 0x62, 0x27, 0x16, // 0x42, 0xCF, 0xA7, 0x8C, 0x42, 0xC4, 0x4E, 0x1C,
     // 0x20 - 0x2f
     0xA6, 0xC9, 0x20, 0x20, 0xD2, 0x35, 0x0C, 0x0A,
-    0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
+    0x9F, 0x4B, 0x0A, 0x29, 0xC0, 0x14, 0x05, 0x53, // 0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
     // 0x30 - 0x3f
     0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
     0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
     // 0x40 - 0x4f
-    0x00, 0xD6, 0xD5, 0xD4, 0x2D, 0x01, 0x1D, 0x00,
+    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1D, 0x00, // 0x00, 0xD6, 0xD5, 0xD4, 0x2D, 0x01, 0x1D, 0x00,
     0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
     // 0x50 - 0x5f
     0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
@@ -185,7 +185,7 @@ class Cmt2300a {
         // call as often as possible
         void loop() {
             if(mTxPending) {
-                if(CMT2300A_MASK_TX_DONE_FLG != mSpi.readReg(CMT2300A_CUS_INT_CLR1)) {
+                if(CMT2300A_MASK_TX_DONE_FLG == mSpi.readReg(CMT2300A_CUS_INT_CLR1)) {
                     if(cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY)) {
                         mTxPending = false;
                         goRx();
@@ -205,7 +205,7 @@ class Cmt2300a {
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
             uint8_t tmp = mSpi.readReg(CMT2300A_CUS_INT_CLR1);
-            if(0x08 == tmp) // first time after TX this reg is 0x08
+            if(0x08 == tmp) // first time after TX a value of 0x08 is read
                 mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x04);
             else
                 mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
@@ -215,7 +215,7 @@ class Cmt2300a {
             else
                 mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
 
-            mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary? -> if 0x02 last was read
+            //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary? -> if 0x02 last was read
                                                   //                  0x07 last was write
             mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x02);
 
@@ -234,7 +234,7 @@ class Cmt2300a {
             return CMT_SUCCESS;
         }
 
-        uint8_t checkRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
+        uint8_t getRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
@@ -311,24 +311,24 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
 
-            if(0xAA != mSpi.readReg(0x48))
-                mSpi.writeReg(0x48, 0xAA);
+            //if(0xAA != mSpi.readReg(0x48))
+            //    mSpi.writeReg(0x48, 0xAA);
             //mSpi.readReg(0x48);
-            mSpi.writeReg(0x4c, 0x00);
+            //mSpi.writeReg(0x4c, 0x00);
 
-            if(0x52 != mSpi.readReg(CMT2300A_CUS_MODE_STA))
+            //if(0x52 != mSpi.readReg(CMT2300A_CUS_MODE_STA))
                 mSpi.writeReg(CMT2300A_CUS_MODE_STA, 0x52);
-            if(0x20 != mSpi.readReg(0x62))
+            //if(0x20 != mSpi.readReg(0x62))
                 mSpi.writeReg(0x62, 0x20);
             //mSpi.readReg(0x0D);
-            mSpi.writeReg(0x0F, 0x00);
+            //mSpi.writeReg(0x0F, 0x00);
 
             for(uint8_t i = 0; i < 0x60; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);
             }
 
-            if(0x02 != mSpi.readReg(0x09))
-                mSpi.writeReg(0x09, 0x02);
+            //if(0x02 != mSpi.readReg(0x09))
+            //    mSpi.writeReg(0x09, 0x02);
 
             mSpi.writeReg(CMT2300A_CUS_IO_SEL, 0x20); // -> GPIO3_SEL[1:0] = 0x02
 
@@ -343,10 +343,10 @@ class Cmt2300a {
             // interrupt enable (TX_DONE, PREAM_OK, SYNC_OK, CRC_OK, PKT_DONE)
             mSpi.writeReg(CMT2300A_CUS_INT_EN, 0x3B);
 
-            mSpi.writeReg(0x41, 0x48);
+            /*mSpi.writeReg(0x41, 0x48);
             mSpi.writeReg(0x42, 0x5A);
             mSpi.writeReg(0x43, 0x48);
-            mSpi.writeReg(0x44, 0x4D);
+            mSpi.writeReg(0x44, 0x4D);*/
             mSpi.writeReg(0x64, 0x64);
 
             if(0x00 == mSpi.readReg(CMT2300A_CUS_FIFO_CTL))
@@ -357,18 +357,18 @@ class Cmt2300a {
 
             delayMicroseconds(95);
 
-            // base frequency 863MHz, with value of CMT2300A_CUS_FREQ_CHNL
-            // the frequency can be increase in a step size of ~0.24Hz
-            mSpi.writeReg(0x18, 0x42);
+            // base frequency 863MHz; with value of CMT2300A_CUS_FREQ_CHNL
+            // the frequency can be increased in a step size of ~0.24Hz
+            /*mSpi.writeReg(0x18, 0x42);
             mSpi.writeReg(0x19, 0x6D);
             mSpi.writeReg(0x1A, 0x80);
             mSpi.writeReg(0x1B, 0x86);
             mSpi.writeReg(0x1C, 0x42);
             mSpi.writeReg(0x1D, 0x62);
             mSpi.writeReg(0x1E, 0x27);
-            mSpi.writeReg(0x1F, 0x16);
+            mSpi.writeReg(0x1F, 0x16);*/
 
-            mSpi.writeReg(0x22, 0x20);
+            /*mSpi.writeReg(0x22, 0x20);
             mSpi.writeReg(0x23, 0x20);
             mSpi.writeReg(0x24, 0xD2);
             mSpi.writeReg(0x25, 0x35);
@@ -376,14 +376,14 @@ class Cmt2300a {
             mSpi.writeReg(0x27, 0x0A);
             mSpi.writeReg(0x28, 0x9F);
             mSpi.writeReg(0x29, 0x4B);
-            mSpi.writeReg(0x27, 0x0A);
+            mSpi.writeReg(0x27, 0x0A);*/
 
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
 
-            mSpi.writeReg(0x03, 0x1D);
+            /*mSpi.writeReg(0x03, 0x1D);
             mSpi.writeReg(0x5C, 0x8A);
-            mSpi.writeReg(0x5D, 0x18);
+            mSpi.writeReg(0x5D, 0x18);*/
 
             if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
                 return false;
