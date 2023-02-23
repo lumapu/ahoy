@@ -222,7 +222,7 @@ class HmPayload {
                 if (NULL == iv)
                     continue; // skip to next inverter
 
-                if (IV_MI == iv->ivGen) // only process HM inverters
+                if (IV_HM != iv->ivGen) // only process HM inverters
                     continue; // skip to next inverter
 
                 if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {

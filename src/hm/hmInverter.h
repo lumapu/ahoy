@@ -12,6 +12,7 @@
 #endif
 
 #include "hmDefines.h"
+#include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
 #include "../config/settings.h"
@@ -418,10 +419,16 @@ class Inverter {
                         channels     = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
-                        rec->length  = (uint8_t)(HM4CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm4chAssignment;
-                        rec->pyldLen = HM4CH_PAYLOAD_LEN;
-                        channels     = 4;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM4CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm4chAssignment;
+                            rec->pyldLen = HM4CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms4chAssignment;
+                            rec->pyldLen = HMS4CH_PAYLOAD_LEN;
+                        }
+                        channels = 4;
                     }
                     else {
                         rec->length  = 0;

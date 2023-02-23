@@ -16,6 +16,12 @@
 ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
 
 
+/**
+ * TODO: ESP32 has native strongest AP support!
+ *       WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+         WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+*/
+
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mConfig = config;

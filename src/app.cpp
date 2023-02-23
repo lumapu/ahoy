@@ -73,6 +73,7 @@ void app::setup() {
     if(mConfig->cmt.enabled) {
         mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
+        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
     }
 
     /*DBGPRINTLN("--- after payload");
@@ -155,17 +156,29 @@ void app::loopStandard(void) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->data[0]));
-                DBGPRINT(F("RSSI "));
+                DBGPRINT(F(" RSSI "));
                 DBGPRINT(String(p->rssi));
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(&p->data[1], p->data[0]);
             }
+            mStat.frmCnt++;
+
+            Inverter<> *iv = mSys.findInverter(&p->data[2]);
+            if(NULL != iv) {
+                if(IV_HMS == iv->ivGen)
+                    mHmsPayload.add(iv, p);
+            }
             mCmtRadio.mBufCtrl.pop();
+            yield();
         }
+        mHmsPayload.process(true);
     }
     #endif
     mPayload.loop();
     mMiPayload.loop();
+    #if defined(ESP32)
+    mHmsPayload.loop();
+    #endif
 
     if(mMqttEnabled)
         mMqtt.loop();

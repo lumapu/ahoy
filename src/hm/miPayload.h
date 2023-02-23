@@ -240,7 +240,7 @@ class MiPayload {
                 if (NULL == iv)
                     continue; // skip to next inverter
 
-                if (IV_HM == iv->ivGen) // only process MI inverters
+                if (IV_MI != iv->ivGen) // only process MI inverters
                     continue; // skip to next inverter
 
                 /*if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
