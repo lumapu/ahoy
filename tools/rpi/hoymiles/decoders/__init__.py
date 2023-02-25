@@ -99,6 +99,7 @@ class StatusResponse(Response):
     frequency = None
     powerfactor = None
     event_count = None
+    unpack_error = False
 
     def unpack(self, fmt, base):
         """
@@ -110,6 +111,10 @@ class StatusResponse(Response):
         :rtype: tuple
         """
         size = struct.calcsize(fmt)
+        if (len(self.response) < base+size):
+           self.unpack_error = True
+           logging.error(f'base: {base} size: {size} len: {len(self.response)} fmt: {fmt} rep: {self.response}')
+           return [0]
         return struct.unpack(fmt, self.response[base:base+size])
 
     @property
@@ -150,6 +155,7 @@ class StatusResponse(Response):
             s_exists = False
             string_id = len(strings)
             string = {}
+            string['name'] = self.inv_strings[string_id]['s_name']
             for key in self.string_keys:
                 prop = f'dc_{key}_{string_id}'
                 if hasattr(self, prop):
@@ -193,7 +199,8 @@ class StatusResponse(Response):
         data['event_count'] = self.event_count
         data['time'] = self.time_rx
 
-        return data
+        if not self.unpack_error:
+            return data
 
 class UnknownResponse(Response):
     """
@@ -321,9 +328,9 @@ class EventsResponse(UnknownResponse):
             #logging.debug(' payload has valid modbus crc')
             self.response = self.response[:-2]
 
-        status = struct.unpack('>H', self.response[:2])[0]
-        a_text = self.alarm_codes.get(status, 'N/A')
-        logging.info (f' Inverter status: {a_text} ({status})')
+        self.status = struct.unpack('>H', self.response[:2])[0]
+        self.a_text = self.alarm_codes.get(self.status, 'N/A')
+        logging.info (f'Inverter status: {self.a_text} ({self.status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):
@@ -331,15 +338,26 @@ class EventsResponse(UnknownResponse):
 
             logging.debug(' '.join([f'{byte:02x}' for byte in chunk]) + ': ')
 
+            if (len(chunk[0:6]) < 6):
+                logging.error(f'length of chunk must be greater or equal 6 bytes: {chunk}')
+                return
+
             opcode, a_code, a_count, uptime_sec = struct.unpack('>BBHH', chunk[0:6])
             a_text = self.alarm_codes.get(a_code, 'N/A')
-
             logging.debug(f' uptime={timedelta(seconds=uptime_sec)} a_count={a_count} opcode={opcode} a_code={a_code} a_text={a_text}')
 
             dbg = ''
             for fmt in ['BBHHHHH']:
                 dbg += f' {fmt:7}: ' + str(struct.unpack('>' + fmt, chunk))
             logging.debug(dbg)
+
+    def __dict__(self):
+        """ Base values, availabe in each __dict__ call """
+
+        data = super().__dict__()
+        data['inv_stat_num'] = self.status
+        data['inv_stat_txt'] = self.a_text
+        return data
 
 class HardwareInfoResponse(UnknownResponse):
     def __init__(self, *args, **params):
@@ -361,9 +379,14 @@ class HardwareInfoResponse(UnknownResponse):
     def __dict__(self):
         """ Base values, availabe in each __dict__ call """
 
-        responce_info = self.response
-        logging.info(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", responce_info)}')
+        data = super().__dict__()
 
+        if (len(self.response) != 16):
+            logging.error(f'HardwareInfoResponse: data length should be 16 bytes - measured {len(self.response)} bytes')
+            logging.error(f'HardwareInfoResponse: data: {self.response}')
+            return data
+
+        logging.info(f'HardwareInfoResponse: {struct.unpack(">HHHHHHHH", self.response[0:16])}')
         fw_version, fw_build_yyyy, fw_build_mmdd, fw_build_hhmm, hw_id = struct.unpack('>HHHHH', self.response[0:10])
 
         fw_version_maj = int((fw_version / 10000))
@@ -377,7 +400,6 @@ class HardwareInfoResponse(UnknownResponse):
                       f'build at {fw_build_dd:>02}/{fw_build_mm:>02}/{fw_build_yyyy}T{fw_build_HH:>02}:{fw_build_MM:>02}, '\
                       f'HW revision {hw_id}')
 
-        data = super().__dict__()
         data['FW_ver_maj'] = fw_version_maj
         data['FW_ver_min'] = fw_version_min
         data['FW_ver_pat'] = fw_version_pat
@@ -468,6 +490,8 @@ class Hm300Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -540,6 +564,8 @@ class Hm600Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -567,6 +593,8 @@ class Hm600Decode0B(StatusResponse):
         """ String 2 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[1]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 12)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
@@ -647,6 +675,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 8)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -674,6 +704,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 2 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[1]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 10)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
@@ -701,6 +733,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 3 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[2]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 30)[0]/10/self.inv_strings[2]['s_maxpower']*100, 3)
 
     @property
@@ -728,6 +762,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 4 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[3]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 32)[0]/10/self.inv_strings[3]['s_maxpower']*100, 3)
 
     @property
