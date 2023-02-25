@@ -21,12 +21,6 @@ void app::setup() {
 
     resetSystem();
 
-    /*DBGPRINTLN("--- start");
-    DBGPRINTLN(String(ESP.getFreeHeap()));
-    DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
-
-
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINT(DBG_INFO, F("Settings valid: "));
@@ -50,6 +44,7 @@ void app::setup() {
     #endif
 
     mSys.addInverters(&mConfig->inst);
+
     mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
     mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
@@ -57,10 +52,10 @@ void app::setup() {
     mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
 
-    /*DBGPRINTLN("--- after payload");
+    DBGPRINTLN("--- after payload");
     DBGPRINTLN(String(ESP.getFreeHeap()));
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
+    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 
     if(!mSys.Radio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -90,10 +85,10 @@ void app::setup() {
     regularTickers();
 
 
-    /*DBGPRINTLN("--- end setup");
+    DBGPRINTLN("--- end setup");
     DBGPRINTLN(String(ESP.getFreeHeap()));
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
+    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 }
 
 //-----------------------------------------------------------------------------

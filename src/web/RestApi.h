@@ -71,7 +71,7 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -83,7 +83,6 @@ class RestApi {
             else if(path == "reboot")         getReboot(root);
             else if(path == "statistics")     getStatistics(root);
             else if(path == "inverter/list")  getInverterList(root);
-            else if(path == "menu")           getMenu(root);
             else if(path == "index")          getIndex(root);
             else if(path == "setup")          getSetup(root);
             else if(path == "setup/networks") getNetworks(root);
@@ -183,10 +182,13 @@ class RestApi {
         }
 
         void getGeneric(JsonObject obj) {
-            obj[F("version")]      = String(mApp->getVersion());
             obj[F("build")]        = String(AUTO_GIT_HASH);
             obj[F("wifi_rssi")]    = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]    = mApp->getUptime();
+            obj[F("menu_prot")]    = mApp->getProtection();
+            obj[F("menu_maskH")]   = ((mConfig->sys.protectionMask >> 8) & 0xff);
+            obj[F("menu_maskL")]   = ((mConfig->sys.protectionMask     ) & 0xff);
+            obj[F("menu_protEn")]  = (bool) (strlen(mConfig->sys.adminPwd) > 0);
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -244,7 +246,6 @@ class RestApi {
         }
 
         void getHtmlSystem(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getSysInfo(obj.createNestedObject(F("system")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
@@ -252,7 +253,6 @@ class RestApi {
         }
 
         void getHtmlLogout(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
@@ -260,7 +260,6 @@ class RestApi {
         }
 
         void getHtmlSave(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 2;
             obj[F("refresh_url")] = "/setup";
@@ -268,7 +267,6 @@ class RestApi {
         }
 
         void getReboot(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 10;
             obj[F("refresh_url")] = "/";
@@ -377,54 +375,9 @@ class RestApi {
             obj[F("pinDisp1")]  = mConfig->plugin.display.pin1;
         }
 
-        void getMenu(JsonObject obj) {
-            uint8_t i = 0;
-            uint16_t mask = (mApp->getProtection()) ? mConfig->sys.protectionMask : 0;
-            if(!CHECK_MASK(mask, PROT_MASK_LIVE)) {
-                obj[F("name")][i] = "Live";
-                obj[F("link")][i++] = "/live";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SERIAL)) {
-                obj[F("name")][i] = "Serial / Control";
-                obj[F("link")][i++] = "/serial";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SETUP)) {
-                obj[F("name")][i] = "Settings";
-                obj[F("link")][i++] = "/setup";
-            }
-            obj[F("name")][i++] = "-";
-            obj[F("name")][i] = "REST API";
-            obj[F("link")][i] = "/api";
-            obj[F("trgt")][i++] = "_blank";
-            obj[F("name")][i++] = "-";
-            if(!CHECK_MASK(mask, PROT_MASK_UPDATE)) {
-                obj[F("name")][i] = "Update";
-                obj[F("link")][i++] = "/update";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SYSTEM)) {
-                obj[F("name")][i] = "System";
-                obj[F("link")][i++] = "/system";
-            }
-            obj[F("name")][i++] = "-";
-            obj[F("name")][i] = "Documentation";
-            obj[F("link")][i] = "https://ahoydtu.de";
-            obj[F("trgt")][i++] = "_blank";
-            if(strlen(mConfig->sys.adminPwd) > 0) {
-                obj[F("name")][i++] = "-";
-                if(mApp->getProtection()) {
-                    obj[F("name")][i] = "Login";
-                    obj[F("link")][i++] = "/login";
-                } else {
-                    obj[F("name")][i] = "Logout";
-                    obj[F("link")][i++] = "/logout";
-                }
-            }
-        }
 
         void getIndex(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
-
             obj[F("ts_now")]       = mApp->getTimestamp();
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
@@ -473,10 +426,9 @@ class RestApi {
         }
 
         void getSetup(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             getSysInfo(obj.createNestedObject(F("system")));
-            getInverterList(obj.createNestedObject(F("inverter")));
+            //getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
@@ -492,7 +444,6 @@ class RestApi {
         }
 
         void getLive(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             JsonArray invArr = obj.createNestedArray(F("inverter"));
             obj["refresh_interval"] = mConfig->nrf.sendInterval;

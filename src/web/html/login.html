@@ -2,9 +2,7 @@
 <html>
     <head>
         <title>Login</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
         <div id="wrapper">
@@ -18,25 +16,6 @@
                 </div>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <span id="version"></span><br/><br/>
-                <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a>
-            </div>
-        </div>
-        <script type="text/javascript">
-            function parse(obj) {
-                parseVersion(obj["general"]);
-            }
-
-            getAjax("/api/generic", parse);
-        </script>
+        {#HTML_FOOTER}
     </body>
 </html>

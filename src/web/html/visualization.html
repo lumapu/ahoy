@@ -2,50 +2,24 @@
 <html>
     <head>
         <title>Live</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {#HTML_HEADER}
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <div id="live"></div>
                 <p>Every <span id="refresh"></span> seconds the values are updated</p>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var exeOnce = true;
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
-                    parseVersion(obj);
+                    parseNav(obj);
                     parseESP(obj);
                 }
                 parseRssi(obj);
@@ -133,8 +107,6 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    if(true == exeOnce)
-                        parseMenu(obj["menu"]);
                     parseGeneric(obj["generic"]);
                     parseIv(obj["inverter"], obj);
                     document.getElementById("refresh").innerHTML = obj["refresh_interval"];

@@ -2,36 +2,12 @@
 <html>
     <head>
         <title>Index</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <script>
-                    function promptFunction() {
-                        var Text = prompt("This project was started from https://www.mikrocontroller.net/topic/525778 this discussion.\n\n" +
-                        "The Hoymiles protocol was decrypted through the voluntary efforts of many participants. ahoy, among others, was developed based on this work.\n" +
-                        "The software was developed to the best of our knowledge and belief. Nevertheless, no liability can be accepted for a malfunction or guarantee loss of the inverter.\n\n" +
-                        "Ahoy is freely available. If you paid money for the software, you probably got ripped off.\n\nPlease type in 'YeS', you are accept our Disclaim. You should then save your config.", "");
-                        if (Text != "YeS")
-                            promptFunction();
-                        else
-                            return true;
-
-                    }
-                </script>
                 <p>
                     <span class="des">Uptime: </span><span id="uptime"></span><br/>
                     <span class="des">ESP-Time: </span><span id="date"></span>
@@ -60,22 +36,7 @@
                 </div>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var exeOnce = true;
             var tickCnt = 0;
@@ -108,10 +69,10 @@
             function parseGeneric(obj) {
                 // Disclaimer
                 //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-                if(exeOnce){
+                /*if(exeOnce){
                     parseVersion(obj);
                     parseESP(obj);
-                }
+                }*/
                 parseRssi(obj);
             }
 
@@ -203,7 +164,7 @@
                 document.getElementById("iv").replaceChildren(p);
             }
 
-            function parseWarnInfo(warn, success, version) {
+            function parseWarnInfo(warn, success) {
                 var p = div(["none"]);
                 for(var w of warn) {
                     p.append(svg(iconWarn, 20, 20, "#F70", "icon"), span(w), br());
@@ -216,10 +177,10 @@
                     p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span(commInfo), br());
 
                 if(null != release) {
-                    if(getVerInt(version) < getVerInt(release))
+                    if(getVerInt("{#VERSION}") < getVerInt(release))
                         p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("Update available, current released version: " + release), br());
-                    else if(getVerInt(version) > getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using development version " + version +". In case of issues you may want to try the current stable release: " + release), br());
+                    else if(getVerInt("{#VERSION}") > getVerInt(release))
+                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using development version {#VERSION}. In case of issues you may want to try the current stable release: " + release), br());
                                        else 
                         p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using the current stable release: " + release), br());
                 }
@@ -239,11 +200,11 @@
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
-                        parseMenu(obj["menu"]);
+                        parseNav(obj["generic"]);
                     parseGeneric(obj["generic"]);
                     parseSys(obj);
                     parseIv(obj["inverter"]);
-                    parseWarnInfo(obj["warnings"], obj["infos"], obj["generic"]["version"]);
+                    parseWarnInfo(obj["warnings"], obj["infos"]);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;

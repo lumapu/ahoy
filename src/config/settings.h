@@ -250,7 +250,7 @@ class settings {
                 return false;
             }
 
-            DynamicJsonDocument json(4500);
+            DynamicJsonDocument json(5500);
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);

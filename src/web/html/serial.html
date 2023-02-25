@@ -2,21 +2,10 @@
 <html>
     <head>
         <title>Serial Console</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <div class="serial">
@@ -53,22 +42,7 @@
                 </div>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var mAutoScroll = true;
             var con = document.getElementById("serial");
@@ -87,7 +61,7 @@
 
                 parseRssi(obj);
                 if(true == exeOnce) {
-                    parseVersion(obj);
+                    parseNav(obj);
                     parseESP(obj);
                     window.setInterval("getAjax('/api/generic', parseGeneric)", 10000);
                     exeOnce = false;
@@ -96,7 +70,6 @@
             }
 
             function parse(root) {
-                parseMenu(root["menu"]);
                 select = document.getElementById('InvID');
 
                 if(null == root) return;

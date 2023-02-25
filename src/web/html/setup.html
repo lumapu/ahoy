@@ -2,9 +2,7 @@
 <html>
     <head>
         <title>Setup</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
         <script type="text/javascript">
             function load() {
                 for(it of document.getElementsByClassName("s_collapsible")) {
@@ -18,16 +16,7 @@
         </script>
     </head>
     <body onload="load()">
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <form method="post" action="/save">
@@ -224,22 +213,7 @@
                 </form>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var highestId = 0;
             var maxInv = 0;
@@ -426,7 +400,7 @@
 
                 iv.append(
                     lbl(id + "Name", "Name*"),
-                    inp(id + "Name", obj["name"], 32, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")
+                    inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")
                 );
 
                 for(var j of [
@@ -479,7 +453,7 @@
             }
 
             function parseGeneric(obj) {
-                parseVersion(obj);
+                parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
             }
@@ -568,11 +542,9 @@
 
             function parse(root) {
                 if(null != root) {
-                    parseMenu(root["menu"]);
                     parseSys(root["system"]);
                     parseGeneric(root["generic"]);
                     parseStaticIp(root["static_ip"]);
-                    parseIv(root["inverter"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
@@ -580,6 +552,7 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"]);
+                    getAjax("/api/inverter/list", parseIv);
                 }
             }
 

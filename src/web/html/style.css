@@ -50,6 +50,10 @@ h2 {
     top: 5px;
 }
 
+.topnav .mobile {
+    display: none;
+}
+
 svg.icon {
     vertical-align: middle;
     display: inline-block;
@@ -131,7 +135,7 @@ span.seperator {
 }
 
 .hide {
-    display: none;
+    display: none !important;
 }
 
 @media only screen and (min-width: 992px) {
@@ -152,7 +156,7 @@ span.seperator {
         padding-left: 24px !important;
     }
 
-    .topnav .hide {
+    .topnav .mobile {
         display: block;
     }
 

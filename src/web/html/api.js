@@ -38,18 +38,21 @@ function topnav() {
     toggle("topnav");
 }
 
-function parseMenu(obj) {
-    var e = document.getElementById("topnav");
-    e.innerHTML = "";
-    for(var i = 0; i < obj["name"].length; i ++) {
-        if(obj["name"][i] == "-")
-            e.appendChild(span("", ["seperator"]));
-        else {
-            var l = link(obj["link"][i], obj["name"][i], obj["trgt"][i]);
-            if(obj["link"][i] == window.location.pathname)
-                l.classList.add("active");
-            e.appendChild(l);
-        }
+function parseNav(obj) {
+    for(i = 0; i < 7; i++) {
+        var l = document.getElementById("nav"+i);
+        if(window.location.pathname == "/" + l.href.split('/').pop())
+            l.classList.add("active");
+
+        if(obj["menu_protEn"]) {
+            if(obj["menu_prot"]) {
+                if((((obj["menu_mask"] >> i) & 0x01) == 0x01) || (1 == i))
+                    l.classList.remove("hide");
+
+            } else if(0 == i)
+                l.classList.remove("hide");
+        } else if(i > 1)
+            l.classList.remove("hide");
     }
 }
 

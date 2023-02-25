@@ -406,7 +406,7 @@ class PubMqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
-        bool processIvStatus() {
+         bool processIvStatus() {
             // returns true if any inverter is available
             bool allAvail = true;   // shows if all enabled inverters are available
             bool anyAvail = false;  // shows if at least one enabled inverter is available
@@ -419,17 +419,19 @@ class PubMqtt {
                 iv = mSys->getInverterByPos(id);
                 if (NULL == iv)
                     continue; // skip to next inverter
+                if (!iv->config->enabled)
+                    continue; // skip to next inverter
 
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
                 // inverter status
                 uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                if (iv->config->enabled) {
-                    if (iv->isAvailable(*mUtcTimestamp))
-                        status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
-                    else // inverter is enabled but not available
-                        allAvail = false;
+                if (iv->isAvailable(*mUtcTimestamp)) {
+                    anyAvail = true;
+                    status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
                 }
+                else // inverter is enabled but not available
+                    allAvail = false;
 
                 if(mLastIvState[id] != status) {
                     // if status changed from producing to not producing send last data immediately
@@ -439,11 +441,11 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, mqttStr[MQTT_STR_AVAILABLE]);
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                     snprintf(val, 40, "%d", status);
                     publish(topic, val, true);
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, mqttStr[MQTT_STR_LAST_SUCCESS]);
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
                     snprintf(val, 40, "%d", iv->getLastTs(rec));
                     publish(topic, val, true);
                 }
@@ -451,7 +453,7 @@ class PubMqtt {
 
             if(changed) {
                 snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
-                publish(subtopics[MQTT_STATUS], val, true);
+                publish("status", val, true);
             }
 
             return anyAvail;
@@ -474,24 +476,26 @@ class PubMqtt {
             char topic[7 + MQTT_TOPIC_LEN], val[40];
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
-            for (uint8_t i = 0; i < rec->length; i++) {
-                bool retained = false;
-                if (curInfoCmd == RealTimeRunData_Debug) {
-                    switch (rec->assign[i].fieldId) {
-                        case FLD_YT:
-                        case FLD_YD:
-                            if ((rec->assign[i].ch == CH0) && (!iv->isProducing(*mUtcTimestamp))) // avoids returns to 0 on restart
-                                continue;
-                            retained = true;
-                            break;
+            if (iv->getLastTs(rec) > 0) {
+                for (uint8_t i = 0; i < rec->length; i++) {
+                    bool retained = false;
+                    if (curInfoCmd == RealTimeRunData_Debug) {
+                        switch (rec->assign[i].fieldId) {
+                            case FLD_YT:
+                            case FLD_YD:
+                                if ((rec->assign[i].ch == CH0) && (!iv->isProducing(*mUtcTimestamp))) // avoids returns to 0 on restart
+                                    continue;
+                                retained = true;
+                                break;
+                        }
                     }
+
+                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(val, 40, "%g", ah::round3(iv->getValue(i, rec)));
+                    publish(topic, val, retained);
+
+                    yield();
                 }
-
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                snprintf(val, 40, "%g", ah::round3(iv->getValue(i, rec)));
-                publish(topic, val, retained);
-
-                yield();
             }
         }
 
@@ -512,42 +516,49 @@ class PubMqtt {
                 uint8_t curInfoCmd = mSendList.front();
 
                 if ((curInfoCmd != RealTimeRunData_Debug) || !RTRDataHasBeenSent) { // send RTR Data only once
+                    bool sendTotals = (curInfoCmd == RealTimeRunData_Debug);
+
                     for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                         Inverter<> *iv = mSys->getInverterByPos(id);
                         if (NULL == iv)
                             continue; // skip to next inverter
+                        if (!iv->config->enabled)
+                            continue; // skip to next inverter
 
                         // send RTR Data only if status is available
-                        if ((curInfoCmd != RealTimeRunData_Debug) || (MQTT_STATUS_AVAIL_PROD == mLastIvState[id]))
+                        if ((curInfoCmd != RealTimeRunData_Debug) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD != mLastIvState[id]))
                             sendData(iv, curInfoCmd);
 
                         // calculate total values for RealTimeRunData_Debug
-                        if (curInfoCmd == RealTimeRunData_Debug) {
+                        if (sendTotals) {
                             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
-                            for (uint8_t i = 0; i < rec->length; i++) {
-                                if (CH0 == rec->assign[i].ch) {
-                                    switch (rec->assign[i].fieldId) {
-                                        case FLD_PAC:
-                                            total[0] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_YT:
-                                            total[1] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_YD:
-                                            total[2] += iv->getValue(i, rec);
-                                            break;
-                                        case FLD_PDC:
-                                            total[3] += iv->getValue(i, rec);
-                                            break;
+                            sendTotals &= (iv->getLastTs(rec) > 0);
+                            if (sendTotals) {
+                                for (uint8_t i = 0; i < rec->length; i++) {
+                                    if (CH0 == rec->assign[i].ch) {
+                                        switch (rec->assign[i].fieldId) {
+                                            case FLD_PAC:
+                                                total[0] += iv->getValue(i, rec);
+                                                break;
+                                            case FLD_YT:
+                                                total[1] += iv->getValue(i, rec);
+                                                break;
+                                            case FLD_YD:
+                                                total[2] += iv->getValue(i, rec);
+                                                break;
+                                            case FLD_PDC:
+                                                total[3] += iv->getValue(i, rec);
+                                                break;
+                                        }
                                     }
                                 }
                             }
-                            yield();
                         }
+                        yield();
                     }
 
-                    if (curInfoCmd == RealTimeRunData_Debug) {
+                    if (sendTotals) {
                         uint8_t fieldId;
                         for (uint8_t i = 0; i < 4; i++) {
                             switch (i) {
@@ -565,7 +576,7 @@ class PubMqtt {
                                     fieldId = FLD_PDC;
                                     break;
                             }
-                            snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", mqttStr[MQTT_STR_TOTAL], fields[fieldId]);
+                            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                             snprintf(val, 40, "%g", ah::round3(total[i]));
                             publish(topic, val, true);
                         }

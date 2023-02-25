@@ -157,7 +157,8 @@ class HmPayload {
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINT(DBG_INFO, F("(#"));
                 DBGPRINT(String(iv->id));
-                DBGPRINT(F(") prepareDevInformCmd")); // + String(cmd, HEX));
+                DBGPRINT(F(") prepareDevInformCmd 0x"));
+                DBGPRINTLN(String(cmd, HEX));
                 mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }
