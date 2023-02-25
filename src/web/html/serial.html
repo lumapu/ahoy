@@ -65,7 +65,7 @@
                     parseESP(obj);
                     window.setInterval("getAjax('/api/generic', parseGeneric)", 10000);
                     exeOnce = false;
-                    getAjax("/api/setup", parse);
+                    getAjax("/api/inverter/list", parse);
                 }
             }
 
@@ -74,8 +74,8 @@
 
                 if(null == root) return;
                 root = root.inverter;
-                for(var i = 0; i < root.inverter.length; i++) {
-                    inv = root.inverter[i];
+                for(var i = 0; i < root.length; i++) {
+                    inv = root[i];
                     var opt = document.createElement('option');
                     opt.value = inv.id;
                     opt.innerHTML = inv.name;

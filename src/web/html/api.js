@@ -35,7 +35,7 @@ iconSuccess = [
  */
 
 function topnav() {
-    toggle("topnav");
+    toggle("topnav", "mobile");
 }
 
 function parseNav(obj) {
@@ -85,12 +85,12 @@ function setHide(id, hide) {
         elm.classList.remove('hide');
 }
 
-function toggle(id) {
+function toggle(id, cl="hide") {
     var e = document.getElementById(id);
-    if(!e.classList.contains("hide"))
-        e.classList.add("hide");
+    if(!e.classList.contains(cl))
+        e.classList.add(cl);
     else
-        e.classList.remove('hide');
+        e.classList.remove(cl);
 }
 
 function getAjax(url, ptr, method="GET", json=null) {

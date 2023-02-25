@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.92
+* fix mobile menu
+* fix inverters in select `serial.html` #709
+
 ## 0.5.91
 * improved html and navi, navi is visible even when API dies #660
 * reduced maximum allowed JSON size for API to 6000Bytes #660
