@@ -182,7 +182,6 @@ class RestApi {
         }
 
         void getGeneric(JsonObject obj) {
-            obj[F("build")]        = String(AUTO_GIT_HASH);
             obj[F("wifi_rssi")]    = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]    = mApp->getUptime();
             obj[F("menu_prot")]    = mApp->getProtection();

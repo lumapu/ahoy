@@ -52,10 +52,10 @@ void app::setup() {
     mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
 
-    DBGPRINTLN("--- after payload");
-    DBGPRINTLN(String(ESP.getFreeHeap()));
-    DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
+    //DBGPRINTLN("--- after payload");
+    //DBGPRINTLN(String(ESP.getFreeHeap()));
+    //DBGPRINTLN(String(ESP.getHeapFragmentation()));
+    //DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 
     if(!mSys.Radio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -85,10 +85,10 @@ void app::setup() {
     regularTickers();
 
 
-    DBGPRINTLN("--- end setup");
-    DBGPRINTLN(String(ESP.getFreeHeap()));
-    DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
+    //DBGPRINTLN("--- end setup");
+    //DBGPRINTLN(String(ESP.getFreeHeap()));
+    //DBGPRINTLN(String(ESP.getHeapFragmentation()));
+    //DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 }
 
 //-----------------------------------------------------------------------------
