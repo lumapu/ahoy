@@ -3,30 +3,13 @@ import os
 import gzip
 import glob
 import shutil
-import pkg_resources
 from datetime import date
 from pathlib import Path
+import subprocess
 
-Import("env")
-
-required_pkgs = {'dulwich'}
-installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
-missing_pkgs = required_pkgs - installed_pkgs
-
-if missing_pkgs:
-    env.Execute('"$PYTHONEXE" -m pip install dulwich')
-
-from dulwich import porcelain
 
 def get_git_sha():
-    try:
-        build_version = porcelain.describe('../../../')  # refers to the repository root dir
-    except:
-        build_version = "g0000000"
-
-    build_flag = "-D AUTO_GIT_HASH=\\\"" + build_version[1:] + "\\\""
-    #print ("Firmware Revision: " + build_version)
-    return (build_flag)
+    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
 
 def readVersion(path):
     f = open(path, "r")
