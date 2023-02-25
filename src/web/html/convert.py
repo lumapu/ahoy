@@ -7,6 +7,8 @@ import pkg_resources
 from datetime import date
 from pathlib import Path
 
+Import("env")
+
 required_pkgs = {'dulwich'}
 installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
 missing_pkgs = required_pkgs - installed_pkgs
