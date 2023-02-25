@@ -6,7 +6,6 @@ import shutil
 import pkg_resources
 from datetime import date
 from pathlib import Path
-from dulwich import porcelain
 
 required_pkgs = {'dulwich'}
 installed_pkgs = {pkg.key for pkg in pkg_resources.working_set}
@@ -15,6 +14,7 @@ missing_pkgs = required_pkgs - installed_pkgs
 if missing_pkgs:
     env.Execute('"$PYTHONEXE" -m pip install dulwich')
 
+from dulwich import porcelain
 
 def get_git_sha():
     try:
