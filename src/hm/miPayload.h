@@ -91,14 +91,14 @@ class MiPayload {
         }
 
         void add(Inverter<> *iv, packet_t *p) {
-            DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
+            //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
                 mPayload[iv->id].stsa = true;
                 miStsDecode(iv, p);
             } else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
                 mPayload[iv->id].stsb = true;
-                miStsDecode(iv, p, 2);
+                miStsDecode(iv, p, CH2);
             } else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
@@ -358,11 +358,10 @@ class MiPayload {
                 (mCbMiPayload)(val);
         }
 
-        void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = 1) {
+        void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = CH1) {
+            DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg 0x") + String(p->packet[0], HEX));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
             rec->ts = mPayload[iv->id].ts;
-
-            int8_t offset = -2;
 
             //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11+6] << 8) + p->packet[12+6])); // was 11/12, might be wrong!
 
@@ -371,16 +370,21 @@ class MiPayload {
 
             //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
 
-            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[11+offset] << 8) + p->packet[12+offset]));
+            //iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[9] << 8) + p->packet[10]));
+            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[14] << 8) + p->packet[16]));
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
-                iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
+                iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
                 DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
                 iv->enqueCommand<InfoCommand>(AlarmData);
             }
+            /* Unclear how in HM inverters Info and alarm data is handled...
+            */
 
 
-            /*    for decoding see
+            /*            int8_t offset = -2;
+
+                for decoding see
                 void MI600StsMsg (NRF24_packet_t *p){
                   STAT = (int)((p->packet[11] << 8) + p->packet[12]);
                   FCNT = (int)((p->packet[13] << 8) + p->packet[14]);
@@ -392,23 +396,22 @@ class MiPayload {
                 #endif
                 }
                 */
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": status msg ") + p->packet[0]);
         }
 
         void miDataDecode(Inverter<> *iv, packet_t *p) {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
             rec->ts = mPayload[iv->id].ts;
 
-            uint8_t chan = ( p->packet[2] == 0x89 || p->packet[2] == (0x36 + ALL_FRAMES) ) ? 1 :
-                           ( p->packet[2] == 0x91 || p->packet[2] == (0x37 + ALL_FRAMES) ) ? 2 :
-                           p->packet[2] == (0x38 + ALL_FRAMES) ? 3 :
-                           4;
+            uint8_t datachan = ( p->packet[0] == 0x89 || p->packet[0] == (0x36 + ALL_FRAMES) ) ? CH1 :
+                           ( p->packet[0] == 0x91 || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
+                           p->packet[0] == (0x38 + ALL_FRAMES) ? CH3 :
+                           CH4;
             int8_t offset = -2;
             // U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_UDC, rec), rec, (float)((p->packet[11+offset] << 8) + p->packet[12+offset])/10);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_UDC, rec), rec, (float)((p->packet[11+offset] << 8) + p->packet[12+offset])/10);
             yield();
             // I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_IDC, rec), rec, (float)((p->packet[13+offset] << 8) + p->packet[14+offset])/10);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_IDC, rec), rec, (float)((p->packet[13+offset] << 8) + p->packet[14+offset])/10);
             yield();
             //      U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
             iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[15+offset] << 8) + p->packet[16+offset])/10);
@@ -417,23 +420,23 @@ class MiPayload {
             //iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
             //yield();
             //      P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-            iv->setValue(iv->getPosByChFld(chan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
             yield();
             //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-            iv->setValue(iv->getPosByChFld(chan, FLD_Q, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_Q, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
             yield();
-            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10);
-            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100); //23 is freq or IAC?
+            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10); //23 is freq or IAC?
+            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
+            iv->setValue(iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(iv, datachan)));
             yield();
             //FLD_YD
 
-            if (p->packet[2] >= (0x36 + ALL_FRAMES) ) {
+            if (p->packet[0] >= (0x36 + ALL_FRAMES) ) {
+                /*status message analysis most liklely needs to be changed, see MiStsMst*/
                 /*STAT = (uint8_t)(p->packet[25] );
                 FCNT = (uint8_t)(p->packet[26]);
-                FCODE = (uint8_t)(p->packet[27]); // MI300: (int)((p->packet[15] << 8) + p->packet[16]); */
-                //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (uint8_t)(p->packet[25]));
-                //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (uint8_t)(p->packet[27]));
-                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[21+offset]));
+                FCODE = (uint8_t)(p->packet[27]); // MI300/Mi600 stsMsg:: (int)((p->packet[15] << 8) + p->packet[16]); */
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)((p->packet[26] << 8) + p->packet[27+offset]));
                 yield();
                 if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
@@ -443,7 +446,7 @@ class MiPayload {
                 }
             }
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0); // (getValue(iv->getPosByChFld(1, FLD_YD, rec), rec) + getValue(iv->getPosByChFld(2, FLD_YD, rec), rec)));
-
+            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd);
 /*
@@ -501,7 +504,7 @@ class MiPayload {
   FCODE = (uint8_t)(p->packet[27]);
   }
                 */
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg ") + p->packet[0]);
+                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg 0x") + String(p->packet[0], HEX) + F(" channel ") + datachan);
         }
 
         bool build(uint8_t id, bool *complete) {
