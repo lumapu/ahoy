@@ -423,7 +423,7 @@ class MiPayload {
             iv->setValue(iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
             yield();
             //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_Q, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_YT, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
             yield();
             iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10); //23 is freq or IAC?
             iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
