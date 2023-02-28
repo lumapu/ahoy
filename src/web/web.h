@@ -73,11 +73,8 @@ class Web {
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
             mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
-        #ifdef ENABLE_JSON_EP
-            mWeb.on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
-        #endif
         #ifdef ENABLE_PROMETHEUS_EP
-            mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
+            mWeb.on("/metrics",        HTTP_GET,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
 
             mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
@@ -625,60 +622,48 @@ class Web {
             request->send(response);
         }
 
-#ifdef ENABLE_JSON_EP
-        void showJson(void) {
-            DPRINTLN(DBG_VERBOSE, F("web::showJson"));
-            String modJson;
-
-            modJson = F("{\n");
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if(NULL != iv) {
-                    char topic[40], val[25];
-                    snprintf(topic, 30, "\"%s\": {\n", iv->name);
-                    modJson += String(topic);
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        snprintf(topic, 40, "\t\"ch%d/%s\"", iv->assign[i].ch, iv->getFieldName(i));
-                        snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i), iv->getUnit(i));
-                        modJson += String(topic) + ": " + String(val) + F(",\n");
-                    }
-                    modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(iv->ts) + F("\"\n\t},\n");
-                }
-            }
-            modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mMain->mTimestamp)) + F("\"\n}\n");
-
-            mWeb.send(200, F("application/json"), modJson);
-        }
-#endif
-
 #ifdef ENABLE_PROMETHEUS_EP
-        void showMetrics(void) {
+        void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
             String metrics;
             char headline[80];
 
-            snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mconfig->sys.deviceName);
+            snprintf(headline, 80, "ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1", mApp->getVersion(), mConfig->sys.deviceName);
             metrics += "# TYPE ahoy_solar_info gauge\n" + String(headline) + "\n";
 
-            for(uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
+            Inverter<> *iv;
+            record_t<> *rec;
+            uint8_t pos;
+
+            for(uint8_t id = 0; id < MAX_NUM_INVERTERS; id++) {
+                iv = mSys->getInverterByPos(id);
                 if(NULL != iv) {
                     char type[60], topic[60], val[25];
-                    for(uint8_t i = 0; i < iv->listLen; i++) {
-                        uint8_t channel = iv->assign[i].ch;
-                        if(channel == 0) {
-                            String promUnit, promType;
-                            std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(i) );
-                            snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(i), promUnit.c_str(), promType.c_str());
-                            snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(i), promUnit.c_str(), iv->name);
-                            snprintf(val, 25, "%.3f", iv->getValue(i));
+                    rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+                    for(uint8_t j = 0; j < rec->length; j++) {
+
+                        String promUnit, promType;
+                        byteAssign_t *assign = iv->getByteAssign(j, rec);
+                        pos = (iv->getPosByChFld(assign->ch, assign->fieldId, rec));
+                        std::tie(promUnit, promType) = convertToPromUnits( iv->getUnit(pos, rec) );
+
+                        if(0xff != pos){
+                            snprintf(type, 60, "# TYPE ahoy_solar_%s_%s %s", iv->getFieldName(pos, rec), promUnit.c_str(), promType.c_str());
+                            snprintf(topic, 60, "ahoy_solar_%s_%s{inverter=\"%s\"}", iv->getFieldName(pos, rec), promUnit.c_str(), iv->config->name);
+                            snprintf(val, 25, "%.3f", iv->getValue(pos, rec) );
                             metrics += String(type) + "\n" + String(topic) + " " + String(val) + "\n";
                         }
                     }
                 }
             }
 
-            mWeb.send(200, F("text/plain"), metrics);
+            AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", metrics);
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Allow-Headers", "content-type");
+            response->addHeader("X-Content-Type-Options", "nosniff");
+            response->setContentLength(metrics.length());
+            request->send(response);
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {
