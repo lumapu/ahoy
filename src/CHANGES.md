@@ -2,6 +2,12 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.93
+* improved web API for `live`
+* added dark mode option
+* converted all forms to reponsive design
+* repaired menu with password protection #720, #716, #709
+
 ## 0.5.92
 * fix mobile menu
 * fix inverters in select `serial.html` #709

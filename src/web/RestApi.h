@@ -24,6 +24,9 @@
   #define F(sl) (sl)
 #endif
 
+const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
+
 template<class HMSYSTEM>
 class RestApi {
     public:
@@ -91,8 +94,12 @@ class RestApi {
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
             else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
-            else
-                getNotFound(root, F("http://") + request->host() + F("/api/"));
+            else {
+                if(path.substring(0, 12) == "inverter/id/")
+                    getInverter(root, request->url().substring(17).toInt());
+                else
+                    getNotFound(root, F("http://") + request->host() + F("/api/"));
+            }
 
             //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
             response->addHeader("Access-Control-Allow-Origin", "*");
@@ -158,7 +165,7 @@ class RestApi {
             File fp = LittleFS.open("/settings.json", "r");
             if(!fp) {
                 DPRINTLN(DBG_ERROR, F("failed to load settings"));
-                response = request->beginResponse(200, F("application/json"), "{}");
+                response = request->beginResponse(200, F("application/json; charset=utf-8"), "{}");
             }
             else {
                 String tmp = fp.readString();
@@ -171,7 +178,7 @@ class RestApi {
                         tmp.remove(i, tmp.indexOf("\"", i)-i);
                     }
                 }
-                response = request->beginResponse(200, F("application/json"), tmp);
+                response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
             response->addHeader("Content-Type", "application/octet-stream");
@@ -182,12 +189,11 @@ class RestApi {
         }
 
         void getGeneric(JsonObject obj) {
-            obj[F("wifi_rssi")]    = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
-            obj[F("ts_uptime")]    = mApp->getUptime();
-            obj[F("menu_prot")]    = mApp->getProtection();
-            obj[F("menu_maskH")]   = ((mConfig->sys.protectionMask >> 8) & 0xff);
-            obj[F("menu_maskL")]   = ((mConfig->sys.protectionMask     ) & 0xff);
-            obj[F("menu_protEn")]  = (bool) (strlen(mConfig->sys.adminPwd) > 0);
+            obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
+            obj[F("ts_uptime")]   = mApp->getUptime();
+            obj[F("menu_prot")]   = mApp->getProtection();
+            obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
+            obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -199,6 +205,7 @@ class RestApi {
         void getSysInfo(JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("device_name")]  = mConfig->sys.deviceName;
+            obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
 
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
@@ -310,6 +317,41 @@ class RestApi {
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+        }
+
+        void getInverter(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL != iv) {
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                obj[F("id")]               = id;
+                obj[F("enabled")]          = (bool)iv->config->enabled;
+                obj[F("name")]             = String(iv->config->name);
+                obj[F("serial")]           = String(iv->config->serial.u64, HEX);
+                obj[F("version")]          = String(iv->getFwVersion());
+                obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
+                obj[F("ts_last_success")]  = rec->ts;
+
+                JsonArray ch = obj.createNestedArray("ch");
+
+                // AC
+                uint8_t pos;
+                obj[F("ch_name")][0] = "AC";
+                JsonArray ch0 = ch.createNestedArray();
+                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                    ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                }
+
+                // DC
+                for(uint8_t j = 0; j < iv->channels; j ++) {
+                    obj[F("ch_name")][j+1] = iv->config->chName[j];
+                    JsonArray cur = ch.createNestedArray();
+                    for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
+                        pos = (iv->getPosByChFld((j+1), dcList[fld], rec));
+                        cur[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                    }
+                }
+            }
         }
 
         void getMqtt(JsonObject obj) {
@@ -444,12 +486,28 @@ class RestApi {
 
         void getLive(JsonObject obj) {
             getGeneric(obj.createNestedObject(F("generic")));
-            JsonArray invArr = obj.createNestedArray(F("inverter"));
-            obj["refresh_interval"] = mConfig->nrf.sendInterval;
+            //JsonArray invArr = obj.createNestedArray(F("inverter"));
+            obj[F("refresh")] = mConfig->nrf.sendInterval;
 
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+            for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
+                obj[F("ch0_fld_names")][fld] = String(fields[acList[fld]]);
+            }
+            for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
+                obj[F("fld_units")][fld] = String(units[fieldUnits[dcList[fld]]]);
+                obj[F("fld_names")][fld] = String(fields[dcList[fld]]);
+            }
 
             Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                iv = mSys->getInverterByPos(i);
+                bool parse = false;
+                if(NULL != iv)
+                    parse = iv->config->enabled;
+                obj[F("iv")][i] = parse;
+            }
+
+            /*Inverter<> *iv;
             uint8_t pos;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
@@ -493,7 +551,7 @@ class RestApi {
                         }
                     }
                 }
-            }
+            }*/
         }
 
         void getRecord(JsonObject obj, uint8_t recType) {

@@ -67,12 +67,8 @@
             }
 
             function parseGeneric(obj) {
-                // Disclaimer
-                //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-                /*if(exeOnce){
-                    parseVersion(obj);
+                if(exeOnce)
                     parseESP(obj);
-                }*/
                 parseRssi(obj);
             }
 
@@ -124,14 +120,14 @@
                 var p = div(["none"]);
                 for(var i of obj) {
                     var icon = iconWarn;
-                    var color = "#F70";
+                    var cl = "icon-warn";
                     avail = "";
                     if(false == i["enabled"]) {
                         avail = "disabled";
                     }
                     else if(false == i["is_avail"]) {
                         icon = iconInfo;
-                        color = "#00d";
+                        cl = "icon-info";
                         avail = "not yet available";
                     }
                     else if(0 == i["ts_last_success"]) {
@@ -144,12 +140,12 @@
                         if(false == i["is_producing"])
                             avail += "not ";
                         else
-                            color = "#090";
+                            cl = "icon-success";
                         avail += "producing";
                     }
 
                     p.append(
-                        svg(icon, 20, 20, color, "icon"),
+                        svg(icon, 30, 30, "icon " + cl),
                         span("Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is " + avail),
                         br()
                     );
@@ -167,22 +163,22 @@
             function parseWarnInfo(warn, success) {
                 var p = div(["none"]);
                 for(var w of warn) {
-                    p.append(svg(iconWarn, 20, 20, "#F70", "icon"), span(w), br());
+                    p.append(svg(iconWarn, 30, 30, "icon icon-warn"), span(w), br());
                 }
                 for(var i of success) {
-                    p.append(svg(iconSuccess, 20, 20, "#090", "icon"), span(i), br());
+                    p.append(svg(iconSuccess, 30, 30, "icon icon-success"), span(i), br());
                 }
 
                 if(commInfo.length > 0)
-                    p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span(commInfo), br());
+                    p.append(svg(iconInfo, 30, 30, "icon icon-info"), span(commInfo), br());
 
                 if(null != release) {
                     if(getVerInt("{#VERSION}") < getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("Update available, current released version: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("Update available, current released version: " + release), br());
                     else if(getVerInt("{#VERSION}") > getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using development version {#VERSION}. In case of issues you may want to try the current stable release: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using development version {#VERSION}. In case of issues you may want to try the current stable release: " + release), br());
                                        else 
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using the current stable release: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using the current stable release: " + release), br());
                 }
 
                 document.getElementById("warn_info").replaceChildren(p);

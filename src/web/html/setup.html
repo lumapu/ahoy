@@ -20,141 +20,20 @@
         <div id="wrapper">
             <div id="content">
                 <form method="post" action="/save">
-                    <fieldset>
+                    <button type="button" class="s_collapsible mt-4">System Config</button>
+                    <div class="s_content">
+                    <fieldset class="mb-2">
                         <legend class="des">Device Host Name</legend>
-                        <label for="device">Device Name</label>
-                        <input type="text" name="device" class="text"/>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3">Device Name</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Dark Mode</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
+                        </div>
                     </fieldset>
-
-                    <button type="button" class="s_collapsible">Network</button>
-                    <div class="s_content">
-                        <fieldset>
-                            <legend class="des">WiFi</legend>
-                            <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
-                            <label for="scanbtn">Search Networks</label>
-                            <input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/><br/>
-                            <label for="networks">Avail Networks</label>
-                            <select name="networks" id="networks" onChange="selNet()">
-                                <option value="-1" selected disabled hidden>not scanned</option>
-                            </select>
-                            <label for="ssid">SSID</label>
-                            <input type="text" name="ssid" class="text"/>
-                            <label for="pwd">Password</label>
-                            <input type="password" class="text" name="pwd" value="{PWD}"/>
-                        </fieldset>
-                        <fieldset>
-                            <legend class="des">Static IP (optional)</legend>
-                            <p>
-                                Leave fields blank for DHCP<br/>
-                                The following fields are parsed in this format: 192.168.1.1
-                            </p>
-                            <label for="ipAddr">IP Address</label>
-                            <input type="text" name="ipAddr" class="text" maxlength="15" />
-                            <label for="ipMask">Submask</label>
-                            <input type="text" name="ipMask" class="text" maxlength="15" />
-                            <label for="ipDns1">DNS 1</label>
-                            <input type="text" name="ipDns1" class="text" maxlength="15" />
-                            <label for="ipDns2">DNS 2</label>
-                            <input type="text" name="ipDns2" class="text" maxlength="15" />
-                            <label for="ipGateway">Gateway</label>
-                            <input type="text" name="ipGateway" class="text" maxlength="15" />
-                        </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">Protection</button>
-                    <div class="s_content">
-                        <fieldset>
-                            <legend class="des">Protection</legend>
-                            <label for="adminpwd">Admin Password</label>
-                            <input type="password" name="adminpwd" class="text" value="{PWD}"/>
-                            <input type="hidden" name="disclaimer" value="false" id="disclaimer">
-                            <p>Select pages which should be protected by password</p>
-                            <div id="prot_mask"></div>
-                        </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">Inverter</button>
-                    <div class="s_content">
-                    <fieldset>
-                    <legend class="des">Inverter</legend>
-                        <div id="inverter"></div><br/>
-                        <input type="button" id="btnAdd" class="btn" value="Add Inverter"/>
-                        <p class="subdes">General</p>
-                        <label for="invInterval">Interval [s]</label>
-                        <input type="text" class="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/>
-                        <label for="invRetry">Max retries per Payload</label>
-                        <input type="text" class="text" name="invRetry"/>
-
-
-                        <label for="invRstMid">Reset values and YieldDay at midnight</label>
-                        <input type="checkbox" class="cb" name="invRstMid"/><br/>
-                        <label for="invRstComStop">Reset values when inverter polling stops at sunset</label>
-                        <input type="checkbox" class="cb" name="invRstComStop"/><br/>
-                        <label for="invRstNotAvail">Reset values when inverter status is 'not available'</label>
-                        <input type="checkbox" class="cb" name="invRstNotAvail"/><br/>
-                    </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">NTP Server</button>
-                    <div class="s_content">
-                    <fieldset>
-                    <legend class="des">NTP Server</legend>
-                        <label for="ntpAddr">NTP Server / IP</label>
-                        <input type="text" class="text" name="ntpAddr"/>
-                        <label for="ntpPort">NTP Port</label>
-                        <input type="text" class="text" name="ntpPort"/>
-                        <label for="ntpBtn">set system time</label>
-                        <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
-                        <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
-                        <span id="apiResultNtp"></span>
-                    </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
-                    <div class="s_content">
-                    <fieldset>
-                    <legend class="des">Sunrise & Sunset</legend>
-                        <p>
-                            Use a decimal separator: '.' (dot) for Latitude and Longitude
-                        </p>
-                        <label for="sunLat">Latitude (decimal)</label>
-                        <input type="text" class="text" name="sunLat"/>
-                        <label for="sunLon">Longitude (decimal)</label>
-                        <input type="text" class="text" name="sunLon"/>
-                        <label for="sunOffs">Offset (pre sunrise, post sunset)</label>
-                        <select name="sunOffs"></select>
-                        <br>
-                        <label for="sunDisNightCom">Stop polling inverters during night</label>
-                        <input type="checkbox" class="cb" name="sunDisNightCom"/><br/>
-                    </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">MQTT</button>
-                    <div class="s_content">
-                    <fieldset>
-                    <legend class="des">MQTT</legend>
-                        <label for="mqttAddr">Broker / Server IP</label>
-                        <input type="text" class="text" name="mqttAddr"/>
-                        <label for="mqttPort">Port</label>
-                        <input type="text" class="text" name="mqttPort"/>
-                        <label for="mqttUser">Username (optional)</label>
-                        <input type="text" class="text" name="mqttUser"/>
-                        <label for="mqttPwd">Password (optional)</label>
-                        <input type="password" class="text" name="mqttPwd"/>
-                        <label for="mqttTopic">Topic</label>
-                        <input type="text" class="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" />
-                        <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
-                        <label for="mqttIntvl">Interval [s]</label>
-                        <input type="text" class="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" />
-                        <label for="mqttBtn">Discovery Config (homeassistant)</label>
-                        <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
-                        <span id="apiResultMqtt"></span>
-                    </fieldset>
-                    </div>
-
-                    <button type="button" class="s_collapsible">System Config</button>
-                    <div class="s_content">
-                    <fieldset>
+                    <fieldset class="mb-4">
                         <legend class="des">System Config</legend>
                         <p class="des">Pinout</p>
                         <div id="pinout"></div>
@@ -163,52 +42,265 @@
                         <div id="rf24"></div>
 
                         <p class="des">Serial Console</p>
-                        <label for="serEn">print inverter data</label>
-                        <input type="checkbox" class="cb" name="serEn"/><br/>
-                        <label for="serDbg">Serial Debug</label>
-                        <input type="checkbox" class="cb" name="serDbg"/><br/>
-                        <label for="serIntvl">Interval [s]</label>
-                        <input type="text" class="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">print inverter data</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Serial Debug</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Network</button>
+                    <div class="s_content">
+                        <fieldset class="mb-2">
+                            <legend class="des">WiFi</legend>
+                            <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Search Networks</div>
+                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/></div>
+                            </div>
+
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">Avail Networks</div>
+                                <div class="col-12 col-sm-9">
+                                    <select name="networks" id="networks" onChange="selNet()">
+                                        <option value="-1" selected disabled hidden>not scanned</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">SSID</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                            </div>
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">Password</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">Static IP (optional)</legend>
+                            <p>
+                                Leave fields blank for DHCP<br/>
+                                The following fields are parsed in this format: 192.168.4.1
+                            </p>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">IP Address</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipAddr" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Submask</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipMask" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">DNS 1</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipDns1" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">DNS 2</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipDns2" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Gateway</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipGateway" maxlength="15" /></div>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Protection</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des mx-2">Protection</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 mb-2 mt-2">Admin Password</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="adminpwd" value="{PWD}"/></div>
+                            </div>
+                            <p>Select pages which should be protected by password</p>
+                            <div id="prot_mask"></div>
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Inverter</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                    <legend class="des">Inverter</legend>
+                        <div id="inverter"></div>
+                        <div class="row mb-2">
+                            <div class="col-12 col-sm-3"></div>
+                            <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
+                            <div class="col-12 col-sm-9"></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Max retries per Payload</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="invRetry"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling stops at sunset</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstComStop"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Reset values when inverter status is 'not available'</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">NTP Server</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">NTP Server</legend>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">NTP Port</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="ntpPort"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">set system time</div>
+                            <div class="col-12 col-sm-9">
+                                <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
+                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
+                                <span id="apiResultNtp"></span>
+                            </div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">Sunrise & Sunset</legend>
+                        <p>Use a decimal separator: '.' (dot) for Latitude and Longitude</p>
+
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Latitude (decimal)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="sunLat"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Longitude (decimal)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="sunLon"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
+                            <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Stop polling inverters during night</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="sunDisNightCom"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">MQTT</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">MQTT</legend>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Port</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttPort"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Username (optional)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Password (optional)</div>
+                            <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Topic</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" /></div>
+                        </div>
+                        <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" /></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
+                            <div class="col-12 col-sm-9">
+                                <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
+                                <span id="apiResultMqtt"></span>
+                            </div>
+                        </div>
                     </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">Display Config</button>
                     <div class="s_content">
-                    <fieldset>
+                    <fieldset class="mb-4">
                         <legend class="des">Display Config</legend>
                         <div id="dispType"></div>
-                        <label for="logoEn">Show Logo</label>
-                        <input type="checkbox" class="cb" name="logoEn"/><br/>
-                        <label for="dispPwr">Turn off while inverters are offline</label>
-                        <input type="checkbox" class="cb" name="dispPwr"/><br/>
-                        <label for="dispPxSh">Enable pixel shifting</label>
-                        <input type="checkbox" class="cb" name="dispPxSh"/><br/>
-                        <label for="disp180">Rotate 180 degree</label>
-                        <input type="checkbox" class="cb" name="disp180"/><br/>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Show Logo</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="logoEn"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Turn off while inverters are offline</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="dispPwr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Enable pixel shifting</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="dispPxSh"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Rotate 180 degree</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp180"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Contrast</div>
+                            <div class="col-12 col-sm-9"><select name="dispCont" id="contrast"></select></div>
+                        </div>
+                        <label for="dispCont"></label>
 
-                        <label for="dispCont">Contrast</label>
-                        <select name="dispCont" id="contrast"></select>
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
                     </fieldset>
                     </div>
 
-                    <div class="mt-3">
-                        <label for="reboot">Reboot device after successful save</label>
-                        <input type="checkbox" class="cb" name="reboot" checked />
-                        <input type="submit" value="save" class="btn right"/>
+                    <div class="row mb-4 mt-4">
+                        <div class="col-8 col-sm-3">Reboot device after successful save</div>
+                        <div class="col-2 col-md-6">
+                            <input type="checkbox" name="reboot" checked />
+                            <input type="submit" value="save" class="btn right"/>
+                        </div>
                     </div>
+
                     <div class="hr mb-3 mt-3"></div>
-                    <div class="mb-4">
+                    <div class="mb-4 mt-4">
                         <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
-                        <fieldset>
+                        <fieldset class="mb-4">
                             <legend class="des">Upload / Store JSON Settings</legend>
                             <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                 <input type="file" name="upload">
                                 <input type="button" class="btn" value="Upload" onclick="hide()">
                             </form>
                         </fieldset>
-                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a> (only saved values, passwords will be removed!)
+                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a><span> (only saved values, passwords will be removed!)</span>
                     </div>
                 </form>
             </div>
@@ -343,23 +435,38 @@
                 document.getElementsByName(id + "Name")[0].value = "";
             }
 
+            function mlCb(id, des, chk=false) {
+                var cb = ml("input", {type: "checkbox", id: id, name: id}, "");
+                if(chk)
+                    cb.checked = true;
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-8 col-sm-3"}, des),
+                    ml("div", {class: "col-4 col-sm-9"}, cb)
+                ]);
+            }
+
+            function mlE(des, e) {
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-12 col-sm-3 my-2"}, des),
+                    ml("div", {class: "col-12 col-sm-9"}, e)
+                ]);
+            }
+
             function ivHtml(obj, id) {
                 highestId = id + 1;
                 if(highestId == maxInv)
                     setHide("btnAdd", true);
-                iv = document.getElementById("inverter");
+
+                var iv = document.getElementById("inverter");
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
 
-                iv.appendChild(lbl(id + "Enable", "Communication Enable"));
-                var en = inp(id + "Enable", null, null, ["cb"], id + "Enable", "checkbox");
-                en.checked = obj["enabled"];
-                iv.appendChild(en);
-                iv.appendChild(br());
-
-                iv.appendChild(lbl(id + "Addr", "Serial Number (12 digits)*"));
                 var addr = inp(id + "Addr", obj["serial"], 12, ["text"], null, "text", "[0-9]+", "Invalid input");
-                iv.appendChild(addr);
+                iv.append(
+                    mlCb(id + "Enable", "Communication Enable", obj["enabled"]),
+                    mlE("Serial Number (12 digits)*", addr)
+                );
+
                 ['keyup', 'change'].forEach(function(evt) {
                     addr.addEventListener(evt, (e) => {
                         var serial = addr.value.substring(0,4);
@@ -369,9 +476,9 @@
                             setHide(id+"ModName"+i, true);
                             setHide(id+"YieldCor"+i, true);
                         }
-                        setHide("lbl"+id+"ModPwr", true);
-                        setHide("lbl"+id+"ModName", true);
-                        setHide("lbl"+id+"YieldCor", true);
+                        setHide("row"+id+"ModPwr", true);
+                        setHide("row"+id+"ModName", true);
+                        setHide("row"+id+"YieldCor", true);
 
                         if(serial.charAt(0) == 1) {
                             if((serial.charAt(1) == 0) || (serial.charAt(1) == 1)) {
@@ -391,39 +498,44 @@
                                 setHide(id+"ModName"+i, false);
                                 setHide(id+"YieldCor"+i, false);
                             }
-                            setHide("lbl"+id+"ModPwr", false);
-                            setHide("lbl"+id+"ModName", false);
-                            setHide("lbl"+id+"YieldCor", false);
+                            setHide("row"+id+"ModPwr", false);
+                            setHide("row"+id+"ModName", false);
+                            setHide("row"+id+"YieldCor", false);
                         }
                     })
                 });
 
-                iv.append(
-                    lbl(id + "Name", "Name*"),
-                    inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")
-                );
+                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")));
 
                 for(var j of [
                     ["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"],
                     ["ModName", "ch_name", "Module Name", 16, null],
                     ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 16, "[0-9-]+"]]) {
+
                     var cl = (re.test(obj["serial"])) ? null : ["hide"];
-                    iv.appendChild(lbl(null, j[2], cl, "lbl" + id + j[0]));
-                    d = div([j[0]]);
+
                     i = 0;
-                    cl = (re.test(obj["serial"])) ? ["text", "sh"] : ["text", "sh", "hide"];
+                    arrIn = [];
                     for(it of obj[j[1]]) {
-                        d.appendChild(inp(id + j[0] + i, it, j[3], cl, id + j[0] + i, "text", j[4], "Invalid input"));
+                        arrIn.push(ml("div", {class: "col-3 "},
+                            inp(id + j[0] + i, it, j[3], [], id + j[0] + i, "text", j[4], "Invalid input")
+                        ));
                         i++;
                     }
-                    iv.appendChild(d);
+
+                    iv.append(
+                        ml("div", {class: "row mb-2 mb-sm-3", id: "row" + id + j[0]}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, j[2]),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                ml("div", {class: "row"}, arrIn)
+                            )
+                        ])
+                    );
                 }
+
                 var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
                 del.addEventListener("click", delIv);
-                iv.append(
-                    lbl(id + "lbldel", "Delete"),
-                    del
-                );
+                iv.append(mlE("Delete", del));
             }
 
             function ivGlob(obj) {
@@ -436,20 +548,18 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                var e = document.getElementsByName("adminpwd")[0];
+                document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
+                e = document.getElementsByName("adminpwd")[0];
                 if(!obj["pwd_set"])
                     e.value = "";
                 var d = document.getElementById("prot_mask");
-                var a = ["Index", "Live", "Serial / Console", "Settings", "Update", "System"]
+                var a = ["Index", "Live", "Serial / Console", "Settings", "Update", "System"];
+                var el = [];
                 for(var i = 0; i < 6; i++) {
-                    var chkd = ((obj["prot_mask"] & (1 << i)) == (1 << i));
-                    var sp = lbl("protMask" + i, a[i]);
-                    var cb = inp("protMask" + i, null, null, ["cb"], "protMask" + i, "checkbox", null, null, chkd);
-                    if(0 == i)
-                        d.replaceChildren(sp, cb, br());
-                    else
-                        d.append(sp, cb, br());
+                    var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
+                    el.push(mlCb("protMask" + i, a[i], chk))
                 }
+                d.append(...el);
             }
 
             function parseGeneric(obj) {
@@ -495,20 +605,31 @@
                 var e = document.getElementById("pinout");
                 pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
                 for(p of pins) {
-                    e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]]));
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]])
+                            )
+                        ])
+                    );
                 }
             }
 
             function parseRadio(obj) {
-                var e = document.getElementById("rf24");
-                e.appendChild(lbl("rf24Power", "Amplifier Power Level"));
-                e.appendChild(sel("rf24Power", [
-                    [0, "MIN"],
-                    [1, "LOW"],
-                    [2, "HIGH"],
-                    [3, "MAX"]
-                ], obj["power_level"]));
+                var e = document.getElementById("rf24").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                        ml("div", {class: "col-12 col-sm-9"},
+                            sel("rf24Power", [
+                                [0, "MIN"],
+                                [1, "LOW"],
+                                [2, "HIGH"],
+                                [3, "MAX"]
+                            ], obj["power_level"])
+                        )
+                    ])
+                );
             }
 
             function parseSerial(obj) {
@@ -524,14 +645,22 @@
                 var e = document.getElementById("dispPins");
                 pins = [['SCL / CS', 'pinDisp0'], ['SDA / DC', 'pinDisp1']];
                 for(p of pins) {
-                    e.appendChild(lbl(p[1], p[0].toUpperCase()));
-                    e.appendChild(sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]]));
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]])
+                            )
+                        ])
+                    );
                 }
 
                 var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
                 document.getElementById("dispType").append(
-                    lbl("dispType", "Type"),
-                    sel("dispType", opts, obj["disp_type"])
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
+                        ml("div", {class: "col-12 col-sm-9"}, sel("dispType", opts, obj["disp_type"]))
+                    ])
                 );
 
                 e = document.getElementById("contrast");
@@ -576,11 +705,7 @@
                     e.value = s.value;
             }
 
-            hiddenInput = document.getElementById("disclaimer")
-            hiddenInput.value = sessionStorage.getItem("gDisclaimer");
-
             getAjax("/api/setup", parse);
-
         </script>
     </body>
 </html>

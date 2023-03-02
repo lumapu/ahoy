@@ -51,6 +51,7 @@ typedef struct {
     char deviceName[DEVNAME_LEN];
     char adminPwd[PWD_LEN];
     uint16_t protectionMask;
+    bool darkMode;
 
     // wifi
     char stationSsid[SSID_LEN];
@@ -292,6 +293,7 @@ class settings {
             memset(&mCfg, 0, sizeof(settings_t));
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
+            mCfg.sys.darkMode = false;
             // restore temp settings
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
@@ -354,6 +356,7 @@ class settings {
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
+                obj[F("dark")] = mCfg.sys.darkMode;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -365,6 +368,7 @@ class settings {
                 snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, "%s", obj[F("dev")].as<const char*>());
                 snprintf(mCfg.sys.adminPwd,    PWD_LEN,     "%s", obj[F("adm")].as<const char*>());
                 mCfg.sys.protectionMask = obj[F("prot_mask")];
+                mCfg.sys.darkMode       = obj[F("dark")];
                 ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());

@@ -7,11 +7,13 @@
     <body>
         <div id="wrapper">
             <div id="login">
-                <div class="pad">
+                <div class="p-4">
                     <form action="/login" method="post">
-                        <h2>AhoyDTU</h2>
-                        <input type="password" name="pwd" value="" autofocus>
-                        <input type="submit" name="login" value="login" class="btn">
+                        <div class="row"><h2>AhoyDTU</h2></div>
+                        <div class="row">
+                            <div class="col-8"><input type="password" name="pwd" autofocus></div>
+                            <div class="col-4"><input type="submit" name="login" value="login" class="btn"></div>
+                        </div>
                     </form>
                 </div>
             </div>

@@ -8,10 +8,13 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                    <input type="file" name="update">
-                    <input type="button" class="btn" value="Update" onclick="hide()">
-                </form>
+                <fieldset>
+                    <legend class="des">Select firmware file (*.bin)</legend>
+                    <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
+                        <input type="file" name="update">
+                        <input type="button" class="btn" value="Update" onclick="hide()">
+                    </form>
+                </fieldset>
             </div>
         </div>
         {#HTML_FOOTER}
