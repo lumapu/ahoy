@@ -370,8 +370,8 @@ class MiPayload {
 
             //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
 
-            //iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[9] << 8) + p->packet[10]));
-            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[14] << 8) + p->packet[16]));
+            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
+            //iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[14] << 8) + p->packet[16]));
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
@@ -423,7 +423,7 @@ class MiPayload {
             iv->setValue(iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
             yield();
             //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_YT, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_YD, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
             yield();
             iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10); //23 is freq or IAC?
             iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
@@ -436,7 +436,7 @@ class MiPayload {
                 /*STAT = (uint8_t)(p->packet[25] );
                 FCNT = (uint8_t)(p->packet[26]);
                 FCODE = (uint8_t)(p->packet[27]); // MI300/Mi600 stsMsg:: (int)((p->packet[15] << 8) + p->packet[16]); */
-                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)((p->packet[26] << 8) + p->packet[27+offset]));
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[25+offset]));
                 yield();
                 if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
@@ -445,8 +445,8 @@ class MiPayload {
                     iv->enqueCommand<InfoCommand>(AlarmData);
                 }
             }
-            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0); // (getValue(iv->getPosByChFld(1, FLD_YD, rec), rec) + getValue(iv->getPosByChFld(2, FLD_YD, rec), rec)));
-            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
+            //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0); // (getValue(iv->getPosByChFld(1, FLD_YD, rec), rec) + getValue(iv->getPosByChFld(2, FLD_YD, rec), rec)));
+            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0)); //datachan));
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd);
 /*
