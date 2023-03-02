@@ -7,6 +7,7 @@
 * added dark mode option
 * converted all forms to reponsive design
 * repaired menu with password protection #720, #716, #709
+* merged MI series fixes #729
 
 ## 0.5.92
 * fix mobile menu
