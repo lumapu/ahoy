@@ -101,7 +101,7 @@
                         ml("div", {class: "p-2 iv-bg"}, [
                             ml("div", {class: "row"},[
                                 numBig(obj.ch[0][2], "W", "AC Power"),
-                                numBig(obj.ch[0][7]/1000, "kWh", "Yield Day"),
+                                numBig(obj.ch[0][7], "Wh", "Yield Day"),
                                 numBig(obj.ch[0][6], "kWh", "Yield Total")
                             ]),
                             ml("div", {class: "hr"}),
@@ -183,7 +183,7 @@
                     ml("div", {}, [
                         ivHead(obj),
                         ml("div", {class: "row mb-2"}, chn),
-                        tsInfo(obj.ts_last_succcess)
+                        tsInfo(obj.ts_last_success)
                     ])
                 );
 
