@@ -103,7 +103,9 @@ function parseVersion(obj) {
 }
 
 function parseESP(obj) {
-    document.getElementById("esp_type").innerHTML="Board: " + obj["esp_type"];
+    document.getElementById("esp_type").append(
+        document.createTextNode("Board: " + obj["esp_type"])
+    );
 }
 
 function parseRssi(obj) {

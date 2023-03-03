@@ -191,7 +191,7 @@
                 for(var i = obj.id + 1; i < ivEn.length; i++) {
                     if((i != ivEn.length) && ivEn[i]) {
                         last = false;
-                        getAjax("http://10.20.3.44/api/inverter/id/" + i, parseIv);
+                        getAjax("/api/inverter/id/" + i, parseIv);
                         break;
                     }
                 }
