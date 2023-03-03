@@ -61,6 +61,10 @@
             }
 
             function totals() {
+                for(var i = 0; i < 5; i++) {
+                    var total[i] = Math.round(total[i] * 100) / 100;
+                }
+
                 return ml("div", {class: "row mt-3 mb-5"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 total-h"},
@@ -85,7 +89,7 @@
             }
             function ivHead(obj) {
                 total[0] += obj.ch[0][2]; // P_AC
-                total[1] += obj.ch[0][7]/1000; // YieldDay
+                total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
                 total[3] += obj.ch[0][8]; // P_DC
                 total[4] += obj.ch[0][10]; // Q_AC
@@ -209,6 +213,7 @@
                     ivEn = Object.values(Object.assign({}, obj["iv"]));
                     mIvHtml = [];
                     mNum = 0;
+                    total.fill(0);
                     for(var i = 0; i < obj.iv.length; i++) {
                         if(obj.iv[i])
                             getAjax("/api/inverter/id/" + i, parseIv);
