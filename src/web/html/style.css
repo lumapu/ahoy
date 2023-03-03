@@ -582,7 +582,7 @@ div.hr {
     width: 450px;
     height: 200px;
     border: 1px solid #ccc;
-    background-color: var(--ts-head);
+    background-color: var(--input-bg);
     position: absolute;
     top: 50%;
     left: 50%;

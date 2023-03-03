@@ -62,7 +62,7 @@
 
             function totals() {
                 for(var i = 0; i < 5; i++) {
-                    var total[i] = Math.round(total[i] * 100) / 100;
+                    total[i] = Math.round(total[i] * 100) / 100;
                 }
 
                 return ml("div", {class: "row mt-3 mb-5"},
@@ -98,7 +98,7 @@
                         ml("div", {class: "p-2 iv-h"},
                             ml("div", {class: "row"}, [
                                 ml("div", {class: "col mx-2 mx-md-1"}, obj.name),
-                                ml("div", {class: "col a-c"}, "Power limit " + obj.power_limit_read + " %"),
+                                ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + " %"))),
                                 ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5]) + " C")
                             ])
                         ),
