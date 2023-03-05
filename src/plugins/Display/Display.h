@@ -1,5 +1,5 @@
-#ifndef __MONOCHROME_DISPLAY__
-#define __MONOCHROME_DISPLAY__
+#ifndef __DISPLAY__
+#define __DISPLAY__
 
 #include <Timezone.h>
 #include <U8g2lib.h>
@@ -13,9 +13,9 @@
 #define DISP_DEFAULT_TIMEOUT 60  // in seconds
 
 template <class HMSYSTEM>
-class MonochromeDisplay {
+class Display {
    public:
-    MonochromeDisplay() {}
+    Display() {}
 
     void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
         mCfg = cfg;
@@ -26,7 +26,7 @@ class MonochromeDisplay {
 
         if (mCfg->type == 0) {
             return;
-        } else if (1 < mCfg->type < 10) {
+        } else if (1 < mCfg->type < 11) {
             switch (mCfg->rot) {
                 case 0:
                     DisplayMono.disp_rotation = U8G2_R0;
@@ -97,9 +97,9 @@ class MonochromeDisplay {
                 totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
             }
 
-            if (1 < mCfg->type < 4) {
+            if (1 < mCfg->type < 11) {
                 DisplayMono.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
-            } else if (mCfg->type == 4) {
+            } else if (mCfg->type > 10) {
                 DisplayEPaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
                 counterEPaper++;
             }
@@ -123,4 +123,4 @@ class MonochromeDisplay {
     uint32_t _lastDisplayUpdate = 0;
 };
 
-#endif /*__MONOCHROME_DISPLAY__*/
+#endif /*__DISPLAY__*/
