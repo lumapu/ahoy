@@ -8,7 +8,7 @@ class DisplayMonoClass {
     DisplayMonoClass();
     ~DisplayMonoClass();
 
-    void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI);
+    void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char* version);
 
     void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
 

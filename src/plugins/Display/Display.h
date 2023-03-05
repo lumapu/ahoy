@@ -23,6 +23,7 @@ class Display {
         mUtcTs = utcTs;
         mNewPayload = false;
         mLoopCnt = 0;
+        mVersion = version;
 
         if (mCfg->type == 0) {
             return;
@@ -46,12 +47,12 @@ class Display {
             DisplayMono.enableScreensaver = mCfg->pxShift;
             DisplayMono.contrast = mCfg->contrast;
 
-            DisplayMono.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data);
+            DisplayMono.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mVersion);
         } else if (mCfg->type > 10) {
             DisplayEPaper.displayRotation = mCfg->rot;
             counterEPaper = 0;
 
-            DisplayEPaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data);
+            DisplayEPaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mVersion);
         }
     }
 
@@ -116,6 +117,7 @@ class Display {
     bool mNewPayload;
     uint8_t mLoopCnt;
     uint32_t *mUtcTs;
+    const char *mVersion;
     display_t *mCfg;
     HMSYSTEM *mSys;
     uint16_t period = 10000;  // Achtung, max 65535

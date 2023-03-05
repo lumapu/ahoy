@@ -63,7 +63,7 @@ void DisplayMonoClass::printText(const char* text, uint8_t line, uint8_t dispX =
     _display->drawStr(dispX, mLineOffsets[line], text);
 }
 
-void DisplayMonoClass::init(uint8_t _type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI) {
+void DisplayMonoClass::init(uint8_t _type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char* version) {
     if (0 < _type < 4) {
         auto constructor = mono_types[_type];
         _display = constructor(_RST, _SCK, _MOSI, _CS, _DC);
@@ -77,7 +77,9 @@ void DisplayMonoClass::init(uint8_t _type, uint8_t _CS, uint8_t _DC, uint8_t _RS
         if (contrast < 255) {
             _display->setContrast(contrast);
         }
-        printText("OpenDTU!", 0);
+        printText("AHOY!", 0, 35);
+        printText("ahoydtu.de", 2, 20);
+        printText(version, 3, 46);
         _display->sendBuffer();
     }
 }
