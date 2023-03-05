@@ -304,7 +304,8 @@ To get the information open the URL `/api/record/info` on your AhoyDTU. The info
 | chehrlic   | HM-600       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
 | chehrlic   | TSOL-M800de  |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
 | B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |          |           |
-|            |              |               |           |                |                 |           |          |           |
+| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |          |           |
+| tomquist   | TSOL-M1600   |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
 |            |              |               |           |                |                 |           |          |           |
 
 ## Developer Information about Command Queue
