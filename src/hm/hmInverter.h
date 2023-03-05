@@ -90,13 +90,6 @@ class InfoCommand : public CommandAbstract {
         }
 };
 
-class MiInfoCommand : public CommandAbstract {
-    public:
-        MiInfoCommand(uint8_t cmd){
-            _TxType = cmd;
-            _Cmd = cmd;
-        }
-};
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {

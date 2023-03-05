@@ -199,7 +199,7 @@ class MiPayload {
                         msg = "NOT ";
                     DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
                     iv->clearCmdQueue();
-                    iv->enqueCommand<MiInfoCommand>(SystemConfigPara); // read back power limit
+                    iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
                 }
                 iv->devControlCmd = Init;
             } else {  // some other response; copied from hmPayload:process; might not be correct to do that here!!!
@@ -413,7 +413,7 @@ class MiPayload {
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
                 DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
-                iv->enqueCommand<MiInfoCommand>(AlarmData);
+                iv->enqueCommand<InfoCommand>(AlarmData);
             }
         }
 
@@ -481,7 +481,7 @@ class MiPayload {
                 ac_pow = calcPowerDcCh0(iv, 0)*9.5;
             //}
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-            
+
             if ( mPayload[iv->id].sts[0] ) {
                 uint8_t cmd = mPayload[iv->id].dataAB[0] ? 0x11 : 0x09;
                 if ( mPayload[iv->id].dataAB[0] && mPayload[iv->id].dataAB[1] ) {
