@@ -1,111 +1,85 @@
 #ifndef __MONOCHROME_DISPLAY__
 #define __MONOCHROME_DISPLAY__
 
-#include <U8g2lib.h>
 #include <Timezone.h>
+#include <U8g2lib.h>
 
-#include "../../utils/helper.h"
 #include "../../hm/hmSystem.h"
+#include "../../utils/helper.h"
+#include "Display_Mono.h"
+#include "Display_ePaper.h"
+#include "imagedata.h"
 
-#define DISP_DEFAULT_TIMEOUT        60  // in seconds
+#define DISP_DEFAULT_TIMEOUT 60  // in seconds
 
-
-static uint8_t bmp_logo[] PROGMEM = {
-    B00000000, B00000000, // ................
-    B11101100, B00110111, // ..##.######.##..
-    B11101100, B00110111, // ..##.######.##..
-    B11100000, B00000111, // .....######.....
-    B11010000, B00001011, // ....#.####.#....
-    B10011000, B00011001, // ...##..##..##...
-    B10000000, B00000001, // .......##.......
-    B00000000, B00000000, // ................
-    B01111000, B00011110, // ...####..####...
-    B11111100, B00111111, // ..############..
-    B01111100, B00111110, // ..#####..#####..
-    B00000000, B00000000, // ................
-    B11111100, B00111111, // ..############..
-    B11111110, B01111111, // .##############.
-    B01111110, B01111110, // .######..######.
-    B00000000, B00000000 // ................
-};
-
-
-static uint8_t bmp_arrow[] PROGMEM = {
-    B00000000, B00011100, B00011100, B00001110, B00001110, B11111110, B01111111,
-    B01110000, B01110000, B00110000, B00111000, B00011000, B01111111, B00111111,
-    B00011110, B00001110, B00000110, B00000000, B00000000, B00000000, B00000000
-};
-
-
-template<class HMSYSTEM>
+template <class HMSYSTEM>
 class MonochromeDisplay {
-    public:
-        MonochromeDisplay() {}
+   public:
+    MonochromeDisplay() {}
 
-        void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
-            mCfg   = cfg;
-            mSys   = sys;
-            mUtcTs = utcTs;
+    void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
+        mCfg = cfg;
+        mSys = sys;
+        mUtcTs = utcTs;
+        mNewPayload = false;
+        mLoopCnt = 0;
+
+        if (mCfg->type == 0) {
+            return;
+        } else if (1 < mCfg->type < 4) {
+            switch (mCfg->rot) {
+                case 0:
+                    DisplayMono.disp_rotation = U8G2_R0;
+                    break;
+                case 1:
+                    DisplayMono.disp_rotation = U8G2_R1;
+                    break;
+                case 2:
+                    DisplayMono.disp_rotation = U8G2_R2;
+                    break;
+                case 3:
+                    DisplayMono.disp_rotation = U8G2_R3;
+                    break;
+            }
+
+            DisplayMono.enablePowerSafe = mCfg->pwrSaveAtIvOffline;
+            DisplayMono.enableScreensaver = mCfg->pxShift;
+            DisplayMono.contrast = mCfg->contrast;
+
+            DisplayMono.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data);
+        } else if (mCfg->type == 4) {
+            DisplayEPaper.displayRotation = mCfg->rot;
+            counterEPaper = 0;
+
+            DisplayEPaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data);
+        }
+    }
+
+    void payloadEventListener(uint8_t cmd) {
+        mNewPayload = true;
+    }
+
+    void tickerSecond() {
+        if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
-            mTimeout = DISP_DEFAULT_TIMEOUT; // power off timeout (after inverters go offline)
-
-            u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot180) ? U8G2_R2 : U8G2_R0);
-
-            if(mCfg->type) {
-                switch(mCfg->type) {
-                    case 1:
-                        mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(rot, mCfg->pin0, mCfg->pin1, disp_reset);
-                        break;
-                    case 2:
-                        mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, disp_reset, mCfg->pin0, mCfg->pin1);
-                        break;
-                    case 3:
-                        mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, disp_reset, mCfg->pin0, mCfg->pin1);
-                        break;
-                }
-                mDisplay->begin();
-
-                mIsLarge = ((mDisplay->getWidth() > 120) && (mDisplay->getHeight() > 60));
-                calcLineHeights();
-
-                mDisplay->clearBuffer();
-                mDisplay->setContrast(mCfg->contrast);
-                printText("Ahoy!", 0, 35);
-                printText("ahoydtu.de", 2, 20);
-                printText(version, 3, 46);
-                mDisplay->sendBuffer();
-            }
+            DataScreen();
         }
+    }
 
-        void payloadEventListener(uint8_t cmd) {
-            mNewPayload = true;
-        }
+   private:
+    void DataScreen() {
+        if (mCfg->type == 0)
+            return;
+        if (*mUtcTs == 0)
+            return;
 
-        void tickerSecond() {
-            if(mCfg->pwrSaveAtIvOffline) {
-                if(mTimeout != 0)
-                    mTimeout--;
-            }
-            if(mNewPayload || ((++mLoopCnt % 10) == 0)) {
-                mNewPayload = false;
-                mLoopCnt = 0;
-                DataScreen();
-            }
-        }
-
-    private:
-        void DataScreen() {
-            if (mCfg->type == 0)
-                return;
-            if(*mUtcTs == 0)
-                return;
-
+        if ((millis() - _lastDisplayUpdate) > period) {
             float totalPower = 0;
             float totalYieldDay = 0;
             float totalYieldTotal = 0;
 
-            bool isprod = false;
+            uint8_t isprod = 0;
 
             Inverter<> *iv;
             record_t<> *rec;
@@ -116,102 +90,37 @@ class MonochromeDisplay {
                     continue;
 
                 if (iv->isProducing(*mUtcTs))
-                    isprod = true;
+                    uint8_t isprod = 0;
 
                 totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                 totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
                 totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
             }
 
-            mDisplay->clearBuffer();
-
-            // Logos
-            //   pxMovement +x (0 - 6 px)
-            uint8_t ex = (_mExtra % 7);
-            if (isprod) {
-                mDisplay->drawXBMP(5 + ex, 1, 8, 17, bmp_arrow);
-                if (mCfg->logoEn)
-                    mDisplay->drawXBMP(mDisplay->getWidth() - 24 + ex, 2, 16, 16, bmp_logo);
+            if (1 < mCfg->type < 4) {
+                DisplayMono.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
+            } else if (mCfg->type == 4) {
+                DisplayEPaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
+                counterEPaper++;
             }
-
-            if ((totalPower > 0) && isprod) {
-                mTimeout = DISP_DEFAULT_TIMEOUT;
-                mDisplay->setPowerSave(false);
-                mDisplay->setContrast(mCfg->contrast);
-                if (totalPower > 999)
-                    snprintf(_fmtText, sizeof(_fmtText), "%2.1f kW", (totalPower / 1000));
-                else
-                    snprintf(_fmtText, sizeof(_fmtText), "%3.0f W", totalPower);
-                printText(_fmtText, 0, 20);
-            } else {
-                printText("offline", 0, 25);
-                if(mCfg->pwrSaveAtIvOffline) {
-                    if(mTimeout == 0)
-                        mDisplay->setPowerSave(true);
-                }
-            }
-
-            snprintf(_fmtText, sizeof(_fmtText), "today: %4.0f Wh", totalYieldDay);
-            printText(_fmtText, 1);
-
-            snprintf(_fmtText, sizeof(_fmtText), "total: %.1f kWh", totalYieldTotal);
-            printText(_fmtText, 2);
-
-            IPAddress ip = WiFi.localIP();
-            if (!(_mExtra % 10) && (ip)) {
-                printText(ip.toString().c_str(), 3);
-            } else {
-                // Get current time
-                if(mIsLarge)
-                    printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
-                else
-                    printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
-            }
-            mDisplay->sendBuffer();
-
-            _mExtra++;
+            _lastDisplayUpdate = millis();
         }
 
-        void calcLineHeights() {
-            uint8_t yOff = 0;
-            for(uint8_t i = 0; i < 4; i++) {
-                setFont(i);
-                yOff += (mDisplay->getMaxCharHeight() + 1);
-                mLineOffsets[i] = yOff;
-            }
+        if (counterEPaper > 480) {
+            DisplayEPaper.fullRefresh();
+            counterEPaper = 0;
         }
+    }
 
-        inline void setFont(uint8_t line) {
-            switch (line) {
-                case 0:  mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB14_tr : u8g2_font_lubBI14_tr); break;
-                case 3:  mDisplay->setFont(u8g2_font_5x8_tr); break;
-                default: mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB10_tr : u8g2_font_5x8_tr); break;
-            }
-        }
-
-        void printText(const char* text, uint8_t line, uint8_t dispX = 5) {
-            if(!mIsLarge)
-                dispX = (line == 0) ? 10 : 5;
-            setFont(line);
-            if(mCfg->pxShift)
-                dispX += (_mExtra % 7); // add pixel movement
-            mDisplay->drawStr(dispX, mLineOffsets[line], text);
-        }
-
-        // private member variables
-        U8G2* mDisplay;
-
-        uint8_t _mExtra;
-        uint16_t mTimeout; // interval at which to power save (milliseconds)
-        char _fmtText[32];
-
-        bool mNewPayload;
-        bool mIsLarge;
-        uint8_t mLoopCnt;
-        uint32_t *mUtcTs;
-        uint8_t mLineOffsets[5];
-        display_t *mCfg;
-        HMSYSTEM *mSys;
+    // private member variables
+    bool mNewPayload;
+    uint8_t mLoopCnt;
+    uint32_t *mUtcTs;
+    display_t *mCfg;
+    HMSYSTEM *mSys;
+    uint16_t period = 10000;  // Achtung, max 65535
+    uint16_t counterEPaper;
+    uint32_t _lastDisplayUpdate = 0;
 };
 
 #endif /*__MONOCHROME_DISPLAY__*/
