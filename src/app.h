@@ -46,7 +46,7 @@ typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
-#include "plugins/MonochromeDisplay/MonochromeDisplay.h"
+#include "plugins/Display/MonochromeDisplay.h"
 typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
 
 
