@@ -481,8 +481,7 @@ class MiPayload {
                 ac_pow = calcPowerDcCh0(iv, 0)*9.5;
             //}
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-            //iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (mPayload[iv->id].sts[0] == 3 ? calcPowerDcCh0(iv, 0)*0.95 : 0));
-
+            
             if ( mPayload[iv->id].sts[0] ) {
                 uint8_t cmd = mPayload[iv->id].dataAB[0] ? 0x11 : 0x09;
                 if ( mPayload[iv->id].dataAB[0] && mPayload[iv->id].dataAB[1] ) {
