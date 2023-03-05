@@ -4,12 +4,13 @@
 //-----------------------------------------------------------------------------
 
 #include "app.h"
+
 #include <ArduinoJson.h>
+
 #include "utils/sun.h"
 
 //-----------------------------------------------------------------------------
 app::app() : ah::Scheduler() {}
-
 
 //-----------------------------------------------------------------------------
 void app::setup() {
@@ -24,7 +25,7 @@ void app::setup() {
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINT(DBG_INFO, F("Settings valid: "));
-    if(mSettings.getValid())
+    if (mSettings.getValid())
         DBGPRINTLN(F("true"));
     else
         DBGPRINTLN(F("false"));
@@ -32,16 +33,16 @@ void app::setup() {
     mSys.enableDebug();
     mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
 
-    #if defined(AP_ONLY)
+#if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
-    #else
+#else
     mInnerLoopCb = std::bind(&app::loopWifi, this);
-    #endif
+#endif
 
     mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onWifi, this, std::placeholders::_1));
-    #if !defined(AP_ONLY)
+#if !defined(AP_ONLY)
     everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-    #endif
+#endif
 
     mSys.addInverters(&mConfig->inst);
 
@@ -52,23 +53,23 @@ void app::setup() {
     mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
 
-    //DBGPRINTLN("--- after payload");
-    //DBGPRINTLN(String(ESP.getFreeHeap()));
-    //DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    //DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
+    // DBGPRINTLN("--- after payload");
+    // DBGPRINTLN(String(ESP.getFreeHeap()));
+    // DBGPRINTLN(String(ESP.getHeapFragmentation()));
+    // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 
-    if(!mSys.Radio.isChipConnected())
+    if (!mSys.Radio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
-    // when WiFi is in client mode, then enable mqtt broker
-    #if !defined(AP_ONLY)
+// when WiFi is in client mode, then enable mqtt broker
+#if !defined(AP_ONLY)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
-    #endif
+#endif
     setupLed();
 
     mWeb.setup(this, &mSys, mConfig);
@@ -77,18 +78,17 @@ void app::setup() {
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
-    if(mConfig->plugin.display.type != 0)
-        mMonoDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, 0xff, mVersion);
+    if (mConfig->plugin.display.type != 0)
+        mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, 0xff, mVersion);
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     regularTickers();
 
-
-    //DBGPRINTLN("--- end setup");
-    //DBGPRINTLN(String(ESP.getFreeHeap()));
-    //DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    //DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
+    // DBGPRINTLN("--- end setup");
+    // DBGPRINTLN(String(ESP.getFreeHeap()));
+    // DBGPRINTLN(String(ESP.getHeapFragmentation()));
+    // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 }
 
 //-----------------------------------------------------------------------------
@@ -115,8 +115,8 @@ void app::loopStandard(void) {
             mStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
-            if(NULL != iv) {
-                if(IV_HM == iv->ivGen)
+            if (NULL != iv) {
+                if (IV_HM == iv->ivGen)
                     mPayload.add(iv, p);
                 else
                     mMiPayload.add(iv, p);
@@ -130,7 +130,7 @@ void app::loopStandard(void) {
     mPayload.loop();
     mMiPayload.loop();
 
-    if(mMqttEnabled)
+    if (mMqttEnabled)
         mMqtt.loop();
 }
 
@@ -144,19 +144,18 @@ void app::loopWifi(void) {
 void app::onWifi(bool gotIp) {
     DPRINTLN(DBG_DEBUG, F("onWifi"));
     ah::Scheduler::resetTicker();
-    regularTickers();   // reinstall regular tickers
+    regularTickers();  // reinstall regular tickers
     if (gotIp) {
         mInnerLoopCb = std::bind(&app::loopStandard, this);
         every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         mMqttReconnect = true;
-        mSunrise = 0; // needs to be set to 0, to reinstall sunrise and ivComm tickers!
+        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-        if(WIFI_AP == WiFi.getMode()) {
+        if (WIFI_AP == WiFi.getMode()) {
             mMqttEnabled = false;
             everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
         }
-    }
-    else {
+    } else {
         mInnerLoopCb = std::bind(&app::loopWifi, this);
         everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     }
@@ -167,8 +166,8 @@ void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
-    if(mConfig->plugin.display.type != 0)
-        everySec(std::bind(&MonoDisplayType::tickerSecond, &mMonoDisplay), "disp");
+    if (mConfig->plugin.display.type != 0)
+        everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
 }
 
@@ -184,26 +183,26 @@ void app::tickNtpUpdate(void) {
         }
 
         // only install schedulers once even if NTP wasn't successful in first loop
-        if(mMqttReconnect) { // @TODO: mMqttReconnect is variable which scope has changed
-            if(mConfig->inst.rstValsNotAvail)
+        if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
+            if (mConfig->inst.rstValsNotAvail)
                 everyMin(std::bind(&app::tickMinute, this), "tMin");
-            if(mConfig->inst.rstYieldMidNight) {
+            if (mConfig->inst.rstYieldMidNight) {
                 uint32_t localTime = gTimezone.toLocal(mTimestamp);
-                uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400); // next midnight local time
+                uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
                 onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
             }
         }
 
-        nxtTrig = isOK ? 43200 : 60; // depending on NTP update success check again in 12 h or in 1 min
+        nxtTrig = isOK ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
 
-        if((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
+        if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             tickCalcSunrise();
         }
 
         // immediately start communicating
         // @TODO: leads to reboot loops? not sure #674
-        if(isOK && mSendFirst) {
+        if (isOK && mSendFirst) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 2, "senOn");
         }
@@ -215,15 +214,15 @@ void app::tickNtpUpdate(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
-    if (mSunrise == 0)                                          // on boot/reboot calc sun values for current time
+    if (mSunrise == 0)  // on boot/reboot calc sun values for current time
         ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
-    if (mTimestamp > (mSunset + mConfig->sun.offsetSec))        // current time is past communication stop, calc sun values for next day
+    if (mTimestamp > (mSunset + mConfig->sun.offsetSec))  // current time is past communication stop, calc sun values for next day
         ah::calculateSunriseSunset(mTimestamp + 86400, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
     tickIVCommunication();
 
-    uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
+    uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;  // set next trigger to communication stop, +60 for safety that it is certain past communication stop
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig, "Sunri");
     if (mMqttEnabled)
         tickSun();
@@ -231,15 +230,15 @@ void app::tickCalcSunrise(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickIVCommunication(void) {
-    mIVCommunicationOn = !mConfig->sun.disNightCom; // if sun.disNightCom is false, communication is always on
-    if (!mIVCommunicationOn) {  // inverter communication only during the day
+    mIVCommunicationOn = !mConfig->sun.disNightCom;  // if sun.disNightCom is false, communication is always on
+    if (!mIVCommunicationOn) {                       // inverter communication only during the day
         uint32_t nxtTrig;
-        if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
+        if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) {  // current time is before communication start, set next trigger to communication start
             nxtTrig = mSunrise - mConfig->sun.offsetSec;
         } else {
-            if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
+            if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) {  // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
                 nxtTrig = 0;
-            } else { // current time lies within communication start/stop time, set next trigger to communication stop
+            } else {  // current time lies within communication start/stop time, set next trigger to communication stop
                 mIVCommunicationOn = true;
                 nxtTrig = mSunset + mConfig->sun.offsetSec;
             }
@@ -254,17 +253,17 @@ void app::tickIVCommunication(void) {
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom))
-        once(std::bind(&app::tickSun, this), 1, "mqSun");    // MQTT not connected, retry
+        once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
 }
 
 //-----------------------------------------------------------------------------
 void app::tickComm(void) {
-    if((!mIVCommunicationOn) && (mConfig->inst.rstValsCommStop))
+    if ((!mIVCommunicationOn) && (mConfig->inst.rstValsCommStop))
         once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
 
     if (mMqttEnabled) {
         if (!mMqtt.tickerComm(!mIVCommunicationOn))
-            once(std::bind(&app::tickComm, this), 5, "mqCom");    // MQTT not connected, retry after 5s
+            once(std::bind(&app::tickComm, this), 5, "mqCom");  // MQTT not connected, retry after 5s
     }
 }
 
@@ -275,7 +274,7 @@ void app::tickZeroValues(void) {
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
-            continue; // skip to next inverter
+            continue;  // skip to next inverter
 
         mPayload.zeroInverterValues(iv);
     }
@@ -290,9 +289,9 @@ void app::tickMinute(void) {
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
-            continue; // skip to next inverter
+            continue;  // skip to next inverter
 
-        if(!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
+        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
             mPayload.zeroInverterValues(iv);
     }
 }
@@ -301,7 +300,7 @@ void app::tickMinute(void) {
 void app::tickMidnight(void) {
     // only triggered if 'reset values at midnight is enabled'
     uint32_t localTime = gTimezone.toLocal(mTimestamp);
-    uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400); // next midnight local time
+    uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
     Inverter<> *iv;
@@ -309,7 +308,7 @@ void app::tickMidnight(void) {
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
-            continue; // skip to next inverter
+            continue;  // skip to next inverter
 
         mPayload.zeroInverterValues(iv);
         mPayload.zeroYieldDay(iv);
@@ -321,7 +320,7 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(!mSys.Radio.isChipConnected()) {
+    if (!mSys.Radio.isChipConnected()) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
     }
@@ -341,8 +340,8 @@ void app::tickSend(void) {
         } while ((NULL == iv) && ((maxLoop--) > 0));
 
         if (NULL != iv) {
-            if(iv->config->enabled) {
-                if(iv->ivGen == IV_HM)
+            if (iv->config->enabled) {
+                if (iv->ivGen == IV_HM)
                     mPayload.ivSend(iv);
                 else
                     mMiPayload.ivSend(iv);
@@ -368,7 +367,7 @@ void app::resetSystem(void) {
     mSendFirst = true;
 
     mSunrise = 0;
-    mSunset  = 0;
+    mSunset = 0;
 
     mMqttEnabled = false;
 
@@ -391,25 +390,25 @@ void app::setupLed(void) {
      * PIN ---- |<----- 3.3V
      *
      * */
-    if(mConfig->led.led0 != 0xff) {
+    if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
-        digitalWrite(mConfig->led.led0, HIGH); // LED off
+        digitalWrite(mConfig->led.led0, HIGH);  // LED off
     }
-    if(mConfig->led.led1 != 0xff) {
+    if (mConfig->led.led1 != 0xff) {
         pinMode(mConfig->led.led1, OUTPUT);
-        digitalWrite(mConfig->led.led1, HIGH); // LED off
+        digitalWrite(mConfig->led.led1, HIGH);  // LED off
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
-    if(mConfig->led.led0 != 0xff) {
+    if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
-            if(iv->isProducing(mTimestamp))
-                digitalWrite(mConfig->led.led0, LOW); // LED on
+            if (iv->isProducing(mTimestamp))
+                digitalWrite(mConfig->led.led0, LOW);  // LED on
             else
-                digitalWrite(mConfig->led.led0, HIGH); // LED off
+                digitalWrite(mConfig->led.led0, HIGH);  // LED off
         }
     }
 }
