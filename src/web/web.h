@@ -602,7 +602,6 @@ class Web {
 
         // display
         mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("dispPwr") == "on");
-        mConfig->plugin.display.logoEn = (request->arg("logoEn") == "on");
         mConfig->plugin.display.pxShift = (request->arg("dispPxSh") == "on");
         mConfig->plugin.display.rot = request->arg("rotation").toInt();
         mConfig->plugin.display.type = request->arg("dispType").toInt();

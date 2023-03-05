@@ -11,7 +11,7 @@ SPIClass hspi(HSPI);
 
 std::map<uint8_t, std::function<GxEPD2_GFX*(uint8_t, uint8_t, uint8_t, uint8_t)>> _ePaperTypes = {
     // DEPG0150BN 200x200, SSD1681, TTGO T5 V2.4.1
-    {4, [](uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY) { return new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY)); }},
+    {11, [](uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY) { return new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY)); }},
     // GDEW027C44   2.7 " b/w/r 176x264, IL91874
     //{DisplayType_t::ePaper270, [](uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY)
     // F { return new GxEPD2_3C<GxEPD2_270c, GxEPD2_270c::HEIGHT>(GxEPD2_270c(_CS, _DC, _RST, _BUSY)); }},
@@ -66,7 +66,8 @@ void DisplayEPaperClass::fullRefresh() {
     delay(2000);
     // screen complete white
     _display->fillScreen(GxEPD_WHITE);
-    while (_display->nextPage());
+    while (_display->nextPage())
+        ;
 }
 //***************************************************************************
 void DisplayEPaperClass::headlineIP() {

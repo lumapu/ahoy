@@ -26,7 +26,7 @@ class MonochromeDisplay {
 
         if (mCfg->type == 0) {
             return;
-        } else if (1 < mCfg->type < 4) {
+        } else if (1 < mCfg->type < 10) {
             switch (mCfg->rot) {
                 case 0:
                     DisplayMono.disp_rotation = U8G2_R0;
@@ -47,7 +47,7 @@ class MonochromeDisplay {
             DisplayMono.contrast = mCfg->contrast;
 
             DisplayMono.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data);
-        } else if (mCfg->type == 4) {
+        } else if (mCfg->type > 10) {
             DisplayEPaper.displayRotation = mCfg->rot;
             counterEPaper = 0;
 
