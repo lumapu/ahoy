@@ -606,7 +606,7 @@ class Web {
         mConfig->plugin.display.rot = request->arg("rotation").toInt();
         mConfig->plugin.display.type = request->arg("dispType").toInt();
         mConfig->plugin.display.contrast = request->arg("dispCont").toInt();
-
+        mConfig->plugin.display.period = request->arg("period").toInt();
         mConfig->plugin.display.disp_data = request->arg("data").toInt();
         mConfig->plugin.display.disp_clk = request->arg("clock").toInt();
         mConfig->plugin.display.disp_cs = request->arg("cs").toInt();

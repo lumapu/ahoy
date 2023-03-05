@@ -10,8 +10,6 @@
 #include "Display_ePaper.h"
 #include "imagedata.h"
 
-#define DISP_DEFAULT_TIMEOUT 60  // in seconds
-
 template <class HMSYSTEM>
 class Display {
    public:
@@ -75,7 +73,7 @@ class Display {
         if (*mUtcTs == 0)
             return;
 
-        if ((millis() - _lastDisplayUpdate) > period) {
+        if ((millis() - _lastDisplayUpdate) > mCfg->period) {
             float totalPower = 0;
             float totalYieldDay = 0;
             float totalYieldTotal = 0;
@@ -120,7 +118,6 @@ class Display {
     const char *mVersion;
     display_t *mCfg;
     HMSYSTEM *mSys;
-    uint16_t period = 10000;  // Achtung, max 65535
     uint16_t counterEPaper;
     uint32_t _lastDisplayUpdate = 0;
 };

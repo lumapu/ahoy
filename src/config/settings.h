@@ -124,6 +124,7 @@ typedef struct {
     bool logoEn;
     bool pxShift;
     uint8_t rot;
+    uint16_t period;
     uint16_t wakeUp;
     uint16_t sleepAt;
     uint8_t contrast;
@@ -344,6 +345,7 @@ class settings {
         mCfg.plugin.display.logoEn = true;
         mCfg.plugin.display.pxShift = true;
         mCfg.plugin.display.rot = 0;
+        mCfg.plugin.display.period = 10000;
         mCfg.plugin.display.disp_data = DEF_PIN_OFF;  // SDA
         mCfg.plugin.display.disp_clk = DEF_PIN_OFF;   // SCL
         mCfg.plugin.display.disp_cs = DEF_PIN_OFF;
@@ -477,7 +479,7 @@ class settings {
             JsonObject disp = obj.createNestedObject("disp");
             disp[F("type")] = mCfg.plugin.display.type;
             disp[F("pwrSafe")] = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
-            disp[F("logo")] = (bool)mCfg.plugin.display.logoEn;
+            disp[F("period")] = mCfg.plugin.display.period;
             disp[F("pxShift")] = (bool)mCfg.plugin.display.pxShift;
             disp[F("rotation")] = mCfg.plugin.display.rot;
             disp[F("wake")] = mCfg.plugin.display.wakeUp;
@@ -493,7 +495,7 @@ class settings {
             JsonObject disp = obj["disp"];
             mCfg.plugin.display.type = disp[F("type")];
             mCfg.plugin.display.pwrSaveAtIvOffline = (bool)disp[F("pwrSafe")];
-            mCfg.plugin.display.logoEn = (bool)disp[F("logo")];
+            mCfg.plugin.display.period = disp[F("period")];
             mCfg.plugin.display.pxShift = (bool)disp[F("pxShift")];
             mCfg.plugin.display.rot = disp[F("rotation")];
             mCfg.plugin.display.wakeUp = disp[F("wake")];

@@ -433,6 +433,7 @@ class RestApi {
         obj[F("disp_pwr")] = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
         obj[F("px_shift")] = (bool)mConfig->plugin.display.pxShift;
         obj[F("rotation")] = (uint8_t)mConfig->plugin.display.rot;
+        obj[F("period")] = (uint16_t)mConfig->plugin.display.period;
         obj[F("contrast")] = (uint8_t)mConfig->plugin.display.contrast;
         obj[F("data")] = mConfig->plugin.display.disp_data;
         obj[F("clock")] = mConfig->plugin.display.disp_clk;

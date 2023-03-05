@@ -2,6 +2,7 @@
 #pragma once
 
 #include <U8g2lib.h>
+#define DISP_DEFAULT_TIMEOUT 60000  // in milliseconds
 
 class DisplayMonoClass {
    public:
@@ -33,7 +34,7 @@ class DisplayMonoClass {
     uint32_t _previousMillis = 0;
 
     uint8_t _mExtra;
-    uint16_t _mTimeout;  // interval at which to power save (milliseconds)
+    uint16_t _mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
     char _fmtText[32];
 };
 
