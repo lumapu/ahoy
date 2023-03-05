@@ -18,8 +18,8 @@ typedef struct {
     uint8_t txCmd;
     uint8_t len[MAX_PAYLOAD_ENTRIES];
     bool complete;
-    bool stsa;
-    bool stsb;
+    bool dataAB[2];
+    uint8_t sts[5];
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
@@ -65,6 +65,7 @@ class MiPayload {
         void addAlarmListener(alarmListenerType cb) {
             mCbMiAlarm = cb;
         }
+
         void loop() {
             /*if(NULL != mHighPrioIv) {
                 iv->ivSend(mHighPrioIv, true); // should request firmware version etc.?
@@ -84,55 +85,83 @@ class MiPayload {
             if (mSerialDebug)
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
 
-            uint8_t cmd = iv->type == INV_TYPE_4CH ? 0x36 : 0x09; //iv->getQueuedCmd();
-            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd"));
+            //first channel request
+            /*uint8_t cmd = iv->type == INV_TYPE_4CH ? 0x36 : 0x09;
+            DPRINT(DBG_INFO, F("(#"));
+            DBGPRINT(String(iv->id));
+            DBGPRINT(F(") prepareDevInformCmd 0x"));
+            DBGPRINTLN(String(cmd, HEX));
             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-            mPayload[iv->id].txCmd = cmd;
+            mPayload[iv->id].txCmd = cmd;*/
+
+            uint8_t cmd = iv->getQueuedCmd();
+                DPRINT(DBG_INFO, F("(#"));
+                DBGPRINT(String(iv->id));
+                DBGPRINT(F(") prepareDevInformCmd 0x"));
+                DBGPRINTLN(String(cmd, HEX));
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                mPayload[iv->id].txCmd = cmd;
+            //other channel requests
+            /*if (iv->type == INV_TYPE_4CH) {
+                for(uint8_t i = 1; i < iv->channels; i++) {
+                     iv->enqueCommand<CommandAbstract>(cmd + i, cmd + i);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd + i);
+                }
+            } else */
+            if (iv->type == INV_TYPE_2CH) {
+                mPayload[iv->id].dataAB[0] = false;
+                mPayload[iv->id].dataAB[1] = false;
+                //iv->enqueCommand(0x11);
+                //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+            }
         }
 
         void add(Inverter<> *iv, packet_t *p) {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
-                mPayload[iv->id].stsa = true;
+                //mPayload[iv->id].sts[0] = true;
                 miStsDecode(iv, p);
             } else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
-                mPayload[iv->id].stsb = true;
+                //mPayload[iv->id].sts[1] = true;
                 miStsDecode(iv, p, CH2);
-            } else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
+            /*} else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
-                iv->setQueuedCmdFinished();
+                //iv->setQueuedCmdFinished();
                 if (INV_TYPE_2CH == iv->type) {
                     //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
                 } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
                     mPayload[iv->id].complete = true;
                     //iv->setQueuedCmdFinished();
                 }
 
-            } else if (p->packet[0] == (0x11 + ALL_FRAMES)) { // MI data response to 0x11
+            } else if (p->packet[0] == ()) { // MI data response to 0x11
                 mPayload[iv->id].txId = p->packet[0];
-                mPayload[iv->id].complete = true;
                 miDataDecode(iv,p);
-                iv->setQueuedCmdFinished();
+                mStat->rxSuccess++;
+                //iv->setQueuedCmdFinished();*/
 
-            } else if (p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME)) { // MI 1500 data response to 0x36, 0x37, 0x38 and 0x39
+            } else if ( p->packet[0] == 0x09 + ALL_FRAMES ||
+                        p->packet[0] == 0x11 + ALL_FRAMES ||
+                        ( p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME) ) ) { // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
-                iv->setQueuedCmdFinished();
-                if (p->packet[0] < (0x39 + ALL_FRAMES)) {
+                //mStat->rxSuccess++;
+                //iv->setQueuedCmdFinished();
+                /*if (p->packet[0] < (0x39 + ALL_FRAMES)) {
                     //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
                 } else {
                     mPayload[iv->id].complete = true;
                     //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
                     //iv->setQueuedCmdFinished();
-                }
+                }*/
 
-            /*}
+            //}
 
-            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+            /*if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                 uint8_t *pid = &p->packet[9];
@@ -170,7 +199,7 @@ class MiPayload {
                         msg = "NOT ";
                     DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
                     iv->clearCmdQueue();
-                    iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                    iv->enqueCommand<MiInfoCommand>(SystemConfigPara); // read back power limit
                 }
                 iv->devControlCmd = Init;
             } else {  // some other response; copied from hmPayload:process; might not be correct to do that here!!!
@@ -264,6 +293,7 @@ class MiPayload {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
+                                    DPRINTLN(DBG_WARN, F("missing answer to 0x") + String(iv->getQueuedCmd(), HEX) + F("Request Retransmit"));
                                     mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getQueuedCmd(), 24, true);
                                     /*if(false == mPayload[iv->id].gotFragment) {
                                         DPRINTLN(DBG_WARN, F("(#") + String(iv->id) + F(") nothing received"));
@@ -363,39 +393,28 @@ class MiPayload {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
             rec->ts = mPayload[iv->id].ts;
 
-            //iv->setValue(iv->getPosByChFld(chan, FLD_YD, rec), rec, (int)((p->packet[11+6] << 8) + p->packet[12+6])); // was 11/12, might be wrong!
+            uint8_t status  = (p->packet[11] << 8) + p->packet[12];
+            uint8_t stschan = p->packet[0] == 0x88 ? CH1 : CH2;
+            mPayload[iv->id].dataAB[stschan-1] = true;
+            mPayload[iv->id].sts[stschan] = status;
+            if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0]) {
+                mPayload[iv->id].sts[0] = status;
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
+            }
 
-            //if (INV_TYPE_1CH == iv->type)
-                //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, (int)((p->packet[11+6] << 8) + p->packet[12+6]));
+            if ( !mPayload[iv->id].dataAB[0] || !mPayload[iv->id].dataAB[1] ) {
+                uint8_t cmd = mPayload[iv->id].dataAB[0] ? 0x11 : 0x09;
+                DPRINTLN(DBG_INFO, F("request missing status 0x") + String(cmd, HEX));
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                mPayload[iv->id].txCmd = cmd;
+            }
 
-            //iv->setValue(iv->getPosByChFld(chan, FLD_EVT, rec), rec, (int)((p->packet[13] << 8) + p->packet[14]));
-
-            iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[11] << 8) + p->packet[12]));
-            //iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (int)((p->packet[14] << 8) + p->packet[16]));
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
                 DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
-                iv->enqueCommand<InfoCommand>(AlarmData);
+                iv->enqueCommand<MiInfoCommand>(AlarmData);
             }
-            /* Unclear how in HM inverters Info and alarm data is handled...
-            */
-
-
-            /*            int8_t offset = -2;
-
-                for decoding see
-                void MI600StsMsg (NRF24_packet_t *p){
-                  STAT = (int)((p->packet[11] << 8) + p->packet[12]);
-                  FCNT = (int)((p->packet[13] << 8) + p->packet[14]);
-                  FCODE = (int)((p->packet[15] << 8) + p->packet[16]);
-                #ifdef ESP8266
-                  VALUES[PV][5]=STAT;
-                  VALUES[PV][6]=FCNT;
-                  VALUES[PV][7]=FCODE;
-                #endif
-                }
-                */
         }
 
         void miDataDecode(Inverter<> *iv, packet_t *p) {
@@ -406,49 +425,93 @@ class MiPayload {
                            ( p->packet[0] == 0x91 || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
                            p->packet[0] == (0x38 + ALL_FRAMES) ? CH3 :
                            CH4;
-            int8_t offset = -2;
-            // U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_UDC, rec), rec, (float)((p->packet[11+offset] << 8) + p->packet[12+offset])/10);
+            DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg 0x") + String(p->packet[0], HEX) + F(" channel ") + datachan);
+            // count in RF_communication_protocol.xlsx is with offset = -1
+            iv->setValue(iv->getPosByChFld(datachan, FLD_UDC, rec), rec, (float)((p->packet[9] << 8) + p->packet[10])/10);
             yield();
-            // I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_IDC, rec), rec, (float)((p->packet[13+offset] << 8) + p->packet[14+offset])/10);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_IDC, rec), rec, (float)((p->packet[11] << 8) + p->packet[12])/10);
             yield();
-            //      U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
-            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[15+offset] << 8) + p->packet[16+offset])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[13] << 8) + p->packet[14])/10);
             yield();
-            //      F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
-            //iv->setValue(iv->getPosByChFld(0, FLD_IAC, rec), rec, (float)((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
-            //yield();
-            //      P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[19+offset] << 8) + p->packet[20+offset])/10);
+            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[15] << 8) + p->packet[16])/100);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/10);
             yield();
-            //      Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-            iv->setValue(iv->getPosByChFld(datachan, FLD_YD, rec), rec, (float)((p->packet[21+offset] << 8) + p->packet[22+offset])/1);
+            iv->setValue(iv->getPosByChFld(datachan, FLD_YD, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/1);
             yield();
-            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[23+offset] << 8) + p->packet[24+offset])/10); //23 is freq or IAC?
-            iv->setValue(iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[17+offset] << 8) + p->packet[18+offset])/100);
+            iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[21] << 8) + p->packet[22])/10);
             iv->setValue(iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(iv, datachan)));
-            yield();
-            //FLD_YD
+            //AC Power is missing; we may have to calculate, as no respective data is in payload
 
             if (p->packet[0] >= (0x36 + ALL_FRAMES) ) {
-                /*status message analysis most liklely needs to be changed, see MiStsMst*/
-                /*STAT = (uint8_t)(p->packet[25] );
-                FCNT = (uint8_t)(p->packet[26]);
-                FCODE = (uint8_t)(p->packet[27]); // MI300/Mi600 stsMsg:: (int)((p->packet[15] << 8) + p->packet[16]); */
-                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, (uint8_t)(p->packet[25+offset]));
-                yield();
+
+                /*For MI1500:
+                if (MI1500) {
+                  STAT = (uint8_t)(p->packet[25] );
+                  FCNT = (uint8_t)(p->packet[26]);
+                  FCODE = (uint8_t)(p->packet[27]);
+                }*/
+
+                uint8_t status = (uint8_t)(p->packet[23]);
+                mPayload[iv->id].sts[datachan] = status;
+                if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0]) {
+                    mPayload[iv->id].sts[0] = status;
+                    iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
+                }
+
+                if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
+                    uint8_t cmd = p->packet[0] - ALL_FRAMES + 1;
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    mPayload[iv->id].txCmd = cmd;
+                    mPayload[iv->id].complete = false;
+                }
+
+                //iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, calcMiSts(iv));yield();
                 if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
 
                     DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
-                    iv->enqueCommand<InfoCommand>(AlarmData);
+                    //iv->enqueCommand<InfoCommand>(AlarmData);
                 }
+
             }
-            //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0); // (getValue(iv->getPosByChFld(1, FLD_YD, rec), rec) + getValue(iv->getPosByChFld(2, FLD_YD, rec), rec)));
-            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0)); //datachan));
-                            iv->doCalculations();
-                            notify(mPayload[iv->id].txCmd);
+
+            //preliminary AC calculation...
+            uint8_t ac_pow = 0;
+            //if (mPayload[iv->id].sts[0] == 3) {
+                ac_pow = calcPowerDcCh0(iv, 0)*9.5;
+            //}
+            iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
+            //iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (mPayload[iv->id].sts[0] == 3 ? calcPowerDcCh0(iv, 0)*0.95 : 0));
+
+            if ( mPayload[iv->id].sts[0] ) {
+                uint8_t cmd = mPayload[iv->id].dataAB[0] ? 0x11 : 0x09;
+                if ( mPayload[iv->id].dataAB[0] && mPayload[iv->id].dataAB[1] ) {
+                    mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
+                    DPRINTLN(DBG_INFO, F("complete tree detected"));
+                    iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
+                    iv->doCalculations();
+                } else {
+                    //retry to get missing status info for one or two channel devices
+                    DPRINTLN(DBG_INFO, F("request missing data or status 0x") + String(cmd, HEX));
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    mPayload[iv->id].txCmd = cmd;
+                    //iv->enqueCommand(cmd); // mPayload[iv->id].dataAB[1] ? 0x09 : 0x11)
+                }
+            } // not yet moved to hmInverter::getQueuedCmd
+            else if (mPayload[iv->id].txCmd == 0x09 && iv->type == INV_TYPE_2CH) {
+                uint8_t cmd = 0x11;
+                DPRINTLN(DBG_INFO, F("request second data channel 0x") + String(cmd, HEX));
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                mPayload[iv->id].txCmd = cmd;
+                mPayload[iv->id].complete = false;
+            }
+
+            iv->setQueuedCmdFinished();
+            mStat->rxSuccess++;
+            yield();
+
+            notify(mPayload[iv->id].txCmd);
+
 /*
                             if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
@@ -463,66 +526,26 @@ class MiPayload {
                                     yield();
                                 }
                             }*/
-/*decode here or memcopy payload for later decoding?
-                void MI600DataMsg(NRF24_packet_t *p){
-                  U_DC =  (float) ((p->packet[11] << 8) + p->packet[12])/10;
-                  I_DC =  (float) ((p->packet[13] << 8) + p->packet[14])/10;
-                  U_AC =  (float) ((p->packet[15] << 8) + p->packet[16])/10;
-                  F_AC =  (float) ((p->packet[17] << 8) + p->packet[18])/100;
-                  P_DC =  (float)((p->packet[19] << 8) + p->packet[20])/10;
-                  Q_DC =  (float)((p->packet[21] << 8) + p->packet[22])/1;
-                  TEMP =  (float) ((p->packet[23] << 8) + p->packet[24])/10;  //(int16_t)
-
-                  if ((30<U_DC<50) && (0<I_DC<15) && (200<U_AC<300) && (45<F_AC<55) && (0<P_DC<420) && (0<TEMP<80))
-                   DataOK = 1;  //we need to check this, if no crc
-                  else { DEBUG_OUT.printf("Data Wrong!!\r\n");DataOK =0; return;}
-
-                  if (p->packet[2] == 0x89)  {PV= 0; TotalP[1]=P_DC; pvCnt[0]=1;}//port 1
-                  if (p->packet[2] == 0x91)  {PV= 1; TotalP[2]=P_DC; pvCnt[1]=1;}//port 2
-
-                  TotalP[0]=TotalP[1]+TotalP[2]+TotalP[3]+TotalP[4];//in TotalP[0] is the totalPV power
-                  if((P_DC>400) || (P_DC<0) || (TotalP[0]>MAXPOWER)){// cant be!!
-                    TotalP[0]=0;
-                    return;
-                    }
-                #ifdef ESP8266
-                  VALUES[PV][0]=PV;
-                  VALUES[PV][1]=P_DC;
-                  VALUES[PV][2]=U_DC;
-                  VALUES[PV][3]=I_DC;
-                  VALUES[PV][4]=Q_DC;
-                #endif
-                  PMI=TotalP[0];
-                  LIM=(uint16_t)Limit;
-                  PrintOutValues();
-                }*/
-
-                /*For MI1500:
-                if (MI1500) {
-  STAT = (uint8_t)(p->packet[25] );
-  FCNT = (uint8_t)(p->packet[26]);
-  FCODE = (uint8_t)(p->packet[27]);
-  }
-                */
-                DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(": data msg 0x") + String(p->packet[0], HEX) + F(" channel ") + datachan);
         }
 
         bool build(uint8_t id, bool *complete) {
-            /*DPRINTLN(DBG_VERBOSE, F("build"));
-            uint16_t crc = 0xffff, crcRcv = 0x0000;
+            DPRINTLN(DBG_VERBOSE, F("build"));
+            /*uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
                 mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
+            */
+            // check if all messages are there
 
-            // check if all fragments are there
-            *complete = true;
-            for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
-                if(mPayload[id].len[i] == 0)
-                    *complete = false;
+            *complete = mPayload[id].complete;
+            uint8_t txCmd = mPayload[id].txCmd;
+            //uint8_t cmd = getQueuedCmd();
+            if(!*complete) {
+                //if (txCmd == 0x09 || txCmd == 0x11 || txCmd >= 0x36 && txCmd <= 0x39 )
+                //    return false;
+                DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX)); // + F("cmd is 0x") + String(cmd, HEX));
             }
-            if(!*complete)
-                return false;
 
-            for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
+            /*for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
                 if (mPayload[id].len[i] > 0) {
                     if (i == (mPayload[id].maxPackId - 1)) {
                         crc = ah::crc16(mPayload[id].data[i], mPayload[id].len[i] - 2, crc);
@@ -546,12 +569,41 @@ class MiPayload {
             mPayload[id].lastFound   = false;*/
             mPayload[id].retransmits = 0;
             mPayload[id].complete    = false;
+            mPayload[id].dataAB[0]   = true; //only required for 2CH devices
+            mPayload[id].dataAB[1]   = true;
             mPayload[id].txCmd       = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
-            mPayload[id].stsa        = false;
-            mPayload[id].stsb        = false;
+            //mPayload[id].sts[0]      = 0;
+            mPayload[id].sts[1]      = 0;
+            mPayload[id].sts[2]      = 0;
+            mPayload[id].sts[3]      = 0;
+            mPayload[id].sts[4]      = 0;
         }
+
+
+/*        template<class T=uint8_t>
+        static T calcMiSts(Inverter<> *iv) {
+            if(NULL != iv) {
+                T result = 0;
+                bool stsComplete = true;
+                uint8_t stsCh;
+                for(uint8_t i = 1; i <= iv->channels; i++) {
+                    stsCh = mPayload[iv->id].sts[i];
+                    if (!stsCh) {
+                        stsComplete = false;
+                    } else if ( !result || stsCh < result ) {
+                        result = stsCh;
+                        if (stsComplete && stsCh > stsComplete) {
+                            stsComplete = stsCh;
+                        }
+                    }
+                }
+                mPayload[iv->id].sts[0] = stsComplete;
+                return result;
+            }
+            return 0;
+        } */
 
         IApp *mApp;
         HMSYSTEM *mSys;
