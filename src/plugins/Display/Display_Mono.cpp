@@ -1,144 +1,149 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "Display_Mono.h"
 
-#include <time.h>
-
-#include <map>
-
-#include "WiFi.h"
-#include "imagedata.h"
-
-#ifdef U8X8_HAVE_HW_SPI
-#include <SPI.h>
+#ifdef ESP8266
+    #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+    #include <WiFi.h>
 #endif
-#ifdef U8X8_HAVE_HW_I2C
-#include <Wire.h>
-#endif
+#include "../../utils/helper.h"
 
-std::map<uint8_t, std::function<U8G2*(uint8_t, uint8_t, uint8_t, uint8_t, uint8_t)>> mono_types = {
-    {1, [](uint8_t reset, uint8_t clock, uint8_t data, uint8_t cs, uint8_t dc) { return new U8G2_PCD8544_84X48_F_4W_SW_SPI(U8G2_R2, clock, data, cs, dc, reset); }},
-    {2, [](uint8_t reset, uint8_t clock, uint8_t data, uint8_t cs, uint8_t dc) { return new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(U8G2_R0, reset, clock, data); }},
-    {3, [](uint8_t reset, uint8_t clock, uint8_t data, uint8_t cs, uint8_t dc) { return new U8G2_SH1106_128X64_NONAME_F_HW_I2C(U8G2_R0, reset, clock, data); }},
-};
+//#ifdef U8X8_HAVE_HW_SPI
+//#include <SPI.h>
+//#endif
+//#ifdef U8X8_HAVE_HW_I2C
+//#include <Wire.h>
+//#endif
 
-DisplayMonoClass::DisplayMonoClass() {
+DisplayMono::DisplayMono() {
+    mEnPowerSafe = true;
+    mEnScreenSaver = true;
+    mLuminance = 60;
+    _dispY = 0;
+    mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
+    mUtcTs = NULL;
 }
 
-DisplayMonoClass::~DisplayMonoClass() {
-    delete _display;
-}
 
-void DisplayMonoClass::calcLineHeights() {
-    uint8_t yOff = 0;
-    for (uint8_t i = 0; i < 4; i++) {
-        setFont(i);
-        yOff += (_display->getMaxCharHeight());
-        mLineOffsets[i] = yOff;
-    }
-}
 
-inline void DisplayMonoClass::setFont(uint8_t line) {
-    switch (line) {
-        case 0:
-            _display->setFont((_mIsLarge) ? u8g2_font_ncenB14_tr : u8g2_font_logisoso16_tr);
-            break;
-        case 3:
-            _display->setFont(u8g2_font_5x8_tr);
-            break;
-        default:
-            _display->setFont((_mIsLarge) ? u8g2_font_ncenB10_tr : u8g2_font_5x8_tr);
-            break;
-    }
-}
+void DisplayMono::init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
+    if ((0 < type) && (type < 4)) {
+        u8g2_cb_t *rot = (u8g2_cb_t *)((rot != 0x00) ? U8G2_R2 : U8G2_R0);
+        switch(type) {
+            case 1:
+                mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(rot, cs, dc, reset);
+                break;
+            case 2:
+                mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
+                break;
+            default:
+            case 3:
+                mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
+                break;
+        }
 
-void DisplayMonoClass::printText(const char* text, uint8_t line, uint8_t dispX = 5) {
-    if (!_mIsLarge) {
-        dispX = (line == 0) ? 5 : 0;
-    } else {
-        dispX = (line == 0) ? 20 : 5;
-    }
-    setFont(line);
+        mUtcTs = utcTs;
 
-    dispX += enableScreensaver ? (_mExtra % 7) : 0;
-    _display->drawStr(dispX, mLineOffsets[line], text);
-}
+        mDisplay->begin();
 
-void DisplayMonoClass::init(uint8_t _type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char* version) {
-    if (0 < _type < 4) {
-        auto constructor = mono_types[_type];
-        _display = constructor(_RST, _SCK, _MOSI, _CS, _DC);
-        _display->begin();
-        _display->setDisplayRotation(disp_rotation);
-
-        _mIsLarge = (_display->getWidth() > 100);
+        mIsLarge = (mDisplay->getWidth() > 120);
         calcLineHeights();
 
-        _display->clearBuffer();
-        if (contrast < 255) {
-            _display->setContrast(contrast);
-        }
+        mDisplay->clearBuffer();
+        mDisplay->setContrast(mLuminance);
         printText("AHOY!", 0, 35);
         printText("ahoydtu.de", 2, 20);
         printText(version, 3, 46);
-        _display->sendBuffer();
+        mDisplay->sendBuffer();
     }
 }
 
-void DisplayMonoClass::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
-    _display->clearBuffer();
+void DisplayMono::config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
+    mEnPowerSafe = enPowerSafe;
+    mEnScreenSaver = enScreenSaver;
+    mLuminance = lum;
+}
+
+void DisplayMono::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+    if (mEnPowerSafe)
+        if(mTimeout != 0)
+           mTimeout--;
+
+    mDisplay->clearBuffer();
 
     // set Contrast of the Display to raise the lifetime
-    if (contrast < 255) {
-        _display->setContrast(contrast);
-    }
+    mDisplay->setContrast(mLuminance);
 
-    //=====> Actual Production ==========
     if ((totalPower > 0) && (isprod > 0)) {
-        _display->setPowerSave(false);
+        mTimeout = DISP_DEFAULT_TIMEOUT;
+        mDisplay->setPowerSave(false);
         if (totalPower > 999) {
-            snprintf(_fmtText, sizeof(_fmtText), "%2.2f kW", (totalPower / 1000));
+            snprintf(_fmtText, DISP_FMT_TEXT_LEN, "%2.2f kW", (totalPower / 1000));
         } else {
-            snprintf(_fmtText, sizeof(_fmtText), "%3.0f W", totalPower);
+            snprintf(_fmtText, DISP_FMT_TEXT_LEN, "%3.0f W", totalPower);
         }
         printText(_fmtText, 0);
-        _previousMillis = millis();
-    }
-    //<=======================
-
-    //=====> Offline ===========
-    else {
-        printText("offline", 0);
+    } else {
+        printText("offline", 0, 25);
         // check if it's time to enter power saving mode
-        if (millis() - _previousMillis >= (_mTimeout * 2)) {
-            _display->setPowerSave(enablePowerSafe);
-        }
+        if (mTimeout == 0)
+            mDisplay->setPowerSave(mEnPowerSafe);
     }
-    //<=======================
 
-    //=====> Today & Total Production =======
-    snprintf(_fmtText, sizeof(_fmtText), "today: %4.0f Wh", totalYieldDay);
+    snprintf(_fmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
     printText(_fmtText, 1);
 
-    snprintf(_fmtText, sizeof(_fmtText), "total: %.1f kWh", totalYieldTotal);
+    snprintf(_fmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", totalYieldTotal);
     printText(_fmtText, 2);
-    //<=======================
 
-    //=====> IP or Date-Time ========
-    if (!(_mExtra % 10) && WiFi.localIP()) {
-        printText(WiFi.localIP().toString().c_str(), 3);
+    IPAddress ip = WiFi.localIP();
+    if (!(_mExtra % 10) && (ip)) {
+        printText(ip.toString().c_str(), 3);
     } else if (!(_mExtra % 5)) {
-        snprintf(_fmtText, sizeof(_fmtText), "#%d Inverter online", isprod);
+        snprintf(_fmtText, DISP_FMT_TEXT_LEN, "#%d Inverter online", isprod);
         printText(_fmtText, 3);
     } else {
-        time_t now = time(nullptr);
-        strftime(_fmtText, sizeof(_fmtText), "%d.%m.%Y %H:%M", localtime(&now));
-        printText(_fmtText, 3);
+        if(mIsLarge && (NULL != mUtcTs))
+            printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+        else
+            printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
     }
 
-    _display->sendBuffer();
+    mDisplay->sendBuffer();
 
     _dispY = 0;
     _mExtra++;
 }
 
-DisplayMonoClass DisplayMono;
+void DisplayMono::calcLineHeights() {
+    uint8_t yOff = 0;
+    for (uint8_t i = 0; i < 4; i++) {
+        setFont(i);
+        yOff += (mDisplay->getMaxCharHeight());
+        mLineOffsets[i] = yOff;
+    }
+}
+
+inline void DisplayMono::setFont(uint8_t line) {
+    switch (line) {
+        case 0:
+            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB14_tr : u8g2_font_logisoso16_tr);
+            break;
+        case 3:
+            mDisplay->setFont(u8g2_font_5x8_tr);
+            break;
+        default:
+            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB10_tr : u8g2_font_5x8_tr);
+            break;
+    }
+}
+
+void DisplayMono::printText(const char* text, uint8_t line, uint8_t dispX) {
+    if (!mIsLarge) {
+        dispX = (line == 0) ? 10 : 5;
+    }
+    setFont(line);
+
+    dispX += (mEnPowerSafe) ? (_mExtra % 7) : 0;
+    mDisplay->drawStr(dispX, mLineOffsets[line], text);
+}

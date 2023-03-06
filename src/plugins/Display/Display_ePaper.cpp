@@ -1,7 +1,13 @@
 #include "Display_ePaper.h"
 
-#include "WiFi.h"
+#ifdef ESP8266
+    #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+    #include <WiFi.h>
+#endif
 #include "imagedata.h"
+
+#if defined(ESP32)
 
 static const uint32_t spiClk = 4000000;  // 4 MHz
 
@@ -9,39 +15,29 @@ static const uint32_t spiClk = 4000000;  // 4 MHz
 SPIClass hspi(HSPI);
 #endif
 
-std::map<uint8_t, std::function<GxEPD2_GFX *(uint8_t, uint8_t, uint8_t, uint8_t)>> _ePaperTypes = {
-    // DEPG0150BN 200x200, SSD1681, TTGO T5 V2.4.1
-    {11, [](uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY) { return new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY)); }},
-    // GDEW027C44   2.7 " b/w/r 176x264, IL91874
-    //{DisplayType_t::ePaper270, [](uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY)
-    // F { return new GxEPD2_3C<GxEPD2_270c, GxEPD2_270c::HEIGHT>(GxEPD2_270c(_CS, _DC, _RST, _BUSY)); }},
-};
-
-DisplayEPaperClass::DisplayEPaperClass() {
+DisplayEPaper::DisplayEPaper() {
+    mDisplayRotation = 2;
+    mHeadFootPadding = 16;
 }
 
-DisplayEPaperClass::~DisplayEPaperClass() {
-    delete _display;
-}
+
 //***************************************************************************
-void DisplayEPaperClass::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char *version) {
-    if (type > 3) {
+void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char *version) {
+    if (type > 9) {
         Serial.begin(115200);
-        auto constructor = _ePaperTypes[type];
-        _display = constructor(_CS, _DC, _RST, _BUSY);
+        _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
         hspi.begin(_SCK, _BUSY, _MOSI, _CS);
 
 #if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
         _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
 #endif
         _display->init(115200, true, 2, false);
-        _display->setRotation(displayRotation);
+        _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
 
         // Logo
         _display->fillScreen(GxEPD_BLACK);
-        _display->drawBitmap(0, 0, AhoyLogo, 200, 200, GxEPD_WHITE);
-        //_display->drawBitmap(0, 0, OpenDTULogo, 200, 200, GxEPD_WHITE);
+        _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
         while (_display->nextPage())
             ;
 
@@ -57,8 +53,13 @@ void DisplayEPaperClass::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _R
         actualPowerPaged(0, 0, 0, 0);
     }
 }
+
+void DisplayEPaper::config(uint8_t rotation) {
+    mDisplayRotation = rotation;
+}
+
 //***************************************************************************
-void DisplayEPaperClass::fullRefresh() {
+void DisplayEPaper::fullRefresh() {
     // screen complete black
     _display->fillScreen(GxEPD_BLACK);
     while (_display->nextPage())
@@ -70,14 +71,14 @@ void DisplayEPaperClass::fullRefresh() {
         ;
 }
 //***************************************************************************
-void DisplayEPaperClass::headlineIP() {
+void DisplayEPaper::headlineIP() {
     int16_t tbx, tby;
     uint16_t tbw, tbh;
 
     _display->setFont(&FreeSans9pt7b);
     _display->setTextColor(GxEPD_WHITE);
 
-    _display->setPartialWindow(0, 0, _display->width(), headfootline);
+    _display->setPartialWindow(0, 0, _display->width(), mHeadFootPadding);
     _display->fillScreen(GxEPD_BLACK);
 
     do {
@@ -89,19 +90,19 @@ void DisplayEPaperClass::headlineIP() {
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         uint16_t x = ((_display->width() - tbw) / 2) - tbx;
 
-        _display->setCursor(x, (headfootline - 2));
+        _display->setCursor(x, (mHeadFootPadding - 2));
         _display->println(_fmtText);
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaperClass::lastUpdatePaged() {
+void DisplayEPaper::lastUpdatePaged() {
     int16_t tbx, tby;
     uint16_t tbw, tbh;
 
     _display->setFont(&FreeSans9pt7b);
     _display->setTextColor(GxEPD_WHITE);
 
-    _display->setPartialWindow(0, _display->height() - headfootline, _display->width(), headfootline);
+    _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
     _display->fillScreen(GxEPD_BLACK);
     do {
         time_t now = time(nullptr);
@@ -115,14 +116,14 @@ void DisplayEPaperClass::lastUpdatePaged() {
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaperClass::actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod) {
+void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod) {
     int16_t tbx, tby;
     uint16_t tbw, tbh, x, y;
 
     _display->setFont(&FreeSans24pt7b);
     _display->setTextColor(GxEPD_BLACK);
 
-    _display->setPartialWindow(0, headfootline, _display->width(), _display->height() - (headfootline * 2));
+    _display->setPartialWindow(0, mHeadFootPadding, _display->width(), _display->height() - (mHeadFootPadding * 2));
     _display->fillScreen(GxEPD_WHITE);
     do {
         if (_totalPower > 9999) {
@@ -136,7 +137,7 @@ void DisplayEPaperClass::actualPowerPaged(float _totalPower, float _totalYieldDa
         }
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         x = ((_display->width() - tbw) / 2) - tbx;
-        _display->setCursor(x, headfootline + tbh + 10);
+        _display->setCursor(x, mHeadFootPadding + tbh + 10);
         _display->print(_fmtText);
 
         _display->setFont(&FreeSans12pt7b);
@@ -162,14 +163,14 @@ void DisplayEPaperClass::actualPowerPaged(float _totalPower, float _totalYieldDa
         _display->setCursor(_display->width() - 45, y);
         _display->println("kWh");
 
-        _display->setCursor(0, _display->height() - (headfootline + 10));
+        _display->setCursor(0, _display->height() - (mHeadFootPadding + 10));
         snprintf(_fmtText, sizeof(_fmtText), "#%d Inverter online", _isprod);
         _display->println(_fmtText);
 
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaperClass::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
     // check if the IP has changed
     if (_settedIP != WiFi.localIP().toString().c_str()) {
         // save the new IP and call the Headline Funktion to adapt the Headline
@@ -189,4 +190,4 @@ void DisplayEPaperClass::loop(float totalPower, float totalYieldDay, float total
     _display->powerOff();
 }
 //***************************************************************************
-DisplayEPaperClass DisplayEPaper;
+#endif // ESP32

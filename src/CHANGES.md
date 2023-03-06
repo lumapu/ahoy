@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.94
+* added ePaper (for ESP32 only!), thx @dAjaY85 #735
+* improved `/live` margins #732
+* renamed `var` to `VAr` #732
+
 ## 0.5.93
 * improved web API for `live`
 * added dark mode option

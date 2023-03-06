@@ -2,40 +2,35 @@
 #pragma once
 
 #include <U8g2lib.h>
-#define DISP_DEFAULT_TIMEOUT 60000  // in milliseconds
+#define DISP_DEFAULT_TIMEOUT 60  // in seconds
+#define DISP_FMT_TEXT_LEN    32
 
-class DisplayMonoClass {
+class DisplayMono {
    public:
-    DisplayMonoClass();
-    ~DisplayMonoClass();
+      DisplayMono();
 
-    void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char* version);
-
-    void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
-
-    bool enablePowerSafe = true;
-    bool enableScreensaver = true;
-    const u8g2_cb_t* disp_rotation = U8G2_R2;
-    uint8_t contrast = 60;
+      void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version);
+      void config(bool enPowerSafe, bool enScreenSaver, uint8_t lum);
+      void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
 
    private:
-    void calcLineHeights();
-    void setFont(uint8_t line);
-    void printText(const char* text, uint8_t line, uint8_t dispX);
+      void calcLineHeights();
+      void setFont(uint8_t line);
+      void printText(const char* text, uint8_t line, uint8_t dispX = 5);
 
-    U8G2* _display;
+      U8G2* mDisplay;
 
-    bool _mIsLarge = false;
-    uint8_t mLoopCnt;
-    uint32_t* mUtcTs;
-    uint8_t mLineOffsets[5];
+      bool mEnPowerSafe, mEnScreenSaver;
+      uint8_t mLuminance;
 
-    uint16_t _dispY = 0;
-    uint32_t _previousMillis = 0;
+      bool mIsLarge = false;
+      uint8_t mLoopCnt;
+      uint32_t* mUtcTs;
+      uint8_t mLineOffsets[5];
 
-    uint8_t _mExtra;
-    uint16_t _mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
-    char _fmtText[32];
+      uint16_t _dispY;
+
+      uint8_t _mExtra;
+      uint16_t mTimeout;
+      char _fmtText[DISP_FMT_TEXT_LEN];
 };
-
-extern DisplayMonoClass DisplayMono;

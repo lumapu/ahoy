@@ -255,28 +255,19 @@
                     <fieldset class="mb-4">
                         <legend class="des">Display Config</legend>
                         <div id="dispType"></div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Show Logo</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="logoEn"/></div>
-                        </div>
+                        <div id="dispRot"></div>
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3">Turn off while inverters are offline</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="dispPwr"/></div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Enable pixel shifting</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="dispPxSh"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Rotate 180 degree</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp180"/></div>
+                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting)</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pxshift"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Contrast</div>
-                            <div class="col-12 col-sm-9"><select name="dispCont" id="contrast"></select></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="1" max="100"></select></div>
                         </div>
-                        <label for="dispCont"></label>
-
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
                     </fieldset>
@@ -509,10 +500,10 @@
 
                 for(var j of [
                     ["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"],
-                    ["ModName", "ch_name", "Module Name", 16, null],
-                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 16, "[0-9-]+"]]) {
+                    ["ModName", "ch_name", "Module Name", 15, null],
+                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[0-9-]+"]]) {
 
-                    var cl = (re.test(obj["serial"])) ? null : ["hide"];
+                    var cl = (re.test(obj["serial"])) ? "" : " hide";
 
                     i = 0;
                     arrIn = [];
@@ -524,7 +515,7 @@
                     }
 
                     iv.append(
-                        ml("div", {class: "row mb-2 mb-sm-3", id: "row" + id + j[0]}, [
+                        ml("div", {class: "row mb-2 mb-sm-3" + cl, id: "row" + id + j[0]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, j[2]),
                             ml("div", {class: "col-12 col-sm-9"},
                                 ml("div", {class: "row"}, arrIn)
@@ -639,12 +630,14 @@
             }
 
             function parseDisplay(obj, type) {
-                for(var i of [["logoEn", "logo_en"], ["dispPwr", "disp_pwr"], ["dispPxSh", "px_shift"], ["disp180", "rot180"]])
-                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                for(var i of ["disp_pwr", "disp_pxshift"])
+                    document.getElementsByName(i)[0].checked = obj[i];
 
                 var e = document.getElementById("dispPins");
-                pins = [['SCL / CS', 'pinDisp0'], ['SDA / DC', 'pinDisp1']];
+                pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst'], ['busy', 'disp_bsy']];
                 for(p of pins) {
+                    if(("ESP8266" == type) && p[0] == "cs")
+                        break;
                     e.append(
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
@@ -655,18 +648,31 @@
                     );
                 }
 
-                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                var opts = [[0, "None"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                if("ESP32" == type) {
+                    opts.push([1, "Nokia5110"]);
+                    opts.push([10, "ePaper"]);
+                }
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
-                        ml("div", {class: "col-12 col-sm-9"}, sel("dispType", opts, obj["disp_type"]))
+                        ml("div", {class: "col-12 col-sm-9"}, sel("disp_typ", opts, obj["disp_typ"]))
                     ])
                 );
 
-                e = document.getElementById("contrast");
-                for(var i = 30; i < 101; i += 2) {
-                    e.appendChild(opt(i, i, (i == obj["contrast"])));
+                opts = [[0, "0&deg;"], [2, "180&deg;"]];
+                if("ESP32" == type) {
+                    opts.push([1, "90&deg;"]);
+                    opts.push([3, "270&deg;"]);
                 }
+                document.getElementById("dispRot").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Rotation"),
+                        ml("div", {class: "col-12 col-sm-9"}, sel("disp_rot", opts, obj["disp_rot"]))
+                    ])
+                );
+
+                document.getElementsByName("disp_cont")[0].value = obj["disp_cont"];
             }
 
             function parse(root) {
