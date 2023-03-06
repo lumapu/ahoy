@@ -1,6 +1,11 @@
 #include "Display_ePaper.h"
 
-#include "WiFi.h"
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#endif
+
 #include "imagedata.h"
 
 static const uint32_t spiClk = 4000000;  // 4 MHz
@@ -24,16 +29,16 @@ DisplayEPaperClass::~DisplayEPaperClass() {
     delete _display;
 }
 //***************************************************************************
-void DisplayEPaperClass::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char *version) {
-    if (type > 3) {
+void DisplayEPaperClass::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char *versio) {
+    if (type > 10) {
+#if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
         Serial.begin(115200);
         auto constructor = _ePaperTypes[type];
         _display = constructor(_CS, _DC, _RST, _BUSY);
         hspi.begin(_SCK, _BUSY, _MOSI, _CS);
 
-#if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
         _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
-#endif
+
         _display->init(115200, true, 2, false);
         _display->setRotation(displayRotation);
         _display->setFullWindow();
@@ -55,6 +60,7 @@ void DisplayEPaperClass::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _R
 
         // call the PowerPage to change the PV Power Values
         actualPowerPaged(0, 0, 0, 0);
+#endif
     }
 }
 //***************************************************************************
@@ -81,7 +87,7 @@ void DisplayEPaperClass::headlineIP() {
     _display->fillScreen(GxEPD_BLACK);
 
     do {
-        if ((WiFi.isConnected() == true) && (WiFi.localIP() > 0)) {
+        if (WiFi.isConnected() == true) {
             snprintf(_fmtText, sizeof(_fmtText), "%s", WiFi.localIP().toString().c_str());
         } else {
             snprintf(_fmtText, sizeof(_fmtText), "WiFi not connected");
@@ -170,6 +176,7 @@ void DisplayEPaperClass::actualPowerPaged(float _totalPower, float _totalYieldDa
 }
 //***************************************************************************
 void DisplayEPaperClass::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+#if defined(ESP32)
     // check if the IP has changed
     if (_settedIP != WiFi.localIP().toString().c_str()) {
         // save the new IP and call the Headline Funktion to adapt the Headline
@@ -187,6 +194,7 @@ void DisplayEPaperClass::loop(float totalPower, float totalYieldDay, float total
     }
 
     _display->powerOff();
+#endif
 }
 //***************************************************************************
 DisplayEPaperClass DisplayEPaper;

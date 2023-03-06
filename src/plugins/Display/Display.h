@@ -25,7 +25,7 @@ class Display {
 
         if (mCfg->type == 0) {
             return;
-        } else if (1 < mCfg->type < 11) {
+        } else if ((1 < mCfg->type) && (mCfg->type < 11)) {
             switch (mCfg->rot) {
                 case 0:
                     DisplayMono.disp_rotation = U8G2_R0;
@@ -47,10 +47,12 @@ class Display {
 
             DisplayMono.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mVersion);
         } else if (mCfg->type > 10) {
+#if defined(ESP32)
             DisplayEPaper.displayRotation = mCfg->rot;
             counterEPaper = 0;
 
             DisplayEPaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mVersion);
+#endif
         }
     }
 
@@ -89,18 +91,20 @@ class Display {
                     continue;
 
                 if (iv->isProducing(*mUtcTs))
-                    uint8_t isprod = 0;
+                    isprod += 0;
 
                 totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                 totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
                 totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
             }
 
-            if (1 < mCfg->type < 11) {
+            if ((1 < mCfg->type) && (mCfg->type < 11)) {
                 DisplayMono.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
             } else if (mCfg->type > 10) {
+#if defined(ESP32)
                 DisplayEPaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
                 counterEPaper++;
+#endif
             }
             _lastDisplayUpdate = millis();
         }

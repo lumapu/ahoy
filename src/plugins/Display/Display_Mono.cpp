@@ -5,7 +5,11 @@
 
 #include <map>
 
-#include "WiFi.h"
+#ifdef ESP8266
+#include <ESP8266WiFi.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#endif
 #include "imagedata.h"
 
 #ifdef U8X8_HAVE_HW_SPI
