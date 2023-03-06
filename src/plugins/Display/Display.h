@@ -91,7 +91,7 @@ class Display {
                     continue;
 
                 if (iv->isProducing(*mUtcTs))
-                    isprod += 0;
+                    isprod += 1;
 
                 totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                 totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
