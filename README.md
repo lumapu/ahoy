@@ -10,7 +10,7 @@ This work is licensed under a
 [cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%203.0-lightgrey.svg
 
 [dev-action-badge]: https://github.com/lumapu/ahoy/actions/workflows/compile_development.yml/badge.svg
-[dev-action-link]: .github/workflows/compile_development.yml
+[dev-action-link]: https://github.com/lumapu/ahoy/actions/workflows/compile_development.yml
 
 
 # 🖐 Ahoy!
