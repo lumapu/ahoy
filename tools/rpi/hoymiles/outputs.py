@@ -9,6 +9,7 @@ import socket
 import logging
 from datetime import datetime, timezone
 from hoymiles.decoders import StatusResponse, HardwareInfoResponse
+from hoymiles import HOYMILES_TRANSACTION_LOGGING, HOYMILES_DEBUG_LOGGING
 
 class OutputPluginFactory:
     def __init__(self, **params):
@@ -39,6 +40,7 @@ class InfluxOutputPlugin(OutputPluginFactory):
     def __init__(self, url, token, **params):
         """
         Initialize InfluxOutputPlugin
+        https://influxdb-client.readthedocs.io/en/stable/api.html#influxdbclient
 
         The following targets must be present in your InfluxDB. This does not
         automatically create anything for You.
@@ -68,8 +70,12 @@ class InfluxOutputPlugin(OutputPluginFactory):
         self._org = params.get('org', '')
         self._measurement = params.get('measurement', f'inverter,host={socket.gethostname()}')
 
-        client = InfluxDBClient(url, token, bucket=self._bucket)
-        self.api = client.write_api()
+        with InfluxDBClient(url, token, bucket=self._bucket) as self.client:
+             self.api = self.client.write_api()
+
+    def disco(self, **params):
+        self.client.close()          # Shutdown the client
+        return
 
     def store_status(self, response, **params):
         """
@@ -101,6 +107,9 @@ class InfluxOutputPlugin(OutputPluginFactory):
 
         # InfluxDB requires nanoseconds
         ctime = int(utctime.timestamp() * 1e9)
+
+        if HOYMILES_DEBUG_LOGGING:
+            logging.info(f'InfluxDB: utctime: {utctime}')
 
         # AC Data
         phase_id = 0
@@ -135,6 +144,9 @@ class InfluxOutputPlugin(OutputPluginFactory):
             data_stack.append(f'{measurement},type=YieldToday value={data["yield_today"]/1000:.3f} {ctime}')
         data_stack.append(f'{measurement},type=Efficiency value={data["efficiency"]:.2f} {ctime}')
 
+        if HOYMILES_DEBUG_LOGGING:
+            #logging.debug(f'INFLUX data to DB: {data_stack}')
+            pass
         self.api.write(self._bucket, self._org, data_stack)
 
 class MqttOutputPlugin(OutputPluginFactory):
@@ -196,6 +208,12 @@ class MqttOutputPlugin(OutputPluginFactory):
     def disco(self, **params):
         self.client.loop_stop()    # Stop loop 
         self.client.disconnect()   # disconnect
+        return
+
+    def info2mqtt(self, mqtt_topic, mqtt_data):
+        for mqtt_key in mqtt_data:
+            self.client.publish(f'{mqtt_topic["topic"]}/{mqtt_key}', mqtt_data[mqtt_key], self.qos, self.ret)
+        return
 
     def store_status(self, response, **params):
         """
@@ -209,13 +227,18 @@ class MqttOutputPlugin(OutputPluginFactory):
         """
 
         data = response.__dict__()
-        topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
+        topic = params.get('topic', None)
+        if not topic:
+            topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
+
+        if HOYMILES_DEBUG_LOGGING:
+            logging.info(f'MQTT-topic: {topic} data-type: {type(response)}')
 
         if isinstance(response, StatusResponse):
 
             # Global Head
             if data['time'] is not None:
-               self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%y - %H:%M:%S"), self.qos, self.ret)
+               self.client.publish(f'{topic}/time', data['time'].strftime("%d.%m.%YT%H:%M:%S"), self.qos, self.ret)
 
             # AC Data
             phase_id = 0
@@ -233,12 +256,16 @@ class MqttOutputPlugin(OutputPluginFactory):
             string_id = 0
             string_sum_power = 0
             for string in data['strings']:
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldDay', string['energy_daily'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/YieldTotal', string['energy_total']/1000, self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_id}/Irradiation', string['irradiation'], self.qos, self.ret)
+                if 'name' in string:
+                    string_name = string['name'].replace(" ","_")
+                else:
+                    string_name = string_id
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/voltage', string['voltage'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/current', string['current'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/power', string['power'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldDay', string['energy_daily'], self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldTotal', string['energy_total']/1000, self.qos, self.ret)
+                self.client.publish(f'{topic}/emeter-dc/{string_name}/Irradiation', string['irradiation'], self.qos, self.ret)
                 string_id = string_id + 1
                 string_sum_power += string['power']
 
@@ -277,9 +304,10 @@ class VzInverterOutput:
         self.channels = dict()
 
         for channel in config.get('channels', []):
-            uid = channel.get('uid')
+            uid = channel.get('uid', None)
             ctype = channel.get('type')
-            if uid and ctype:
+            # if uid and ctype:
+            if ctype:
                 self.channels[ctype] = uid
 
     def store_status(self, data, session):
@@ -294,6 +322,9 @@ class VzInverterOutput:
             return
 
         ts = int(round(data['time'].timestamp() * 1000))
+
+        if HOYMILES_DEBUG_LOGGING:
+            logging.info(f'Volkszaehler-Timestamp: {ts}')
 
         # AC Data
         phase_id = 0
@@ -327,13 +358,24 @@ class VzInverterOutput:
         if data['yield_today'] is not None:
             self.try_publish(ts, f'yield_today', data['yield_today'])
         self.try_publish(ts, f'efficiency', data['efficiency'])
+        return
 
     def try_publish(self, ts, ctype, value):
         if not ctype in self.channels:
-            logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
+            if HOYMILES_DEBUG_LOGGING:
+                logging.warning(f'ctype \"{ctype}\" not found in ahoy.yml')
             return
+
         uid = self.channels[ctype]
         url = f'{self.baseurl}/data/{uid}.json?operation=add&ts={ts}&value={value}'
+        if uid == None:
+            if HOYMILES_DEBUG_LOGGING:
+                logging.debug(f'ctype \"{ctype}\" has no configured uid-value in ahoy.yml')
+            return
+
+        if HOYMILES_DEBUG_LOGGING:
+            logging.debug(f'VZ-url: {url}')
+
         try:
             r = self.session.get(url)
             if r.status_code == 404:
@@ -344,6 +386,7 @@ class VzInverterOutput:
                raise ValueError(f'Transmit result {url}')
         except ConnectionError as e:
             raise ValueError(f'Could not connect VZ-DB {type(e)} {e.keys()}')
+        return
 
 class VolkszaehlerOutputPlugin(OutputPluginFactory):
     def __init__(self, config, **params):
@@ -364,12 +407,16 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
             exit(1)
 
         self.session = requests.Session()
-        self.inverters = dict()
 
+        self.inverters = dict()
         for inverterconfig in config.get('inverters', []):
             serial = inverterconfig.get('serial')
             output = VzInverterOutput(inverterconfig, self.session)
             self.inverters[serial] = output
+
+    def disco(self, **params):
+        self.session.close()            # closing the connection
+        return
 
     def store_status(self, response, **params):
         """
@@ -395,3 +442,4 @@ class VolkszaehlerOutputPlugin(OutputPluginFactory):
                 output.store_status(data, self.session)
             except ValueError as e:
                 logging.warning('Could not send data to volkszaehler instance: %s' % e)
+        return

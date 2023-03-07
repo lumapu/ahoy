@@ -31,7 +31,7 @@ ahoy:
     QoS: 0
     Retain: True
     last_will:
-        topic: Appelweg_PV/114181807700     # defaults to 'hoymiles/{serial}'
+        topic: my_DTU_name     # Name of DTU - default: hoymiles/{DTU-serial}
         payload: "LAST-WILL-MESSAGE: Please check my HOST and Process!"
 
   # Influx2 output
@@ -96,6 +96,7 @@ ahoy:
 
   dtu:
     serial: 99978563001
+    name: my_DTU_name
 
   inverters:
     - name: 'balkon'
@@ -103,14 +104,14 @@ ahoy:
       txpower: 'low'                      # txpower per inverter (min,low,high,max)
       mqtt:
         send_raw_enabled: false           # allow inject debug data via mqtt
-        topic: 'hoymiles/114172221234'    # defaults to '{inverter-name}/{serial}'
+        topic: 'hoymiles/114172220003'    # defaults to '{inverter-name}/{serial}'
       strings:                            # list all available strings
       - s_name: 'String 1 left'           # String 1 name
-        s_maxpower: 395                   # String 1 max power in Wp
+        s_maxpower: 395                   # String 1 max power in inverter
       - s_name: 'String 2 right'          # String 2 name
-        s_maxpower: 400                   # String 2 max power in Wp
+        s_maxpower: 400                   # String 2 max power in inverter
       - s_name: 'String 3 up'             # String 3 name
-        s_maxpower: 405                   # String 3 max power in Wp
+        s_maxpower: 405                   # String 3 max power in inverter
       - s_name: 'String 4 down'           # String 4 name
-        s_maxpower: 410                   # String 4 max power in Wp
+        s_maxpower: 410                   # String 4 max power in inverter
       

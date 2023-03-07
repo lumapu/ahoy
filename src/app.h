@@ -6,31 +6,29 @@
 #ifndef __APP_H__
 #define __APP_H__
 
-
-#include "utils/dbg.h"
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <RF24.h>
+#include <RF24_config.h>
 
 #include "appInterface.h"
-
 #include "config/settings.h"
 #include "defines.h"
-#include "utils/crc.h"
-#include "utils/scheduler.h"
-
+#include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
 #include "hms/hmsRadio.h"
 #include "hms/hmsPayload.h"
 #include "hm/hmPayload.h"
 #include "hm/miPayload.h"
-#include "wifi/ahoywifi.h"
-#include "web/web.h"
-#include "web/RestApi.h"
-
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
-
+#include "utils/crc.h"
+#include "utils/dbg.h"
+#include "utils/scheduler.h"
+#include "web/RestApi.h"
+#include "web/web.h"
+#include "wifi/ahoywifi.h"
 
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
@@ -49,12 +47,11 @@ typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
-#include "plugins/MonochromeDisplay/MonochromeDisplay.h"
-typedef MonochromeDisplay<HmSystemType> MonoDisplayType;
-
+#include "plugins/Display/Display.h"
+typedef Display<HmSystemType> DisplayType;
 
 class app : public IApp, public ah::Scheduler {
-    public:
+   public:
         app();
         ~app() {}
 
@@ -225,7 +222,7 @@ class app : public IApp, public ah::Scheduler {
                 mMqtt.payloadEventListener(cmd);
             #endif
             if(mConfig->plugin.display.type != 0)
-                mMonoDisplay.payloadEventListener(cmd);
+               mDisplay.payloadEventListener(cmd);
         }
 
         void mqttSubRxCb(JsonObject obj);
@@ -301,7 +298,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise, mSunset;
 
         // plugins
-        MonoDisplayType mMonoDisplay;
+        DisplayType mDisplay;
 };
 
 #endif /*__APP_H__*/

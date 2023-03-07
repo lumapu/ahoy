@@ -6,6 +6,7 @@
 .vscode/extensions.json
 src/config/config_override.h
 src/web/html/h/*
+src/web/html/tmp/*
 /**/Debug
 /**/v16/*
 *.db

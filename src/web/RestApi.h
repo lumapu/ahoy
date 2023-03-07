@@ -8,21 +8,23 @@
 
 #include "../utils/dbg.h"
 #ifdef ESP32
-    #include "AsyncTCP.h"
+#include "AsyncTCP.h"
 #else
-    #include "ESPAsyncTCP.h"
+#include "ESPAsyncTCP.h"
 #endif
-#include "ESPAsyncWebServer.h"
-#include "AsyncJson.h"
+#include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
-
-#include "../appInterface.h"
+#include "AsyncJson.h"
+#include "ESPAsyncWebServer.h"
 
 #if defined(F) && defined(ESP32)
-  #undef F
-  #define F(sl) (sl)
+#undef F
+#define F(sl) (sl)
 #endif
+
+const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
 
 template<class HMSYSTEM, class HMRADIO>
 class RestApi {
@@ -72,7 +74,7 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8192);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -84,7 +86,6 @@ class RestApi {
             else if(path == "reboot")         getReboot(root);
             else if(path == "statistics")     getStatistics(root);
             else if(path == "inverter/list")  getInverterList(root);
-            else if(path == "menu")           getMenu(root);
             else if(path == "index")          getIndex(root);
             else if(path == "setup")          getSetup(root);
             else if(path == "setup/networks") getNetworks(root);
@@ -93,8 +94,12 @@ class RestApi {
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
             else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
-            else
-                getNotFound(root, F("http://") + request->host() + F("/api/"));
+            else {
+                if(path.substring(0, 12) == "inverter/id/")
+                    getInverter(root, request->url().substring(17).toInt());
+                else
+                    getNotFound(root, F("http://") + request->host() + F("/api/"));
+            }
 
             //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
             response->addHeader("Access-Control-Allow-Origin", "*");
@@ -154,13 +159,14 @@ class RestApi {
             ep[F("record/live")]   = url + F("record/live");
         }
 
+
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
 
             File fp = LittleFS.open("/settings.json", "r");
             if(!fp) {
                 DPRINTLN(DBG_ERROR, F("failed to load settings"));
-                response = request->beginResponse(200, F("application/json"), "{}");
+                response = request->beginResponse(200, F("application/json; charset=utf-8"), "{}");
             }
             else {
                 String tmp = fp.readString();
@@ -173,7 +179,7 @@ class RestApi {
                         tmp.remove(i, tmp.indexOf("\"", i)-i);
                     }
                 }
-                response = request->beginResponse(200, F("application/json"), tmp);
+                response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
             response->addHeader("Content-Type", "application/octet-stream");
@@ -184,10 +190,11 @@ class RestApi {
         }
 
         void getGeneric(JsonObject obj) {
-            obj[F("version")]      = String(mApp->getVersion());
-            obj[F("build")]        = String(AUTO_GIT_HASH);
-            obj[F("wifi_rssi")]    = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
-            obj[F("ts_uptime")]    = mApp->getUptime();
+            obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
+            obj[F("ts_uptime")]   = mApp->getUptime();
+            obj[F("menu_prot")]   = mApp->getProtection();
+            obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
+            obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -199,6 +206,7 @@ class RestApi {
         void getSysInfo(JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("device_name")]  = mConfig->sys.deviceName;
+            obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
 
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
@@ -245,15 +253,12 @@ class RestApi {
         }
 
         void getHtmlSystem(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getSysInfo(obj.createNestedObject(F("system")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
-
         }
 
         void getHtmlLogout(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
@@ -261,7 +266,6 @@ class RestApi {
         }
 
         void getHtmlSave(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 2;
             obj[F("refresh_url")] = "/setup";
@@ -269,7 +273,6 @@ class RestApi {
         }
 
         void getReboot(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 10;
             obj[F("refresh_url")] = "/";
@@ -314,6 +317,41 @@ class RestApi {
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+        }
+
+        void getInverter(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL != iv) {
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                obj[F("id")]               = id;
+                obj[F("enabled")]          = (bool)iv->config->enabled;
+                obj[F("name")]             = String(iv->config->name);
+                obj[F("serial")]           = String(iv->config->serial.u64, HEX);
+                obj[F("version")]          = String(iv->getFwVersion());
+                obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
+                obj[F("ts_last_success")]  = rec->ts;
+
+                JsonArray ch = obj.createNestedArray("ch");
+
+                // AC
+                uint8_t pos;
+                obj[F("ch_name")][0] = "AC";
+                JsonArray ch0 = ch.createNestedArray();
+                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                    ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                }
+
+                // DC
+                for(uint8_t j = 0; j < iv->channels; j ++) {
+                    obj[F("ch_name")][j+1] = iv->config->chName[j];
+                    JsonArray cur = ch.createNestedArray();
+                    for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
+                        pos = (iv->getPosByChFld((j+1), dcList[fld], rec));
+                        cur[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                    }
+                }
+            }
         }
 
         void getMqtt(JsonObject obj) {
@@ -376,64 +414,21 @@ class RestApi {
         }
 
         void getDisplay(JsonObject obj) {
-            obj[F("disp_type")] = (uint8_t)mConfig->plugin.display.type;
-            obj[F("disp_pwr")]  = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
-            obj[F("logo_en")]   = (bool)mConfig->plugin.display.logoEn;
-            obj[F("px_shift")]  = (bool)mConfig->plugin.display.pxShift;
-            obj[F("rot180")]    = (bool)mConfig->plugin.display.rot180;
-            obj[F("contrast")]  = (uint8_t)mConfig->plugin.display.contrast;
-            obj[F("pinDisp0")]  = mConfig->plugin.display.pin0;
-            obj[F("pinDisp1")]  = mConfig->plugin.display.pin1;
-        }
-
-        void getMenu(JsonObject obj) {
-            uint8_t i = 0;
-            uint16_t mask = (mApp->getProtection()) ? mConfig->sys.protectionMask : 0;
-            if(!CHECK_MASK(mask, PROT_MASK_LIVE)) {
-                obj[F("name")][i] = "Live";
-                obj[F("link")][i++] = "/live";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SERIAL)) {
-                obj[F("name")][i] = "Serial / Control";
-                obj[F("link")][i++] = "/serial";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SETUP)) {
-                obj[F("name")][i] = "Settings";
-                obj[F("link")][i++] = "/setup";
-            }
-            obj[F("name")][i++] = "-";
-            obj[F("name")][i] = "REST API";
-            obj[F("link")][i] = "/api";
-            obj[F("trgt")][i++] = "_blank";
-            obj[F("name")][i++] = "-";
-            if(!CHECK_MASK(mask, PROT_MASK_UPDATE)) {
-                obj[F("name")][i] = "Update";
-                obj[F("link")][i++] = "/update";
-            }
-            if(!CHECK_MASK(mask, PROT_MASK_SYSTEM)) {
-                obj[F("name")][i] = "System";
-                obj[F("link")][i++] = "/system";
-            }
-            obj[F("name")][i++] = "-";
-            obj[F("name")][i] = "Documentation";
-            obj[F("link")][i] = "https://ahoydtu.de";
-            obj[F("trgt")][i++] = "_blank";
-            if(strlen(mConfig->sys.adminPwd) > 0) {
-                obj[F("name")][i++] = "-";
-                if(mApp->getProtection()) {
-                    obj[F("name")][i] = "Login";
-                    obj[F("link")][i++] = "/login";
-                } else {
-                    obj[F("name")][i] = "Logout";
-                    obj[F("link")][i++] = "/logout";
-                }
-            }
+            obj[F("disp_typ")]     = (uint8_t)mConfig->plugin.display.type;
+            obj[F("disp_pwr")]     = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
+            obj[F("disp_pxshift")] = (bool)mConfig->plugin.display.pxShift;
+            obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
+            obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
+            obj[F("disp_clk")]     = mConfig->plugin.display.disp_clk;
+            obj[F("disp_data")]    = mConfig->plugin.display.disp_data;
+            obj[F("disp_cs")]      = mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]      = mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]     = mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]     = mConfig->plugin.display.disp_busy;
         }
 
         void getIndex(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
-
             obj[F("ts_now")]       = mApp->getTimestamp();
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
@@ -482,10 +477,9 @@ class RestApi {
         }
 
         void getSetup(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
             getSysInfo(obj.createNestedObject(F("system")));
-            getInverterList(obj.createNestedObject(F("inverter")));
+            //getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
@@ -502,14 +496,29 @@ class RestApi {
         }
 
         void getLive(JsonObject obj) {
-            getMenu(obj.createNestedObject(F("menu")));
             getGeneric(obj.createNestedObject(F("generic")));
-            JsonArray invArr = obj.createNestedArray(F("inverter"));
-            obj["refresh_interval"] = mConfig->nrf.sendInterval;
+            //JsonArray invArr = obj.createNestedArray(F("inverter"));
+            obj[F("refresh")] = mConfig->nrf.sendInterval;
 
-            uint8_t list[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+            for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
+                obj[F("ch0_fld_names")][fld] = String(fields[acList[fld]]);
+            }
+            for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
+                obj[F("fld_units")][fld] = String(units[fieldUnits[dcList[fld]]]);
+                obj[F("fld_names")][fld] = String(fields[dcList[fld]]);
+            }
 
             Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+                iv = mSys->getInverterByPos(i);
+                bool parse = false;
+                if(NULL != iv)
+                    parse = iv->config->enabled;
+                obj[F("iv")][i] = parse;
+            }
+
+            /*Inverter<> *iv;
             uint8_t pos;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
@@ -553,7 +562,7 @@ class RestApi {
                         }
                     }
                 }
-            }
+            }*/
         }
 
         void getRecord(JsonObject obj, uint8_t recType) {
@@ -632,8 +641,7 @@ class RestApi {
                 mTimezoneOffset = jsonIn[F("val")];
             else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
-            }
-            else {
+            } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
             }

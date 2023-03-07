@@ -2,6 +2,28 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.94
+* added ePaper (for ESP32 only!), thx @dAjaY85 #735
+* improved `/live` margins #732
+* renamed `var` to `VAr` #732
+
+## 0.5.93
+* improved web API for `live`
+* added dark mode option
+* converted all forms to reponsive design
+* repaired menu with password protection #720, #716, #709
+* merged MI series fixes #729
+
+## 0.5.92
+* fix mobile menu
+* fix inverters in select `serial.html` #709
+
+## 0.5.91
+* improved html and navi, navi is visible even when API dies #660
+* reduced maximum allowed JSON size for API to 6000Bytes #660
+* small fix: output command at `prepareDevInformCmd` #692
+* improved inverter handling #671
+
 ## 0.5.90
 * merged PR #684, #698, #705
 * webserial minor overflow fix #660
