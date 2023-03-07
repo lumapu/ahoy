@@ -12,25 +12,33 @@ draft: false
         <div class="col-lg-6">
             <h1 class="display-5 fw-bold lh-1 mb-3">Firmware flashen</h1>
             <div class="alert alert-primary" role="alert">
-                <strong>Hinweis: </strong>Der Web Installer kann sowohl für ESP8266 als auch ESP32 verwendet werden.<br/>
-                Beim ESP32 ist es notwendig den BOOT-Button gedrückt zu halten während man kurz den EN-Button drückt (um in den Bootloader zu kommen). Danach kann der BOOT-Button wieder losgelassen werden und der Flashvorgang gestartet werden.
+                <p class="lead">
+                    <strong>Hinweis: </strong>Der Web Installer kann sowohl für ESP8266 als auch ESP32 verwendet werden.<br/>
+                    Beim ESP32 ist es notwendig den BOOT-Button gedrückt zu halten während man kurz den EN-Button drückt (um in den Bootloader zu kommen). Danach kann der BOOT-Button wieder losgelassen werden und der Flashvorgang gestartet werden.
+                </p>
             </div>
         </div>
         <div class="col-10 col-sm-8 col-lg-6">
             <esp-web-install-button manifest="/firmware/manifest.json">
                 <span slot="unsupported">
                     <div class="alert alert-warning" role="alert">
-                        Your browser does not support installing things on ESP devices. Use Google Chrome or Microsoft Edge.
+                        <p class="lead">
+                            Your browser does not support installing things on ESP devices. Use Google Chrome or Microsoft Edge.
+                        </p>
                     </div>
                 </span>
                 <span slot="not-allowed">
                     <div class="alert alert-danger" role="alert">
-                        You are not allowed to do this using http!
+                        <p class="lead">
+                            You are not allowed to do this using http!
+                        </p>
                     </div>
                 </span>
             </esp-web-install-button>
             <div class="alert alert-secondary mt-3" role="alert">
-                Der Online Installer wird von <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Home Web Tools</a> bereitgestellt
+                <p class="lead">
+                    Der Online Installer wird von <a href="https://esphome.github.io/esp-web-tools/" target="_blank">ESP Home Web Tools</a> bereitgestellt
+                </p>
             </div>
             <p class="lead">
                 Alternativ kann auch die aktuelle Entwicklerversion heruntergeladen werden: <a href="https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip" target="_blank">latest Development Build</a> (das zip enthält auch WebTools um die Version zu installieren)<br/>
