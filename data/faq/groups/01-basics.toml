@@ -23,9 +23,16 @@ answer = "aktuell wird nur die HM-Serie unterstützt. (HM300, HM400, HM600, HM80
 
 [[items]]
 question = "Wird die MI-Serie unterstützt?"
-answer = "Nein noch nicht. Eine Unterstütung dieser Serie steht unter den höchsten Prioritäten."
+answer = "Ja aber noch rudimentär. In der aktuellen Development Version werden erste Datenfragmente bereits empfangen und dekodiert."
 
 [[items]]
 question = "Wird die HMS- HMT-Serie unterstützt?"
-answer = "Nein noch nicht. Die Entwicklung wurde gestartet."
+answer = "Sehr bald wird Ahoy auch die neueste Serie unterstützen. Es werden sowohl die 1-phasigen, als auch die 3-phasigen Wechselrichter unterstüzt."
 
+[[items]]
+question = "Wird eine Nulleinspeisung unterstützt?"
+answer = "Ja und nein. Ahoy bietet die nötigen Daten um eine Nulleinspeisung / Zeroexport zu ermöglichen. Für die Umsetzung ist ein Smarthome System nötig. Ahoy liefert die Daten des / der Wechselrichter per MQTT oder JSON je nach Einstellung max. alle 5 Sekunden."
+
+[[items]]
+question = "Kann man den Wechselrichter limitieren?"
+answer = "Ja der Wechselrichter kann limitiert werden. So kann man zB. einen HM-1500 auf 600W limitieren. Es gibt zwei verschiedene Arten von Limit: persistent und nicht persistent. Ersteres wird im Wechselrichter gespeichert und gilt ab Wechselrichter-Start. Zweites wird für die Nulleinspeisung verwendet, da es sich um eine temporäre Limitierung handelt."
