@@ -30,7 +30,7 @@ class DisplayEPaper {
    public:
       DisplayEPaper();
       void fullRefresh();
-      void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char* version);
+      void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char* version);
       void config(uint8_t rotation);
       void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
 
@@ -46,6 +46,7 @@ class DisplayEPaper {
       const char* _settedIP;
       uint8_t mHeadFootPadding;
       GxEPD2_GFX* _display;
+      uint32_t *mUtcTs;
 };
 
 #endif // ESP32

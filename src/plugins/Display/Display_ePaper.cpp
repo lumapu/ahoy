@@ -5,6 +5,7 @@
 #elif defined(ESP32)
     #include <WiFi.h>
 #endif
+#include "../../utils/helper.h"
 #include "imagedata.h"
 
 #if defined(ESP32)
@@ -22,7 +23,9 @@ DisplayEPaper::DisplayEPaper() {
 
 
 //***************************************************************************
-void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, const char *version) {
+void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char *version) {
+    mUtcTs = utcTs;
+
     if (type > 9) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
@@ -105,14 +108,15 @@ void DisplayEPaper::lastUpdatePaged() {
     _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
     _display->fillScreen(GxEPD_BLACK);
     do {
-        time_t now = time(nullptr);
-        strftime(_fmtText, sizeof(_fmtText), "%d.%m.%Y %H:%M", localtime(&now));
+        if (NULL != mUtcTs) {
+            snprintf(_fmtText, sizeof(_fmtText), ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str());
 
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        uint16_t x = ((_display->width() - tbw) / 2) - tbx;
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            uint16_t x = ((_display->width() - tbw) / 2) - tbx;
 
-        _display->setCursor(x, (_display->height() - 3));
-        _display->println(_fmtText);
+            _display->setCursor(x, (_display->height() - 3));
+            _display->println(_fmtText);
+        }
     } while (_display->nextPage());
 }
 //***************************************************************************

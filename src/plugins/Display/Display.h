@@ -32,7 +32,7 @@ class Display {
                 #if defined(ESP32)
                 mRefreshCycle = 0;
                 mEpaper.config(mCfg->rot);
-                mEpaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mVersion);
+                mEpaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
                 #endif
             }
         }
