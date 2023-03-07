@@ -4,6 +4,7 @@
 
 ## 0.5.95
 * merged #742 MI Improvments
+* merged #736 remove obsolete JSON Endpoint
 
 ## 0.5.94
 * added ePaper (for ESP32 only!), thx @dAjaY85 #735
