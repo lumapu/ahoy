@@ -77,6 +77,9 @@ class HmsPayload {
         }
 
         void ivSend(Inverter<> *iv, bool highPrio = false) {
+            if (IV_HMS != iv->ivGen) // only process HMS inverters
+                return;
+
             //if(!highPrio) {
                 if (mPayload[iv->id].requested) {
                     if (!mPayload[iv->id].complete)
