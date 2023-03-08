@@ -381,7 +381,7 @@ class HmsPayload {
         void reset(uint8_t id) {
             DPRINT(DBG_INFO, "resetPayload: id: ");
             DBGPRINTLN(String(id));
-            memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
+            memset(&mPayload[id], 0, sizeof(hmsPayload_t));
             //mPayload[id].txCmd       = 0;
             mPayload[id].gotFragment = false;
             //mPayload[id].retransmits = 0;

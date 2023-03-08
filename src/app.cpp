@@ -64,11 +64,11 @@ void app::setup() {
     if(!mNrfRadio.isChipConnected())
             DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
     }
-    if(mConfig->cmt.enabled) {
+    //if(mConfig->cmt.enabled) {
         mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
         mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
-    }
+    //}
 
     /*DBGPRINTLN("--- after payload");
     DBGPRINTLN(String(ESP.getFreeHeap()));
@@ -167,7 +167,7 @@ void app::loopStandard(void) {
             mCmtRadio.mBufCtrl.pop();
             yield();
         }
-        mHmsPayload.process(true);
+        //mHmsPayload.process(true);
     }
     #endif
     mPayload.loop();

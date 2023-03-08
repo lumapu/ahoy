@@ -99,7 +99,7 @@ class MiPayload {
                 cmd2 = 0x00;
             };
 
-            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+            mRadio->prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
             mPayload[iv->id].txCmd = cmd;
             if (iv->type == INV_TYPE_1CH || iv->type == INV_TYPE_2CH) {
                 mPayload[iv->id].dataAB[CH1] = false;
@@ -343,7 +343,7 @@ class MiPayload {
                                         }
                                         DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") next request is 0x") + String(cmd, HEX));
                                         //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
-                                        mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
+                                        mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         mPayload[iv->id].txCmd = cmd;
                                         yield();
                                     }
