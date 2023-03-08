@@ -7,11 +7,12 @@
 #define __SETTINGS_H__
 
 #include <Arduino.h>
-#include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <LittleFS.h>
+
+#include "../defines.h"
 #include "../utils/dbg.h"
 #include "../utils/helper.h"
-#include "../defines.h"
 
 /**
  * More info:
@@ -77,7 +78,7 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    bool disNightCom; // disable night communication
+    bool disNightCom;  // disable night communication
     uint16_t offsetSec;
 } cfgSun_t;
 
@@ -88,8 +89,8 @@ typedef struct {
 } cfgSerial_t;
 
 typedef struct {
-    uint8_t led0; // first LED pin
-    uint8_t led1; // second LED pin
+    uint8_t led0;  // first LED pin
+    uint8_t led1;  // second LED pin
 } cfgLed_t;
 
 typedef struct {
@@ -106,7 +107,7 @@ typedef struct {
     char name[MAX_NAME_LENGTH];
     serial_u serial;
     uint16_t chMaxPwr[4];
-    int32_t yieldCor[4]; // signed YieldTotal correction value
+    int32_t yieldCor[4];  // signed YieldTotal correction value
     char chName[4][MAX_NAME_LENGTH];
 } cfgIv_t;
 
@@ -122,14 +123,17 @@ typedef struct {
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
-    bool logoEn;
     bool pxShift;
-    bool rot180;
-    uint16_t wakeUp;
-    uint16_t sleepAt;
+    uint8_t rot;
+    //uint16_t wakeUp;
+    //uint16_t sleepAt;
     uint8_t contrast;
-    uint8_t pin0;
-    uint8_t pin1;
+    uint8_t disp_data;
+    uint8_t disp_clk;
+    uint8_t disp_cs;
+    uint8_t disp_reset;
+    uint8_t disp_busy;
+    uint8_t disp_dc;
 } display_t;
 
 typedef struct {
@@ -220,7 +224,7 @@ class settings {
             else {
                 //DPRINTLN(DBG_INFO, fp.readString());
                 //fp.seek(0, SeekSet);
-                DynamicJsonDocument root(4500);
+                DynamicJsonDocument root(5500);
                 DeserializationError err = deserializeJson(root, fp);
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
@@ -251,7 +255,7 @@ class settings {
                 return false;
             }
 
-            DynamicJsonDocument json(5500);
+            DynamicJsonDocument json(6500);
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
@@ -340,13 +344,16 @@ class settings {
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
-            mCfg.plugin.display.contrast           = 60;
-            mCfg.plugin.display.logoEn             = true;
-            mCfg.plugin.display.pxShift            = true;
-            mCfg.plugin.display.rot180             = false;
-            mCfg.plugin.display.pin0               = DEF_PIN_OFF; // SCL
-            mCfg.plugin.display.pin1               = DEF_PIN_OFF; // SDA
-        }
+            mCfg.plugin.display.contrast = 60;
+            mCfg.plugin.display.pxShift = true;
+            mCfg.plugin.display.rot = 0;
+            mCfg.plugin.display.disp_data = DEF_PIN_OFF;  // SDA
+            mCfg.plugin.display.disp_clk = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_cs = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_busy = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_dc = DEF_PIN_OFF;
+       }
 
         void jsonWifi(JsonObject obj, bool set = false) {
             if(set) {
@@ -469,26 +476,32 @@ class settings {
                 JsonObject disp = obj.createNestedObject("disp");
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
-                disp[F("logo")]     = (bool)mCfg.plugin.display.logoEn;
-                disp[F("pxShift")]  = (bool)mCfg.plugin.display.pxShift;
-                disp[F("rot180")]   = (bool)mCfg.plugin.display.rot180;
-                disp[F("wake")]     = mCfg.plugin.display.wakeUp;
-                disp[F("sleep")]    = mCfg.plugin.display.sleepAt;
+                disp[F("pxShift")] = (bool)mCfg.plugin.display.pxShift;
+                disp[F("rotation")] = mCfg.plugin.display.rot;
+                //disp[F("wake")] = mCfg.plugin.display.wakeUp;
+                //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
                 disp[F("contrast")] = mCfg.plugin.display.contrast;
-                disp[F("pin0")]     = mCfg.plugin.display.pin0;
-                disp[F("pin1")]     = mCfg.plugin.display.pin1;
+                disp[F("data")] = mCfg.plugin.display.disp_data;
+                disp[F("clock")] = mCfg.plugin.display.disp_clk;
+                disp[F("cs")] = mCfg.plugin.display.disp_cs;
+                disp[F("reset")] = mCfg.plugin.display.disp_reset;
+                disp[F("busy")] = mCfg.plugin.display.disp_busy;
+                disp[F("dc")] = mCfg.plugin.display.disp_dc;
             } else {
                 JsonObject disp = obj["disp"];
-                mCfg.plugin.display.type               = disp[F("type")];
-                mCfg.plugin.display.pwrSaveAtIvOffline = (bool) disp[F("pwrSafe")];
-                mCfg.plugin.display.logoEn             = (bool) disp[F("logo")];
-                mCfg.plugin.display.pxShift            = (bool) disp[F("pxShift")];
-                mCfg.plugin.display.rot180             = (bool) disp[F("rot180")];
-                mCfg.plugin.display.wakeUp             = disp[F("wake")];
-                mCfg.plugin.display.sleepAt            = disp[F("sleep")];
-                mCfg.plugin.display.contrast           = disp[F("contrast")];
-                mCfg.plugin.display.pin0               = disp[F("pin0")];
-                mCfg.plugin.display.pin1               = disp[F("pin1")];
+                mCfg.plugin.display.type = disp[F("type")];
+                mCfg.plugin.display.pwrSaveAtIvOffline = (bool)disp[F("pwrSafe")];
+                mCfg.plugin.display.pxShift = (bool)disp[F("pxShift")];
+                mCfg.plugin.display.rot = disp[F("rotation")];
+                //mCfg.plugin.display.wakeUp = disp[F("wake")];
+                //mCfg.plugin.display.sleepAt = disp[F("sleep")];
+                mCfg.plugin.display.contrast = disp[F("contrast")];
+                mCfg.plugin.display.disp_data = disp[F("data")];
+                mCfg.plugin.display.disp_clk = disp[F("clock")];
+                mCfg.plugin.display.disp_cs = disp[F("cs")];
+                mCfg.plugin.display.disp_reset = disp[F("reset")];
+                mCfg.plugin.display.disp_busy = disp[F("busy")];
+                mCfg.plugin.display.disp_dc = disp[F("dc")];
             }
         }
 

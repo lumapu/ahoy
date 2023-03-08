@@ -8,38 +8,35 @@
 
 #include "../utils/dbg.h"
 #ifdef ESP32
-    #include "AsyncTCP.h"
-    #include "Update.h"
+#include "AsyncTCP.h"
+#include "Update.h"
 #else
-    #include "ESPAsyncTCP.h"
+#include "ESPAsyncTCP.h"
 #endif
-#include "ESPAsyncWebServer.h"
-
 #include "../appInterface.h"
-
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
-
+#include "ESPAsyncWebServer.h"
+#include "html/h/api_js.h"
+#include "html/h/colorBright_css.h"
+#include "html/h/colorDark_css.h"
+#include "html/h/favicon_ico.h"
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
-#include "html/h/style_css.h"
-#include "html/h/colorDark_css.h"
-#include "html/h/colorBright_css.h"
-#include "html/h/api_js.h"
-#include "html/h/favicon_ico.h"
-#include "html/h/setup_html.h"
-#include "html/h/visualization_html.h"
-#include "html/h/update_html.h"
 #include "html/h/serial_html.h"
+#include "html/h/setup_html.h"
+#include "html/h/style_css.h"
 #include "html/h/system_html.h"
+#include "html/h/update_html.h"
+#include "html/h/visualization_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
+const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
 
-template<class HMSYSTEM>
+template <class HMSYSTEM>
 class Web {
-    public:
+   public:
         Web(void) : mWeb(80), mEvts("/events") {
             mProtected     = true;
             mLogoutTimeout = 0;
@@ -99,18 +96,18 @@ class Web {
         }
 
         void tickSecond() {
-            if(0 != mLogoutTimeout) {
+            if (0 != mLogoutTimeout) {
                 mLogoutTimeout -= 1;
-                if(0 == mLogoutTimeout) {
-                    if(strlen(mConfig->sys.adminPwd) > 0)
+                if (0 == mLogoutTimeout) {
+                    if (strlen(mConfig->sys.adminPwd) > 0)
                         mProtected = true;
                 }
 
                 DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
             }
 
-            if(mSerialClientConnnected) {
-                if(mSerialBufFill > 0) {
+            if (mSerialClientConnnected) {
+                if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
                     memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
                     mSerialBufFill = 0;
@@ -133,23 +130,23 @@ class Web {
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             mApp->setOnUpdate();
 
-            if(!index) {
+            if (!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
-        #ifndef ESP32
+                #ifndef ESP32
                 Update.runAsync(true);
-        #endif
-                if(!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
+                #endif
+                if (!Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000)) {
                     Update.printError(Serial);
                 }
             }
-            if(!Update.hasError()) {
-                if(Update.write(data, len) != len){
+            if (!Update.hasError()) {
+                if (Update.write(data, len) != len) {
                     Update.printError(Serial);
                 }
             }
-            if(final) {
-                if(Update.end(true)) {
-                    Serial.printf("Update Success: %uB\n", index+len);
+            if (final) {
+                if (Update.end(true)) {
+                    Serial.printf("Update Success: %uB\n", index + len);
                 } else {
                     Update.printError(Serial);
                 }
@@ -157,27 +154,26 @@ class Web {
         }
 
         void onUpload2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            if(!index) {
+            if (!index) {
                 mUploadFail = false;
                 mUploadFp = LittleFS.open("/tmp.json", "w");
-                if(!mUploadFp) {
+                if (!mUploadFp) {
                     DPRINTLN(DBG_ERROR, F("can't open file!"));
                     mUploadFail = true;
                     mUploadFp.close();
                 }
             }
             mUploadFp.write(data, len);
-            if(final) {
+            if (final) {
                 mUploadFp.close();
                 File fp = LittleFS.open("/tmp.json", "r");
-                if(!fp)
+                if (!fp)
                     mUploadFail = true;
                 else {
-                    if(!mApp->readSettings("tmp.json")) {
+                    if (!mApp->readSettings("tmp.json")) {
                         mUploadFail = true;
                         DPRINTLN(DBG_ERROR, F("upload JSON error!"));
-                    }
-                    else
+                    } else
                         mApp->saveSettings();
                 }
                 DPRINTLN(DBG_INFO, F("upload finished!"));
@@ -185,18 +181,17 @@ class Web {
         }
 
         void serialCb(String msg) {
-            if(!mSerialClientConnnected)
+            if (!mSerialClientConnnected)
                 return;
 
             msg.replace("\r\n", "<rn>");
-            if(mSerialAddTime) {
-                if((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
-                    if(mApp->getTimestamp() > 0) {
+            if (mSerialAddTime) {
+                if ((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
+                    if (mApp->getTimestamp() > 0) {
                         strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
                         mSerialBufFill += 9;
                     }
-                }
-                else {
+                } else {
                     mSerialBufFill = 0;
                     mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
                     return;
@@ -204,15 +199,14 @@ class Web {
                 mSerialAddTime = false;
             }
 
-            if(msg.endsWith("<rn>"))
+            if (msg.endsWith("<rn>"))
                 mSerialAddTime = true;
 
             uint16_t length = msg.length();
-            if((length + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
+            if ((length + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                 strncpy(&mSerialBuf[mSerialBufFill], msg.c_str(), length);
                 mSerialBufFill += length;
-            }
-            else {
+            } else {
                 mSerialBufFill = 0;
                 mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
             }
@@ -220,13 +214,13 @@ class Web {
 
     private:
         void checkRedirect(AsyncWebServerRequest *request) {
-            if((mConfig->sys.protectionMask & PROT_MASK_INDEX) != PROT_MASK_INDEX)
+            if ((mConfig->sys.protectionMask & PROT_MASK_INDEX) != PROT_MASK_INDEX)
                 request->redirect(F("/index"));
-            else if((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
+            else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
                 request->redirect(F("/live"));
-            else if((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
+            else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
                 request->redirect(F("/serial"));
-            else if((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
+            else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
                 request->redirect(F("/system"));
             else
                 request->redirect(F("/login"));
@@ -235,8 +229,8 @@ class Web {
         void onUpdate(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onUpdate"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -251,7 +245,7 @@ class Web {
             bool reboot = !Update.hasError();
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
-            if(reboot)
+            if (reboot)
                 html += "success";
             else
                 html += "failed";
@@ -267,7 +261,7 @@ class Web {
             bool reboot = !mUploadFail;
 
             String html = F("<!doctype html><html><head><title>Upload</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Upload: ");
-            if(reboot)
+            if (reboot)
                 html += "success";
             else
                 html += "failed";
@@ -284,7 +278,7 @@ class Web {
 
             mSerialClientConnnected = true;
 
-            if(client->lastId())
+            if (client->lastId())
                 DPRINTLN(DBG_VERBOSE, "Client reconnected! Last message ID that it got is: " + String(client->lastId()));
 
             client->send("hello!", NULL, millis(), 1000);
@@ -293,8 +287,8 @@ class Web {
         void onIndex(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onIndex"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -308,8 +302,8 @@ class Web {
         void onLogin(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLogin"));
 
-            if(request->args() > 0) {
-                if(String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
+            if (request->args() > 0) {
+                if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
                     mProtected = false;
                     request->redirect("/");
                 }
@@ -323,7 +317,7 @@ class Web {
         void onLogout(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
-            if(mProtected) {
+            if (mProtected) {
                 checkRedirect(request);
                 return;
             }
@@ -338,7 +332,7 @@ class Web {
         void onColor(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onColor"));
             AsyncWebServerResponse *response;
-            if(mConfig->sys.darkMode)
+            if (mConfig->sys.darkMode)
                 response = request->beginResponse_P(200, F("text/css"), colorDark_css, colorDark_css_len);
             else
                 response = request->beginResponse_P(200, F("text/css"), colorBright_css, colorBright_css_len);
@@ -370,7 +364,7 @@ class Web {
         }
 
         void showNotFound(AsyncWebServerRequest *request) {
-            if(mProtected)
+            if (mProtected)
                 checkRedirect(request);
             else
                 request->redirect("/setup");
@@ -384,7 +378,7 @@ class Web {
         }
 
         void showErase(AsyncWebServerRequest *request) {
-            if(mProtected) {
+            if (mProtected) {
                 checkRedirect(request);
                 return;
             }
@@ -395,7 +389,7 @@ class Web {
         }
 
         void showFactoryRst(AsyncWebServerRequest *request) {
-            if(mProtected) {
+            if (mProtected) {
                 checkRedirect(request);
                 return;
             }
@@ -403,26 +397,24 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
             String content = "";
             int refresh = 3;
-            if(request->args() > 0) {
-                if(request->arg("reset").toInt() == 1) {
+            if (request->args() > 0) {
+                if (request->arg("reset").toInt() == 1) {
                     refresh = 10;
-                    if(mApp->eraseSettings(true))
+                    if (mApp->eraseSettings(true))
                         content = F("factory reset: success\n\nrebooting ... ");
                     else
                         content = F("factory reset: failed\n\nrebooting ... ");
-                }
-                else {
+                } else {
                     content = F("factory reset: aborted");
                     refresh = 3;
                 }
-            }
-            else {
+            } else {
                 content = F("<h1>Factory Reset</h1>"
                     "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
                 refresh = 120;
             }
             request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if(refresh == 10) {
+            if (refresh == 10) {
                 delay(1000);
                 ESP.restart();
             }
@@ -431,8 +423,8 @@ class Web {
         void onSetup(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -446,33 +438,33 @@ class Web {
         void showSave(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("showSave"));
 
-            if(mProtected) {
+            if (mProtected) {
                 checkRedirect(request);
                 return;
             }
 
-            if(request->args() == 0)
+            if (request->args() == 0)
                 return;
 
             char buf[20] = {0};
 
             // general
-            if(request->arg("ssid") != "")
+            if (request->arg("ssid") != "")
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
-            if(request->arg("pwd") != "{PWD}")
+            if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
-            if(request->arg("device") != "")
+            if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
 
             // protection
-            if(request->arg("adminpwd") != "{PWD}") {
+            if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
                 mProtected = (strlen(mConfig->sys.adminPwd) > 0);
             }
             mConfig->sys.protectionMask = 0x0000;
-            for(uint8_t i = 0; i < 6; i++) {
-                if(request->arg("protMask" + String(i)) == "on")
+            for (uint8_t i = 0; i < 6; i++) {
+                if (request->arg("protMask" + String(i)) == "on")
                     mConfig->sys.protectionMask |= (1 << i);
             }
 
@@ -488,16 +480,15 @@ class Web {
             request->arg("ipGateway").toCharArray(buf, 20);
             ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
-
             // inverter
             Inverter<> *iv;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+            for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 iv = mSys->getInverterByPos(i, false);
                 // enable communication
                 iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
                 // address
                 request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-                if(strlen(buf) == 0)
+                if (strlen(buf) == 0)
                     memset(buf, 0, 20);
                 iv->config->serial.u64 = ah::Serial2u64(buf);
                 switch(iv->config->serial.b[4]) {
@@ -511,7 +502,7 @@ class Web {
                 request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
                 // max channel power / name
-                for(uint8_t j = 0; j < 4; j++) {
+                for (uint8_t j = 0; j < 4; j++) {
                     iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toInt();
                     iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
@@ -519,17 +510,17 @@ class Web {
                 iv->initialized = true;
             }
 
-            if(request->arg("invInterval") != "")
+            if (request->arg("invInterval") != "")
                 mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
-            if(request->arg("invRetry") != "")
+            if (request->arg("invRetry") != "")
                 mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
-            mConfig->inst.rstValsCommStop  = (request->arg("invRstComStop") == "on");
-            mConfig->inst.rstValsNotAvail  = (request->arg("invRstNotAvail") == "on");
+            mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
+            mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
 
             // pinout
             uint8_t pin;
-            for(uint8_t i = 0; i < 5; i ++) {
+            for (uint8_t i = 0; i < 5; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
@@ -544,13 +535,13 @@ class Web {
             mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
 
             // ntp
-            if(request->arg("ntpAddr") != "") {
+            if (request->arg("ntpAddr") != "") {
                 request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
                 mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
             }
 
             // sun
-            if(request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
+            if (request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
                 mConfig->sun.lat = 0.0;
                 mConfig->sun.lon = 0.0;
                 mConfig->sun.disNightCom = false;
@@ -563,44 +554,45 @@ class Web {
             }
 
             // mqtt
-            if(request->arg("mqttAddr") != "") {
+            if (request->arg("mqttAddr") != "") {
                 String addr = request->arg("mqttAddr");
                 addr.trim();
                 addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
-            }
-            else
+            } else
                 mConfig->mqtt.broker[0] = '\0';
             request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
-            if(request->arg("mqttPwd") != "{PWD}")
+            if (request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // serial console
-            if(request->arg("serIntvl") != "") {
+            if (request->arg("serIntvl") != "") {
                 mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
 
-                mConfig->serial.debug  = (request->arg("serDbg") == "on");
+                mConfig->serial.debug = (request->arg("serDbg") == "on");
                 mConfig->serial.showIv = (request->arg("serEn") == "on");
                 // Needed to log TX buffers to serial console
                 mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
 
             // display
-            mConfig->plugin.display.pwrSaveAtIvOffline  = (request->arg("dispPwr") == "on");
-            mConfig->plugin.display.logoEn   = (request->arg("logoEn") == "on");
-            mConfig->plugin.display.pxShift  = (request->arg("dispPxSh") == "on");
-            mConfig->plugin.display.rot180   = (request->arg("disp180") == "on");
-            mConfig->plugin.display.type     = request->arg("dispType").toInt();
-            mConfig->plugin.display.contrast = request->arg("dispCont").toInt();
-            mConfig->plugin.display.pin0     = request->arg("pinDisp0").toInt();
-            mConfig->plugin.display.pin1     = request->arg("pinDisp1").toInt();
-
+            mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
+            mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
+            mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
+            mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
+            mConfig->plugin.display.contrast   = request->arg("disp_cont").toInt();
+            mConfig->plugin.display.disp_data  = request->arg("disp_data").toInt();
+            mConfig->plugin.display.disp_clk   = request->arg("disp_clk").toInt();
+            mConfig->plugin.display.disp_cs    = request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_reset = request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_busy  = request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.disp_dc    = request->arg("disp_dc").toInt();
 
             mApp->saveSettings();
 
-            if(request->arg("reboot") == "on")
+            if (request->arg("reboot") == "on")
                 onReboot(request);
             else {
                 AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
@@ -612,8 +604,8 @@ class Web {
         void onLive(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLive"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -700,8 +692,8 @@ class Web {
         void onSerial(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSerial"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -715,8 +707,8 @@ class Web {
         void onSystem(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSystem"));
 
-            if(CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM)) {
-                if(mProtected) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM)) {
+                if (mProtected) {
                     checkRedirect(request);
                     return;
                 }
@@ -838,8 +830,7 @@ class Web {
                         // TODO: find the right one channel with the alarm id
                         alarmChannelId = 0;
                         // printf("AlarmData Length %d\n",rec->length);
-                        if (alarmChannelId < rec->length)
-                        {
+                        if (alarmChannelId < rec->length) {
                             //uint8_t channel = rec->assign[alarmChannelId].ch;
                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
                             snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), promType.c_str());

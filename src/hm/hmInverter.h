@@ -163,9 +163,26 @@ class Inverter {
 
     	uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
-                if (getFwVersion() == 0)
-                    enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
-                enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
+                if (ivGen != IV_MI) {
+                    if (getFwVersion() == 0)
+                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
+                    enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
+                } else if (ivGen == IV_MI){
+                    if (type == INV_TYPE_4CH) {
+                        enqueCommand<InfoCommand>(0x36);
+                        /*for(uint8_t i = 0x36; i <= 0x39; i++) {
+                            enqueCommand<MiInfoCommand>(i);  // live data
+                        }*/
+                    } else if (type == INV_TYPE_2CH) {
+                        enqueCommand<InfoCommand>(0x09);
+                        //enqueCommand<MiInfoCommand>(0x11);
+                    } else if (type == INV_TYPE_1CH) {
+                        enqueCommand<InfoCommand>(0x09);
+                    }
+                    //if (getFwVersion() == 0)
+                    //    enqueCommand<MiInfoCommand>(InverterDevInform_All); // firmware version, might not work, esp. for 1/2 ch hardware
+                }
+
                 if ((actPowerLimit == 0xffff) && isConnected)
                     enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }

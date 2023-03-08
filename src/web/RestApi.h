@@ -8,26 +8,25 @@
 
 #include "../utils/dbg.h"
 #ifdef ESP32
-    #include "AsyncTCP.h"
+#include "AsyncTCP.h"
 #else
-    #include "ESPAsyncTCP.h"
+#include "ESPAsyncTCP.h"
 #endif
-#include "ESPAsyncWebServer.h"
-#include "AsyncJson.h"
+#include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
-
-#include "../appInterface.h"
+#include "AsyncJson.h"
+#include "ESPAsyncWebServer.h"
 
 #if defined(F) && defined(ESP32)
-  #undef F
-  #define F(sl) (sl)
+#undef F
+#define F(sl) (sl)
 #endif
 
 const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
 
-template<class HMSYSTEM>
+template <class HMSYSTEM>
 class RestApi {
     public:
         RestApi() {
@@ -159,6 +158,7 @@ class RestApi {
             ep[F("record/live")]   = url + F("record/live");
         }
 
+
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
 
@@ -255,7 +255,6 @@ class RestApi {
             getSysInfo(obj.createNestedObject(F("system")));
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
-
         }
 
         void getHtmlLogout(JsonObject obj) {
@@ -406,16 +405,18 @@ class RestApi {
         }
 
         void getDisplay(JsonObject obj) {
-            obj[F("disp_type")] = (uint8_t)mConfig->plugin.display.type;
-            obj[F("disp_pwr")]  = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
-            obj[F("logo_en")]   = (bool)mConfig->plugin.display.logoEn;
-            obj[F("px_shift")]  = (bool)mConfig->plugin.display.pxShift;
-            obj[F("rot180")]    = (bool)mConfig->plugin.display.rot180;
-            obj[F("contrast")]  = (uint8_t)mConfig->plugin.display.contrast;
-            obj[F("pinDisp0")]  = mConfig->plugin.display.pin0;
-            obj[F("pinDisp1")]  = mConfig->plugin.display.pin1;
+            obj[F("disp_typ")]     = (uint8_t)mConfig->plugin.display.type;
+            obj[F("disp_pwr")]     = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
+            obj[F("disp_pxshift")] = (bool)mConfig->plugin.display.pxShift;
+            obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
+            obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
+            obj[F("disp_clk")]     = mConfig->plugin.display.disp_clk;
+            obj[F("disp_data")]    = mConfig->plugin.display.disp_data;
+            obj[F("disp_cs")]      = mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]      = mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]     = mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]     = mConfig->plugin.display.disp_busy;
         }
-
 
         void getIndex(JsonObject obj) {
             getGeneric(obj.createNestedObject(F("generic")));
@@ -630,8 +631,7 @@ class RestApi {
                 mTimezoneOffset = jsonIn[F("val")];
             else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
-            }
-            else {
+            } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
             }
