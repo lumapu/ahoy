@@ -30,9 +30,6 @@
 #undef MIDNIGHTTICKER_OFFSET
 #define MIDNIGHTTICKER_OFFSET (mCalculatedTimezoneOffset + 1)
 
-// To enable the json endpoint at /json
-// #define ENABLE_JSON_EP
-
 // To enable the endpoint for prometheus to scrape data from at /metrics
 // #define ENABLE_PROMETHEUS_EP
 

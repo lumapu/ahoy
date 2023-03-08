@@ -72,9 +72,6 @@ class Web {
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
             //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
-        #ifdef ENABLE_JSON_EP
-            mWeb.on("/json",           HTTP_ANY,  std::bind(&Web::showJson,       this, std::placeholders::_1));
-        #endif
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
@@ -729,36 +726,6 @@ class Web {
             request->send(response);
         }
 
-    #ifdef ENABLE_JSON_EP
-        void showJson(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("web::showJson"));
-            String modJson;
-            Inverter<> *iv;
-            record_t<> *rec;
-            char topic[40], val[25];
-
-            modJson = F("{\n");
-            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                iv = mSys->getInverterByPos(id);
-                if (NULL == iv)
-                    continue;
-
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                snprintf(topic, 30, "\"%s\": {\n", iv->config->name);
-                modJson += String(topic);
-                for (uint8_t i = 0; i < rec->length; i++) {
-                    snprintf(topic, 40, "\t\"ch%d/%s\"", rec->assign[i].ch, iv->getFieldName(i, rec));
-                    snprintf(val, 25, "[%.3f, \"%s\"]", iv->getValue(i, rec), iv->getUnit(i, rec));
-                    modJson += String(topic) + ": " + String(val) + F(",\n");
-                }
-                modJson += F("\t\"last_msg\": \"") + ah::getDateTimeStr(rec->ts) + F("\"\n\t},\n");
-            }
-            modJson += F("\"json_ts\": \"") + String(ah::getDateTimeStr(mApp->getTimestamp())) + F("\"\n}\n");
-
-            AsyncWebServerResponse *response = request->beginResponse(200, F("application/json"), modJson);
-            request->send(response);
-        }
-#endif
 
 #ifdef ENABLE_PROMETHEUS_EP
         enum {
