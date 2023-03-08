@@ -2,6 +2,11 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.96
+* added Nokia display again for ESP8266 #764
+* changed `var` / `VAr` to SI unit `var` #732
+* fix MQTT retained flags for totals (P_AC, P_DC) #726, #721
+
 ## 0.5.95
 * merged #742 MI Improvments
 * merged #736 remove obsolete JSON Endpoint

@@ -31,7 +31,7 @@ void DisplayMono::init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_
         u8g2_cb_t *rot = (u8g2_cb_t *)((rot != 0x00) ? U8G2_R2 : U8G2_R0);
         switch(type) {
             case 1:
-                mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(rot, cs, dc, reset);
+                mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
                 break;
             case 2:
                 mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
@@ -64,10 +64,14 @@ void DisplayMono::config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
     mLuminance = lum;
 }
 
-void DisplayMono::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+void DisplayMono::loop(void) {
     if (mEnPowerSafe)
         if(mTimeout != 0)
            mTimeout--;
+}
+
+void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+
 
     mDisplay->clearBuffer();
 
@@ -144,6 +148,6 @@ void DisplayMono::printText(const char* text, uint8_t line, uint8_t dispX) {
     }
     setFont(line);
 
-    dispX += (mEnPowerSafe) ? (_mExtra % 7) : 0;
+    dispX += (mEnScreenSaver) ? (_mExtra % 7) : 0;
     mDisplay->drawStr(dispX, mLineOffsets[line], text);
 }

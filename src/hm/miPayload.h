@@ -561,9 +561,9 @@ class MiPayload {
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
 
             if ( mPayload[iv->id].complete || //4ch device
-                 iv->type != INV_TYPE_4CH     //other devices
+                 ((iv->type != INV_TYPE_4CH)     //other devices
                  && mPayload[iv->id].dataAB[CH0]
-                 && mPayload[iv->id].stsAB[CH0] ) {
+                 && mPayload[iv->id].stsAB[CH0])) {
                     mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
                     DPRINTLN(DBG_INFO, F("rec. complete set of msgs"));
                     iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
@@ -620,7 +620,7 @@ class MiPayload {
             //uint8_t cmd = getQueuedCmd();
             if(!*complete) {
                 DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX)); // + F("cmd is 0x") + String(cmd, HEX));
-                if (txCmd == 0x09 || txCmd == 0x11 || txCmd >= 0x36 && txCmd <= 0x39 )
+                if (txCmd == 0x09 || txCmd == 0x11 || (txCmd >= 0x36 && txCmd <= 0x39))
                     return false;
             }
 

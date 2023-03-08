@@ -116,7 +116,7 @@
                                 numMid(obj.ch[0][1], "A", "Current"),
                                 numMid(obj.ch[0][3], "Hz", "Frequency"),
                                 numMid(obj.ch[0][9], "%", "Efficiency"),
-                                numMid(obj.ch[0][10], "VAr", "Reactive Power"),
+                                numMid(obj.ch[0][10], "var", "Reactive Power"),
                                 numMid(obj.ch[0][4], "", "Power Factor")
                             ])
                         ])
@@ -216,9 +216,10 @@
                     mNum = 0;
                     total.fill(0);
                     for(var i = 0; i < obj.iv.length; i++) {
-                        if(obj.iv[i])
+                        if(obj.iv[i]) {
                             getAjax("/api/inverter/id/" + i, parseIv);
                             break;
+                        }
                     }
                     document.getElementById("refresh").innerHTML = obj["refresh"];
                     if(true == exeOnce) {

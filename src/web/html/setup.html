@@ -636,7 +636,7 @@
                 var e = document.getElementById("dispPins");
                 pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst'], ['busy', 'disp_bsy']];
                 for(p of pins) {
-                    if(("ESP8266" == type) && p[0] == "cs")
+                    if(("ESP8266" == type) && p[0] == "busy")
                         break;
                     e.append(
                         ml("div", {class: "row mb-3"}, [
@@ -648,11 +648,9 @@
                     );
                 }
 
-                var opts = [[0, "None"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
-                if("ESP32" == type) {
-                    opts.push([1, "Nokia5110"]);
+                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                if("ESP32" == type)
                     opts.push([10, "ePaper"]);
-                }
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
