@@ -305,8 +305,8 @@ class RestApi {
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
                         obj2[F("ch_yield_cor")][j] = iv->config->yieldCor[j];
-                        obj2[F("ch_max_power")][j] = iv->config->chMaxPwr[j];
                         obj2[F("ch_name")][j]      = iv->config->chName[j];
+                        obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                     }
                 }
             }
@@ -344,6 +344,7 @@ class RestApi {
                 // DC
                 for(uint8_t j = 0; j < iv->channels; j ++) {
                     obj[F("ch_name")][j+1] = iv->config->chName[j];
+                    obj[F("ch_max_pwr")][j+1] = iv->config->chMaxPwr[j];
                     JsonArray cur = ch.createNestedArray();
                     for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
                         pos = (iv->getPosByChFld((j+1), dcList[fld], rec));
@@ -410,12 +411,12 @@ class RestApi {
             obj[F("disp_pxshift")] = (bool)mConfig->plugin.display.pxShift;
             obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
             obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
-            obj[F("disp_clk")]     = mConfig->plugin.display.disp_clk;
-            obj[F("disp_data")]    = mConfig->plugin.display.disp_data;
-            obj[F("disp_cs")]      = mConfig->plugin.display.disp_cs;
-            obj[F("disp_dc")]      = mConfig->plugin.display.disp_dc;
-            obj[F("disp_rst")]     = mConfig->plugin.display.disp_reset;
-            obj[F("disp_bsy")]     = mConfig->plugin.display.disp_busy;
+            obj[F("disp_clk")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
+            obj[F("disp_data")]    = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_data;
+            obj[F("disp_cs")]      = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]      = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
         }
 
         void getIndex(JsonObject obj) {

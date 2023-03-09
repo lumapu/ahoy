@@ -137,6 +137,10 @@
                             <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
                         </div>
                         <div class="row mb-2">
+                            <div class="col-12 col-sm-3"><p class="subdes">Note</p></div>
+                            <div class="col-12 col-sm-9"><p>A 'max module power' value of '0' disables the channel in 'live' view</p></div>
+                        </div>
+                        <div class="row mb-2">
                             <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
                             <div class="col-12 col-sm-9"></div>
                         </div>
@@ -499,7 +503,7 @@
                 iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")));
 
                 for(var j of [
-                    ["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"],
+                    ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
                     ["ModName", "ch_name", "Module Name", 15, null],
                     ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[0-9-]+"]]) {
 
@@ -648,7 +652,7 @@
                     );
                 }
 
-                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                var opts = [[0, "None"], [1, "SSD1306 0.96\""], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
                 document.getElementById("dispType").append(

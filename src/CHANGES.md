@@ -2,6 +2,16 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.97
+* Attention: re-ordered display types, check your settings! #746
+* improved saving settings of display #747, #746
+* disabled contrast for Nokia display #746
+* added Prometheus as compile option #719, #615
+* update MQTT lib to v1.4.1
+* limit decimal places to 2 in `live`
+* added `-DPIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48` to esp8266 debug build #657
+* a `max-module-power` of `0` disables channel in live view `setup`
+
 ## 0.5.96
 * added Nokia display again for ESP8266 #764
 * changed `var` / `VAr` to SI unit `var` #732

@@ -21,6 +21,7 @@ class DisplayMono {
 
       U8G2* mDisplay;
 
+      uint8_t mType;
       bool mEnPowerSafe, mEnScreenSaver;
       uint8_t mLuminance;
 
