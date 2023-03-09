@@ -368,12 +368,12 @@ class settings {
             mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.pxShift = true;
             mCfg.plugin.display.rot = 0;
-            mCfg.plugin.display.disp_data = DEF_PIN_OFF;  // SDA
-            mCfg.plugin.display.disp_clk = DEF_PIN_OFF;   // SCL
-            mCfg.plugin.display.disp_cs = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_data  = DEF_PIN_OFF;  // SDA
+            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_cs    = DEF_PIN_OFF;
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
-            mCfg.plugin.display.disp_busy = DEF_PIN_OFF;
-            mCfg.plugin.display.disp_dc = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
        }
 
         void jsonWifi(JsonObject obj, bool set = false) {

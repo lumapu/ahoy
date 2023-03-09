@@ -34,7 +34,7 @@
                 return ml("div", {class: "col-6 col-sm-4 a-c"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
-                            ml("span", {class: "fs-5 fs-md-4"}, String(val)),
+                            ml("span", {class: "fs-5 fs-md-4"}, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-6 fs-md-7 mx-1"}, unit)
                         ])),
                     ml("div", {class: "row"},
@@ -49,7 +49,7 @@
                 return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
-                            ml("span", {class: "fs-6"}, String(val)),
+                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-1"}, unit)
                         ])),
                     ml("div", {class: "row"},
@@ -94,7 +94,7 @@
                 total[3] += obj.ch[0][8]; // P_DC
                 total[4] += obj.ch[0][10]; // Q_AC
                 var t = span(" &deg; C");
-                return ml("div", {class: "row"},
+                return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 iv-h"},
                             ml("div", {class: "row"}, [
@@ -116,7 +116,7 @@
                                 numMid(obj.ch[0][1], "A", "Current"),
                                 numMid(obj.ch[0][3], "Hz", "Frequency"),
                                 numMid(obj.ch[0][9], "%", "Efficiency"),
-                                numMid(obj.ch[0][10], "VAr", "Reactive Power"),
+                                numMid(obj.ch[0][10], "var", "Reactive Power"),
                                 numMid(obj.ch[0][4], "", "Power Factor")
                             ])
                         ])
@@ -128,7 +128,7 @@
                 return ml("div", {class: "col-12 col-sm-6 col-md-12 mb-2"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
-                            ml("span", {class: "fs-6 fs-md-7"}, String(val)),
+                            ml("span", {class: "fs-6 fs-md-7"}, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-2"}, unit)
                         ])),
                     ml("div", {class: "row"},
@@ -182,7 +182,8 @@
                     var name = obj.ch_name[i];
                     if(name.length == 0)
                         name = "CHANNEL " + i;
-                    chn.push(ch(name, obj.ch[i]));
+                    if(obj.ch_max_pwr[i] > 0) // show channel only if max mod pwr
+                        chn.push(ch(name, obj.ch[i]));
                 }
                 mIvHtml.push(
                     ml("div", {}, [
@@ -216,9 +217,10 @@
                     mNum = 0;
                     total.fill(0);
                     for(var i = 0; i < obj.iv.length; i++) {
-                        if(obj.iv[i])
+                        if(obj.iv[i]) {
                             getAjax("/api/inverter/id/" + i, parseIv);
                             break;
+                        }
                     }
                     document.getElementById("refresh").innerHTML = obj["refresh"];
                     if(true == exeOnce) {

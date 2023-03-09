@@ -59,7 +59,16 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 24, "%s-%s%s%s", mDevName, WiFi.macAddress().substring(9,11).c_str(), WiFi.macAddress().substring(12,14).c_str(), WiFi.macAddress().substring(15,17).c_str());
+            snprintf(mClientId, 26, "%s-", mDevName);
+            uint8_t pos = strlen(mClientId);
+            mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
+            mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
+            mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
+            mClientId[pos++] = WiFi.macAddress().substring(13, 14).c_str()[0];
+            mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
+            mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
+            mClientId[pos++] = '\0';
+
             mClient.setClientId(mClientId);
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
             mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
@@ -560,11 +569,13 @@ class PubMqtt {
 
                     if (sendTotals) {
                         uint8_t fieldId;
+                        bool retained = true;
                         for (uint8_t i = 0; i < 4; i++) {
                             switch (i) {
                                 default:
                                 case 0:
                                     fieldId = FLD_PAC;
+                                    retained = false;
                                     break;
                                 case 1:
                                     fieldId = FLD_YT;
@@ -574,11 +585,12 @@ class PubMqtt {
                                     break;
                                 case 3:
                                     fieldId = FLD_PDC;
+                                    retained = false;
                                     break;
                             }
                             snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                             snprintf(val, 40, "%g", ah::round3(total[i]));
-                            publish(topic, val, true);
+                            publish(topic, val, retained);
                         }
                         RTRDataHasBeenSent = true;
                         yield();
@@ -610,7 +622,7 @@ class PubMqtt {
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
-        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
+        char mClientId[26]; // number of chars is limited to 23 up to v3.1 of MQTT
 };
 
 #endif /*__PUB_MQTT_H__*/

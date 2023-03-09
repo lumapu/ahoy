@@ -42,6 +42,7 @@ class Display {
         }
 
         void tickerSecond() {
+            loop();
             if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
                 mNewPayload = false;
                 mLoopCnt = 0;
@@ -79,7 +80,7 @@ class Display {
             }
 
             if ((1 < mCfg->type) && (mCfg->type < 10)) {
-                mMono.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
+                mMono.disp(totalPower, totalYieldDay, totalYieldTotal, isprod);
             } else if (mCfg->type >= 10) {
                 #if defined(ESP32)
                 mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
