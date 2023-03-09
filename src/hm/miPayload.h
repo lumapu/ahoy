@@ -24,6 +24,7 @@ typedef struct {
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
+    uint8_t skipfirstrepeat;
     bool gotFragment;
     /*
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
@@ -93,12 +94,14 @@ class MiPayload {
             DBGPRINT(F(") prepareDevInformCmd 0x"));
             DBGPRINTLN(String(cmd, HEX));
             uint8_t cmd2 = cmd;
-            if (cmd == 0x1 ) {
-                cmd  = TX_REQ_INFO;
+            if (cmd == 0x1 ) { //0x1
+                cmd  = 0x0f;
                 cmd2 = 0x00;
+                mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false);
+            } else {
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
             };
 
-            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
             mPayload[iv->id].txCmd = cmd;
             if (iv->type == INV_TYPE_1CH || iv->type == INV_TYPE_2CH) {
                 mPayload[iv->id].dataAB[CH1] = false;
@@ -154,7 +157,41 @@ class MiPayload {
                     //iv->setQueuedCmdFinished();
                 }*/
 
-            //}
+            }
+            else if (p->packet[0] == ( 0x0f + ALL_FRAMES)) {
+                // MI response from get hardware information request
+                record_t<> *rec = iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
+                rec->ts = mPayload[iv->id].ts;
+/*
+case InverterDevInform_All:
+                    rec->length  = (uint8_t)(HMINFO_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)InfoAssignment;
+                    rec->pyldLen = HMINFO_PAYLOAD_LEN;
+                    break;
+
+const byteAssign_t InfoAssignment[] = {
+    { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
+    { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
+    { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
+    { FLD_FW_BUILD_HOUR_MINUTE, UNIT_NONE,   CH0,  6, 2, 1 },
+    { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
+};
+*/
+
+                if ( p->packet[9] == 0x00 ) {//first frame
+                    //FLD_FW_VERSION
+                    for (uint8_t i = 0; i < 5; i++) {
+                        iv->setValue(i, rec, (float) ((p->packet[(12+2*i)] << 8) + p->packet[(13+2*i)])/1);
+                    }
+                    iv->setQueuedCmdFinished();
+                    mStat->rxSuccess++;
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);
+                } else if ( p->packet[9] == 0x01 ) {//second frame
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got 2nd frame (hw info)"));
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x12, false);
+                } else if ( p->packet[9] == 0x12 ) {//3rd frame
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got 3rd frame (hw info)"));
+                }
 
             } else if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
             // atm, we just do nothing else than print out what we got...
@@ -291,7 +328,8 @@ class MiPayload {
                 if (IV_HM == iv->ivGen) // only process MI inverters
                     continue; // skip to next inverter
 
-                if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) &&
+                if ( !mPayload[iv->id].complete &&
+                    (mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) &&
                     (mPayload[iv->id].txId <  (0x36 + ALL_FRAMES)) &&
                     (mPayload[iv->id].txId >  (0x39 + ALL_FRAMES)) &&
                     (mPayload[iv->id].txId != (0x09 + ALL_FRAMES)) &&
@@ -301,6 +339,13 @@ class MiPayload {
                     (mPayload[iv->id].txId != 0 )) {
                     // no processing needed if txId is not one of 0x95, 0x88, 0x89, 0x91, 0x92 or resonse to 0x36ff
                     mPayload[iv->id].complete = true;
+                    continue; // skip to next inverter
+                }
+
+                //delayed next message?
+                //mPayload[iv->id].skipfirstrepeat++;
+                if (mPayload[iv->id].skipfirstrepeat) {
+                    mPayload[iv->id].skipfirstrepeat = 0; //reset counter*/
                     continue; // skip to next inverter
                 }
 
@@ -339,6 +384,10 @@ class MiPayload {
                                                 if (!mPayload[iv->id].stsAB[CH1] || !mPayload[iv->id].dataAB[CH1] )
                                                     cmd = 0x09;
                                             }
+                                        } else if ( cmd == 0x0f ) {
+                                            //hard/firmware request; might not work, so just one try...
+                                            iv->setQueuedCmdFinished();
+                                            cmd = iv->getQueuedCmd();
                                         }
                                         DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") next request is 0x") + String(cmd, HEX));
                                         //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
@@ -357,7 +406,9 @@ class MiPayload {
                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
-                    } else {  // payload complete
+                    }
+                    /*else {  // payload complete
+                        //This tree is not really tested, most likely it's not truly complete....
                         DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
                         DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                         //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
@@ -371,7 +422,7 @@ class MiPayload {
                         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
                         iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
 
-                        DPRINTLN(DBG_INFO, F("proces: compl. set of msgs detected"));
+                        DPRINTLN(DBG_INFO, F("process: compl. set of msgs detected"));
                         iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
                         iv->doCalculations();
 
@@ -425,7 +476,7 @@ class MiPayload {
                         }
 
                         iv->setQueuedCmdFinished(); */
-                    }
+                    //}*/
                 }
                 yield();
             }
@@ -466,15 +517,17 @@ class MiPayload {
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
-                DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(iv->alarmMesIndex));
+                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") alarm ID incremented to ") + String(iv->alarmMesIndex));
                 iv->enqueCommand<InfoCommand>(AlarmData);
             }
+            //mPayload[iv->id].skipfirstrepeat = 1;
             if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0] && !mPayload[iv->id].complete) {
                 mPayload[iv->id].complete = true;
-                DPRINTLN(DBG_INFO, F("rec. complete set of msgs"));
+                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
                 iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
                 iv->setQueuedCmdFinished();
                 iv->doCalculations();
+                mPayload[iv->id].skipfirstrepeat = 0;
                 notify(mPayload[iv->id].txCmd);
             }
 
@@ -561,11 +614,11 @@ class MiPayload {
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
 
             if ( mPayload[iv->id].complete || //4ch device
-                 ((iv->type != INV_TYPE_4CH)     //other devices
+                 iv->type != INV_TYPE_4CH     //other devices
                  && mPayload[iv->id].dataAB[CH0]
-                 && mPayload[iv->id].stsAB[CH0])) {
+                 && mPayload[iv->id].stsAB[CH0] ) {
                     mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
-                    DPRINTLN(DBG_INFO, F("rec. complete set of msgs"));
+                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
                     iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
                     iv->doCalculations();
                 /*} else {
@@ -620,7 +673,7 @@ class MiPayload {
             //uint8_t cmd = getQueuedCmd();
             if(!*complete) {
                 DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX)); // + F("cmd is 0x") + String(cmd, HEX));
-                if (txCmd == 0x09 || txCmd == 0x11 || (txCmd >= 0x36 && txCmd <= 0x39))
+                if (txCmd == 0x09 || txCmd == 0x11 || txCmd >= 0x36 && txCmd <= 0x39 )
                     return false;
             }
 
@@ -654,6 +707,7 @@ class MiPayload {
             mPayload[id].stsAB[CH1]  = true; //required for 1CH and 2CH devices
             mPayload[id].stsAB[CH2]  = true; //only required for 2CH devices
             mPayload[id].txCmd       = 0;
+            mPayload[id].skipfirstrepeat   = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
             mPayload[id].sts[0]      = 0; //disable this in case gotFragment is not working
