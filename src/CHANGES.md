@@ -11,6 +11,7 @@
 * limit decimal places to 2 in `live`
 * added `-DPIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48` to esp8266 debug build #657
 * a `max-module-power` of `0` disables channel in live view `setup`
+* merge MI improvements, get firmware information #753
 
 ## 0.5.96
 * added Nokia display again for ESP8266 #764
