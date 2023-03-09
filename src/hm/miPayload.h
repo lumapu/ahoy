@@ -28,10 +28,8 @@ typedef struct {
     bool gotFragment;
     /*
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
-
     uint8_t maxPackId;
-    bool lastFound;
-    bool gotFragment;*/
+    bool lastFound;*/
 } miPayload_t;
 
 
@@ -121,54 +119,50 @@ class MiPayload {
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
                 miStsDecode(iv, p);
-            } else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
+            }
+
+            else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
                 miStsDecode(iv, p, CH2);
-            /*} else if (p->packet[0] == (0x09 + ALL_FRAMES)) { // MI data response to 0x09
-                mPayload[iv->id].txId = p->packet[0];
-                miDataDecode(iv,p);
-                //iv->setQueuedCmdFinished();
-                if (INV_TYPE_2CH == iv->type) {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, 0x11, mPayload[iv->id].ts, iv->alarmMesIndex, false, 0x11);
-                } else { // additional check for mPayload[iv->id].stsa == true might be a good idea (request retransmit?)
-                    mPayload[iv->id].complete = true;
-                    //iv->setQueuedCmdFinished();
-                }
+            }
 
-            } else if (p->packet[0] == ()) { // MI data response to 0x11
-                mPayload[iv->id].txId = p->packet[0];
-                miDataDecode(iv,p);
-                mStat->rxSuccess++;
-                //iv->setQueuedCmdFinished();*/
-
-            } else if ( p->packet[0] == 0x09 + ALL_FRAMES ||
+            else if ( p->packet[0] == 0x09 + ALL_FRAMES ||
                         p->packet[0] == 0x11 + ALL_FRAMES ||
                         ( p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME) ) ) { // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
-                //mStat->rxSuccess++;
-                //iv->setQueuedCmdFinished();
-                /*if (p->packet[0] < (0x39 + ALL_FRAMES)) {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getQueuedCmd(), mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, p->packet[0] + 1 - ALL_FRAMES, mPayload[iv->id].ts, iv->alarmMesIndex, false, p->packet[0] + 1 - ALL_FRAMES);
-                } else {
-                    mPayload[iv->id].complete = true;
-                    //iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, CALC_YD_CH0);
-                    //iv->setQueuedCmdFinished();
-                }*/
-
             }
+
             else if (p->packet[0] == ( 0x0f + ALL_FRAMES)) {
                 // MI response from get hardware information request
                 record_t<> *rec = iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
                 rec->ts = mPayload[iv->id].ts;
+                mPayload[iv->id].gotFragment = true;
+
+/*
+ Polling the device software and hardware version number command
+ start byte	Command word	 routing address				 target address				 User data	 check	 end byte
+ byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]
+ 0x7e	 0x0f	 xx	 xx	 xx	 xx	 YY	 YY	 YY	 YY	 0x00	 CRC	 0x7f
+ Command Receipt - First Frame
+ start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
+ byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[17]	 byte[18]	 byte[19]	 byte[20]	 byte[21]	 byte[22]	 byte[23]	 byte[24]	 byte[25]	 byte[26]	 byte[27]	 byte[28]
+ 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x00	 USFWBuild_VER		 APPFWBuild_VER		 APPFWBuild_YYYY		 APPFWBuild_MMDD		 APPFWBuild_HHMM		 APPFW_PN				 HW_VER		 CRC	 0x7f
+ Command Receipt - Second Frame
+ start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
+ byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[17]	 byte[18]	 byte[19]	 byte[20]	 byte[21]	 byte[22]	 byte[23]	 byte[24]	 byte[25]	 byte[26]	 byte[27]	 byte[28]
+ 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x01	 HW_PN				 HW_FB_TLmValue		 HW_FB_ReSPRT		 HW_GridSamp_ResValule		 HW_ECapValue		 Matching_APPFW_PN				 CRC	 0x7f
+ Command receipt - third frame
+ start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
+ byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[15]	 byte[16]	 byte[17]	 byte[18]
+ 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x12	 APPFW_MINVER		 HWInfoAddr		 PNInfoCRC_gusv		 PNInfoCRC_gusv		 CRC	 0x7f
+*/
+
 /*
 case InverterDevInform_All:
                     rec->length  = (uint8_t)(HMINFO_LIST_LEN);
                     rec->assign  = (byteAssign_t *)InfoAssignment;
                     rec->pyldLen = HMINFO_PAYLOAD_LEN;
                     break;
-
 const byteAssign_t InfoAssignment[] = {
     { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
     { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
@@ -196,26 +190,6 @@ const byteAssign_t InfoAssignment[] = {
             } else if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
             // atm, we just do nothing else than print out what we got...
             // for decoding see xls- Data collection instructions - #147ff
-/*
- Polling the device software and hardware version number command
- start byte	Command word	 routing address				 target address				 User data	 check	 end byte
- byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]
- 0x7e	 0x0f	 xx	 xx	 xx	 xx	 YY	 YY	 YY	 YY	 0x00	 CRC	 0x7f
-
- Command Receipt - First Frame
- start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
- byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[17]	 byte[18]	 byte[19]	 byte[20]	 byte[21]	 byte[22]	 byte[23]	 byte[24]	 byte[25]	 byte[26]	 byte[27]	 byte[28]
- 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x00	 USFWBuild_VER		 APPFWBuild_VER		 APPFWBuild_YYYY		 APPFWBuild_MMDD		 APPFWBuild_HHMM		 APPFW_PN				 HW_VER		 CRC	 0x7f
- Command Receipt - Second Frame
- start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
- byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[17]	 byte[18]	 byte[19]	 byte[20]	 byte[21]	 byte[22]	 byte[23]	 byte[24]	 byte[25]	 byte[26]	 byte[27]	 byte[28]
- 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x01	 HW_PN				 HW_FB_TLmValue		 HW_FB_ReSPRT		 HW_GridSamp_ResValule		 HW_ECapValue		 Matching_APPFW_PN				 CRC	 0x7f
- Command receipt - third frame
- start byte	Command word	 target address				 routing address				 Multi-frame marking	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 User data	 check	 end byte
- byte[0]	 byte[1]	 byte[2]	 byte[3]	 byte[4]	 byte[5]	 byte[6]	 byte[7]	 byte[8]	 byte[9]	 byte[10]	 byte[11]	 byte[12]	 byte[13]	 byte[14]	 byte[15]	 byte[16]	 byte[15]	 byte[16]	 byte[17]	 byte[18]
- 0x7e	 0x8f	 YY	 YY	 YY	 YY	 xx	 xx	 xx	 xx	 0x12	 APPFW_MINVER		 HWInfoAddr		 PNInfoCRC_gusv		 PNInfoCRC_gusv		 CRC	 0x7f
-
-*/
                 mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                 uint8_t *pid = &p->packet[9];
@@ -231,7 +205,6 @@ const byteAssign_t InfoAssignment[] = {
                         mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->len - 11;
                         mPayload[iv->id].gotFragment = true;
                     }
-
                     if ((*pid & ALL_FRAMES) == ALL_FRAMES) {
                         // Last packet
                         if (((*pid & 0x7f) > mPayload[iv->id].maxPackId) || (MAX_PAYLOAD_ENTRIES == mPayload[iv->id].maxPackId)) {
@@ -360,9 +333,12 @@ const byteAssign_t InfoAssignment[] = {
                                 DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
                                 mPayload[iv->id].retransmits = mMaxRetrans;
                             } else if(iv->devControlCmd == ActivePowerContr) {
-                                DPRINTLN(DBG_INFO, F("retransmit power limit"));
+                                DPRINT(DBG_INFO, F("(#"));
+                                DBGPRINT(String(iv->id));
+                                DBGPRINTLN(F(") retransmit power limit"));
                                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
                             } else {
+                                uint8_t cmd = mPayload[iv->id].txCmd;
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     if( !mPayload[iv->id].gotFragment ) {
@@ -370,26 +346,40 @@ const byteAssign_t InfoAssignment[] = {
                                         DBGPRINT(String(iv->id));
                                         DBGPRINTLN(F(") nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
+                                    } else if ( cmd == 0x0f ) {
+                                        //hard/firmware request
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true);
+                                        //iv->setQueuedCmdFinished();
+                                        //cmd = iv->getQueuedCmd();
                                     } else {
-                                        uint8_t cmd = mPayload[iv->id].txCmd;
+                                        bool change = false;
                                         if ( cmd >= 0x36 && cmd < 0x39 ) { // MI-1500 Data command
                                             cmd++; // just request the next channel
+                                            change = true;
                                         } else if ( cmd == 0x09 ) {//MI single or dual channel device
                                             if ( mPayload[iv->id].dataAB[CH1] && iv->type == INV_TYPE_2CH  ) {
-                                                if (!mPayload[iv->id].stsAB[CH2] || !mPayload[iv->id].dataAB[CH2] )
+                                                if (!mPayload[iv->id].stsAB[CH2] || !mPayload[iv->id].dataAB[CH2] ) {
                                                     cmd = 0x11;
+                                                    change = true;
+                                                }
                                             }
                                         } else if ( cmd == 0x11) {
                                             if ( mPayload[iv->id].dataAB[CH2] ) { // data is there, but no status
-                                                if (!mPayload[iv->id].stsAB[CH1] || !mPayload[iv->id].dataAB[CH1] )
+                                                if (!mPayload[iv->id].stsAB[CH1] || !mPayload[iv->id].dataAB[CH1] ) {
                                                     cmd = 0x09;
+                                                    change = true;
+                                                }
                                             }
-                                        } else if ( cmd == 0x0f ) {
-                                            //hard/firmware request; might not work, so just one try...
-                                            iv->setQueuedCmdFinished();
-                                            cmd = iv->getQueuedCmd();
                                         }
-                                        DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") next request is 0x") + String(cmd, HEX));
+                                        DPRINT(DBG_INFO, F("(#"));
+                                        DBGPRINT(String(iv->id));
+                                        DBGPRINT(F(") "));
+                                        if (change) {
+                                            DBGPRINT(F("next request is 0x"));
+                                        } else {
+                                            DBGPRINT(F("not complete: Request Retransmit 0x"));
+                                        }
+                                        DBGPRINTLN(String(cmd, HEX));
                                         //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
                                         mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         mPayload[iv->id].txCmd = cmd;
@@ -413,7 +403,6 @@ const byteAssign_t InfoAssignment[] = {
                         DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                         //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                         //record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
-
                         mPayload[iv->id].complete = true;
                         uint8_t ac_pow = 0;
                         //if (mPayload[iv->id].sts[0] == 3) {
@@ -421,34 +410,27 @@ const byteAssign_t InfoAssignment[] = {
                         //}
                         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
                         iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-
                         DPRINTLN(DBG_INFO, F("process: compl. set of msgs detected"));
                         iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
                         iv->doCalculations();
-
                         /*uint8_t payload[128];
                         uint8_t payloadLen = 0;
-
                         memset(payload, 0, 128);
-
                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
                             memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
                             payloadLen += (mPayload[iv->id].len[i]);
                             yield();
                         }
                         payloadLen -= 2;
-
                         if (mSerialDebug) {
                             DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
                             mSys->Radio.dumpBuf(payload, payloadLen);
                         }
-
                         if (NULL == rec) {
                             DPRINTLN(DBG_ERROR, F("record is NULL!"));
                         } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
                             if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
                                 mStat->rxSuccess++;
-
                             rec->ts = mPayload[iv->id].ts;
                             for (uint8_t i = 0; i < rec->length; i++) {
                                 iv->addValue(i, payload, rec);
@@ -456,7 +438,6 @@ const byteAssign_t InfoAssignment[] = {
                             }
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd);
-
                             if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
                                 uint16_t code;
@@ -474,7 +455,6 @@ const byteAssign_t InfoAssignment[] = {
                             DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
                             mStat->rxFail++;
                         }
-
                         iv->setQueuedCmdFinished(); */
                     //}*/
                 }
@@ -506,14 +486,6 @@ const byteAssign_t InfoAssignment[] = {
                 iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
             }
 
-            /*if ( !mPayload[iv->id].dataAB[0] || !mPayload[iv->id].dataAB[1] ) {
-                uint8_t cmd = mPayload[iv->id].dataAB[0] ? 0x11 : 0x09;
-                DPRINTLN(DBG_INFO, F("request missing status 0x") + String(cmd, HEX));
-                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                mPayload[iv->id].txCmd = cmd;
-                rem: gotFragment should be a better solution
-            } */
-
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
@@ -522,15 +494,22 @@ const byteAssign_t InfoAssignment[] = {
             }
             //mPayload[iv->id].skipfirstrepeat = 1;
             if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0] && !mPayload[iv->id].complete) {
-                mPayload[iv->id].complete = true;
+                miComplete(iv);
+                /*mPayload[iv->id].complete = true;
                 DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
                 iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
+                //preliminary AC calculation...
+                uint8_t ac_pow = 0;
+                //if (mPayload[iv->id].sts[0] == 3) {
+                    ac_pow = calcPowerDcCh0(iv, 0)*9.5;
+                //}
+                iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
                 iv->setQueuedCmdFinished();
                 iv->doCalculations();
                 mPayload[iv->id].skipfirstrepeat = 0;
                 notify(mPayload[iv->id].txCmd);
+                yield();*/
             }
-
         }
 
         void miDataDecode(Inverter<> *iv, packet_t *p) {
@@ -606,43 +585,30 @@ const byteAssign_t InfoAssignment[] = {
 
             }
 
-            //preliminary AC calculation...
-            uint8_t ac_pow = 0;
-            //if (mPayload[iv->id].sts[0] == 3) {
-                ac_pow = calcPowerDcCh0(iv, 0)*9.5;
-            //}
-            iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
+
 
             if ( mPayload[iv->id].complete || //4ch device
                  iv->type != INV_TYPE_4CH     //other devices
                  && mPayload[iv->id].dataAB[CH0]
                  && mPayload[iv->id].stsAB[CH0] ) {
-                    mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
+                     miComplete(iv);
+                    /*mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
                     DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
                     iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
+                    //preliminary AC calculation...
+                    uint8_t ac_pow = 0;
+                    //if (mPayload[iv->id].sts[0] == 3) {
+                        ac_pow = calcPowerDcCh0(iv, 0)*9.5;
+                    //}
+                    iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
                     iv->doCalculations();
-                /*} else {
-                    //retry to get missing status info for one or two channel devices
-                    DPRINTLN(DBG_INFO, F("request missing data or status 0x") + String(cmd, HEX));
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mPayload[iv->id].txCmd = cmd;
-                    //iv->enqueCommand(cmd); // mPayload[iv->id].dataAB[1] ? 0x09 : 0x11)
-                }*/
+                    iv->setQueuedCmdFinished();
+                    mStat->rxSuccess++;
+                    yield();
+                    notify(mPayload[iv->id].txCmd);*/
             }
-            /* should be included in process()
-            else if (mPayload[iv->id].txCmd == 0x09 && iv->type == INV_TYPE_2CH) {
-                uint8_t cmd = 0x11;
-                DPRINTLN(DBG_INFO, F("request second data channel 0x") + String(cmd, HEX));
-                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                mPayload[iv->id].txCmd = cmd;
-                mPayload[iv->id].complete = false;
-            }*/
 
-            iv->setQueuedCmdFinished();
-            mStat->rxSuccess++;
-            yield();
 
-            notify(mPayload[iv->id].txCmd);
 
 /*
                             if(AlarmData == mPayload[iv->id].txCmd) {
@@ -658,6 +624,24 @@ const byteAssign_t InfoAssignment[] = {
                                     yield();
                                 }
                             }*/
+        }
+
+        void miComplete(Inverter<> *iv) {
+            mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
+            DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
+            //preliminary AC calculation...
+            uint8_t ac_pow = 0;
+            //if (mPayload[iv->id].sts[0] == 3) {
+                ac_pow = calcPowerDcCh0(iv, 0)*9.5;
+            //}
+            iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
+            iv->doCalculations();
+            iv->setQueuedCmdFinished();
+            mStat->rxSuccess++;
+            yield();
+            notify(mPayload[iv->id].txCmd);
         }
 
         bool build(uint8_t id, bool *complete) {
@@ -687,7 +671,6 @@ const byteAssign_t InfoAssignment[] = {
                 }
                 yield();
             }
-
             return (crc == crcRcv) ? true : false;*/
             return true;
         }
@@ -718,28 +701,6 @@ const byteAssign_t InfoAssignment[] = {
         }
 
 
-/*        template<class T=uint8_t>
-        static T calcMiSts(Inverter<> *iv) {
-            if(NULL != iv) {
-                T result = 0;
-                bool stsComplete = true;
-                uint8_t stsCh;
-                for(uint8_t i = 1; i <= iv->channels; i++) {
-                    stsCh = mPayload[iv->id].sts[i];
-                    if (!stsCh) {
-                        stsComplete = false;
-                    } else if ( !result || stsCh < result ) {
-                        result = stsCh;
-                        if (stsComplete && stsCh > stsComplete) {
-                            stsComplete = stsCh;
-                        }
-                    }
-                }
-                mPayload[iv->id].sts[0] = stsComplete;
-                return result;
-            }
-            return 0;
-        } */
 
         IApp *mApp;
         HMSYSTEM *mSys;
