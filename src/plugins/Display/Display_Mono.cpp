@@ -27,9 +27,9 @@ DisplayMono::DisplayMono() {
 
 
 
-void DisplayMono::init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
+void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
     if ((0 < type) && (type < 4)) {
-        u8g2_cb_t *rot = (u8g2_cb_t *)((rot != 0x00) ? U8G2_R2 : U8G2_R0);
+        u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
         mType = type;
         switch(type) {
             case 1:

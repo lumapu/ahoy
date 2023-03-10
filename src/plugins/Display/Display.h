@@ -42,7 +42,7 @@ class Display {
         }
 
         void tickerSecond() {
-            loop();
+            mMono.loop();
             if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
                 mNewPayload = false;
                 mLoopCnt = 0;

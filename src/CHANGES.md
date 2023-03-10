@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.98
+* fix SH1106 rotation and turn off during night #756
+
 ## 0.5.97
 * Attention: re-ordered display types, check your settings! #746
 * improved saving settings of display #747, #746
