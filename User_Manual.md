@@ -310,6 +310,8 @@ To get the information open the URL `/api/record/info` on your AhoyDTU. The info
 | tomquist   | TSOL-M1600   |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
 | rejoe2     | MI-600       |               | 236       | 2018           | 11-27           | 17        |          |           |
 | rejoe2     | MI-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
+| dragricola | HM-1200      |               | 1.0.16    | 2021           | 10-12           | 100       |          |           |
+| dragricola | MI-300       |               | 230       | 2017           | 08-08           | 1         |          |           |
 |            |              |               |           |                |                 |           |          |           |
 
 ## Developer Information about Command Queue
