@@ -155,6 +155,7 @@ class StatusResponse(Response):
             s_exists = False
             string_id = len(strings)
             string = {}
+            string['name'] = self.inv_strings[string_id]['s_name']
             for key in self.string_keys:
                 prop = f'dc_{key}_{string_id}'
                 if hasattr(self, prop):
@@ -329,7 +330,7 @@ class EventsResponse(UnknownResponse):
 
         self.status = struct.unpack('>H', self.response[:2])[0]
         self.a_text = self.alarm_codes.get(self.status, 'N/A')
-        logging.info (f' Inverter status: {self.a_text} ({self.status})')
+        logging.info (f'Inverter status: {self.a_text} ({self.status})')
 
         chunk_size = 12
         for i_chunk in range(2, len(self.response), chunk_size):
@@ -489,6 +490,8 @@ class Hm300Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -561,6 +564,8 @@ class Hm600Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 6)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -588,6 +593,8 @@ class Hm600Decode0B(StatusResponse):
         """ String 2 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[1]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 12)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
@@ -668,6 +675,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 1 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[0]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 8)[0]/10/self.inv_strings[0]['s_maxpower']*100, 3)
 
     @property
@@ -695,6 +704,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 2 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[1]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 10)[0]/10/self.inv_strings[1]['s_maxpower']*100, 3)
 
     @property
@@ -722,6 +733,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 3 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[2]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 30)[0]/10/self.inv_strings[2]['s_maxpower']*100, 3)
 
     @property
@@ -749,6 +762,8 @@ class Hm1200Decode0B(StatusResponse):
         """ String 4 irratiation in percent """
         if self.inv_strings is None:
           return None
+        if self.inv_strings[3]['s_maxpower'] == 0:
+            return 0.00
         return round(self.unpack('>H', 32)[0]/10/self.inv_strings[3]['s_maxpower']*100, 3)
 
     @property
