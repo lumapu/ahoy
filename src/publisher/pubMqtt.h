@@ -365,7 +365,6 @@ class PubMqtt {
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
                 root[F("val")] = atoi(pyld);
-                DPRINTLN(DBG_INFO, String(pyld) + " " + String(len));
                 if(pyld[len-1] == 'W')
                     limitAbs = true;
                 delete[] pyld;
@@ -403,9 +402,9 @@ class PubMqtt {
                 pos++;
             }
 
-            char out[128];
+            /*char out[128];
             serializeJson(root, out, 128);
-            DPRINTLN(DBG_INFO, "json: " + String(out));
+            DPRINTLN(DBG_INFO, "json: " + String(out));*/
             (mSubscriptionCb)(root);
 
             mRxCnt++;
