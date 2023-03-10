@@ -22,6 +22,7 @@ DisplayMono::DisplayMono() {
     _dispY = 0;
     mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
     mUtcTs = NULL;
+    mType = 0;
 }
 
 
@@ -29,16 +30,17 @@ DisplayMono::DisplayMono() {
 void DisplayMono::init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
     if ((0 < type) && (type < 4)) {
         u8g2_cb_t *rot = (u8g2_cb_t *)((rot != 0x00) ? U8G2_R2 : U8G2_R0);
+        mType = type;
         switch(type) {
             case 1:
-                mDisplay = new U8G2_PCD8544_84X48_F_4W_HW_SPI(rot, cs, dc, reset);
-                break;
-            case 2:
                 mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
                 break;
             default:
-            case 3:
+            case 2:
                 mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
+                break;
+            case 3:
+                mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
                 break;
         }
 
@@ -50,7 +52,8 @@ void DisplayMono::init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_
         calcLineHeights();
 
         mDisplay->clearBuffer();
-        mDisplay->setContrast(mLuminance);
+        if (3 != mType)
+            mDisplay->setContrast(mLuminance);
         printText("AHOY!", 0, 35);
         printText("ahoydtu.de", 2, 20);
         printText(version, 3, 46);
@@ -64,15 +67,20 @@ void DisplayMono::config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
     mLuminance = lum;
 }
 
-void DisplayMono::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+void DisplayMono::loop(void) {
     if (mEnPowerSafe)
         if(mTimeout != 0)
            mTimeout--;
+}
+
+void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+
 
     mDisplay->clearBuffer();
 
     // set Contrast of the Display to raise the lifetime
-    mDisplay->setContrast(mLuminance);
+    if (3 != mType)
+        mDisplay->setContrast(mLuminance);
 
     if ((totalPower > 0) && (isprod > 0)) {
         mTimeout = DISP_DEFAULT_TIMEOUT;
@@ -144,6 +152,6 @@ void DisplayMono::printText(const char* text, uint8_t line, uint8_t dispX) {
     }
     setFont(line);
 
-    dispX += (mEnPowerSafe) ? (_mExtra % 7) : 0;
+    dispX += (mEnScreenSaver) ? (_mExtra % 7) : 0;
     mDisplay->drawStr(dispX, mLineOffsets[line], text);
 }

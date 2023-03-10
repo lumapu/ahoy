@@ -582,13 +582,13 @@ class Web {
             mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
-            mConfig->plugin.display.contrast   = request->arg("disp_cont").toInt();
-            mConfig->plugin.display.disp_data  = request->arg("disp_data").toInt();
-            mConfig->plugin.display.disp_clk   = request->arg("disp_clk").toInt();
-            mConfig->plugin.display.disp_cs    = request->arg("disp_cs").toInt();
-            mConfig->plugin.display.disp_reset = request->arg("disp_rst").toInt();
-            mConfig->plugin.display.disp_busy  = request->arg("disp_bsy").toInt();
-            mConfig->plugin.display.disp_dc    = request->arg("disp_dc").toInt();
+            mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
+            mConfig->plugin.display.disp_data  = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
+            mConfig->plugin.display.disp_clk   = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
+            mConfig->plugin.display.disp_cs    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
+            mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
 
             mApp->saveSettings();
 
