@@ -210,7 +210,8 @@ class MqttOutputPlugin(OutputPluginFactory):
         """
 
         data = response.__dict__()
-        topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
+        #topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
+        topic = params.get('topic', f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}')
 
         if isinstance(response, StatusResponse):
 
