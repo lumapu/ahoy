@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 // https://bert.emelis.net/espMqttClient/
@@ -312,13 +312,14 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_ABS]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_ABS]);
+            char sub[20];
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                snprintf(sub, 20, "ctrl/limit/%d", i);
+                subscribe(sub);
+                snprintf(sub, 20, "ctrl/restart/%d", i);
+                subscribe(sub);
+            }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
-            subscribe(subscr[MQTT_SUBS_SYNC_NTP]);
-            //subscribe("status/#");
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
@@ -358,11 +359,15 @@ class PubMqtt {
             DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
 
+            bool limitAbs = false;
             if(len > 0) {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
-                root["val"] = atoi(pyld);
+                root[F("val")] = atoi(pyld);
+                DPRINTLN(DBG_INFO, String(pyld) + " " + String(len));
+                if(pyld[len-1] == 'W')
+                    limitAbs = true;
                 delete[] pyld;
             }
 
@@ -377,8 +382,17 @@ class PubMqtt {
                     tmp[pos] = '\0';
                     switch(elm++) {
                         case 1: root[F("path")] = String(tmp); break;
-                        case 2: root[F("cmd")]  = String(tmp); break;
-                        case 3: root[F("id")]   = atoi(tmp);   break;
+                        case 2:
+                            if(strncmp("limit", tmp, 5) == 0) {
+                                if(limitAbs)
+                                    root[F("cmd")] = F("limit_nonpersistent_absolute");
+                                else
+                                    root[F("cmd")] = F("limit_nonpersistent_relative");
+                            }
+                            else
+                                root[F("cmd")] = String(tmp);
+                            break;
+                        case 3: root[F("id")] = atoi(tmp);   break;
                         default: break;
                     }
                     if('\0' == p[pos])
@@ -389,9 +403,9 @@ class PubMqtt {
                 pos++;
             }
 
-            /*char out[128];
+            char out[128];
             serializeJson(root, out, 128);
-            DPRINTLN(DBG_INFO, "json: " + String(out));*/
+            DPRINTLN(DBG_INFO, "json: " + String(out));
             (mSubscriptionCb)(root);
 
             mRxCnt++;

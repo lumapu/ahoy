@@ -4,6 +4,9 @@
 
 ## 0.5.98
 * fix SH1106 rotation and turn off during night #756
+* removed MQTT subscription `sync_ntp`, `set_time` with a value of `0` does the same #696
+* simplified MQTT subscription for `limit`. Check [User-Manual.md](../User-Manual.md) for new syntax #696, #713
+* repaired inverter wise limit control
 
 ## 0.5.97
 * Attention: re-ordered display types, check your settings! #746
