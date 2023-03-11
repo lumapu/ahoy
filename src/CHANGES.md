@@ -2,10 +2,16 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.99
+* fix limit in [User_Manual.md](../User_Manual.md)
+* changed `contrast` to `luminance` in `setup.html`
+* try to fix SSD1306 display #759
+* only show necessary display pins depending on setting
+
 ## 0.5.98
 * fix SH1106 rotation and turn off during night #756
 * removed MQTT subscription `sync_ntp`, `set_time` with a value of `0` does the same #696
-* simplified MQTT subscription for `limit`. Check [User-Manual.md](../User-Manual.md) for new syntax #696, #713
+* simplified MQTT subscription for `limit`. Check [User_Manual.md](../User_Manual.md) for new syntax #696, #713
 * repaired inverter wise limit control
 * fix upload settings #686
 

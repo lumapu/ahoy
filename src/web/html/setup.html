@@ -265,11 +265,11 @@
                             <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting)</div>
+                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting, OLED only)</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pxshift"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Contrast</div>
+                            <div class="col-12 col-sm-3 my-2">Luminance</div>
                             <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="1" max="100"></select></div>
                         </div>
                         <p class="des">Pinout</p>
@@ -647,12 +647,12 @@
                     document.getElementsByName(i)[0].checked = obj[i];
 
                 var e = document.getElementById("dispPins");
-                pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst'], ['busy', 'disp_bsy']];
+                var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
+                if("ESP32" == type)
+                    pins.push(['busy', 'disp_bsy']);
                 for(p of pins) {
-                    if(("ESP8266" == type) && p[0] == "busy")
-                        break;
                     e.append(
-                        ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
                                 sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]])
@@ -664,12 +664,16 @@
                 var opts = [[0, "None"], [1, "SSD1306 0.96\""], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
+                var dispType = sel("disp_typ", opts, obj["disp_typ"]);
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
-                        ml("div", {class: "col-12 col-sm-9"}, sel("disp_typ", opts, obj["disp_typ"]))
+                        ml("div", {class: "col-12 col-sm-9"}, dispType)
                     ])
                 );
+                dispType.addEventListener('change', (e) => {
+                    hideDispPins(pins, e.target.value)
+                });
 
                 opts = [[0, "0&deg;"], [2, "180&deg;"]];
                 if("ESP32" == type) {
@@ -684,6 +688,27 @@
                 );
 
                 document.getElementsByName("disp_cont")[0].value = obj["disp_cont"];
+                hideDispPins(pins, obj.disp_typ);
+            }
+
+            function hideDispPins(pins, dispType) {
+                if(0 == dispType) {
+                    for(p of pins) {
+                        document.getElementById("row_" + p[1]).classList.add("hide");
+                    }
+                } else if(2 >= dispType) {
+                    for(var i = 0; i < pins.length; i++) {
+                        var cl = document.getElementById("row_" + pins[i][1]).classList;
+                        if(i < 2)
+                            cl.remove("hide");
+                        else
+                            cl.add("hide");
+                    }
+                } else {
+                    for(p of pins) {
+                        document.getElementById("row_" + p[1]).classList.remove("hide");
+                    }
+                }
             }
 
             function parse(root) {

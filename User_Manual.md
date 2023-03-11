@@ -156,7 +156,7 @@ with a payload `[0 .. 65535]`
 
 Example:
 ```mqtt
-inverter/ctrl/limit_nonpersistent_absolute/0     600W
+inverter/ctrl/limit/0     600W
 ```
 
 ### Power Limit persistent
