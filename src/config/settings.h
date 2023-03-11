@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SETTINGS_H__
@@ -247,7 +247,7 @@ class settings {
             return mCfg.valid;
         }
 
-        bool saveSettings(void) {
+        bool saveSettings(bool stopFs = false) {
             DPRINTLN(DBG_DEBUG, F("save settings"));
             File fp = LittleFS.open("/settings.json", "w");
             if(!fp) {
@@ -273,6 +273,9 @@ class settings {
             }
             fp.close();
 
+            if(stopFs)
+                stop();
+
             return true;
         }
 
@@ -280,7 +283,7 @@ class settings {
             if(true == eraseWifi)
                 return LittleFS.format();
             loadDefaults(!eraseWifi);
-            return saveSettings();
+            return saveSettings(true);
         }
 
     private:
@@ -403,6 +406,11 @@ class settings {
                 mCfg.nrf.pinCe             = obj[F("ce")];
                 mCfg.nrf.pinIrq            = obj[F("irq")];
                 mCfg.nrf.amplifierPower    = obj[F("pwr")];
+                if((obj[F("cs")] == obj[F("ce")])) {
+                    mCfg.nrf.pinCs  = DEF_CS_PIN;
+                    mCfg.nrf.pinCe  = DEF_CE_PIN;
+                    mCfg.nrf.pinIrq = DEF_IRQ_PIN;
+                }
             }
         }
 

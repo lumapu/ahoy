@@ -68,9 +68,9 @@ class app : public IApp, public ah::Scheduler {
             return Scheduler::getTimestamp();
         }
 
-        bool saveSettings() {
-            mShowRebootRequest = true;
-            return mSettings.saveSettings();
+        bool saveSettings(bool stopFs = false) {
+            mShowRebootRequest = true; // only message on index, no reboot
+            return mSettings.saveSettings(stopFs);
         }
 
         bool readSettings(const char *path) {

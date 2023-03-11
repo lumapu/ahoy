@@ -14,7 +14,7 @@
 class IApp {
     public:
         virtual ~IApp() {}
-        virtual bool saveSettings() = 0;
+        virtual bool saveSettings(bool stopFs) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
         virtual void setOnUpdate() = 0;

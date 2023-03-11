@@ -279,25 +279,34 @@
 
                     <div class="row mb-4 mt-4">
                         <div class="col-8 col-sm-3">Reboot device after successful save</div>
-                        <div class="col-2 col-md-6">
+                        <div class="col-4 col-sm-9">
                             <input type="checkbox" name="reboot" checked />
                             <input type="submit" value="save" class="btn right"/>
                         </div>
                     </div>
-
-                    <div class="hr mb-3 mt-3"></div>
-                    <div class="mb-4 mt-4">
-                        <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
-                        <fieldset class="mb-4">
-                            <legend class="des">Upload / Store JSON Settings</legend>
-                            <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
-                                <input type="file" name="upload">
-                                <input type="button" class="btn" value="Upload" onclick="hide()">
-                            </form>
-                        </fieldset>
-                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a><span> (only saved values, passwords will be removed!)</span>
-                    </div>
                 </form>
+                <div class="hr mb-3 mt-3"></div>
+                <div class="mb-4 mt-4">
+                    <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                    <fieldset class="mb-4">
+                        <legend class="des">Import / Export JSON Settings</legend>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-8 col-sm-3">Import</div>
+                            <div class="col-4 col-sm-9">
+                                <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
+                                    <input type="file" name="upload">
+                                    <input type="button" class="btn" value="Upload" onclick="hide()">
+                                </form>
+                            </div>
+                        </div>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-8 col-sm-3">Export</div>
+                            <div class="col-4 col-sm-9">
+                                <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
         </div>
         {#HTML_FOOTER}

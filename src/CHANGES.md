@@ -7,6 +7,7 @@
 * removed MQTT subscription `sync_ntp`, `set_time` with a value of `0` does the same #696
 * simplified MQTT subscription for `limit`. Check [User-Manual.md](../User-Manual.md) for new syntax #696, #713
 * repaired inverter wise limit control
+* fix upload settings #686
 
 ## 0.5.97
 * Attention: re-ordered display types, check your settings! #746
