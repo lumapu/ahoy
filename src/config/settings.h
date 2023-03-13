@@ -273,6 +273,7 @@ class settings {
             }
             fp.close();
 
+            DPRINTLN(DBG_INFO, F("settings saved"));
             if(stopFs)
                 stop();
 

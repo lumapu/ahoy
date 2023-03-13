@@ -210,6 +210,7 @@ class app : public IApp, public ah::Scheduler {
             onWifi(false);
             ah::Scheduler::resetTicker();
             WiFi.disconnect();
+            delay(200);
             ESP.restart();
         }
 
