@@ -79,7 +79,7 @@ class Display {
                 totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
             }
 
-            if ((1 < mCfg->type) && (mCfg->type < 10)) {
+            if ((0 < mCfg->type) && (mCfg->type < 10)) {
                 mMono.disp(totalPower, totalYieldDay, totalYieldTotal, isprod);
             } else if (mCfg->type >= 10) {
                 #if defined(ESP32)
