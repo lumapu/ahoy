@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 // https://bert.emelis.net/espMqttClient/
@@ -59,7 +59,7 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 26, "%s-", mDevName);
+            snprintf(mClientId, 24, "%s-", mDevName);
             uint8_t pos = strlen(mClientId);
             mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
             mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
@@ -312,13 +312,14 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_ABS]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_ABS]);
+            char sub[20];
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                snprintf(sub, 20, "ctrl/limit/%d", i);
+                subscribe(sub);
+                snprintf(sub, 20, "ctrl/restart/%d", i);
+                subscribe(sub);
+            }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
-            subscribe(subscr[MQTT_SUBS_SYNC_NTP]);
-            //subscribe("status/#");
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
@@ -358,11 +359,14 @@ class PubMqtt {
             DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
 
+            bool limitAbs = false;
             if(len > 0) {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
-                root["val"] = atoi(pyld);
+                root[F("val")] = atoi(pyld);
+                if(pyld[len-1] == 'W')
+                    limitAbs = true;
                 delete[] pyld;
             }
 
@@ -377,8 +381,17 @@ class PubMqtt {
                     tmp[pos] = '\0';
                     switch(elm++) {
                         case 1: root[F("path")] = String(tmp); break;
-                        case 2: root[F("cmd")]  = String(tmp); break;
-                        case 3: root[F("id")]   = atoi(tmp);   break;
+                        case 2:
+                            if(strncmp("limit", tmp, 5) == 0) {
+                                if(limitAbs)
+                                    root[F("cmd")] = F("limit_nonpersistent_absolute");
+                                else
+                                    root[F("cmd")] = F("limit_nonpersistent_relative");
+                            }
+                            else
+                                root[F("cmd")] = String(tmp);
+                            break;
+                        case 3: root[F("id")] = atoi(tmp);   break;
                         default: break;
                     }
                     if('\0' == p[pos])
@@ -569,8 +582,8 @@ class PubMqtt {
 
                     if (sendTotals) {
                         uint8_t fieldId;
-                        bool retained = true;
                         for (uint8_t i = 0; i < 4; i++) {
+                            bool retained = true;
                             switch (i) {
                                 default:
                                 case 0:
@@ -622,7 +635,7 @@ class PubMqtt {
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
-        char mClientId[26]; // number of chars is limited to 23 up to v3.1 of MQTT
+        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
 };
 
 #endif /*__PUB_MQTT_H__*/

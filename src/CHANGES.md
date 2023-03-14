@@ -2,6 +2,36 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.100
+* fix add inverter `setup.html` #766
+* fix MQTT retained flag for total values #726
+* renamed buttons for import and export `setup.html`
+* added serial message `settings saved`
+
+## 0.5.99
+* fix limit in [User_Manual.md](../User_Manual.md)
+* changed `contrast` to `luminance` in `setup.html`
+* try to fix SSD1306 display #759
+* only show necessary display pins depending on setting
+
+## 0.5.98
+* fix SH1106 rotation and turn off during night #756
+* removed MQTT subscription `sync_ntp`, `set_time` with a value of `0` does the same #696
+* simplified MQTT subscription for `limit`. Check [User_Manual.md](../User_Manual.md) for new syntax #696, #713
+* repaired inverter wise limit control
+* fix upload settings #686
+
+## 0.5.97
+* Attention: re-ordered display types, check your settings! #746
+* improved saving settings of display #747, #746
+* disabled contrast for Nokia display #746
+* added Prometheus as compile option #719, #615
+* update MQTT lib to v1.4.1
+* limit decimal places to 2 in `live`
+* added `-DPIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48` to esp8266 debug build #657
+* a `max-module-power` of `0` disables channel in live view `setup`
+* merge MI improvements, get firmware information #753
+
 ## 0.5.96
 * added Nokia display again for ESP8266 #764
 * changed `var` / `VAr` to SI unit `var` #732

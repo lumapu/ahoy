@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SETTINGS_H__
@@ -247,7 +247,7 @@ class settings {
             return mCfg.valid;
         }
 
-        bool saveSettings(void) {
+        bool saveSettings(bool stopFs = false) {
             DPRINTLN(DBG_DEBUG, F("save settings"));
             File fp = LittleFS.open("/settings.json", "w");
             if(!fp) {
@@ -273,6 +273,10 @@ class settings {
             }
             fp.close();
 
+            DPRINTLN(DBG_INFO, F("settings saved"));
+            if(stopFs)
+                stop();
+
             return true;
         }
 
@@ -280,7 +284,7 @@ class settings {
             if(true == eraseWifi)
                 return LittleFS.format();
             loadDefaults(!eraseWifi);
-            return saveSettings();
+            return saveSettings(true);
         }
 
     private:
@@ -347,12 +351,12 @@ class settings {
             mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.pxShift = true;
             mCfg.plugin.display.rot = 0;
-            mCfg.plugin.display.disp_data = DEF_PIN_OFF;  // SDA
-            mCfg.plugin.display.disp_clk = DEF_PIN_OFF;   // SCL
-            mCfg.plugin.display.disp_cs = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_data  = DEF_PIN_OFF;  // SDA
+            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_cs    = DEF_PIN_OFF;
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
-            mCfg.plugin.display.disp_busy = DEF_PIN_OFF;
-            mCfg.plugin.display.disp_dc = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
+            mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
        }
 
         void jsonWifi(JsonObject obj, bool set = false) {
@@ -403,6 +407,11 @@ class settings {
                 mCfg.nrf.pinCe             = obj[F("ce")];
                 mCfg.nrf.pinIrq            = obj[F("irq")];
                 mCfg.nrf.amplifierPower    = obj[F("pwr")];
+                if((obj[F("cs")] == obj[F("ce")])) {
+                    mCfg.nrf.pinCs  = DEF_CS_PIN;
+                    mCfg.nrf.pinCe  = DEF_CE_PIN;
+                    mCfg.nrf.pinIrq = DEF_IRQ_PIN;
+                }
             }
         }
 

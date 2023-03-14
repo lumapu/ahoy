@@ -56,6 +56,11 @@ def readVersion(path, infile):
     src = path + ".pio/build/esp8266-release/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp8266_prometheus.bin"
+    src = path + ".pio/build/esp8266-release-prometheus/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
     
     versionout = version[:-1] + "_" + sha + "_esp8285.bin"
     src = path + ".pio/build/esp8285-release/firmware.bin"
@@ -65,6 +70,11 @@ def readVersion(path, infile):
 
     versionout = version[:-1] + "_" + sha + "_esp32.bin"
     src = path + ".pio/build/esp32-wroom32-release/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32_prometheus.bin"
+    src = path + ".pio/build/esp32-wroom32-release-prometheus/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 

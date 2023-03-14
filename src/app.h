@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __APP_H__
@@ -68,9 +68,9 @@ class app : public IApp, public ah::Scheduler {
             return Scheduler::getTimestamp();
         }
 
-        bool saveSettings() {
-            mShowRebootRequest = true;
-            return mSettings.saveSettings();
+        bool saveSettings(bool stopFs = false) {
+            mShowRebootRequest = true; // only message on index, no reboot
+            return mSettings.saveSettings(stopFs);
         }
 
         bool readSettings(const char *path) {
@@ -210,6 +210,7 @@ class app : public IApp, public ah::Scheduler {
             onWifi(false);
             ah::Scheduler::resetTicker();
             WiFi.disconnect();
+            delay(200);
             ESP.restart();
         }
 

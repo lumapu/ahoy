@@ -91,9 +91,6 @@ The AhoyDTU will publish on the following topics
 
 ## Active Power Limit via Serial / Control Page
 URL: `/serial`
-If you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu will set a value of 65535 in the setup.
-That is the value you have to fill in case you want to operate the inverter without a active power limit.
-If the value is 65535 or -1 after another reboot the value will be set automatically to "100" and in the drop-down menu "relative in percent persistent" will be set. Of course you can do this also by your self.
 
 You can change the setting in the following manner.
 Decide if you want to set
@@ -115,23 +112,16 @@ Also an absolute active power limit below approx. 30 Watt seems to be not meanfu
 
 ### Generic Information
 
-The AhoyDTU subscribes on three topics `<TOPIC>/ctrl/#`, `<TOPIC>/setup` and `<TOPIC>/status`.
+The AhoyDTU subscribes on following topics:
+
+- `<TOPIC>/ctrl/limit/<INVERTER_ID>`
+- `<TOPIC>/ctrl/restart/<INVERTER_ID>`
+- `<TOPIC>/setup/set_time`
 
 👆 `<TOPIC>` can be set on setup page, default is `inverter`.
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
-
-### Inverter Power (On / Off)
-```mqtt
-<TOPIC>/ctrl/power/<INVERTER_ID>
-```
-with payload `1` = `ON` and `0` = `OFF`
-
-Example:
-```mqtt
-inverter/ctrl/power/0     1
-```
 
 ### Inverter restart
 ```mqtt
@@ -142,50 +132,35 @@ Example:
 inverter/ctrl/restart/0
 ```
 
-### Power Limit relative persistent [%]
+### Power Limit relative (non persistent) [%]
 
 ```mqtt
-<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>
+<TOPIC>/ctrl/limit/<INVERTER_ID>
 ```
 with a payload `[2 .. 100]`
 
+**NOTE: optional a `%` can be sent as last character**
+
 Example:
 ```mqtt
-inverter/ctrl/limit_persistent_relative/0     70
+inverter/ctrl/limit/0     70
 ```
 
-### Power Limit absolute persistent [Watts]
+### Power Limit absolute (non persistent) [Watts]
 ```mqtt
-<TOPIC>/ctrl/limit_persistent_absolute/<INVERTER_ID>
+<TOPIC>/ctrl/limit/<INVERTER_ID>
 ```
 with a payload `[0 .. 65535]`
 
-Example:
-```mqtt
-inverter/ctrl/limit_persistent_absolute/0     600
-```
-
-### Power Limit relative non persistent [%]
-```mqtt
-<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>
-```
-with a payload `[2 .. 100]`
+**NOTE: the unit `W` is necessary to determine an absolute limit**
 
 Example:
 ```mqtt
-inverter/ctrl/limit_nonpersistent_relative/0     70
+inverter/ctrl/limit/0     600W
 ```
 
-### Power Limit absolute non persistent [Watts]
-```mqtt
-<TOPIC>/ctrl/limit_nonpersistent_absolute/<INVERTER_ID>
-```
-with a payload `[0 .. 65535]`
-
-Example:
-```mqtt
-inverter/ctrl/limit_nonpersistent_absolute/0     600
-```
+### Power Limit persistent
+This feature was removed. The persisten limit should not be modified cyclic by a script because of potential wearout of the flash inside the inverter.
 
 ## Control via REST API
 

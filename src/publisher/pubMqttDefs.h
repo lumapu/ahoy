@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __PUB_MQTT_DEFS_H__
@@ -84,21 +84,11 @@ const char* const subtopics[] PROGMEM = {
 };
 
 enum {
-    MQTT_SUBS_LMT_PERI_REL,
-    MQTT_SUBS_LMT_PERI_ABS,
-    MQTT_SUBS_LMT_NONPERI_REL,
-    MQTT_SUBS_LMT_NONPERI_ABS,
-    MQTT_SUBS_SET_TIME,
-    MQTT_SUBS_SYNC_NTP
+    MQTT_SUBS_SET_TIME
 };
 
 const char* const subscr[] PROGMEM = {
-    "ctrl/limit_persistent_relative",
-    "ctrl/limit_persistent_absolute",
-    "ctrl/limit_nonpersistent_relative",
-    "ctrl/limit_nonpersistent_absolute",
-    "setup/set_time",
-    "setup/sync_ntp"
+    "setup/set_time"
 };
 
 #endif /*__PUB_MQTT_DEFS_H__*/

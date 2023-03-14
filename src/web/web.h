@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __WEB_H__
@@ -170,11 +170,15 @@ class Web {
                 if (!fp)
                     mUploadFail = true;
                 else {
+                    char pwd[PWD_LEN];
+                    strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
                     if (!mApp->readSettings("tmp.json")) {
                         mUploadFail = true;
                         DPRINTLN(DBG_ERROR, F("upload JSON error!"));
-                    } else
-                        mApp->saveSettings();
+                    } else {
+                        strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
+                        mApp->saveSettings(true);
+                    }
                 }
                 DPRINTLN(DBG_INFO, F("upload finished!"));
             }
@@ -414,10 +418,8 @@ class Web {
                 refresh = 120;
             }
             request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if (refresh == 10) {
-                delay(1000);
-                ESP.restart();
-            }
+            if (refresh == 10)
+                onReboot(request);
         }
 
         void onSetup(AsyncWebServerRequest *request) {
@@ -582,15 +584,15 @@ class Web {
             mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
-            mConfig->plugin.display.contrast   = request->arg("disp_cont").toInt();
-            mConfig->plugin.display.disp_data  = request->arg("disp_data").toInt();
-            mConfig->plugin.display.disp_clk   = request->arg("disp_clk").toInt();
-            mConfig->plugin.display.disp_cs    = request->arg("disp_cs").toInt();
-            mConfig->plugin.display.disp_reset = request->arg("disp_rst").toInt();
-            mConfig->plugin.display.disp_busy  = request->arg("disp_bsy").toInt();
-            mConfig->plugin.display.disp_dc    = request->arg("disp_dc").toInt();
+            mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
+            mConfig->plugin.display.disp_data  = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
+            mConfig->plugin.display.disp_clk   = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
+            mConfig->plugin.display.disp_cs    = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
+            mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
 
-            mApp->saveSettings();
+            mApp->saveSettings((request->arg("reboot") == "on"));
 
             if (request->arg("reboot") == "on")
                 onReboot(request);
@@ -617,71 +619,6 @@ class Web {
 
             request->send(response);
         }
-
-        /*void showWebApi(AsyncWebServerRequest *request) {
-            // TODO: remove
-            DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
-            DPRINTLN(DBG_DEBUG, request->arg("plain"));
-            const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-            DynamicJsonDocument response(capacity);
-
-            // Parse JSON object
-            deserializeJson(response, request->arg("plain"));
-            // ToDo: error handling for payload
-            uint8_t iv_id = response["inverter"];
-            uint8_t cmd = response["cmd"];
-            Inverter<> *iv = mSys->getInverterByPos(iv_id);
-            if (NULL != iv) {
-                if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
-                    // if the AlarmData is requested set the Alarm Index to the requested one
-                    if (cmd == AlarmData || cmd == AlarmUpdate) {
-                        // set the AlarmMesIndex for the request from user input
-                        iv->alarmMesIndex = response["payload"];
-                    }
-                    DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
-                    // process payload from web request corresponding to the cmd
-                    iv->enqueCommand<InfoCommand>(cmd);
-                }
-
-
-                if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL) {
-                    if (response["cmd"] == (uint8_t)ActivePowerContr) {
-                        uint16_t webapiPayload = response["payload"];
-                        uint16_t webapiPayload2 = response["payload2"];
-                        if (webapiPayload > 0 && webapiPayload < 10000) {
-                            iv->devControlCmd = ActivePowerContr;
-                            iv->powerLimit[0] = webapiPayload;
-                            if (webapiPayload2 > 0)
-                                iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
-                            else                                            // if not set, set it to 0x0000 default
-                                iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporary in Watt absolut
-                            if (iv->powerLimit[1] & 0x0001)
-                                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API"));
-                            else
-                                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API"));
-                            iv->devControlRequest = true; // queue it in the request loop
-                        }
-                    }
-                    if (response["cmd"] == (uint8_t)TurnOff) {
-                        iv->devControlCmd = TurnOff;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)TurnOn) {
-                        iv->devControlCmd = TurnOn;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)CleanState_LockAndAlarm) {
-                        iv->devControlCmd = CleanState_LockAndAlarm;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)Restart) {
-                        iv->devControlCmd = Restart;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                }
-            }
-            request->send(200, "text/json", "{success:true}");
-        }*/
 
         void onDebug(AsyncWebServerRequest *request) {
             mApp->getSchedulerNames();

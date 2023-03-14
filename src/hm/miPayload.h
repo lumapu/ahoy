@@ -413,49 +413,49 @@ const byteAssign_t InfoAssignment[] = {
                         DPRINTLN(DBG_INFO, F("process: compl. set of msgs detected"));
                         iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
                         iv->doCalculations();
-                        /*uint8_t payload[128];
-                        uint8_t payloadLen = 0;
-                        memset(payload, 0, 128);
-                        for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
-                            memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
-                            payloadLen += (mPayload[iv->id].len[i]);
-                            yield();
-                        }
-                        payloadLen -= 2;
-                        if (mSerialDebug) {
-                            DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                            mSys->Radio.dumpBuf(payload, payloadLen);
-                        }
-                        if (NULL == rec) {
-                            DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                        } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
-                            if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
-                                mStat->rxSuccess++;
-                            rec->ts = mPayload[iv->id].ts;
-                            for (uint8_t i = 0; i < rec->length; i++) {
-                                iv->addValue(i, payload, rec);
-                                yield();
-                            }
-                            iv->doCalculations();
-                            notify(mPayload[iv->id].txCmd);
-                            if(AlarmData == mPayload[iv->id].txCmd) {
-                                uint8_t i = 0;
-                                uint16_t code;
-                                uint32_t start, end;
-                                while(1) {
-                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                                    if(0 == code)
-                                        break;
-                                    if (NULL != mCbAlarm)
-                                        (mCbAlarm)(code, start, end);
-                                    yield();
-                                }
-                            }
-                        } else {
-                            DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
-                            mStat->rxFail++;
-                        }
-                        iv->setQueuedCmdFinished(); */
+                        //uint8_t payload[128];
+                        //uint8_t payloadLen = 0;
+                        //memset(payload, 0, 128);
+                        //for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
+                        //    memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
+                        //    payloadLen += (mPayload[iv->id].len[i]);
+                        //    yield();
+                        //}
+                        //payloadLen -= 2;
+                        //if (mSerialDebug) {
+                        //    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                        //    mSys->Radio.dumpBuf(payload, payloadLen);
+                        //}
+                        //if (NULL == rec) {
+                        //    DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                        //} else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
+                        //    if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
+                        //        mStat->rxSuccess++;
+                        //    rec->ts = mPayload[iv->id].ts;
+                        //    for (uint8_t i = 0; i < rec->length; i++) {
+                        //        iv->addValue(i, payload, rec);
+                        //        yield();
+                        //    }
+                        //    iv->doCalculations();
+                        //    notify(mPayload[iv->id].txCmd);
+                        //    if(AlarmData == mPayload[iv->id].txCmd) {
+                        //        uint8_t i = 0;
+                        //        uint16_t code;
+                        //        uint32_t start, end;
+                        //        while(1) {
+                        //            code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                        //            if(0 == code)
+                        //                break;
+                        //            if (NULL != mCbAlarm)
+                        //                (mCbAlarm)(code, start, end);
+                        //            yield();
+                        //        }
+                        //    }
+                        //} else {
+                        //    DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
+                        //    mStat->rxFail++;
+                        //}
+                        //iv->setQueuedCmdFinished();
                     //}*/
                 }
                 yield();
@@ -588,9 +588,9 @@ const byteAssign_t InfoAssignment[] = {
 
 
             if ( mPayload[iv->id].complete || //4ch device
-                 iv->type != INV_TYPE_4CH     //other devices
+                 (iv->type != INV_TYPE_4CH     //other devices
                  && mPayload[iv->id].dataAB[CH0]
-                 && mPayload[iv->id].stsAB[CH0] ) {
+                 && mPayload[iv->id].stsAB[CH0])) {
                      miComplete(iv);
                     /*mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
                     DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
@@ -657,7 +657,7 @@ const byteAssign_t InfoAssignment[] = {
             //uint8_t cmd = getQueuedCmd();
             if(!*complete) {
                 DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX)); // + F("cmd is 0x") + String(cmd, HEX));
-                if (txCmd == 0x09 || txCmd == 0x11 || txCmd >= 0x36 && txCmd <= 0x39 )
+                if (txCmd == 0x09 || txCmd == 0x11 || (txCmd >= 0x36 && txCmd <= 0x39))
                     return false;
             }
 

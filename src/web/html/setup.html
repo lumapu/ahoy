@@ -137,6 +137,10 @@
                             <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
                         </div>
                         <div class="row mb-2">
+                            <div class="col-12 col-sm-3"><p class="subdes">Note</p></div>
+                            <div class="col-12 col-sm-9"><p>A 'max module power' value of '0' disables the channel in 'live' view</p></div>
+                        </div>
+                        <div class="row mb-2">
                             <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
                             <div class="col-12 col-sm-9"></div>
                         </div>
@@ -261,11 +265,11 @@
                             <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting)</div>
+                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting, OLED only)</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pxshift"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Contrast</div>
+                            <div class="col-12 col-sm-3 my-2">Luminance</div>
                             <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="1" max="100"></select></div>
                         </div>
                         <p class="des">Pinout</p>
@@ -275,25 +279,34 @@
 
                     <div class="row mb-4 mt-4">
                         <div class="col-8 col-sm-3">Reboot device after successful save</div>
-                        <div class="col-2 col-md-6">
+                        <div class="col-4 col-sm-9">
                             <input type="checkbox" name="reboot" checked />
                             <input type="submit" value="save" class="btn right"/>
                         </div>
                     </div>
-
-                    <div class="hr mb-3 mt-3"></div>
-                    <div class="mb-4 mt-4">
-                        <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
-                        <fieldset class="mb-4">
-                            <legend class="des">Upload / Store JSON Settings</legend>
-                            <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
-                                <input type="file" name="upload">
-                                <input type="button" class="btn" value="Upload" onclick="hide()">
-                            </form>
-                        </fieldset>
-                        <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a><span> (only saved values, passwords will be removed!)</span>
-                    </div>
                 </form>
+                <div class="hr mb-3 mt-3"></div>
+                <div class="mb-4 mt-4">
+                    <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                    <fieldset class="mb-4">
+                        <legend class="des">Import / Export JSON Settings</legend>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-8 col-sm-3">Import</div>
+                            <div class="col-4 col-sm-9">
+                                <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
+                                    <input type="file" name="upload">
+                                    <input type="button" class="btn" value="Import" onclick="hide()">
+                                </form>
+                            </div>
+                        </div>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-8 col-sm-3">Export</div>
+                            <div class="col-4 col-sm-9">
+                                <a class="btn" href="/get_setup" target="_blank">Export settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
         </div>
         {#HTML_FOOTER}
@@ -355,7 +368,7 @@
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_pwr":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
                 }
             });
 
@@ -499,7 +512,7 @@
                 iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")));
 
                 for(var j of [
-                    ["ModPwr", "ch_max_power", "Max Module Power (Wp)", 4, "[0-9]+"],
+                    ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
                     ["ModName", "ch_name", "Module Name", 15, null],
                     ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[0-9-]+"]]) {
 
@@ -634,12 +647,12 @@
                     document.getElementsByName(i)[0].checked = obj[i];
 
                 var e = document.getElementById("dispPins");
-                pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst'], ['busy', 'disp_bsy']];
+                var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
+                if("ESP32" == type)
+                    pins.push(['busy', 'disp_bsy']);
                 for(p of pins) {
-                    if(("ESP8266" == type) && p[0] == "busy")
-                        break;
                     e.append(
-                        ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
                                 sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]])
@@ -648,15 +661,19 @@
                     );
                 }
 
-                var opts = [[0, "None"], [1, "Nokia5110"], [2, "SSD1306 0.96\""], [3, "SH1106 1.3\""]];
+                var opts = [[0, "None"], [1, "SSD1306 0.96\""], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
+                var dispType = sel("disp_typ", opts, obj["disp_typ"]);
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
-                        ml("div", {class: "col-12 col-sm-9"}, sel("disp_typ", opts, obj["disp_typ"]))
+                        ml("div", {class: "col-12 col-sm-9"}, dispType)
                     ])
                 );
+                dispType.addEventListener('change', (e) => {
+                    hideDispPins(pins, e.target.value)
+                });
 
                 opts = [[0, "0&deg;"], [2, "180&deg;"]];
                 if("ESP32" == type) {
@@ -671,6 +688,27 @@
                 );
 
                 document.getElementsByName("disp_cont")[0].value = obj["disp_cont"];
+                hideDispPins(pins, obj.disp_typ);
+            }
+
+            function hideDispPins(pins, dispType) {
+                if(0 == dispType) {
+                    for(p of pins) {
+                        document.getElementById("row_" + p[1]).classList.add("hide");
+                    }
+                } else if(2 >= dispType) {
+                    for(var i = 0; i < pins.length; i++) {
+                        var cl = document.getElementById("row_" + pins[i][1]).classList;
+                        if(i < 2)
+                            cl.remove("hide");
+                        else
+                            cl.add("hide");
+                    }
+                } else {
+                    for(p of pins) {
+                        document.getElementById("row_" + p[1]).classList.remove("hide");
+                    }
+                }
             }
 
             function parse(root) {

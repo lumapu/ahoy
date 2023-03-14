@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #include "app.h"
@@ -78,7 +78,7 @@ void app::setup() {
 
     // Plugins
     if (mConfig->plugin.display.type != 0)
-        mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, 0xff, mVersion);
+        mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, mVersion);
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
