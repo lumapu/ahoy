@@ -59,7 +59,7 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 26, "%s-", mDevName);
+            snprintf(mClientId, 24, "%s-", mDevName);
             uint8_t pos = strlen(mClientId);
             mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
             mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
@@ -585,8 +585,8 @@ class PubMqtt {
 
                     if (sendTotals) {
                         uint8_t fieldId;
-                        bool retained = true;
                         for (uint8_t i = 0; i < 4; i++) {
+                            bool retained = true;
                             switch (i) {
                                 default:
                                 case 0:

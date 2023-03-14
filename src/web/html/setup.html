@@ -295,14 +295,14 @@
                             <div class="col-4 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <input type="file" name="upload">
-                                    <input type="button" class="btn" value="Upload" onclick="hide()">
+                                    <input type="button" class="btn" value="Import" onclick="hide()">
                                 </form>
                             </div>
                         </div>
                         <div class="row mb-4 mt-4">
                             <div class="col-8 col-sm-3">Export</div>
                             <div class="col-4 col-sm-9">
-                                <a class="btn" href="/get_setup" target="_blank">Download settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
+                                <a class="btn" href="/get_setup" target="_blank">Export settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
                             </div>
                         </div>
                     </fieldset>
@@ -368,7 +368,7 @@
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_power":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_pwr":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
                 }
             });
 

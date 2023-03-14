@@ -2,6 +2,12 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.100
+* fix add inverter `setup.html` #766
+* fix MQTT retained flag for total values #726
+* renamed buttons for import and export `setup.html`
+* added serial message `settings saved`
+
 ## 0.5.99
 * fix limit in [User_Manual.md](../User_Manual.md)
 * changed `contrast` to `luminance` in `setup.html`
