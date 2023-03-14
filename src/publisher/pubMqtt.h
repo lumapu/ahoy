@@ -638,7 +638,7 @@ class PubMqtt {
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
-        char mClientId[26]; // number of chars is limited to 23 up to v3.1 of MQTT
+        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
         char mTopic[MQTT_TOPIC_LEN+5];
 };
 
