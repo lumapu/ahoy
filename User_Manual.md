@@ -321,3 +321,11 @@ Send Power Limit:
 - A persistent limit is only needed if you want to throttle your inverter permanently or you can use it to set a start value on the battery, which is then always the switch-on limit when switching on, otherwise it would ramp up to 100% without regulation, which is continuous load is not healthy.
 - You can set a new limit in the turn-off state, which is then used for on (switching on again), otherwise the last limit from before the turn-off is used, but of course this only applies if DC voltage is applied the whole time.
 - If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
+
+## Additional Notes
+### MI Inverters
+- AhoyDTU supports MI type inverters as well, since dev. version 0.5.70.
+- MI inverters are known to be delivered with two different generations of firmwares: inverters with serial numbers 10x2 already use the 3rd generation protocol and behave just like the newer HM models, *the follwoing remarks do not apply to these*.
+- Older MI inverters (#sn 10x1) use a different rf protocol and thus do not deliver exactly the same data. E.g. the AC power value will therefore be calculated by AhoyDTU itself, while other values might not be available at all.
+- Single and dual channel 2nd gen. devices seem not to accept power limiting commands at all, the lower limit for 4-channel MI is 10% (instead of 2% for newer models)
+- 4-channel MI type inverters might work, but code still is untested.
