@@ -163,11 +163,11 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            memset(mTopic, 0, MQTT_TOPIC_LEN+5);
+            memset(mTopic, 0, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1);
             if(addTopic){
-                snprintf(mTopic, MQTT_TOPIC_LEN+5, "%s/%s", mCfgMqtt->topic, subTopic);
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
             } else {
-                snprintf(mTopic, MQTT_TOPIC_LEN+5, "%s", subTopic);
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
             }
 
             do {
@@ -639,7 +639,8 @@ class PubMqtt {
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
         char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
-        char mTopic[MQTT_TOPIC_LEN+5];
+		// global buffer for mqtt topic. Used when publishing mqtt messages.
+        char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
 };
 
 #endif /*__PUB_MQTT_H__*/
