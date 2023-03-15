@@ -53,6 +53,10 @@ Hoymiles Inverters
 - HM1000?
 - HM1200
 - HM1500
+- MI-300* [For MI inverters see remarks here](User_Manual.md#mi-inverters)
+- MI-600*
+- MI-700*
+- MI-1500* (2nd gen. still untested)
 
 TSUN Inverters:
 

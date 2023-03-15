@@ -118,7 +118,7 @@ class MiPayload {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
-                miStsDecode(iv, p);
+                miStsDecode(iv, p), CH1;
             }
 
             else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
@@ -361,6 +361,7 @@ const byteAssign_t InfoAssignment[] = {
                                                 if (!mPayload[iv->id].stsAB[CH2] || !mPayload[iv->id].dataAB[CH2] ) {
                                                     cmd = 0x11;
                                                     change = true;
+                                                    mPayload[iv->id].retransmits = 0; //reset counter
                                                 }
                                             }
                                         } else if ( cmd == 0x11) {
@@ -468,15 +469,16 @@ const byteAssign_t InfoAssignment[] = {
                 (mCbMiPayload)(val);
         }
 
-        void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t chan = CH1) {
+        void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t stschan = CH1) {
             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") status msg 0x") + String(p->packet[0], HEX));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
             rec->ts = mPayload[iv->id].ts;
             mPayload[iv->id].gotFragment = true;
             mPayload[iv->id].txId = p->packet[0];
 
-            uint8_t status  = (p->packet[11] << 8) + p->packet[12];
-            uint8_t stschan = p->packet[0] == 0x88 ? CH1 : CH2;
+            //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
+            uint8_t status  = (p->packet[9] << 8) + p->packet[10];
+            //uint8_t stschan = p->packet[0] == 0x88 ? CH1 : CH2;
             mPayload[iv->id].sts[stschan] = status;
             mPayload[iv->id].stsAB[stschan] = true;
             if (mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].stsAB[CH2])
@@ -495,20 +497,6 @@ const byteAssign_t InfoAssignment[] = {
             //mPayload[iv->id].skipfirstrepeat = 1;
             if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0] && !mPayload[iv->id].complete) {
                 miComplete(iv);
-                /*mPayload[iv->id].complete = true;
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
-                iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
-                //preliminary AC calculation...
-                uint8_t ac_pow = 0;
-                //if (mPayload[iv->id].sts[0] == 3) {
-                    ac_pow = calcPowerDcCh0(iv, 0)*9.5;
-                //}
-                iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-                iv->setQueuedCmdFinished();
-                iv->doCalculations();
-                mPayload[iv->id].skipfirstrepeat = 0;
-                notify(mPayload[iv->id].txCmd);
-                yield();*/
             }
         }
 
@@ -632,10 +620,16 @@ const byteAssign_t InfoAssignment[] = {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
             //preliminary AC calculation...
+
             uint8_t ac_pow = 0;
-            //if (mPayload[iv->id].sts[0] == 3) {
-                ac_pow = calcPowerDcCh0(iv, 0)*9.5;
-            //}
+            for(uint8_t i = 1; i <= iv->channels; i++) {
+                if (mPayload[iv->id].sts[i] == 3) {
+                    uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
+                    ac_pow += iv->getValue(pos, rec);
+                }
+            }
+            ac_pow = ac_pow*9.5;
+
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
             iv->doCalculations();
             iv->setQueuedCmdFinished();
@@ -693,7 +687,7 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[id].skipfirstrepeat   = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
-            mPayload[id].sts[0]      = 0; //disable this in case gotFragment is not working
+            mPayload[id].sts[0]      = 0;
             mPayload[id].sts[CH1]    = 0;
             mPayload[id].sts[CH2]    = 0;
             mPayload[id].sts[CH3]    = 0;

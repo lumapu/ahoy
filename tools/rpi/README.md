@@ -21,14 +21,22 @@ Required Hardware Setup
 
 `ahoy.py` has been successfully tested with the following setup
 
-- RaspberryPi Model 2B (any model should work)
+- RaspberryPi Model 2B, 4B (any model should work)
 - NRF24L01+ Radio Module connected as described, e.g., in [2]
   (Instructions at [3] should work identically, but [2] has more
   pretty pictures.)
+- or the [PaHoy board](https://github.com/DM6JM/PaHoy/)
 - TMRh20's 'Optimized High Speed nRF24L01+ Driver' [3], installed 
   as per the instructions given in [4]
   - Python Library Wrapper, as per [5]
+- or the easy way, using [pyRF24](https://github.com/nRF24/pyRF24)[6]
 
+How to talk to the nRF24L01+ in Python?
+---------------------------------------
+Either you make use of the way proposed in the following, using the NRF24 Python Wrapper and the 'Optimized High Speed nRF24L01+ Driver' OR you just use pip and let it install pyRF24.
+
+- If you go with pyRF24, all that needs to be done is installing pyRF24 as described in [6]. Please be aware that not all examples provided in this repo are prepared to use pyRF24. It might be nescessary to adjust the imports from RF24 to pyRF24 to get them running. Once you installed pyRF24, go on at 'Required python modules'
+- If you go with the RF24 wrapper, do the following steps
 
 Building the NRF24 Python Wrapper
 ---------------------------------
@@ -220,7 +228,12 @@ Example injects exactly the same as we normally use to poll data
 
 This allows for even faster hacking during runtime
 
-
+Running it as a service
+-----------------------
+If you want to run directly from the start, you might want to install it as a service.
+Depending on if you want to run it once a user is logged in or as soon as the system is booted, two service examples are included.
+ahoy.service allows you to start it as a user service upon login.
+ahoy_system.service allows you to start it as a system service already before login without user interaction.
 
 Analysing the Logs
 ------------------
@@ -263,3 +276,4 @@ References
 - [3] https://nrf24.github.io/RF24/index.html
 - [4] https://nrf24.github.io/RF24/md_docs_linux_install.html
 - [5] https://nrf24.github.io/RF24/md_docs_python_wrapper.html
+- [6] https://github.com/nRF24/pyRF24
