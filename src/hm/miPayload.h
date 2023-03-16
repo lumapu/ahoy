@@ -68,49 +68,93 @@ class MiPayload {
         }
 
         void loop() {
-            /*if(NULL != mHighPrioIv) {
-                iv->ivSend(mHighPrioIv, true); // should request firmware version etc.?
+            if(NULL != mHighPrioIv) {
+                ivSend(mHighPrioIv, true); // for devcontrol commands?
                 mHighPrioIv = NULL;
-            }*/
+            }
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
             mHighPrioIv = iv;
         }
 
-        void ivSend(Inverter<> *iv) {
+        void ivSend(Inverter<> *iv, bool highPrio = false) {
+            if(!highPrio) {
+                if (mPayload[iv->id].requested) {
+                    if (!mPayload[iv->id].complete)
+                        process(false); // no retransmit
+
+                    if (!mPayload[iv->id].complete) {
+                        if (!mPayload[iv->id].gotFragment)
+                            mStat->rxFailNoAnser++; // got nothing
+                        else
+                            mStat->rxFail++; // got fragments but not complete response
+
+                        iv->setQueuedCmdFinished();  // command failed
+                        if (mSerialDebug)
+                            DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                        if (mSerialDebug) {
+                            DPRINT(DBG_INFO, F("(#"));
+                            DBGPRINT(String(iv->id));
+                            DBGPRINT(F(") no Payload received! (retransmits: "));
+                            DBGPRINT(String(mPayload[iv->id].retransmits));
+                            DBGPRINTLN(F(")"));
+                        }
+                    }
+                }
+            }
+
             reset(iv->id);
             mPayload[iv->id].requested = true;
 
             yield();
-            if (mSerialDebug)
-                DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") Requesting Inv SN ") + String(iv->config->serial.u64, HEX));
-
-            uint8_t cmd = iv->getQueuedCmd();
-            DPRINT(DBG_INFO, F("(#"));
-            DBGPRINT(String(iv->id));
-            DBGPRINT(F(") prepareDevInformCmd 0x"));
-            DBGPRINTLN(String(cmd, HEX));
-            uint8_t cmd2 = cmd;
-            if (cmd == 0x1 ) { //0x1
-                cmd  = 0x0f;
-                cmd2 = 0x00;
-                mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false);
-            } else {
-                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-            };
-
-            mPayload[iv->id].txCmd = cmd;
-            if (iv->type == INV_TYPE_1CH || iv->type == INV_TYPE_2CH) {
-                mPayload[iv->id].dataAB[CH1] = false;
-                mPayload[iv->id].stsAB[CH1] = false;
-                mPayload[iv->id].dataAB[CH0] = false;
-                mPayload[iv->id].stsAB[CH0] = false;
+            if (mSerialDebug){
+                DPRINT(DBG_INFO, F("(#"));
+                DBGPRINT(String(iv->id));
+                DBGPRINT(F(") Requesting Inv SN "));
+                DBGPRINTLN(String(iv->config->serial.u64, HEX));
             }
 
-            if (iv->type == INV_TYPE_2CH) {
-                mPayload[iv->id].dataAB[CH2] = false;
-                mPayload[iv->id].stsAB[CH2] = false;
+            if (iv->getDevControlRequest()) {
+                if (mSerialDebug) {
+                    DPRINT(DBG_INFO, F("(#"));
+                    DBGPRINT(String(iv->id));
+                    DBGPRINT(F(") Devcontrol request 0x"));
+                    DBGPRINT(String(iv->devControlCmd, HEX));
+                    DBGPRINT(F(" power limit "));
+                    DBGPRINTLN(String(iv->powerLimit[0]));
+                }
+                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
+                mPayload[iv->id].txCmd = iv->devControlCmd;
+                //iv->clearCmdQueue();
+                //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+            } else {
+                uint8_t cmd = iv->getQueuedCmd();
+                DPRINT(DBG_INFO, F("(#"));
+                DBGPRINT(String(iv->id));
+                DBGPRINT(F(") prepareDevInformCmd 0x"));
+                DBGPRINTLN(String(cmd, HEX));
+                uint8_t cmd2 = cmd;
+                if (cmd == 0x1 ) { //0x1
+                    cmd  = 0x0f;
+                    cmd2 = 0x00;
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false);
+                } else {
+                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                };
+
+                mPayload[iv->id].txCmd = cmd;
+                if (iv->type == INV_TYPE_1CH || iv->type == INV_TYPE_2CH) {
+                    mPayload[iv->id].dataAB[CH1] = false;
+                    mPayload[iv->id].stsAB[CH1] = false;
+                    mPayload[iv->id].dataAB[CH0] = false;
+                    mPayload[iv->id].stsAB[CH0] = false;
+                }
+
+                if (iv->type == INV_TYPE_2CH) {
+                    mPayload[iv->id].dataAB[CH2] = false;
+                    mPayload[iv->id].stsAB[CH2] = false;
+                }
             }
         }
 
@@ -118,7 +162,7 @@ class MiPayload {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
-                miStsDecode(iv, p), CH1;
+                miStsDecode(iv, p);
             }
 
             else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
@@ -573,27 +617,11 @@ const byteAssign_t InfoAssignment[] = {
 
             }
 
-
-
             if ( mPayload[iv->id].complete || //4ch device
                  (iv->type != INV_TYPE_4CH     //other devices
                  && mPayload[iv->id].dataAB[CH0]
                  && mPayload[iv->id].stsAB[CH0])) {
                      miComplete(iv);
-                    /*mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
-                    DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
-                    iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
-                    //preliminary AC calculation...
-                    uint8_t ac_pow = 0;
-                    //if (mPayload[iv->id].sts[0] == 3) {
-                        ac_pow = calcPowerDcCh0(iv, 0)*9.5;
-                    //}
-                    iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-                    iv->doCalculations();
-                    iv->setQueuedCmdFinished();
-                    mStat->rxSuccess++;
-                    yield();
-                    notify(mPayload[iv->id].txCmd);*/
             }
 
 
@@ -619,18 +647,18 @@ const byteAssign_t InfoAssignment[] = {
             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got all msgs"));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
-            //preliminary AC calculation...
 
-            uint8_t ac_pow = 0;
+            //preliminary AC calculation...
+            float ac_pow = 0;
             for(uint8_t i = 1; i <= iv->channels; i++) {
                 if (mPayload[iv->id].sts[i] == 3) {
                     uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
                     ac_pow += iv->getValue(pos, rec);
                 }
             }
-            ac_pow = ac_pow*9.5;
+            ac_pow = (int) (ac_pow*9.5);
+            iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
 
-            iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
             iv->doCalculations();
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
@@ -693,7 +721,6 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[id].sts[CH3]    = 0;
             mPayload[id].sts[CH4]    = 0;
         }
-
 
 
         IApp *mApp;
