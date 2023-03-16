@@ -92,10 +92,10 @@ class MiPayload {
 
                         iv->setQueuedCmdFinished();  // command failed
                         if (mSerialDebug)
-                            miDPRINTHead(DBG_INFO, iv->id);
+                            DPRINTHEAD(DBG_INFO, iv->id);
                             DBGPRINTLN(F("enqueued cmd failed/timeout"));
                         if (mSerialDebug) {
-                            miDPRINTHead(DBG_INFO, iv->id);
+                            DPRINTHEAD(DBG_INFO, iv->id);
                             DBGPRINT(F("no Payload received! (retransmits: "));
                             DBGPRINT(String(mPayload[iv->id].retransmits));
                             DBGPRINTLN(F(")"));
@@ -109,14 +109,14 @@ class MiPayload {
 
             yield();
             if (mSerialDebug){
-                miDPRINTHead(DBG_INFO, iv->id);
+                DPRINTHEAD(DBG_INFO, iv->id);
                 DBGPRINT(F("Requesting Inv SN "));
                 DBGPRINTLN(String(iv->config->serial.u64, HEX));
             }
 
             if (iv->getDevControlRequest()) {
                 if (mSerialDebug) {
-                    miDPRINTHead(DBG_INFO, iv->id);
+                    DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINT(F("Devcontrol request 0x"));
                     DBGPRINT(String(iv->devControlCmd, HEX));
                     DBGPRINT(F(" power limit "));
@@ -128,7 +128,7 @@ class MiPayload {
                 //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
-                miDPRINTHead(DBG_INFO, iv->id);
+                DPRINTHEAD(DBG_INFO, iv->id);
                 DBGPRINT(F("prepareDevInformCmd 0x"));
                 DBGPRINTLN(String(cmd, HEX));
                 uint8_t cmd2 = cmd;
@@ -222,11 +222,11 @@ const byteAssign_t InfoAssignment[] = {
                     mStat->rxSuccess++;
                     mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);*/
                 } else if ( p->packet[9] == 0x01 ) {//second frame
-                    miDPRINTHead(DBG_INFO, iv->id);
+                    DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 2nd frame (hw info)"));
                     //mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x12, false);
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
-                    miDPRINTHead(DBG_INFO, iv->id);
+                    DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 3rd frame (hw info)"));
                     iv->setQueuedCmdFinished();
                     mStat->rxSuccess++;
@@ -261,7 +261,7 @@ const byteAssign_t InfoAssignment[] = {
                 }
             } */
             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
-                miDPRINTHead(DBG_DEBUG, iv->id);
+                DPRINTHEAD(DBG_DEBUG, iv->id);
                 DBGPRINTLN(F("Response from devcontrol request received"));
 
                 mPayload[iv->id].txId = p->packet[0];
@@ -274,7 +274,7 @@ const byteAssign_t InfoAssignment[] = {
                     else
                         msg = "NOT ";
                     //DPRINTLN(DBG_INFO, F("Inverter ") + String(iv->id) + F(" has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
-                    miDPRINTHead(DBG_INFO, iv->id);
+                    DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINTLN(F("has ") + msg + F("accepted power limit set point ") + String(iv->powerLimit[0]) + F(" with PowerLimitControl ") + String(iv->powerLimit[1]));
 
                     iv->clearCmdQueue();
@@ -379,11 +379,11 @@ const byteAssign_t InfoAssignment[] = {
                         if ((mPayload[iv->id].requested) && (retransmit)) {
                             if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
                                 // This is required to prevent retransmissions without answer.
-                                miDPRINTHead(DBG_INFO, iv->id);
+                                DPRINTHEAD(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
                                 mPayload[iv->id].retransmits = mMaxRetrans;
                             } else if(iv->devControlCmd == ActivePowerContr) {
-                                miDPRINTHead(DBG_INFO, iv->id);
+                                DPRINTHEAD(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("retransmit power limit"));
                                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
                             } else {
@@ -391,7 +391,7 @@ const byteAssign_t InfoAssignment[] = {
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
                                     mPayload[iv->id].retransmits++;
                                     if( !mPayload[iv->id].gotFragment ) {
-                                        miDPRINTHead(DBG_INFO, iv->id);
+                                        DPRINTHEAD(DBG_INFO, iv->id);
                                         DBGPRINTLN(F("nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
@@ -422,7 +422,7 @@ const byteAssign_t InfoAssignment[] = {
                                                 }
                                             }
                                         }
-                                        miDPRINTHead(DBG_INFO, iv->id);
+                                        DPRINTHEAD(DBG_INFO, iv->id);
                                         if (change) {
                                             DBGPRINT(F("next request is 0x"));
                                         } else {
@@ -440,10 +440,10 @@ const byteAssign_t InfoAssignment[] = {
                     } else if(!crcPass && pyldComplete) { // crc error on complete Payload
                         if (mPayload[iv->id].retransmits < mMaxRetrans) {
                             mPayload[iv->id].retransmits++;
-                            miDPRINTHead(DBG_WARN, iv->id);
+                            DPRINTHEAD(DBG_WARN, iv->id);
                             DBGPRINTLN(F("CRC Error: Request Complete Retransmit"));
                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
-                            miDPRINTHead(DBG_INFO, iv->id);
+                            DPRINTHEAD(DBG_INFO, iv->id);
 
                             DBGPRINTLN(F("prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
@@ -542,7 +542,7 @@ const byteAssign_t InfoAssignment[] = {
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                 iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]; // seems there's no status per channel in 3rd gen. models?!?
 
-                miDPRINTHead(DBG_INFO, iv->id);
+                DPRINTHEAD(DBG_INFO, iv->id);
                 DBGPRINTLN(F("alarm ID incremented to ") + String(iv->alarmMesIndex));
                 iv->enqueCommand<InfoCommand>(AlarmData);
             }
@@ -619,7 +619,7 @@ const byteAssign_t InfoAssignment[] = {
                 if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
 
-                    miDPRINTHead(DBG_INFO, iv->id);
+                    DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINTLN(F("alarm ID incremented to ") + String(iv->alarmMesIndex));
                     //iv->enqueCommand<InfoCommand>(AlarmData);
                 }
@@ -706,15 +706,15 @@ const byteAssign_t InfoAssignment[] = {
             return true;
         }
 
-        void miDPRINTHead(uint8_t lvl, uint8_t id) {
+/*        void miDPRINTHead(uint8_t lvl, uint8_t id) {
             DPRINT(lvl, F("(#"));
             DBGPRINT(String(id));
             DBGPRINT(F(") "));
-        }
+        }*/
 
         void reset(uint8_t id) {
             //DPRINTLN(DBG_INFO, F("resetPayload: id: ") + String(id));
-            miDPRINTHead(DBG_INFO, id);
+            DPRINTHEAD(DBG_INFO, id);
             DBGPRINTLN(F("resetPayload"));
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
             mPayload[id].gotFragment = false;
