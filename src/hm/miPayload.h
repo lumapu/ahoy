@@ -221,14 +221,16 @@ const byteAssign_t InfoAssignment[] = {
                     for (uint8_t i = 0; i < 5; i++) {
                         iv->setValue(i, rec, (float) ((p->packet[(12+2*i)] << 8) + p->packet[(13+2*i)])/1);
                     }
-                    iv->setQueuedCmdFinished();
+                    /*iv->setQueuedCmdFinished();
                     mStat->rxSuccess++;
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);*/
                 } else if ( p->packet[9] == 0x01 ) {//second frame
                     DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got 2nd frame (hw info)"));
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x12, false);
+                    //mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x12, false);
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
                     DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") got 3rd frame (hw info)"));
+                    iv->setQueuedCmdFinished();
+                    mStat->rxSuccess++;
                 }
 
             } else if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
@@ -721,6 +723,7 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[id].sts[CH3]    = 0;
             mPayload[id].sts[CH4]    = 0;
         }
+
 
 
         IApp *mApp;

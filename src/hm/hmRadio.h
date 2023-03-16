@@ -253,7 +253,10 @@ class HmRadio {
                     mBufCtrl.push(p);
                     if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
                         isLastPackage = (p.packet[9] > 0x81);       // > 0x81 indicates last packet received
-                    else if (p.packet[0] != 0x00)                   // ignore fragment number zero
+                    else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
+                        isLastPackage = (p.packet[9] > 0x11);       // > 0x11 indicates last packet received
+                    else if (p.packet[0] != 0x00 && p.packet[0] != 0x88 && p.packet[0] != 0x92)
+                                                                    // ignore fragment number zero and MI status messages
                         isLastPackage = true;                       // response from dev control command
                     yield();
                 }
