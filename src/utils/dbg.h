@@ -146,6 +146,10 @@
     }\
 })
 
+#define DPRINTHEAD(level, id) ({\
+    DPRINT(level, F("(#")); DBGPRINT(String(id)); DBGPRINT(F(") "));\
+})
+
 #define DPRINTLN(level, str) ({\
     switch(level) {\
         case DBG_ERROR: PERRLN(str);  break; \
@@ -155,7 +159,6 @@
         default:        PVERBLN(str); break; \
     }\
 })
-
 /*class ahoyLog {
     public:
         ahoyLog() {}
