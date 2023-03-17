@@ -14,6 +14,12 @@
 #include "../utils/dbg.h"
 #include "../utils/helper.h"
 
+#if defined(ESP32)
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxAllocHeap() - 2048
+#else
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxFreeBlockSize() - 2048
+#endif
+
 /**
  * More info:
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
@@ -224,8 +230,9 @@ class settings {
             else {
                 //DPRINTLN(DBG_INFO, fp.readString());
                 //fp.seek(0, SeekSet);
-                DynamicJsonDocument root(5500);
+                DynamicJsonDocument root(MAX_ALLOWED_BUF_SIZE);
                 DeserializationError err = deserializeJson(root, fp);
+                root.shrinkToFit();
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
                     jsonWifi(root[F("wifi")]);
@@ -249,13 +256,8 @@ class settings {
 
         bool saveSettings(bool stopFs = false) {
             DPRINTLN(DBG_DEBUG, F("save settings"));
-            File fp = LittleFS.open("/settings.json", "w");
-            if(!fp) {
-                DPRINTLN(DBG_ERROR, F("can't open settings file!"));
-                return false;
-            }
 
-            DynamicJsonDocument json(6500);
+            DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
@@ -267,11 +269,26 @@ class settings {
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
+            DPRINT(DBG_INFO, "memory usage: ");
+            DBGPRINTLN(String(json.memoryUsage()));
+
+            if(json.overflowed()) {
+                DPRINTLN(DBG_ERROR, F("buffer too small!"));
+                return false;
+            }
+
+            File fp = LittleFS.open("/settings.json", "w");
+            if(!fp) {
+                DPRINTLN(DBG_ERROR, F("can't open settings file!"));
+                return false;
+            }
+
             if(0 == serializeJson(root, fp)) {
                 DPRINTLN(DBG_ERROR, F("can't write settings file!"));
                 return false;
             }
             fp.close();
+
 
             DPRINTLN(DBG_INFO, F("settings saved"));
             if(stopFs)

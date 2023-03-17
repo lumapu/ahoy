@@ -2,6 +2,19 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.102
+* fix JSON import #775
+* fix save settings, at least already stored settings are not lost #771
+
+## 0.5.101
+* fix SSD1306
+* update documentation
+* Update miPayload.h
+* Update README.md
+* MI - remarks to user manual
+* MI - fix AC calc
+* MI - fix status msg. analysis
+
 ## 0.5.100
 * fix add inverter `setup.html` #766
 * fix MQTT retained flag for total values #726

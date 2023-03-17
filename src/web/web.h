@@ -161,26 +161,24 @@ class Web {
                     DPRINTLN(DBG_ERROR, F("can't open file!"));
                     mUploadFail = true;
                     mUploadFp.close();
+                    return;
                 }
             }
             mUploadFp.write(data, len);
             if (final) {
                 mUploadFp.close();
-                File fp = LittleFS.open("/tmp.json", "r");
-                if (!fp)
+                char pwd[PWD_LEN];
+                strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
+                if (!mApp->readSettings("/tmp.json")) {
                     mUploadFail = true;
-                else {
-                    char pwd[PWD_LEN];
-                    strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
-                    if (!mApp->readSettings("tmp.json")) {
-                        mUploadFail = true;
-                        DPRINTLN(DBG_ERROR, F("upload JSON error!"));
-                    } else {
-                        strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
-                        mApp->saveSettings(true);
-                    }
+                    DPRINTLN(DBG_ERROR, F("upload JSON error!"));
+                } else {
+                    LittleFS.remove("/tmp.json");
+                    strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
+                    mApp->saveSettings(true);
                 }
-                DPRINTLN(DBG_INFO, F("upload finished!"));
+                if (!mUploadFail)
+                    DPRINTLN(DBG_INFO, F("upload finished!"));
             }
         }
 

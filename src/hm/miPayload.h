@@ -118,7 +118,7 @@ class MiPayload {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
 
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
-                miStsDecode(iv, p), CH1;
+                miStsDecode(iv, p, CH1);
             }
 
             else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
