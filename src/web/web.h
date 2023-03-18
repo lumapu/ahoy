@@ -68,6 +68,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
+            mWeb.on("/chk_save",       HTTP_ANY,  std::bind(&Web::onCheckSave,    this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
             //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
@@ -592,13 +593,15 @@ class Web {
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
-            if (request->arg("reboot") == "on")
-                onReboot(request);
-            else {
-                AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
-                response->addHeader(F("Content-Encoding"), "gzip");
-                request->send(response);
-            }
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
+        }
+
+        void onCheckSave(AsyncWebServerRequest *request) {
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
         }
 
         void onLive(AsyncWebServerRequest *request) {

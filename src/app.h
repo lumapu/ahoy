@@ -68,9 +68,12 @@ class app : public IApp, public ah::Scheduler {
             return Scheduler::getTimestamp();
         }
 
-        bool saveSettings(bool stopFs = false) {
+        bool saveSettings(bool reboot) {
             mShowRebootRequest = true; // only message on index, no reboot
-            return mSettings.saveSettings(stopFs);
+            mSavePending = true;
+            mSaveReboot = reboot;
+            once(std::bind(&app::tickSave, this), 2, "save");
+            return true;
         }
 
         bool readSettings(const char *path) {
@@ -79,6 +82,14 @@ class app : public IApp, public ah::Scheduler {
 
         bool eraseSettings(bool eraseWifi = false) {
             return mSettings.eraseSettings(eraseWifi);
+        }
+
+        bool getSavePending() {
+            return mSavePending;
+        }
+
+        bool getLastSaveSucceed() {
+            return mSettings.getLastSaveSucceed();
         }
 
         statistics_t *getStatistics() {
@@ -214,6 +225,14 @@ class app : public IApp, public ah::Scheduler {
             ESP.restart();
         }
 
+        void tickSave(void) {
+            mSettings.saveSettings();
+            mSavePending = false;
+
+            if(mSaveReboot)
+                once(std::bind(&app::tickReboot, this), 2, "rboot");
+        }
+
         void tickNtpUpdate(void);
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
@@ -253,6 +272,8 @@ class app : public IApp, public ah::Scheduler {
         char mVersion[12];
         settings mSettings;
         settings_t *mConfig;
+        bool mSavePending;
+        bool mSaveReboot;
 
         uint8_t mSendLastIvId;
         bool mSendFirst;

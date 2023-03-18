@@ -3,8 +3,12 @@
 (starting from release version `0.5.66`)
 
 ## 0.5.102
+* Warning: old exports are not compatible any more!
 * fix JSON import #775
 * fix save settings, at least already stored settings are not lost #771
+* further save settings improvements (only store inverters which are existing)
+* improved display of settings save return value
+* made save settings asynchronous (more heap memory is free)
 
 ## 0.5.101
 * fix SSD1306

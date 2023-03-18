@@ -17,6 +17,8 @@ class IApp {
         virtual bool saveSettings(bool stopFs) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
+        virtual bool getSavePending() = 0;
+        virtual bool getLastSaveSucceed() = 0;
         virtual void setOnUpdate() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;

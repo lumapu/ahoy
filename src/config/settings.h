@@ -15,9 +15,9 @@
 #include "../utils/helper.h"
 
 #if defined(ESP32)
-    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxAllocHeap() - 2048
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxAllocHeap() - 1024
 #else
-    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxFreeBlockSize() - 2048
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxFreeBlockSize() - 1024
 #endif
 
 /**
@@ -161,7 +161,9 @@ typedef struct {
 
 class settings {
     public:
-        settings() {}
+        settings() {
+            mLastSaveSucceed = false;
+        }
 
         void setup() {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
@@ -206,6 +208,10 @@ class settings {
 
         bool getValid(void) {
             return mCfg.valid;
+        }
+
+        inline bool getLastSaveSucceed() {
+            return mLastSaveSucceed;
         }
 
         void getInfo(uint32_t *used, uint32_t *size) {
@@ -254,7 +260,7 @@ class settings {
             return mCfg.valid;
         }
 
-        bool saveSettings(bool stopFs = false) {
+        bool saveSettings() {
             DPRINTLN(DBG_DEBUG, F("save settings"));
 
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
@@ -269,31 +275,35 @@ class settings {
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
-            DPRINT(DBG_INFO, "memory usage: ");
+            DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
+            DPRINT(DBG_INFO, F("capacity: "));
+            DBGPRINTLN(String(json.capacity()));
+            DPRINT(DBG_INFO, F("max alloc: "));
+            DBGPRINTLN(String(MAX_ALLOWED_BUF_SIZE));
 
             if(json.overflowed()) {
                 DPRINTLN(DBG_ERROR, F("buffer too small!"));
+                mLastSaveSucceed = false;
                 return false;
             }
 
             File fp = LittleFS.open("/settings.json", "w");
             if(!fp) {
                 DPRINTLN(DBG_ERROR, F("can't open settings file!"));
+                mLastSaveSucceed = false;
                 return false;
             }
 
             if(0 == serializeJson(root, fp)) {
                 DPRINTLN(DBG_ERROR, F("can't write settings file!"));
+                mLastSaveSucceed = false;
                 return false;
             }
             fp.close();
 
-
             DPRINTLN(DBG_INFO, F("settings saved"));
-            if(stopFs)
-                stop();
-
+            mLastSaveSucceed = true;
             return true;
         }
 
@@ -301,7 +311,7 @@ class settings {
             if(true == eraseWifi)
                 return LittleFS.format();
             loadDefaults(!eraseWifi);
-            return saveSettings(true);
+            return saveSettings();
         }
 
     private:
@@ -549,36 +559,41 @@ class settings {
             if(set)
                 ivArr = obj.createNestedArray(F("iv"));
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                if(set)
-                    jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
-                else
-                    jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
+                if(set) {
+                    if(mCfg.inst.iv[i].serial.u64 != 0ULL)
+                        jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
+                }
+                else {
+                    if(!obj[F("iv")][i].isNull())
+                        jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
+                }
             }
         }
 
         void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj[F("en")]    = (bool)cfg->enabled;
-                obj[F("name")]  = cfg->name;
-                obj[F("sn")]    = cfg->serial.u64;
+                obj[F("en")]   = (bool)cfg->enabled;
+                obj[F("name")] = cfg->name;
+                obj[F("sn")]   = cfg->serial.u64;
                 for(uint8_t i = 0; i < 4; i++) {
-                    obj[F("yield")][i]  = cfg->yieldCor[i];
+                    obj[F("yc")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
-                    obj[F("chName")][i] = cfg->chName[i];
+                    obj[F("chn")][i] = cfg->chName[i];
                 }
             } else {
                 cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
                 for(uint8_t i = 0; i < 4; i++) {
-                    cfg->yieldCor[i] = obj[F("yield")][i];
+                    cfg->yieldCor[i] = obj[F("yc")][i];
                     cfg->chMaxPwr[i] = obj[F("pwr")][i];
-                    snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
+                    snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chn")][i].as<const char*>());
                 }
             }
         }
 
         settings_t mCfg;
+        bool mLastSaveSucceed;
 };
 
 #endif /*__SETTINGS_H__*/

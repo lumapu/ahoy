@@ -157,7 +157,7 @@
                             <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling stops at sunset</div>
+                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling pauses at sunset</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="invRstComStop"/></div>
                         </div>
                         <div class="row mb-3">
@@ -209,7 +209,7 @@
                             <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Stop polling inverters during night</div>
+                            <div class="col-8 col-sm-3">Pause polling inverters during night</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="sunDisNightCom"/></div>
                         </div>
                     </fieldset>
@@ -291,8 +291,8 @@
                     <fieldset class="mb-4">
                         <legend class="des">Import / Export JSON Settings</legend>
                         <div class="row mb-4 mt-4">
-                            <div class="col-8 col-sm-3">Import</div>
-                            <div class="col-4 col-sm-9">
+                            <div class="col-12 col-sm-3 my-2">Import</div>
+                            <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <input type="file" name="upload">
                                     <input type="button" class="btn" value="Import" onclick="hide()">
@@ -300,8 +300,8 @@
                             </div>
                         </div>
                         <div class="row mb-4 mt-4">
-                            <div class="col-8 col-sm-3">Export</div>
-                            <div class="col-4 col-sm-9">
+                            <div class="col-12 col-sm-3 my-2">Export</div>
+                            <div class="col-12 col-sm-9">
                                 <a class="btn" href="/get_setup" target="_blank">Export settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
                             </div>
                         </div>
