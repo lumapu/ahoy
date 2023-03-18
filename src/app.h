@@ -72,7 +72,7 @@ class app : public IApp, public ah::Scheduler {
             mShowRebootRequest = true; // only message on index, no reboot
             mSavePending = true;
             mSaveReboot = reboot;
-            once(std::bind(&app::tickSave, this), 2, "save");
+            once(std::bind(&app::tickSave, this), 3, "save");
             return true;
         }
 
@@ -226,11 +226,12 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickSave(void) {
-            mSettings.saveSettings();
+            if(!mSettings.saveSettings())
+                mSaveReboot = false;
             mSavePending = false;
 
             if(mSaveReboot)
-                once(std::bind(&app::tickReboot, this), 2, "rboot");
+                setRebootFlag();
         }
 
         void tickNtpUpdate(void);

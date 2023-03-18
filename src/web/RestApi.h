@@ -80,7 +80,7 @@ class RestApi {
             if(path == "html/system")         getHtmlSystem(root);
             else if(path == "html/logout")    getHtmlLogout(root);
             else if(path == "html/save")      getHtmlSave(root);
-            else if(path == "html/chk_save")  getHtmlChkSave(root);
+            else if(path == "html/chk_save")  getHtmlSave(root);
             else if(path == "system")         getSysInfo(root);
             else if(path == "generic")        getGeneric(root);
             else if(path == "reboot")         getReboot(root);
@@ -268,13 +268,6 @@ class RestApi {
         void getHtmlSave(JsonObject obj) {
             getGeneric(obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 1;
-            obj[F("refresh_url")] = F("/chk_save");
-            obj[F("html")] = F("saving settings ...");
-        }
-
-        void getHtmlChkSave(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
-            obj[F("refresh")] = (mApp->getLastSaveSucceed()) ? 10 : 1;
             obj[F("refresh_url")] = mApp->getSavePending() ? F("/chk_save") : F("/setup");
             if(mApp->getSavePending())
                 obj[F("html")] = F("saving settings ...");

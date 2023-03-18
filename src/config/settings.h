@@ -576,18 +576,18 @@ class settings {
                 obj[F("name")] = cfg->name;
                 obj[F("sn")]   = cfg->serial.u64;
                 for(uint8_t i = 0; i < 4; i++) {
-                    obj[F("yc")][i]  = cfg->yieldCor[i];
+                    obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
-                    obj[F("chn")][i] = cfg->chName[i];
+                    obj[F("chName")][i] = cfg->chName[i];
                 }
             } else {
                 cfg->enabled = (bool)obj[F("en")];
                 snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
                 cfg->serial.u64 = obj[F("sn")];
                 for(uint8_t i = 0; i < 4; i++) {
-                    cfg->yieldCor[i] = obj[F("yc")][i];
+                    cfg->yieldCor[i] = obj[F("yield")][i];
                     cfg->chMaxPwr[i] = obj[F("pwr")][i];
-                    snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chn")][i].as<const char*>());
+                    snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
                 }
             }
         }
