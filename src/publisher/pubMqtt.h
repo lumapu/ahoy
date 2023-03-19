@@ -111,7 +111,9 @@ class PubMqtt {
             publish(subtopics[MQTT_UPTIME], val);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
+            #ifndef ESP32
             publish(subtopics[MQTT_HEAP_FRAG], String(ESP.getHeapFragmentation()).c_str());
+            #endif
         }
 
         bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
