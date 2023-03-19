@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.103
+* merged MI improvements, thx @rejoe2 #778
+* changed display inverter online message
+
 ## 0.5.102
 * Warning: old exports are not compatible any more!
 * fix JSON import #775

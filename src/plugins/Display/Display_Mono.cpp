@@ -108,7 +108,7 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
     if (!(_mExtra % 10) && (ip)) {
         printText(ip.toString().c_str(), 3);
     } else if (!(_mExtra % 5)) {
-        snprintf(_fmtText, DISP_FMT_TEXT_LEN, "#%d Inverter online", isprod);
+        snprintf(_fmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
         printText(_fmtText, 3);
     } else {
         if(mIsLarge && (NULL != mUtcTs))
