@@ -5,6 +5,7 @@
 ## 0.5.103
 * merged MI improvements, thx @rejoe2 #778
 * changed display inverter online message
+* merged heap improvements #772
 
 ## 0.5.102
 * Warning: old exports are not compatible any more!

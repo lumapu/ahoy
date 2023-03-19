@@ -210,7 +210,7 @@ class PubMqtt {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char topic[64], name[32], uniq_id[32];
-            StaticJsonDocument<256> doc;
+            DynamicJsonDocument doc(256);
 
             uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
             const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
@@ -267,7 +267,7 @@ class PubMqtt {
                         stateCls = getFieldStateClass(fldTotal[i]);
                     }
 
-                    StaticJsonDocument<512> doc2;
+                    DynamicJsonDocument doc2(512);
                     doc2[F("name")] = name;
                     doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
                     doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
@@ -359,7 +359,7 @@ class PubMqtt {
             if(NULL == mSubscriptionCb)
                 return;
 
-            StaticJsonDocument<128> json;
+            DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
 
             bool limitAbs = false;
