@@ -80,7 +80,6 @@ class RestApi {
             if(path == "html/system")         getHtmlSystem(root);
             else if(path == "html/logout")    getHtmlLogout(root);
             else if(path == "html/save")      getHtmlSave(root);
-            else if(path == "html/chk_save")  getHtmlSave(root);
             else if(path == "system")         getSysInfo(root);
             else if(path == "generic")        getGeneric(root);
             else if(path == "reboot")         getReboot(root);
@@ -267,12 +266,8 @@ class RestApi {
 
         void getHtmlSave(JsonObject obj) {
             getGeneric(obj.createNestedObject(F("generic")));
-            obj[F("refresh")] = 1;
-            obj[F("refresh_url")] = mApp->getSavePending() ? F("/chk_save") : F("/setup");
-            if(mApp->getSavePending())
-                obj[F("html")] = F("saving settings ...");
-            else
-                obj[F("html")] = mApp->getLastSaveSucceed() ?  F("settings succesfully saved") : F("failed saving settings");
+            obj["pending"] = (bool)mApp->getSavePending();
+            obj["success"] = (bool)mApp->getLastSaveSucceed();
         }
 
         void getReboot(JsonObject obj) {
@@ -417,10 +412,10 @@ class RestApi {
             obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
             obj[F("disp_clk")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
             obj[F("disp_data")]    = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_data;
-            obj[F("disp_cs")]      = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
-            obj[F("disp_dc")]      = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
-            obj[F("disp_rst")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
-            obj[F("disp_bsy")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
+            obj[F("disp_cs")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]     = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
         }
 
         void getIndex(JsonObject obj) {
@@ -492,7 +487,6 @@ class RestApi {
 
         void getLive(JsonObject obj) {
             getGeneric(obj.createNestedObject(F("generic")));
-            //JsonArray invArr = obj.createNestedArray(F("inverter"));
             obj[F("refresh")] = mConfig->nrf.sendInterval;
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
@@ -512,52 +506,6 @@ class RestApi {
                     parse = iv->config->enabled;
                 obj[F("iv")][i] = parse;
             }
-
-            /*Inverter<> *iv;
-            uint8_t pos;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    JsonObject obj2 = invArr.createNestedObject();
-                    obj2[F("enabled")]            = (bool)iv->config->enabled;
-                    obj2[F("name")]               = String(iv->config->name);
-                    obj2[F("channels")]           = iv->channels;
-                    obj2[F("power_limit_read")]   = ah::round3(iv->actPowerLimit);
-                    //obj2[F("last_alarm")]         = String(iv->lastAlarmMsg);
-                    obj2[F("ts_last_success")]    = rec->ts;
-
-                    JsonArray ch = obj2.createNestedArray("ch");
-                    JsonArray ch0 = ch.createNestedArray();
-                    obj2[F("ch_names")][0] = "AC";
-                    for (uint8_t fld = 0; fld < sizeof(list); fld++) {
-                        pos = (iv->getPosByChFld(CH0, list[fld], rec));
-                        ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-                        obj[F("ch0_fld_units")][fld] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
-                        obj[F("ch0_fld_names")][fld] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
-                    }
-
-                    for(uint8_t j = 1; j <= iv->channels; j ++) {
-                        obj2[F("ch_names")][j] = String(iv->config->chName[j-1]);
-                        JsonArray cur = ch.createNestedArray();
-                        for (uint8_t k = 0; k < 6; k++) {
-                            switch(k) {
-                                default: pos = (iv->getPosByChFld(j, FLD_UDC, rec)); break;
-                                case 1:  pos = (iv->getPosByChFld(j, FLD_IDC, rec)); break;
-                                case 2:  pos = (iv->getPosByChFld(j, FLD_PDC, rec)); break;
-                                case 3:  pos = (iv->getPosByChFld(j, FLD_YD, rec));  break;
-                                case 4:  pos = (iv->getPosByChFld(j, FLD_YT, rec));  break;
-                                case 5:  pos = (iv->getPosByChFld(j, FLD_IRR, rec)); break;
-                            }
-                            cur[k] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-                            if(1 == j) {
-                                obj[F("fld_units")][k] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
-                                obj[F("fld_names")][k] = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
-                            }
-                        }
-                    }
-                }
-            }*/
         }
 
         void getRecord(JsonObject obj, uint8_t recType) {

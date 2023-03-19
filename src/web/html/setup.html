@@ -692,22 +692,23 @@
             }
 
             function hideDispPins(pins, dispType) {
-                if(0 == dispType) {
-                    for(p of pins) {
-                        document.getElementById("row_" + p[1]).classList.add("hide");
-                    }
-                } else if(2 >= dispType) {
-                    for(var i = 0; i < pins.length; i++) {
-                        var cl = document.getElementById("row_" + pins[i][1]).classList;
+                for(var i = 0; i < pins.length; i++) {
+                    var cl = document.getElementById("row_" + pins[i][1]).classList;
+
+                    if(0 == dispType)
+                        cl.add("hide");
+                    else if(dispType <= 2) { // OLED
                         if(i < 2)
                             cl.remove("hide");
                         else
                             cl.add("hide");
-                    }
-                } else {
-                    for(p of pins) {
-                        document.getElementById("row_" + p[1]).classList.remove("hide");
-                    }
+                    } else if(dispType == 3) { // Nokia
+                        if(i < 4)
+                            cl.remove("hide");
+                        else
+                            cl.add("hide");
+                    } else // ePaper
+                        cl.remove("hide");
                 }
             }
 

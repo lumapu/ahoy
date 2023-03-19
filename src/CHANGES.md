@@ -2,6 +2,12 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.104
+* further improved save settings
+* removed `#` character from ePaper
+* fixed saving pinout for `Nokia-Display`
+* removed `Reset` Pin for monochrome displays
+
 ## 0.5.103
 * merged MI improvements, thx @rejoe2 #778
 * changed display inverter online message
