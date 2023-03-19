@@ -111,6 +111,7 @@ class PubMqtt {
             publish(subtopics[MQTT_UPTIME], val);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
+            publish(subtopics[MQTT_HEAP_FRAG], String(ESP.getHeapFragmentation()).c_str());
         }
 
         bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
@@ -162,14 +163,16 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            String topic = "";
-            if(addTopic)
-                topic = String(mCfgMqtt->topic) + "/";
-            topic += String(subTopic);
+            memset(mTopic, 0, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1);
+            if(addTopic){
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
+            } else {
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
+            }
 
             do {
-                if(0 != mClient.publish(topic.c_str(), QOS_0, retained, payload))
-                    break;
+                if(0 != mClient.publish(mTopic, QOS_0, retained, payload))
+                   break;
                 if(!mClient.connected())
                     break;
                 #if defined(ESP8266)
@@ -207,7 +210,7 @@ class PubMqtt {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
 
             char topic[64], name[32], uniq_id[32];
-            DynamicJsonDocument doc(256);
+            StaticJsonDocument<256> doc;
 
             uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
             const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
@@ -264,7 +267,7 @@ class PubMqtt {
                         stateCls = getFieldStateClass(fldTotal[i]);
                     }
 
-                    DynamicJsonDocument doc2(512);
+                    StaticJsonDocument<512> doc2;
                     doc2[F("name")] = name;
                     doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
                     doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
@@ -356,7 +359,7 @@ class PubMqtt {
             if(NULL == mSubscriptionCb)
                 return;
 
-            DynamicJsonDocument json(128);
+            StaticJsonDocument<128> json;
             JsonObject root = json.to<JsonObject>();
 
             bool limitAbs = false;
@@ -636,6 +639,8 @@ class PubMqtt {
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
         char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
+		// global buffer for mqtt topic. Used when publishing mqtt messages.
+        char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
 };
 
 #endif /*__PUB_MQTT_H__*/
