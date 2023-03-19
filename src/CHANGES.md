@@ -7,6 +7,7 @@
 * removed `#` character from ePaper
 * fixed saving pinout for `Nokia-Display`
 * removed `Reset` Pin for monochrome displays
+* improved wifi connection #652
 
 ## 0.5.103
 * merged MI improvements, thx @rejoe2 #778
