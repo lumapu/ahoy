@@ -2,6 +2,54 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.104
+* further improved save settings
+* removed `#` character from ePaper
+* fixed saving pinout for `Nokia-Display`
+* removed `Reset` Pin for monochrome displays
+* improved wifi connection #652
+
+## 0.5.103
+* merged MI improvements, thx @rejoe2 #778
+* changed display inverter online message
+* merged heap improvements #772
+
+## 0.5.102
+* Warning: old exports are not compatible any more!
+* fix JSON import #775
+* fix save settings, at least already stored settings are not lost #771
+* further save settings improvements (only store inverters which are existing)
+* improved display of settings save return value
+* made save settings asynchronous (more heap memory is free)
+
+## 0.5.101
+* fix SSD1306
+* update documentation
+* Update miPayload.h
+* Update README.md
+* MI - remarks to user manual
+* MI - fix AC calc
+* MI - fix status msg. analysis
+
+## 0.5.100
+* fix add inverter `setup.html` #766
+* fix MQTT retained flag for total values #726
+* renamed buttons for import and export `setup.html`
+* added serial message `settings saved`
+
+## 0.5.99
+* fix limit in [User_Manual.md](../User_Manual.md)
+* changed `contrast` to `luminance` in `setup.html`
+* try to fix SSD1306 display #759
+* only show necessary display pins depending on setting
+
+## 0.5.98
+* fix SH1106 rotation and turn off during night #756
+* removed MQTT subscription `sync_ntp`, `set_time` with a value of `0` does the same #696
+* simplified MQTT subscription for `limit`. Check [User_Manual.md](../User_Manual.md) for new syntax #696, #713
+* repaired inverter wise limit control
+* fix upload settings #686
+
 ## 0.5.97
 * Attention: re-ordered display types, check your settings! #746
 * improved saving settings of display #747, #746

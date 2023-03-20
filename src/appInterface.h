@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2022 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __IAPP_H__
@@ -14,9 +14,11 @@
 class IApp {
     public:
         virtual ~IApp() {}
-        virtual bool saveSettings() = 0;
+        virtual bool saveSettings(bool stopFs) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
+        virtual bool getSavePending() = 0;
+        virtual bool getLastSaveSucceed() = 0;
         virtual void setOnUpdate() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;

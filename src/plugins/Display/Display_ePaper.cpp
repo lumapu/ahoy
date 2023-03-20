@@ -168,7 +168,7 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
         _display->println("kWh");
 
         _display->setCursor(0, _display->height() - (mHeadFootPadding + 10));
-        snprintf(_fmtText, sizeof(_fmtText), "#%d Inverter online", _isprod);
+        snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", _isprod);
         _display->println(_fmtText);
 
     } while (_display->nextPage());

@@ -91,9 +91,6 @@ The AhoyDTU will publish on the following topics
 
 ## Active Power Limit via Serial / Control Page
 URL: `/serial`
-If you leave the field "Active Power Limit" empty during the setup and reboot the ahoy-dtu will set a value of 65535 in the setup.
-That is the value you have to fill in case you want to operate the inverter without a active power limit.
-If the value is 65535 or -1 after another reboot the value will be set automatically to "100" and in the drop-down menu "relative in percent persistent" will be set. Of course you can do this also by your self.
 
 You can change the setting in the following manner.
 Decide if you want to set
@@ -115,23 +112,16 @@ Also an absolute active power limit below approx. 30 Watt seems to be not meanfu
 
 ### Generic Information
 
-The AhoyDTU subscribes on three topics `<TOPIC>/ctrl/#`, `<TOPIC>/setup` and `<TOPIC>/status`.
+The AhoyDTU subscribes on following topics:
+
+- `<TOPIC>/ctrl/limit/<INVERTER_ID>`
+- `<TOPIC>/ctrl/restart/<INVERTER_ID>`
+- `<TOPIC>/setup/set_time`
 
 👆 `<TOPIC>` can be set on setup page, default is `inverter`.
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
-
-### Inverter Power (On / Off)
-```mqtt
-<TOPIC>/ctrl/power/<INVERTER_ID>
-```
-with payload `1` = `ON` and `0` = `OFF`
-
-Example:
-```mqtt
-inverter/ctrl/power/0     1
-```
 
 ### Inverter restart
 ```mqtt
@@ -142,50 +132,35 @@ Example:
 inverter/ctrl/restart/0
 ```
 
-### Power Limit relative persistent [%]
+### Power Limit relative (non persistent) [%]
 
 ```mqtt
-<TOPIC>/ctrl/limit_persistent_relative/<INVERTER_ID>
+<TOPIC>/ctrl/limit/<INVERTER_ID>
 ```
 with a payload `[2 .. 100]`
 
+**NOTE: optional a `%` can be sent as last character**
+
 Example:
 ```mqtt
-inverter/ctrl/limit_persistent_relative/0     70
+inverter/ctrl/limit/0     70
 ```
 
-### Power Limit absolute persistent [Watts]
+### Power Limit absolute (non persistent) [Watts]
 ```mqtt
-<TOPIC>/ctrl/limit_persistent_absolute/<INVERTER_ID>
+<TOPIC>/ctrl/limit/<INVERTER_ID>
 ```
 with a payload `[0 .. 65535]`
 
-Example:
-```mqtt
-inverter/ctrl/limit_persistent_absolute/0     600
-```
-
-### Power Limit relative non persistent [%]
-```mqtt
-<TOPIC>/ctrl/limit_nonpersistent_relative/<INVERTER_ID>
-```
-with a payload `[2 .. 100]`
+**NOTE: the unit `W` is necessary to determine an absolute limit**
 
 Example:
 ```mqtt
-inverter/ctrl/limit_nonpersistent_relative/0     70
+inverter/ctrl/limit/0     600W
 ```
 
-### Power Limit absolute non persistent [Watts]
-```mqtt
-<TOPIC>/ctrl/limit_nonpersistent_absolute/<INVERTER_ID>
-```
-with a payload `[0 .. 65535]`
-
-Example:
-```mqtt
-inverter/ctrl/limit_nonpersistent_absolute/0     600
-```
+### Power Limit persistent
+This feature was removed. The persisten limit should not be modified cyclic by a script because of potential wearout of the flash inside the inverter.
 
 ## Control via REST API
 
@@ -310,6 +285,8 @@ To get the information open the URL `/api/record/info` on your AhoyDTU. The info
 | tomquist   | TSOL-M1600   |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
 | rejoe2     | MI-600       |               | 236       | 2018           | 11-27           | 17        |          |           |
 | rejoe2     | MI-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
+| dragricola | HM-1200      |               | 1.0.16    | 2021           | 10-12           | 100       |          |           |
+| dragricola | MI-300       |               | 230       | 2017           | 08-08           | 1         |          |           |
 |            |              |               |           |                |                 |           |          |           |
 
 ## Developer Information about Command Queue
@@ -344,3 +321,11 @@ Send Power Limit:
 - A persistent limit is only needed if you want to throttle your inverter permanently or you can use it to set a start value on the battery, which is then always the switch-on limit when switching on, otherwise it would ramp up to 100% without regulation, which is continuous load is not healthy.
 - You can set a new limit in the turn-off state, which is then used for on (switching on again), otherwise the last limit from before the turn-off is used, but of course this only applies if DC voltage is applied the whole time.
 - If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
+
+## Additional Notes
+### MI Inverters
+- AhoyDTU supports MI type inverters as well, since dev. version 0.5.70.
+- MI inverters are known to be delivered with two different generations of firmwares: inverters with serial numbers 10x2 already use the 3rd generation protocol and behave just like the newer HM models, *the follwoing remarks do not apply to these*.
+- Older MI inverters (#sn 10x1) use a different rf protocol and thus do not deliver exactly the same data. E.g. the AC power value will therefore be calculated by AhoyDTU itself, while other values might not be available at all.
+- Single and dual channel 2nd gen. devices seem not to accept power limiting commands at all, the lower limit for 4-channel MI is 10% (instead of 2% for newer models)
+- 4-channel MI type inverters might work, but code still is untested.

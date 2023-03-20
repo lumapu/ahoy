@@ -94,12 +94,11 @@ void ahoywifi::tickWifiLoop() {
         }
         mCnt++;
 
-        uint8_t timeout = 10; // seconds
+        uint8_t timeout = (mStaConn == DISCONNECTED) ? 10 : 20; // seconds
         if (mStaConn == CONNECTED) // connected but no ip
             timeout = 20;
 
-
-        if(!mScanActive && mBSSIDList.empty() && ((mCnt % timeout) == 0)) { // start scanning APs with the given SSID
+        if(!mScanActive && mBSSIDList.empty() && (mStaConn == DISCONNECTED)) { // start scanning APs with the given SSID
             DBGPRINT(F("scanning APs with SSID "));
             DBGPRINTLN(String(mConfig->sys.stationSsid));
             mScanCnt = 0;
@@ -121,8 +120,9 @@ void ahoywifi::tickWifiLoop() {
                     mCnt = timeout - 2;
         }
         if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
-            if(mStaConn != CONNECTED)
-                mStaConn = CONNECTING;
+            mStaConn = CONNECTING;
+            WiFi.disconnect();
+
             if(mBSSIDList.size() > 0) { // get first BSSID in list
                 DBGPRINT(F("try to connect to AP with BSSID:"));
                 uint8_t bssid[6];
@@ -132,9 +132,11 @@ void ahoywifi::tickWifiLoop() {
                     DBGPRINT(" "  + String(bssid[j], HEX));
                 }
                 DBGPRINTLN("");
-                WiFi.disconnect();
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
             }
+            else
+                mStaConn = DISCONNECTED;
+
             mCnt = 0;
         }
     }
