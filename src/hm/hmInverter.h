@@ -264,9 +264,9 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
-                        if (FLD_T == rec->assign[pos].fieldId) {
-                            // temperature is a signed value!
-                            rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
+                        if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
+                            // temperature, Qvar, and power factor are a signed values
+                            rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
                             rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else {

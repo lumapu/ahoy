@@ -43,7 +43,7 @@ const byteAssign_t hms4chAssignment[] = {
     { FLD_PAC, UNIT_W,    CH0, 54, 2,   10 },
     { FLD_Q,   UNIT_VAR,  CH0, 56, 2,   10 }, // signed!
     { FLD_IAC, UNIT_A,    CH0, 58, 2,  100 },
-    { FLD_PF,  UNIT_NONE, CH0, 60, 2, 1000 },
+    { FLD_PF,  UNIT_NONE, CH0, 60, 2, 1000 }, // signed!
     { FLD_T,   UNIT_C,    CH0, 62, 2,   10 }, // signed!
     { FLD_EVT, UNIT_NONE, CH0, 64, 2,    1 },
     { FLD_YD,  UNIT_WH,   CH0, CALC_YD_CH0,  0, CMD_CALC },
