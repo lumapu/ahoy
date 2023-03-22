@@ -182,7 +182,6 @@
 #define TXT_REQRETR     7
 #define TXT_PPYDMAX    10
 #define TXT_NOPYLD      1
-
 #define TXT_GDEVINF     3
 #define TXT_DEVCTRL     4
 #define TXT_INCRALM     5
@@ -194,7 +193,6 @@
 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
 
 DBGPRINTLN(F("Response from devcontrol request received"));
-                    DPRINT(DBG_DEBUG, F("fragment number zero received"));
                     DBGPRINT(F("has accepted power limit set point "));
                     DBGPRINT(F(" with PowerLimitControl "));
                     DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
@@ -228,22 +226,30 @@ DBGPRINTLN(F("Response from devcontrol request received"));
 #define TXT_NOPYLD2     3
 #define TXT_CRCERR      4
 #define TXT_RSTPYLD     5
-#define TXT_NULLREC     7
-#define TXT_PREVSND     8
-#define TXT_RESPLIM     9
-
-//resetPayload
+#define TXT_RXDIREQ     6
+#define TXT_CLRQUE      7
+#define TXT_RXCTRREQ    8
+#define TXT_NULLREC     9
+#define TXT_PREVSND    10
+#define TXT_RESPLIM    11
+#define TXT_FRAGM0     20
+#define TXT_NO2NDG    100
 
 #define DBGPRINTLN_TXT(text) ({\
     switch(text) {\
         case TXT_TIMEOUT:  DBGPRINTLN(F("enqueued cmd failed/timeout"));  break; \
         case TXT_BUILD:    DBGPRINTLN(F("build")); break; \
         case TXT_NOPYLD2:  DBGPRINTLN(F("nothing received")); break; \
-        case TXT_RSTPYLD:  DBGPRINTLN(F("resetPayload"));break; \
         case TXT_CRCERR:   DBGPRINTLN(F("CRC Error: Request Complete Retransmit")); break; \
+        case TXT_RSTPYLD:  DBGPRINTLN(F("resetPayload"));break; \
+        case TXT_RXDIREQ:  DBGPRINTLN(F("Response from info request received")); break; \
+        case TXT_CLRQUE:   DBGPRINTLN(F("clearCmdQueue")); break; \
+        case TXT_RXCTRREQ: DBGPRINTLN(F("Response from devcontrol request received")); break; \
         case TXT_NULLREC:  DBGPRINTLN(F("record is NULL!")); break; \
         case TXT_PREVSND:  DBGPRINTLN(F("Prevent retransmit on Restart / CleanState_LockAndAlarm...")); break; \
         case TXT_RESPLIM:  DBGPRINTLN(F("retransmit power limit")); break; \
+        case TXT_FRAGM0:   DBGPRINTLN(F("fragment number zero received")); break; \
+        case TXT_NO2NDG:   DBGPRINTLN(F("seems to use 3rd gen. protocol - switching ivGen!")); break; \
         default:        ; break; \
     }\
 })

@@ -157,7 +157,8 @@ class Inverter {
         }
 
         void clearCmdQueue() {
-            DPRINTLN(DBG_INFO, F("clearCmdQueue"));
+            DPRINTHEAD(DBG_INFO, id);
+            DBGPRINTLN_TXT(TXT_CLRQUE);
             while (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop();

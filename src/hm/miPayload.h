@@ -174,7 +174,6 @@ class MiPayload {
 
         void add(Inverter<> *iv, packet_t *p) {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
-
             if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
                 miStsDecode(iv, p);
             }
@@ -261,20 +260,26 @@ const byteAssign_t InfoAssignment[] = {
                     mStat->rxSuccess++;
                 }
 
-            } else if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+            } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) || p->packet[0] == 0xB6 ) {  // response from get information command
             // atm, we just do nothing else than print out what we got...
             // for decoding see xls- Data collection instructions - #147ff
-                mPayload[iv->id].txId = p->packet[0];
-                DPRINTLN(DBG_DEBUG, F("Response from info request received"));
+                //mPayload[iv->id].txId = p->packet[0];
+                //DPRINTLN(DBG_DEBUG, F("Response from info request received"));
+                DBGPRINTLN_TXT(TXT_RXDIREQ);
                 uint8_t *pid = &p->packet[9];
                 if (*pid == 0x00) {
-                    DPRINT(DBG_DEBUG, F("fragment number zero received"));
-
+                    //DPRINT(DBG_DEBUG, F("fragment number zero received"));
+                    DBGPRINTLN_TXT(TXT_FRAGM0);
                     iv->setQueuedCmdFinished();
-                } //else {
-                    DPRINTLN(DBG_DEBUG, "PID: 0x" + String(*pid, HEX));
-                    /*
-                    if ((*pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {
+                } else if (p->packet[9] == 0x81) {
+                    DPRINTHEAD(DBG_WARN, iv->id);
+                    DBGPRINTLN_TXT(TXT_NO2NDG);
+                    iv->ivGen = IV_HM;
+                    iv->setQueuedCmdFinished();
+                    iv->clearCmdQueue();
+                    //DPRINTLN(DBG_DEBUG, "PID: 0x" + String(*pid, HEX));
+                    /* (old else-tree)
+                    if ((*pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {^
                         memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], p->len - 11);
                         mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->len - 11;
                         mPayload[iv->id].gotFragment = true;
@@ -286,13 +291,14 @@ const byteAssign_t InfoAssignment[] = {
                             if (*pid > 0x81)
                                 mPayload[iv->id].lastFound = true;
                         }
-                    }
+                    }*/
                 }
-            } */
+            //}
             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES )       // response from dev control command
-                    || p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES -1)) { // response from DRED instruction
+                    || p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES -1)) {  // response from DRED instruction
                 DPRINTHEAD(DBG_DEBUG, iv->id);
-                DBGPRINTLN(F("Response from devcontrol request received"));
+                DBGPRINTLN_TXT(TXT_RXCTRREQ);
+                //DBGPRINTLN(F("Response from devcontrol request received"));
 
                 mPayload[iv->id].txId = p->packet[0];
                 iv->clearDevControlRequest();
@@ -313,7 +319,8 @@ const byteAssign_t InfoAssignment[] = {
                 //DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
                 //DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                 //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
-                DPRINT_INIT(DBG_INFO,TXT_PPYDCMD);
+                DPRINTHEAD(DBG_INFO, iv->id);
+                DBGPRINT_TXT(TXT_PPYDCMD);
                 DBGHEXLN(mPayload[iv->id].txCmd);
                 DBGPRINT_TXT(TXT_PPYDTXI);
                 DBGHEXLN(mPayload[iv->id].txId);
@@ -718,7 +725,8 @@ const byteAssign_t InfoAssignment[] = {
         }
 
         bool build(uint8_t id, bool *complete) {
-            DPRINTLN_TXT(DBG_VERBOSE, TXT_BUILD);
+            DPRINTLN(DBG_VERBOSE, F("build"));
+            //DPRINTLN_TXT(DBG_VERBOSE, TXT_BUILD);
             /*uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
                 mPayload[id].maxPackId = MAX_PAYLOAD_ENTRIES;
