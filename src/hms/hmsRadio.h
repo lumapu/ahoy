@@ -41,12 +41,6 @@ class CmtRadio {
         bool loop() {
             mCmt.loop();
 
-            if(++mCnt > 30000) {
-                mCnt = 0;
-                if(NULL != mIvIdChannelSet)
-                    prepareSwitchChannelCmd(mIvIdChannelSet);
-            }
-
             if(!mIrqRcvd)
                 return false;
             mIrqRcvd = false;
@@ -66,14 +60,17 @@ class CmtRadio {
             mSerialDebug = true;
         }
 
-        void setIvBackChannel(const uint64_t *ivId) {
-            mIvIdChannelSet = ivId;
-            Serial.println("Byte 3 " + String(U32_B3((*mIvIdChannelSet) >> 8), HEX));
-            Serial.println("Byte 2 " + String(U32_B2((*mIvIdChannelSet) >> 8), HEX));
-            Serial.println("Byte 1 " + String(U32_B1((*mIvIdChannelSet) >> 8), HEX));
-            Serial.println("Byte 0 " + String(U32_B0((*mIvIdChannelSet) >> 8), HEX));
-            prepareSwitchChannelCmd(mIvIdChannelSet);
+        bool switchFrequency(const uint64_t *ivId, uint32_t fromkHz, uint32_t tokHz) {
+            uint8_t fromCh = mCmt.freq2Chan(fromkHz);
+            uint8_t toCh = mCmt.freq2Chan(tokHz);
 
+            if((0xff == fromCh) || (0xff == toCh))
+                return false;
+
+            mCmt.switchChannel(fromCh);
+            sendSwitchChCmd(ivId, toCh);
+            mCmt.switchChannel(toCh);
+            return true;
         }
 
         void prepareDevInformCmd(const uint64_t *ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
@@ -85,22 +82,6 @@ class CmtRadio {
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }*/
             sendPacket(24, isRetransmit);
-        }
-
-        inline void prepareSwitchChannelCmd(const uint64_t *ivId, uint8_t freqSel = 0x0c) {
-            /** freqSel:
-             * 0x0c: 863.00 MHz
-             * 0x0d: 863.24 MHz
-             * 0x0e: 863.48 MHz
-             * 0x0f: 863.72 MHz
-             * 0x10: 863.96 MHz
-             * */
-            initPacket(ivId, 0x56, 0x02);
-            mTxBuf[10] = 0x15;
-            mTxBuf[11] = 0x21;
-            mTxBuf[12] = freqSel;
-            mTxBuf[13] = 0x14;
-            sendPacket(14, false);
         }
 
         void sendPacket(uint8_t len, bool isRetransmit) {
@@ -149,9 +130,23 @@ class CmtRadio {
             mSendCnt        = 0;
             mRetransmits    = 0;
             mSerialDebug    = false;
-            mIvIdChannelSet = NULL;
             mIrqRcvd        = false;
-            mCnt            = 0;
+        }
+
+        inline void sendSwitchChCmd(const uint64_t *ivId, uint8_t ch) {
+            /** ch:
+             * 0x0c: 863.00 MHz
+             * 0x0d: 863.24 MHz
+             * 0x0e: 863.48 MHz
+             * 0x0f: 863.72 MHz
+             * 0x10: 863.96 MHz
+             * */
+            initPacket(ivId, 0x56, 0x02);
+            mTxBuf[10] = 0x15;
+            mTxBuf[11] = 0x21;
+            mTxBuf[12] = ch;
+            mTxBuf[13] = 0x14;
+            sendPacket(14, false);
         }
 
         void initPacket(const uint64_t *ivId, uint8_t mid, uint8_t pid) {
@@ -180,27 +175,13 @@ class CmtRadio {
             uint8_t status = mCmt.getRx(p.data, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
-            if(NULL != mIvIdChannelSet) {
-                if(U32_B3((*mIvIdChannelSet) >> 8) != p.data[5])
-                    return;
-                if(U32_B2((*mIvIdChannelSet) >> 8) != p.data[4])
-                    return;
-                if(U32_B1((*mIvIdChannelSet) >> 8) != p.data[3])
-                    return;
-                if(U32_B0((*mIvIdChannelSet) >> 8) != p.data[2])
-                    return;
-                mIvIdChannelSet = NULL;
-            }
         }
 
         CmtType mCmt;
         uint32_t mDtuSn;
         uint8_t mTxBuf[27];
         bool mSerialDebug;
-        const uint64_t *mIvIdChannelSet;
         bool mIrqRcvd;
-
-        uint16_t mCnt;
 };
 
 #endif /*__HMS_RADIO_H__*/

@@ -8,6 +8,15 @@
 
 #include "esp32_3wSpi.h"
 
+#define WORK_FREQ_KHZ       865000 // disired work frequency between DTU and
+                                   // inverter in kHz
+#define HOY_BASE_FREQ_KHZ   860000 // in kHz
+#define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
+#define HOY_BOOT_FREQ_KHZ   868000 // Hoymiles boot/init frequency after power up inverter
+#define FREQ_STEP_KHZ       250    // channel step size in kHz
+#define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
+#define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
+
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
 #define CMT2300A_MASK_CFG_RETAIN        0x10
@@ -144,24 +153,24 @@
 
 // default CMT paramters
 static uint8_t cmtConfig[0x60] PROGMEM {
-    // 0x00 - 0x0f
-    0x00, 0x66, 0xEC, 0x1D, 0x70, 0x80, 0x14, 0x08,
-    0x91, 0x02, 0x02, 0xD0, 0xAE, 0xE0, 0x35, 0x00,
+    // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
+    0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
+    0x11, 0x02, 0x02, 0x00, 0xAE, 0xE0, 0x35, 0x00,
     // 0x10 - 0x1f
     0x00, 0xF4, 0x10, 0xE2, 0x42, 0x20, 0x0C, 0x81,
-    0x42, 0x6D, 0x80, 0x86, 0x42, 0x62, 0x27, 0x16, // 0x42, 0xCF, 0xA7, 0x8C, 0x42, 0xC4, 0x4E, 0x1C,
+    0x42, 0x32, 0xCF, 0x82, 0x42, 0x27, 0x76, 0x12, // 860MHz as default
     // 0x20 - 0x2f
     0xA6, 0xC9, 0x20, 0x20, 0xD2, 0x35, 0x0C, 0x0A,
-    0x9F, 0x4B, 0x0A, 0x29, 0xC0, 0x14, 0x05, 0x53, // 0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
+    0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
     // 0x30 - 0x3f
     0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
     0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
     // 0x40 - 0x4f
-    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1D, 0x00, // 0x00, 0xD6, 0xD5, 0xD4, 0x2D, 0x01, 0x1D, 0x00,
+    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1D, 0x00,
     0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
-    // 0x50 - 0x5f
+    // 0x50 - 0x5f  - TX 13dBm
     0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
-    0x00, 0x07, 0x50, 0x00, 0x8A, 0x18, 0x3F, 0x7F
+    0x00, 0x07, 0x50, 0x00, 0x42, 0x0C, 0x3F, 0x7F
 };
 
 enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
@@ -215,10 +224,7 @@ class Cmt2300a {
             else
                 mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
 
-            //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary? -> if 0x02 last was read
-                                                  //                  0x07 last was write
             mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x02);
-
             mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x02);
             mSpi.writeReg(0x16, 0x0C); // [4:3]: RSSI_DET_SEL, [2:0]: RSSI_AVG_MODE
 
@@ -272,33 +278,28 @@ class Cmt2300a {
 
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
-            //mCusIntFlag == mSpi.readReg(CMT2300A_CUS_INT_FLAG);
-            //if(0x00 == mCusIntFlag) {
-                // no data received
-                mSpi.readReg(CMT2300A_CUS_INT_CLR1);
-                mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
-                mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
+            // no data received
+            mSpi.readReg(CMT2300A_CUS_INT_CLR1);
+            mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
+            mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
 
-                //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary?
-                mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x07);
-                mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x01);
+            //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary?
+            mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x07);
+            mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x01);
 
-                mSpi.writeReg(0x45, 0x01);
-                mSpi.writeReg(0x46, len); // payload length
+            mSpi.writeReg(0x45, 0x01);
+            mSpi.writeReg(0x46, len); // payload length
 
-                mSpi.writeFifo(buf, len);
+            mSpi.writeFifo(buf, len);
 
-                // send only on base frequency: here 863.0 MHz
-                swichChannel((len != 15));
+            // send only on base frequency: here 863.0 MHz
+            //switchChannel((len != 15));
 
-                if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
-                    return CMT_ERR_SWITCH_STATE;
+            if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
+                return CMT_ERR_SWITCH_STATE;
 
-                // wait for tx done
-                mTxPending = true;
-            //}
-            //else
-            //    return CMT_ERR_RX_IN_FIFO;
+            // wait for tx done
+            mTxPending = true;
 
             return CMT_SUCCESS;
         }
@@ -311,24 +312,12 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
 
-            //if(0xAA != mSpi.readReg(0x48))
-            //    mSpi.writeReg(0x48, 0xAA);
-            //mSpi.readReg(0x48);
-            //mSpi.writeReg(0x4c, 0x00);
-
-            //if(0x52 != mSpi.readReg(CMT2300A_CUS_MODE_STA))
-                mSpi.writeReg(CMT2300A_CUS_MODE_STA, 0x52);
-            //if(0x20 != mSpi.readReg(0x62))
-                mSpi.writeReg(0x62, 0x20);
-            //mSpi.readReg(0x0D);
-            //mSpi.writeReg(0x0F, 0x00);
+            mSpi.writeReg(CMT2300A_CUS_MODE_STA, 0x52);
+            mSpi.writeReg(0x62, 0x20);
 
             for(uint8_t i = 0; i < 0x60; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);
             }
-
-            //if(0x02 != mSpi.readReg(0x09))
-            //    mSpi.writeReg(0x09, 0x02);
 
             mSpi.writeReg(CMT2300A_CUS_IO_SEL, 0x20); // -> GPIO3_SEL[1:0] = 0x02
 
@@ -343,10 +332,6 @@ class Cmt2300a {
             // interrupt enable (TX_DONE, PREAM_OK, SYNC_OK, CRC_OK, PKT_DONE)
             mSpi.writeReg(CMT2300A_CUS_INT_EN, 0x3B);
 
-            /*mSpi.writeReg(0x41, 0x48);
-            mSpi.writeReg(0x42, 0x5A);
-            mSpi.writeReg(0x43, 0x48);
-            mSpi.writeReg(0x44, 0x4D);*/
             mSpi.writeReg(0x64, 0x64);
 
             if(0x00 == mSpi.readReg(CMT2300A_CUS_FIFO_CTL))
@@ -357,33 +342,8 @@ class Cmt2300a {
 
             delayMicroseconds(95);
 
-            // base frequency 863MHz; with value of CMT2300A_CUS_FREQ_CHNL
-            // the frequency can be increased in a step size of ~0.24Hz
-            /*mSpi.writeReg(0x18, 0x42);
-            mSpi.writeReg(0x19, 0x6D);
-            mSpi.writeReg(0x1A, 0x80);
-            mSpi.writeReg(0x1B, 0x86);
-            mSpi.writeReg(0x1C, 0x42);
-            mSpi.writeReg(0x1D, 0x62);
-            mSpi.writeReg(0x1E, 0x27);
-            mSpi.writeReg(0x1F, 0x16);*/
-
-            /*mSpi.writeReg(0x22, 0x20);
-            mSpi.writeReg(0x23, 0x20);
-            mSpi.writeReg(0x24, 0xD2);
-            mSpi.writeReg(0x25, 0x35);
-            mSpi.writeReg(0x26, 0x0C);
-            mSpi.writeReg(0x27, 0x0A);
-            mSpi.writeReg(0x28, 0x9F);
-            mSpi.writeReg(0x29, 0x4B);
-            mSpi.writeReg(0x27, 0x0A);*/
-
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
-
-            /*mSpi.writeReg(0x03, 0x1D);
-            mSpi.writeReg(0x5C, 0x8A);
-            mSpi.writeReg(0x5D, 0x18);*/
 
             if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
                 return false;
@@ -391,7 +351,33 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return false;
 
+            switchDtuFreq(WORK_FREQ_KHZ);
+
             return true;
+        }
+
+        inline uint8_t freq2Chan(const uint32_t freqKhz) {
+            if((freqKhz % FREQ_STEP_KHZ) != 0) {
+                DPRINT(DBG_WARN, F("swtich frequency to "));
+                DBGPRINT(String(freqKhz));
+                DBGPRINT(F("kHz not possible!"));
+                return 0xff; // error
+                // apply the nearest frequency
+                //freqKhz = (freqKhz + FREQ_STEP_KHZ/2) / FREQ_STEP_KHZ;
+                //freqKhz *= FREQ_STEP_KHZ;
+            }
+
+            if((freqKhz < HOY_BASE_FREQ_KHZ) || (freqKhz > HOY_MAX_FREQ_KHZ))
+                return 0xff; // error
+
+            if((freqKhz < FREQ_WARN_MIN_KHZ) || (freqKhz > FREQ_WARN_MAX_KHZ))
+                DPRINTLN(DBG_WARN, F("Disired frequency is out of EU legal range! (863 - 870MHz)"));
+
+            return (freqKhz - HOY_BASE_FREQ_KHZ) / FREQ_STEP_KHZ;
+        }
+
+        inline void switchChannel(uint8_t ch) {
+            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, ch);
         }
 
     private:
@@ -415,23 +401,14 @@ class Cmt2300a {
             return false;
         }
 
-        inline void swichChannel(bool def = true, uint8_t start = 0x00, uint8_t end = 0x22) {
-            if(!def) {
-                if(++mCnt > 2) {
-                    if(++mRxTxCh > end)
-                        mRxTxCh = start;
-                    mCnt = 0;
-                }
-            }
-            // 0: 868.00MHz
-            // 1: 868.23MHz
-            // 2: 868.46MHz
-            // 3: 868.72MHz
-            // 4: 868.97MHz
-            if(!def)
-                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mRxTxCh);
-            else
-                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00);
+        inline bool switchDtuFreq(const uint32_t freqKhz) {
+            uint8_t toCh = freq2Chan(freqKhz);
+            if(0xff == toCh)
+                return false;
+
+            switchChannel(toCh);
+
+            return true;
         }
 
         inline uint8_t getChipStatus(void) {
@@ -441,7 +418,6 @@ class Cmt2300a {
         SpiType mSpi;
         uint8_t mCnt;
         bool mTxPending;
-        uint8_t mRxTxCh;
         bool mInRxMode;
         uint8_t mCusIntFlag;
 };

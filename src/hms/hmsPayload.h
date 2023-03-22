@@ -11,6 +11,8 @@
 #include "../config/config.h"
 #include <Arduino.h>
 
+#define HMS_TIMEOUT_MS  30000 // 30s * 1000
+
 typedef struct {
     uint8_t txCmd;
     uint8_t txId;
@@ -50,7 +52,7 @@ class HmsPayload {
             //mHighPrioIv  = NULL;
             mCbAlarm     = NULL;
             mCbPayload   = NULL;
-            mFirst       = true;
+            mLastRx      = 0;
         }
 
         void enableSerialDebug(bool enable) {
@@ -137,9 +139,10 @@ class HmsPayload {
                 mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }*/
-            if(mFirst) {
-                mFirst = false;
-                mRadio->setIvBackChannel(&iv->radioId.u64);
+            DPRINT(DBG_INFO, "LastRx: ");
+            DBGPRINTLN(String(mLastRx));
+            if((mLastRx + HMS_TIMEOUT_MS) < millis()) {
+                mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINT(DBG_INFO, F("(#"));
@@ -151,6 +154,7 @@ class HmsPayload {
         }
 
         void add(Inverter<> *iv, hmsPacket_t *p) {
+            mLastRx = millis();
             if (p->data[1] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->data[1];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
@@ -398,10 +402,10 @@ class HmsPayload {
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;
+        uint32_t mLastRx;
         hmsPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
         Inverter<> *mHighPrioIv;
-        bool mFirst;
 
         alarmListenerType mCbAlarm;
         payloadListenerType mCbPayload;
