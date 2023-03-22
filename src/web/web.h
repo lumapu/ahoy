@@ -27,6 +27,7 @@
 #include "html/h/setup_html.h"
 #include "html/h/style_css.h"
 #include "html/h/system_html.h"
+#include "html/h/save_html.h"
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
 
@@ -68,7 +69,6 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
-            mWeb.on("/chk_save",       HTTP_GET,  std::bind(&Web::onCheckSave,    this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
             //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
@@ -327,7 +327,7 @@ class Web {
 
             mProtected = true;
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -375,7 +375,7 @@ class Web {
 
         void onReboot(AsyncWebServerRequest *request) {
             mApp->setRebootFlag();
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -586,20 +586,14 @@ class Web {
             mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
             mConfig->plugin.display.disp_data  = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
             mConfig->plugin.display.disp_clk   = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
-            mConfig->plugin.display.disp_cs    = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
-            mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
-            mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 4)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
+            mConfig->plugin.display.disp_cs    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            request->send(response);
-        }
-
-        void onCheckSave(AsyncWebServerRequest *request) {
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
