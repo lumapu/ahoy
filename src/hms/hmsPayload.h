@@ -142,7 +142,9 @@ class HmsPayload {
             DPRINT(DBG_INFO, "LastRx: ");
             DBGPRINTLN(String(mLastRx));
             if((mLastRx + HMS_TIMEOUT_MS) < millis()) {
+                //mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, HOY_BOOT_FREQ_KHZ + FREQ_STEP_KHZ);
                 mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                mLastRx = millis() - (HMS_TIMEOUT_MS / 6);
             } else {
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINT(DBG_INFO, F("(#"));

@@ -24,6 +24,8 @@
 #define CMT2300A_MASK_LOCKING_EN        0x20
 #define CMT2300A_MASK_CHIP_MODE_STA     0x0F
 
+#define CMT2300A_CUS_CMT10              0x09
+
 #define CMT2300A_CUS_MODE_CTL           0x60    // [7] go_switch
                                                 // [6] go_tx
                                                 // [5] go_tfs
@@ -152,6 +154,28 @@
 #define CMT2300A_MASK_PKT_OK_FLG        0x01
 
 // default CMT paramters
+/*static uint8_t cmtConfig[0x60] PROGMEM {
+    // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
+    0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
+    0x11, 0x02, 0x02, 0x00, 0xAE, 0xE0, 0x35, 0x00,
+    // 0x10 - 0x1f
+    0x00, 0xF4, 0x10, 0xE2, 0x42, 0x20, 0x0C, 0x81,
+    0x42, 0x32, 0xCF, 0x82, 0x42, 0x27, 0x76, 0x12, // 860MHz as default
+    // 0x20 - 0x2f
+    0xA6, 0xC9, 0x20, 0x20, 0xD2, 0x35, 0x0C, 0x0A,
+    0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
+    // 0x30 - 0x3f
+    0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
+    0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
+    // 0x40 - 0x4f
+    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1D, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
+    // 0x50 - 0x5f
+    0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
+    0x00, 0x07, 0x50, 0x00, 0x42, 0x0C, 0x3F, 0x7F //  - TX 13dBm
+};*/
+
+// LP Settings
 static uint8_t cmtConfig[0x60] PROGMEM {
     // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
     0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
@@ -172,6 +196,7 @@ static uint8_t cmtConfig[0x60] PROGMEM {
     0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
     0x00, 0x07, 0x50, 0x00, 0x42, 0x0C, 0x3F, 0x7F
 };
+
 
 enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
 
@@ -292,8 +317,12 @@ class Cmt2300a {
 
             mSpi.writeFifo(buf, len);
 
-            // send only on base frequency: here 863.0 MHz
-            //switchChannel((len != 15));
+            if(0xff != mRqstCh) {
+                DPRINTLN(DBG_INFO, "switchChannel: 0x" + String(mRqstCh, HEX));
+                mCurCh = mRqstCh;
+                mRqstCh = 0xff;
+            }
+            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mCurCh);
 
             if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
                 return CMT_ERR_SWITCH_STATE;
@@ -318,6 +347,9 @@ class Cmt2300a {
             for(uint8_t i = 0; i < 0x60; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);
             }
+
+            //uint8_t tmp = (~0x07) & mSpi.readReg(CMT2300A_CUS_CMT10);
+            //mSpi.writeReg(CMT2300A_CUS_CMT10, (tmp | 0x02));
 
             mSpi.writeReg(CMT2300A_CUS_IO_SEL, 0x20); // -> GPIO3_SEL[1:0] = 0x02
 
@@ -377,7 +409,13 @@ class Cmt2300a {
         }
 
         inline void switchChannel(uint8_t ch) {
-            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, ch);
+            mRqstCh = ch;
+            /*DPRINTLN(DBG_INFO, "switchChannel: 0x" + String(ch, HEX));
+            if(mInRxMode)
+                mInRxMode = false;
+            cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_SLEEP);
+
+            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, ch);*/
         }
 
     private:
@@ -386,6 +424,8 @@ class Cmt2300a {
             mInRxMode   = false;
             mCusIntFlag = 0x00;
             mCnt        = 0;
+            mRqstCh     = 0xff;
+            mCurCh      = 0x20;
         }
 
         // CMT state machine, wait for next state, true on success
@@ -420,6 +460,7 @@ class Cmt2300a {
         bool mTxPending;
         bool mInRxMode;
         uint8_t mCusIntFlag;
+        uint8_t mRqstCh, mCurCh;
 };
 
 #endif /*__CMT2300A_H__*/
