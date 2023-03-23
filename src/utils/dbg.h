@@ -61,7 +61,7 @@
             }
         }
 
-        inline void DBGHEXLN(uint8_t b) {
+        inline void DHEXLN(uint8_t b) {
             DHEX(b);
             DBGPRINT(F("\r\n"));
         }
@@ -151,16 +151,6 @@
     }\
 })
 
-#define DPRINT_INIT(level,text) ({\
-    DPRINT(level,F(""));\
-    DBGPRINT_TXT(text);\
-})
-
-#define DPRINTLN_TXT(level,text) ({\
-    DPRINT(level,F(""));\
-    DBGPRINTLN_TXT(text);\
-})
-
 #define DPRINTHEAD(level, id) ({\
     DPRINT(level, F("(#")); DBGPRINT(String(id)); DBGPRINT(F(") "));\
 })
@@ -175,84 +165,6 @@
     }\
 })
 
-
-// available text variables
-#define TXT_ENQUCMD     6
-#define TXT_INVSERNO    2
-#define TXT_REQRETR     7
-#define TXT_PPYDMAX    10
-#define TXT_NOPYLD      1
-#define TXT_GDEVINF     3
-#define TXT_DEVCTRL     4
-#define TXT_INCRALM     5
-#define TXT_PPYDCMD     8
-#define TXT_PPYDTXI     9
-
-
-/*                    DBGPRINT(F(" power limit "));
-DPRINTLN(DBG_DEBUG, F("Response from info request received"));
-
-DBGPRINTLN(F("Response from devcontrol request received"));
-                    DBGPRINT(F("has accepted power limit set point "));
-                    DBGPRINT(F(" with PowerLimitControl "));
-                    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                    DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
-
-                DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX)); // + F("cmd is 0x") + String(cmd, HEX));
-*/
-
-
-
-#define DBGPRINT_TXT(text) ({\
-    switch(text) {\
-        case TXT_NOPYLD:   DBGPRINT(F("no Payload received! (retransmits: ")); break; \
-        case TXT_INVSERNO: DBGPRINT(F("Requesting Inv SN ")); break; \
-        case TXT_GDEVINF:  DBGPRINT(F("prepareDevInformCmd 0x")); break; \
-        case TXT_DEVCTRL:  DBGPRINT(F("Devcontrol request 0x")); break; \
-        case TXT_INCRALM:  DBGPRINT(F("alarm ID incremented to ")); break; \
-        case TXT_ENQUCMD:  DBGPRINT(F("enqueuedCmd: 0x")); break; \
-        case TXT_REQRETR:  DBGPRINT(F(" missing: Request Retransmit")); break; \
-        case TXT_PPYDCMD:  DBGPRINT(F("procPyld: cmd:  0x")); break; \
-        case TXT_PPYDTXI:  DBGPRINT(F("procPyld: txid: 0x")); break; \
-        case TXT_PPYDMAX:  DBGPRINT(F("procPyld: max:  ")); break; \
-        default:        ; break; \
-    }\
-})
-
-
-// available text variables w. lf
-#define TXT_BUILD       1
-#define TXT_TIMEOUT     2
-#define TXT_NOPYLD2     3
-#define TXT_CRCERR      4
-#define TXT_RSTPYLD     5
-#define TXT_RXDIREQ     6
-#define TXT_CLRQUE      7
-#define TXT_RXCTRREQ    8
-#define TXT_NULLREC     9
-#define TXT_PREVSND    10
-#define TXT_RESPLIM    11
-#define TXT_FRAGM0     20
-#define TXT_NO2NDG    100
-
-#define DBGPRINTLN_TXT(text) ({\
-    switch(text) {\
-        case TXT_TIMEOUT:  DBGPRINTLN(F("enqueued cmd failed/timeout"));  break; \
-        case TXT_BUILD:    DBGPRINTLN(F("build")); break; \
-        case TXT_NOPYLD2:  DBGPRINTLN(F("nothing received")); break; \
-        case TXT_CRCERR:   DBGPRINTLN(F("CRC Error: Request Complete Retransmit")); break; \
-        case TXT_RSTPYLD:  DBGPRINTLN(F("resetPayload"));break; \
-        case TXT_RXDIREQ:  DBGPRINTLN(F("Response from info request received")); break; \
-        case TXT_CLRQUE:   DBGPRINTLN(F("clearCmdQueue")); break; \
-        case TXT_RXCTRREQ: DBGPRINTLN(F("Response from devcontrol request received")); break; \
-        case TXT_NULLREC:  DBGPRINTLN(F("record is NULL!")); break; \
-        case TXT_PREVSND:  DBGPRINTLN(F("Prevent retransmit on Restart / CleanState_LockAndAlarm...")); break; \
-        case TXT_RESPLIM:  DBGPRINTLN(F("retransmit power limit")); break; \
-        case TXT_FRAGM0:   DBGPRINTLN(F("fragment number zero received")); break; \
-        case TXT_NO2NDG:   DBGPRINTLN(F("seems to use 3rd gen. protocol - switching ivGen!")); break; \
-        default:        ; break; \
-    }\
-})
 
 /*class ahoyLog {
     public:

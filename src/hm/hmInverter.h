@@ -143,10 +143,10 @@ class Inverter {
         template <typename T>
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
-           DPRINTHEAD(DBG_INFO, id);
-           //DBGPRINTLN(F("enqueuedCmd: 0x") + String(cmd, HEX));
-           DBGPRINT_TXT(TXT_ENQUCMD);
-           DBGHEXLN(cmd);
+           DPRINT(DBG_INFO, F("(#"));
+           DBGPRINT(String(id));
+           DBGPRINT(F(") enqueCommand: 0x"));
+           DHEX(cmd);
         }
 
         void setQueuedCmdFinished() {
@@ -157,8 +157,7 @@ class Inverter {
         }
 
         void clearCmdQueue() {
-            DPRINTHEAD(DBG_INFO, id);
-            DBGPRINTLN_TXT(TXT_CLRQUE);
+            DPRINTLN(DBG_INFO, F("clearCmdQueue"));
             while (!_commandQueue.empty()) {
                 // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop();
