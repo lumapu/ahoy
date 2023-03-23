@@ -79,6 +79,7 @@ class RestApi {
             String path = request->url().substring(5);
             if(path == "html/system")         getHtmlSystem(root);
             else if(path == "html/logout")    getHtmlLogout(root);
+            else if(path == "html/reboot")    getHtmlReboot(root);
             else if(path == "html/save")      getHtmlSave(root);
             else if(path == "system")         getSysInfo(root);
             else if(path == "generic")        getGeneric(root);
@@ -262,6 +263,13 @@ class RestApi {
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("succesfully logged out");
+        }
+
+        void getHtmlReboot(JsonObject obj) {
+            getGeneric(obj.createNestedObject(F("generic")));
+            obj[F("refresh")] = 20;
+            obj[F("refresh_url")] = "/";
+            obj[F("html")] = F("rebooting ...");
         }
 
         void getHtmlSave(JsonObject obj) {

@@ -327,7 +327,7 @@ class Web {
 
             mProtected = true;
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -375,7 +375,7 @@ class Web {
 
         void onReboot(AsyncWebServerRequest *request) {
             mApp->setRebootFlag();
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -593,7 +593,7 @@ class Web {
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }

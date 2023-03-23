@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.105
+* merged MI, thx @rejoe2 #788
+* fixed reboot message #793
+
 ## 0.5.104
 * further improved save settings
 * removed `#` character from ePaper
