@@ -60,6 +60,11 @@
                 mCb(String(b, HEX));
             }
         }
+
+        inline void DHEXLN(uint8_t b) {
+            DHEX(b);
+            DBGPRINT(F("\r\n"));
+        }
         /*inline void DHEX(uint16_t b) {
             if( b<0x10 ) DSERIAL.print(F("000"));
             else if( b<0x100 ) DSERIAL.print(F("00"));
@@ -160,36 +165,6 @@
     }\
 })
 
-// available text variables
-#define TXT_NOPYLD      1
-#define TXT_INVSERNO    2
-#define TXT_GDEVINF     3
-#define TXT_DEVCTRL     4
-#define TXT_INCRALM     5
-
-
-#define DBGPRINT_TXT(text) ({\
-    switch(text) {\
-        case TXT_NOPYLD:   DBGPRINT(F("no Payload received! (retransmits: ")); break; \
-        case TXT_INVSERNO: DBGPRINT(F("Requesting Inv SN ")); break; \
-        case TXT_GDEVINF:  DBGPRINT(F("prepareDevInformCmd 0x")); break; \
-        case TXT_DEVCTRL:  DBGPRINT(F("Devcontrol request 0x")); break; \
-        case TXT_INCRALM:  DBGPRINT(F("alarm ID incremented to ")); break; \
-        default:        ; break; \
-    }\
-})
-
-// available text variables w. lf
-#define TXT_TIMEOUT     1
-#define TXT_NOPYLD2     2
-
-#define DBGPRINTLN_TXT(text) ({\
-    switch(text) {\
-        case TXT_TIMEOUT:  DBGPRINT(F("enqueued cmd failed/timeout\r\n"));  break; \
-        case TXT_NOPYLD2:  DBGPRINT(F("nothing received\r\n")); break; \
-        default:        ; break; \
-    }\
-})
 
 /*class ahoyLog {
     public:
