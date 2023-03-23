@@ -21,7 +21,7 @@ typedef struct {
     bool complete;
     bool dataAB[3];
     bool stsAB[3];
-    uint8_t sts[5];
+    uint16_t sts[5];
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
@@ -260,9 +260,10 @@ const byteAssign_t InfoAssignment[] = {
                     mStat->rxSuccess++;
                 }
 
-            } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) || p->packet[0] == 0xB6 ) {  // response from get information command
-            // atm, we just do nothing else than print out what we got...
-            // for decoding see xls- Data collection instructions - #147ff
+            } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) // response from get information command
+                     || p->packet[0] == 0xB6 ) {                   // strange short response from MI-1500 3rd gen; might be missleading!
+                // atm, we just do nothing else than print out what we got...
+                // for decoding see xls- Data collection instructions - #147ff
                 //mPayload[iv->id].txId = p->packet[0];
                 //DPRINTLN(DBG_DEBUG, F("Response from info request received"));
                 DBGPRINTLN_TXT(TXT_RXDIREQ);
@@ -271,7 +272,7 @@ const byteAssign_t InfoAssignment[] = {
                     //DPRINT(DBG_DEBUG, F("fragment number zero received"));
                     DBGPRINTLN_TXT(TXT_FRAGM0);
                     iv->setQueuedCmdFinished();
-                } else if (p->packet[9] == 0x81) {
+                } else if (p->packet[9] == 0x81) { // might need some additional check, as this is only ment for short answers!
                     DPRINTHEAD(DBG_WARN, iv->id);
                     DBGPRINTLN_TXT(TXT_NO2NDG);
                     iv->ivGen = IV_HM;
@@ -574,13 +575,24 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[iv->id].txId = p->packet[0];
 
             //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
-            uint8_t status  = (p->packet[9] << 8) + p->packet[10];
-            //uint8_t stschan = p->packet[0] == 0x88 ? CH1 : CH2;
+            uint16_t status = 3; // regular status for MI, change to 1 later?
+            if ( p->packet[10] < 3 ) {
+                status = p->packet[10]*100 + p->packet[9]*10 + stschan; //first approach, needs review!
+            } else if ( p->packet[10] > 3 ) {
+                status = p->packet[10]*1000 + p->packet[9]*100 + p->packet[12]*10 + p->packet[11];
+                if (p->packet[12] < 6) {
+                    status += stschan;
+                }
+            }
+            if ( status != 3 ) {
+                DPRINTLN(DBG_WARN, F("Error code ") + String(status));
+            }
+
             mPayload[iv->id].sts[stschan] = status;
             mPayload[iv->id].stsAB[stschan] = true;
             if (mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].stsAB[CH2])
                 mPayload[iv->id].stsAB[CH0] = true;
-            if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0]) {
+            if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0] ) {
                 mPayload[iv->id].sts[0] = status;
                 iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
             }
@@ -641,7 +653,7 @@ const byteAssign_t InfoAssignment[] = {
                   FCODE = (uint8_t)(p->packet[27]);
                 }*/
 
-                uint8_t status = (uint8_t)(p->packet[23]);
+                uint16_t status = (uint8_t)(p->packet[23]);
                 mPayload[iv->id].sts[datachan] = status;
                 if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0]) {
                     mPayload[iv->id].sts[0] = status;

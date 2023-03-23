@@ -292,18 +292,18 @@ class HmPayload {
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         }
                     } else {  // payload complete
-                        //DPRINT(DBG_INFO, F("procPyld: cmd:  0x"));
+                        DPRINT(DBG_INFO, F("procPyld: cmd:  0x"));
                         //DBGPRINTLN(String(mPayload[iv->id].txCmd, HEX));
-                        DPRINT_INIT(DBG_INFO,TXT_PPYDCMD);
+                        //DPRINT_INIT(DBG_INFO,TXT_PPYDCMD);
                         DBGHEXLN(mPayload[iv->id].txCmd);
-                        //DPRINT(DBG_INFO, F("procPyld: txid: 0x"));
-                        DPRINT_INIT(DBG_INFO,TXT_PPYDTXI);
+                        DPRINT(DBG_INFO, F("procPyld: txid: 0x"));
+                        //DPRINT_INIT(DBG_INFO,TXT_PPYDTXI);
                         //DBGPRINTLN(String(mPayload[iv->id].txId, HEX));
                         DBGHEXLN(mPayload[iv->id].txId);
-                        DPRINT_INIT(DBG_DEBUG,TXT_PPYDMAX);
-                        DBGPRINTLN(String(mPayload[iv->id].maxPackId));
-                        //DPRINT(DBG_DEBUG, F("procPyld: max:  ");// + String(mPayload[iv->id].maxPackId));
-                        //DBGHEXLN(mPayload[iv->id].maxPackId);
+                        //DPRINT_INIT(DBG_DEBUG,TXT_PPYDMAX);
+                        //DBGPRINTLN(String(mPayload[iv->id].maxPackId));
+                        DPRINT(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
+
 
                         record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
                         mPayload[iv->id].complete = true;
@@ -380,8 +380,8 @@ class HmPayload {
         }
 
         bool build(uint8_t id, bool *complete) {
-            //DPRINTLN(DBG_VERBOSE, F("build"));
-            DPRINTLN_TXT(DBG_VERBOSE, TXT_BUILD);
+            DPRINTLN(DBG_VERBOSE, F("build"));
+            //DPRINTLN_TXT(DBG_VERBOSE, TXT_BUILD);
 
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
