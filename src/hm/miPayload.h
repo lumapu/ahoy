@@ -21,7 +21,7 @@ typedef struct {
     bool complete;
     bool dataAB[3];
     bool stsAB[3];
-    uint16_t sts[5];
+    uint16_t sts[6];
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
@@ -49,7 +49,7 @@ class MiPayload {
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                reset(i);
+                reset(i, true);
                 mPayload[i].limitrequested = true;
             }
             mSerialDebug  = false;
@@ -240,19 +240,28 @@ const byteAssign_t InfoAssignment[] = {
                     DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
                     /*iv->setQueuedCmdFinished();
                     mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);*/
-                } else if ( p->packet[9] == 0x01 ) {//second frame
+                } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINTHEAD(DBG_INFO, iv->id);
-                    DBGPRINTLN(F("got 2nd frame (hw info)"));
+                    if ( p->packet[9] == 0x01 ) {
+                        DBGPRINTLN(F("got 2nd frame (hw info)"));
+                    } else {
+                        DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
+                    }
                     // xlsx: HW_ECapValue is total energy?!? (data coll. inst. #154)
-                    DPRINT(DBG_INFO,F("HW_ECapValue "));
-                    DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
-                    iv->setValue(iv->getPosByChFld(0, FLD_YT, rec), rec, (float) ((p->packet[20] << 8) + p->packet[21])/1);
-                    DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
-                    DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
-                    DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
-                    DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
-                    DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
-                    DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                    DPRINT(DBG_INFO,F("HW_PartNo "));
+                    DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
+                    //DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+                    if ( p->packet[9] == 0x01 ) {
+                        DPRINT(DBG_INFO,F("HW_ECapValue "));
+                        DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
+                        iv->setValue(iv->getPosByChFld(0, FLD_YT, rec), rec, (float) ((p->packet[20] << 8) + p->packet[21])/1);
+                        DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
+                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                        DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
+                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                        DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
+                        DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                    }
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
                     DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 3rd frame (hw info)"));
@@ -261,7 +270,7 @@ const byteAssign_t InfoAssignment[] = {
                 }
 
             } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) // response from get information command
-                     || p->packet[0] == 0xB6 ) {                   // strange short response from MI-1500 3rd gen; might be missleading!
+                     || p->packet[0] == 0xB6 && mPayload[iv->id].txCmd != 0x36) {                   // strange short response from MI-1500 3rd gen; might be missleading!
                 // atm, we just do nothing else than print out what we got...
                 // for decoding see xls- Data collection instructions - #147ff
                 //mPayload[iv->id].txId = p->packet[0];
@@ -502,16 +511,6 @@ const byteAssign_t InfoAssignment[] = {
                         DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
                         //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                         //record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
-                        mPayload[iv->id].complete = true;
-                        uint8_t ac_pow = 0;
-                        //if (mPayload[iv->id].sts[0] == 3) {
-                            ac_pow = calcPowerDcCh0(iv, 0)*9.5;
-                        //}
-                        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
-                        iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) (ac_pow/10));
-                        DPRINTLN(DBG_INFO, F("process: compl. set of msgs detected"));
-                        iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
-                        iv->doCalculations();
                         //uint8_t payload[128];
                         //uint8_t payloadLen = 0;
                         //memset(payload, 0, 128);
@@ -573,28 +572,45 @@ const byteAssign_t InfoAssignment[] = {
             rec->ts = mPayload[iv->id].ts;
             mPayload[iv->id].gotFragment = true;
             mPayload[iv->id].txId = p->packet[0];
-
-            //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
-            uint16_t status = 3; // regular status for MI, change to 1 later?
-            if ( p->packet[10] < 3 ) {
-                status = p->packet[10]*100 + p->packet[9]*10 + stschan; //first approach, needs review!
-            } else if ( p->packet[10] > 3 ) {
-                status = p->packet[10]*1000 + p->packet[9]*100 + p->packet[12]*10 + p->packet[11];
-                if (p->packet[12] < 6) {
-                    status += stschan;
-                }
-            }
-            if ( status != 3 ) {
-                DPRINTLN(DBG_WARN, F("Error code ") + String(status));
-            }
-
-            mPayload[iv->id].sts[stschan] = status;
+            miStsConsolidate(iv, stschan, rec, p->packet[10], p->packet[12], p->packet[9], p->packet[11]);
             mPayload[iv->id].stsAB[stschan] = true;
             if (mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].stsAB[CH2])
                 mPayload[iv->id].stsAB[CH0] = true;
-            if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0] ) {
-                mPayload[iv->id].sts[0] = status;
-                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
+            //mPayload[iv->id].skipfirstrepeat = 1;
+            if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0] && !mPayload[iv->id].complete) {
+                miComplete(iv);
+            }
+        }
+
+        void miStsConsolidate(Inverter<> *iv, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
+            //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
+            uint16_t status = 3; // regular status for MI, change to 1 later?
+            if ( uState < 3 ) {
+                status = uState*100 + stschan; //first approach, needs review!
+                if (lState)
+                    status +=  lState*10;
+            } else if ( uState > 3 ) {
+                status = uState*1000 + uEnum*10;
+                if (lState)
+                    status +=  lState*100; //needs review, esp. for 4ch-8310 state!
+                //if (lEnum)
+                status +=  lEnum;
+                if (uEnum < 6) {
+                    status += stschan;
+                }
+            }
+
+            uint16_t prntsts = status == 3 ? 1 : status;
+            if ( status != mPayload[iv->id].sts[stschan] ) { //sth.'s changed?
+                mPayload[iv->id].sts[stschan] = status;
+                DPRINT(DBG_WARN, F("Status change for CH"));
+                DBGPRINT(String(stschan)); DBGPRINT(F(": "));
+                DBGPRINTLN(iv->getAlarmStr(prntsts));
+            }
+
+            if ( !mPayload[iv->id].sts[0] || prntsts < mPayload[iv->id].sts[0] ) {
+                mPayload[iv->id].sts[0] = prntsts;
+                iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, prntsts);
             }
 
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
@@ -603,12 +619,20 @@ const byteAssign_t InfoAssignment[] = {
                 DPRINTHEAD(DBG_INFO, iv->id);
                 DBGPRINT_TXT(TXT_INCRALM);
                 DBGPRINTLN(String(iv->alarmMesIndex));
-                //iv->enqueCommand<InfoCommand>(AlarmData); Would just start with second channel request 0x11...
             }
-            //mPayload[iv->id].skipfirstrepeat = 1;
-            if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0] && !mPayload[iv->id].complete) {
-                miComplete(iv);
-            }
+            /*if(AlarmData == mPayload[iv->id].txCmd) {
+                                uint8_t i = 0;
+                                uint16_t code;
+                                uint32_t start, end;
+                                while(1) {
+                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                                    if(0 == code)
+                                        break;
+                                    if (NULL != mCbAlarm)
+                                        (mCbAlarm)(code, start, end);
+                                    yield();
+                                }
+                            }*/
         }
 
         void miDataDecode(Inverter<> *iv, packet_t *p) {
@@ -653,12 +677,14 @@ const byteAssign_t InfoAssignment[] = {
                   FCODE = (uint8_t)(p->packet[27]);
                 }*/
 
-                uint16_t status = (uint8_t)(p->packet[23]);
+                /*uint16_t status = (uint8_t)(p->packet[23]);
                 mPayload[iv->id].sts[datachan] = status;
                 if ( !mPayload[iv->id].sts[0] || status < mPayload[iv->id].sts[0]) {
                     mPayload[iv->id].sts[0] = status;
                     iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, status);
-                }
+                }*/
+                miStsConsolidate(iv, datachan, rec, p->packet[23], p->packet[24]);
+
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
                     /*uint8_t cmd = p->packet[0] - ALL_FRAMES + 1;
@@ -674,17 +700,17 @@ const byteAssign_t InfoAssignment[] = {
                     mPayload[iv->id].complete = true;
                 }
 
-                if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
+                /*if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
 
                     DPRINTHEAD(DBG_INFO, iv->id);
                     DBGPRINT_TXT(TXT_INCRALM);
                     DBGPRINTLN(String(iv->alarmMesIndex));
-                }
+                }*/
 
             }
 
-            if ( mPayload[iv->id].complete || //4ch device
+            if ( mPayload[iv->id].complete ||  //4ch device
                  (iv->type != INV_TYPE_4CH     //other devices
                  && mPayload[iv->id].dataAB[CH0]
                  && mPayload[iv->id].stsAB[CH0])) {
@@ -768,7 +794,7 @@ const byteAssign_t InfoAssignment[] = {
             return true;
         }
 
-        void reset(uint8_t id) {
+        void reset(uint8_t id, bool clrSts = false) {
             DPRINTHEAD(DBG_INFO, id);
             DBGPRINTLN_TXT(TXT_RSTPYLD);
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
@@ -788,10 +814,13 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
             mPayload[id].sts[0]      = 0;
-            mPayload[id].sts[CH1]    = 0;
-            mPayload[id].sts[CH2]    = 0;
-            mPayload[id].sts[CH3]    = 0;
-            mPayload[id].sts[CH4]    = 0;
+            if (clrSts) {                    // only clear channel states at startup
+                mPayload[id].sts[CH1]    = 0;
+                mPayload[id].sts[CH2]    = 0;
+                mPayload[id].sts[CH3]    = 0;
+                mPayload[id].sts[CH4]    = 0;
+                mPayload[id].sts[5]      = 0; //remember last summarized state
+            }
         }
 
 
