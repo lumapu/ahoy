@@ -208,6 +208,7 @@ class HmRadio {
                     default:
                         return;
                 }
+                cnt++;
             }
             sendPacket(invId, cnt, isRetransmit, true);
         }
