@@ -9,7 +9,10 @@ import subprocess
 
 
 def get_git_sha():
-    return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+    except:
+        return "0000000"
 
 def readVersion(path):
     f = open(path, "r")
