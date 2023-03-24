@@ -593,7 +593,7 @@ const byteAssign_t InfoAssignment[] = {
                     status += stschan;
                 }
                 if (status == 8000)
-                    status == 8310;       //trick?
+                    status = 8310;       //trick?
             }
 
             uint16_t prntsts = status == 3 ? 1 : status;
