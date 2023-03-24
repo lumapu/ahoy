@@ -235,8 +235,6 @@ class Cmt2300a {
             if(mInRxMode)
                 return CMT_SUCCESS;
 
-            DPRINTLN(DBG_INFO, "goRX");
-
             mSpi.readReg(CMT2300A_CUS_INT1_CTL);
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
@@ -255,12 +253,10 @@ class Cmt2300a {
             mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x02);
             mSpi.writeReg(0x16, 0x0C); // [4:3]: RSSI_DET_SEL, [2:0]: RSSI_AVG_MODE
 
-            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00); // 863.0 MHz
+            //mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, 0x00); // 863.0 MHz
 
-            if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX)) {
-                Serial.println("Go RX");
+            if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX))
                 return CMT_ERR_SWITCH_STATE;
-            }
 
             mInRxMode = true;
 
