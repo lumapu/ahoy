@@ -144,10 +144,8 @@ class Inverter {
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
            DPRINT_IVID(DBG_INFO, id);
-           //DPRINT(DBG_INFO, F("(#"));
-           //DBGPRINT(String(id));
-           DBGPRINTLN(F("enqueCommand: 0x") + String(cmd, HEX));
-           //DBGHEXLN(cmd);
+           DBGPRINTLN(F("enqueCommand: 0x"));
+           DBGHEXLN(cmd);
         }
 
         void setQueuedCmdFinished() {
@@ -305,7 +303,8 @@ class Inverter {
                     DPRINTLN(DBG_DEBUG, "add config");
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
-                        DPRINTLN(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
+                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
+                        DBGPRINTLN(String(actPowerLimit, 1));
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {

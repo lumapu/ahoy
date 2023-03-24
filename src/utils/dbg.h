@@ -62,8 +62,7 @@
         }
 
         inline void DBGHEXLN(uint8_t b) {
-            if( b<0x10 ) DBGPRINT(F("0"));
-            DBGPRINT(String(b, HEX));
+            DHEX(b);
             DBGPRINT(F("\r\n"));
         }
         /*inline void DHEX(uint16_t b) {
