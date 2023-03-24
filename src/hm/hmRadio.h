@@ -177,7 +177,7 @@ class HmRadio {
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
-            DBGPRINTLN(String(cmd, HEX));
+            DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
             if (isNoMI) {
@@ -295,7 +295,7 @@ class HmRadio {
         }
 
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
-            DPRINTLN(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
+            DPRINT(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
