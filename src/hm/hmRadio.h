@@ -295,7 +295,7 @@ class HmRadio {
         }
 
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
-            DPRINT(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
+            DPRINTLN(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
