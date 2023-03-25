@@ -47,10 +47,17 @@
     #define DEF_CS_PIN              5
     #define DEF_CE_PIN              4
     #define DEF_IRQ_PIN             16
+    #define DEF_MISO_PIN            48
+    #define DEF_MOSI_PIN            35
+    #define DEF_SCLK_PIN            36
 #else
     #define DEF_CS_PIN              15
     #define DEF_CE_PIN              2
     #define DEF_IRQ_PIN             0
+    // TODO, these below are obviously garbage and just copy paste
+    #define DEF_MISO_PIN            48
+    #define DEF_MOSI_PIN            35
+    #define DEF_SCLK_PIN            36
 #endif
 
 // default NRF24 power, possible values (0 - 3)

@@ -30,7 +30,7 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     mSys.enableDebug();
-    mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+    mSys.setup(mConfig->nrf.amplifierPower, 47, 38, 37, 36, 35, 48);
 
     #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);

@@ -162,7 +162,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         uint8_t getIrqPin(void) {
-            return mConfig->nrf.pinIrq;
+            return 47;
         }
 
         String getTimeStr(uint32_t offset = 0) {

@@ -10,6 +10,7 @@
 #include <RF24.h>
 #include "../utils/crc.h"
 #include "../config/config.h"
+#include "SPI.h"
 
 #define SPI_SPEED           1000000
 
@@ -47,7 +48,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW>
+template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_SCLK_PIN, uint8_t MOSI_PIN = DEF_MOSI_PIN, uint8_t MISO_PIN = DEF_MISO_PIN>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -78,7 +79,7 @@ class HmRadio {
         }
         ~HmRadio() {}
 
-        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN) {
+        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
 
@@ -100,7 +101,9 @@ class HmRadio {
             // change the byte order of the DTU serial number and append the required 0x01 at the end
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
-            mNrf24.begin(ce, cs);
+            SPIClass* mSpi = new SPIClass(HSPI);
+            mSpi->begin(sclk, miso, mosi, cs);
+            mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
