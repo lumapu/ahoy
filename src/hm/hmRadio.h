@@ -156,7 +156,7 @@ class HmRadio {
 
         void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
-            DBGPRINTLN(String(cmd, HEX));
+            DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
             if (isNoMI) {
@@ -187,6 +187,7 @@ class HmRadio {
                     default:
                         return;
                 }
+                cnt++;
             }
             sendPacket(invId, cnt, isRetransmit);
         }

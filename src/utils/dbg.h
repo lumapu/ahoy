@@ -61,7 +61,7 @@
             }
         }
 
-        inline void DHEXLN(uint8_t b) {
+        inline void DBGHEXLN(uint8_t b) {
             DHEX(b);
             DBGPRINT(F("\r\n"));
         }
@@ -151,7 +151,7 @@
     }\
 })
 
-#define DPRINTHEAD(level, id) ({\
+#define DPRINT_IVID(level, id) ({\
     DPRINT(level, F("(#")); DBGPRINT(String(id)); DBGPRINT(F(") "));\
 })
 
