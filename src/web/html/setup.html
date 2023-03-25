@@ -629,7 +629,19 @@
             }
 
             function parseNrfRadio(obj, type) {
-                var e = document.getElementById("rf24").append(
+                var e = document.getElementById("rf24");
+                pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
+                for(p of pins) {
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]])
+                            )
+                        ])
+                    );
+                }
+                e.append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Power Level"),
                         ml("div", {class: "col-12 col-sm-9"},
@@ -650,14 +662,20 @@
                 en.checked = obj["en"];
 
                 e.append(
-                    lbl("cmtEnable", "CMT2300A Enable"),
-                    en, br()
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "CMT2300A Enable"),
+                        ml("div", {class: "col-4 col-sm-9"}, en)
+                    ])
                 );
                 pins = [['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['irq', 'pinGpio3']];
                 for(p of pins) {
                     e.append(
-                        lbl(p[1], p[0].toUpperCase()),
-                        sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]])
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]])
+                            )
+                        ])
                     );
                 }
             }

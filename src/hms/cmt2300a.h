@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __CMT2300A_H__
@@ -282,7 +282,6 @@ class Cmt2300a {
             mSpi.writeReg(CMT2300A_CUS_INT_CLR1, 0x00);
             mSpi.writeReg(CMT2300A_CUS_INT_CLR2, 0x00);
 
-            //mSpi.readReg(CMT2300A_CUS_FIFO_CTL); // necessary?
             mSpi.writeReg(CMT2300A_CUS_FIFO_CTL, 0x07);
             mSpi.writeReg(CMT2300A_CUS_FIFO_CLR, 0x01);
 
@@ -294,8 +293,8 @@ class Cmt2300a {
             if(0xff != mRqstCh) {
                 mCurCh = mRqstCh;
                 mRqstCh = 0xff;
+                mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mCurCh);
             }
-            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, mCurCh);
 
             if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
                 return CMT_ERR_SWITCH_STATE;
@@ -381,12 +380,13 @@ class Cmt2300a {
 
         inline void switchChannel(uint8_t ch) {
             mRqstCh = ch;
-            /*DPRINTLN(DBG_INFO, "switchChannel: 0x" + String(ch, HEX));
-            if(mInRxMode)
-                mInRxMode = false;
-            cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_SLEEP);
+        }
 
-            mSpi.writeReg(CMT2300A_CUS_FREQ_CHNL, ch);*/
+        inline uint32_t getFreqKhz(void) {
+            if(0xff != mRqstCh)
+                return HOY_BASE_FREQ_KHZ + (mRqstCh * FREQ_STEP_KHZ);
+            else
+                return HOY_BASE_FREQ_KHZ + (mCurCh * FREQ_STEP_KHZ);
         }
 
     private:

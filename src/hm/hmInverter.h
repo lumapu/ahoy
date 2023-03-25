@@ -145,7 +145,7 @@ class Inverter {
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
            DPRINT_IVID(DBG_INFO, id);
-           DBGPRINTLN(F("enqueCommand: 0x"));
+           DBGPRINT(F("enqueCommand: 0x"));
            DBGHEXLN(cmd);
         }
 

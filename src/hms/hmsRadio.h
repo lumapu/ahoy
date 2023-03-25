@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HMS_RADIO_H__
@@ -95,8 +95,8 @@ class CmtRadio {
 
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
-                DBGPRINT(String(len));
-                DBGPRINT(F(" | "));
+                DBGPRINT(String(mCmt.getFreqKhz()/1000.0f));
+                DBGPRINT(F("Mhz | "));
                 ah::dumpBuf(mTxBuf, len);
             }
 
@@ -135,11 +135,13 @@ class CmtRadio {
 
         inline void sendSwitchChCmd(const uint64_t *ivId, uint8_t ch) {
             /** ch:
-             * 0x0c: 863.00 MHz
-             * 0x0d: 863.24 MHz
-             * 0x0e: 863.48 MHz
-             * 0x0f: 863.72 MHz
-             * 0x10: 863.96 MHz
+             * 0x00: 860.00 MHz
+             * 0x01: 860.25 MHz
+             * 0x02: 860.50 MHz
+             * ...
+             * 0x14: 865.00 MHz
+             * ...
+             * 0x28: 870.00 MHz
              * */
             initPacket(ivId, 0x56, 0x02);
             mTxBuf[10] = 0x15;

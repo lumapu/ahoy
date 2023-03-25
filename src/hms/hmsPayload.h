@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HMS_PAYLOAD_H__
@@ -47,12 +47,13 @@ class HmsPayload {
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 reset(i);
+                mIvCmd56Cnt[i] = 0;
             }
             mSerialDebug = false;
             //mHighPrioIv  = NULL;
             mCbAlarm     = NULL;
             mCbPayload   = NULL;
-            mLastRx      = 0;
+            //mLastRx      = 0;
         }
 
         void enableSerialDebug(bool enable) {
@@ -139,13 +140,17 @@ class HmsPayload {
                 mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }*/
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             DPRINT(DBG_INFO, "LastRx: ");
-            DBGPRINTLN(String(mLastRx));
-            if((mLastRx + HMS_TIMEOUT_MS) < millis()) {
+            DBGPRINTLN(String(rec->ts));
+            if(((rec->ts + HMS_TIMEOUT_MS) < millis()) && (mIvCmd56Cnt[iv->id] < 3)) {
                 //mRadio->switchFrequency(&iv->radioId.u64, 863000, WORK_FREQ_KHZ);
                 mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
-                mLastRx = millis() - (HMS_TIMEOUT_MS / 6);
+                mIvCmd56Cnt[iv->id]++;
+                //mLastRx = millis() - (HMS_TIMEOUT_MS / 6);
             } else {
+                if(++mIvCmd56Cnt[iv->id] == 10)
+                    mIvCmd56Cnt[iv->id] = 0;
                 uint8_t cmd = iv->getQueuedCmd();
                 DPRINT(DBG_INFO, F("(#"));
                 DBGPRINT(String(iv->id));
@@ -156,7 +161,7 @@ class HmsPayload {
         }
 
         void add(Inverter<> *iv, hmsPacket_t *p) {
-            mLastRx = millis();
+            //mLastRx = millis();
             if (p->data[1] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->data[1];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
@@ -404,8 +409,9 @@ class HmsPayload {
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;
-        uint32_t mLastRx;
+        //uint32_t mLastRx;
         hmsPayload_t mPayload[MAX_NUM_INVERTERS];
+        uint8_t mIvCmd56Cnt[MAX_NUM_INVERTERS];
         bool mSerialDebug;
         Inverter<> *mHighPrioIv;
 
