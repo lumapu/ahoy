@@ -689,6 +689,10 @@ class Web {
                         snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mConfig->sys.deviceName, mApp->getUptime());
                         metrics += String(type) + String(topic);
 
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_wifi_rssi_db gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_wifi_rssi_db{devicename=\"%s\"} %d\n", mConfig->sys.deviceName, WiFi.RSSI());
+                        metrics += String(type) + String(topic);
+
                         // NRF Statistics
                         stat = mApp->getStatistics();
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
