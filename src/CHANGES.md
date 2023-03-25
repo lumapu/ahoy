@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.106
+* merged MI and debug message changes #804
+* fixed MQTT autodiscover #794, #632
+
 ## 0.5.105
 * merged MI, thx @rejoe2 #788
 * fixed reboot message #793
