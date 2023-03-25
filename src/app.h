@@ -82,6 +82,10 @@ class app : public IApp, public ah::Scheduler {
             mShowRebootRequest = true; // only message on index, no reboot
             mSavePending = true;
             mSaveReboot = reboot;
+            if(reboot) {
+                onWifi(false);
+                ah::Scheduler::resetTicker();
+            }
             once(std::bind(&app::tickSave, this), 3, "save");
             return true;
         }
