@@ -775,7 +775,7 @@
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
-                    parseDisplay(root["display"], root["system"]["esp_type"]);
+                    parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
                     getAjax("/api/inverter/list", parseIv);
                 }
             }
