@@ -655,7 +655,11 @@
 
             function parsePinout(obj, type, system) {
                 var e = document.getElementById("pinout");
-                pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso'],  ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                if ("ESP8266" == type) {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                } else {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                }
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
