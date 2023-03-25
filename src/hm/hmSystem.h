@@ -23,7 +23,6 @@ class HmSystem {
 
         void setup(uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
             mNumInv = 0;
-            // Radio.setup(ampPwr, 47, 38, 37, 36, 35, 48);
             Radio.setup(ampPwr, irqPin, cePin, csPin, sclkPin, mosiPin, misoPin);
         }
 

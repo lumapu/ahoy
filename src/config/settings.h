@@ -73,6 +73,9 @@ typedef struct {
     uint8_t pinCs;
     uint8_t pinCe;
     uint8_t pinIrq;
+    uint8_t pinMiso;
+    uint8_t pinMosi;
+    uint8_t pinSclk;
     uint8_t amplifierPower;
 } cfgNrf24_t;
 
@@ -344,6 +347,10 @@ class settings {
             mCfg.nrf.pinCs             = DEF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_CE_PIN;
             mCfg.nrf.pinIrq            = DEF_IRQ_PIN;
+            mCfg.nrf.pinMiso           = DEF_MISO_PIN;
+            mCfg.nrf.pinMosi           = DEF_MOSI_PIN;
+            mCfg.nrf.pinSclk           = DEF_SCLK_PIN;
+
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);

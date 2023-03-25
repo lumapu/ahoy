@@ -30,9 +30,9 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     mSys.enableDebug();
-    mSys.setup(mConfig->nrf.amplifierPower, 47, 38, 37, 36, 35, 48);
+    mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
 
-    #if defined(AP_ONLY)
+#if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
     #else
     mInnerLoopCb = std::bind(&app::loopWifi, this);
