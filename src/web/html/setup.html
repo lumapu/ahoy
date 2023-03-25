@@ -707,7 +707,7 @@
                         ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]])
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[1]])
                             )
                         ])
                     );
