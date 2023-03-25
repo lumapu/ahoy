@@ -17,7 +17,7 @@
 #undef FB_WIFI_PWD
 #define FB_WIFI_PWD     "MY_WIFI_KEY"
 
-// ESP32 default pinout
+// ESP32-S3 example pinout
 #undef DEF_CS_PIN
 #define DEF_CS_PIN 37
 #undef DEF_CE_PIN
