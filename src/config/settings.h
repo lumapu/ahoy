@@ -433,6 +433,9 @@ class settings {
                 obj[F("cs")]        = mCfg.nrf.pinCs;
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
+                obj[F("sclk")]      = mCfg.nrf.pinSclk;
+                obj[F("mosi")]      = mCfg.nrf.pinMosi;
+                obj[F("miso")]      = mCfg.nrf.pinMiso;
                 obj[F("pwr")]       = mCfg.nrf.amplifierPower;
             } else {
                 mCfg.nrf.sendInterval      = obj[F("intvl")];
@@ -440,11 +443,17 @@ class settings {
                 mCfg.nrf.pinCs             = obj[F("cs")];
                 mCfg.nrf.pinCe             = obj[F("ce")];
                 mCfg.nrf.pinIrq            = obj[F("irq")];
+                mCfg.nrf.pinSclk           = obj[F("sclk")];
+                mCfg.nrf.pinMosi           = obj[F("mosi")];
+                mCfg.nrf.pinMiso           = obj[F("miso")];
                 mCfg.nrf.amplifierPower    = obj[F("pwr")];
                 if((obj[F("cs")] == obj[F("ce")])) {
-                    mCfg.nrf.pinCs  = DEF_CS_PIN;
-                    mCfg.nrf.pinCe  = DEF_CE_PIN;
-                    mCfg.nrf.pinIrq = DEF_IRQ_PIN;
+                    mCfg.nrf.pinCs   = DEF_CS_PIN;
+                    mCfg.nrf.pinCe   = DEF_CE_PIN;
+                    mCfg.nrf.pinIrq  = DEF_IRQ_PIN;
+                    mCfg.nrf.pinSclk = DEF_SCLK_PIN;
+                    mCfg.nrf.pinMosi = DEF_MOSI_PIN;
+                    mCfg.nrf.pinMiso = DEF_MISO_PIN;
                 }
             }
         }
