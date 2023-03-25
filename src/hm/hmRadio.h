@@ -102,7 +102,12 @@ class HmRadio {
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             SPIClass* mSpi = new SPIClass();
-            mSpi->begin(sclk, miso, mosi, cs);
+            #ifdef ESP32
+                mSpi->begin(sclk, miso, mosi, cs);
+            #else
+                //the old ESP82xx cannot freely place their SPI pins
+                mSpi->begin();
+            #endif
             mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
