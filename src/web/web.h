@@ -686,7 +686,7 @@ class Web {
                         metrics += String(type) + String(topic);
 
                         snprintf(type,sizeof(type),"# TYPE ahoy_solar_uptime counter\n");
-                        snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mApp->getUptime());
+                        snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mConfig->sys.deviceName, mApp->getUptime());
                         metrics += String(type) + String(topic);
 
                         // NRF Statistics
