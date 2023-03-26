@@ -11,7 +11,7 @@
 #include "../config/config.h"
 #include <Arduino.h>
 
-#define HMS_TIMEOUT_MS  30000 // 30s * 1000
+#define HMS_TIMEOUT_SEC  30 // 30s * 1000
 
 typedef struct {
     uint8_t txCmd;
@@ -141,13 +141,10 @@ class HmsPayload {
                 mPayload[iv->id].txCmd = cmd;
             }*/
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            DPRINT(DBG_INFO, "LastRx: ");
-            DBGPRINTLN(String(rec->ts));
-            if(((rec->ts + HMS_TIMEOUT_MS) < *mTimestamp) && (mIvCmd56Cnt[iv->id] < 3)) {
+            if(((rec->ts + HMS_TIMEOUT_SEC) < *mTimestamp) && (mIvCmd56Cnt[iv->id] < 3)) {
                 //mRadio->switchFrequency(&iv->radioId.u64, 863000, WORK_FREQ_KHZ);
                 mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
                 mIvCmd56Cnt[iv->id]++;
-                //mLastRx = millis() - (HMS_TIMEOUT_MS / 6);
             } else {
                 if(++mIvCmd56Cnt[iv->id] == 10)
                     mIvCmd56Cnt[iv->id] = 0;
@@ -161,7 +158,6 @@ class HmsPayload {
         }
 
         void add(Inverter<> *iv, hmsPacket_t *p) {
-            //mLastRx = millis();
             if (p->data[1] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->data[1];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
@@ -343,6 +339,7 @@ class HmsPayload {
                         }
 
                         iv->setQueuedCmdFinished();
+                        reset(iv->id);
                     }
                 }
                 yield();
