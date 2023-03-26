@@ -3,7 +3,10 @@
 (starting from release version `0.5.66`)
 
 ## 0.5.108
-* merge: PR SPI pins configureable (ESP32) #807
+* merge: PR SPI pins configureable (ESP32) #807, #806
+* merge: PR MI serial outputs #809
+* fix: no MQTT `total` sensor for autodiscover if only one inverter was found #805
+* fix: MQTT `total` renamed to `device_name` + `_TOTOL` for better visibility #805
 
 ## 0.5.107
 * fix: show save message

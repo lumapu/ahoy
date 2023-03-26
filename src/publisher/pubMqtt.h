@@ -38,6 +38,7 @@ typedef struct {
     bool running;
     uint8_t lastIvId;
     uint8_t sub;
+    uint8_t foundIvCnt;
 } discovery_t;
 
 template<class HMSYSTEM>
@@ -224,6 +225,7 @@ class PubMqtt {
             mDiscovery.running  = true;
             mDiscovery.lastIvId = 0;
             mDiscovery.sub = 0;
+            mDiscovery.foundIvCnt = 0;
         }
 
         void setPowerLimitAck(Inverter<> *iv) {
@@ -350,14 +352,16 @@ class PubMqtt {
             uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
             const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
 
-            String node_mac = WiFi.macAddress().substring(12,14)+ WiFi.macAddress().substring(15,17);
-            String node_id = "AHOY_DTU_" + node_mac;
+            String node_id = String(mDevName) + "_TOTAL";
             bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
 
             Inverter<> *iv = mSys->getInverterByPos(mDiscovery.lastIvId);
             record_t<> *rec;
-            if (NULL != iv)
+            if (NULL != iv) {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                if(0 == mDiscovery.sub)
+                mDiscovery.foundIvCnt++;
+            }
 
             if ((NULL != iv) || total) {
                 if (!total) {
@@ -412,7 +416,7 @@ class PubMqtt {
                 if (!total)
                     snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                 else // total values
-                    snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(),fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
                 memset(buf, 0, size);
                 serializeJson(doc2, buf, size);
@@ -420,16 +424,24 @@ class PubMqtt {
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
                     mDiscovery.sub = 0;
-                    if(++mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
-                        mDiscovery.running = false;
+                    checkDiscoveryEnd();
                 }
             } else {
                 mDiscovery.sub = 0;
-                if(++mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
-                    mDiscovery.running = false;
+                checkDiscoveryEnd();
             }
 
             yield();
+        }
+
+        void checkDiscoveryEnd(void) {
+            if(++mDiscovery.lastIvId == MAX_NUM_INVERTERS) {
+                // check if only one inverter was found, then don't create 'total' sensor
+                DPRINTLN(DBG_INFO, "found: " + String(mDiscovery.foundIvCnt));
+                if(mDiscovery.foundIvCnt == 1)
+                    mDiscovery.running = false;
+            } else if(mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
+                mDiscovery.running = false;
         }
 
         const char *getFieldDeviceClass(uint8_t fieldId) {
