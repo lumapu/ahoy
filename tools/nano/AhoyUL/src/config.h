@@ -46,7 +46,9 @@
 #define SEND_INTERVAL            (60)                      //send interval if Rx OK
 #define SEND_NOSIGNAL_SHORT      (10)                      //short send interval if no RX (used initial sync or signal loss)
 #define SEND_REPEAT              (6)                       //number of tries of short send interval to sync faster to inverter after night
-#define SEND_NOSIGNAL_LONG       (20*60)                   //long TX interval whne no SIGNAL for long time, e.g. over night
+#define SEND_NOSIGNAL_LONG       (20*60)                   //long TX interval when no SIGNAL for long time, e.g. over night
+
+#define INVERTER_TIMEOUT_sec    (SEND_INTERVAL * 2)          //max duration of send to one inverter
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16

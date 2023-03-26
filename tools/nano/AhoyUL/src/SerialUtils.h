@@ -8,6 +8,11 @@
 #include "config.h"
 #include "dbg.h"
 
+
+
+/**
+ *  Class for serial functions (read, eval, etc...)
+*/
 class SerialUtils {
    public:
     SerialUtils() {
