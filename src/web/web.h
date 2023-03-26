@@ -33,7 +33,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -521,17 +521,20 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for(uint8_t i = 0; i < 8; i ++) {
+            for (uint8_t i = 0; i < 11; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
-                    case 0: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                    case 1: mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                    case 2: mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3: mConfig->led.led0     = pin; break;
-                    case 4: mConfig->led.led1     = pin; break;
-                    case 5: mConfig->cmt.pinCsb   = pin; break;
-                    case 6: mConfig->cmt.pinFcsb  = pin; break;
-                    case 7: mConfig->cmt.pinIrq   = pin; break;
+                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
+                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
+                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_SCLK_PIN); break;
+                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_MOSI_PIN); break;
+                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_MISO_PIN); break;
+                    case 6:  mConfig->led.led0 = pin; break;
+                    case 7:  mConfig->led.led1 = pin; break;
+                    case 8:  mConfig->cmt.pinCsb   = pin; break;
+                    case 9:  mConfig->cmt.pinFcsb  = pin; break;
+                    case 10: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 

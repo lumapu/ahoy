@@ -12,3 +12,4 @@ src/web/html/tmp/*
 *.db
 *.suo
 *.ipch
+src/output.map

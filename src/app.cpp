@@ -29,9 +29,8 @@ void app::setup() {
     else
         DBGPRINTLN(F("false"));
 
-    mSys.setup();
     if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs);
+        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
         mNrfRadio.enableDebug();
     }
     #if defined(ESP32)

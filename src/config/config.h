@@ -44,13 +44,25 @@
 
 // default pinout (GPIO Number)
 #if defined(ESP32)
+    // this is the default ESP32 (son-S) pinout on the WROOM modules for VSPI,
+    // for the ESP32-S3 there is no sane 'default', as it has full flexibility
+    // to map its two HW SPIs anywhere and PCBs differ materially,
+    // so it has to be selected in the Web UI
     #define DEF_CS_PIN              5
     #define DEF_CE_PIN              4
     #define DEF_IRQ_PIN             16
+    #define DEF_MISO_PIN            19
+    #define DEF_MOSI_PIN            23
+    #define DEF_SCLK_PIN            18
 #else
     #define DEF_CS_PIN              15
     #define DEF_CE_PIN              2
     #define DEF_IRQ_PIN             0
+    // these are given to relay the correct values via API
+    // they cannot actually be moved for ESP82xx models
+    #define DEF_MISO_PIN            12
+    #define DEF_MOSI_PIN            13
+    #define DEF_SCLK_PIN            14
 #endif
 
 // default NRF24 power, possible values (0 - 3)
