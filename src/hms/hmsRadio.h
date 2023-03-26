@@ -41,9 +41,9 @@ class CmtRadio {
         bool loop() {
             mCmt.loop();
 
-            if(!mIrqRcvd)
+            if(0x00 != mIrqRcvd)
                 return false;
-            mIrqRcvd = false;
+            mIrqRcvd--;
             getRx();
             mCmt.goRx();
             return true;
@@ -53,7 +53,7 @@ class CmtRadio {
         }
 
         void handleIntr(void) {
-            mIrqRcvd = true;
+            mIrqRcvd++;
         }
 
         void enableDebug() {
@@ -130,7 +130,7 @@ class CmtRadio {
             mSendCnt        = 0;
             mRetransmits    = 0;
             mSerialDebug    = false;
-            mIrqRcvd        = false;
+            mIrqRcvd        = 0;
         }
 
         inline void sendSwitchChCmd(const uint64_t *ivId, uint8_t ch) {
@@ -183,7 +183,7 @@ class CmtRadio {
         uint32_t mDtuSn;
         uint8_t mTxBuf[27];
         bool mSerialDebug;
-        bool mIrqRcvd;
+        volatile uint8_t mIrqRcvd;
 };
 
 #endif /*__HMS_RADIO_H__*/
