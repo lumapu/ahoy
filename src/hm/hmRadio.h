@@ -101,11 +101,16 @@ class HmRadio {
             // change the byte order of the DTU serial number and append the required 0x01 at the end
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
-            SPIClass* mSpi = new SPIClass();
             #ifdef ESP32
+                #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
+                    SPIClass* mSpi = new SPIClass(FSPI);
+                #else
+                    SPIClass* mSpi = new SPIClass(VSPI);
+                #endif
                 mSpi->begin(sclk, miso, mosi, cs);
             #else
                 //the old ESP82xx cannot freely place their SPI pins
+                SPIClass* mSpi = new SPIClass();
                 mSpi->begin();
             #endif
             mNrf24.begin(mSpi, ce, cs);
