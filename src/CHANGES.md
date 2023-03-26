@@ -4,6 +4,7 @@
 
 ## 0.5.109
 * reduced heap fragmentation by optimizing MqTT #768
+* ePaper: centered text thx @knickohr
 
 ## 0.5.108
 * merge: PR SPI pins configureable (ESP32) #807, #806
