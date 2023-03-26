@@ -168,7 +168,7 @@ class HmPayload {
                     DPRINTLN(DBG_DEBUG, F("fragment number zero received and ignored"));
                 } else {
                     DPRINT(DBG_DEBUG, F("PID: 0x"));
-                    DBGHEXLN(*pid);
+                    DPRINTLN(DBG_DEBUG, String(*pid, HEX));
                     if ((*pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {
                         memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], p->len - 11);
                         mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->len - 11;
@@ -285,7 +285,7 @@ class HmPayload {
                         DPRINT(DBG_INFO, F("procPyld: txid: 0x"));
                         DBGHEXLN(mPayload[iv->id].txId);
                         DPRINT(DBG_DEBUG, F("procPyld: max:  "));
-                        DBGPRINTLN(String(mPayload[iv->id].maxPackId));
+                        DPRINTLN(DBG_DEBUG, String(mPayload[iv->id].maxPackId));
                         record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
                         mPayload[iv->id].complete = true;
 
