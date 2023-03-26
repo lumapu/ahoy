@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __WEB_H__
@@ -27,6 +27,7 @@
 #include "html/h/setup_html.h"
 #include "html/h/style_css.h"
 #include "html/h/system_html.h"
+#include "html/h/save_html.h"
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
 
@@ -67,7 +68,7 @@ class Web {
             mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
-            mWeb.on("/save",           HTTP_ANY,  std::bind(&Web::showSave,       this, std::placeholders::_1));
+            mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
             //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
@@ -161,22 +162,24 @@ class Web {
                     DPRINTLN(DBG_ERROR, F("can't open file!"));
                     mUploadFail = true;
                     mUploadFp.close();
+                    return;
                 }
             }
             mUploadFp.write(data, len);
             if (final) {
                 mUploadFp.close();
-                File fp = LittleFS.open("/tmp.json", "r");
-                if (!fp)
+                char pwd[PWD_LEN];
+                strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
+                if (!mApp->readSettings("/tmp.json")) {
                     mUploadFail = true;
-                else {
-                    if (!mApp->readSettings("tmp.json")) {
-                        mUploadFail = true;
-                        DPRINTLN(DBG_ERROR, F("upload JSON error!"));
-                    } else
-                        mApp->saveSettings();
+                    DPRINTLN(DBG_ERROR, F("upload JSON error!"));
+                } else {
+                    LittleFS.remove("/tmp.json");
+                    strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
+                    mApp->saveSettings(true);
                 }
-                DPRINTLN(DBG_INFO, F("upload finished!"));
+                if (!mUploadFail)
+                    DPRINTLN(DBG_INFO, F("upload finished!"));
             }
         }
 
@@ -414,10 +417,8 @@ class Web {
                 refresh = 120;
             }
             request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if (refresh == 10) {
-                delay(1000);
-                ESP.restart();
-            }
+            if (refresh == 10)
+                onReboot(request);
         }
 
         void onSetup(AsyncWebServerRequest *request) {
@@ -590,15 +591,11 @@ class Web {
             mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
 
-            mApp->saveSettings();
+            mApp->saveSettings((request->arg("reboot") == "on"));
 
-            if (request->arg("reboot") == "on")
-                onReboot(request);
-            else {
-                AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
-                response->addHeader(F("Content-Encoding"), "gzip");
-                request->send(response);
-            }
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
         }
 
         void onLive(AsyncWebServerRequest *request) {
@@ -617,71 +614,6 @@ class Web {
 
             request->send(response);
         }
-
-        /*void showWebApi(AsyncWebServerRequest *request) {
-            // TODO: remove
-            DPRINTLN(DBG_VERBOSE, F("web::showWebApi"));
-            DPRINTLN(DBG_DEBUG, request->arg("plain"));
-            const size_t capacity = 200; // Use arduinojson.org/assistant to compute the capacity.
-            DynamicJsonDocument response(capacity);
-
-            // Parse JSON object
-            deserializeJson(response, request->arg("plain"));
-            // ToDo: error handling for payload
-            uint8_t iv_id = response["inverter"];
-            uint8_t cmd = response["cmd"];
-            Inverter<> *iv = mSys->getInverterByPos(iv_id);
-            if (NULL != iv) {
-                if (response["tx_request"] == (uint8_t)TX_REQ_INFO) {
-                    // if the AlarmData is requested set the Alarm Index to the requested one
-                    if (cmd == AlarmData || cmd == AlarmUpdate) {
-                        // set the AlarmMesIndex for the request from user input
-                        iv->alarmMesIndex = response["payload"];
-                    }
-                    DPRINTLN(DBG_INFO, F("Will make tx-request 0x15 with subcmd ") + String(cmd) + F(" and payload ") + String((uint16_t) response["payload"]));
-                    // process payload from web request corresponding to the cmd
-                    iv->enqueCommand<InfoCommand>(cmd);
-                }
-
-
-                if (response["tx_request"] == (uint8_t)TX_REQ_DEVCONTROL) {
-                    if (response["cmd"] == (uint8_t)ActivePowerContr) {
-                        uint16_t webapiPayload = response["payload"];
-                        uint16_t webapiPayload2 = response["payload2"];
-                        if (webapiPayload > 0 && webapiPayload < 10000) {
-                            iv->devControlCmd = ActivePowerContr;
-                            iv->powerLimit[0] = webapiPayload;
-                            if (webapiPayload2 > 0)
-                                iv->powerLimit[1] = webapiPayload2; // dev option, no sanity check
-                            else                                            // if not set, set it to 0x0000 default
-                                iv->powerLimit[1] = AbsolutNonPersistent; // payload will be seted temporary in Watt absolut
-                            if (iv->powerLimit[1] & 0x0001)
-                                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("% via REST API"));
-                            else
-                                DPRINTLN(DBG_INFO, F("Power limit for inverter ") + String(iv->id) + F(" set to ") + String(iv->powerLimit[0]) + F("W via REST API"));
-                            iv->devControlRequest = true; // queue it in the request loop
-                        }
-                    }
-                    if (response["cmd"] == (uint8_t)TurnOff) {
-                        iv->devControlCmd = TurnOff;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)TurnOn) {
-                        iv->devControlCmd = TurnOn;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)CleanState_LockAndAlarm) {
-                        iv->devControlCmd = CleanState_LockAndAlarm;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                    if (response["cmd"] == (uint8_t)Restart) {
-                        iv->devControlCmd = Restart;
-                        iv->devControlRequest = true; // queue it in the request loop
-                    }
-                }
-            }
-            request->send(200, "text/json", "{success:true}");
-        }*/
 
         void onDebug(AsyncWebServerRequest *request) {
             mApp->getSchedulerNames();
@@ -749,8 +681,17 @@ class Web {
                             mApp->getVersion(), mConfig->sys.deviceName);
                         metrics = String(type) + String(topic);
 
-                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_freeheap gauge\nahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
-                        metrics += String(topic);
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_freeheap gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
+                        metrics += String(type) + String(topic);
+
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_uptime counter\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mConfig->sys.deviceName, mApp->getUptime());
+                        metrics += String(type) + String(topic);
+
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_wifi_rssi_db gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_wifi_rssi_db{devicename=\"%s\"} %d\n", mConfig->sys.deviceName, WiFi.RSSI());
+                        metrics += String(type) + String(topic);
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
@@ -857,7 +798,7 @@ class Web {
 
         String radioStatistic(String statistic, uint32_t value) {
             char type[60], topic[80], val[25];
-            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s gauge",statistic.c_str());
+            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s counter",statistic.c_str());
             snprintf(topic, sizeof(topic), "ahoy_solar_radio_%s",statistic.c_str());
             snprintf(val, sizeof(val), "%d", value);
             return ( String(type) + "\n" + String(topic) + " " + String(val) + "\n");

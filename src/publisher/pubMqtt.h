@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 // https://bert.emelis.net/espMqttClient/
@@ -34,6 +34,12 @@ struct alarm_t {
     alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
 };
 
+typedef struct {
+    bool running;
+    uint8_t lastIvId;
+    uint8_t sub;
+} discovery_t;
+
 template<class HMSYSTEM>
 class PubMqtt {
     public:
@@ -55,11 +61,13 @@ class PubMqtt {
             mUtcTimestamp    = utcTs;
             mIntervalTimeout = 1;
 
+            mDiscovery.running = false;
+
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 26, "%s-", mDevName);
+            snprintf(mClientId, 24, "%s-", mDevName);
             uint8_t pos = strlen(mClientId);
             mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
             mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
@@ -82,6 +90,9 @@ class PubMqtt {
             mClient.loop();
             yield();
             #endif
+
+            if(mDiscovery.running)
+                discoveryConfigLoop();
         }
 
 
@@ -111,6 +122,9 @@ class PubMqtt {
             publish(subtopics[MQTT_UPTIME], val);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
+            #ifndef ESP32
+            publish(subtopics[MQTT_HEAP_FRAG], String(ESP.getHeapFragmentation()).c_str());
+            #endif
         }
 
         bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
@@ -162,14 +176,16 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            String topic = "";
-            if(addTopic)
-                topic = String(mCfgMqtt->topic) + "/";
-            topic += String(subTopic);
+            memset(mTopic, 0, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1);
+            if(addTopic){
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
+            } else {
+                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
+            }
 
             do {
-                if(0 != mClient.publish(topic.c_str(), QOS_0, retained, payload))
-                    break;
+                if(0 != mClient.publish(mTopic, QOS_0, retained, payload))
+                   break;
                 if(!mClient.connected())
                     break;
                 #if defined(ESP8266)
@@ -205,92 +221,9 @@ class PubMqtt {
 
         void sendDiscoveryConfig(void) {
             DPRINTLN(DBG_VERBOSE, F("sendMqttDiscoveryConfig"));
-
-            char topic[64], name[32], uniq_id[32];
-            DynamicJsonDocument doc(256);
-
-            uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
-            const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
-
-            String node_mac = WiFi.macAddress().substring(12,14)+ WiFi.macAddress().substring(15,17);
-            String node_id = "AHOY_DTU_" + node_mac;
-            bool total = false;
-
-            for (uint8_t id = 0; id < mSys->getNumInverters() ; id++) {
-                doc.clear();
-
-                if (total) // total become true at iv = NULL next cycle
-                    continue;
-
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if (NULL == iv)
-                    total = true;
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-
-                if (!total) {
-                    doc[F("name")] = iv->config->name;
-                    doc[F("ids")] = String(iv->config->serial.u64, HEX);
-                    doc[F("mdl")] = iv->config->name;
-                }
-                else {
-                    doc[F("name")] = node_id;
-                    doc[F("ids")] = node_id;
-                    doc[F("mdl")] = node_id;
-                }
-
-                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
-                doc[F("mf")] = F("Hoymiles");
-                JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
-
-                for (uint8_t i = 0; i < ((!total) ? (rec->length) : (4) ) ; i++) {
-                    const char *devCls, *stateCls;
-                    if (!total) {
-                        if (rec->assign[i].ch == CH0)
-                            snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(i, rec));
-                        else
-                            snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(topic, 64, "/ch%d/%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-                        snprintf(uniq_id, 32, "ch%d_%s", rec->assign[i].ch, iv->getFieldName(i, rec));
-
-                        devCls = getFieldDeviceClass(rec->assign[i].fieldId);
-                        stateCls = getFieldStateClass(rec->assign[i].fieldId);
-                    }
-
-                    else { // total values
-                        snprintf(name, 32, "Total %s", fields[fldTotal[i]]);
-                        snprintf(topic, 64, "/%s", fields[fldTotal[i]]);
-                        snprintf(uniq_id, 32, "total_%s", fields[fldTotal[i]]);
-                        devCls = getFieldDeviceClass(fldTotal[i]);
-                        stateCls = getFieldStateClass(fldTotal[i]);
-                    }
-
-                    DynamicJsonDocument doc2(512);
-                    doc2[F("name")] = name;
-                    doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
-                    doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(i,rec)) : (unitTotal[i]));
-                    doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
-                    doc2[F("dev")] = deviceObj;
-                    if (!(String(stateCls) == String("total_increasing")))
-                        doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
-                    if (devCls != NULL)
-                        doc2[F("dev_cla")] = String(devCls);
-                    if (stateCls != NULL)
-                        doc2[F("stat_cla")] = String(stateCls);
-
-                    if (!total)
-                        snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[i].ch, iv->getFieldName(i, rec));
-                    else // total values
-                        snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(),fields[fldTotal[i]]);
-                    size_t size = measureJson(doc2) + 1;
-                    char *buf = new char[size];
-                    memset(buf, 0, size);
-                    serializeJson(doc2, buf, size);
-                    publish(topic, buf, true, false);
-                    delete[] buf;
-                }
-
-                yield();
-            }
+            mDiscovery.running  = true;
+            mDiscovery.lastIvId = 0;
+            mDiscovery.sub = 0;
         }
 
         void setPowerLimitAck(Inverter<> *iv) {
@@ -312,13 +245,14 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_PERI_ABS]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_REL]);
-            subscribe(subscr[MQTT_SUBS_LMT_NONPERI_ABS]);
+            char sub[20];
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                snprintf(sub, 20, "ctrl/limit/%d", i);
+                subscribe(sub);
+                snprintf(sub, 20, "ctrl/restart/%d", i);
+                subscribe(sub);
+            }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
-            subscribe(subscr[MQTT_SUBS_SYNC_NTP]);
-            //subscribe("status/#");
         }
 
         void onDisconnect(espMqttClientTypes::DisconnectReason reason) {
@@ -358,11 +292,14 @@ class PubMqtt {
             DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
 
+            bool limitAbs = false;
             if(len > 0) {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
-                root["val"] = atoi(pyld);
+                root[F("val")] = atoi(pyld);
+                if(pyld[len-1] == 'W')
+                    limitAbs = true;
                 delete[] pyld;
             }
 
@@ -377,8 +314,17 @@ class PubMqtt {
                     tmp[pos] = '\0';
                     switch(elm++) {
                         case 1: root[F("path")] = String(tmp); break;
-                        case 2: root[F("cmd")]  = String(tmp); break;
-                        case 3: root[F("id")]   = atoi(tmp);   break;
+                        case 2:
+                            if(strncmp("limit", tmp, 5) == 0) {
+                                if(limitAbs)
+                                    root[F("cmd")] = F("limit_nonpersistent_absolute");
+                                else
+                                    root[F("cmd")] = F("limit_nonpersistent_relative");
+                            }
+                            else
+                                root[F("cmd")] = String(tmp);
+                            break;
+                        case 3: root[F("id")] = atoi(tmp);   break;
                         default: break;
                     }
                     if('\0' == p[pos])
@@ -395,6 +341,95 @@ class PubMqtt {
             (mSubscriptionCb)(root);
 
             mRxCnt++;
+        }
+
+        void discoveryConfigLoop(void) {
+            char topic[64], name[32], uniq_id[32], buf[350];
+            DynamicJsonDocument doc(256);
+
+            uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
+            const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
+
+            String node_mac = WiFi.macAddress().substring(12,14)+ WiFi.macAddress().substring(15,17);
+            String node_id = "AHOY_DTU_" + node_mac;
+            bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
+
+            Inverter<> *iv = mSys->getInverterByPos(mDiscovery.lastIvId);
+            record_t<> *rec;
+            if (NULL != iv)
+                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+            if ((NULL != iv) || total) {
+                if (!total) {
+                    doc[F("name")] = iv->config->name;
+                    doc[F("ids")] = String(iv->config->serial.u64, HEX);
+                    doc[F("mdl")] = iv->config->name;
+                }
+                else {
+                    doc[F("name")] = node_id;
+                    doc[F("ids")] = node_id;
+                    doc[F("mdl")] = node_id;
+                }
+
+                doc[F("cu")] = F("http://") + String(WiFi.localIP().toString());
+                doc[F("mf")] = F("Hoymiles");
+                JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
+
+                const char *devCls, *stateCls;
+                if (!total) {
+                    if (rec->assign[mDiscovery.sub].ch == CH0)
+                        snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(mDiscovery.sub, rec));
+                    else
+                        snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(topic, 64, "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(uniq_id, 32, "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+
+                    devCls = getFieldDeviceClass(rec->assign[mDiscovery.sub].fieldId);
+                    stateCls = getFieldStateClass(rec->assign[mDiscovery.sub].fieldId);
+                }
+
+                else { // total values
+                    snprintf(name, 32, "Total %s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic, 64, "/%s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(uniq_id, 32, "total_%s", fields[fldTotal[mDiscovery.sub]]);
+                    devCls = getFieldDeviceClass(fldTotal[mDiscovery.sub]);
+                    stateCls = getFieldStateClass(fldTotal[mDiscovery.sub]);
+                }
+
+                DynamicJsonDocument doc2(512);
+                doc2[F("name")] = name;
+                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
+                doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
+                doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
+                doc2[F("dev")] = deviceObj;
+                if (!(String(stateCls) == String("total_increasing")))
+                    doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
+                if (devCls != NULL)
+                    doc2[F("dev_cla")] = String(devCls);
+                if (stateCls != NULL)
+                    doc2[F("stat_cla")] = String(stateCls);
+
+                if (!total)
+                    snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                else // total values
+                    snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(),fields[fldTotal[mDiscovery.sub]]);
+                size_t size = measureJson(doc2) + 1;
+                memset(buf, 0, size);
+                serializeJson(doc2, buf, size);
+                publish(topic, buf, true, false);
+
+                if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
+                    mDiscovery.sub = 0;
+                    if(++mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
+                        mDiscovery.running = false;
+                }
+            } else {
+                mDiscovery.sub = 0;
+                if(++mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
+                    mDiscovery.running = false;
+            }
+
+            yield();
         }
 
         const char *getFieldDeviceClass(uint8_t fieldId) {
@@ -569,8 +604,8 @@ class PubMqtt {
 
                     if (sendTotals) {
                         uint8_t fieldId;
-                        bool retained = true;
                         for (uint8_t i = 0; i < 4; i++) {
+                            bool retained = true;
                             switch (i) {
                                 default:
                                 case 0:
@@ -622,7 +657,11 @@ class PubMqtt {
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
-        char mClientId[26]; // number of chars is limited to 23 up to v3.1 of MQTT
+        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
+		// global buffer for mqtt topic. Used when publishing mqtt messages.
+        char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
+
+        discovery_t mDiscovery;
 };
 
 #endif /*__PUB_MQTT_H__*/

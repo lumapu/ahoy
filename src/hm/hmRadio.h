@@ -175,18 +175,40 @@ class HmRadio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
-            DBGPRINTLN(String(cmd, HEX));
+            DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
-            mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
-            mTxBuf[cnt++] = 0x00;
-            if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
-                mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
-                mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+            if (isNoMI) {
+                mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
+                mTxBuf[cnt++] = 0x00;
+                if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
+                    mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
+                    mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
+                    mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
+                    mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+                }
+            } else { //MI 2nd gen. specific
+                switch (cmd) {
+                    case TurnOn:
+                        mTxBuf[9] = 0x55;
+                        mTxBuf[10] = 0xaa;
+                        break;
+                    case TurnOff:
+                        mTxBuf[9] = 0xaa;
+                        mTxBuf[10] = 0x55;
+                        break;
+                    case ActivePowerContr:
+                        cnt++;
+                        mTxBuf[9] = 0x5a;
+                        mTxBuf[10] = 0x5a;
+                        mTxBuf[11] = data[0]; // power limit
+                        break;
+                    default:
+                        return;
+                }
+                cnt++;
             }
             sendPacket(invId, cnt, isRetransmit, true);
         }
@@ -253,7 +275,10 @@ class HmRadio {
                     mBufCtrl.push(p);
                     if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
                         isLastPackage = (p.packet[9] > 0x81);       // > 0x81 indicates last packet received
-                    else if (p.packet[0] != 0x00)                   // ignore fragment number zero
+                    else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
+                        isLastPackage = (p.packet[9] > 0x11);       // > 0x11 indicates last packet received
+                    else if (p.packet[0] != 0x00 && p.packet[0] != 0x88 && p.packet[0] != 0x92)
+                                                                    // ignore fragment number zero and MI status messages
                         isLastPackage = true;                       // response from dev control command
                     yield();
                 }

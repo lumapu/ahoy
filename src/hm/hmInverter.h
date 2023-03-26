@@ -143,7 +143,9 @@ class Inverter {
         template <typename T>
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
-           DPRINTLN(DBG_INFO, F("(#") + String(id) + F(") enqueuedCmd: 0x") + String(cmd, HEX));
+           DPRINT_IVID(DBG_INFO, id);
+           DBGPRINT(F("enqueCommand: 0x"));
+           DBGHEXLN(cmd);
         }
 
         void setQueuedCmdFinished() {
@@ -286,7 +288,8 @@ class Inverter {
                             alarmMesIndex = rec->record[pos];
                             //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
 
-                            DPRINTLN(DBG_INFO, "alarm ID incremented to " + String(alarmMesIndex));
+                            DPRINT(DBG_INFO, "alarm ID incremented to ");
+                            DBGPRINTLN(String(alarmMesIndex));
                             enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
@@ -300,7 +303,8 @@ class Inverter {
                     DPRINTLN(DBG_DEBUG, "add config");
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
+                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
+                        DBGPRINTLN(String(actPowerLimit, 1));
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __APP_H__
@@ -68,9 +68,12 @@ class app : public IApp, public ah::Scheduler {
             return Scheduler::getTimestamp();
         }
 
-        bool saveSettings() {
-            mShowRebootRequest = true;
-            return mSettings.saveSettings();
+        bool saveSettings(bool reboot) {
+            mShowRebootRequest = true; // only message on index, no reboot
+            mSavePending = true;
+            mSaveReboot = reboot;
+            once(std::bind(&app::tickSave, this), 3, "save");
+            return true;
         }
 
         bool readSettings(const char *path) {
@@ -79,6 +82,14 @@ class app : public IApp, public ah::Scheduler {
 
         bool eraseSettings(bool eraseWifi = false) {
             return mSettings.eraseSettings(eraseWifi);
+        }
+
+        bool getSavePending() {
+            return mSavePending;
+        }
+
+        bool getLastSaveSucceed() {
+            return mSettings.getLastSaveSucceed();
         }
 
         statistics_t *getStatistics() {
@@ -210,7 +221,17 @@ class app : public IApp, public ah::Scheduler {
             onWifi(false);
             ah::Scheduler::resetTicker();
             WiFi.disconnect();
+            delay(200);
             ESP.restart();
+        }
+
+        void tickSave(void) {
+            if(!mSettings.saveSettings())
+                mSaveReboot = false;
+            mSavePending = false;
+
+            if(mSaveReboot)
+                setRebootFlag();
         }
 
         void tickNtpUpdate(void);
@@ -252,6 +273,8 @@ class app : public IApp, public ah::Scheduler {
         char mVersion[12];
         settings mSettings;
         settings_t *mConfig;
+        bool mSavePending;
+        bool mSaveReboot;
 
         uint8_t mSendLastIvId;
         bool mSendFirst;

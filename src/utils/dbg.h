@@ -60,6 +60,11 @@
                 mCb(String(b, HEX));
             }
         }
+
+        inline void DBGHEXLN(uint8_t b) {
+            DHEX(b);
+            DBGPRINT(F("\r\n"));
+        }
         /*inline void DHEX(uint16_t b) {
             if( b<0x10 ) DSERIAL.print(F("000"));
             else if( b<0x100 ) DSERIAL.print(F("00"));
@@ -146,6 +151,10 @@
     }\
 })
 
+#define DPRINT_IVID(level, id) ({\
+    DPRINT(level, F("(#")); DBGPRINT(String(id)); DBGPRINT(F(") "));\
+})
+
 #define DPRINTLN(level, str) ({\
     switch(level) {\
         case DBG_ERROR: PERRLN(str);  break; \
@@ -155,6 +164,7 @@
         default:        PVERBLN(str); break; \
     }\
 })
+
 
 /*class ahoyLog {
     public:

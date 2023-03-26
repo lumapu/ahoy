@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SETTINGS_H__
@@ -13,6 +13,12 @@
 #include "../defines.h"
 #include "../utils/dbg.h"
 #include "../utils/helper.h"
+
+#if defined(ESP32)
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxAllocHeap() - 1024
+#else
+    #define MAX_ALLOWED_BUF_SIZE   ESP.getMaxFreeBlockSize() - 1024
+#endif
 
 /**
  * More info:
@@ -155,7 +161,9 @@ typedef struct {
 
 class settings {
     public:
-        settings() {}
+        settings() {
+            mLastSaveSucceed = false;
+        }
 
         void setup() {
             DPRINTLN(DBG_INFO, F("Initializing FS .."));
@@ -202,6 +210,10 @@ class settings {
             return mCfg.valid;
         }
 
+        inline bool getLastSaveSucceed() {
+            return mLastSaveSucceed;
+        }
+
         void getInfo(uint32_t *used, uint32_t *size) {
             #if !defined(ESP32)
                 FSInfo info;
@@ -224,8 +236,9 @@ class settings {
             else {
                 //DPRINTLN(DBG_INFO, fp.readString());
                 //fp.seek(0, SeekSet);
-                DynamicJsonDocument root(5500);
+                DynamicJsonDocument root(MAX_ALLOWED_BUF_SIZE);
                 DeserializationError err = deserializeJson(root, fp);
+                root.shrinkToFit();
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
                     jsonWifi(root[F("wifi")]);
@@ -247,15 +260,10 @@ class settings {
             return mCfg.valid;
         }
 
-        bool saveSettings(void) {
+        bool saveSettings() {
             DPRINTLN(DBG_DEBUG, F("save settings"));
-            File fp = LittleFS.open("/settings.json", "w");
-            if(!fp) {
-                DPRINTLN(DBG_ERROR, F("can't open settings file!"));
-                return false;
-            }
 
-            DynamicJsonDocument json(6500);
+            DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
             jsonWifi(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
@@ -267,12 +275,35 @@ class settings {
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
+            DPRINT(DBG_INFO, F("memory usage: "));
+            DBGPRINTLN(String(json.memoryUsage()));
+            DPRINT(DBG_INFO, F("capacity: "));
+            DBGPRINTLN(String(json.capacity()));
+            DPRINT(DBG_INFO, F("max alloc: "));
+            DBGPRINTLN(String(MAX_ALLOWED_BUF_SIZE));
+
+            if(json.overflowed()) {
+                DPRINTLN(DBG_ERROR, F("buffer too small!"));
+                mLastSaveSucceed = false;
+                return false;
+            }
+
+            File fp = LittleFS.open("/settings.json", "w");
+            if(!fp) {
+                DPRINTLN(DBG_ERROR, F("can't open settings file!"));
+                mLastSaveSucceed = false;
+                return false;
+            }
+
             if(0 == serializeJson(root, fp)) {
                 DPRINTLN(DBG_ERROR, F("can't write settings file!"));
+                mLastSaveSucceed = false;
                 return false;
             }
             fp.close();
 
+            DPRINTLN(DBG_INFO, F("settings saved"));
+            mLastSaveSucceed = true;
             return true;
         }
 
@@ -403,6 +434,11 @@ class settings {
                 mCfg.nrf.pinCe             = obj[F("ce")];
                 mCfg.nrf.pinIrq            = obj[F("irq")];
                 mCfg.nrf.amplifierPower    = obj[F("pwr")];
+                if((obj[F("cs")] == obj[F("ce")])) {
+                    mCfg.nrf.pinCs  = DEF_CS_PIN;
+                    mCfg.nrf.pinCe  = DEF_CE_PIN;
+                    mCfg.nrf.pinIrq = DEF_IRQ_PIN;
+                }
             }
         }
 
@@ -523,18 +559,22 @@ class settings {
             if(set)
                 ivArr = obj.createNestedArray(F("iv"));
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                if(set)
-                    jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
-                else
-                    jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
+                if(set) {
+                    if(mCfg.inst.iv[i].serial.u64 != 0ULL)
+                        jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
+                }
+                else {
+                    if(!obj[F("iv")][i].isNull())
+                        jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
+                }
             }
         }
 
         void jsonIv(JsonObject obj, cfgIv_t *cfg, bool set = false) {
             if(set) {
-                obj[F("en")]    = (bool)cfg->enabled;
-                obj[F("name")]  = cfg->name;
-                obj[F("sn")]    = cfg->serial.u64;
+                obj[F("en")]   = (bool)cfg->enabled;
+                obj[F("name")] = cfg->name;
+                obj[F("sn")]   = cfg->serial.u64;
                 for(uint8_t i = 0; i < 4; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -553,6 +593,7 @@ class settings {
         }
 
         settings_t mCfg;
+        bool mLastSaveSucceed;
 };
 
 #endif /*__SETTINGS_H__*/

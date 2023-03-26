@@ -14,7 +14,7 @@ class Display {
    public:
         Display() {}
 
-        void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, uint8_t disp_reset, const char *version) {
+        void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, const char *version) {
             mCfg = cfg;
             mSys = sys;
             mUtcTs = utcTs;
@@ -25,9 +25,9 @@ class Display {
             if (mCfg->type == 0)
                 return;
 
-            if ((1 < mCfg->type) && (mCfg->type < 10)) {
+            if ((0 < mCfg->type) && (mCfg->type < 10)) {
                 mMono.config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);
-                mMono.init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
+                mMono.init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
             } else if (mCfg->type >= 10) {
                 #if defined(ESP32)
                 mRefreshCycle = 0;
@@ -42,7 +42,7 @@ class Display {
         }
 
         void tickerSecond() {
-            loop();
+            mMono.loop();
             if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
                 mNewPayload = false;
                 mLoopCnt = 0;
@@ -79,7 +79,7 @@ class Display {
                 totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
             }
 
-            if ((1 < mCfg->type) && (mCfg->type < 10)) {
+            if ((0 < mCfg->type) && (mCfg->type < 10)) {
                 mMono.disp(totalPower, totalYieldDay, totalYieldTotal, isprod);
             } else if (mCfg->type >= 10) {
                 #if defined(ESP32)
