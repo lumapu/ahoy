@@ -41,19 +41,22 @@ class CmtRadio {
         bool loop() {
             mCmt.loop();
 
-            if(0x00 != mIrqRcvd)
+            if((!mIrqRcvd) && (!mRqstGetRx))
                 return false;
-            mIrqRcvd--;
             getRx();
-            mCmt.goRx();
-            return true;
+            if(CMT_SUCCESS == mCmt.goRx()) {
+                mIrqRcvd   = false;
+                mRqstGetRx = false;
+                return true;
+            } else
+                return false;
         }
 
         void tickSecond() {
         }
 
         void handleIntr(void) {
-            mIrqRcvd++;
+            mIrqRcvd = true;
         }
 
         void enableDebug() {
@@ -130,7 +133,8 @@ class CmtRadio {
             mSendCnt        = 0;
             mRetransmits    = 0;
             mSerialDebug    = false;
-            mIrqRcvd        = 0;
+            mIrqRcvd        = false;
+            mRqstGetRx      = false;
         }
 
         inline void sendSwitchChCmd(const uint64_t *ivId, uint8_t ch) {
@@ -149,6 +153,7 @@ class CmtRadio {
             mTxBuf[12] = ch;
             mTxBuf[13] = 0x14;
             sendPacket(14, false);
+            mRqstGetRx = true;
         }
 
         void initPacket(const uint64_t *ivId, uint8_t mid, uint8_t pid) {
@@ -183,7 +188,8 @@ class CmtRadio {
         uint32_t mDtuSn;
         uint8_t mTxBuf[27];
         bool mSerialDebug;
-        volatile uint8_t mIrqRcvd;
+        bool mIrqRcvd;
+        bool mRqstGetRx;
 };
 
 #endif /*__HMS_RADIO_H__*/
