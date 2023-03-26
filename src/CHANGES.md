@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.109
+* reduced heap fragmentation by optimizing MqTT #768
+
 ## 0.5.108
 * merge: PR SPI pins configureable (ESP32) #807, #806
 * merge: PR MI serial outputs #809

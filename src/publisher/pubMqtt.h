@@ -118,9 +118,8 @@ class PubMqtt {
         }
 
         void tickerMinute() {
-            char val[12];
-            snprintf(val, 12, "%ld", millis() / 1000);
-            publish(subtopics[MQTT_UPTIME], val);
+            snprintf(mVal, 40, "%ld", millis() / 1000);
+            publish(subtopics[MQTT_UPTIME], mVal);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
             #ifndef ESP32
@@ -152,12 +151,10 @@ class PubMqtt {
         }
 
         void tickerMidnight() {
-            char topic[7 + MQTT_TOPIC_LEN], val[4];
-
             // set Total YieldDay to zero
-            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
-            snprintf(val, 2, "0");
-            publish(topic, val, true);
+            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
+            snprintf(mVal, 2, "0");
+            publish(mSubTopic, mVal, true);
         }
 
         void payloadEventListener(uint8_t cmd) {
@@ -177,7 +174,6 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            memset(mTopic, 0, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1);
             if(addTopic){
                 snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
             } else {
@@ -230,10 +226,8 @@ class PubMqtt {
 
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
-                char topic[7 + MQTT_TOPIC_LEN];
-
-                snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(topic, "true", true);
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
+                publish(mSubTopic, "true", true);
             }
         }
 
@@ -247,12 +241,11 @@ class PubMqtt {
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
-            char sub[20];
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                snprintf(sub, 20, "ctrl/limit/%d", i);
-                subscribe(sub);
-                snprintf(sub, 20, "ctrl/restart/%d", i);
-                subscribe(sub);
+                snprintf(mVal, 20, "ctrl/limit/%d", i);
+                subscribe(mVal);
+                snprintf(mVal, 20, "ctrl/restart/%d", i);
+                subscribe(mVal);
             }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
         }
@@ -356,7 +349,7 @@ class PubMqtt {
             bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
 
             Inverter<> *iv = mSys->getInverterByPos(mDiscovery.lastIvId);
-            record_t<> *rec;
+            record_t<> *rec = NULL;
             if (NULL != iv) {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if(0 == mDiscovery.sub)
@@ -437,7 +430,6 @@ class PubMqtt {
         void checkDiscoveryEnd(void) {
             if(++mDiscovery.lastIvId == MAX_NUM_INVERTERS) {
                 // check if only one inverter was found, then don't create 'total' sensor
-                DPRINTLN(DBG_INFO, "found: " + String(mDiscovery.foundIvCnt));
                 if(mDiscovery.foundIvCnt == 1)
                     mDiscovery.running = false;
             } else if(mDiscovery.lastIvId == (MAX_NUM_INVERTERS + 1))
@@ -467,7 +459,6 @@ class PubMqtt {
             bool allAvail = true;   // shows if all enabled inverters are available
             bool anyAvail = false;  // shows if at least one enabled inverter is available
             bool changed = false;
-            char topic[7 + MQTT_TOPIC_LEN], val[40];
             Inverter<> *iv;
             record_t<> *rec;
 
@@ -497,19 +488,19 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(val, 40, "%d", status);
-                    publish(topic, val, true);
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
+                    snprintf(mVal, 40, "%d", status);
+                    publish(mSubTopic, mVal, true);
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                    snprintf(val, 40, "%d", iv->getLastTs(rec));
-                    publish(topic, val, true);
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
+                    snprintf(mVal, 40, "%d", iv->getLastTs(rec));
+                    publish(mSubTopic, mVal, true);
                 }
             }
 
             if(changed) {
-                snprintf(val, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
-                publish("status", val, true);
+                snprintf(mVal, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
+                publish("status", mVal, true);
             }
 
             return anyAvail;
@@ -529,7 +520,6 @@ class PubMqtt {
         }
 
         void sendData(Inverter<> *iv, uint8_t curInfoCmd) {
-            char topic[7 + MQTT_TOPIC_LEN], val[40];
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
             if (iv->getLastTs(rec) > 0) {
@@ -546,9 +536,9 @@ class PubMqtt {
                         }
                     }
 
-                    snprintf(topic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                    snprintf(val, 40, "%g", ah::round3(iv->getValue(i, rec)));
-                    publish(topic, val, retained);
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(mVal, 40, "%g", ah::round3(iv->getValue(i, rec)));
+                    publish(mSubTopic, mVal, retained);
 
                     yield();
                 }
@@ -563,7 +553,6 @@ class PubMqtt {
             if(mSendList.empty())
                 return;
 
-            char topic[7 + MQTT_TOPIC_LEN], val[40];
             float total[4];
             bool RTRDataHasBeenSent = false;
 
@@ -635,9 +624,9 @@ class PubMqtt {
                                     retained = false;
                                     break;
                             }
-                            snprintf(topic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                            snprintf(val, 40, "%g", ah::round3(total[i]));
-                            publish(topic, val, retained);
+                            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
+                            snprintf(mVal, 40, "%g", ah::round3(total[i]));
+                            publish(mSubTopic, mVal, retained);
                         }
                         RTRDataHasBeenSent = true;
                         yield();
@@ -670,9 +659,10 @@ class PubMqtt {
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
         char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
-		// global buffer for mqtt topic. Used when publishing mqtt messages.
+        // global buffer for mqtt topic. Used when publishing mqtt messages.
         char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
-
+        char mSubTopic[32 + MAX_NAME_LENGTH + 1];
+        char mVal[40];
         discovery_t mDiscovery;
 };
 
