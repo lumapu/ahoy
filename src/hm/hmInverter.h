@@ -304,7 +304,7 @@ class Inverter {
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
                         DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
-                        DBGPRINTLN(String(actPowerLimit, 1));
+                        DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {
