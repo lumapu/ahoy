@@ -2,6 +2,9 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.108
+* merge: PR SPI pins configureable (ESP32) #807
+
 ## 0.5.107
 * fix: show save message
 * fix: removed serial newline for `enqueueCmd`
