@@ -596,7 +596,7 @@ class Web {
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, save_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
         }
@@ -684,8 +684,17 @@ class Web {
                             mApp->getVersion(), mConfig->sys.deviceName);
                         metrics = String(type) + String(topic);
 
-                        snprintf(topic,sizeof(topic),"# TYPE ahoy_solar_freeheap gauge\nahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
-                        metrics += String(topic);
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_freeheap gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
+                        metrics += String(type) + String(topic);
+
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_uptime counter\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mConfig->sys.deviceName, mApp->getUptime());
+                        metrics += String(type) + String(topic);
+
+                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_wifi_rssi_db gauge\n");
+                        snprintf(topic,sizeof(topic),"ahoy_solar_wifi_rssi_db{devicename=\"%s\"} %d\n", mConfig->sys.deviceName, WiFi.RSSI());
+                        metrics += String(type) + String(topic);
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
@@ -792,7 +801,7 @@ class Web {
 
         String radioStatistic(String statistic, uint32_t value) {
             char type[60], topic[80], val[25];
-            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s gauge",statistic.c_str());
+            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s counter",statistic.c_str());
             snprintf(topic, sizeof(topic), "ahoy_solar_radio_%s",statistic.c_str());
             snprintf(val, sizeof(val), "%d", value);
             return ( String(type) + "\n" + String(topic) + " " + String(val) + "\n");
