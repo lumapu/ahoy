@@ -18,6 +18,8 @@ Prometheus metrics provided at `/metrics`.
 | Metric name                            | Type    | Description                                            | Labels       | 
 |----------------------------------------|---------|--------------------------------------------------------|--------------|
 | `ahoy_solar_info`                      | Gauge   | Information about the AhoyDTU device                   | version, image, devicename |
+| `ahoy_solar_uptime`                    | Counter | Seconds since boot of the AhoyDTU device               | devicename |
+| `ahoy_solar_rssi_db`                   | Gauge   | Quality of the Wifi STA connection                     | devicename |
 | `ahoy_solar_inverter_info`             | Gauge   | Information about the configured inverter(s)           | name, serial |
 | `ahoy_solar_inverter_enabled`          | Gauge   | Is the inverter enabled?                               | inverter  |
 | `ahoy_solar_inverter_is_available`     | Gauge   | is the inverter available?                             | inverter  |
