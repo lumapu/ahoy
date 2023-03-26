@@ -143,7 +143,7 @@ class HmsPayload {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             DPRINT(DBG_INFO, "LastRx: ");
             DBGPRINTLN(String(rec->ts));
-            if(((rec->ts + HMS_TIMEOUT_MS) < millis()) && (mIvCmd56Cnt[iv->id] < 3)) {
+            if(((rec->ts + HMS_TIMEOUT_MS) < *mTimestamp) && (mIvCmd56Cnt[iv->id] < 3)) {
                 //mRadio->switchFrequency(&iv->radioId.u64, 863000, WORK_FREQ_KHZ);
                 mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
                 mIvCmd56Cnt[iv->id]++;
