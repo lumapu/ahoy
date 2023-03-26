@@ -5,6 +5,7 @@
 ## 0.5.107
 * fix: show save message
 * fix: removed serial newline for `enqueueCmd`
+* Merged improved Prometheus #808
 
 ## 0.5.106
 * merged MI and debug message changes #804
