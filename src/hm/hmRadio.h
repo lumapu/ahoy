@@ -103,14 +103,14 @@ class HmRadio {
 
             #ifdef ESP32
                 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
-                    SPIClass* mSpi = new SPIClass(FSPI);
+                    mSpi = new SPIClass(FSPI);
                 #else
-                    SPIClass* mSpi = new SPIClass(VSPI);
+                    mSpi = new SPIClass(VSPI);
                 #endif
                 mSpi->begin(sclk, miso, mosi, cs);
             #else
                 //the old ESP82xx cannot freely place their SPI pins
-                SPIClass* mSpi = new SPIClass();
+                mSpi = new SPIClass();
                 mSpi->begin();
             #endif
             mNrf24.begin(mSpi, ce, cs);
@@ -363,6 +363,7 @@ class HmRadio {
         uint8_t mTxChIdx;
         uint8_t mRxChIdx;
 
+        SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 };
