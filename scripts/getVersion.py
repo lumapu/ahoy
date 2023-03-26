@@ -78,6 +78,11 @@ def readVersion(path, infile):
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
+    versionout = version[:-1] + "_" + sha + "_esp32s3.bin"
+    src = path + ".pio/build/opendtufusionv1-release/firmware.bin"
+    dst = path + "firmware/" + versionout
+    os.rename(src, dst)
+
     # other ESP32 bin files
     src = path + ".pio/build/esp32-wroom32-release/"
     dst = path + "firmware/"
