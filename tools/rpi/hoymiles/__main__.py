@@ -103,10 +103,11 @@ class SunsetHandler:
     def sun_status2mqtt(self, dtu_ser, dtu_name):
         if not mqtt_client or not self.suntimes:
             return
-        local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
-        local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
-        local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
+
         if self.suntimes:
+            local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+            local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+            local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
             mqtt_client.info2mqtt({'topic' : f'{dtu_name}/{dtu_ser}'}, \
                          {'dis_night_comm' : 'True', \
                            'local_sunrise' : local_sunrise, \
@@ -409,7 +410,7 @@ if __name__ == '__main__':
                     str(g_inverter_ser),
                     g_inverter.get('mqtt', {}).get('topic', f'hoymiles/{g_inverter_ser}') + '/command'
                     )
-            mqtt_client.subscribe(topic_item[1])
+            mqtt_client.client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
     # start main-loop
