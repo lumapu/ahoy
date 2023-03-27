@@ -101,7 +101,7 @@ class PubMqtt {
             if (mIntervalTimeout > 0)
                 mIntervalTimeout--;
 
-            if(!mClient.connected()) {
+            if(mClient.disconnected()) {
                 mClient.connect();
                 return; // next try in a second
             }
