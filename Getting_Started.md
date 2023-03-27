@@ -178,6 +178,16 @@ CE   D2 (GPIO4)
 IRQ  D0 (GPIO16 - no IRQ!)
 ```
 
+ATTENTION: From development version 108 onwards, also MISO, MOSI and SCLK
+are configurable. Their defaults are correct for 'standard' ESP32 boards
+and non-settable for ESP8266 (as this chip cannot move them elsewhere).
+If you have an existing install though, you might see '0' in the web GUI.
+
+Set MISO=19, MOSI=23, SCLK=18 in GUI and save for existing installs, this is the old
+correct default for most ESP32 boards, for ESP82xx, a simple settings save should suffice.
+Reboot afterwards.
+
+
 ## Flash the Firmware on your Ahoy DTU Hardware
 
 Once your Hardware is ready to run, you need to flash the Ahoy DTU Firmware to your Board.
