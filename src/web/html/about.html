@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+    <head>
+        <title>About</title>
+        {#HTML_HEADER}
+    </head>
+    <body>
+        {#HTML_NAV}
+        <div id="wrapper">
+            <div id="content">
+                <div class="my-3"><h2>About AhoyDTU</h2></div>
+                <div class="my-3">
+                    <div class="row my-3 head">
+                        <div class="p-2">Used Libraries</div>
+                    </div>
+                    <div class="row"><a href="https://github.com/bertmelis/espMqttClient" target="_blank">bertmelis/espMqttClient</a></div>
+                    <div class="row"><a href="https://github.com/yubox-node-org/ESPAsyncWebServer" target="_blank">yubox-node-org/ESPAsyncWebServer</a></div>
+                    <div class="row"><a href="https://github.com/bblanchon/ArduinoJson" target="_blank">bblanchon/ArduinoJson</a></div>
+                    <div class="row"><a href="https://github.com/nrf24/RF24" target="_blank">nrf24/RF24</a></div>
+                    <div class="row"><a href="https://github.com/paulstoffregen/Time" target="_blank">paulstoffregen/Time</a></div>
+                    <div class="row"><a href="https://github.com/olikraus/U8g2" target="_blank">olikraus/U8g2</a></div>
+                    <div class="row"><a href="https://github.com/zinggjm/GxEPD2" target="_blank">zinggjm/GxEPD2</a></div>
+
+                    <div class="row my-3 head">
+                        <div class="p-2">Contact Information</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-5 col-sm-3">Github Repository</div>
+                        <div class="col-7 col-sm-9"><a href="https://github.com/lumapu/ahoy">https://github.com/lumapu/ahoy</a></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-5 col-sm-3">Discord Chat</div>
+                        <div class="col-7 col-sm-9"><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-5 col-sm-3">E-Mail</div>
+                        <div class="col-7 col-sm-9"><a href="mailto:contact@ahoydtu.de">contact@ahoydtu.de</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {#HTML_FOOTER}
+        <script type="text/javascript">
+            function parseGeneric(obj) {
+                parseNav(obj);
+                parseESP(obj);
+                parseRssi(obj);
+            }
+            function parse(obj) {
+                if(null != obj) {
+                    parseGeneric(obj["generic"]);
+                }
+            }
+            getAjax("/api/html/save", parse);
+        </script>
+    </body>
+</html>

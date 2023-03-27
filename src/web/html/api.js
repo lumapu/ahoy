@@ -74,7 +74,7 @@ function topnav() {
 }
 
 function parseNav(obj) {
-    for(i = 0; i < 10; i++) {
+    for(i = 0; i < 11; i++) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);

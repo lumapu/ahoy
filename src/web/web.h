@@ -30,6 +30,7 @@
 #include "html/h/save_html.h"
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
+#include "html/h/about_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
@@ -83,6 +84,7 @@ class Web {
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            mWeb.on("/about",          HTTP_GET,  std::bind(&Web::onAbout,        this, std::placeholders::_1));
             mWeb.on("/debug",          HTTP_GET,  std::bind(&Web::onDebug,        this, std::placeholders::_1));
 
 
@@ -141,16 +143,14 @@ class Web {
                 }
             }
             if (!Update.hasError()) {
-                if (Update.write(data, len) != len) {
+                if (Update.write(data, len) != len)
                     Update.printError(Serial);
-                }
             }
             if (final) {
-                if (Update.end(true)) {
+                if (Update.end(true))
                     Serial.printf("Update Success: %uB\n", index + len);
-                } else {
+                else
                     Update.printError(Serial);
-                }
             }
         }
 
@@ -245,7 +245,7 @@ class Web {
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
-            bool reboot = !Update.hasError();
+            bool reboot = (!Update.hasError());
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
             if (reboot)
@@ -619,6 +619,21 @@ class Web {
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), visualization_html, visualization_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+
+            request->send(response);
+        }
+
+        void onAbout(AsyncWebServerRequest *request) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
+                if (mProtected) {
+                    checkRedirect(request);
+                    return;
+                }
+            }
+
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
 
