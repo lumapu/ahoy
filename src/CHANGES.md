@@ -11,7 +11,8 @@
 * ePaper: centered text thx @knickohr
 
 ## 0.5.108
-* merge: PR SPI pins configureable (ESP32) #807, #806
+
+* merge: PR SPI pins configureable (ESP32) #807, #806 (requires manual set of MISO=19, MOSI=23, SCLK=18 in GUI for existing installs)
 * merge: PR MI serial outputs #809
 * fix: no MQTT `total` sensor for autodiscover if only one inverter was found #805
 * fix: MQTT `total` renamed to `device_name` + `_TOTOL` for better visibility #805
