@@ -5,6 +5,9 @@
 ## 0.5.110
 * MQTT fix reconnection by new lib version #780
 * add `about` page
+* improved documentation regarding SPI pins #814
+* improved documentation (getting started) #815 #816
+* improved MI 4-ch inverter #820
 
 ## 0.5.109
 * reduced heap fragmentation by optimizing MqTT #768
