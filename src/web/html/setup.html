@@ -676,7 +676,7 @@
                 }
             }
 
-            function parseNrfRadio(obj, type) {
+            function parseNrfRadio(obj, type, system) {
                 var e = document.getElementById("rf24");
                 if ("ESP8266" == type) {
                     pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
@@ -708,7 +708,7 @@
                 );
             }
 
-            function parseCmtRadio(obj, type) {
+            function parseCmtRadio(obj, type, system) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 en.checked = obj["en"];
@@ -817,9 +817,9 @@
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
-                    parseNrfRadio(root["radioNrf"], root["system"]["esp_type"]);
+                    parseNrfRadio(root["radioNrf"], root["system"]["esp_type"], root["system"]);
                     if(root["generic"]["esp_type"] == "ESP32")
-                        parseCmtRadio(root["radioCmt"], root["system"]["esp_type"]);
+                        parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
                     getAjax("/api/inverter/list", parseIv);
