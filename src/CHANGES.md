@@ -1,36 +1,33 @@
-# Changelog v0.5.66
+Changelog v0.6.0
 
-**Note:** Version `0.5.42` to `0.5.65` were development versions. Last release version was `0.5.41`
-Detailed change log (development changes): https://github.com/lumapu/ahoy/blob/945a671d27d10d0f7c175ebbf2fbb2806f9cd79a/src/CHANGES.md
+## General
+* improved night time calculation time to 1 minute after last communication pause #515
+* refactored code for better readability
+* improved Hoymiles commuinication (retransmits, immediate power limit transmission, timing at all)
+* renamed firmware binaries
+* add login / logout to menu
+* add display support for `SH1106`, `SSD1306`, `Nokia` and `ePaper 1.54"` (ESP32 only)
+* add yield total correction - move your yield to a new inverter or correct an already used inverter
+* added import / export feature
+* added `Prometheus` endpoints
+* improved wifi connection and stability (connect to strongest AP)
+* addded Hoymiles alarm IDs to log
+* improved `System` information page (eg. radio statitistics)
+* improved UI (repsonsive design, (optional) dark mode)
+* improved system stability (reduced `heap-fragmentation`, don't break settings on failure) #644, #645
+* added support for 2nd generation of Hoymiles inverters, MI series
+* improved JSON API for more stable WebUI
+* added option to disable input display in `/live` (`max-power` has to be set to `0`)
+* updated documentation
+* improved settings on ESP32 devices while setting SPI pins (for `NRF24` radio)
 
-
-* updated REST API and MQTT (both of them use the same functionality)
-* improved stability
-* Regular expressions for input fields which are used for MQTT to be compliant to MQTT
-* WiFi optimization (AP Mode and STA in parallel, reconnect if local STA is unavailable)
-* improved display of `/system`
-* fix Update button protection (prevent double click #527)
-* optimized scheduler #515
-* fix of duplicates in API `/api/record/live` (#526)
-* added update information to `index.html` (check for update with github.com)
-* fix web logout (auto logout)
-* switched MQTT library
-* removed MQTT `available_text` (can be deducted from `available`)
-* enhanced MQTT documentation in `User_Manual.md`
-* changed MQTT topic `status` to nummeric value, check documentation in `User_Manual.md`
-* added immediate (each minute) report of inverter status MQTT #522
-* increased MQTT user, pwd and topic length to 64 characters + `\0`. (The string end `\0` reduces the available size by one) #516
-* added disable night communication flag to MQTT #505
-* added MQTT <TOPIC>/status to show status over all inverters
-* added MQTT RX counter to index.html
-* added protection mask to select which pages should be protected
-* added monochrome display that show values also if nothing changed and in offline mode #498
-* added icons to index.html, added WiFi-strength symbol on each page
-* refactored communication offset (adjustable in minutes now)
-* factory reset formats entire little fs
-* renamed sunrise / sunset on index.html to start / stop communication
-* fixed static IP save
-* fix NTP with static IP
-* all values are displayed on /live even if they are 0
-* added NRF24 info to Systeminfo
-* reordered enqueue commands after boot up to prevent same payload length for successive commands
+## MqTT
+* added `comm_disabled` #529
+* added fixed interval option #542, #523
+* improved communication, only required publishes
+* improved retained flags
+* added `set_power_limit` acknowledge MQTT publish #553
+* added feature to reset values on midnight, communication pause or if the inverters are not available
+* partially added Hoymiles alarm ID
+* improved autodiscover (added total values on multi-inverter setup)
+* improved `clientID` a part of the MAC address is added to have an unique name

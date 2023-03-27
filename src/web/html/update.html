@@ -2,58 +2,27 @@
 <html>
     <head>
         <title>Update</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
-                    <input type="file" name="update">
-                    <input type="button" class="btn" value="Update" onclick="hide()">
-                </form>
-
+                <fieldset>
+                    <legend class="des">Select firmware file (*.bin)</legend>
+                    <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
+                        <input type="file" name="update">
+                        <input type="button" class="btn" value="Update" onclick="hide()">
+                    </form>
+                </fieldset>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2022</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             function parseGeneric(obj) {
-                parseVersion(obj);
+                parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
-            }
-
-            function parse(obj) {
-                if(null != obj) {
-                    parseMenu(obj["menu"]);
-                    parseGeneric(obj["generic"]);
-                }
             }
 
             function hide() {
@@ -62,7 +31,7 @@
                 e.replaceChildren(span("update started"));
             }
 
-            getAjax("/api/index", parse);
+            getAjax("/api/generic", parseGeneric);
         </script>
     </body>
 </html>

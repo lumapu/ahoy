@@ -33,23 +33,66 @@ iconSuccess = [
  /**
  * GENERIC FUNCTIONS
  */
-
-function topnav() {
-    toggle("topnav");
+function ml(tagName, ...args) {
+    var el = document.createElement(tagName);
+    if(args[0]) {
+        for(var name in args[0]) {
+            if(name.indexOf("on") === 0) {
+                el.addEventListener(name.substr(2).toLowerCase(), args[0][name], false)
+            } else {
+                el.setAttribute(name, args[0][name]);
+            }
+        }
+    }
+    if (!args[1]) {
+        return el;
+    }
+    return nester(el, args[1])
 }
 
-function parseMenu(obj) {
-    var e = document.getElementById("topnav");
-    e.innerHTML = "";
-    for(var i = 0; i < obj["name"].length; i ++) {
-        if(obj["name"][i] == "-")
-            e.appendChild(span("", ["seperator"]));
-        else {
-            var l = link(obj["link"][i], obj["name"][i], obj["trgt"][i]);
-            if(obj["link"][i] == window.location.pathname)
-                l.classList.add("active");
-            e.appendChild(l);
+function nester(el, n) {
+    if (typeof n === "string") {
+        var t = document.createTextNode(n);
+        el.appendChild(t);
+    } else if (n instanceof Array) {
+        for(var i = 0; i < n.length; i++) {
+            if (typeof n[i] === "string") {
+                var t = document.createTextNode(n[i]);
+                el.appendChild(t);
+            } else if (n[i] instanceof Node){
+                el.appendChild(n[i]);
+            }
         }
+    } else if (n instanceof Node){
+        el.appendChild(n)
+    }
+    return el;
+}
+
+function topnav() {
+    toggle("topnav", "mobile");
+}
+
+function parseNav(obj) {
+    for(i = 0; i < 11; i++) {
+        if(i == 2)
+            continue;
+        var l = document.getElementById("nav"+i);
+        if(window.location.pathname == "/" + l.href.split('/').pop())
+            l.classList.add("active");
+
+        if(obj["menu_protEn"]) {
+            if(obj["menu_prot"]) {
+                if(0 == i)
+                    l.classList.remove("hide");
+                else if(i > 2) {
+                    if(((obj["menu_mask"] >> (i-2)) & 0x01) == 0x00)
+                        l.classList.remove("hide");
+                }
+            } else if(0 != i)
+                l.classList.remove("hide");
+        } else if(i > 1)
+            l.classList.remove("hide");
     }
 }
 
@@ -60,7 +103,9 @@ function parseVersion(obj) {
 }
 
 function parseESP(obj) {
-    document.getElementById("esp_type").innerHTML="Board: " + obj["esp_type"];
+    document.getElementById("esp_type").append(
+        document.createTextNode("Board: " + obj["esp_type"])
+    );
 }
 
 function parseRssi(obj) {
@@ -69,7 +114,7 @@ function parseRssi(obj) {
         icon = iconWifi1;
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
-    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "#fff", null, obj["wifi_rssi"]));
+    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "wifi", obj["wifi_rssi"]));
 }
 
 function setHide(id, hide) {
@@ -82,12 +127,12 @@ function setHide(id, hide) {
         elm.classList.remove('hide');
 }
 
-function toggle(id) {
+function toggle(id, cl="hide") {
     var e = document.getElementById(id);
-    if(!e.classList.contains("hide"))
-        e.classList.add("hide");
+    if(!e.classList.contains(cl))
+        e.classList.add(cl);
     else
-        e.classList.remove('hide');
+        e.classList.remove(cl);
 }
 
 function getAjax(url, ptr, method="GET", json=null) {
@@ -198,11 +243,10 @@ function link(dst, text, target=null) {
     return a;
 }
 
-function svg(data=null, w=24, h=24, color="#000", cl=null, tooltip=null) {
+function svg(data=null, w=24, h=24, cl=null, tooltip=null) {
     var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     s.setAttribute('width', w);
     s.setAttribute('height', h);
-    s.setAttribute('fill', color);
     s.setAttribute('viewBox', '0 0 16 16');
     if(null != cl) s.setAttribute('class', cl);
     if(null != data) {

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __DEFINES_H__
@@ -12,12 +12,13 @@
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       5
-#define VERSION_PATCH       66
+#define VERSION_MINOR       6
+#define VERSION_PATCH       0
 
 //-------------------------------------
 typedef struct {
-    uint8_t rxCh;
+    uint8_t ch;
+    uint8_t len;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 
@@ -68,7 +69,7 @@ union serial_u {
     uint8_t  b[8];
 };
 
-#define MIN_SERIAL_INTERVAL     5
+#define MIN_SERIAL_INTERVAL     2 // 5
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
 

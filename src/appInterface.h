@@ -1,20 +1,25 @@
 //-----------------------------------------------------------------------------
 // 2022 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __IAPP_H__
 #define __IAPP_H__
 
 #include "defines.h"
+#include "hm/hmSystem.h"
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
 class IApp {
     public:
         virtual ~IApp() {}
-        virtual bool saveSettings() = 0;
+        virtual bool saveSettings(bool stopFs) = 0;
+        virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
+        virtual bool getSavePending() = 0;
+        virtual bool getLastSaveSucceed() = 0;
+        virtual void setOnUpdate() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
         virtual statistics_t *getStatistics() = 0;
@@ -29,10 +34,14 @@ class IApp {
         virtual String getTimeStr(uint32_t offset) = 0;
         virtual uint32_t getTimezoneOffset() = 0;
         virtual void getSchedulerInfo(uint8_t *max) = 0;
+        virtual void getSchedulerNames() = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
+        virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
+
+        virtual void ivSendHighPrio(Inverter<> *iv) = 0;
 
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;

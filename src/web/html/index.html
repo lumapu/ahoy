@@ -2,36 +2,12 @@
 <html>
     <head>
         <title>Index</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <script>
-                    function promptFunction() {
-                        var Text = prompt("This project was started from https://www.mikrocontroller.net/topic/525778 this discussion.\n\n" +
-                        "The Hoymiles protocol was decrypted through the voluntary efforts of many participants. ahoy, among others, was developed based on this work.\n" +
-                        "The software was developed to the best of our knowledge and belief. Nevertheless, no liability can be accepted for a malfunction or guarantee loss of the inverter.\n\n" +
-                        "Ahoy is freely available. If you paid money for the software, you probably got ripped off.\n\nPlease type in 'YeS', you are accept our Disclaim. You should then save your config.", "");
-                        if (Text != "YeS")
-                            promptFunction();
-                        else
-                            return true;
-
-                    }
-                </script>
                 <p>
                     <span class="des">Uptime: </span><span id="uptime"></span><br/>
                     <span class="des">ESP-Time: </span><span id="date"></span>
@@ -51,7 +27,7 @@
                         <li>Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a></li>
                         <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
                         <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">documentation</a></li>
-                        <li><a href="https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip" target="_blank">Download</a> & Test development firmware, <a href="https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md" target="_blank">Changelog</a></li>
+                        <li><a href="https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip" target="_blank">Download</a> & Test development firmware, <a href="https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md" target="_blank">Development Changelog</a></li>
                         <li>make a <a href="https://paypal.me/lupusch"  target="_blank">donation</a></li>
                     </ul>
                     <p class="lic">
@@ -60,22 +36,7 @@
                 </div>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2022</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var exeOnce = true;
             var tickCnt = 0;
@@ -106,12 +67,8 @@
             }
 
             function parseGeneric(obj) {
-                // Disclaimer
-                //if(obj["disclaimer"] == false) sessionStorage.setItem("gDisclaimer", promptFunction());
-                if(exeOnce){
-                    parseVersion(obj);
+                if(exeOnce)
                     parseESP(obj);
-                }
                 parseRssi(obj);
             }
 
@@ -142,15 +99,15 @@
                     e.addEventListener("click", setTime);
                 }
 
-                if(obj["ts_sunrise"] > 0) {
+                if(obj["disNightComm"]) {
                     if(((obj["ts_sunrise"] - obj["ts_offset"]) < obj["ts_now"])
                         && ((obj["ts_sunset"] + obj["ts_offset"]) > obj["ts_now"])) {
-                        commInfo = "Polling inverter(s), will stop at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        commInfo = "Polling inverter(s), will pause at sunset " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
                     }
-                    else if(obj["disNightComm"]) {
-                        commInfo = "Night time, no Communication to Inverter, ";
+                    else {
+                        commInfo = "Night time, inverter polling disabled, ";
                         if(obj["ts_now"] > (obj["ts_sunrise"] - obj["ts_offset"])) {
-                            commInfo += "stopped polling at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                            commInfo += "paused at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
                         }
                         else {
                             commInfo += "will start polling at " + (new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
@@ -163,15 +120,19 @@
                 var p = div(["none"]);
                 for(var i of obj) {
                     var icon = iconWarn;
-                    var color = "#F70";
+                    var cl = "icon-warn";
                     avail = "";
                     if(false == i["enabled"]) {
                         avail = "disabled";
                     }
                     else if(false == i["is_avail"]) {
                         icon = iconInfo;
-                        color = "#00d";
+                        cl = "icon-info";
                         avail = "not yet available";
+                    }
+                    else if(0 == i["ts_last_success"]) {
+                        icon = iconSuccess;
+                        avail = "available but no data was received until now";
                     }
                     else {
                         icon = iconSuccess;
@@ -179,12 +140,12 @@
                         if(false == i["is_producing"])
                             avail += "not ";
                         else
-                            color = "#090";
+                            cl = "icon-success";
                         avail += "producing";
                     }
 
                     p.append(
-                        svg(icon, 20, 20, color, "icon"),
+                        svg(icon, 30, 30, "icon " + cl),
                         span("Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is " + avail),
                         br()
                     );
@@ -199,23 +160,25 @@
                 document.getElementById("iv").replaceChildren(p);
             }
 
-            function parseWarnInfo(warn, success, version) {
+            function parseWarnInfo(warn, success) {
                 var p = div(["none"]);
                 for(var w of warn) {
-                    p.append(svg(iconWarn, 20, 20, "#F70", "icon"), span(w), br());
+                    p.append(svg(iconWarn, 30, 30, "icon icon-warn"), span(w), br());
                 }
                 for(var i of success) {
-                    p.append(svg(iconSuccess, 20, 20, "#090", "icon"), span(i), br());
+                    p.append(svg(iconSuccess, 30, 30, "icon icon-success"), span(i), br());
                 }
 
                 if(commInfo.length > 0)
-                    p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span(commInfo), br());
+                    p.append(svg(iconInfo, 30, 30, "icon icon-info"), span(commInfo), br());
 
                 if(null != release) {
-                    if(getVerInt(version) < getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("Update available, current released version: " + release), br());
-                    else if(getVerInt(version) > getVerInt(release))
-                        p.append(svg(iconInfo, 20, 20, "#00d", "icon"), span("You are using a development version, current released version: " + release), br());
+                    if(getVerInt("{#VERSION}") < getVerInt(release))
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("Update available, current released version: " + release), br());
+                    else if(getVerInt("{#VERSION}") > getVerInt(release))
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using development version {#VERSION}. In case of issues you may want to try the current stable release: " + release), br());
+                                       else 
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using the current stable release: " + release), br());
                 }
 
                 document.getElementById("warn_info").replaceChildren(p);
@@ -233,11 +196,11 @@
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
-                        parseMenu(obj["menu"]);
+                        parseNav(obj["generic"]);
                     parseGeneric(obj["generic"]);
                     parseSys(obj);
                     parseIv(obj["inverter"]);
-                    parseWarnInfo(obj["warnings"], obj["infos"], obj["generic"]["version"]);
+                    parseWarnInfo(obj["warnings"], obj["infos"]);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;

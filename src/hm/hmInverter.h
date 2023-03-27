@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -105,32 +105,35 @@ const calcFunc_t<T> calcFunctions[] = {
 template <class REC_TYP>
 class Inverter {
     public:
-        cfgIv_t       *config;               // stored settings
-        uint8_t       id;                    // unique id
-        uint8_t       type;                  // integer which refers to inverter type
-        uint16_t      alarmMesIndex;         // Last recorded Alarm Message Index
-        uint16_t      powerLimit[2];         // limit power output
-        float         actPowerLimit;         // actual power limit
-        uint8_t       devControlCmd;         // carries the requested cmd
-        bool          devControlRequest;     // true if change needed
-        serial_u      radioId;               // id converted to modbus
-        uint8_t       channels;              // number of PV channels (1-4)
-        record_t<REC_TYP> recordMeas;        // structure for measured values
-        record_t<REC_TYP> recordInfo;        // structure for info values
-        record_t<REC_TYP> recordConfig;      // structure for system config values
-        record_t<REC_TYP> recordAlarm;       // structure for alarm values
-        String        lastAlarmMsg;
-        bool          initialized;           // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
+        uint8_t       ivGen;             // generation of inverter (HM / MI)
+        cfgIv_t       *config;           // stored settings
+        uint8_t       id;                // unique id
+        uint8_t       type;              // integer which refers to inverter type
+        uint16_t      alarmMesIndex;     // Last recorded Alarm Message Index
+        uint16_t      powerLimit[2];     // limit power output
+        float         actPowerLimit;     // actual power limit
+        uint8_t       devControlCmd;     // carries the requested cmd
+        serial_u      radioId;           // id converted to modbus
+        uint8_t       channels;          // number of PV channels (1-4)
+        record_t<REC_TYP> recordMeas;    // structure for measured values
+        record_t<REC_TYP> recordInfo;    // structure for info values
+        record_t<REC_TYP> recordConfig;  // structure for system config values
+        record_t<REC_TYP> recordAlarm;   // structure for alarm values
+        //String        lastAlarmMsg;
+        bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
+        bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
 
         Inverter() {
-            powerLimit[0] = 0xffff;       // 65535 W Limit -> unlimited
-            powerLimit[1] = AbsolutNonPersistent; // default power limit setting
-            actPowerLimit = 0xffff;       // init feedback from inverter to -1
-            devControlRequest = false;
-            devControlCmd = InitDataState;
-            initialized = false;
-            lastAlarmMsg =  "nothing";
-            alarmMesIndex = 0;
+            ivGen              = IV_HM;
+            powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
+            powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
+            actPowerLimit      = 0xffff;               // init feedback from inverter to -1
+            mDevControlRequest = false;
+            devControlCmd      = InitDataState;
+            initialized        = false;
+            //lastAlarmMsg       = "nothing";
+            alarmMesIndex      = 0;
+            isConnected        = false;
         }
 
         ~Inverter() {
@@ -140,7 +143,9 @@ class Inverter {
         template <typename T>
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
-           DPRINTLN(DBG_INFO, F("(#") + String(id) + F(") enqueuedCmd: ") + String(cmd));
+           DPRINT_IVID(DBG_INFO, id);
+           DBGPRINT(F("enqueCommand: 0x"));
+           DBGHEXLN(cmd);
         }
 
         void setQueuedCmdFinished() {
@@ -158,13 +163,24 @@ class Inverter {
             }
         }
 
-    	uint8_t getQueuedCmd() {
+        uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
-                if (getFwVersion() == 0)
-                    enqueCommand<InfoCommand>(InverterDevInform_All);
-                enqueCommand<InfoCommand>(RealTimeRunData_Debug);
-                if (actPowerLimit == 0xffff)
-                    enqueCommand<InfoCommand>(SystemConfigPara);
+                if (ivGen != IV_MI) {
+                    if (getFwVersion() == 0)
+                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
+                    enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
+                } else if (ivGen == IV_MI){
+                    if (getFwVersion() == 0)
+                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version; might not work, esp. for 1/2 ch hardware
+                    if (type == INV_TYPE_4CH) {
+                        enqueCommand<InfoCommand>(0x36);
+                    } else {
+                        enqueCommand<InfoCommand>(0x09);
+                    }
+                }
+
+                if ((actPowerLimit == 0xffff) && isConnected)
+                    enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }
             return _commandQueue.front().get()->getCmd();
         }
@@ -219,6 +235,22 @@ class Inverter {
             return 0;
         }
 
+        bool setDevControlRequest(uint8_t cmd) {
+            if(isConnected) {
+                mDevControlRequest = true;
+                devControlCmd = cmd;
+            }
+            return isConnected;
+        }
+
+        void clearDevControlRequest() {
+            mDevControlRequest = false;
+        }
+
+        inline bool getDevControlRequest() {
+            return mDevControlRequest;
+        }
+
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:addValue"));
             if(NULL != rec) {
@@ -233,11 +265,12 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
-                        if(FLD_T == rec->assign[pos].fieldId) {
+                        if (FLD_T == rec->assign[pos].fieldId) {
                             // temperature is a signed value!
                             rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
-                        }
-                        else {
+                        } else if (FLD_YT == rec->assign[pos].fieldId) {
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                        } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
                             else
@@ -254,36 +287,68 @@ class Inverter {
                         if (alarmMesIndex < rec->record[pos]){
                             alarmMesIndex = rec->record[pos];
                             //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
+
+                            DPRINT(DBG_INFO, "alarm ID incremented to ");
+                            DBGPRINTLN(String(alarmMesIndex));
                             enqueCommand<InfoCommand>(AlarmData);
-                        }
-                        else {
-                            alarmMesIndex = rec->record[pos]; // no change
                         }
                     }
                 }
                 else if (rec->assign == InfoAssignment) {
                     DPRINTLN(DBG_DEBUG, "add info");
                     // eg. fw version ...
+                    isConnected = true;
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
-                    // get at least the firmware version and save it to the inverter object
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
                         actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: ") + String(actPowerLimit, 1));
+                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
+                        DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
                     }
                 }
                 else if (rec->assign == AlarmDataAssignment) {
                     DPRINTLN(DBG_DEBUG, "add alarm");
-                    if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
-                        lastAlarmMsg = getAlarmStr(rec->record[pos]);
-                    }
+                    //if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
+                    //    lastAlarmMsg = getAlarmStr(rec->record[pos]);
+                    //}
                 }
                 else
                     DPRINTLN(DBG_WARN, F("add with unknown assginment"));
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
+        }
+
+        /*inline REC_TYP getPowerLimit(void) {
+            record_t<> *rec = getRecordStruct(SystemConfigPara);
+            return getChannelFieldValue(CH0, FLD_ACT_ACTIVE_PWR_LIMIT, rec);
+        }*/
+
+        bool setValue(uint8_t pos, record_t<> *rec, REC_TYP val) {
+            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:setValue"));
+            if(NULL == rec)
+                return false;
+            if(pos > rec->length)
+                return false;
+            rec->record[pos] = val;
+            return true;
+        }
+
+        REC_TYP getChannelFieldValue(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
+            uint8_t pos = 0;
+            if(NULL != rec) {
+                for(; pos < rec->length; pos++) {
+                    if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
+                        break;
+                }
+                if(pos >= rec->length)
+                    return 0;
+
+                return rec->record[pos];
+            }
+            else
+                return 0;
         }
 
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
@@ -306,16 +371,23 @@ class Inverter {
             }
         }
 
-        bool isAvailable(uint32_t timestamp, record_t<> *rec) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isAvailable"));
-            return ((timestamp - rec->ts) < INACT_THRES_SEC);
+        bool isAvailable(uint32_t timestamp) {
+           if((timestamp - recordMeas.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordInfo.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordConfig.ts) < INACT_THRES_SEC)
+                return true;
+            if((timestamp - recordAlarm.ts) < INACT_THRES_SEC)
+                return true;
+            return false;
         }
 
-        bool isProducing(uint32_t timestamp, record_t<> *rec) {
+        bool isProducing(uint32_t timestamp) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
-            if(isAvailable(timestamp, rec)) {
-                uint8_t pos = getPosByChFld(CH0, FLD_PAC, rec);
-                return (getValue(pos, rec) > INACT_PWR_THRESH);
+            if(isAvailable(timestamp)) {
+                uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
+                return (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
             }
             return false;
         }
@@ -333,10 +405,10 @@ class Inverter {
 
         record_t<> *getRecordStruct(uint8_t cmd) {
             switch (cmd) {
-                case RealTimeRunData_Debug: return &recordMeas;
-                case InverterDevInform_All: return &recordInfo;
-                case SystemConfigPara:      return &recordConfig;
-                case AlarmData:             return &recordAlarm;
+                case RealTimeRunData_Debug: return &recordMeas;   // 11 = 0x0b
+                case InverterDevInform_All: return &recordInfo;   //  1 = 0x01
+                case SystemConfigPara:      return &recordConfig; //  5 = 0x05
+                case AlarmData:             return &recordAlarm;  // 17 = 0x11
                 default:                    break;
             }
             return NULL;
@@ -399,7 +471,27 @@ class Inverter {
             }
         }
 
-        String getAlarmStr(u_int16_t alarmCode) {
+        uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
+            uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
+            if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
+                return 0;
+
+            uint16_t wCode = ((uint16_t)pyld[startOff]) << 8 | pyld[startOff+1];
+            uint32_t startTimeOffset = 0, endTimeOffset = 0;
+
+            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
+                startTimeOffset = 12 * 60 * 60;
+            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+                endTimeOffset = 12 * 60 * 60;
+
+            *start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
+            *endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
+
+            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(*start) + ", end: " + ah::getTimeStr(*endTime));
+            return pyld[startOff+1];
+        }
+
+        String getAlarmStr(uint16_t alarmCode) {
             switch (alarmCode) { // breaks are intentionally missing!
                 case 1:    return String(F("Inverter start"));
                 case 2:    return String(F("DTU command failed"));
@@ -474,7 +566,6 @@ class Inverter {
         }
 
     private:
-        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
         void toRadioId(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:toRadioId"));
             radioId.u64  = 0ULL;
@@ -484,6 +575,9 @@ class Inverter {
             radioId.b[1] = config->serial.b[3];
             radioId.b[0] = 0x01;
         }
+
+        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
+        bool          mDevControlRequest; // true if change needed
 };
 
 

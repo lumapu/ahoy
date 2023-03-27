@@ -1,0 +1,27 @@
+:root {
+    --bg: #fff;
+    --fg: #000;
+    --fg2: #fff;
+
+    --info: #0000dd;
+    --warn: #ff7700;
+    --success: #009900;
+
+    --input-bg: #eee;
+
+    --nav-bg: #333;
+    --primary: #006ec0;
+    --primary-hover: #044e86;
+    --secondary: #0072c8;
+    --nav-active: #555;
+    --footer-bg: #282828;
+
+    --total-head-title: #8e5903;
+    --total-bg: #b06e04;
+    --iv-head-title: #1c6800;
+    --iv-head-bg: #32b004;
+    --ch-head-title: #003c80;
+    --ch-head-bg: #006ec0;
+    --ts-head: #333;
+    --ts-bg: #555;
+}

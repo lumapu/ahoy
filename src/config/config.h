@@ -44,16 +44,26 @@
 
 // default pinout (GPIO Number)
 #if defined(ESP32)
+    // this is the default ESP32 (son-S) pinout on the WROOM modules for VSPI,
+    // for the ESP32-S3 there is no sane 'default', as it has full flexibility
+    // to map its two HW SPIs anywhere and PCBs differ materially,
+    // so it has to be selected in the Web UI
     #define DEF_CS_PIN              5
     #define DEF_CE_PIN              4
     #define DEF_IRQ_PIN             16
+    #define DEF_MISO_PIN            19
+    #define DEF_MOSI_PIN            23
+    #define DEF_SCLK_PIN            18
 #else
     #define DEF_CS_PIN              15
     #define DEF_CE_PIN              2
     #define DEF_IRQ_PIN             0
+    // these are given to relay the correct values via API
+    // they cannot actually be moved for ESP82xx models
+    #define DEF_MISO_PIN            12
+    #define DEF_MOSI_PIN            13
+    #define DEF_SCLK_PIN            14
 #endif
-#define DEF_LED0_PIN            255 // off
-#define DEF_LED1_PIN            255 // off
 
 // default NRF24 power, possible values (0 - 3)
 #define DEF_AMPLIFIERPOWER      1
@@ -101,7 +111,7 @@
 #define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
 
 // default mqtt interval
-#define MQTT_INTERVAL           60
+#define MQTT_INTERVAL           90
 
 // default MQTT broker uri
 #define DEF_MQTT_BROKER         "\0"
@@ -123,6 +133,13 @@
 
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
+
+// Offset for midnight Ticker
+// relative to UTC
+//   may be negative for later in the next day or positive for earlier in previous day
+//   may contain variable like mCalculatedTimezoneOffset
+// must be in parentheses
+#define MIDNIGHTTICKER_OFFSET (-1)
 
 #if __has_include("config_override.h")
     #include "config_override.h"

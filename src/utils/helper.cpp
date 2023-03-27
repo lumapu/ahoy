@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -7,15 +7,15 @@
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
-        char tmp[16];
+        uint8_t p = 1;
         memset(ip, 0, 4);
-        memset(tmp, 0, 16);
-        snprintf(tmp, 16, ipStr);
-        char *p = strtok(tmp, ".");
-        uint8_t i = 0;
-        while(NULL != p) {
-            ip[i++] = atoi(p);
-            p = strtok(NULL, ".");
+        for(uint8_t i = 0; i < 16; i++) {
+            if(ipStr[i] == 0)
+                return;
+            if(0 == i)
+                ip[0] = atoi(ipStr);
+            else if(ipStr[i] == '.')
+                ip[p++] = atoi(&ipStr[i+1]);
         }
     }
 
@@ -37,6 +37,15 @@ namespace ah {
             sprintf(str, "n/a");
         else
             sprintf(str, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+        return String(str);
+    }
+
+    String getTimeStr(time_t t) {
+        char str[9];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else
+            sprintf(str, "%02d:%02d:%02d", hour(t), minute(t), second(t));
         return String(str);
     }
 

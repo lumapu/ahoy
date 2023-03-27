@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Save</title>
+        {#HTML_HEADER}
+    </head>
+    <body>
+        {#HTML_NAV}
+        <div id="wrapper">
+            <div id="content">
+                <div id="html" class="mt-3 mb-3"></div>
+            </div>
+        </div>
+        {#HTML_FOOTER}
+        <script type="text/javascript">
+            function parseGeneric(obj) {
+                parseNav(obj);
+                parseESP(obj);
+                parseRssi(obj);
+            }
+
+            function parseHtml(obj) {
+                var html = "";
+                if(obj.pending)
+                    html = "saving settings ...";
+                else {
+                    if(obj.success)
+                        html = "settings successfully saved";
+                    else
+                        html = "failed saving settings";
+
+                    var meta = document.createElement('meta');
+                    meta.httpEquiv = "refresh"
+                    meta.content = 1 + "; URL=/setup";
+                    document.getElementsByTagName('head')[0].appendChild(meta);
+                }
+                document.getElementById("html").innerHTML = html;
+            }
+
+            function parse(obj) {
+                if(null != obj) {
+                    parseGeneric(obj["generic"]);
+                    parseHtml(obj);
+                    window.setInterval("getAjax('/api/html/save', parse)", 1100);
+                }
+            }
+
+            getAjax("/api/html/save", parse);
+        </script>
+    </body>
+</html>

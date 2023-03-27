@@ -9,6 +9,9 @@
 #include "../utils/dbg.h"
 #include <cstdint>
 
+// inverter generations
+enum {IV_HM = 0, IV_MI};
+
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
 const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%", "var", ""};
@@ -23,8 +26,12 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "I_AC", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
         "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","HWPartId",
-        "active PowerLimit", /*"reactive PowerLimit","Powerfactor",*/ "LastAlarmCode"};
+        "active_PowerLimit", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode"};
 const char* const notAvail = "n/a";
+
+const uint8_t fieldUnits[] = {UNIT_V, UNIT_A, UNIT_W, UNIT_WH, UNIT_KWH, UNIT_KWH,
+        UNIT_V, UNIT_A, UNIT_W, UNIT_HZ, UNIT_C, UNIT_NONE, UNIT_PCT, UNIT_PCT, UNIT_VAR,
+        UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE};
 
 // mqtt discovery device classes
 enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
@@ -106,7 +113,7 @@ const byteAssign_t AlarmDataAssignment[] = {
 };
 #define HMALARMDATA_LIST_LEN     (sizeof(AlarmDataAssignment) / sizeof(byteAssign_t))
 #define HMALARMDATA_PAYLOAD_LEN  0 // 0: means check is off
-
+#define ALARM_LOG_ENTRY_SIZE    12
 
 
 //-------------------------------------

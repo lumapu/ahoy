@@ -17,17 +17,23 @@
 #undef FB_WIFI_PWD
 #define FB_WIFI_PWD     "MY_WIFI_KEY"
 
-// ESP32 default pinout
-#undef DEF_RF24_CS_PIN
-#define DEF_RF24_CS_PIN         5
-#undef DEF_RF24_CE_PIN
-#define DEF_RF24_CE_PIN         4
-#undef DEF_RF24_IRQ_PIN
-#define DEF_RF24_IRQ_PIN        16
+// ESP32-S3 example pinout
+#undef DEF_CS_PIN
+#define DEF_CS_PIN 37
+#undef DEF_CE_PIN
+#define DEF_CE_PIN 38
+#undef DEF_IRQ_PIN
+#define DEF_IRQ_PIN 47
+#undef DEF_MISO_PIN
+#define DEF_MISO_PIN 48
+#undef DEF_MOSI_PIN
+#define DEF_MOSI_PIN 35
+#undef DEF_SCLK_PIN
+#define DEF_SCLK_PIN 36
 
-
-// To enable the json endpoint at /json
-// #define ENABLE_JSON_EP
+// Offset for midnight Ticker Example: 1 second before midnight (local time)
+#undef MIDNIGHTTICKER_OFFSET
+#define MIDNIGHTTICKER_OFFSET (mCalculatedTimezoneOffset + 1)
 
 // To enable the endpoint for prometheus to scrape data from at /metrics
 // #define ENABLE_PROMETHEUS_EP

@@ -2,144 +2,229 @@
 <html>
     <head>
         <title>Live</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        {#HTML_HEADER}
         <meta name="apple-mobile-web-app-capable" content="yes">
-        <script type="text/javascript" src="api.js"></script>
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <div id="live"></div>
                 <p>Every <span id="refresh"></span> seconds the values are updated</p>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2022</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             var exeOnce = true;
+            var units, ivEn;
+            var mIvHtml = [];
+            var mNum = 0;
+            var names = ["Voltage", "Current", "Power", "Yield Day", "Yield Total", "Irradiation"];
+            var total = Array(5).fill(0);
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
-                    parseVersion(obj);
+                    parseNav(obj);
                     parseESP(obj);
                 }
                 parseRssi(obj);
             }
 
-            function parseIv(obj, root) {
-                var ivHtml = [];
+            function numBig(val, unit, des) {
+                return ml("div", {class: "col-6 col-sm-4 a-c"}, [
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"}, [
+                            ml("span", {class: "fs-5 fs-md-4"}, String(Math.round(val * 100) / 100)),
+                            ml("span", {class: "fs-6 fs-md-7 mx-1"}, unit)
+                        ])),
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"},
+                            ml("span", {class: "fs-9 px-1"}, des)
+                        )
+                    )
+                ]);
+            }
 
-                var tDiv = div(["ch-all", "iv"]);
-                tDiv.appendChild(span("Total", ["head"]));
-                var total = new Array(root.ch0_fld_names.length).fill(0);
-                if(obj.length > 1)
-                    ivHtml.push(tDiv);
+            function numMid(val, unit, des) {
+                return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"}, [
+                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
+                            ml("span", {class: "fs-8 mx-1"}, unit)
+                        ])),
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"},
+                            ml("span", {class: "fs-9"}, des)
+                        )
+                    )
+                ]);
+            }
 
-                for(var iv of obj) {
-                    if(iv["enabled"]) {
-                        main = div(["iv"]);
-                        var ch0 = div(["ch-iv"]);
-                        var limit = iv["power_limit_read"] + "%";
-                        if(limit == "65535%")
-                            limit = "n/a";
-                        ch0.appendChild(span(iv["name"] + " Limit " + limit + " | last Alarm: " + iv["last_alarm"], ["head"]));
-
-                        for(var j = 0; j < root.ch0_fld_names.length; j++) {
-                            var val = Math.round(iv["ch"][0][j] * 100) / 100;
-                            var sub = div(["subgrp"]);
-                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
-                            ch0.appendChild(sub);
-
-                            switch(j) {
-                                case 2:  total[j] += val; break; // P_AC
-                                case 6:  total[j] += val; break; // YieldTotal
-                                case 7:  total[j] += val; break; // YieldDay
-                                case 8:  total[j] += val; break; // P_DC
-                                case 10: total[j] += val; break; // Q_AC
-                            }
-                        }
-                        main.appendChild(ch0);
-
-
-                        for(var i = 1; i < (iv["channels"] + 1); i++) {
-                            var ch = div(["ch"]);
-                            ch.appendChild(span(("" == iv["ch_names"][i]) ? ("CHANNEL " + i) : iv["ch_names"][i], ["head"]));
-
-                            for(var j = 0; j < root.fld_names.length; j++) {
-                                var val = Math.round(iv["ch"][i][j] * 100) / 100;
-                                ch.appendChild(span(val + " " + span(root["fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                                ch.appendChild(span(root["fld_names"][j], ["info"]));
-                            }
-                            main.appendChild(ch);
-                        }
-
-                        var ts = div(["ts"]);
-                        var ageInfo = "Last received data requested at: ";
-                        if(iv["ts_last_success"] > 0) {
-                            var date = new Date(iv["ts_last_success"] * 1000);
-                            ageInfo += date.toLocaleString('de-DE');
-                        }
-                        else
-                            ageInfo += "nothing received";
-
-                        ts.innerHTML = ageInfo;
-
-                        main.appendChild(ts);
-                        ivHtml.push(main);
-                    }
+            function totals() {
+                for(var i = 0; i < 5; i++) {
+                    total[i] = Math.round(total[i] * 100) / 100;
                 }
 
-                // total
-                if(obj.length > 1) {
-                    for(var j = 0; j < root.ch0_fld_names.length; j++) {
-                        var val = Math.round(total[j] * 100) / 100;
-                        if((j == 2) || (j == 6) || (j == 7) || (j == 8) || (j == 10)) {
-                            var sub = div(["subgrp"]);
-                            sub.appendChild(span(val + " " + span(root["ch0_fld_units"][j], ["unit"]).innerHTML, ["value"]));
-                            sub.appendChild(span(root["ch0_fld_names"][j], ["info"]));
-                            tDiv.appendChild(sub);
-                        }
+                return ml("div", {class: "row mt-3 mb-5"},
+                    ml("div", {class: "col"}, [
+                        ml("div", {class: "p-2 total-h"},
+                            ml("div", {class: "row"},
+                                ml("div", {class: "col mx-2 mx-md-1"}, "TOTAL")
+                            ),
+                        ),
+                        ml("div", {class: "p-2 total-bg"}, [
+                            ml("div", {class: "row"}, [
+                                numBig(total[0], "W", "AC Power"),
+                                numBig(total[1], "Wh", "Yield Day"),
+                                numBig(total[2], "kWh", "Yield Total")
+                            ]),
+                            ml("div", {class: "hr"}),
+                            ml("div", {class: "row"}, [
+                                numMid(total[3], "W", "DC Power"),
+                                numMid(total[4], "var", "Reactive Power")
+                            ])
+                        ])
+                    ])
+                );
+            }
+            function ivHead(obj) {
+                total[0] += obj.ch[0][2]; // P_AC
+                total[1] += obj.ch[0][7]; // YieldDay
+                total[2] += obj.ch[0][6]; // YieldTotal
+                total[3] += obj.ch[0][8]; // P_DC
+                total[4] += obj.ch[0][10]; // Q_AC
+                var t = span(" &deg; C");
+                return ml("div", {class: "row mt-2"},
+                    ml("div", {class: "col"}, [
+                        ml("div", {class: "p-2 iv-h"},
+                            ml("div", {class: "row"}, [
+                                ml("div", {class: "col mx-2 mx-md-1"}, obj.name),
+                                ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + " %"))),
+                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5]) + t.innerHTML)
+                            ])
+                        ),
+                        ml("div", {class: "p-2 iv-bg"}, [
+                            ml("div", {class: "row"},[
+                                numBig(obj.ch[0][2], "W", "AC Power"),
+                                numBig(obj.ch[0][7], "Wh", "Yield Day"),
+                                numBig(obj.ch[0][6], "kWh", "Yield Total")
+                            ]),
+                            ml("div", {class: "hr"}),
+                            ml("div", {class: "row mt-2"},[
+                                numMid(obj.ch[0][8], "W", "DC Power"),
+                                numMid(obj.ch[0][0], "V", "Voltage"),
+                                numMid(obj.ch[0][1], "A", "Current"),
+                                numMid(obj.ch[0][3], "Hz", "Frequency"),
+                                numMid(obj.ch[0][9], "%", "Efficiency"),
+                                numMid(obj.ch[0][10], "var", "Reactive Power"),
+                                numMid(obj.ch[0][4], "", "Power Factor")
+                            ])
+                        ])
+                    ])
+                );
+            }
+
+            function numCh(val, unit, des) {
+                return ml("div", {class: "col-12 col-sm-6 col-md-12 mb-2"}, [
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"}, [
+                            ml("span", {class: "fs-6 fs-md-7"}, String(Math.round(val * 100) / 100)),
+                            ml("span", {class: "fs-8 mx-2"}, unit)
+                        ])),
+                    ml("div", {class: "row"},
+                        ml("div", {class: "col"},
+                            ml("span", {class: "fs-9"}, des)
+                        )
+                    )
+                ]);
+            }
+
+            function ch(name, vals) {
+                return ml("div", {class: "col-6 col-md-3 mt-2"}, [
+                    ml("div", {class: "ch-h p-2 a-c"}, name),
+                    ml("div", {class: "p-2 ch-bg"}, [
+                        ml("div", {class: "row"}, [
+                            numCh(vals[2], units[2], "Power"),
+                            numCh(vals[5], units[5], "Irradiation"),
+                            numCh(vals[3], units[3], "Yield Day"),
+                            numCh(vals[4], units[4], "Yield Total"),
+                            numCh(vals[0], units[0], "Voltage"),
+                            numCh(vals[1], units[1], "Current")
+                        ])
+                    ])
+                ]);
+            }
+
+            function tsInfo(ts) {
+                var ageInfo = "Last received data requested at: ";
+                if(ts > 0) {
+                    var date = new Date(ts * 1000);
+                    ageInfo += date.toLocaleString('de-DE');
+                }
+                else
+                    ageInfo += "nothing received";
+
+                return ml("div", {class: "mb-5"}, [
+                    ml("div", {class: "row p-1 ts-h mx-2"},
+                        ml("div", {class: "col"}, "")
+                    ),
+                    ml("div", {class: "row p-2 ts-bg mx-2"},
+                        ml("div", {class: "col mx-2"}, ageInfo)
+                    )
+                ]);
+            }
+
+            function parseIv(obj) {
+                mNum++;
+
+                var chn = [];
+                for(var i = 1; i < obj.ch.length; i++) {
+                    var name = obj.ch_name[i];
+                    if(name.length == 0)
+                        name = "CHANNEL " + i;
+                    if(obj.ch_max_pwr[i] > 0) // show channel only if max mod pwr
+                        chn.push(ch(name, obj.ch[i]));
+                }
+                mIvHtml.push(
+                    ml("div", {}, [
+                        ivHead(obj),
+                        ml("div", {class: "row mb-2"}, chn),
+                        tsInfo(obj.ts_last_success)
+                    ])
+                );
+
+                var last = true;
+                for(var i = obj.id + 1; i < ivEn.length; i++) {
+                    if((i != ivEn.length) && ivEn[i]) {
+                        last = false;
+                        getAjax("/api/inverter/id/" + i, parseIv);
+                        break;
                     }
                 }
-
-                document.getElementById("live").replaceChildren(...ivHtml);
+                if(last) {
+                    if(mNum > 1)
+                        mIvHtml.unshift(totals());
+                    document.getElementById("live").replaceChildren(...mIvHtml);
+                }
             }
 
             function parse(obj) {
                 if(null != obj) {
-                    if(true == exeOnce)
-                        parseMenu(obj["menu"]);
                     parseGeneric(obj["generic"]);
-                    parseIv(obj["inverter"], obj);
-                    document.getElementById("refresh").innerHTML = obj["refresh_interval"];
+                    units = Object.assign({}, obj["fld_units"]);
+                    ivEn = Object.values(Object.assign({}, obj["iv"]));
+                    mIvHtml = [];
+                    mNum = 0;
+                    total.fill(0);
+                    for(var i = 0; i < obj.iv.length; i++) {
+                        if(obj.iv[i]) {
+                            getAjax("/api/inverter/id/" + i, parseIv);
+                            break;
+                        }
+                    }
+                    document.getElementById("refresh").innerHTML = obj["refresh"];
                     if(true == exeOnce) {
-                        window.setInterval("getAjax('/api/live', parse)", obj["refresh_interval"] * 1000);
+                        window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
                         exeOnce = false;
                     }
                 }

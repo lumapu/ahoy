@@ -2,10 +2,70 @@ import re
 import os
 import gzip
 import glob
-
+import shutil
+from datetime import date
 from pathlib import Path
+import subprocess
 
-def convert2Header(inFile):
+
+def get_git_sha():
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('ascii').strip()
+    except:
+        return "0000000"
+
+def readVersion(path):
+    f = open(path, "r")
+    lines = f.readlines()
+    f.close()
+
+    today = date.today()
+    search = ["_MAJOR", "_MINOR", "_PATCH"]
+    version = today.strftime("%y%m%d") + "_ahoy_"
+    ver = ""
+    for line in lines:
+        if(line.find("VERSION_") != -1):
+            for s in search:
+                p = line.find(s)
+                if(p != -1):
+                    version += line[p+13:].rstrip() + "."
+                    ver += line[p+13:].rstrip() + "."
+    return ver[:-1]
+
+def htmlParts(file, header, nav, footer, version):
+    p = "";
+    f = open(file, "r")
+    lines = f.readlines()
+    f.close();
+
+    f = open(header, "r")
+    h = f.read().strip()
+    f.close()
+
+    f = open(nav, "r")
+    n = f.read().strip()
+    f.close()
+
+    f = open(footer, "r")
+    fo = f.read().strip()
+    f.close()
+
+    for line in lines:
+        line = line.replace("{#HTML_HEADER}", h)
+        line = line.replace("{#HTML_NAV}", n)
+        line = line.replace("{#HTML_FOOTER}", fo)
+        p += line
+
+    #placeholders
+    link = '<a target="_blank" href="https://github.com/lumapu/ahoy/commits/' + get_git_sha() + '">GIT SHA: ' + get_git_sha() + ' :: ' + version + '</a>'
+    p = p.replace("{#VERSION}", version)
+    p = p.replace("{#VERSION_GIT}", link)
+    f = open("tmp/" + file, "w")
+    f.write(p);
+    f.close();
+    return p
+
+def convert2Header(inFile, version):
     fileType = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
@@ -17,14 +77,19 @@ def convert2Header(inFile):
         Path("html/h").mkdir(exist_ok=True)
     else:
         outName = "h/" + inFileVarName + ".h"
-        Path("h").mkdir(exist_ok=True)
 
+    data = ""
     if fileType == "ico":
         f = open(inFile, "rb")
+        data = f.read()
+        f.close()
     else:
-        f = open(inFile, "r")
-    data = f.read()
-    f.close()
+        if fileType == "html":
+            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", version)
+        else:
+            f = open(inFile, "r")
+            data = f.read()
+            f.close()
 
     if fileType == "css":
         data = data.replace('\n', '')
@@ -53,13 +118,17 @@ def convert2Header(inFile):
     f.close()
 
 # delete all files in the 'h' dir
-dir = 'h'
+wd = 'h'
 if os.getcwd()[-4:] != "html":
-    dir = "web/html/" + dir
+    wd = "web/html/" + wd
 
-if os.path.exists(dir):
-    for f in os.listdir(dir):
-        os.remove(os.path.join(dir, f))
+if os.path.exists(wd):
+    for f in os.listdir(wd):
+        os.remove(os.path.join(wd, f))
+wd += "/tmp"
+if os.path.exists(wd):
+    for f in os.listdir(wd):
+        os.remove(os.path.join(wd, f))
 
 # grab all files with following extensions
 if os.getcwd()[-4:] != "html":
@@ -69,6 +138,11 @@ files_grabbed = []
 for files in types:
     files_grabbed.extend(glob.glob(files))
 
+Path("h").mkdir(exist_ok=True)
+Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with all replacements
+shutil.copyfile("style.css", "tmp/style.css")
+version = readVersion("../../defines.h")
+
 # go throw the array
 for val in files_grabbed:
-    convert2Header(val)
+    convert2Header(val, version)

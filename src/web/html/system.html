@@ -2,21 +2,10 @@
 <html>
     <head>
         <title>System</title>
-        <link rel="stylesheet" type="text/css" href="style.css"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="api.js"></script>
+        {#HTML_HEADER}
     </head>
     <body>
-        <div class="topnav">
-            <a href="/" class="title">AhoyDTU</a>
-            <a href="javascript:void(0);" class="icon" onclick="topnav()">
-                <span></span>
-                <span></span>
-                <span></span>
-            </a>
-            <div id="topnav" class="hide"></div>
-            <div id="wifiicon" class="info"></div>
-        </div>
+        {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <pre id="stat"></pre>
@@ -26,25 +15,10 @@
                 <div id="html" class="mt-3 mb-3"></div>
             </div>
         </div>
-        <div id="footer">
-            <div class="left">
-                <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2022</a>
-                <ul>
-                    <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
-                    <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
-                </ul>
-            </div>
-            <div class="right">
-                <ul>
-                    <li><span id="version"></span></li>
-                    <li><span id="esp_type"></span></li>
-                    <li><a href="https://creativecommons.org/licenses/by-nc-sa/3.0/de" target="_blank" >CC BY-NC-SA 3.0</a></li>
-                </ul>
-            </div>
-        </div>
+        {#HTML_FOOTER}
         <script type="text/javascript">
             function parseGeneric(obj) {
-                parseVersion(obj);
+                parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
             }
@@ -94,11 +68,12 @@
                 }
 
                 main.append(
+                    genTabRow("TX count", stat["tx_cnt"]),
                     genTabRow("RX success", stat["rx_success"]),
                     genTabRow("RX fail", stat["rx_fail"]),
                     genTabRow("RX no answer", stat["rx_fail_answer"]),
-                    genTabRow("RX frames received", stat["frame_cnt"]),
-                    genTabRow("TX count", stat["tx_cnt"])
+                    genTabRow("RX fragments", stat["frame_cnt"]),
+                    genTabRow("TX retransmits", stat["retransmits"])
                 );
             }
 
@@ -122,7 +97,6 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    parseMenu(obj["menu"]);
                     parseGeneric(obj["generic"]);
 
                     if(null != obj["refresh"]) {
