@@ -27,6 +27,13 @@ Table of approaches:
 | [Raspberry Pi, Python](tools/rpi/) | ❌ | ✔️ | ❌ | |
 | [Others, C/C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ |  |
 
+## Getting Started
+[Guide how to start with a ESP module](Getting_Started.md)
+[ESP Webinstaller (Edge / Chrome Browser only)](https://ahoydtu.de/web_install)
+
+## Our Website
+[https://ahoydtu.de](https://ahoydtu.de)
+
 ## Success Stories
 - [Getting the data into influxDB and visualize them in a Grafana Dashboard](https://grafana.com/grafana/dashboards/16850-pv-power-ahoy/) (thx @Carl)
 

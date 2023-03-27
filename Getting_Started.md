@@ -1,3 +1,22 @@
+## Overview
+
+This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
+Further information will help you to communicate to the compatible inverters.
+
+You find the full [User_Manual here](User_Manual.md)
+
+## Compatiblity
+
+For now the following Inverters should work out of the box:
+
+Hoymiles Inverters
+
+| Status | Serie | Model | comment |
+| ----- | ----- | ------ | ------- |
+| ✔️ | MI | 300, 600, 1000/1200/⚠️ 1500 | 4-Channel is not tested yet |
+| ✔️ | HM | 300, 350, 400, 600, 700, 800, 1000?, 1200, 1500 | |
+| ⚠️ | TSUN | [TSOL-M350](https://www.tsun-ess.com/Micro-Inverter/M350-M400), [TSOL-M400](https://www.tsun-ess.com/Micro-Inverter/M350-M400), [TSOL-M800/TSOL-M800(DE)](https://www.tsun-ess.com/Micro-Inverter/M800) | others may work as well (need to be verified). |
+
 ## Table of Contents
 
 - [Table of Contents](#table-of-contents)
@@ -26,44 +45,9 @@
       - [HTTP based Pages](#http-based-pages)
 - [MQTT command to set the DTU without webinterface](#mqtt-command-to-set-the-dtu-without-webinterface)
 - [Used Libraries](#used-libraries)
-- [Contact](#contact)
 - [ToDo](#todo)
 
 ***
-
-## Overview
-
-This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
-Further information will help you to communicate to the compatible inverters.
-
-You find the full [User_Manual here](User_Manual.md)
-
-## Compatiblity
-
-For now the following Inverters should work out of the box:
-
-Hoymiles Inverters
-
-- HM300
-- HM350
-- HM400
-- HM600
-- HM700
-- HM800
-- HM1000?
-- HM1200
-- HM1500
-- MI-300* [For MI inverters see remarks here](User_Manual.md#mi-inverters)
-- MI-600*
-- MI-700*
-- MI-1500* (2nd gen. still untested)
-
-TSUN Inverters:
-
-- [TSOL-M350](https://www.tsun-ess.com/Micro-Inverter/M350-M400)
-- [TSOL-M400](https://www.tsun-ess.com/Micro-Inverter/M350-M400)
-- [TSOL-M800/TSOL-M800(DE)](https://www.tsun-ess.com/Micro-Inverter/M800)
-- others may work as well (need to be verified).
 
 Solenso Inverters:
 
@@ -193,7 +177,12 @@ Reboot afterwards.
 Once your Hardware is ready to run, you need to flash the Ahoy DTU Firmware to your Board.
 You can either build your own using your own configuration or use one of our pre-compiled generic builds.
 
-#### Compiling your own Version
+### Flash from your browser (easy)
+
+The easiest step for you is to flash online. A browser MS Edge or Google Chrome is required.
+[Here you go](https://ahoydtu.de/web_install/)
+
+### Compiling your own Version
 
 This information suits you if you want to configure and build your own firmware.
 
@@ -301,12 +290,6 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 | `PubSubClient`        | 2.8     | MIT      |
 | `ArduinoJson`         | 6.19.4  | MIT      |
 | `ESP Async WebServer` | 4.3.0   | ?        |
-
-## Contact
-
-We run a Discord Server that can be used to get in touch with the Developers and Users.
-
-<https://discord.gg/WzhxEY62mB>
 
 ## ToDo
 
