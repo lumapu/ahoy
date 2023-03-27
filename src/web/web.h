@@ -141,16 +141,14 @@ class Web {
                 }
             }
             if (!Update.hasError()) {
-                if (Update.write(data, len) != len) {
+                if (Update.write(data, len) != len)
                     Update.printError(Serial);
-                }
             }
             if (final) {
-                if (Update.end(true)) {
+                if (Update.end(true))
                     Serial.printf("Update Success: %uB\n", index + len);
-                } else {
+                else
                     Update.printError(Serial);
-                }
             }
         }
 
@@ -245,7 +243,7 @@ class Web {
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
-            bool reboot = !Update.hasError();
+            bool reboot = (!Update.hasError() && Update.size() > 0);
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
             if (reboot)

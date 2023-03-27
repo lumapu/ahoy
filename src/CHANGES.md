@@ -2,6 +2,10 @@
 
 (starting from release version `0.5.66`)
 
+## 0.5.110
+* MQTT fix reconnection by new lib version #780
+* display 'failed' if no Update was selected #813
+
 ## 0.5.109
 * reduced heap fragmentation by optimizing MqTT #768
 * ePaper: centered text thx @knickohr
