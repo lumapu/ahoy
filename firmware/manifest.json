@@ -1,6 +1,6 @@
 {
   "name": "AhoyDTU",
-  "version": "0.5.66",
+  "version": "0.6.0",
   "funding_url": "https://ko-fi.com/lumapu",
   "new_install_prompt_erase": true,
   "builds": [
@@ -10,13 +10,13 @@
         { "path": "/firmware/bootloader.bin", "offset": 4096 },
         { "path": "/firmware/partitions.bin", "offset": 32768 },
         { "path": "/firmware/ota.bin", "offset": 57344 },
-        { "path": "/firmware/221230_ahoy_0.5.66_esp32_f8fe044.bin", "offset": 65536 }
+        { "path": "/firmware/230327_ahoy_0.6.0_9c7d7a0_esp32.bin", "offset": 65536 }
       ]
     },
     {
       "chipFamily": "ESP8266",
       "parts": [
-        { "path": "/firmware/221230_ahoy_0.5.66_esp8266_f8fe044.bin", "offset": 0 }
+        { "path": "/firmware/230327_ahoy_0.6.0_9c7d7a0_esp8266.bin", "offset": 0 }
       ]
     }
   ]
