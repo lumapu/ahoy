@@ -1,0 +1,806 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Setup</title>
+        {#HTML_HEADER}
+        <script type="text/javascript">
+            function load() {
+                for(it of document.getElementsByClassName("s_collapsible")) {
+                    it.addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        var content = this.nextElementSibling;
+                        content.style.display = (content.style.display === "block") ? "none" : "block";
+                    });
+                }
+            }
+        </script>
+    </head>
+    <body onload="load()">
+        {#HTML_NAV}
+        <div id="wrapper">
+            <div id="content">
+                <form method="post" action="/save">
+                    <button type="button" class="s_collapsible mt-4">System Config</button>
+                    <div class="s_content">
+                    <fieldset class="mb-2">
+                        <legend class="des">Device Host Name</legend>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3">Device Name</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Dark Mode</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mb-4">
+                        <legend class="des">System Config</legend>
+                        <p class="des">Pinout</p>
+                        <div id="pinout"></div>
+
+                        <p class="des">Radio (NRF24L01+)</p>
+                        <div id="rf24"></div>
+
+                        <p class="des">Serial Console</p>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">print inverter data</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Serial Debug</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Network</button>
+                    <div class="s_content">
+                        <fieldset class="mb-2">
+                            <legend class="des">WiFi</legend>
+                            <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Search Networks</div>
+                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/></div>
+                            </div>
+
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">Avail Networks</div>
+                                <div class="col-12 col-sm-9">
+                                    <select name="networks" id="networks" onChange="selNet()">
+                                        <option value="-1" selected disabled hidden>not scanned</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">SSID</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                            </div>
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">Password</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">Static IP (optional)</legend>
+                            <p>
+                                Leave fields blank for DHCP<br/>
+                                The following fields are parsed in this format: 192.168.4.1
+                            </p>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">IP Address</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipAddr" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Submask</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipMask" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">DNS 1</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipDns1" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">DNS 2</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipDns2" maxlength="15" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Gateway</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ipGateway" maxlength="15" /></div>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Protection</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des mx-2">Protection</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 mb-2 mt-2">Admin Password</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="adminpwd" value="{PWD}"/></div>
+                            </div>
+                            <p>Select pages which should be protected by password</p>
+                            <div id="prot_mask"></div>
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Inverter</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                    <legend class="des">Inverter</legend>
+                        <div id="inverter"></div>
+                        <div class="row mb-2">
+                            <div class="col-12 col-sm-3"></div>
+                            <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-12 col-sm-3"><p class="subdes">Note</p></div>
+                            <div class="col-12 col-sm-9"><p>A 'max module power' value of '0' disables the channel in 'live' view</p></div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
+                            <div class="col-12 col-sm-9"></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Max retries per Payload</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="invRetry"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling pauses at sunset</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstComStop"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Reset values when inverter status is 'not available'</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">NTP Server</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">NTP Server</legend>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">NTP Port</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="ntpPort"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">set system time</div>
+                            <div class="col-12 col-sm-9">
+                                <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
+                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
+                                <span id="apiResultNtp"></span>
+                            </div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">Sunrise & Sunset</legend>
+                        <p>Use a decimal separator: '.' (dot) for Latitude and Longitude</p>
+
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Latitude (decimal)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="sunLat"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Longitude (decimal)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="sunLon"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
+                            <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Pause polling inverters during night</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="sunDisNightCom"/></div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">MQTT</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">MQTT</legend>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Port</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttPort"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Username (optional)</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Password (optional)</div>
+                            <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Topic</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" /></div>
+                        </div>
+                        <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" /></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
+                            <div class="col-12 col-sm-9">
+                                <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
+                                <span id="apiResultMqtt"></span>
+                            </div>
+                        </div>
+                    </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">Display Config</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">Display Config</legend>
+                        <div id="dispType"></div>
+                        <div id="dispRot"></div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Turn off while inverters are offline</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting, OLED only)</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pxshift"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Luminance</div>
+                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="100"></select></div>
+                        </div>
+                        <p class="des">Pinout</p>
+                        <div id="dispPins"></div>
+                    </fieldset>
+                    </div>
+
+                    <div class="row mb-4 mt-4">
+                        <div class="col-8 col-sm-3">Reboot device after successful save</div>
+                        <div class="col-4 col-sm-9">
+                            <input type="checkbox" name="reboot" checked />
+                            <input type="submit" value="save" class="btn right"/>
+                        </div>
+                    </div>
+                </form>
+                <div class="hr mb-3 mt-3"></div>
+                <div class="mb-4 mt-4">
+                    <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                    <fieldset class="mb-4">
+                        <legend class="des">Import / Export JSON Settings</legend>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-12 col-sm-3 my-2">Import</div>
+                            <div class="col-12 col-sm-9">
+                                <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
+                                    <input type="file" name="upload">
+                                    <input type="button" class="btn" value="Import" onclick="hide()">
+                                </form>
+                            </div>
+                        </div>
+                        <div class="row mb-4 mt-4">
+                            <div class="col-12 col-sm-3 my-2">Export</div>
+                            <div class="col-12 col-sm-9">
+                                <a class="btn" href="/get_setup" target="_blank">Export settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+        {#HTML_FOOTER}
+        <script type="text/javascript">
+            var highestId = 0;
+            var maxInv = 0;
+
+            var esp8266pins = [
+                [255, "off / default"],
+                [0, "D3 (GPIO0)"],
+                [1, "TX (GPIO1)"],
+                [2, "D4 (GPIO2)"],
+                [3, "RX (GPIO3)"],
+                [4, "D2 (GPIO4, SDA)"],
+                [5, "D1 (GPIO5, SCL)"],
+                [6, "GPIO6"],
+                [7, "GPIO7"],
+                [8, "GPIO8"],
+                [9, "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "D6 (GPIO12)"],
+                [13, "D7 (GPIO13)"],
+                [14, "D5 (GPIO14)"],
+                [15, "D8 (GPIO15)"],
+                [16, "D0 (GPIO16 - no IRQ!)"]
+            ];
+            var esp32pins = [
+                [255, "off / default"],
+                [0,  "GPIO0"],
+                [1,  "TX (GPIO1)"],
+                [2,  "GPIO2 (LED)"],
+                [3,  "RX (GPIO3)"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19"],
+                [21, "GPIO21 (SDA)"],
+                [22, "GPIO22 (SCL)"],
+                [23, "GPIO23"],
+                [25, "GPIO25"],
+                [26, "GPIO26"],
+                [27, "GPIO27"],
+                [32, "GPIO32"],
+                [33, "GPIO33"],
+                [34, "GPIO34"],
+                [35, "GPIO35"],
+                [36, "VP (GPIO36)"],
+                [39, "VN (GPIO39)"]
+            ];
+            var esp32s3pins = [
+                [255, "off / default"],
+                [0,  "GPIO0 (DONT USE - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 (DONT USE - USB-)"],
+                [20, "GPIO20 (DONT USE - USB+)"],
+                [21, "GPIO21"],
+                [26, "GPIO26 (PSRAM - not available)"],
+                [27, "GPIO27 (FLASH - not available)"],
+                [28, "GPIO28 (FLASH - not available)"],
+                [29, "GPIO29 (FLASH - not available)"],
+                [30, "GPIO30 (FLASH - not available)"],
+                [31, "GPIO31 (FLASH - not available)"],
+                [32, "GPIO32 (FLASH - not available)"],
+                [33, "GPIO33 (not exposed on WROOM modules)"],
+                [34, "GPIO34 (not exposed on WROOM modules)"],
+                [35, "GPIO35"],
+                [36, "GPIO36"],
+                [37, "GPIO37"],
+                [38, "GPIO38"],
+                [39, "GPIO39"],
+                [40, "GPIO40"],
+                [41, "GPIO41"],
+                [42, "GPIO42"],
+                [43, "GPIO43"],
+                [44, "GPIO44"],
+                [45, "GPIO45 (DONT USE - STRAPPING PIN)"],
+                [46, "GPIO46 (DONT USE - STRAPPING PIN)"],
+                [47, "GPIO47"],
+                [48, "GPIO48"],
+            ];
+
+            const re = /11[2,4,6]1.*/;
+
+            document.getElementById("btnAdd").addEventListener("click", function() {
+                if(highestId <= (maxInv-1)) {
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_pwr":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
+                }
+            });
+
+            function apiCbWifi(obj) {
+                var e = document.getElementById("networks");
+                selDelAllOpt(e);
+                if(obj["success"])
+                    e.appendChild(opt("-1", "scanning ..."))
+                else
+                    e.appendChild(opt("-1", "Error: " + obj["error"]));
+            }
+
+            function apiCbNtp(obj) {
+                var e = document.getElementById("apiResultNtp");
+                if(obj["success"])
+                    e.innerHTML = "command excuted";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function apiCbMqtt(obj) {
+                var e = document.getElementById("apiResultMqtt");
+                if(obj["success"])
+                    e.innerHTML = "command excuted";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function setTime() {
+                var date = new Date();
+                var obj = new Object();
+                obj.cmd = "set_time";
+                obj.val = parseInt(date.getTime() / 1000);
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+            }
+
+            function scan() {
+                var obj = new Object();
+                obj.cmd = "scan_wifi";
+                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
+                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
+            }
+
+            function syncTime() {
+                var obj = new Object();
+                obj.cmd = "sync_ntp";
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+            }
+
+            function sendDiscoveryConfig() {
+                var obj = new Object();
+                obj.cmd = "discovery_cfg";
+                getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
+            }
+
+            function hide() {
+                document.getElementById("form").submit();
+                var e = document.getElementById("content");
+                e.replaceChildren(span("upload started"));
+            }
+
+            function delIv() {
+                var id = this.id.substring(0,4);
+                var e = document.getElementsByName(id + "Addr")[0];
+                e.value = "";
+                e.dispatchEvent(new Event("keyup"));
+                e.dispatchEvent(new Event("change"));
+                document.getElementsByName(id + "Name")[0].value = "";
+            }
+
+            function mlCb(id, des, chk=false) {
+                var cb = ml("input", {type: "checkbox", id: id, name: id}, "");
+                if(chk)
+                    cb.checked = true;
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-8 col-sm-3"}, des),
+                    ml("div", {class: "col-4 col-sm-9"}, cb)
+                ]);
+            }
+
+            function mlE(des, e) {
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-12 col-sm-3 my-2"}, des),
+                    ml("div", {class: "col-12 col-sm-9"}, e)
+                ]);
+            }
+
+            function ivHtml(obj, id) {
+                highestId = id + 1;
+                if(highestId == maxInv)
+                    setHide("btnAdd", true);
+
+                var iv = document.getElementById("inverter");
+                iv.appendChild(des("Inverter " + id));
+                id = "inv" + id;
+
+                var addr = inp(id + "Addr", obj["serial"], 12, ["text"], null, "text", "[0-9]+", "Invalid input");
+                iv.append(
+                    mlCb(id + "Enable", "Communication Enable", obj["enabled"]),
+                    mlE("Serial Number (12 digits)*", addr)
+                );
+
+                ['keyup', 'change'].forEach(function(evt) {
+                    addr.addEventListener(evt, (e) => {
+                        var serial = addr.value.substring(0,4);
+                        var max = 0;
+                        for(var i=0;i<4;i++) {
+                            setHide(id+"ModPwr"+i, true);
+                            setHide(id+"ModName"+i, true);
+                            setHide(id+"YieldCor"+i, true);
+                        }
+                        setHide("row"+id+"ModPwr", true);
+                        setHide("row"+id+"ModName", true);
+                        setHide("row"+id+"YieldCor", true);
+
+                        if(serial.charAt(0) == 1) {
+                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1)) {
+                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2)) {
+                                    switch(serial.charAt(2)) {
+                                        case "2": max = 1; break;
+                                        case "4": max = 2; break;
+                                        case "6": max = 4; break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if(max != 0) {
+                            for(var i=0;i<max;i++) {
+                                setHide(id+"ModPwr"+i, false);
+                                setHide(id+"ModName"+i, false);
+                                setHide(id+"YieldCor"+i, false);
+                            }
+                            setHide("row"+id+"ModPwr", false);
+                            setHide("row"+id+"ModName", false);
+                            setHide("row"+id+"YieldCor", false);
+                        }
+                    })
+                });
+
+                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")));
+
+                for(var j of [
+                    ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
+                    ["ModName", "ch_name", "Module Name", 15, null],
+                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[0-9-]+"]]) {
+
+                    var cl = (re.test(obj["serial"])) ? "" : " hide";
+
+                    i = 0;
+                    arrIn = [];
+                    for(it of obj[j[1]]) {
+                        arrIn.push(ml("div", {class: "col-3 "},
+                            inp(id + j[0] + i, it, j[3], [], id + j[0] + i, "text", j[4], "Invalid input")
+                        ));
+                        i++;
+                    }
+
+                    iv.append(
+                        ml("div", {class: "row mb-2 mb-sm-3" + cl, id: "row" + id + j[0]}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, j[2]),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                ml("div", {class: "row"}, arrIn)
+                            )
+                        ])
+                    );
+                }
+
+                var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
+                del.addEventListener("click", delIv);
+                iv.append(mlE("Delete", del));
+            }
+
+            function ivGlob(obj) {
+                for(var i of [["invInterval", "interval"], ["invRetry", "retries"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                for(var i of [["Mid", "rstMid"], ["ComStop", "rstComStop"], ["NotAvail", "rstNAvail"]])
+                    document.getElementsByName("invRst"+i[0])[0].checked = obj[i[1]];
+            }
+
+            function parseSys(obj) {
+                for(var i of [["device", "device_name"], ["ssid", "ssid"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
+                e = document.getElementsByName("adminpwd")[0];
+                if(!obj["pwd_set"])
+                    e.value = "";
+                var d = document.getElementById("prot_mask");
+                var a = ["Index", "Live", "Serial / Console", "Settings", "Update", "System"];
+                var el = [];
+                for(var i = 0; i < 6; i++) {
+                    var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
+                    el.push(mlCb("protMask" + i, a[i], chk))
+                }
+                d.append(...el);
+            }
+
+            function parseGeneric(obj) {
+                parseNav(obj);
+                parseESP(obj);
+                parseRssi(obj);
+            }
+
+            function parseStaticIp(obj) {
+                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"]])
+                    if(null != obj[i[1]])
+                        document.getElementsByName(i[0])[0].value = obj[i[1]];
+            }
+
+            function parseIv(obj) {
+                for(var i = 0; i < obj.inverter.length; i++)
+                    ivHtml(obj.inverter[i], i);
+                ivGlob(obj);
+                maxInv = obj["max_num_inverters"];
+            }
+
+            function parseMqtt(obj) {
+                for(var i of [["Addr", "broker"], ["Port", "port"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
+                    document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
+            }
+
+            function parseNtp(obj) {
+                for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+            }
+
+            function parseSun(obj) {
+                document.getElementsByName("sunLat")[0].value = obj["lat"];
+                document.getElementsByName("sunLon")[0].value = obj["lon"];
+                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
+                const sel = document.getElementsByName("sunOffs")[0];
+                for(var i = 0; i <= 60; i++) {
+                    sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));
+                }
+            }
+
+            function parsePinout(obj, type, system) {
+                var e = document.getElementById("pinout");
+                if ("ESP8266" == type) {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                } else {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                }
+                for(p of pins) {
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
+                            )
+                        ])
+                    );
+                }
+            }
+
+            function parseRadio(obj) {
+                var e = document.getElementById("rf24").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Power Level"),
+                        ml("div", {class: "col-12 col-sm-9"},
+                            sel("rf24Power", [
+                                [0, "MIN"],
+                                [1, "LOW"],
+                                [2, "HIGH"],
+                                [3, "MAX"]
+                            ], obj["power_level"])
+                        )
+                    ])
+                );
+            }
+
+            function parseSerial(obj) {
+                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"]])
+                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                document.getElementsByName("serIntvl")[0].value = obj["interval"];
+            }
+
+            function parseDisplay(obj, type, system) {
+                for(var i of ["disp_pwr", "disp_pxshift"])
+                    document.getElementsByName(i)[0].checked = obj[i];
+
+                var e = document.getElementById("dispPins");
+                var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
+                if("ESP32" == type)
+                    pins.push(['busy', 'disp_bsy']);
+                for(p of pins) {
+                    e.append(
+                        ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[1]])
+                            )
+                        ])
+                    );
+                }
+
+                var opts = [[0, "None"], [1, "SSD1306 0.96\""], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
+                if("ESP32" == type)
+                    opts.push([10, "ePaper"]);
+                var dispType = sel("disp_typ", opts, obj["disp_typ"]);
+                document.getElementById("dispType").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
+                        ml("div", {class: "col-12 col-sm-9"}, dispType)
+                    ])
+                );
+                dispType.addEventListener('change', (e) => {
+                    hideDispPins(pins, e.target.value)
+                });
+
+                opts = [[0, "0&deg;"], [2, "180&deg;"]];
+                if("ESP32" == type) {
+                    opts.push([1, "90&deg;"]);
+                    opts.push([3, "270&deg;"]);
+                }
+                document.getElementById("dispRot").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Rotation"),
+                        ml("div", {class: "col-12 col-sm-9"}, sel("disp_rot", opts, obj["disp_rot"]))
+                    ])
+                );
+
+                document.getElementsByName("disp_cont")[0].value = obj["disp_cont"];
+                hideDispPins(pins, obj.disp_typ);
+            }
+
+            function hideDispPins(pins, dispType) {
+                for(var i = 0; i < pins.length; i++) {
+                    var cl = document.getElementById("row_" + pins[i][1]).classList;
+
+                    if(0 == dispType)
+                        cl.add("hide");
+                    else if(dispType <= 2) { // OLED
+                        if(i < 2)
+                            cl.remove("hide");
+                        else
+                            cl.add("hide");
+                    } else if(dispType == 3) { // Nokia
+                        if(i < 4)
+                            cl.remove("hide");
+                        else
+                            cl.add("hide");
+                    } else // ePaper
+                        cl.remove("hide");
+                }
+            }
+
+            function parse(root) {
+                if(null != root) {
+                    parseSys(root["system"]);
+                    parseGeneric(root["generic"]);
+                    parseStaticIp(root["static_ip"]);
+                    parseMqtt(root["mqtt"]);
+                    parseNtp(root["ntp"]);
+                    parseSun(root["sun"]);
+                    parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
+                    parseRadio(root["radio"]);
+                    parseSerial(root["serial"]);
+                    parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    getAjax("/api/inverter/list", parseIv);
+                }
+            }
+
+            function listNetworks(root) {
+                var s = document.getElementById("networks");
+                selDelAllOpt(s);
+                if(root["networks"].length > 0) {
+                    s.appendChild(opt("-1", "please select network"));
+                    for(i = 0; i < root["networks"].length; i++) {
+                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
+                    }
+                }
+                else
+                    s.appendChild(opt("-1", "no network found"));
+            }
+
+            function selNet() {
+                var s = document.getElementById("networks");
+                var e = document.getElementsByName("ssid")[0];
+                if(-1 != s.value)
+                    e.value = s.value;
+            }
+
+            getAjax("/api/setup", parse);
+        </script>
+    </body>
+</html>

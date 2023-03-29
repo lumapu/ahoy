@@ -13,7 +13,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: development03
-    - uses: benjlevesque/short-sha@v2.0
+    - uses: benjlevesque/short-sha@v2.1
       id: short-sha
       with:
         length: 7
@@ -43,16 +43,16 @@ jobs:
         pip install --upgrade platformio
 
     - name: Convert HTML files
-      working-directory: tools/esp8266/html
+      working-directory: src/web/html
       run: python convert.py
 
     - name: Run PlatformIO
-      run: pio run -d tools/esp8266 --environment esp8266-release --environment esp8266-1m-release --environment esp32-wroom32-release
+      run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment opendtufusionv1-release
 
     - name: Rename Binary files
       id: rename-binary-files
-      working-directory: tools/esp8266/scripts
-      run: python getVersion.py
+      working-directory: src
+      run: python ../scripts/getVersion.py >> $GITHUB_OUTPUT
 
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
@@ -61,9 +61,16 @@ jobs:
       env:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
 
+    - name: Create Manifest
+      working-directory: src
+      run: python ../scripts/buildManifest.py
+
     - name: Create Artifact
-      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip tools/esp8266/.pio/build/out/* tools/esp8266/User_Manual.md
-    - uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v3
       with:
-        name: ${{ steps.rename-binary-files.outputs.name }}_dev_build
-        path: ./${{ steps.rename-binary-files.outputs.name }}.zip
+        name: ahoydtu_dev
+        path: |
+          src/firmware/*
+          src/User_Manual.md
+          src/install.html
+

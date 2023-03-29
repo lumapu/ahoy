@@ -10,23 +10,43 @@ import struct
 from enum import IntEnum
 import re
 import time
+import traceback
 from datetime import datetime
+from datetime import timedelta
+from suntimes import SunTimes
 import argparse
 import yaml
 from yaml.loader import SafeLoader
-import paho.mqtt.client
 import hoymiles
+import logging
 
-def main_loop(do_init):
-    """Main loop"""
-    inverters = [
-            inverter for inverter in ahoy_config.get('inverters', [])
-            if not inverter.get('disabled', False)]
+################################################################################
+""" Signal Handler """
+################################################################################
+# from signal import signal, Signals, SIGINT, SIGTERM, SIGKILL, SIGHUP
+from signal import *
+def signal_handler(sig_num, frame):
+  signame = Signals(sig_num).name
+  logging.info(f'Stop by Signal {signame} ({sig_num})')
+  print (f'Stop by Signal <{signame}> ({sig_num}) at: {time.strftime("%d.%m.%Y %H:%M:%S")}')
 
-    for inverter in inverters:
-        if hoymiles.HOYMILES_DEBUG_LOGGING:
-            print(f'Poll inverter {inverter["serial"]}')
-        poll_inverter(inverter, do_init)
+  if mqtt_client:
+     mqtt_client.disco()
+
+  if influx_client:
+     influx_client.disco()
+
+  if volkszaehler_client:
+     volkszaehler_client.disco()
+
+  sys.exit(0)
+
+signal(SIGINT,  signal_handler)   # Interrupt from keyboard (CTRL + C)
+signal(SIGTERM, signal_handler)   # Signal Handler from terminating processes
+signal(SIGHUP,  signal_handler)   # Hangup detected on controlling terminal or death of controlling process
+# signal(SIGKILL, signal_handler)   # Signal Handler SIGKILL and SIGSTOP cannot be caught, blocked, or ignored!!
+################################################################################
+################################################################################
 
 class InfoCommands(IntEnum):
     InverterDevInform_Simple = 0  # 0x00
@@ -48,7 +68,96 @@ class InfoCommands(IntEnum):
     GetSelfCheckState = 30        # 0x1e
     InitDataState = 0xff
 
-def poll_inverter(inverter, do_init, retries=4):
+class SunsetHandler:
+    def __init__(self, sunset_config):
+        self.suntimes = None
+        if sunset_config and sunset_config.get('disabled', True) == False:
+            latitude = sunset_config.get('latitude')
+            longitude = sunset_config.get('longitude')
+            altitude = sunset_config.get('altitude')
+            self.suntimes = SunTimes(longitude=longitude, latitude=latitude, altitude=altitude)
+            self.nextSunset = self.suntimes.setutc(datetime.utcnow())
+            logging.info (f'Todays sunset is at {self.nextSunset} UTC')
+        else:
+            logging.info('Sunset disabled.')
+
+    def checkWaitForSunrise(self):
+        if not self.suntimes:
+            return
+        # if the sunset already happened for today
+        now = datetime.utcnow()
+        if self.nextSunset < now:
+            # wait until the sun rises again. if it's already after midnight, this will be today
+            nextSunrise = self.suntimes.riseutc(now)
+            if nextSunrise < now:
+                tomorrow = now + timedelta(days=1)
+                nextSunrise = self.suntimes.riseutc(tomorrow)
+            self.nextSunset = self.suntimes.setutc(nextSunrise)
+            time_to_sleep = int((nextSunrise - datetime.utcnow()).total_seconds())
+            logging.info (f'Next sunrise is at {nextSunrise} UTC, next sunset is at {self.nextSunset} UTC, sleeping for {time_to_sleep} seconds.')
+            if time_to_sleep > 0:
+                time.sleep(time_to_sleep)
+                logging.info (f'Woke up...')
+
+    def sun_status2mqtt(self, dtu_ser, dtu_name):
+        if not mqtt_client:
+            return
+        local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+        local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+        local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
+        if self.suntimes:
+            mqtt_client.info2mqtt({'topic' : f'{dtu_name}/{dtu_ser}'}, \
+                         {'dis_night_comm' : 'True', \
+                           'local_sunrise' : local_sunrise, \
+                            'local_sunset' : local_sunset,
+                              'local_zone' : local_zone})
+        else:
+            mqtt_client.sun_info2mqtt({'sun_topic': f'{dtu_name}/{dtu_ser}'}, \
+                                 {'dis_night_comm': 'False'})
+  
+
+def main_loop(ahoy_config):
+    """Main loop"""
+    inverters = [
+            inverter for inverter in ahoy_config.get('inverters', [])
+            if not inverter.get('disabled', False)]
+
+    sunset = SunsetHandler(ahoy_config.get('sunset'))
+    dtu_ser = ahoy_config.get('dtu', {}).get('serial', None)
+    dtu_name = ahoy_config.get('dtu', {}).get('name', 'hoymiles-dtu')
+    sunset.sun_status2mqtt(dtu_ser, dtu_name)
+    loop_interval = ahoy_config.get('interval', 1)
+
+    try:
+        do_init = True
+        while True:
+            sunset.checkWaitForSunrise()
+
+            t_loop_start = time.time()
+
+            for inverter in inverters:
+                if not 'name' in inverter:
+                    inverter['name'] = 'hoymiles'
+                if not 'serial' in inverter:
+                   logging.error("No inverter serial number found in ahoy.yml - exit")
+                   sys.exit(999)
+                if hoymiles.HOYMILES_DEBUG_LOGGING:
+                    logging.info(f'Poll inverter name={inverter["name"]} ser={inverter["serial"]}')
+                poll_inverter(inverter, dtu_ser, do_init, 3)
+            do_init = False
+
+            if loop_interval > 0:
+                time_to_sleep = loop_interval - (time.time() - t_loop_start)
+                if time_to_sleep > 0:
+                    time.sleep(time_to_sleep)
+
+    except Exception as e:
+        logging.fatal('Exception catched: %s' % e)
+        logging.fatal(traceback.print_exc())
+        raise
+
+
+def poll_inverter(inverter, dtu_ser, do_init, retries):
     """
     Send/Receive command_queue, initiate status poll on inverter
 
@@ -57,7 +166,8 @@ def poll_inverter(inverter, do_init, retries=4):
     :type retries: int
     """
     inverter_ser = inverter.get('serial')
-    dtu_ser = ahoy_config.get('dtu', {}).get('serial')
+    inverter_name = inverter.get('name')
+    inverter_strings = inverter.get('strings')
 
     # Queue at least status data request
     inv_str = str(inverter_ser)
@@ -91,90 +201,55 @@ def poll_inverter(inverter, do_init, retries=4):
                     response = com.get_payload()
                     payload_ttl = 0
                 except Exception as e_all:
-                    print(f'Error while retrieving data: {e_all}')
+                    if hoymiles.HOYMILES_TRANSACTION_LOGGING:
+                        logging.error(f'Error while retrieving data: {e_all}')
                     pass
 
         # Handle the response data if any
         if response:
-            c_datetime = datetime.now()
-            if hoymiles.HOYMILES_DEBUG_LOGGING:
-                print(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
+            if hoymiles.HOYMILES_TRANSACTION_LOGGING:
+                c_datetime = datetime.now()
+                logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
+
+            # prepare decoder object
             decoder = hoymiles.ResponseDecoder(response,
                     request=com.request,
-                    inverter_ser=inverter_ser
+                    inverter_ser=inverter_ser,
+                    inverter_name=inverter_name,
+                    dtu_ser=dtu_ser,
+                    strings=inverter_strings
                     )
+
+            # get decoder object
             result = decoder.decode()
+            if hoymiles.HOYMILES_DEBUG_LOGGING:
+               logging.info(f'Decoded: {result.__dict__()}')
+
+            # check decoder object for output
             if isinstance(result, hoymiles.decoders.StatusResponse):
+
                 data = result.__dict__()
-
-                if hoymiles.HOYMILES_DEBUG_LOGGING:
-                    print(f'{c_datetime} Decoded: temp={data["temperature"]}, total={data["energy_total"]/1000:.3f}', end='')
-                    if data['powerfactor'] is not None:
-                        print(f', pf={data["powerfactor"]}', end='')
-                    phase_id = 0
-                    for phase in data['phases']:
-                        print(f' phase{phase_id}=voltage:{phase["voltage"]}, current:{phase["current"]}, power:{phase["power"]}, frequency:{data["frequency"]}', end='')
-                        phase_id = phase_id + 1
-                    string_id = 0
-                    for string in data['strings']:
-                        print(f' string{string_id}=voltage:{string["voltage"]}, current:{string["current"]}, power:{string["power"]}, total:{string["energy_total"]/1000}, daily:{string["energy_daily"]}', end='')
-                        string_id = string_id + 1
-                    print()
-
                 if 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
                         event_message_index[inv_str] = data['event_count']
                         command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
-                    mqtt_send_status(mqtt_client, inverter_ser, data,
-                            topic=inverter.get('mqtt', {}).get('topic', None))
+                   mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
+                    
                 if influx_client:
-                    influx_client.store_status(result)
+                   influx_client.store_status(result)
 
                 if volkszaehler_client:
-                    volkszaehler_client.store_status(result)
+                   volkszaehler_client.store_status(result)
 
                 if prometheus_client:
                     prometheus_client.store_status(result)
 
-def mqtt_send_status(broker, inverter_ser, data, topic=None):
-    """
-    Publish StatusResponse object
-
-    :param paho.mqtt.client.Client broker: mqtt-client instance
-    :param str inverter_ser: inverter serial
-    :param hoymiles.StatusResponse data: decoded inverter StatusResponse
-    :param topic: custom mqtt topic prefix (default: hoymiles/{inverter_ser})
-    :type topic: str
-    """
-
-    if not topic:
-        topic = f'hoymiles/{inverter_ser}'
-
-    # AC Data
-    phase_id = 0
-    for phase in data['phases']:
-        broker.publish(f'{topic}/emeter/{phase_id}/power', phase['power'])
-        broker.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'])
-        broker.publish(f'{topic}/emeter/{phase_id}/current', phase['current'])
-        phase_id = phase_id + 1
-
-    # DC Data
-    string_id = 0
-    for string in data['strings']:
-        broker.publish(f'{topic}/emeter-dc/{string_id}/total', string['energy_total']/1000)
-        broker.publish(f'{topic}/emeter-dc/{string_id}/power', string['power'])
-        broker.publish(f'{topic}/emeter-dc/{string_id}/voltage', string['voltage'])
-        broker.publish(f'{topic}/emeter-dc/{string_id}/current', string['current'])
-        string_id = string_id + 1
-    # Global
-    if data['powerfactor'] is not None:
-        broker.publish(f'{topic}/pf', data['powerfactor'])
-    broker.publish(f'{topic}/frequency', data['frequency'])
-    broker.publish(f'{topic}/temperature', data['temperature'])
-    if data['energy_total'] is not None:
-        broker.publish(f'{topic}/total', data['energy_total']/1000)
+            # check decoder object for output
+            if isinstance(result, hoymiles.decoders.HardwareInfoResponse):
+                if mqtt_client:
+                   mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
 
 def mqtt_on_command(client, userdata, message):
     """
@@ -203,7 +278,7 @@ def mqtt_on_command(client, userdata, message):
         inverter_ser = next(
                 item[0] for item in mqtt_command_topic_subs if item[1] == message.topic)
     except StopIteration:
-        print('Unexpedtedly received mqtt message for {message.topic}')
+        logging.warning('Unexpedtedly received mqtt message for {message.topic}')
 
     if inverter_ser:
         p_message = message.payload.decode('utf-8').lower()
@@ -221,14 +296,37 @@ def mqtt_on_command(client, userdata, message):
                 command_queue[str(inverter_ser)].append(
                     hoymiles.frame_payload(payload[1:]))
 
+def init_logging(ahoy_config):
+    log_config = ahoy_config.get('logging')
+    fn = 'hoymiles.log'
+    lvl = logging.ERROR
+    if log_config:
+        fn = log_config.get('filename', fn)
+        level = log_config.get('level', 'ERROR')
+        if level == 'DEBUG':
+            lvl = logging.DEBUG
+        elif level == 'INFO':
+            lvl = logging.INFO
+        elif level == 'WARNING':
+            lvl = logging.WARNING
+        elif level == 'ERROR':
+            lvl = logging.ERROR
+        elif level == 'FATAL':
+            lvl = logging.FATAL
+    if hoymiles.HOYMILES_TRANSACTION_LOGGING:
+       lvl = logging.DEBUG
+    logging.basicConfig(filename=fn, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
+    dtu_name = ahoy_config.get('dtu',{}).get('name','hoymiles-dtu')
+    logging.info(f'start logging for {dtu_name} with level: {logging.root.level}')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway', prog="hoymiles")
     parser.add_argument("-c", "--config-file", nargs="?", required=True,
         help="configuration file")
     parser.add_argument("--log-transactions", action="store_true", default=False,
-        help="Enable transaction logging output")
+        help="Enable transaction logging output (loglevel must be DEBUG)")
     parser.add_argument("--verbose", action="store_true", default=False,
-        help="Enable debug output")
+        help="Enable detailed debug output (loglevel must be DEBUG)")
     global_config = parser.parse_args()
 
     # Load ahoy.yml config file
@@ -240,45 +338,35 @@ if __name__ == '__main__':
             with open('ahoy.yml', 'r') as fh_yaml:
                 cfg = yaml.load(fh_yaml, Loader=SafeLoader)
     except FileNotFoundError:
-        print("Could not load config file. Try --help")
+        logging.error("Could not load config file. Try --help")
         sys.exit(2)
     except yaml.YAMLError as e_yaml:
-        print('Failed to load config frile {global_config.config_file}: {e_yaml}')
+        logging.error(f'Failed to load config file {global_config.config_file}: {e_yaml}')
         sys.exit(1)
-
-    ahoy_config = dict(cfg.get('ahoy', {}))
-
-    # Prepare for multiple transceivers, makes them configurable (currently
-    # only one supported)
-    for radio_config in ahoy_config.get('nrf', [{}]):
-        hmradio = hoymiles.HoymilesNRF(**radio_config)
-
-    mqtt_client = None
-
-    event_message_index = {}
-    command_queue = {}
-    mqtt_command_topic_subs = []
 
     if global_config.log_transactions:
         hoymiles.HOYMILES_TRANSACTION_LOGGING=True
     if global_config.verbose:
         hoymiles.HOYMILES_DEBUG_LOGGING=True
 
-    mqtt_config = ahoy_config.get('mqtt', [])
-    if not mqtt_config.get('disabled', False):
-        mqtt_client = paho.mqtt.client.Client()
-        
-        if mqtt_config.get('useTLS',False):
-            mqtt_client.tls_set()
-            mqtt_client.tls_insecure_set(mqtt_config.get('insecureTLS',False))
+    # read AHOY configuration file and prepare logging
+    ahoy_config = dict(cfg.get('ahoy', {}))
+    init_logging(ahoy_config)
 
-        mqtt_client.username_pw_set(mqtt_config.get('user', None), mqtt_config.get('password', None))
-        mqtt_client.connect(mqtt_config.get('host', '127.0.0.1'), mqtt_config.get('port', 1883))
-        mqtt_client.loop_start()
-        mqtt_client.on_message = mqtt_on_command
+    # Prepare for multiple transceivers, makes them configurable
+    for radio_config in ahoy_config.get('nrf', [{}]):
+        hmradio = hoymiles.HoymilesNRF(**radio_config)
 
+    # create MQTT - client object
+    mqtt_client = None
+    mqtt_config = ahoy_config.get('mqtt', None)
+    if mqtt_config and not mqtt_config.get('disabled', False):
+       from .outputs import MqttOutputPlugin
+       mqtt_client = MqttOutputPlugin(mqtt_config)
+
+    # create INFLUX - client object
     influx_client = None
-    influx_config = ahoy_config.get('influxdb', {})
+    influx_config = ahoy_config.get('influxdb', None)
     if influx_config and not influx_config.get('disabled', False):
         from .outputs import InfluxOutputPlugin
         influx_client = InfluxOutputPlugin(
@@ -288,6 +376,7 @@ if __name__ == '__main__':
                 bucket=influx_config.get('bucket', None),
                 measurement=influx_config.get('measurement', 'hoymiles'))
 
+    # create prometheus - client object 
     prometheus_client = None
     prometheus_config = ahoy_config.get('prometheus', {})
     if prometheus_config and not prometheus_config.get('disabled', False):
@@ -295,23 +384,24 @@ if __name__ == '__main__':
         prometheus_client = PrometheusOutputPlugin(
                 prometheus_config)
 
+    # create VOLKSZAEHLER - client object
     volkszaehler_client = None
     volkszaehler_config = ahoy_config.get('volkszaehler', {})
     if volkszaehler_config and not volkszaehler_config.get('disabled', False):
         from .outputs import VolkszaehlerOutputPlugin
-        volkszaehler_client = VolkszaehlerOutputPlugin(
-                volkszaehler_config)
+        volkszaehler_client = VolkszaehlerOutputPlugin(volkszaehler_config)
 
-    g_inverters = [g_inverter.get('serial') for g_inverter in ahoy_config.get('inverters', [])]
+    event_message_index = {}
+    command_queue = {}
+    mqtt_command_topic_subs = []
+
     for g_inverter in ahoy_config.get('inverters', []):
         g_inverter_ser = g_inverter.get('serial')
         inv_str = str(g_inverter_ser)
         command_queue[inv_str] = []
         event_message_index[inv_str] = 0
 
-        #
         # Enables and subscribe inverter to mqtt /command-Topic
-        #
         if mqtt_client and g_inverter.get('mqtt', {}).get('send_raw_enabled', False):
             topic_item = (
                     str(g_inverter_ser),
@@ -320,23 +410,5 @@ if __name__ == '__main__':
             mqtt_client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
-    loop_interval = ahoy_config.get('interval', 1)
-    try:
-        do_init = True
-        while True:
-            t_loop_start = time.time()
-
-            main_loop(do_init)
-
-            do_init = False
-
-            print('', end='', flush=True)
-
-            if loop_interval > 0 and (time.time() - t_loop_start) < loop_interval:
-                time.sleep(loop_interval - (time.time() - t_loop_start))
-
-    except KeyboardInterrupt:
-        sys.exit()
-    except Exception as e:
-        print ('Exception catched: %s' % e)
-        raise
+    # start main-loop
+    main_loop(ahoy_config)

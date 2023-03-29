@@ -9,10 +9,30 @@ import struct
 import time
 import re
 from datetime import datetime
-import json
+import logging
 import crcmod
-from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
 from .decoders import *
+from os import environ
+
+try:
+  # OSI Layer 2 driver for nRF24L01 on Arduino & Raspberry Pi/Linux Devices
+  # https://github.com/nRF24/RF24.git
+  from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+  if environ.get('TERM') is not None:
+    print('Using python Module: RF24')
+except ModuleNotFoundError as e:
+  if environ.get('TERM') is not None:
+    print(f'{e} - try to use module: RF24')
+  try:
+    # Repo for pyRF24 package
+    # https://github.com/nRF24/pyRF24.git
+    from pyrf24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
+    if environ.get('TERM') is not None:
+      print(f'{e} - Using python Module: pyrf24')
+  except ModuleNotFoundError as e:
+    if environ.get('TERM') is not None:
+      print(f'{e} - exit')
+    exit()
 
 f_crc_m = crcmod.predefined.mkPredefinedCrcFun('modbus')
 f_crc8 = crcmod.mkCrcFun(0x101, initCrc=0, xorOut=0)
@@ -50,16 +70,6 @@ def ser_to_esb_addr(inverter_ser):
     """
     air_order = ser_to_hm_addr(inverter_ser)[::-1] + b'\x01'
     return air_order[::-1]
-
-def print_addr(inverter_ser):
-    """
-    Debug print addresses
-
-    :param str inverter_ser: inverter serial
-    """
-    print(f"ser# {inverter_ser} ", end='')
-    print(f" -> HM  {' '.join([f'{byte:02x}' for byte in ser_to_hm_addr(inverter_ser)])}", end='')
-    print(f" -> ESB {' '.join([f'{byte:02x}' for byte in ser_to_esb_addr(inverter_ser)])}")
 
 class ResponseDecoderFactory:
     """
@@ -154,6 +164,9 @@ class ResponseDecoder(ResponseDecoderFactory):
     def __init__(self, response, **params):
         """Initialize ResponseDecoder"""
         ResponseDecoderFactory.__init__(self, response, **params)
+        self.inv_name=params.get('inverter_name', None)
+        self.dtu_ser=params.get('dtu_ser', None)
+        self.strings=params.get('strings', None)
 
     def decode(self):
         """
@@ -165,16 +178,33 @@ class ResponseDecoder(ResponseDecoderFactory):
         model = self.inverter_model
         command = self.request_command
 
+        if HOYMILES_DEBUG_LOGGING:
+            if   command.upper() == '01':
+                model_desc = "Firmware version / date"
+            elif command.upper() == '02':
+                model_desc = "Inverter generic events log"
+            elif command.upper() == '0B':
+                model_desc = "mirco-inverters status data"
+            elif command.upper() == '0C':
+                model_desc = "mirco-inverters status data"
+            elif command.upper() == '11':
+                model_desc = "Inverter generic events log"
+            elif command.upper() == '12':
+                model_desc = "Inverter major events log"
+            logging.info(f'model_decoder: {model}Decode{command.upper()} - {model_desc}')
+
         model_decoders = __import__('hoymiles.decoders')
         if hasattr(model_decoders, f'{model}Decode{command.upper()}'):
             device = getattr(model_decoders, f'{model}Decode{command.upper()}')
         else:
-            if HOYMILES_DEBUG_LOGGING:
-                device = getattr(model_decoders, 'DebugDecodeAny')
+            device = getattr(model_decoders, 'DebugDecodeAny')
 
         return device(self.response,
                 time_rx=self.time_rx,
-                inverter_ser=self.inverter_ser
+                inverter_ser=self.inverter_ser,
+                inverter_name=self.inv_name,
+                dtu_ser=self.dtu_ser,
+                strings=self.strings
                 )
 
 class InverterPacketFragment:
@@ -584,7 +614,7 @@ class InverterTransaction:
 
         if HOYMILES_TRANSACTION_LOGGING:
             c_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            print(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
+            logging.debug(f'{c_datetime} Transmit {len(packet)} | {hexify_payload(packet)}')
 
         self.radio.transmit(packet, txpower=self.txpower)
 
@@ -592,14 +622,14 @@ class InverterTransaction:
         try:
             for response in self.radio.receive():
                 if HOYMILES_TRANSACTION_LOGGING:
-                    print(response)
+                    logging.debug(response)
 
                 self.frame_append(response)
                 wait = True
         except TimeoutError:
             pass
         except BufferError as e:
-            print(f'Buffer error {e}')
+            logging.warning(f'Buffer error {e}')
             pass
 
         return wait

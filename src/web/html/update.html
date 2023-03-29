@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Update</title>
+        {#HTML_HEADER}
+    </head>
+    <body>
+        {#HTML_NAV}
+        <div id="wrapper">
+            <div id="content">
+                <fieldset>
+                    <legend class="des">Select firmware file (*.bin)</legend>
+                    <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
+                        <input type="file" name="update">
+                        <input type="button" class="btn" value="Update" onclick="hide()">
+                    </form>
+                </fieldset>
+            </div>
+        </div>
+        {#HTML_FOOTER}
+        <script type="text/javascript">
+            function parseGeneric(obj) {
+                parseNav(obj);
+                parseESP(obj);
+                parseRssi(obj);
+            }
+
+            function hide() {
+                document.getElementById("form").submit();
+                var e = document.getElementById("content");
+                e.replaceChildren(span("update started"));
+            }
+
+            getAjax("/api/generic", parseGeneric);
+        </script>
+    </body>
+</html>
