@@ -69,7 +69,7 @@ class MiPayload {
         }
 
         void loop() {
-            if ( NULL != mHighPrioIv && mHighPrioIv->ivGen == IV_MI ) {
+            if (NULL != mHighPrioIv) {
                 ivSend(mHighPrioIv, true); // for e.g. devcontrol commands
                 mHighPrioIv = NULL;
             }

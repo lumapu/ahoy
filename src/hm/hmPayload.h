@@ -64,7 +64,7 @@ class HmPayload {
         }
 
         void loop() {
-            if ( NULL != mHighPrioIv && mHighPrioIv->ivGen == IV_HM ) {
+            if (NULL != mHighPrioIv) {
                 ivSend(mHighPrioIv, true);
                 mHighPrioIv = NULL;
             }
