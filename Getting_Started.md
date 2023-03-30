@@ -154,7 +154,7 @@ Example wiring for a 38pin ESP32 module
 
 ##### ESP32 GPIO settings
 
-For this wiring, set the 3 individual GPIOs under the /setup URL:
+CS, CE, IRQ must be set according to how they are wired up. For the diagram above, set the 3 individual GPIOs under the /setup URL as follows:
 
 ```
 CS   D1 (GPIO5)
@@ -162,14 +162,14 @@ CE   D2 (GPIO4)
 IRQ  D0 (GPIO16 - no IRQ!)
 ```
 
-ATTENTION: From development version 108 onwards, also MISO, MOSI and SCLK
-are configurable. Their defaults are correct for 'standard' ESP32 boards
-and non-settable for ESP8266 (as this chip cannot move them elsewhere).
-If you have an existing install though, you might see '0' in the web GUI.
+IMPORTANT: From development version 108/release 0.6.0 onwards, also MISO, MOSI, and SCLK
+are configurable. On new installations, their defaults are correct for most ESP32 boards.
+These pins cannot be configured for ESP82xx boards, as this chip cannot move them elsewhere.
 
-Set MISO=19, MOSI=23, SCLK=18 in GUI and save for existing installs, this is the old
-correct default for most ESP32 boards, for ESP82xx, a simple settings save should suffice.
-Reboot afterwards.
+If you are upgrading an existing install though, you might see that these pins are set to '0' in the web GUI. 
+Communication with the NRF module wont work. For upgrading an existing installations, set MISO=19, MOSI=23, SCLK=18 in the settings. 
+This is the correct default for most ESP32 boards. On ESP82xx, simply saving the settings without changes should suffice.
+Save and reboot.
 
 
 ## Flash the Firmware on your Ahoy DTU Hardware
