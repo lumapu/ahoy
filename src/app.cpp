@@ -166,7 +166,7 @@ void app::loopStandard(void) {
             mCmtRadio.mBufCtrl.pop();
             yield();
         }
-        //mHmsPayload.process(true);
+        mHmsPayload.process(false); //true
     }
     #endif
     mPayload.loop();

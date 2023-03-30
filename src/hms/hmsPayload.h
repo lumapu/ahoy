@@ -339,7 +339,6 @@ class HmsPayload {
                         }
 
                         iv->setQueuedCmdFinished();
-                        reset(iv->id);
                     }
                 }
                 yield();
