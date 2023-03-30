@@ -97,7 +97,6 @@ def readVersion(path, infile):
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")
     os.rename("~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin", dst + "ota.bin")
-    genOtaBin(path + "firmware/s3/")
 
     os.rename("../scripts/gh-action-dev-build-flash.html", path + "install.html")
 
