@@ -49,6 +49,8 @@ class PubMqtt {
             mTxCnt = 0;
             mSubscriptionCb = NULL;
             memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
+            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
+
             mLastAnyAvail = false;
         }
 
@@ -522,7 +524,13 @@ class PubMqtt {
         void sendData(Inverter<> *iv, uint8_t curInfoCmd) {
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
-            if (iv->getLastTs(rec) > 0) {
+            uint32_t lastTs = iv->getLastTs(rec);
+            bool pubData = (lastTs > 0);
+            if (curInfoCmd == RealTimeRunData_Debug)
+                pubData &= (lastTs != mIvLastRTRpub[iv->id]);
+
+            if (pubData) {
+                mIvLastRTRpub[iv->id] = lastTs;
                 for (uint8_t i = 0; i < rec->length; i++) {
                     bool retained = false;
                     if (curInfoCmd == RealTimeRunData_Debug) {
@@ -653,6 +661,7 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
+        uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 
         // last will topic and payload must be available trough lifetime of 'espMqttClient'
