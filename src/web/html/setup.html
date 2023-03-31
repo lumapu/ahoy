@@ -363,6 +363,54 @@
                 [36, "VP (GPIO36)"],
                 [39, "VN (GPIO39)"]
             ];
+            var esp32s3pins = [
+                [255, "off / default"],
+                [0,  "GPIO0 (DONT USE - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 (DONT USE - USB-)"],
+                [20, "GPIO20 (DONT USE - USB+)"],
+                [21, "GPIO21"],
+                [26, "GPIO26 (PSRAM - not available)"],
+                [27, "GPIO27 (FLASH - not available)"],
+                [28, "GPIO28 (FLASH - not available)"],
+                [29, "GPIO29 (FLASH - not available)"],
+                [30, "GPIO30 (FLASH - not available)"],
+                [31, "GPIO31 (FLASH - not available)"],
+                [32, "GPIO32 (FLASH - not available)"],
+                [33, "GPIO33 (not exposed on WROOM modules)"],
+                [34, "GPIO34 (not exposed on WROOM modules)"],
+                [35, "GPIO35"],
+                [36, "GPIO36"],
+                [37, "GPIO37"],
+                [38, "GPIO38"],
+                [39, "GPIO39"],
+                [40, "GPIO40"],
+                [41, "GPIO41"],
+                [42, "GPIO42"],
+                [43, "GPIO43"],
+                [44, "GPIO44"],
+                [45, "GPIO45 (DONT USE - STRAPPING PIN)"],
+                [46, "GPIO46 (DONT USE - STRAPPING PIN)"],
+                [47, "GPIO47"],
+                [48, "GPIO48"],
+            ];
 
             const re = /11[2,4,6]1.*/;
 
@@ -605,15 +653,19 @@
                 }
             }
 
-            function parsePinout(obj, type) {
+            function parsePinout(obj, type, system) {
                 var e = document.getElementById("pinout");
-                pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                if ("ESP8266" == type) {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                } else {
+                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso'], ['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                }
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[0]])
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
                             )
                         ])
                     );
@@ -642,7 +694,7 @@
                 document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
-            function parseDisplay(obj, type) {
+            function parseDisplay(obj, type, system) {
                 for(var i of ["disp_pwr", "disp_pxshift"])
                     document.getElementsByName(i)[0].checked = obj[i];
 
@@ -655,7 +707,7 @@
                         ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : esp32pins, obj[p[1]])
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[1]])
                             )
                         ])
                     );
@@ -720,10 +772,10 @@
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
-                    parsePinout(root["pinout"], root["system"]["esp_type"]);
+                    parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
-                    parseDisplay(root["display"], root["system"]["esp_type"]);
+                    parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
                     getAjax("/api/inverter/list", parseIv);
                 }
             }

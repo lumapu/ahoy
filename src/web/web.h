@@ -30,10 +30,11 @@
 #include "html/h/save_html.h"
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
+#include "html/h/about_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinLed0", "pinLed1"};
+const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1"};
 
 template <class HMSYSTEM>
 class Web {
@@ -83,6 +84,7 @@ class Web {
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            mWeb.on("/about",          HTTP_GET,  std::bind(&Web::onAbout,        this, std::placeholders::_1));
             mWeb.on("/debug",          HTTP_GET,  std::bind(&Web::onDebug,        this, std::placeholders::_1));
 
 
@@ -141,16 +143,14 @@ class Web {
                 }
             }
             if (!Update.hasError()) {
-                if (Update.write(data, len) != len) {
+                if (Update.write(data, len) != len)
                     Update.printError(Serial);
-                }
             }
             if (final) {
-                if (Update.end(true)) {
+                if (Update.end(true))
                     Serial.printf("Update Success: %uB\n", index + len);
-                } else {
+                else
                     Update.printError(Serial);
-                }
             }
         }
 
@@ -245,7 +245,7 @@ class Web {
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
-            bool reboot = !Update.hasError();
+            bool reboot = (!Update.hasError());
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
             if (reboot)
@@ -521,14 +521,17 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 5; i++) {
+            for (uint8_t i = 0; i < 8; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
                     case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3:  mConfig->led.led0 = pin; break;
-                    case 4:  mConfig->led.led1 = pin; break;
+                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_SCLK_PIN); break;
+                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_MOSI_PIN); break;
+                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_MISO_PIN); break;
+                    case 6:  mConfig->led.led0 = pin; break;
+                    case 7:  mConfig->led.led1 = pin; break;
                 }
             }
 
@@ -609,6 +612,21 @@ class Web {
             }
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), visualization_html, visualization_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+
+            request->send(response);
+        }
+
+        void onAbout(AsyncWebServerRequest *request) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
+                if (mProtected) {
+                    checkRedirect(request);
+                    return;
+                }
+            }
+
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
 

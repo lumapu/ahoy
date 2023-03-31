@@ -146,28 +146,28 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
 
         _display->setFont(&FreeSans12pt7b);
         y = _display->height() / 2;
-        _display->setCursor(0, y);
+        _display->setCursor(5, y);
         _display->print("today:");
         snprintf(_fmtText, _display->width(), "%.0f", _totalYieldDay);
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         x = ((_display->width() - tbw) / 2) - tbx;
         _display->setCursor(x, y);
         _display->print(_fmtText);
-        _display->setCursor(_display->width() - 33, y);
+        _display->setCursor(_display->width() - 38, y);
         _display->println("Wh");
 
         y = y + tbh + 7;
-        _display->setCursor(0, y);
+        _display->setCursor(5, y);
         _display->print("total:");
         snprintf(_fmtText, _display->width(), "%.1f", _totalYieldTotal);
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         x = ((_display->width() - tbw) / 2) - tbx;
         _display->setCursor(x, y);
         _display->print(_fmtText);
-        _display->setCursor(_display->width() - 45, y);
+        _display->setCursor(_display->width() - 50, y);
         _display->println("kWh");
 
-        _display->setCursor(0, _display->height() - (mHeadFootPadding + 10));
+        _display->setCursor(10, _display->height() - (mHeadFootPadding + 10));
         snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", _isprod);
         _display->println(_fmtText);
 
