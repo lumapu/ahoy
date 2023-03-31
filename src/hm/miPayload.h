@@ -149,7 +149,7 @@ class MiPayload {
                 if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
                     cmd  = 0x0f;                              // for MI, these seem to make part of the  Polling the device software and hardware version number command
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false);
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, true);
                 } else {
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
                 };
@@ -442,7 +442,7 @@ const byteAssign_t InfoAssignment[] = {
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true);
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, true);
                                         //iv->setQueuedCmdFinished();
                                         //cmd = iv->getQueuedCmd();
                                     } else {

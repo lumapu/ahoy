@@ -205,6 +205,7 @@ class HmRadio {
             } else { //MI 2nd gen. specific
                 switch (cmd) {
                     case TurnOn:
+                        //mTxBuf[0] = 0x50;
                         mTxBuf[9] = 0x55;
                         mTxBuf[10] = 0xaa;
                         break;
@@ -223,7 +224,7 @@ class HmRadio {
                 }
                 cnt++;
             }
-            sendPacket(invId, cnt, isRetransmit, true);
+            sendPacket(invId, cnt, isRetransmit, isNoMI);
         }
 
         void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
@@ -239,9 +240,9 @@ class HmRadio {
             sendPacket(invId, 24, isRetransmit, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit) {
+        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool isMI=false) {
             initPacket(invId, mid, pid);
-            sendPacket(invId, 10, isRetransmit, false);
+            sendPacket(invId, 10, isRetransmit, isMI);
         }
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
@@ -317,12 +318,12 @@ class HmRadio {
             mTxBuf[9]  = pid;
         }
 
-        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool clear=false) {
+        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool appendCrc16=false) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
 
             // append crc's
-            if (len > 10) {
+            if (appendCrc16 && len > 10) {
                 // crc control data
                 uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
                 mTxBuf[len++] = (crc >> 8) & 0xff;
