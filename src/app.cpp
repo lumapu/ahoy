@@ -69,7 +69,7 @@ void app::setup() {
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
     #endif
-    setupLed();
+    setupLed(mConfig->led.led_high_active);
 
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
@@ -353,7 +353,7 @@ void app::tickSend(void) {
     }
     yield();
 
-    updateLed();
+    updateLed(mConfig->led.led_high_active);
 }
 
 //-----------------------------------------------------------------------------
@@ -386,31 +386,33 @@ void app::mqttSubRxCb(JsonObject obj) {
 }
 
 //-----------------------------------------------------------------------------
-void app::setupLed(void) {
-    /** LED connection diagram
-     *          \\
-     * PIN ---- |<----- 3.3V
-     *
-     * */
+void app::setupLed(uint8_t is_high_active) {
+
+    uint8_t led_off = (is_high_active != 0) ? LOW : HIGH;
+
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
-        digitalWrite(mConfig->led.led0, HIGH);  // LED off
+        digitalWrite(mConfig->led.led0, led_off);
     }
     if (mConfig->led.led1 != 0xff) {
         pinMode(mConfig->led.led1, OUTPUT);
-        digitalWrite(mConfig->led.led1, HIGH);  // LED off
+        digitalWrite(mConfig->led.led1, led_off);
     }
 }
 
 //-----------------------------------------------------------------------------
-void app::updateLed(void) {
+void app::updateLed(uint8_t is_high_active) {
+
+    uint8_t led_off = (is_high_active != 0) ? LOW : HIGH;
+    uint8_t led_on = (is_high_active != 0) ? HIGH : LOW;
+
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
             if (iv->isProducing(mTimestamp))
-                digitalWrite(mConfig->led.led0, LOW);  // LED on
+                digitalWrite(mConfig->led.led0, led_on);
             else
-                digitalWrite(mConfig->led.led0, HIGH);  // LED off
+                digitalWrite(mConfig->led.led0, led_off);
         }
     }
 }

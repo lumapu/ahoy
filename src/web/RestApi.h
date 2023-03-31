@@ -391,6 +391,7 @@ class RestApi {
             obj[F("miso")] = mConfig->nrf.pinMiso;
             obj[F("led0")] = mConfig->led.led0;
             obj[F("led1")] = mConfig->led.led1;
+            obj[F("led_high_active")] = mConfig->led.led_high_active;
         }
 
         void getRadio(JsonObject obj) {
