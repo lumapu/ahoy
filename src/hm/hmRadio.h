@@ -155,10 +155,14 @@ class HmRadio {
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            while (millis()-loopMillis < 410) {
-                while (micros()-startMicros < 5110) {  // listen 5110us to each channel
+
+            uint32_t timeslot = 4088;//5110; //3066; //6132;//4088;
+            uint64_t tsCnt = 0;
+            while (millis()-loopMillis < 200) {
+                while (micros()-startMicros < timeslot) {  // listen timeslot us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
+                        DBGPRINTLN("*** time: " + String(tsCnt*(uint64_t)timeslot + (uint64_t)(micros()-startMicros)) + " ***");
                         if (getReceived()) {        // everything received
                             return true;
                         }
@@ -170,6 +174,7 @@ class HmRadio {
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
+                tsCnt++;
                 yield();
             }
             // not finished but time is over

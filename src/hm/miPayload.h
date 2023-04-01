@@ -751,7 +751,7 @@ const byteAssign_t InfoAssignment[] = {
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
             yield();
-            notify(mPayload[iv->id].txCmd);
+            notify(RealTimeRunData_Debug); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
         }
 
         bool build(uint8_t id, bool *complete) {
