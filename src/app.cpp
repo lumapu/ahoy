@@ -387,30 +387,40 @@ void app::mqttSubRxCb(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
-    /** LED connection diagram
-     *          \\
-     * PIN ---- |<----- 3.3V
-     *
-     * */
+
+    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
+
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
-        digitalWrite(mConfig->led.led0, HIGH);  // LED off
+        digitalWrite(mConfig->led.led0, led_off);
     }
     if (mConfig->led.led1 != 0xff) {
         pinMode(mConfig->led.led1, OUTPUT);
-        digitalWrite(mConfig->led.led1, HIGH);  // LED off
+        digitalWrite(mConfig->led.led1, led_off);
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
+
+    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
+    uint8_t led_on = (mConfig->led.led_high_active != 0) ? HIGH : LOW;
+
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
             if (iv->isProducing(mTimestamp))
-                digitalWrite(mConfig->led.led0, LOW);  // LED on
+                digitalWrite(mConfig->led.led0, led_on);
             else
-                digitalWrite(mConfig->led.led0, HIGH);  // LED off
+                digitalWrite(mConfig->led.led0, led_off);
+        }
+    }
+
+    if (mConfig->led.led1 != 0xff) {
+        if (getMqttIsConnected()) {
+            digitalWrite(mConfig->led.led1, led_on);
+        } else {
+            digitalWrite(mConfig->led.led1, led_off);
         }
     }
 }

@@ -34,7 +34,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1"};
+const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive"};
 
 template <class HMSYSTEM>
 class Web {
@@ -532,6 +532,7 @@ class Web {
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_MISO_PIN); break;
                     case 6:  mConfig->led.led0 = pin; break;
                     case 7:  mConfig->led.led1 = pin; break;
+                    case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
                 }
             }
 
