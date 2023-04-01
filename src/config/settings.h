@@ -519,11 +519,11 @@ class settings {
             if(set) {
                 obj[F("0")] = mCfg.led.led0;
                 obj[F("1")] = mCfg.led.led1;
-                obj[F("2")] = mCfg.led.led_high_active;
+                obj[F("led_high_active")] = mCfg.led.led_high_active;
             } else {
                 mCfg.led.led0 = obj[F("0")];
                 mCfg.led.led1 = obj[F("1")];
-                mCfg.led.led_high_active = obj[F("2")];
+                mCfg.led.led_high_active = obj[F("led_high_active")];
             }
         }
 

@@ -69,7 +69,7 @@ void app::setup() {
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
     #endif
-    setupLed(mConfig->led.led_high_active);
+    setupLed();
 
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
@@ -353,7 +353,7 @@ void app::tickSend(void) {
     }
     yield();
 
-    updateLed(mConfig->led.led_high_active);
+    updateLed();
 }
 
 //-----------------------------------------------------------------------------
@@ -386,9 +386,9 @@ void app::mqttSubRxCb(JsonObject obj) {
 }
 
 //-----------------------------------------------------------------------------
-void app::setupLed(uint8_t is_high_active) {
+void app::setupLed(void) {
 
-    uint8_t led_off = (is_high_active != 0) ? LOW : HIGH;
+    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
 
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
@@ -401,10 +401,10 @@ void app::setupLed(uint8_t is_high_active) {
 }
 
 //-----------------------------------------------------------------------------
-void app::updateLed(uint8_t is_high_active) {
+void app::updateLed(void) {
 
-    uint8_t led_off = (is_high_active != 0) ? LOW : HIGH;
-    uint8_t led_on = (is_high_active != 0) ? HIGH : LOW;
+    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
+    uint8_t led_on = (mConfig->led.led_high_active != 0) ? HIGH : LOW;
 
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
@@ -413,6 +413,14 @@ void app::updateLed(uint8_t is_high_active) {
                 digitalWrite(mConfig->led.led0, led_on);
             else
                 digitalWrite(mConfig->led.led0, led_off);
+        }
+    }
+
+    if (mConfig->led.led1 != 0xff) {
+        if (getMqttIsConnected()) {
+            digitalWrite(mConfig->led.led1, led_on);
+        } else {
+            digitalWrite(mConfig->led.led1, led_off);
         }
     }
 }
