@@ -659,7 +659,7 @@ const byteAssign_t InfoAssignment[] = {
             if ( datachan < 3 ) {
                 mPayload[iv->id].dataAB[datachan] = true;
             }
-            if ( !mPayload[iv->id].dataAB[CH0] && mPayload[iv->id].dataAB[CH2] && mPayload[iv->id].dataAB[CH2] ) {
+            if ( !mPayload[iv->id].dataAB[CH0] && mPayload[iv->id].dataAB[CH1] && mPayload[iv->id].dataAB[CH2] ) {
                 mPayload[iv->id].dataAB[CH0] = true;
             }
 
