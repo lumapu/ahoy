@@ -448,8 +448,8 @@ const byteAssign_t InfoAssignment[] = {
                                     } else {
                                         bool change = false;
                                         if ( cmd >= 0x36 && cmd < 0x39 ) { // MI-1500 Data command
-                                            cmd++; // just request the next channel
-                                            change = true;
+                                            //cmd++; // just request the next channel
+                                            //change = true;
                                         } else if ( cmd == 0x09 ) {//MI single or dual channel device
                                             if ( mPayload[iv->id].dataAB[CH1] && iv->type == INV_TYPE_2CH  ) {
                                                 if (!mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].retransmits<2) {}
@@ -472,6 +472,7 @@ const byteAssign_t InfoAssignment[] = {
                                         if (change) {
                                             DBGPRINT(F("next request is"));
                                             //mPayload[iv->id].skipfirstrepeat = 0;
+                                            mPayload[iv->id].txCmd = cmd;
                                         } else {
                                             DBGPRINT(F("sth."));
                                             DBGPRINT(F(" missing: Request Retransmit"));
@@ -480,7 +481,6 @@ const byteAssign_t InfoAssignment[] = {
                                         DBGHEXLN(cmd);
                                         //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
                                         mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
-                                        mPayload[iv->id].txCmd = cmd;
                                         yield();
                                     }
                                 }
@@ -682,11 +682,13 @@ const byteAssign_t InfoAssignment[] = {
                 }*/
                 miStsConsolidate(iv, datachan, rec, p->packet[23], p->packet[24]);
 
-
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
                     /*uint8_t cmd = p->packet[0] - ALL_FRAMES + 1;
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
                     mPayload[iv->id].txCmd = cmd;*/
+                    mPayload[iv->id].txCmd++;
+                    if (mPayload[iv->id].retransmits)
+                        mPayload[iv->id].retransmits--; // reserve retransmissions for each response
                     mPayload[iv->id].complete = false;
                 }
 
