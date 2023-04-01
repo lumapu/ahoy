@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2023 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #if defined(ESP32) && defined(F)
@@ -159,6 +159,9 @@ void ahoywifi::setupAp(void) {
     DBGPRINT(F("IP Address: http://"));
     DBGPRINTLN(mApIp.toString());
     DBGPRINTLN(F("---------\n"));
+
+    if(String(mConfig->sys.deviceName) != "")
+        WiFi.hostname(mConfig->sys.deviceName);
 
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAPConfig(mApIp, mApIp, IPAddress(255, 255, 255, 0));
