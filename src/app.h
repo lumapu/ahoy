@@ -217,8 +217,8 @@ class app : public IApp, public ah::Scheduler {
 
         void mqttSubRxCb(JsonObject obj);
 
-        void setupLed(void);
-        void updateLed(void);
+        void setupLed();
+        void updateLed();
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));

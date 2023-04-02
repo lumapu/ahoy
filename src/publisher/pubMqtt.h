@@ -50,7 +50,6 @@ class PubMqtt {
             mSubscriptionCb = NULL;
             memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
-
             mLastAnyAvail = false;
         }
 

@@ -50,6 +50,7 @@ def readVersion(path, infile):
                     versionnumber += line[p+13:].rstrip() + "."
     
     os.mkdir(path + "firmware/")
+    os.mkdir(path + "firmware/s3/")
     sha = os.getenv("SHA",default="sha")
 
     versionout = version[:-1] + "_" + sha + "_esp8266.bin"
@@ -80,7 +81,7 @@ def readVersion(path, infile):
 
     versionout = version[:-1] + "_" + sha + "_esp32s3.bin"
     src = path + ".pio/build/opendtufusionv1-release/firmware.bin"
-    dst = path + "firmware/" + versionout
+    dst = path + "firmware/s3/" + versionout
     os.rename(src, dst)
 
     # other ESP32 bin files
@@ -89,6 +90,14 @@ def readVersion(path, infile):
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")
     genOtaBin(path + "firmware/")
+
+    # other ESP32S3 bin files
+    src = path + ".pio/build/opendtufusionv1-release/"
+    dst = path + "firmware/s3/"
+    os.rename(src + "bootloader.bin", dst + "bootloader.bin")
+    os.rename(src + "partitions.bin", dst + "partitions.bin")
+    os.rename(src + "ota.bin", dst + "ota.bin")
+
     os.rename("../scripts/gh-action-dev-build-flash.html", path + "install.html")
 
     print("name=" + versionnumber[:-1] )
