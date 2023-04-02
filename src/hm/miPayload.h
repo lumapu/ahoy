@@ -151,7 +151,8 @@ class MiPayload {
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
                     mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 } else {
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 };
 
                 mPayload[iv->id].txCmd = cmd;
@@ -479,8 +480,8 @@ const byteAssign_t InfoAssignment[] = {
                                         }
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
-                                        //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
-                                        mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
                                     }
                                 }
@@ -496,7 +497,8 @@ const byteAssign_t InfoAssignment[] = {
 
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
-                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            mSys->Radio.sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
                     /*else {  // payload complete
