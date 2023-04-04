@@ -64,7 +64,7 @@ class HmPayload {
         }
 
         void loop() {
-            if(NULL != mHighPrioIv) {
+            if (NULL != mHighPrioIv) {
                 ivSend(mHighPrioIv, true);
                 mHighPrioIv = NULL;
             }
@@ -110,19 +110,22 @@ class HmPayload {
                         process(false); // no retransmit
 
                     if (!mPayload[iv->id].complete) {
-                        if (MAX_PAYLOAD_ENTRIES == mPayload[iv->id].maxPackId)
-                            mStat->rxFailNoAnser++; // got nothing
-                        else
-                            mStat->rxFail++; // got fragments but not complete response
-
-                        iv->setQueuedCmdFinished();  // command failed
-                        if (mSerialDebug) {
-                            DPRINTLN(DBG_INFO, F("enqueued cmd failed/timeout"));
+                        if (mSerialDebug)
                             DPRINT_IVID(DBG_INFO, iv->id);
-                            DBGPRINT(F("no Payload received! (retransmits: "));
-                            DBGPRINT(String(mPayload[iv->id].retransmits));
-                            DBGPRINTLN(F(")"));
+                        if (MAX_PAYLOAD_ENTRIES == mPayload[iv->id].maxPackId) {
+                            mStat->rxFailNoAnser++; // got nothing
+                            if (mSerialDebug)
+                                DBGPRINTLN(F("enqueued cmd failed/timeout"));
                         }
+                        else {
+                            mStat->rxFail++; // got fragments but not complete response
+                            if (mSerialDebug) {
+                                DBGPRINT(F("no complete Payload received! (retransmits: "));
+                                DBGPRINT(String(mPayload[iv->id].retransmits));
+                                DBGPRINTLN(F(")"));
+                            }
+                        }
+                        iv->setQueuedCmdFinished();  // command failed
                     }
                 }
             }
@@ -207,6 +210,8 @@ class HmPayload {
 
                     iv->clearCmdQueue();
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                    if(mHighPrioIv == NULL)                          // do it immediately if possible
+                        mHighPrioIv = iv;
                 }
                 iv->devControlCmd = Init;
             }
@@ -390,8 +395,8 @@ class HmPayload {
         }
 
         void reset(uint8_t id) {
-            DPRINT(DBG_INFO, "resetPayload: id: ");
-            DBGPRINTLN(String(id));
+            DPRINT_IVID(DBG_INFO, id);
+            DBGPRINTLN(F("resetPayload"));
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
             mPayload[id].txCmd       = 0;
             mPayload[id].gotFragment = false;

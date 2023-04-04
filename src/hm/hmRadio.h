@@ -52,12 +52,15 @@ template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
-            DPRINT(DBG_VERBOSE, String(CE_PIN));
-            DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
-            DPRINT(DBG_VERBOSE, String(CS_PIN));
-            DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
-            DPRINTLN(DBG_VERBOSE, String(SPI_SPEED) + ")");
+            if(mSerialDebug) {
+                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+                DPRINT(DBG_VERBOSE, String(CE_PIN));
+                DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
+                DPRINT(DBG_VERBOSE, String(CS_PIN));
+                DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
+                DPRINT(DBG_VERBOSE, String(SPI_SPEED));
+                DPRINTLN(DBG_VERBOSE, F(")"));
+            }
 
             // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
             // Channel List      2403, 2423, 2440, 2461, 2475MHz
@@ -101,19 +104,20 @@ class HmRadio {
             // change the byte order of the DTU serial number and append the required 0x01 at the end
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
+            SPIClass* spi;
             #ifdef ESP32
                 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
-                    mSpi = new SPIClass(FSPI);
+                    spi = new SPIClass(FSPI);
                 #else
-                    mSpi = new SPIClass(VSPI);
+                    spi = new SPIClass(VSPI);
                 #endif
-                mSpi->begin(sclk, miso, mosi, cs);
+                spi->begin(sclk, miso, mosi, cs);
             #else
                 //the old ESP82xx cannot freely place their SPI pins
-                mSpi = new SPIClass();
-                mSpi->begin();
+                spi = new SPIClass();
+                spi->begin();
             #endif
-            mNrf24.begin(mSpi, ce, cs);
+            mNrf24.begin(spi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
@@ -123,7 +127,7 @@ class HmRadio {
             mNrf24.enableDynamicPayloads();
             mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.setAddressWidth(5);
-            mNrf24.openReadingPipe(1, DTU_RADIO_ID);
+            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
 
             // enable all receiving interrupts
             mNrf24.maskIRQ(false, false, false);
@@ -147,32 +151,31 @@ class HmRadio {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
             mNrf24.flush_tx();                              // empty TX FIFO
-            //DBGPRINTLN("TX whatHappened Ch" + String(mRfChLst[mTxChIdx]) + " " + String(tx_ok) + String(tx_fail) + String(rx_ready));
 
-            // start listening on the default RX channel
-            mRxChIdx = 0;
+            // start listening
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
-            //uint32_t debug_ms = millis();
-            uint16_t cnt = 300; // that is 60 times 5 channels
-            while (0 < cnt--) {
-                uint32_t startMillis = millis();
-                while (millis()-startMillis < 4) {  // listen 4ms to each channel
+            uint32_t startMicros = micros();
+            uint32_t loopMillis = millis();
+            while (millis()-loopMillis < 400) {
+                while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
-                            //DBGPRINTLN("RX finished Cnt: " + String(300-cnt) + " time used: " + String(millis()-debug_ms)+ " ms");
                             return true;
                         }
                     }
                     yield();
                 }
-                switchRxCh();   // switch to next RX channel
+                // switch to next RX channel
+                startMicros = micros();
+                if(++mRxChIdx >= RF_CHANNELS)
+                    mRxChIdx = 0;
+                mNrf24.setChannel(mRfChLst[mRxChIdx]);
                 yield();
             }
             // not finished but time is over
-            //DBGPRINTLN("RX not finished: 300 time used: " + String(millis()-debug_ms)+ " ms");
             return true;
         }
 
@@ -205,6 +208,7 @@ class HmRadio {
             } else { //MI 2nd gen. specific
                 switch (cmd) {
                     case TurnOn:
+                        //mTxBuf[0] = 0x50;
                         mTxBuf[9] = 0x55;
                         mTxBuf[10] = 0xaa;
                         break;
@@ -223,11 +227,14 @@ class HmRadio {
                 }
                 cnt++;
             }
-            sendPacket(invId, cnt, isRetransmit, true);
+            sendPacket(invId, cnt, isRetransmit, isNoMI);
         }
 
         void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
-            DPRINTLN(DBG_DEBUG, F("prepareDevInformCmd 0x") + String(cmd, HEX));
+            if(mSerialDebug) {
+                DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
+                DPRINTLN(DBG_DEBUG,String(cmd, HEX));
+            }
             initPacket(invId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
@@ -239,9 +246,9 @@ class HmRadio {
             sendPacket(invId, 24, isRetransmit, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit) {
+        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
             initPacket(invId, mid, pid);
-            sendPacket(invId, 10, isRetransmit, false);
+            sendPacket(invId, 10, isRetransmit, appendCrc16);
         }
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
@@ -274,7 +281,6 @@ class HmRadio {
         bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
-            //DBGPRINTLN("RX whatHappened Ch" + String(mRfChLst[mRxChIdx]) + " " + String(tx_ok) + String(tx_fail) + String(rx_ready));
 
             bool isLastPackage = false;
             while(mNrf24.available()) {
@@ -285,31 +291,28 @@ class HmRadio {
                     p.ch = mRfChLst[mRxChIdx];
                     p.len = len;
                     mNrf24.read(p.packet, len);
-                    mBufCtrl.push(p);
-                    if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
-                        isLastPackage = (p.packet[9] > 0x81);       // > 0x81 indicates last packet received
-                    else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
-                        isLastPackage = (p.packet[9] > 0x11);       // > 0x11 indicates last packet received
-                    else if (p.packet[0] != 0x00 && p.packet[0] != 0x88 && p.packet[0] != 0x92)
-                                                                    // ignore fragment number zero and MI status messages
-                        isLastPackage = true;                       // response from dev control command
-                    yield();
+                    if (p.packet[0] != 0x00) {
+                        mBufCtrl.push(p);
+                        if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
+                            isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                        else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
+                            isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
+                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
+                            isLastPackage = true;                       // response from dev control command
+                    }
                 }
+                yield();
             }
             return isLastPackage;
         }
 
-        void switchRxCh() {
-            mNrf24.stopListening();
-            // get next channel index
-            if(++mRxChIdx >= RF_CHANNELS)
-                mRxChIdx = 0;
-            mNrf24.setChannel(mRfChLst[mRxChIdx]);
-            mNrf24.startListening();
-        }
-
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
-            DPRINTLN(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
+            if(mSerialDebug) {
+                DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
+                DPRINT(DBG_VERBOSE, String(mid, HEX));
+                DPRINT(DBG_VERBOSE,F(" pid: "));
+                DPRINTLN(DBG_VERBOSE,String(pid, HEX));
+            }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -317,12 +320,12 @@ class HmRadio {
             mTxBuf[9]  = pid;
         }
 
-        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool clear=false) {
+        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
 
             // append crc's
-            if (len > 10) {
+            if (appendCrc16 && (len > 10)) {
                 // crc control data
                 uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
                 mTxBuf[len++] = (crc >> 8) & 0xff;
@@ -331,6 +334,10 @@ class HmRadio {
             // crc over all
             mTxBuf[len] = ah::crc8(mTxBuf, len);
             len++;
+
+            // set TX and RX channels
+            mTxChIdx = (mTxChIdx + 1) % RF_CHANNELS;
+            mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
 
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
@@ -346,10 +353,6 @@ class HmRadio {
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
-            // switch TX channel for next packet
-            if(++mTxChIdx >= RF_CHANNELS)
-                mTxChIdx = 0;
-
             if(isRetransmit)
                 mRetransmits++;
             else
@@ -363,7 +366,6 @@ class HmRadio {
         uint8_t mTxChIdx;
         uint8_t mRxChIdx;
 
-        SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 };
