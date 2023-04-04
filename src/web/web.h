@@ -255,6 +255,9 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), update_html, update_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -309,11 +312,15 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), index_html, index_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
         void onLogin(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLogin"));
+            DPRINTLN(DBG_WARN, String(mConfig->sys.adminPwd));
 
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
@@ -348,6 +355,9 @@ class Web {
             else
                 response = request->beginResponse_P(200, F("text/css"), colorBright_css, colorBright_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -356,6 +366,9 @@ class Web {
             mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -364,6 +377,9 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/javascript"), api_js, api_js_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -429,6 +445,9 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), setup_html, setup_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -604,6 +623,9 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), visualization_html, visualization_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
 
             request->send(response);
         }
@@ -612,6 +634,9 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
 
             request->send(response);
         }
@@ -630,6 +655,9 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), serial_html, serial_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -641,6 +669,9 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
