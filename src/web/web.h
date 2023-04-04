@@ -320,7 +320,6 @@ class Web {
 
         void onLogin(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLogin"));
-            DPRINTLN(DBG_WARN, String(mConfig->sys.adminPwd));
 
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
