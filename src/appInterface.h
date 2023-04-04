@@ -8,6 +8,7 @@
 
 #include "defines.h"
 #include "hm/hmSystem.h"
+#include "ESPAsyncWebServer.h"
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -47,7 +48,7 @@ class IApp {
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 
-        virtual bool getProtection() = 0;
+        virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 };
 
 #endif /*__IAPP_H__*/

@@ -546,6 +546,18 @@ div.hr {
     width: 100%;
 }
 
+#login {
+    width: 450px;
+    height: 200px;
+    border: 1px solid #ccc;
+    background-color: var(--input-bg);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -160px;
+    margin-left: -225px;
+}
+
 @media(max-width: 500px) {
     div.ch .unit, div.ch-iv .unit {
         font-size: 18px;
@@ -558,6 +570,11 @@ div.hr {
 
     .subgrp {
         width: 180px;
+    }
+
+    #login {
+        margin-left: -150px;
+        width: 300px;
     }
 }
 
@@ -576,18 +593,6 @@ div.hr {
     border-radius: 50%;
     display: inline-block;
     margin-top: 15px;
-}
-
-#login {
-    width: 450px;
-    height: 200px;
-    border: 1px solid #ccc;
-    background-color: var(--input-bg);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    margin-top: -160px;
-    margin-left: -225px;
 }
 
 
