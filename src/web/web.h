@@ -126,8 +126,19 @@ class Web {
             mProtected = protect;
         }
 
-        bool getProtection() {
-            return mProtected;
+        bool isProtected(AsyncWebServerRequest *request) {
+            bool prot;
+            prot = mProtected;
+            if(!prot) {
+                uint8_t ip[4];
+                ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
+                for(uint8_t i = 0; i < 4; i++) {
+                    if(mLoginIp[i] != ip[i])
+                        prot = true;
+                }
+            }
+
+            return prot;
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -216,7 +227,7 @@ class Web {
         }
 
     private:
-        void checkRedirect(AsyncWebServerRequest *request) {
+        inline void checkRedirect(AsyncWebServerRequest *request) {
             if ((mConfig->sys.protectionMask & PROT_MASK_INDEX) != PROT_MASK_INDEX)
                 request->redirect(F("/index"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
@@ -229,15 +240,18 @@ class Web {
                 request->redirect(F("/login"));
         }
 
+        void checkProtection(AsyncWebServerRequest *request) {
+            if(isProtected(request)) {
+                checkRedirect(request);
+                return;
+            }
+        }
+
         void onUpdate(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onUpdate"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), update_html, update_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -290,12 +304,8 @@ class Web {
         void onIndex(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onIndex"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), index_html, index_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -308,6 +318,7 @@ class Web {
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
                     mProtected = false;
+                    ah::ip2Arr(mLoginIp, request->client()->remoteIP().toString().c_str());
                     request->redirect("/");
                 }
             }
@@ -320,10 +331,7 @@ class Web {
         void onLogout(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
-            if (mProtected) {
-                checkRedirect(request);
-                return;
-            }
+            checkProtection(request);
 
             mProtected = true;
 
@@ -367,10 +375,8 @@ class Web {
         }
 
         void showNotFound(AsyncWebServerRequest *request) {
-            if (mProtected)
-                checkRedirect(request);
-            else
-                request->redirect("/setup");
+            checkProtection(request);
+            request->redirect("/setup");
         }
 
         void onReboot(AsyncWebServerRequest *request) {
@@ -381,10 +387,7 @@ class Web {
         }
 
         void showErase(AsyncWebServerRequest *request) {
-            if (mProtected) {
-                checkRedirect(request);
-                return;
-            }
+            checkProtection(request);
 
             DPRINTLN(DBG_VERBOSE, F("showErase"));
             mApp->eraseSettings(false);
@@ -392,10 +395,7 @@ class Web {
         }
 
         void showFactoryRst(AsyncWebServerRequest *request) {
-            if (mProtected) {
-                checkRedirect(request);
-                return;
-            }
+            checkProtection(request);
 
             DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
             String content = "";
@@ -424,12 +424,8 @@ class Web {
         void onSetup(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSetup"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), setup_html, setup_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -439,10 +435,7 @@ class Web {
         void showSave(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("showSave"));
 
-            if (mProtected) {
-                checkRedirect(request);
-                return;
-            }
+            checkProtection(request);
 
             if (request->args() == 0)
                 return;
@@ -605,12 +598,8 @@ class Web {
         void onLive(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onLive"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), visualization_html, visualization_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -620,13 +609,6 @@ class Web {
         }
 
         void onAbout(AsyncWebServerRequest *request) {
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
-
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
@@ -643,12 +625,8 @@ class Web {
         void onSerial(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSerial"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), serial_html, serial_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -658,12 +636,8 @@ class Web {
         void onSystem(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onSystem"));
 
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM)) {
-                if (mProtected) {
-                    checkRedirect(request);
-                    return;
-                }
-            }
+            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM))
+                checkProtection(request);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -840,6 +814,7 @@ class Web {
         AsyncEventSource mEvts;
         bool mProtected;
         uint32_t mLogoutTimeout;
+        uint8_t mLoginIp[4];
         IApp *mApp;
         HMSYSTEM *mSys;
 

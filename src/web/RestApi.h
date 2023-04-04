@@ -77,19 +77,19 @@ class RestApi {
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
-            if(path == "html/system")         getHtmlSystem(root);
-            else if(path == "html/logout")    getHtmlLogout(root);
-            else if(path == "html/reboot")    getHtmlReboot(root);
-            else if(path == "html/save")      getHtmlSave(root);
-            else if(path == "system")         getSysInfo(root);
-            else if(path == "generic")        getGeneric(root);
-            else if(path == "reboot")         getReboot(root);
+            if(path == "html/system")         getHtmlSystem(request, root);
+            else if(path == "html/logout")    getHtmlLogout(request, root);
+            else if(path == "html/reboot")    getHtmlReboot(request, root);
+            else if(path == "html/save")      getHtmlSave(request, root);
+            else if(path == "system")         getSysInfo(request, root);
+            else if(path == "generic")        getGeneric(request, root);
+            else if(path == "reboot")         getReboot(request, root);
             else if(path == "statistics")     getStatistics(root);
             else if(path == "inverter/list")  getInverterList(root);
-            else if(path == "index")          getIndex(root);
-            else if(path == "setup")          getSetup(root);
+            else if(path == "index")          getIndex(request, root);
+            else if(path == "setup")          getSetup(request, root);
             else if(path == "setup/networks") getNetworks(root);
-            else if(path == "live")           getLive(root);
+            else if(path == "live")           getLive(request, root);
             else if(path == "record/info")    getRecord(root, InverterDevInform_All);
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
@@ -189,10 +189,10 @@ class RestApi {
             fp.close();
         }
 
-        void getGeneric(JsonObject obj) {
+        void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]   = mApp->getUptime();
-            obj[F("menu_prot")]   = mApp->getProtection();
+            obj[F("menu_prot")]   = mApp->getProtection(request);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
 
@@ -203,7 +203,7 @@ class RestApi {
         #endif
         }
 
-        void getSysInfo(JsonObject obj) {
+        void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
@@ -218,7 +218,7 @@ class RestApi {
             obj[F("heap_free")]    = mHeapFree;
             obj[F("sketch_total")] = ESP.getFreeSketchSpace();
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
-            getGeneric(obj);
+            getGeneric(request, obj);
 
             getRadio(obj.createNestedObject(F("radio")));
             getStatistics(obj.createNestedObject(F("statistics")));
@@ -252,34 +252,34 @@ class RestApi {
             obj[F("schMax")] = max;
         }
 
-        void getHtmlSystem(JsonObject obj) {
-            getSysInfo(obj.createNestedObject(F("system")));
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
+            getSysInfo(request, obj.createNestedObject(F("system")));
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
         }
 
-        void getHtmlLogout(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getHtmlLogout(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("succesfully logged out");
         }
 
-        void getHtmlReboot(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getHtmlReboot(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 20;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("rebooting ...");
         }
 
-        void getHtmlSave(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getHtmlSave(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj["pending"] = (bool)mApp->getSavePending();
             obj["success"] = (bool)mApp->getLastSaveSucceed();
         }
 
-        void getReboot(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getReboot(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 10;
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("reboot. Autoreload after 10 seconds");
@@ -430,8 +430,8 @@ class RestApi {
             obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
         }
 
-        void getIndex(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("ts_now")]       = mApp->getTimestamp();
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
@@ -479,9 +479,9 @@ class RestApi {
                 info.add(F("MQTT publishes in a fixed interval of ") + String(mConfig->mqtt.interval) + F(" seconds"));
         }
 
-        void getSetup(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
-            getSysInfo(obj.createNestedObject(F("system")));
+        void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            getSysInfo(request, obj.createNestedObject(F("system")));
             //getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
             getNtp(obj.createNestedObject(F("ntp")));
@@ -497,8 +497,8 @@ class RestApi {
             mApp->getAvailNetworks(obj);
         }
 
-        void getLive(JsonObject obj) {
-            getGeneric(obj.createNestedObject(F("generic")));
+        void getLive(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->nrf.sendInterval;
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
