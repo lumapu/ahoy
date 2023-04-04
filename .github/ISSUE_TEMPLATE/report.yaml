@@ -103,7 +103,7 @@ body:
     attributes:
       label: Github Hash
       description: Which GitHub hash has the build of our software ?
-      placeholder: 0000000
+      placeholder: abc1234
     validations:
       required: true
   - type: dropdown
