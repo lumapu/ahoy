@@ -92,8 +92,7 @@ class MiPayload {
                             mStat->rxFailNoAnser++; // got nothing
                             if (mSerialDebug)
                                 DBGPRINTLN(F("enqueued cmd failed/timeout"));
-                        }
-                        else {
+                        } else {
                             mStat->rxFail++;        // got "fragments" (part of the required messages)
                                                     // but no complete set of responses
                             if (mSerialDebug) {

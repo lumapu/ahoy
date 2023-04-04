@@ -116,8 +116,7 @@ class HmPayload {
                             mStat->rxFailNoAnser++; // got nothing
                             if (mSerialDebug)
                                 DBGPRINTLN(F("enqueued cmd failed/timeout"));
-                        }
-                        else {
+                        } else {
                             mStat->rxFail++; // got fragments but not complete response
                             if (mSerialDebug) {
                                 DBGPRINT(F("no complete Payload received! (retransmits: "));

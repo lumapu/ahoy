@@ -54,12 +54,12 @@ class HmRadio {
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             if(mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
-                DPRINT(DBG_VERBOSE, String(CE_PIN));
-                DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
-                DPRINT(DBG_VERBOSE, String(CS_PIN));
-                DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
-                DPRINT(DBG_VERBOSE, String(SPI_SPEED));
-                DPRINTLN(DBG_VERBOSE, F(")"));
+                DBGPRINT(String(CE_PIN));
+                DBGPRINT(F(", CS_PIN: "));
+                DBGPRINT(String(CS_PIN));
+                DBGPRINT(F(", SPI_SPEED: "));
+                DBGPRINT(String(SPI_SPEED));
+                DBGPRINTLN(F(")"));
             }
 
             // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
@@ -104,20 +104,19 @@ class HmRadio {
             // change the byte order of the DTU serial number and append the required 0x01 at the end
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
-            SPIClass* spi;
             #ifdef ESP32
                 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
-                    spi = new SPIClass(FSPI);
+                    mSpi = new SPIClass(FSPI);
                 #else
-                    spi = new SPIClass(VSPI);
+                    mSpi = new SPIClass(VSPI);
                 #endif
-                spi->begin(sclk, miso, mosi, cs);
+                mSpi->begin(sclk, miso, mosi, cs);
             #else
                 //the old ESP82xx cannot freely place their SPI pins
-                spi = new SPIClass();
-                spi->begin();
+                mSpi = new SPIClass();
+                mSpi->begin();
             #endif
-            mNrf24.begin(spi, ce, cs);
+            mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
@@ -309,9 +308,9 @@ class HmRadio {
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
             if(mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
-                DPRINT(DBG_VERBOSE, String(mid, HEX));
-                DPRINT(DBG_VERBOSE,F(" pid: "));
-                DPRINTLN(DBG_VERBOSE,String(pid, HEX));
+                DHEX(mid);
+                DBGPRINT(F(" pid: "));
+                DBGHEXLN(pid);
             }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
@@ -366,6 +365,7 @@ class HmRadio {
         uint8_t mTxChIdx;
         uint8_t mRxChIdx;
 
+        SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 };
