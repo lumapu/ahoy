@@ -29,14 +29,6 @@ body:
         - RaspberryPi
     validations:
       required: true
-  - type: input
-    id: model
-    attributes:
-      label: Model name
-      description: Please give us a precise description of your hardware and/or a link to the vendor
-      placeholder: 
-    validations:
-      required: false
   - type: dropdown
     id: assembly-type
     attributes:
