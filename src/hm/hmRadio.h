@@ -52,12 +52,15 @@ template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
-            DPRINT(DBG_VERBOSE, String(CE_PIN));
-            DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
-            DPRINT(DBG_VERBOSE, String(CS_PIN));
-            DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
-            DPRINTLN(DBG_VERBOSE, String(SPI_SPEED) + ")");
+            if(mSerialDebug) {
+                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+                DPRINT(DBG_VERBOSE, String(CE_PIN));
+                DPRINT(DBG_VERBOSE, F(", CS_PIN: "));
+                DPRINT(DBG_VERBOSE, String(CS_PIN));
+                DPRINT(DBG_VERBOSE, F(", SPI_SPEED: "));
+                DPRINT(DBG_VERBOSE, String(SPI_SPEED));
+                DPRINTLN(DBG_VERBOSE, F(")"));
+            }
 
             // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
             // Channel List      2403, 2423, 2440, 2461, 2475MHz
@@ -163,16 +166,15 @@ class HmRadio {
                             return true;
                         }
                     }
-                    //yield();
+                    yield();
                 }
                 // switch to next RX channel
                 startMicros = micros();
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                //yield();
+                yield();
             }
-            yield();
             // not finished but time is over
             return true;
         }
@@ -206,6 +208,7 @@ class HmRadio {
             } else { //MI 2nd gen. specific
                 switch (cmd) {
                     case TurnOn:
+                        //mTxBuf[0] = 0x50;
                         mTxBuf[9] = 0x55;
                         mTxBuf[10] = 0xaa;
                         break;
@@ -228,8 +231,10 @@ class HmRadio {
         }
 
         void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
-            DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
-            DPRINTLN(DBG_DEBUG, String(cmd, HEX));
+            if(mSerialDebug) {
+                DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
+                DPRINTLN(DBG_DEBUG,String(cmd, HEX));
+            }
             initPacket(invId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
@@ -302,7 +307,12 @@ class HmRadio {
         }
 
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
-            DPRINTLN(DBG_VERBOSE, F("initPacket, mid: ") + String(mid, HEX) + F(" pid: ") + String(pid, HEX));
+            if(mSerialDebug) {
+                DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
+                DPRINT(DBG_VERBOSE, String(mid, HEX));
+                DPRINT(DBG_VERBOSE,F(" pid: "));
+                DPRINTLN(DBG_VERBOSE,String(pid, HEX));
+            }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));

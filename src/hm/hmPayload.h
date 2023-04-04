@@ -210,6 +210,8 @@ class HmPayload {
 
                     iv->clearCmdQueue();
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                    if(mHighPrioIv == NULL)                          // do it immediately if possible
+                        mHighPrioIv = iv;
                 }
                 iv->devControlCmd = Init;
             }
