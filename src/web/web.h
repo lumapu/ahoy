@@ -130,11 +130,13 @@ class Web {
             bool prot;
             prot = mProtected;
             if(!prot) {
-                uint8_t ip[4];
-                ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
-                for(uint8_t i = 0; i < 4; i++) {
-                    if(mLoginIp[i] != ip[i])
-                        prot = true;
+                if(strlen(mConfig->sys.adminPwd) > 0) {
+                    uint8_t ip[4];
+                    ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
+                    for(uint8_t i = 0; i < 4; i++) {
+                        if(mLoginIp[i] != ip[i])
+                            prot = true;
+                    }
                 }
             }
 
