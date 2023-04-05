@@ -25,6 +25,7 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mStaConn    = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
+    mScanCnt    = 0;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -109,7 +110,7 @@ void ahoywifi::tickWifiLoop() {
         DBGPRINTLN(F(" seconds"));
         if(mScanActive) {
             getBSSIDs();
-            if(!mScanActive)        // scan completed
+            if((!mScanActive) && (!mBSSIDList.empty()))  // scan completed
                 if ((mCnt % timeout) < timeout - 2)
                     mCnt = timeout - 2;
         }
@@ -297,8 +298,7 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
 void ahoywifi::getBSSIDs() {
     int n = WiFi.scanComplete();
     if (n < 0) {
-        mScanCnt++;
-        if (mScanCnt < 20)
+        if (++mScanCnt < 20)
             return;
     }
     if(n > 0) {
