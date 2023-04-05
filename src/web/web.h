@@ -130,11 +130,13 @@ class Web {
             bool prot;
             prot = mProtected;
             if(!prot) {
-                uint8_t ip[4];
-                ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
-                for(uint8_t i = 0; i < 4; i++) {
-                    if(mLoginIp[i] != ip[i])
-                        prot = true;
+                if(strlen(mConfig->sys.adminPwd) > 0) {
+                    uint8_t ip[4];
+                    ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
+                    for(uint8_t i = 0; i < 4; i++) {
+                        if(mLoginIp[i] != ip[i])
+                            prot = true;
+                    }
                 }
             }
 
@@ -247,15 +249,20 @@ class Web {
             }
         }
 
-        void onUpdate(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onUpdate"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_UPDATE))
+        void getPage(AsyncWebServerRequest *request, uint8_t mask, const uint8_t *zippedHtml, uint32_t len) {
+            if (CHECK_MASK(mConfig->sys.protectionMask, mask))
                 checkProtection(request);
 
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), update_html, update_html_len);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), zippedHtml, len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            if(request->hasParam("v"))
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
             request->send(response);
+        }
+
+        void onUpdate(AsyncWebServerRequest *request) {
+            getPage(request, PROT_MASK_UPDATE, update_html, update_html_len);
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
@@ -302,14 +309,7 @@ class Web {
         }
 
         void onIndex(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onIndex"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_INDEX))
-                checkProtection(request);
-
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), index_html, index_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            request->send(response);
+            getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
         }
 
         void onLogin(AsyncWebServerRequest *request) {
@@ -348,6 +348,9 @@ class Web {
             else
                 response = request->beginResponse_P(200, F("text/css"), colorBright_css, colorBright_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -356,6 +359,9 @@ class Web {
             mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
             request->send(response);
         }
 
@@ -364,6 +370,8 @@ class Web {
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/javascript"), api_js, api_js_len);
             response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v"))
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
             request->send(response);
         }
 
@@ -422,14 +430,7 @@ class Web {
         }
 
         void onSetup(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onSetup"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SETUP))
-                checkProtection(request);
-
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), setup_html, setup_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            request->send(response);
+            getPage(request, PROT_MASK_SETUP, setup_html, setup_html_len);
         }
 
         void showSave(AsyncWebServerRequest *request) {
@@ -596,22 +597,16 @@ class Web {
         }
 
         void onLive(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onLive"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_LIVE))
-                checkProtection(request);
-
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), visualization_html, visualization_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
-
-            request->send(response);
+            getPage(request, PROT_MASK_LIVE, visualization_html, visualization_html_len);
         }
 
         void onAbout(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            if(request->hasParam("v")) {
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            }
 
             request->send(response);
         }
@@ -623,25 +618,11 @@ class Web {
         }
 
         void onSerial(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onSerial"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SERIAL))
-                checkProtection(request);
-
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), serial_html, serial_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            request->send(response);
+            getPage(request, PROT_MASK_SERIAL, serial_html, serial_html_len);
         }
 
         void onSystem(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("onSystem"));
-
-            if (CHECK_MASK(mConfig->sys.protectionMask, PROT_MASK_SYSTEM))
-                checkProtection(request);
-
-            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
-            response->addHeader(F("Content-Encoding"), "gzip");
-            request->send(response);
+            getPage(request, PROT_MASK_SYSTEM, system_html, system_html_len);
         }
 
 

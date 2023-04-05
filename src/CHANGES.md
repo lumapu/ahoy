@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.6.3 - 2023-04-04
+* fix login, password length was not checked #852
+* merge PR #854 optimize browser caching, thx @tastendruecker123 #828
+* fix WiFi reconnect not working #851
+* updated issue templates #822
+
 ## 0.6.2 - 2023-04-04
 * fix login from multiple clients #819
 * fix login screen on small displays
