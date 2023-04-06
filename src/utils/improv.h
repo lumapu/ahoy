@@ -25,15 +25,15 @@ class Improv {
             if(Serial.available() == 0)
                 return;
 
-            uint8_t buf[80];
-            uint8_t len = Serial.readBytes(buf, 80);
-            dumpBuf(buf, len);
+            uint8_t buf[40];
+            uint8_t len = Serial.readBytes(buf, 40);
 
-            if(!checkPaket(&buf[0], 13, [this](uint8_t type, uint8_t buf[], uint8_t len) {
+            if(!checkPaket(&buf[0], len, [this](uint8_t type, uint8_t buf[], uint8_t len) {
                 parsePayload(type, buf, len);
             })) {
-                DBGPRINT(F("checkHeader failed"));
+                DBGPRINTLN(F("check paket failed"));
             }
+            dumpBuf(buf, len);
         }
 
     private:
@@ -64,21 +64,24 @@ class Improv {
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
             for(uint8_t i = 0; i < len; i++) {
-                DHEX(buf[i]);
-                DBGPRINT(" ");
+                DHEX(buf[i], false);
+                DBGPRINT(" ", false);
             }
-            DBGPRINTLN("");
+            DBGPRINTLN("", false);
         }
 
         inline uint8_t buildChecksum(uint8_t buf[], uint8_t len) {
             uint8_t calc = 0;
-            for(uint8_t i = 0; i < (len - 1); i++) {
+            for(uint8_t i = 0; i < len; i++) {
                 calc += buf[i];
             }
             return calc;
         }
 
         inline bool checkChecksum(uint8_t buf[], uint8_t len) {
+            /*DHEX(buf[len], false);
+            DBGPRINT(F(" == "), false);
+            DBGHEXLN(buildChecksum(buf, len), false);*/
             return ((buildChecksum(buf, len)) == buf[len]);
         }
 
@@ -93,7 +96,7 @@ class Improv {
             if(0x01 != buf[6])
                 return false;
 
-            if(!checkChecksum(buf, (6+3 + buf[9])))
+            if(!checkChecksum(buf, (9 + buf[8])))
                 return false;
 
             cb(buf[7], &buf[9], buf[8]);
@@ -151,17 +154,16 @@ class Improv {
             buf[5] = 'V';
             buf[6] = 1; // protocol version
 
-            buf[len] = buildChecksum(buf, (len+1));
+            buf[len] = buildChecksum(buf, len);
             len++;
-            dumpBuf(buf, len);
             Serial.write(buf, len);
+            dumpBuf(buf, len);
         }
 
         void parsePayload(uint8_t type, uint8_t buf[], uint8_t len) {
-            DBGPRINTLN(F("parsePayload"));
             if(TYPE_RPC == type) {
                 if(GET_CURRENT_STATE == buf[0])
-                    setState(0x00);
+                    setState(STATE_AUTHORIZED);
                 else if(GET_DEVICE_INFO == buf[0])
                     sendDevInfo();
             }

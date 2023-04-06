@@ -49,21 +49,23 @@
         #endif
 
         //template <class T>
-        inline void DBGPRINT(String str) { DSERIAL.print(str); if(NULL != mCb) mCb(str); }
+        inline void DBGPRINT(String str, bool ser = true) { if(ser) DSERIAL.print(str); if(NULL != mCb) mCb(str); }
         //template <class T>
-        inline void DBGPRINTLN(String str) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
-        inline void DHEX(uint8_t b) {
-            if( b<0x10 ) DSERIAL.print(F("0"));
-            DSERIAL.print(b,HEX);
+        inline void DBGPRINTLN(String str, bool ser = true) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
+        inline void DHEX(uint8_t b, bool ser = true) {
+            if(ser) {
+                if( b<0x10 ) DSERIAL.print(F("0"));
+                DSERIAL.print(b,HEX);
+            }
             if(NULL != mCb) {
                 if( b<0x10 ) mCb(F("0"));
                 mCb(String(b, HEX));
             }
         }
 
-        inline void DBGHEXLN(uint8_t b) {
-            DHEX(b);
-            DBGPRINT(F("\r\n"));
+        inline void DBGHEXLN(uint8_t b, bool ser = true) {
+            DHEX(b, ser);
+            DBGPRINT(F("\r\n"), ser);
         }
         /*inline void DHEX(uint16_t b) {
             if( b<0x10 ) DSERIAL.print(F("000"));
