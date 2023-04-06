@@ -2,6 +2,7 @@
 
 ## 0.6.4 - 2023-04-06
 * merge PR #846, improved NRF24 communication and MI, thx @beegee3 & @rejoe2
+* merge PR #859, fix burger menu height, thx @ThomasPohl
 
 ## 0.6.3 - 2023-04-04
 * fix login, password length was not checked #852
