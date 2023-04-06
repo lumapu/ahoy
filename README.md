@@ -16,7 +16,7 @@ This work is licensed under a
 # 🖐 Ahoy!
 ![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
-**Communicate with Hoymiles inverters via radio**. Get actual values like power, current, daily energy and set parameters like the power limit via web interface or MQTT. In this repository you will find different approaches means Hardware / Software to realize the described functionalities.
+This repository offers hardware and software solutions for communicating with Hoymiles inverters via radio. With our system, you can easily obtain real-time values such as power, current, and daily energy. Additionally, you can set parameters like the power limit of your inverter to achieve zero export. You can access these functionalities through our user-friendly web interface, MQTT, or JSON. Whether you're monitoring your solar panel system's performance or fine-tuning its settings, our solutions make it easy to achieve your goals.
 
 Table of approaches:
 
@@ -29,6 +29,7 @@ Table of approaches:
 
 ## Getting Started
 [Guide how to start with a ESP module](Getting_Started.md)
+
 [ESP Webinstaller (Edge / Chrome Browser only)](https://ahoydtu.de/web_install)
 
 ## Our Website
@@ -42,9 +43,7 @@ Table of approaches:
 - [The root of development](https://www.mikrocontroller.net/topic/525778)
 
 ### Development
-If you encounter issues use the issues here on github.
-
-Please try to describe your issues as precise as possible and think about if this is a issue with the software here in the repository or other software components.
+If you run into any issues, please feel free to use the issue tracker here on Github. When describing your issue, please be as detailed and precise as possible, and take a moment to consider whether the issue is related to our software. This will help us to provide more effective solutions to your problem.
 
 **Contributors are always welcome!**
 

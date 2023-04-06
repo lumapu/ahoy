@@ -1,13 +1,12 @@
 ## Overview
 
-This page describes how the module of a Wemos D1 mini and ESP8266 is wired to the radio module and is flashed with the latest Firmware.<br/>
-Further information will help you to communicate to the compatible inverters.
+On this page, you'll find detailed instructions on how to wire the module of a Wemos D1 mini or ESP32 to the radio module, as well as how to flash it with the latest firmware. This information will enable you to communicate with compatible inverters.
 
 You find the full [User_Manual here](User_Manual.md)
 
 ## Compatiblity
 
-For now the following Inverters should work out of the box:
+The following inverters are currently supported out of the box:
 
 Hoymiles Inverters
 
@@ -55,12 +54,11 @@ Solenso Inverters:
 
 ## Things needed
 
-In order to build your own Ahoy DTU, you will need some things.<br/>
-This list is not closing as the Maker Community offers more Boards than we could cover in this Readme.<br/><br/>
+If you're interested in building your own AhoyDTU, you'll need a few things to get started. While we've provided a list of recommended boards below, keep in mind that the maker community is constantly developing new and innovative options that we may not have covered in this readme..
 
-We suggest to use a WEMOS D1 mini Board as well as a NRF24L01+ Breakout Board as a bare minimum.<br/>
-Any other ESP8266 Board with at least 4MBytes of ROM could work as well, depending on your skills and goals.<br/>
-Make sure the NRF24L01+ module has the "+" in its name as we depend on the 250kbps features provided only with the plus-variant.
+For optimal performance, we recommend using a Wemos D1 mini or ESP32 along with a NRF24L01+ breakout board as a bare minimum. However, if you have experience working with other ESP boards, any board with at least 4MBytes of ROM may be suitable, depending on your skills.
+
+Just be sure that the NRF24L01+ module you choose includes the "+" in its name, as we rely on the 250kbps features that are only provided by the plus-variant.
 
 | **Parts** | **Price** |
 | --- | --- |
@@ -70,7 +68,7 @@ Make sure the NRF24L01+ module has the "+" in its name as we depend on the 250kb
 | Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
 | **Total costs** | **10,34 Euro** |
 
-To also run our sister project OpenDTU and be upwards compatible for the future we would recommend to spend some more money on an ESP32 board which has two CPU cores and a NRF24L01+ module with external antenna.
+If you're interested in using our sister project OpenDTU or you want to future-proof your setup, we recommend investing in an ESP32 board that features two CPU cores. As Radio you can also use a NRF24L01+ module with an external antenna. While this option may cost a bit more, it will provide superior performance and ensure compatibility with upcoming developments.
 
 | **Parts** | **Price** |
 | --- | --- |
@@ -154,7 +152,7 @@ Example wiring for a 38pin ESP32 module
 
 ##### ESP32 GPIO settings
 
-For this wiring, set the 3 individual GPIOs under the /setup URL:
+CS, CE, IRQ must be set according to how they are wired up. For the diagram above, set the 3 individual GPIOs under the /setup URL as follows:
 
 ```
 CS   D1 (GPIO5)
@@ -162,14 +160,14 @@ CE   D2 (GPIO4)
 IRQ  D0 (GPIO16 - no IRQ!)
 ```
 
-ATTENTION: From development version 108 onwards, also MISO, MOSI and SCLK
-are configurable. Their defaults are correct for 'standard' ESP32 boards
-and non-settable for ESP8266 (as this chip cannot move them elsewhere).
-If you have an existing install though, you might see '0' in the web GUI.
+IMPORTANT: From development version 108/release 0.6.0 onwards, also MISO, MOSI, and SCLK
+are configurable. On new installations, their defaults are correct for most ESP32 boards.
+These pins cannot be configured for ESP82xx boards, as this chip cannot move them elsewhere.
 
-Set MISO=19, MOSI=23, SCLK=18 in GUI and save for existing installs, this is the old
-correct default for most ESP32 boards, for ESP82xx, a simple settings save should suffice.
-Reboot afterwards.
+If you are upgrading an existing install though, you might see that these pins are set to '0' in the web GUI. 
+Communication with the NRF module wont work. For upgrading an existing installations, set MISO=19, MOSI=23, SCLK=18 in the settings. 
+This is the correct default for most ESP32 boards. On ESP82xx, simply saving the settings without changes should suffice.
+Save and reboot.
 
 
 ## Flash the Firmware on your Ahoy DTU Hardware

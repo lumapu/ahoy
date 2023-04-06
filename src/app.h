@@ -157,8 +157,8 @@ class app : public IApp, public ah::Scheduler {
             return mMqtt.getRxCnt();
         }
 
-        bool getProtection() {
-            return mWeb.getProtection();
+        bool getProtection(AsyncWebServerRequest *request) {
+            return mWeb.isProtected(request);
         }
 
         uint8_t getIrqPin(void) {
@@ -213,8 +213,8 @@ class app : public IApp, public ah::Scheduler {
 
         void mqttSubRxCb(JsonObject obj);
 
-        void setupLed(void);
-        void updateLed(void);
+        void setupLed();
+        void updateLed();
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
