@@ -22,6 +22,7 @@
 #include "utils/crc.h"
 #include "utils/dbg.h"
 #include "utils/scheduler.h"
+#include "utils/improv.h"
 #include "web/RestApi.h"
 #include "web/web.h"
 #include "wifi/ahoywifi.h"
@@ -243,20 +244,6 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
-        /*void tickSerial(void) {
-            if(Serial.available() == 0)
-                return;
-
-            uint8_t buf[80];
-            uint8_t len = Serial.readBytes(buf, 80);
-            DPRINTLN(DBG_INFO, "got serial data, len: " + String(len));
-            for(uint8_t i = 0; i < len; i++) {
-                if((0 != i) && (i % 8 == 0))
-                    DBGPRINTLN("");
-                DBGPRINT(String(buf[i], HEX) + " ");
-            }
-            DBGPRINTLN("");
-        }*/
 
         innerLoopCb mInnerLoopCb;
 
@@ -269,6 +256,7 @@ class app : public IApp, public ah::Scheduler {
         PayloadType mPayload;
         MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
+        Improv mImprov;
 
         char mVersion[12];
         settings mSettings;

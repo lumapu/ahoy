@@ -82,6 +82,8 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    mImprov.setup(mConfig->sys.deviceName, mVersion);
+
     regularTickers();
 
 
@@ -169,6 +171,7 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
+    everySec(std::bind(&Improv::tickSerial, &mImprov), "impro");
 }
 
 //-----------------------------------------------------------------------------

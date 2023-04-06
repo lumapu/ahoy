@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __RADIO_H__
