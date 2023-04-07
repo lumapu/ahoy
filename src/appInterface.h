@@ -25,7 +25,7 @@ class IApp {
         virtual const char *getVersion() = 0;
         virtual statistics_t *getStatistics() = 0;
         virtual void scanAvailNetworks() = 0;
-        virtual void getAvailNetworks(JsonObject obj) = 0;
+        virtual bool getAvailNetworks(JsonObject obj) = 0;
 
         virtual uint32_t getUptime() = 0;
         virtual uint32_t getTimestamp() = 0;

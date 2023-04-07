@@ -84,7 +84,7 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
-    mImprov.setup(mConfig->sys.deviceName, mVersion);
+    mImprov.setup(this, mConfig->sys.deviceName, mVersion);
 
     regularTickers();
 

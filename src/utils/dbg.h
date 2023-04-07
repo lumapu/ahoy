@@ -39,6 +39,7 @@
     #ifdef ARDUINO
         #define DBG_CB std::function<void(String)>
         extern DBG_CB mCb;
+        extern bool mDebugEn;
 
         inline void registerDebugCb(DBG_CB cb) {
             mCb = cb;
@@ -48,12 +49,16 @@
             #define DSERIAL Serial
         #endif
 
+        inline void setDebugEn(bool en) {
+            mDebugEn = en;
+        }
+
         //template <class T>
-        inline void DBGPRINT(String str, bool ser = true) { if(ser) DSERIAL.print(str); if(NULL != mCb) mCb(str); }
+        inline void DBGPRINT(String str, bool ser = true) { if(ser && mDebugEn) DSERIAL.print(str); if(NULL != mCb) mCb(str); }
         //template <class T>
         inline void DBGPRINTLN(String str, bool ser = true) { DBGPRINT(str); DBGPRINT(F("\r\n")); }
         inline void DHEX(uint8_t b, bool ser = true) {
-            if(ser) {
+            if(ser && mDebugEn) {
                 if( b<0x10 ) DSERIAL.print(F("0"));
                 DSERIAL.print(b,HEX);
             }

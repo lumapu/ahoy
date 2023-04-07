@@ -9,6 +9,7 @@
 #include <cstring>
 #include <functional>
 #include "dbg.h"
+#include "AsyncJson.h"
 
 // https://www.improv-wifi.com/serial/
 // https://github.com/jnthas/improv-wifi-demo/blob/main/src/esp32-wifiimprov/esp32-wifiimprov.ino
@@ -16,12 +17,18 @@
 // configure ESP through Serial interface
 class Improv {
     public:
-        void setup(const char *devName, const char *version) {
+        void setup(IApp *app, const char *devName, const char *version) {
+            mApp     = app;
             mDevName = devName;
             mVersion = version;
+
+            mScanRunning = false;
         }
 
         void tickSerial(void) {
+            if(mScanRunning)
+                getNetworks();
+
             if(Serial.available() == 0)
                 return;
 
@@ -114,7 +121,7 @@ class Improv {
         }
 
         void sendDevInfo(void) {
-            uint8_t buf[100];
+            uint8_t buf[50];
             buf[7] = TYPE_RPC_RESPONSE;
             buf[9] = GET_DEVICE_INFO; // repsonse to cmd
             uint8_t p = 11;
@@ -135,6 +142,37 @@ class Improv {
             buf[8] = p - 9; // paket length
 
             sendPaket(buf, p);
+        }
+
+        void getNetworks(void) {
+            if(!mScanRunning)
+                mApp->scanAvailNetworks();
+
+            JsonObject obj;
+            if(!mApp->getAvailNetworks(obj))
+                return;
+
+            mScanRunning = false;
+
+            uint8_t buf[50];
+            buf[7] = TYPE_RPC_RESPONSE;
+            buf[9] = GET_WIFI_NETWORKS; // repsonse to cmd
+            uint8_t p = 11;
+
+            JsonArray arr = obj[F("networks")];
+            for(uint8_t i = 0; i < arr.size(); i++) {
+                buf[p++] = strlen(arr[i][F("ssid")]);
+                // ssid
+                p += char2Improv(arr[i][F("ssid")], &buf[p]);
+                buf[p++] = String(arr[i][F("rssi")]).length();
+                // rssi
+                p += char2Improv(String(arr[i][F("rssi")]).c_str(), &buf[p]);
+
+                buf[10] = p - 11; // sub length
+                buf[8] = p - 9; // paket length
+
+                sendPaket(buf, p);
+            }
         }
 
         void setState(uint8_t state) {
@@ -162,14 +200,20 @@ class Improv {
 
         void parsePayload(uint8_t type, uint8_t buf[], uint8_t len) {
             if(TYPE_RPC == type) {
-                if(GET_CURRENT_STATE == buf[0])
+                if(GET_CURRENT_STATE == buf[0]) {
+                    setDebugEn(false);
                     setState(STATE_AUTHORIZED);
+                }
                 else if(GET_DEVICE_INFO == buf[0])
                     sendDevInfo();
+                else if(GET_WIFI_NETWORKS == buf[0])
+                    getNetworks();
             }
         }
 
+        IApp *mApp;
         const char *mDevName, *mVersion;
+        bool mScanRunning;
 };
 
 #endif /*__IMPROV_H__*/

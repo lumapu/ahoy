@@ -101,8 +101,8 @@ class app : public IApp, public ah::Scheduler {
             mWifi.scanAvailNetworks();
         }
 
-        void getAvailNetworks(JsonObject obj) {
-            mWifi.getAvailNetworks(obj);
+        bool getAvailNetworks(JsonObject obj) {
+            return mWifi.getAvailNetworks(obj);
         }
 
         void setOnUpdate() {

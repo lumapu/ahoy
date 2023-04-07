@@ -27,7 +27,7 @@ class ahoywifi {
         void tickWifiLoop(void);
         bool getNtpTime(void);
         void scanAvailNetworks(void);
-        void getAvailNetworks(JsonObject obj);
+        bool getAvailNetworks(JsonObject obj);
 
     private:
         typedef enum WiFiStatus {
