@@ -29,14 +29,6 @@ body:
         - RaspberryPi
     validations:
       required: true
-  - type: input
-    id: model
-    attributes:
-      label: Model name
-      description: Please give us a precise description of your hardware and/or a link to the vendor
-      placeholder: 
-    validations:
-      required: false
   - type: dropdown
     id: assembly-type
     attributes:
@@ -111,7 +103,7 @@ body:
     attributes:
       label: Github Hash
       description: Which GitHub hash has the build of our software ?
-      placeholder: 0000000
+      placeholder: abc1234
     validations:
       required: true
   - type: dropdown

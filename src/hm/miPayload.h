@@ -25,7 +25,6 @@ typedef struct {
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
-    //uint8_t skipfirstrepeat;
     bool gotFragment;
     /*
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
@@ -70,8 +69,8 @@ class MiPayload {
         }
 
         void loop() {
-            if(NULL != mHighPrioIv) { // && mHighPrioIv->ivGen == IV_MI) {
-                ivSend(mHighPrioIv, true); // for devcontrol commands?
+            if (NULL != mHighPrioIv) {
+                ivSend(mHighPrioIv, true); // for e.g. devcontrol commands
                 mHighPrioIv = NULL;
             }
         }
@@ -87,21 +86,22 @@ class MiPayload {
                         process(false); // no retransmit
 
                     if (!mPayload[iv->id].complete) {
-                        if (!mPayload[iv->id].gotFragment)
-                            mStat->rxFailNoAnser++; // got nothing
-                        else
-                            mStat->rxFail++; // got fragments but not complete response
-
-                        iv->setQueuedCmdFinished();  // command failed
                         if (mSerialDebug)
                             DPRINT_IVID(DBG_INFO, iv->id);
-                            DBGPRINTLN(F("enqueued cmd failed/timeout"));
-                        if (mSerialDebug) {
-                            DPRINT_IVID(DBG_INFO, iv->id);
-                            DBGPRINT(F("no Payload received! (retransmits: "));
-                            DBGPRINT(String(mPayload[iv->id].retransmits));
-                            DBGPRINTLN(F(")"));
+                        if (!mPayload[iv->id].gotFragment) {
+                            mStat->rxFailNoAnser++; // got nothing
+                            if (mSerialDebug)
+                                DBGPRINTLN(F("enqueued cmd failed/timeout"));
+                        } else {
+                            mStat->rxFail++;        // got "fragments" (part of the required messages)
+                                                    // but no complete set of responses
+                            if (mSerialDebug) {
+                                DBGPRINT(F("no complete Payload received! (retransmits: "));
+                                DBGPRINT(String(mPayload[iv->id].retransmits));
+                                DBGPRINTLN(F(")"));
+                            }
                         }
+                        iv->setQueuedCmdFinished(); // command failed
                     }
                 }
             }
@@ -148,9 +148,10 @@ class MiPayload {
                 if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
                     cmd  = 0x0f;                              // for MI, these seem to make part of the  Polling the device software and hardware version number command
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false);
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 } else {
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 };
 
                 mPayload[iv->id].txCmd = cmd;
@@ -232,42 +233,39 @@ const byteAssign_t InfoAssignment[] = {
                         iv->setValue(i, rec, (float) ((p->packet[(12+2*i)] << 8) + p->packet[(13+2*i)])/1);
                     }
                     iv->isConnected = true;
+                    mPayload[iv->id].gotFragment = true;
                     if(mSerialDebug) {
                         DPRINT_IVID(DBG_INFO, iv->id);
                         DPRINT(DBG_INFO,F("HW_VER is "));
                         DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
                     }
-                    /*iv->setQueuedCmdFinished();
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x01, false);*/
                 } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINT_IVID(DBG_INFO, iv->id);
                     if ( p->packet[9] == 0x01 ) {
                         DBGPRINTLN(F("got 2nd frame (hw info)"));
-                    } else {
-                        DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
-                    }
-                    // xlsx: HW_ECapValue is total energy?!? (data coll. inst. #154)
-                    DPRINT(DBG_INFO,F("HW_PartNo "));
-                    DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
-                    //DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
-                    if ( p->packet[9] == 0x01 ) {
+                        DPRINT(DBG_INFO,F("HW_PartNo "));
+                        DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
+                        mPayload[iv->id].gotFragment = true;
                         iv->setValue(iv->getPosByChFld(0, FLD_YT, rec), rec, (float) ((p->packet[20] << 8) + p->packet[21])/1);
                         if(mSerialDebug) {
-                            DPRINT(DBG_INFO,F("HW_ECapValue "));
-                            DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
-
                             DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
                             DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
                             DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
                             DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
                             DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
                             DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                            DPRINT(DBG_INFO,F("HW_ECapValue "));
+                            DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
                         }
+                    } else {
+                        DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
                     }
+
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 3rd frame (hw info)"));
                     iv->setQueuedCmdFinished();
+                    mPayload[iv->id].complete = true;
                     mStat->rxSuccess++;
                 }
 
@@ -347,7 +345,9 @@ const byteAssign_t InfoAssignment[] = {
                 payloadLen -= 2;
 
                 if (mSerialDebug) {
-                    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
+                    DPRINT(DBG_INFO, F("Payload ("));
+                    DBGPRINT(String(payloadLen));
+                    DBGPRINT("): ");
                     mSys->Radio.dumpBuf(payload, payloadLen);
                 }
 
@@ -442,14 +442,14 @@ const byteAssign_t InfoAssignment[] = {
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true);
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
                                         //iv->setQueuedCmdFinished();
                                         //cmd = iv->getQueuedCmd();
                                     } else {
                                         bool change = false;
                                         if ( cmd >= 0x36 && cmd < 0x39 ) { // MI-1500 Data command
-                                            //cmd++; // just request the next channel
-                                            //change = true;
+                                            if (cmd > 0x36 && mPayload[iv->id].retransmits==1) // first request for the upper channels
+                                                change = true;
                                         } else if ( cmd == 0x09 ) {//MI single or dual channel device
                                             if ( mPayload[iv->id].dataAB[CH1] && iv->type == INV_TYPE_2CH  ) {
                                                 if (!mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].retransmits<2) {}
@@ -479,8 +479,8 @@ const byteAssign_t InfoAssignment[] = {
                                         }
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
-                                        //mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true);
-                                        mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
+                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
                                     }
                                 }
@@ -496,7 +496,8 @@ const byteAssign_t InfoAssignment[] = {
 
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
-                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                            mSys->Radio.sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
                     /*else {  // payload complete
@@ -641,7 +642,6 @@ const byteAssign_t InfoAssignment[] = {
                            ( p->packet[0] == 0x91 || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
                            p->packet[0] == (0x38 + ALL_FRAMES) ? CH3 :
                            CH4;
-            //DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") data msg 0x") + String(p->packet[0], HEX) + F(" channel ") + datachan);
             // count in RF_communication_protocol.xlsx is with offset = -1
             iv->setValue(iv->getPosByChFld(datachan, FLD_UDC, rec), rec, (float)((p->packet[9] << 8) + p->packet[10])/10);
             yield();
@@ -656,12 +656,11 @@ const byteAssign_t InfoAssignment[] = {
             yield();
             iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[21] << 8) + p->packet[22])/10);
             iv->setValue(iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(iv, datachan)));
-            //AC Power is missing; we may have to calculate, as no respective data is in payload
 
             if ( datachan < 3 ) {
                 mPayload[iv->id].dataAB[datachan] = true;
             }
-            if ( !mPayload[iv->id].dataAB[CH0] && mPayload[iv->id].dataAB[CH2] && mPayload[iv->id].dataAB[CH2] ) {
+            if ( !mPayload[iv->id].dataAB[CH0] && mPayload[iv->id].dataAB[CH1] && mPayload[iv->id].dataAB[CH2] ) {
                 mPayload[iv->id].dataAB[CH0] = true;
             }
 
@@ -687,17 +686,13 @@ const byteAssign_t InfoAssignment[] = {
                     mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
                     mPayload[iv->id].txCmd = cmd;*/
                     mPayload[iv->id].txCmd++;
-                    if (mPayload[iv->id].retransmits)
-                        mPayload[iv->id].retransmits--; // reserve retransmissions for each response
+                    mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
                     mPayload[iv->id].complete = false;
                 }
 
-                else if (p->packet[0] == (0x39 + ALL_FRAMES) ) {
-                    /*uint8_t cmd = p->packet[0] - ALL_FRAMES + 1;
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mPayload[iv->id].txCmd = cmd;*/
+                /*else if ( p->packet[0] == (0x39 + ALL_FRAMES) ) {
                     mPayload[iv->id].complete = true;
-                }
+                }*/
 
                 /*if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
                     iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
@@ -709,35 +704,34 @@ const byteAssign_t InfoAssignment[] = {
 
             }
 
-            if ( mPayload[iv->id].complete ||  //4ch device
-                 (iv->type != INV_TYPE_4CH     //other devices
+            /*
+            if(AlarmData == mPayload[iv->id].txCmd) {
+                uint8_t i = 0;
+                uint16_t code;
+                uint32_t start, end;
+                while(1) {
+                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                    if(0 == code)
+                        break;
+                    if (NULL != mCbMiAlarm)
+                        (mCbAlarm)(code, start, end);
+                    yield();
+                }
+            }*/
+
+            //if ( mPayload[iv->id].complete ||  //4ch device
+            if ( p->packet[0] == (0x39 + ALL_FRAMES) ||  //4ch device - last message
+                 (iv->type != INV_TYPE_4CH               //other devices
                  && mPayload[iv->id].dataAB[CH0]
                  && mPayload[iv->id].stsAB[CH0])) {
                      miComplete(iv);
             }
-
-
-
-/*
-                            if(AlarmData == mPayload[iv->id].txCmd) {
-                                uint8_t i = 0;
-                                uint16_t code;
-                                uint32_t start, end;
-                                while(1) {
-                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                                    if(0 == code)
-                                        break;
-                                    if (NULL != mCbMiAlarm)
-                                        (mCbAlarm)(code, start, end);
-                                    yield();
-                                }
-                            }*/
         }
 
         void miComplete(Inverter<> *iv) {
-            if (mPayload[iv->id].complete)
-                return; //if we got second message as well in repreated attempt
-            mPayload[iv->id].complete = true; // For 2 CH devices, this might be too short...
+            if ( mPayload[iv->id].complete )  //  && iv->type != INV_TYPE_4CH)
+                return;                       // if we got second message as well in repreated attempt
+            mPayload[iv->id].complete = true;
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINTLN(F("got all msgs"));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -758,7 +752,7 @@ const byteAssign_t InfoAssignment[] = {
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
             yield();
-            notify(mPayload[iv->id].txCmd);
+            notify(RealTimeRunData_Debug); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
         }
 
         bool build(uint8_t id, bool *complete) {
@@ -777,6 +771,27 @@ const byteAssign_t InfoAssignment[] = {
 
             return true;
         }
+
+/*        uint16_t mParseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
+            uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
+            if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
+                return 0;
+
+            uint16_t wCode = ((uint16_t)pyld[startOff]) << 8 | pyld[startOff+1];
+            uint32_t startTimeOffset = 0, endTimeOffset = 0;
+
+            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
+                startTimeOffset = 12 * 60 * 60;
+            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+                endTimeOffset = 12 * 60 * 60;
+
+            *start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
+            *endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
+
+            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(*start) + ", end: " + ah::getTimeStr(*endTime));
+            return pyld[startOff+1];
+        }
+*/
 
         void reset(uint8_t id, bool clrSts = false) {
             DPRINT_IVID(DBG_INFO, id);

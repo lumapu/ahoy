@@ -92,7 +92,7 @@ svg.icon {
 .title {
     background-color: var(--primary);
     color: #fff !important;
-    padding-left: 80px !important
+    padding: 15px 14px 16px 80px !important
 }
 
 .topnav .icon span {
