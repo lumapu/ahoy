@@ -719,15 +719,20 @@ class Web {
                         rec = iv->getRecordStruct(RealTimeRunData_Debug);
                         if (metricsChannelId < rec->length) {
                             uint8_t channel = rec->assign[metricsChannelId].ch;
-                            std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
-                            snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
-                            if (0 == channel) {
-                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                            // Skip entry if maxPwr is 0 and it's not the inverter channel (channel 0)
+                            if (0 == channel || 0 != iv->config->chMaxPwr[channel-1]) {
+                                std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
+                                snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
+                                if (0 == channel) {
+                                    snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                                } else {
+                                    snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                                }
+                                snprintf(val, sizeof(val), "%.3f", iv->getValue(metricsChannelId, rec));
+                                len = snprintf((char*)buffer,maxLen,"%s\n%s %s\n",type,topic,val);
                             } else {
-                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                                len = snprintf((char*)buffer,maxLen,"#\n"); // At least one char to send otherwise the transmission ends.
                             }
-                            snprintf(val, sizeof(val), "%.3f", iv->getValue(metricsChannelId, rec));
-                            len = snprintf((char*)buffer,maxLen,"%s\n%s %s\n",type,topic,val);
 
                             metricsChannelId++;
                         } else {
