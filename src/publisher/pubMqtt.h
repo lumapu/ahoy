@@ -247,6 +247,8 @@ class PubMqtt {
                 subscribe(mVal);
                 snprintf(mVal, 20, "ctrl/restart/%d", i);
                 subscribe(mVal);
+                snprintf(mVal, 20, "ctrl/power/%d", i);
+                subscribe(mVal);
             }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
         }
