@@ -264,9 +264,8 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 | /cmdstat | show stat from the home page | | yes |
 | /visualization | displays the information from your converter |     | yes |
 | /livedata | displays the live data |     | yes |
-| /json | gets live-data in JSON format | json output from the livedata | no - enable via config_override.h |
 | /metrics | gets live-data for prometheus | prometheus metrics from the livedata | no - enable via config_override.h |
-| /api | |    |  yes |
+| /api | gets configuration and live-data in JSON format | json output from the configuration or livedata    |  yes |
 
 ## MQTT command to set the DTU without webinterface
 
