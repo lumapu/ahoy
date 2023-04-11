@@ -417,8 +417,8 @@ class settings {
             } else {
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
-                getChar(obj, F("adm"), mCfg.sys.deviceName, DEVNAME_LEN);
-                getChar(obj, F("dev"), mCfg.sys.adminPwd, PWD_LEN);
+                getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
+                getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
