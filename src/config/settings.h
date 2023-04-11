@@ -6,6 +6,11 @@
 #ifndef __SETTINGS_H__
 #define __SETTINGS_H__
 
+#if defined(F) && defined(ESP32)
+  #undef F
+  #define F(sl) (sl)
+#endif
+
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
@@ -410,12 +415,12 @@ class settings {
                 ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")] = String(buf);
             } else {
-                if(obj.containsKey(F("ssid"))) snprintf(mCfg.sys.stationSsid, SSID_LEN,    "%s", obj[F("ssid")].as<const char*>());
-                if(obj.containsKey(F("pwd"))) snprintf(mCfg.sys.stationPwd,  PWD_LEN,     "%s", obj[F("pwd")].as<const char*>());
-                if(obj.containsKey(F("dev"))) snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, "%s", obj[F("dev")].as<const char*>());
-                if(obj.containsKey(F("adm"))) snprintf(mCfg.sys.adminPwd,    PWD_LEN,     "%s", obj[F("adm")].as<const char*>());
-                if(obj.containsKey(F("prot_mask"))) mCfg.sys.protectionMask = obj[F("prot_mask")];
-                if(obj.containsKey(F("dark"))) mCfg.sys.darkMode       = obj[F("dark")];
+                getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
+                getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
+                getChar(obj, F("adm"), mCfg.sys.deviceName, DEVNAME_LEN);
+                getChar(obj, F("dev"), mCfg.sys.adminPwd, PWD_LEN);
+                getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
+                getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
@@ -440,15 +445,15 @@ class settings {
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
                 obj[F("pwr")]       = mCfg.nrf.amplifierPower;
             } else {
-                if(obj.containsKey(F("ssid"))) mCfg.nrf.sendInterval      = obj[F("intvl")];
-                if(obj.containsKey(F("maxRetry"))) mCfg.nrf.maxRetransPerPyld = obj[F("maxRetry")];
-                if(obj.containsKey(F("cs"))) mCfg.nrf.pinCs             = obj[F("cs")];
-                if(obj.containsKey(F("ce"))) mCfg.nrf.pinCe             = obj[F("ce")];
-                if(obj.containsKey(F("irq"))) mCfg.nrf.pinIrq            = obj[F("irq")];
-                if(obj.containsKey(F("sclk"))) mCfg.nrf.pinSclk           = obj[F("sclk")];
-                if(obj.containsKey(F("mosi"))) mCfg.nrf.pinMosi           = obj[F("mosi")];
-                if(obj.containsKey(F("miso"))) mCfg.nrf.pinMiso           = obj[F("miso")];
-                if(obj.containsKey(F("pwr"))) mCfg.nrf.amplifierPower    = obj[F("pwr")];
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
+                getVal<uint8_t>(obj, F("maxRetry"), &mCfg.nrf.maxRetransPerPyld);
+                getVal<uint8_t>(obj, F("cs"), &mCfg.nrf.pinCs);
+                getVal<uint8_t>(obj, F("ce"), &mCfg.nrf.pinCe);
+                getVal<uint8_t>(obj, F("irq"), &mCfg.nrf.pinIrq);
+                getVal<uint8_t>(obj, F("sclk"), &mCfg.nrf.pinSclk);
+                getVal<uint8_t>(obj, F("mosi"), &mCfg.nrf.pinMosi);
+                getVal<uint8_t>(obj, F("miso"), &mCfg.nrf.pinMiso);
+                getVal<uint8_t>(obj, F("pwr"), &mCfg.nrf.amplifierPower);
                 if((obj[F("cs")] == obj[F("ce")])) {
                     mCfg.nrf.pinCs   = DEF_CS_PIN;
                     mCfg.nrf.pinCe   = DEF_CE_PIN;
@@ -465,8 +470,8 @@ class settings {
                 obj[F("addr")] = mCfg.ntp.addr;
                 obj[F("port")] = mCfg.ntp.port;
             } else {
-                if(obj.containsKey(F("addr"))) snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", obj[F("addr")].as<const char*>());
-                if(obj.containsKey(F("port"))) mCfg.ntp.port = obj[F("port")];
+                getChar(obj, F("addr"), mCfg.ntp.addr, NTP_ADDR_LEN);
+                getVal<uint16_t>(obj, F("port"), &mCfg.ntp.port);
             }
         }
 
@@ -477,10 +482,10 @@ class settings {
                 obj[F("dis")]  = mCfg.sun.disNightCom;
                 obj[F("offs")] = mCfg.sun.offsetSec;
             } else {
-                if(obj.containsKey(F("lat"))) mCfg.sun.lat         = obj[F("lat")];
-                if(obj.containsKey(F("lon"))) mCfg.sun.lon         = obj[F("lon")];
-                if(obj.containsKey(F("dis"))) mCfg.sun.disNightCom = obj[F("dis")];
-                if(obj.containsKey(F("offs"))) mCfg.sun.offsetSec   = obj[F("offs")];
+                getVal<float>(obj, F("lat"), &mCfg.sun.lat);
+                getVal<float>(obj, F("lon"), &mCfg.sun.lon);
+                getVal<bool>(obj, F("dis"), &mCfg.sun.disNightCom);
+                getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSec);
             }
         }
 
@@ -490,9 +495,9 @@ class settings {
                 obj[F("show")]  = mCfg.serial.showIv;
                 obj[F("debug")] = mCfg.serial.debug;
             } else {
-                if(obj.containsKey(F("intvl"))) mCfg.serial.interval = obj[F("intvl")];
-                if(obj.containsKey(F("show"))) mCfg.serial.showIv   = obj[F("show")];
-                if(obj.containsKey(F("debug"))) mCfg.serial.debug    = obj[F("debug")];
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.serial.interval);
+                getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
+                getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
             }
         }
 
@@ -506,12 +511,12 @@ class settings {
                 obj[F("intvl")]  = mCfg.mqtt.interval;
 
             } else {
-                if(obj.containsKey(F("port"))) mCfg.mqtt.port     = obj[F("port")];
-                if(obj.containsKey(F("intvl"))) mCfg.mqtt.interval = obj[F("intvl")];
-                if(obj.containsKey(F("broker"))) snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", obj[F("broker")].as<const char*>());
-                if(obj.containsKey(F("user"))) snprintf(mCfg.mqtt.user,   MQTT_USER_LEN,  "%s", obj[F("user")].as<const char*>());
-                if(obj.containsKey(F("pwd"))) snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", obj[F("pwd")].as<const char*>());
-                if(obj.containsKey(F("topic"))) snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", obj[F("topic")].as<const char*>());
+                getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.mqtt.interval);
+                getChar(obj, F("broker"), mCfg.mqtt.broker, MQTT_ADDR_LEN);
+                getChar(obj, F("user"), mCfg.mqtt.user, MQTT_USER_LEN);
+                getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
+                getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
             }
         }
 
@@ -519,11 +524,11 @@ class settings {
             if(set) {
                 obj[F("0")] = mCfg.led.led0;
                 obj[F("1")] = mCfg.led.led1;
-                obj[F("led_high_active")] = mCfg.led.led_high_active;
+                obj[F("act_high")] = mCfg.led.led_high_active;
             } else {
-                if(obj.containsKey(F("0"))) mCfg.led.led0 = obj[F("0")];
-                if(obj.containsKey(F("1"))) mCfg.led.led1 = obj[F("1")];
-                if(obj.containsKey(F("led_high_active"))) mCfg.led.led_high_active = obj[F("led_high_active")];
+                getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
+                getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
+                getVal<uint8_t>(obj, F("act_high"), &mCfg.led.led_high_active);
             }
         }
 
@@ -545,19 +550,19 @@ class settings {
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
             } else {
                 JsonObject disp = obj["disp"];
-                if(disp.containsKey(F("type"))) mCfg.plugin.display.type = disp[F("type")];
-                if(disp.containsKey(F("pwrSafe"))) mCfg.plugin.display.pwrSaveAtIvOffline = (bool)disp[F("pwrSafe")];
-                if(disp.containsKey(F("pxShift"))) mCfg.plugin.display.pxShift = (bool)disp[F("pxShift")];
-                if(disp.containsKey(F("rotation"))) mCfg.plugin.display.rot = disp[F("rotation")];
+                getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
+                getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
+                getVal<bool>(disp, F("pxShift"), &mCfg.plugin.display.pxShift);
+                getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
-                if(disp.containsKey(F("contrast"))) mCfg.plugin.display.contrast = disp[F("contrast")];
-                if(disp.containsKey(F("data"))) mCfg.plugin.display.disp_data = disp[F("data")];
-                if(disp.containsKey(F("clock"))) mCfg.plugin.display.disp_clk = disp[F("clock")];
-                if(disp.containsKey(F("cs"))) mCfg.plugin.display.disp_cs = disp[F("cs")];
-                if(disp.containsKey(F("reset"))) mCfg.plugin.display.disp_reset = disp[F("reset")];
-                if(disp.containsKey(F("busy"))) mCfg.plugin.display.disp_busy = disp[F("busy")];
-                if(disp.containsKey(F("dc"))) mCfg.plugin.display.disp_dc = disp[F("dc")];
+                getVal<uint8_t>(disp, F("contrast"), &mCfg.plugin.display.contrast);
+                getVal<uint8_t>(disp, F("data"), &mCfg.plugin.display.disp_data);
+                getVal<uint8_t>(disp, F("clock"), &mCfg.plugin.display.disp_clk);
+                getVal<uint8_t>(disp, F("cs"), &mCfg.plugin.display.disp_cs);
+                getVal<uint8_t>(disp, F("reset"), &mCfg.plugin.display.disp_reset);
+                getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
+                getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
             }
         }
 
@@ -569,10 +574,10 @@ class settings {
                 obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
             }
             else {
-                if(obj.containsKey(F("en"))) mCfg.inst.enabled = (bool)obj[F("en")];
-                if(obj.containsKey(F("rstMidNight"))) mCfg.inst.rstYieldMidNight = (bool)obj["rstMidNight"];
-                if(obj.containsKey(F("rstNotAvail"))) mCfg.inst.rstValsNotAvail  = (bool)obj["rstNotAvail"];
-                if(obj.containsKey(F("rstComStop"))) mCfg.inst.rstValsCommStop  = (bool)obj["rstComStop"];
+                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
+                getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
+                getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
+                getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
             }
 
             JsonArray ivArr;
@@ -582,11 +587,8 @@ class settings {
                 if(set) {
                     if(mCfg.inst.iv[i].serial.u64 != 0ULL)
                         jsonIv(ivArr.createNestedObject(), &mCfg.inst.iv[i], true);
-                }
-                else {
-                    if(!obj[F("iv")][i].isNull())
-                        jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
-                }
+                } else if(!obj[F("iv")][i].isNull())
+                    jsonIv(obj[F("iv")][i], &mCfg.inst.iv[i]);
             }
         }
 
@@ -601,16 +603,40 @@ class settings {
                     obj[F("chName")][i] = cfg->chName[i];
                 }
             } else {
-                if(obj.containsKey(F("en"))) cfg->enabled = (bool)obj[F("en")];
-                if(obj.containsKey(F("name"))) snprintf(cfg->name, MAX_NAME_LENGTH, "%s", obj[F("name")].as<const char*>());
-                if(obj.containsKey(F("sn"))) cfg->serial.u64 = obj[F("sn")];
+                getVal<bool>(obj, F("en"), &cfg->enabled);
+                getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
+                getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
                 for(uint8_t i = 0; i < 4; i++) {
-                    if(obj.containsKey(F("yield"))) cfg->yieldCor[i] = obj[F("yield")][i];
-                    if(obj.containsKey(F("pwr"))) cfg->chMaxPwr[i] = obj[F("pwr")][i];
-                    if(obj.containsKey(F("chName"))) snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
+                    getVal<int32_t>(obj, F("yield"), &cfg->yieldCor[i]);
+                    getVal<uint16_t>(obj, F("pwr"), &cfg->chMaxPwr[i]);
+                    getChar(obj, F("chName"), cfg->chName[i], MAX_NAME_LENGTH);
                 }
             }
         }
+
+    #if defined(ESP32)
+        void getChar(JsonObject obj, const char *key, char *dst, int maxLen) {
+            if(obj.containsKey(key))
+                snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+        }
+
+        template<typename T=uint8_t>
+        void getVal(JsonObject obj, const char *key, T *dst) {
+            if(obj.containsKey(key))
+                *dst = obj[key];
+        }
+    #else
+        void getChar(JsonObject obj, const __FlashStringHelper *key, char *dst, int maxLen) {
+            if(obj.containsKey(key))
+                snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+        }
+
+        template<typename T=uint8_t>
+        void getVal(JsonObject obj, const __FlashStringHelper *key, T *dst) {
+            if(obj.containsKey(key))
+                *dst = obj[key];
+        }
+    #endif
 
         settings_t mCfg;
         bool mLastSaveSucceed;
