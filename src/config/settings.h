@@ -609,7 +609,7 @@ class settings {
                 for(uint8_t i = 0; i < 4; i++) {
                     getVal<int32_t>(obj, F("yield"), &cfg->yieldCor[i]);
                     getVal<uint16_t>(obj, F("pwr"), &cfg->chMaxPwr[i]);
-                    getChar(obj, F("chName"), cfg->chName[i], MAX_NAME_LENGTH);
+                    if(obj.containsKey(F("chName"))) snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
                 }
             }
         }
