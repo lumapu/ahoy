@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.6.6 - 2023-04-12
+* increased distance for `import` button in mobile view #879
+* changed `led_high_active` to `bool` #879
+
 ## 0.6.5 - 2023-04-11
 * fix #845 MqTT subscription for `ctrl/power/[IV-ID]` was missing
 * merge PR #876, check JSON settings during read for existance

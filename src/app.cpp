@@ -389,8 +389,7 @@ void app::mqttSubRxCb(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
-
-    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
 
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
@@ -404,9 +403,8 @@ void app::setupLed(void) {
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
-
-    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
-    uint8_t led_on = (mConfig->led.led_high_active != 0) ? HIGH : LOW;
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
+    uint8_t led_on = (mConfig->led.led_high_active) ? HIGH : LOW;
 
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);

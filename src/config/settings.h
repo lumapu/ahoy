@@ -105,7 +105,7 @@ typedef struct {
 typedef struct {
     uint8_t led0;  // first LED pin
     uint8_t led1;  // second LED pin
-    uint8_t led_high_active;  // determines if LEDs are high or low active
+    bool led_high_active;  // determines if LEDs are high or low active
 } cfgLed_t;
 
 typedef struct {
@@ -384,7 +384,7 @@ class settings {
 
             mCfg.led.led0 = DEF_PIN_OFF;
             mCfg.led.led1 = DEF_PIN_OFF;
-            mCfg.led.led_high_active = LOW;
+            mCfg.led.led_high_active = false;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
@@ -528,7 +528,7 @@ class settings {
             } else {
                 getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
                 getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
-                getVal<uint8_t>(obj, F("act_high"), &mCfg.led.led_high_active);
+                getVal<bool>(obj, F("act_high"), &mCfg.led.led_high_active);
             }
         }
 
