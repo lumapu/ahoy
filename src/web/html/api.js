@@ -103,11 +103,9 @@ function parseVersion(obj) {
 }
 
 function parseESP(obj) {
-    if(document.getElementById("esp_type").childNodes.length < 1) {
-        document.getElementById("esp_type").append(
-            document.createTextNode("Board: " + obj["esp_type"])
-        );
-    }
+    document.getElementById("esp_type").replaceChildren(
+        document.createTextNode("Board: " + obj["esp_type"])
+    );
 }
 
 function parseRssi(obj) {

@@ -13,7 +13,6 @@
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
-
             var intervalId = null;
 
             function parseGeneric(obj) {
@@ -24,9 +23,7 @@
 
             function parseHtml(obj) {
                 var html = "";
-                if(obj.pending)
-                    html = "Saving settings ...";
-                else {
+                if(!obj.pending) {
                     if(intervalId != null) {
                         clearInterval(intervalId);
                     }
@@ -36,14 +33,12 @@
                         if(!obj.reboot) {
                             html = "Settings successfully saved. Automatic page reload in 3 seconds.";
                             meta.content = 3;
-                        }
-                        else {
+                        } else {
                             html = "Settings successfully saved. Rebooting. Automatic redirect in 20 seconds.";
                             meta.content = 20 + "; URL=/";
                         }
                         document.getElementsByTagName('head')[0].appendChild(meta);
-                    }
-                    else {
+                    } else {
                         html = "Failed saving settings.";
                     }
                 }

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.6.7 - 2023-04-13
+* merge PR #883, improved store of settings and javascript, thx @tastendruecker123
+* support `.` and `,` as floating point seperator in setup #881
+
 ## 0.6.6 - 2023-04-12
 * increased distance for `import` button in mobile view #879
 * changed `led_high_active` to `bool` #879
