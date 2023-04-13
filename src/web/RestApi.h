@@ -276,6 +276,7 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj["pending"] = (bool)mApp->getSavePending();
             obj["success"] = (bool)mApp->getLastSaveSucceed();
+            obj["reboot"] = (bool)mApp->getShouldReboot();
         }
 
         void getReboot(AsyncWebServerRequest *request, JsonObject obj) {

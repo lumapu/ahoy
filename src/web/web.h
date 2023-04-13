@@ -515,7 +515,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 8; i++) {
+            for (uint8_t i = 0; i < 9; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
