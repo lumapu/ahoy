@@ -3,12 +3,18 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
-#include "app.h"
 #include <ArduinoJson.h>
+
+#include "app.h"
+
 #include "utils/sun.h"
 
+
 //-----------------------------------------------------------------------------
-app::app() : ah::Scheduler() {}
+app::app()
+    : ah::Scheduler {},
+      mInnerLoopCb {nullptr} {
+}
 
 
 //-----------------------------------------------------------------------------
@@ -24,6 +30,7 @@ void app::setup() {
     mSettings.setup();
     mSettings.getPtr(mConfig);
     DPRINT(DBG_INFO, F("Settings valid: "));
+    DSERIAL.flush();
     if (mSettings.getValid())
         DBGPRINTLN(F("true"));
     else
@@ -31,17 +38,29 @@ void app::setup() {
 
     mSys.enableDebug();
     mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+    #ifdef ETHERNET
+    delay(1000);
+    DPRINT(DBG_INFO, F("mEth setup..."));
+    DSERIAL.flush();
+    mEth.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
+    DBGPRINTLN(F("done..."));
+    DSERIAL.flush();
+    #endif // ETHERNET
 
-#if defined(AP_ONLY)
+    #if !defined(ETHERNET)
+    #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
     #else
     mInnerLoopCb = std::bind(&app::loopWifi, this);
     #endif
+    #endif /* !defined(ETHERNET) */
 
-    mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onWifi, this, std::placeholders::_1));
+#if !defined(ETHERNET)
+    mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
     #if !defined(AP_ONLY)
     everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     #endif
+#endif /* defined(ETHERNET) */
 
     mSys.addInverters(&mConfig->inst);
 
@@ -95,7 +114,8 @@ void app::setup() {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    mInnerLoopCb();
+    if (mInnerLoopCb)
+        mInnerLoopCb();
 }
 
 //-----------------------------------------------------------------------------
@@ -136,30 +156,38 @@ void app::loopStandard(void) {
         mMqtt.loop();
 }
 
+#if !defined(ETHERNET)
 //-----------------------------------------------------------------------------
 void app::loopWifi(void) {
     ah::Scheduler::loop();
     yield();
 }
+#endif /* !defined(ETHERNET) */
 
 //-----------------------------------------------------------------------------
-void app::onWifi(bool gotIp) {
-    DPRINTLN(DBG_DEBUG, F("onWifi"));
+void app::onNetwork(bool gotIp) {
+    DPRINTLN(DBG_DEBUG, F("onNetwork"));
     ah::Scheduler::resetTicker();
     regularTickers();  // reinstall regular tickers
     if (gotIp) {
-        mInnerLoopCb = std::bind(&app::loopStandard, this);
         every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
         mMqttReconnect = true;
         mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+        #if !defined(ETHERNET)
         if (WIFI_AP == WiFi.getMode()) {
             mMqttEnabled = false;
             everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
         }
+        #endif /* !defined(ETHERNET) */
+        mInnerLoopCb = [this]() { this->loopStandard(); };
     } else {
-        mInnerLoopCb = std::bind(&app::loopWifi, this);
+#if defined(ETHERNET)
+        mInnerLoopCb = nullptr;
+#else /* defined(ETHERNET) */
+        mInnerLoopCb = [this]() { this->loopWifi(); };
         everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+#endif /* defined(ETHERNET) */
     }
 }
 
@@ -176,8 +204,42 @@ void app::regularTickers(void) {
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    bool isOK = mWifi.getNtpTime();
+    bool isOK = false;
+#if defined(ETHERNET)
+    if (!(isOK = mEth.updateNtpTime()))
+        once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
+#else /* defined(ETHERNET) */
+    isOK = mWifi.getNtpTime();
     if (isOK || mTimestamp != 0) {
+        this->updateNtp();
+        nxtTrig = isOK ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
+    }
+    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
+#endif /* defined(ETHERNET) */
+
+    // immediately start communicating
+    // @TODO: leads to reboot loops? not sure #674
+    if (isOK && mSendFirst) {
+        mSendFirst = false;
+        once(std::bind(&app::tickSend, this), 2, "senOn");
+    }
+
+}
+
+#if defined(ETHERNET)
+void app::onNtpUpdate(bool gotTime)
+{
+    uint32_t nxtTrig = 5;  // default: check again in 5 sec
+    if (gotTime || mTimestamp != 0) {
+        this->updateNtp();
+        nxtTrig = gotTime ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
+    }
+    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
+}
+#endif /* defined(ETHERNET) */
+
+//-----------------------------------------------------------------------------
+void app::updateNtp(void) {
         if (mMqttReconnect && mMqttEnabled) {
             mMqtt.tickerSecond();
             everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
@@ -195,24 +257,13 @@ void app::tickNtpUpdate(void) {
             }
         }
 
-        nxtTrig = isOK ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
-
         if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
             tickCalcSunrise();
         }
 
-        // immediately start communicating
-        // @TODO: leads to reboot loops? not sure #674
-        if (isOK && mSendFirst) {
-            mSendFirst = false;
-            once(std::bind(&app::tickSend, this), 2, "senOn");
-        }
-
         mMqttReconnect = false;
     }
-    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
-}
 
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {

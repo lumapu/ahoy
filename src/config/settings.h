@@ -65,9 +65,14 @@ typedef struct {
     uint16_t protectionMask;
     bool darkMode;
 
+#if defined(ETHERNET)
+    // ethernet
+
+#else /* defined(ETHERNET) */
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
+#endif /* defined(ETHERNET) */
 
     cfgIp_t ip;
 } cfgSys_t;
@@ -250,7 +255,7 @@ class settings {
                 root.shrinkToFit();
                 if(!err && (root.size() > 0)) {
                     mCfg.valid = true;
-                    if(root.containsKey(F("wifi"))) jsonWifi(root[F("wifi")]);
+                    if(root.containsKey(F("wifi"))) jsonNetwork(root[F("wifi")]);
                     if(root.containsKey(F("nrf"))) jsonNrf(root[F("nrf")]);
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
@@ -274,7 +279,7 @@ class settings {
 
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
-            jsonWifi(root.createNestedObject(F("wifi")), true);
+            jsonNetwork(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
@@ -338,13 +343,18 @@ class settings {
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
             mCfg.sys.darkMode = false;
+
             // restore temp settings
+            #if defined(ETHERNET)
+            memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            #else /* defined(ETHERNET) */
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
             }
+            #endif /* defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
@@ -400,11 +410,13 @@ class settings {
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
        }
 
-        void jsonWifi(JsonObject obj, bool set = false) {
+        void jsonNetwork(JsonObject obj, bool set = false) {
             if(set) {
                 char buf[16];
+                #if !defined(ETHERNET)
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
+                #endif /* !defined(ETHERNET) */
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
@@ -415,8 +427,10 @@ class settings {
                 ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")] = String(buf);
             } else {
+                #if !defined(ETHERNET)
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
+                #endif /* !defined(ETHERNET) */
                 getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);

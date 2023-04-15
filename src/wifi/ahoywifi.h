@@ -2,7 +2,7 @@
 // 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
-
+#if !defined(ETHERNET)
 #ifndef __AHOYWIFI_H__
 #define __AHOYWIFI_H__
 
@@ -75,3 +75,4 @@ class ahoywifi {
 };
 
 #endif /*__AHOYWIFI_H__*/
+#endif /* !defined(ETHERNET) */

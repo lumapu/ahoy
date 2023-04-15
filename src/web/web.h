@@ -16,7 +16,11 @@
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
+#if defined(ETHERNET)
+#include "AsyncWebServer_ESP32_W5500.h"
+#else /* defined(ETHERNET) */
 #include "ESPAsyncWebServer.h"
+#endif /* defined(ETHERNET) */
 #include "html/h/api_js.h"
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"
@@ -144,7 +148,9 @@ class Web {
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+            #if !defined(ETHERNET)
             mApp->setOnUpdate();
+            #endif /* !defined(ETHERNET) */
 
             if (!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
@@ -444,10 +450,12 @@ class Web {
             char buf[20] = {0};
 
             // general
+            #if !defined(ETHERNET)
             if (request->arg("ssid") != "")
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
+            #endif /* !defined(ETHERNET) */
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");

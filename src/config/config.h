@@ -32,12 +32,24 @@
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
 
+// ethernet
+
+#if defined(ETHERNET)
+    #define ETH_SPI_HOST            SPI2_HOST
+    #define ETH_SPI_CLOCK_MHZ       25
+    #define ETH_INT_GPIO            4
+    #define ETH_MISO_GPIO           12
+    #define ETH_MOSI_GPIO           13
+    #define ETH_SCK_GPIO            14
+    #define ETH_CS_PIN              15
+#else /* defined(ETHERNET) */
 // time in seconds how long the station info (ssid + pwd) will be tried
 #define WIFI_TRY_CONNECT_TIME   30
 
 // time during the ESP will act as access point on connection failure (to
 // station) in seconds
 #define WIFI_AP_ACTIVE_TIME     60
+#endif /* defined(ETHERNET) */
 
 // default device name
 #define DEF_DEVICE_NAME         "AHOY-DTU"
@@ -49,7 +61,7 @@
     // to map its two HW SPIs anywhere and PCBs differ materially,
     // so it has to be selected in the Web UI
     #define DEF_CS_PIN              5
-    #define DEF_CE_PIN              4
+    #define DEF_CE_PIN              17
     #define DEF_IRQ_PIN             16
     #define DEF_MISO_PIN            19
     #define DEF_MOSI_PIN            23

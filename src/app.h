@@ -24,7 +24,11 @@
 #include "utils/scheduler.h"
 #include "web/RestApi.h"
 #include "web/web.h"
+#if defined(ETHERNET)
+#include "eth/ahoyeth.h"
+#else /* defined(ETHERNET) */
 #include "wifi/ahoywifi.h"
+#endif /* defined(ETHERNET) */
 
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
@@ -52,8 +56,10 @@ class app : public IApp, public ah::Scheduler {
         void setup(void);
         void loop(void);
         void loopStandard(void);
+#if !defined(ETHERNET)
         void loopWifi(void);
-        void onWifi(bool gotIp);
+#endif /* !defined(ETHERNET) */
+        void onNetwork(bool gotIp);
         void regularTickers(void);
 
         void handleIntr(void) {
@@ -100,6 +106,7 @@ class app : public IApp, public ah::Scheduler {
             return &mStat;
         }
 
+        #if !defined(ETHERNET)
         void scanAvailNetworks() {
             mWifi.scanAvailNetworks();
         }
@@ -109,8 +116,9 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setOnUpdate() {
-            onWifi(false);
+            onNetwork(false);
         }
+        #endif /* !defined(ETHERNET) */
 
         void setRebootFlag() {
             once(std::bind(&app::tickReboot, this), 3, "rboot");
@@ -198,7 +206,13 @@ class app : public IApp, public ah::Scheduler {
             DPRINT(DBG_DEBUG, F("setTimestamp: "));
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
+            {
+                #if defined(ETHERNET)
+                mEth.updateNtpTime();
+                #else /* defined(ETHERNET) */
                 mWifi.getNtpTime();
+                #endif /* defined(ETHERNET) */
+            }
             else
                 Scheduler::setTimestamp(newTime);
         }
@@ -226,7 +240,7 @@ class app : public IApp, public ah::Scheduler {
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
-            onWifi(false);
+            onNetwork(false);
             ah::Scheduler::resetTicker();
             WiFi.disconnect();
             delay(200);
@@ -243,6 +257,11 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickNtpUpdate(void);
+        #if defined(ETHERNET)
+        void onNtpUpdate(bool gotTime);
+        #endif /* defined(ETHERNET) */
+        void updateNtp(void);
+
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
         void tickSun(void);
@@ -271,7 +290,11 @@ class app : public IApp, public ah::Scheduler {
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
 
+        #if defined(ETHERNET)
+        ahoyeth mEth;
+        #else /* defined(ETHERNET) */
         ahoywifi mWifi;
+        #endif /* defined(ETHERNET) */
         WebType mWeb;
         RestApiType mApi;
         PayloadType mPayload;

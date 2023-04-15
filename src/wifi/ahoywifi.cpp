@@ -3,6 +3,7 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
+#if !defined(ETHERNET)
 #if defined(ESP32) && defined(F)
   #undef F
   #define F(sl) (sl)
@@ -414,3 +415,5 @@ void ahoywifi::welcome(String ip, String mode) {
     DBGPRINTLN(F("to configure your device"));
     DBGPRINTLN(F("--------------------------------\n"));
 }
+
+#endif /* !defined(ETHERNET) */

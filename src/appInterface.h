@@ -8,7 +8,9 @@
 
 #include "defines.h"
 #include "hm/hmSystem.h"
+#if !defined(ETHERNET)
 #include "ESPAsyncWebServer.h"
+#endif /* defined(ETHERNET) */
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -18,15 +20,20 @@ class IApp {
         virtual bool saveSettings(bool stopFs) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
+        #if !defined(ETHERNET)
         virtual bool getSavePending() = 0;
         virtual bool getLastSaveSucceed() = 0;
         virtual bool getShouldReboot() = 0;
         virtual void setOnUpdate() = 0;
+        #endif /* defined(ETHERNET) */
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
         virtual statistics_t *getStatistics() = 0;
+
+        #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;
         virtual void getAvailNetworks(JsonObject obj) = 0;
+        #endif /* defined(ETHERNET) */
 
         virtual uint32_t getUptime() = 0;
         virtual uint32_t getTimestamp() = 0;

@@ -16,7 +16,11 @@
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
 #include "AsyncJson.h"
+#if defined(ETHERNET)
+#include "AsyncWebServer_ESP32_W5500.h"
+#else /* defined(ETHERNET) */
 #include "ESPAsyncWebServer.h"
+#endif /* defined(ETHERNET) */
 
 #if defined(F) && defined(ESP32)
 #undef F
@@ -88,8 +92,10 @@ class RestApi {
             else if(path == "inverter/list")  getInverterList(root);
             else if(path == "index")          getIndex(request, root);
             else if(path == "setup")          getSetup(request, root);
+            #if !defined(ETHERNET)
             else if(path == "setup/networks") getNetworks(root);
-            else if(path == "live")           getLive(request, root);
+            #endif /* !defined(ETHERNET) */
+            else if(path == "live")           getLive(request,root);
             else if(path == "record/info")    getRecord(root, InverterDevInform_All);
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
@@ -204,7 +210,9 @@ class RestApi {
         }
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
+            #if !defined(ETHERNET)
             obj[F("ssid")]         = mConfig->sys.stationSsid;
+            #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
 
@@ -494,9 +502,11 @@ class RestApi {
             getDisplay(obj.createNestedObject(F("display")));
         }
 
+        #if !defined(ETHERNET)
         void getNetworks(JsonObject obj) {
             mApp->getAvailNetworks(obj);
         }
+        #endif /* !defined(ETHERNET) */
 
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
@@ -587,9 +597,12 @@ class RestApi {
         }
 
         bool setSetup(JsonObject jsonIn, JsonObject jsonOut) {
+            #if !defined(ETHERNET)
             if(F("scan_wifi") == jsonIn[F("cmd")])
                 mApp->scanAvailNetworks();
-            else if(F("set_time") == jsonIn[F("cmd")])
+            else
+            #endif /* !defined(ETHERNET) */
+            if(F("set_time") == jsonIn[F("cmd")])
                 mApp->setTimestamp(jsonIn[F("val")]);
             else if(F("sync_ntp") == jsonIn[F("cmd")])
                 mApp->setTimestamp(0); // 0: update ntp flag
