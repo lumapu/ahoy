@@ -64,6 +64,7 @@ typedef struct {
     char adminPwd[PWD_LEN];
     uint16_t protectionMask;
     bool darkMode;
+    bool schedReboot;
 
     // wifi
     char stationSsid[SSID_LEN];
@@ -338,6 +339,7 @@ class settings {
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
             mCfg.sys.darkMode = false;
+            mCfg.sys.schedReboot = true;
             // restore temp settings
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
@@ -409,6 +411,7 @@ class settings {
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
+                obj[F("reb")] = mCfg.sys.schedReboot;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -421,6 +424,7 @@ class settings {
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
+                getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());

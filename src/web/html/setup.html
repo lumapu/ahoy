@@ -29,6 +29,10 @@
                             <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Reboot Ahoy at midnight</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="schedReboot"/></div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-8 col-sm-3">Dark Mode</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
                             <div class="col-8 col-sm-3">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
@@ -606,6 +610,7 @@
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
+                document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
                 e = document.getElementsByName("adminpwd")[0];
                 if(!obj["pwd_set"])
                     e.value = "";
