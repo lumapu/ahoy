@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.6.8 - 2023-04-19
+* fix #892 `zeroYieldDay` loop was not applied to all channels
+
 ## 0.6.7 - 2023-04-13
 * merge PR #883, improved store of settings and javascript, thx @tastendruecker123
 * support `.` and `,` as floating point seperator in setup #881
