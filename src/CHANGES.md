@@ -1,7 +1,5 @@
 Changelog v0.6.9
 
-* LEDs are now configurable to show if 1st inverter is available and if MqTT is connected
-* LED are configurable to active high or low
 * improved MqTT
 * fix WiFi hostname during boot up
 * improved login: only one session at the same time is possible
@@ -13,3 +11,5 @@ Changelog v0.6.9
 * improved save settings
 * improved UI in setup: now `.` and `,` are allowed as floating point seperator
 * fix zero yield day functionality
+* LEDs are now configurable to show if 1st inverter is available and if MqTT is connected
+* LED are configurable to active high or low
