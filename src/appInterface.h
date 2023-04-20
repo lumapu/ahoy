@@ -8,6 +8,7 @@
 
 #include "defines.h"
 #include "hm/hmSystem.h"
+#include "ESPAsyncWebServer.h"
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -19,6 +20,7 @@ class IApp {
         virtual bool eraseSettings(bool eraseWifi) = 0;
         virtual bool getSavePending() = 0;
         virtual bool getLastSaveSucceed() = 0;
+        virtual bool getShouldReboot() = 0;
         virtual void setOnUpdate() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
@@ -47,7 +49,7 @@ class IApp {
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 
-        virtual bool getProtection() = 0;
+        virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
         virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
         //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;

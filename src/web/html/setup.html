@@ -1,25 +1,14 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
         <title>Setup</title>
         {#HTML_HEADER}
-        <script type="text/javascript">
-            function load() {
-                for(it of document.getElementsByClassName("s_collapsible")) {
-                    it.addEventListener("click", function() {
-                        this.classList.toggle("active");
-                        var content = this.nextElementSibling;
-                        content.style.display = (content.style.display === "block") ? "none" : "block";
-                    });
-                }
-            }
-        </script>
     </head>
-    <body onload="load()">
+    <body>
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <form method="post" action="/save">
+                <form method="post" action="/save" id="settings">
                     <fieldset>
                     <button type="button" class="s_collapsible mt-4">System Config</button>
                     <div class="s_content">
@@ -32,6 +21,7 @@
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3">Dark Mode</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
+                            <div class="col-8 col-sm-3">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
                         </div>
                     </fieldset>
                     <fieldset class="mb-4">
@@ -150,11 +140,11 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="invInterval" pattern="[0-9]+" title="Invalid input"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="invInterval" title="Invalid input"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Max retries per Payload</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="invRetry"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="invRetry"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
@@ -181,7 +171,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">NTP Port</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="ntpPort"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">set system time</div>
@@ -198,15 +188,13 @@
                     <div class="s_content">
                     <fieldset class="mb-4">
                         <legend class="des">Sunrise & Sunset</legend>
-                        <p>Use a decimal separator: '.' (dot) for Latitude and Longitude</p>
-
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Latitude (decimal)</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="sunLat"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="sunLat" step="any"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Longitude (decimal)</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="sunLon"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
@@ -229,7 +217,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Port</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttPort"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="mqttPort"/></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Username (optional)</div>
@@ -246,7 +234,7 @@
                         <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttInterval" pattern="[0-9]+" title="Invalid input" /></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
@@ -295,11 +283,13 @@
                     <fieldset class="mb-4">
                         <legend class="des">Import / Export JSON Settings</legend>
                         <div class="row mb-4 mt-4">
-                            <div class="col-12 col-sm-3 my-2">Import</div>
+                            <div class="col-12 col-sm-3">Import</div>
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
-                                    <input type="file" name="upload">
-                                    <input type="button" class="btn" value="Import" onclick="hide()">
+                                    <div class="row">
+                                        <div class="col-12 col-sm-8 my-2"><input type="file" name="upload"></div>
+                                        <div class="col-12 col-sm-4 my-2"><input type="button" class="btn" value="Import" onclick="hide()"></div>
+                                    </div>
                                 </form>
                             </div>
                         </div>
@@ -415,8 +405,30 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            var led_high_active = [
+                [0, "low active"],
+                [1, "high active"],
+            ];
 
             const re = /11[2,4,6][1,2,4].*/;
+
+            window.onload = function() {
+                for(it of document.getElementsByClassName("s_collapsible")) {
+                    it.addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        var content = this.nextElementSibling;
+                        content.style.display = (content.style.display === "block") ? "none" : "block";
+                    });
+                }
+
+                document.getElementById("settings").addEventListener("submit", function() {
+                    var inputs = document.querySelectorAll("input[type='number']");
+                    for (var i = 0; i < inputs.length; i++) {
+                        if (inputs[i].value.indexOf(",") != -1)
+                            inputs[i].value = inputs[i].value.replace(",", ".");
+                    }
+                });
+            }
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
@@ -674,6 +686,14 @@
                         ])
                     );
                 }
+                e.append(
+                    ml("div", { class: "row mb-3" }, [
+                        ml("div", { class: "col-12 col-sm-3 my-2" }, "LED polarity"),
+                        ml("div", { class: "col-12 col-sm-9" },
+                            sel('pinLedHighActive', led_high_active, obj['led_high_active'])
+                        )
+                    ])
+                )
             }
 
             function parseNrfRadio(obj, type, system) {

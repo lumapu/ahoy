@@ -103,7 +103,7 @@ function parseVersion(obj) {
 }
 
 function parseESP(obj) {
-    document.getElementById("esp_type").append(
+    document.getElementById("esp_type").replaceChildren(
         document.createTextNode("Board: " + obj["esp_type"])
     );
 }

@@ -59,6 +59,7 @@ void app::setup() {
 
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
+    mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
     if(!mNrfRadio.isChipConnected())
             DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -84,6 +85,7 @@ void app::setup() {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+        mMiPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
     #endif
     setupLed();
@@ -448,30 +450,38 @@ void app::mqttSubRxCb(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
-    /** LED connection diagram
-     *          \\
-     * PIN ---- |<----- 3.3V
-     *
-     * */
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
+
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
-        digitalWrite(mConfig->led.led0, HIGH);  // LED off
+        digitalWrite(mConfig->led.led0, led_off);
     }
     if (mConfig->led.led1 != 0xff) {
         pinMode(mConfig->led.led1, OUTPUT);
-        digitalWrite(mConfig->led.led1, HIGH);  // LED off
+        digitalWrite(mConfig->led.led1, led_off);
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
+    uint8_t led_on = (mConfig->led.led_high_active) ? HIGH : LOW;
+
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
             if (iv->isProducing(mTimestamp))
-                digitalWrite(mConfig->led.led0, LOW);  // LED on
+                digitalWrite(mConfig->led.led0, led_on);
             else
-                digitalWrite(mConfig->led.led0, HIGH);  // LED off
+                digitalWrite(mConfig->led.led0, led_off);
         }
+    }
+
+    if (mConfig->led.led1 != 0xff) {
+        if (getMqttIsConnected()) {
+            digitalWrite(mConfig->led.led1, led_on);
+        } else {
+            digitalWrite(mConfig->led.led1, led_off);
+}
     }
 }

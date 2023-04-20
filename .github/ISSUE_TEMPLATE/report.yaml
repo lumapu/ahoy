@@ -1,18 +1,20 @@
 name: "AhoyDTU bug"
 description: "File a bug report"
-title: "[ESP8266/ESP32/RaspberryPi] Problem Description / Beschreibung"
+title: "[Bug]"
 labels: ["bug", "needs-triage"]
 assignees:
-  - stefan123t
+  - lumapu
 body:
   - type: markdown
     attributes:
       value: |
         Bitte die Posting Guide lines lesen, Vorlage kopieren und ausfüllen und in Eurem Support Forum Eintrag posten.
         Wir lesen auch gerne Deutsch, bitte fülle die u.a. Fragen aus damit wir Dir bestmöglich helfen können Danke!
+        Bitte unser FAQ als Hilfestellung prüfen: https://ahoydtu.de/faq
         
         Please read, copy & fill in the template from our Posting Guide lines into your Support Forum post.
         We do enjoy the english language, but we need a couple of things to best support you in your goal, please fill in all / most of the details given below. Thanks!
+        Check our FAQ: https://ahoydtu.de/faq
   - type: markdown
     attributes:
       value: "## Hardware"
@@ -27,19 +29,21 @@ body:
         - RaspberryPi
     validations:
       required: true
-  - type: input
-    id: model
+  - type: dropdown
+    id: assembly-type
     attributes:
-      label: Model name
-      description: Please give us a precise description of your hardware and/or a link to the vendor
-      placeholder: 
+      label: Assembly
+      description:
+      options:
+        - I did the assebly by myself
+        - the DTU was already assembled
     validations:
-      required: false
+      required: true
   - type: dropdown
     id: nrf24l01-module
     attributes:
       label: nRF24L01+ Module
-      description: | 
+      description: |
         What type of nRF24L01+ chip is on your nRF24L01+ module ?
         * you verified this is a **nRF24L01+ plus** model capable of the required 256kBit/s mode ?
         * **square dot** indicates original Nordic Semicon chip ?
@@ -69,41 +73,9 @@ body:
         * special **voltage stabilizing board**
         * **nothing** (yet)
       options:
-        - ~100uF Elko
+        - Elko (~100uF)
         - board
         - nothing
-    validations:
-      required: true
-  - type: textarea
-    id: connection-diagram
-    attributes:
-      label: Connection diagram
-      description: Tell us which connection diagram you used?
-      value: |
-        ## Connection diagram I used:
-        | nRF24L01+ Pin | ESP8266 GPIO   |
-        | ------------- | -------------- |
-        | Pin 1 GND [*] | GND            |
-        | Pin 2 +3.3V   | +3.3V          |
-        | Pin 3 CE      | GPIO2  CE   D4 |
-        | Pin 4 CSN     | GPIO15 CS   D8 |
-        | Pin 5 SCK     | GPIO14 SCLK D5 |
-        | Pin 6 MOSI    | GPIO13 MOSI D7 |
-        | Pin 7 MISO    | GPIO12 MISO D6 |
-        | Pin 8 IRQ     | GPIO0  IRQ  D3 |
-
-        | nRF24L01+ Pin | ESP32 GPIO      |
-        | ------------- | --------------- |
-        | Pin 1 GND [*] | GND             |
-        | Pin 2 +3.3V   | +3.3V           |
-        | Pin 3 CE      | GPIO4  CE   D4  |
-        | Pin 4 CSN     | GPIO5  CS   D5  |
-        | Pin 5 SCK     | GPIO18 SCLK D18 |
-        | Pin 6 MOSI    | GPIO23 MOSI D23 |
-        | Pin 7 MISO    | GPIO19 MISO D19 |
-        | Pin 8 IRQ     | GPIO0  IRQ  D0  |
-
-        Note: [*] GND Pin 1 has a square mark on the nRF24L01+ module
     validations:
       required: true
   - type: checkboxes
@@ -123,7 +95,7 @@ body:
     attributes:
       label: Version
       description: What version of our software are you running ?
-      placeholder: 0.5.17
+      placeholder: 0.6.0
     validations:
       required: true
   - type: input
@@ -131,7 +103,7 @@ body:
     attributes:
       label: Github Hash
       description: Which GitHub hash has the build of our software ?
-      placeholder: 5402e9b
+      placeholder: abc1234
     validations:
       required: true
   - type: dropdown
@@ -140,19 +112,11 @@ body:
       label: Build & Flash Method
       description: What software do you use to flash / build & flash our firmware images ?
       options:
+        - AhoyDTU Webinstaller
+        - VSCode - Platform IO (build & flash)
         - ESP Tools (flash)
-        - Platform IO (build & flash)
-    validations:
-      required: true
-  - type: dropdown
-    id: desktop-os
-    attributes:
-      label: Desktop
-      description: Which operating system are you using on your desktop to build & flash ?
-      options:
-        - Linux
-        - Mac OS
-        - Windows
+        - Arduino IDE
+        - was already installed
     validations:
       required: true
   - type: textarea
@@ -160,49 +124,12 @@ body:
     attributes:
       label: Setup
       description: |
-        Which settings are configured under http://ahoy-dtu/setup ?
-        Document any relevant setup values correctly.
-        Copy and paste the Inverter Section if you have multiple Inverters.
-      value: |
-        ### Device Host Name
-            - Device Name: AHOY-DTU
-        ### WiFi
-            - SSID: YOUR_WIFI_SSID *don't paste here*
-            - Password: YOUR_WIFI_PWD *don't paste here*
-        ### Inverter
-        #### Inverter 0
-            - Address: 1141752123456
-            - Name: HM-600
-            - Active Power Limit: 65535
-            - Active Power Limit Control Type: no powerlimit
-            - Max Module Power (Wp): 375, 375
-            - Module Name: link, rech
-        ### General
-            - Interval [s]: 30
-            - Max retries per Payload: 5
-        ### NTP Server
-            - NTP Server / IP: pool.ntp.org
-            - NTP Port: 123
-        ### MQTT
-            - Broker / Server IP: 
-            - Port: 1883
-            - Username (optional): 
-            - Password (optional): 
-            - Topic: inverter
-        ### System Config
-        #### Pinout (Wemos)
-            - CS: D8 (GPIO15)
-            - CE: D4 (GPIO2)
-            - IRQ: D3 (GPIO0)
-        #### Radio (NRF24L01+)
-            - Amplifier Power Level: LOW
-        #### Serial Console
-            - print inverter data: [x]
-            - Serial Debug: [x]
-            - Interval [s]: 5
-
-        - Reboot device after successful save: [x]
-        - SAVE
+        Which settings were modified to which values? Check this page on your DTU: http://ahoy-dtu/setup
+        Do not post private data here (SSID / passwords / serial numbers)!
+      placeholder: |
+        Some examples:
+        - MqTT: only broker was added
+        - Inverter: set intervall to 5 seconds ..
     validations:
       required: true
   - type: textarea
@@ -219,12 +146,9 @@ body:
     attributes:
       label: Error description
       description: Please describe what you expected and what happened instead.
-      value: |
-        1) Go to http://ahoy-dtu/setup
-        2) configure above settings
-        3) Reboot
-        4) I did this
-        5) I expected that
-        6) and something completely differen happened
+      placeholder: |
+        1) I went to https://ahoy-dtu.de/web_install and installed latest release
+        2) I did some configurations, especially ...
+        ...
     validations:
       required: true

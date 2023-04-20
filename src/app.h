@@ -106,6 +106,10 @@ class app : public IApp, public ah::Scheduler {
             return mSettings.getLastSaveSucceed();
         }
 
+        bool getShouldReboot() {
+            return mSaveReboot;
+        }
+
         statistics_t *getStatistics() {
             return &mStat;
         }
@@ -155,8 +159,12 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
-            if(mIVCommunicationOn) // only send commands if communcation is enabled
-                mPayload.ivSendHighPrio(iv);
+            if(mIVCommunicationOn) { // only send commands if communcation is enabled
+                if (iv->ivGen == IV_HM)
+                    mPayload.ivSendHighPrio(iv);
+                else if (iv->ivGen == IV_MI)
+                    mMiPayload.ivSendHighPrio(iv);
+            }
         }
 
         bool getMqttIsConnected() {
@@ -171,8 +179,8 @@ class app : public IApp, public ah::Scheduler {
             return mMqtt.getRxCnt();
         }
 
-        bool getProtection() {
-            return mWeb.getProtection();
+        bool getProtection(AsyncWebServerRequest *request) {
+            return mWeb.isProtected(request);
         }
 
         void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
@@ -242,8 +250,8 @@ class app : public IApp, public ah::Scheduler {
 
         void mqttSubRxCb(JsonObject obj);
 
-        void setupLed(void);
-        void updateLed(void);
+        void setupLed();
+        void updateLed();
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
