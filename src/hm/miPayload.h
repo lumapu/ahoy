@@ -148,10 +148,10 @@ class MiPayload {
                 if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
                     cmd  = 0x0f;                              // for MI, these seem to make part of the  Polling the device software and hardware version number command
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    mRadio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
+                    mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 } else {
                     //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mRadio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
+                    mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 };
 
                 mPayload[iv->id].txCmd = cmd;
@@ -442,7 +442,7 @@ const byteAssign_t InfoAssignment[] = {
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mRadio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
+                                        mRadio->sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
                                         //iv->setQueuedCmdFinished();
                                         //cmd = iv->getQueuedCmd();
                                     } else {
@@ -479,7 +479,7 @@ const byteAssign_t InfoAssignment[] = {
                                         }
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
-                                        mRadio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
                                         //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
                                     }
@@ -497,7 +497,7 @@ const byteAssign_t InfoAssignment[] = {
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
                             //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
-                            mRadio.sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
+                            mRadio->sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
                     /*else {  // payload complete

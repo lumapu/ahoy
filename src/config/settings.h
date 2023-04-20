@@ -129,9 +129,9 @@ typedef struct {
     bool enabled;
     char name[MAX_NAME_LENGTH];
     serial_u serial;
-    uint16_t chMaxPwr[4];
-    int32_t yieldCor[4];  // signed YieldTotal correction value
-    char chName[4][MAX_NAME_LENGTH];
+    uint16_t chMaxPwr[6];
+    int32_t yieldCor[6];  // signed YieldTotal correction value
+    char chName[6][MAX_NAME_LENGTH];
 } cfgIv_t;
 
 typedef struct {
@@ -634,7 +634,7 @@ class settings {
                 obj[F("en")]   = (bool)cfg->enabled;
                 obj[F("name")] = cfg->name;
                 obj[F("sn")]   = cfg->serial.u64;
-                for(uint8_t i = 0; i < 4; i++) {
+                for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
@@ -643,7 +643,7 @@ class settings {
                 getVal<bool>(obj, F("en"), &cfg->enabled);
                 getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
-                for(uint8_t i = 0; i < 4; i++) {
+                for(uint8_t i = 0; i < (sizeof(obj[F("yield")])/sizeof(int32_t)); i++) {
                     if(obj.containsKey(F("yield"))) cfg->yieldCor[i] = obj[F("yield")][i];
                     if(obj.containsKey(F("pwr"))) cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     if(obj.containsKey(F("chName"))) snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());

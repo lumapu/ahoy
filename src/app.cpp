@@ -162,7 +162,7 @@ void app::loopStandard(void) {
 
             Inverter<> *iv = mSys.findInverter(&p->data[2]);
             if(NULL != iv) {
-                if(IV_HMS == iv->ivGen)
+                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                     mHmsPayload.add(iv, p);
             }
             mCmtRadio.mBufCtrl.pop();
@@ -405,7 +405,7 @@ void app::tickSend(void) {
                 else if(iv->ivGen == IV_MI)
                     mMiPayload.ivSend(iv);
                 #if defined(ESP32)
-                else if(iv->ivGen == IV_HMS)
+                else if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                     mHmsPayload.ivSend(iv);
                 #endif
             }

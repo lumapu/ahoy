@@ -410,7 +410,7 @@
                 [1, "high active"],
             ];
 
-            const re = /11[2,4,6][1,2,4].*/;
+            const re = /1[1,3][2,4,6,8][1,2,4].*/;
 
             window.onload = function() {
                 for(it of document.getElementsByClassName("s_collapsible")) {
@@ -432,7 +432,7 @@
 
             document.getElementById("btnAdd").addEventListener("click", function() {
                 if(highestId <= (maxInv-1)) {
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":4,"ch_max_pwr":[0,0,0,0],"ch_name":["","","",""],"ch_yield_cor":[0,0,0,0]}'), highestId);
+                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":6,"ch_max_pwr":[0,0,0,0,0,0],"ch_name":["","","","","",""],"ch_yield_cor":[0,0,0,0,0,0]}'), highestId);
                 }
             });
 
@@ -539,7 +539,7 @@
                     addr.addEventListener(evt, (e) => {
                         var serial = addr.value.substring(0,4);
                         var max = 0;
-                        for(var i=0;i<4;i++) {
+                        for(var i=0;i<6;i++) {
                             setHide(id+"ModPwr"+i, true);
                             setHide(id+"ModName"+i, true);
                             setHide(id+"YieldCor"+i, true);
@@ -549,16 +549,13 @@
                         setHide("row"+id+"YieldCor", true);
 
                         if(serial.charAt(0) == 1) {
-                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1)) {
-                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2)) {
+                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1) || (serial.charAt(1) == 3)) {
+                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2) || (serial.charAt(3) == 4)) {
                                     switch(serial.charAt(2)) {
                                         case "2": max = 1; break;
                                         case "4": max = 2; break;
                                         case "6": max = 4; break;
-                                    }
-                                } else if(serial.charAt(2) == 6) {
-                                    switch(serial.charAt(3)) {
-                                        case "4": max = 4; break;
+                                        case "8": max = 6; break;
                                     }
                                 }
                             }

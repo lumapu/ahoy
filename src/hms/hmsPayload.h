@@ -80,7 +80,7 @@ class HmsPayload {
         }
 
         void ivSend(Inverter<> *iv, bool highPrio = false) {
-            if (IV_HMS != iv->ivGen) // only process HMS inverters
+            if ((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) // only process HMS inverters
                 return;
 
             //if(!highPrio) {
@@ -215,7 +215,7 @@ class HmsPayload {
                 if (NULL == iv)
                     continue; // skip to next inverter
 
-                if (IV_HMS != iv->ivGen) // only process HMS inverters
+                if ((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) // only process HMS inverters
                     continue; // skip to next inverter
 
                 if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {

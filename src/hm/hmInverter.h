@@ -445,6 +445,12 @@ class Inverter {
                         }
                         channels = 4;
                     }
+                    else if (INV_TYPE_6CH == type) {
+                        rec->length  = (uint8_t)(HMT6CH_LIST_LEN);
+                        rec->assign  = (byteAssign_t *)hmt6chAssignment;
+                        rec->pyldLen = HMT6CH_PAYLOAD_LEN;
+                        channels = 6;
+                    }
                     else {
                         rec->length  = 0;
                         rec->assign  = NULL;

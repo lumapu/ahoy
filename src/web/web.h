@@ -487,8 +487,16 @@ class Web {
                     memset(buf, 0, 20);
                 iv->config->serial.u64 = ah::Serial2u64(buf);
                 switch(iv->config->serial.b[4]) {
+                    case 0x24:
+                    case 0x22:
                     case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
+
+                    case 0x44:
+                    case 0x42:
                     case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
+
+                    case 0x64:
+                    case 0x62:
                     case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
                     default:  break;
                 }
@@ -497,7 +505,7 @@ class Web {
                 request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
                 // max channel power / name
-                for (uint8_t j = 0; j < 4; j++) {
+                for (uint8_t j = 0; j < 6; j++) {
                     iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toInt();
                     iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);

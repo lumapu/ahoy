@@ -29,9 +29,10 @@ class HmSystem {
                                 DBGPRINT("HMS");
                             else
                                 DBGPRINT("HM");
-                        } else {
+                        } else if(iv->config->serial.b[5] == 0x13)
+                            DBGPRINT("HMT");
+                        else
                             DBGPRINT(((iv->config->serial.b[4] & 0x03) == 0x01) ? " (2nd Gen) " : " (3rd Gen) ");
-                        }
 
                         DBGPRINTLN(String(iv->config->serial.u64, HEX));
 
@@ -55,13 +56,21 @@ class HmSystem {
             DPRINTLN(DBG_VERBOSE, " " + String(p->config->serial.b[4], HEX));
             if((p->config->serial.b[5] == 0x11) || (p->config->serial.b[5] == 0x10)) {
                 switch(p->config->serial.b[4]) {
+                    case 0x24: // HMS-500
                     case 0x22:
-                    case 0x21: p->type = INV_TYPE_1CH; break;
+                    case 0x21: p->type = INV_TYPE_1CH;
+                        break;
+
+                    case 0x44: // HMS-1000
                     case 0x42:
-                    case 0x41: p->type = INV_TYPE_2CH; break;
-                    case 0x64: // HMS2000
+                    case 0x41: p->type = INV_TYPE_2CH;
+                        break;
+
+                    case 0x64: // HMS-2000
                     case 0x62:
-                    case 0x61: p->type = INV_TYPE_4CH; break;
+                    case 0x61: p->type = INV_TYPE_4CH;
+                        break;
+
                     default:
                         DPRINTLN(DBG_ERROR, F("unknown inverter type"));
                         break;
@@ -77,8 +86,10 @@ class HmSystem {
                     p->ivGen = IV_HM;
                 else // MI 2nd Gen
                     p->ivGen = IV_MI;
-            }
-            else if(p->config->serial.u64 != 0ULL)
+            } else if(p->config->serial.b[5] == 0x13) {
+                    p->ivGen = IV_HMT;
+                    p->type = INV_TYPE_6CH;
+            } else if(p->config->serial.u64 != 0ULL)
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
 
             p->init();
