@@ -28,7 +28,7 @@ DisplayMono::DisplayMono() {
 
 
 void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
-    if ((0 < type) && (type < 4)) {
+    if ((0 < type) && (type < 5)) {
         u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
         mType = type;
         switch(type) {
@@ -42,21 +42,25 @@ void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, u
             case 3:
                 mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
                 break;
+            case 4:
+                mDisplay = new U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C(rot, reset, clock, data);
+                break;
         }
 
         mUtcTs = utcTs;
 
         mDisplay->begin();
 
-        mIsLarge = (mDisplay->getWidth() > 120);
-        calcLineHeights();
+        mIsWide = (mDisplay->getWidth() > 120);
+        mIsTall = (mDisplay->getHeight() > 60);
+        calcLinePositions();
 
         mDisplay->clearBuffer();
         if (3 != mType)
             mDisplay->setContrast(mLuminance);
-        printText("AHOY!", 0, 35);
-        printText("ahoydtu.de", 2, 20);
-        printText(version, 3, 46);
+        printText("AHOY!", 0);
+        printText("ahoydtu.de", 2);
+        printText(version, 3);
         mDisplay->sendBuffer();
     }
 }
@@ -92,7 +96,7 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
         }
         printText(_fmtText, 0);
     } else {
-        printText("offline", 0, 25);
+        printText("offline", 0);
         // check if it's time to enter power saving mode
         if (mTimeout == 0)
             mDisplay->setPowerSave(mEnPowerSafe);
@@ -111,10 +115,12 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
         snprintf(_fmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
         printText(_fmtText, 3);
     } else {
-        if(mIsLarge && (NULL != mUtcTs))
-            printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
-        else
-            printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+        if (NULL != mUtcTs){
+            if(mIsWide && mIsTall)
+                printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+            else
+                printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+        }
     }
 
     mDisplay->sendBuffer();
@@ -123,35 +129,87 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
     _mExtra++;
 }
 
-void DisplayMono::calcLineHeights() {
-    uint8_t yOff = 0;
+void DisplayMono::calcLinePositions() {
+    uint8_t yOff[] = {0,0};
     for (uint8_t i = 0; i < 4; i++) {
         setFont(i);
-        yOff += (mDisplay->getMaxCharHeight());
-        mLineOffsets[i] = yOff;
+        yOff[getColumn(i)] += (mDisplay->getMaxCharHeight());
+        mLineYOffsets[i] = yOff[getColumn(i)];
+        if (isTwoRowLine(i)){
+          yOff[getColumn(i)] += mDisplay->getMaxCharHeight();
+        }
+        yOff[getColumn(i)]+= BOTTOM_MARGIN;
+        if (mIsTall && mIsWide){
+          mLineXOffsets[i] = (i == 0) ? 10 : 5 + (getColumn(i)==1? 80 : 0);
+        } else {
+          mLineXOffsets[i] = (getColumn(i)==1? 80 : 0);
+        }
     }
 }
 
 inline void DisplayMono::setFont(uint8_t line) {
     switch (line) {
         case 0:
-            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB14_tr : u8g2_font_logisoso16_tr);
+            if (mIsWide && mIsTall){
+                mDisplay->setFont(u8g2_font_ncenB14_tr);
+            } else if (mIsWide && ! mIsTall){
+                mDisplay->setFont(u8g2_font_9x15_tf);
+            } else {
+                mDisplay->setFont(u8g2_font_logisoso16_tr);
+            }
             break;
         case 3:
-            mDisplay->setFont(u8g2_font_5x8_tr);
+            if  (mIsWide && ! mIsTall){
+                mDisplay->setFont(u8g2_font_tom_thumb_4x6_tf);
+            } else {
+                mDisplay->setFont(u8g2_font_5x8_tr);
+            }
             break;
         default:
-            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB10_tr : u8g2_font_5x8_tr);
+            if (mIsTall){
+                mDisplay->setFont(u8g2_font_ncenB10_tr);
+            } else if (mIsWide){
+                mDisplay->setFont(u8g2_font_tom_thumb_4x6_tf);
+            } else {
+                mDisplay->setFont(u8g2_font_5x8_tr);
+            }
             break;
     }
 }
 
-void DisplayMono::printText(const char* text, uint8_t line, uint8_t dispX) {
-    if (!mIsLarge) {
-        dispX = (line == 0) ? 10 : 5;
+inline uint8_t DisplayMono::getColumn(uint8_t line) {
+    if (mIsTall){
+        return 0;
+    } else if (line>=1 && line<=2){
+        return 1;
+    } else {
+        return 0;
     }
+}
+
+inline bool DisplayMono::isTwoRowLine(uint8_t line) {
+    if (mIsTall){
+        return false;
+    } else if (line>=1 && line<=2){
+        return true;
+    } else {
+        return false;
+    }
+}
+void DisplayMono::printText(const char* text, uint8_t line) {
     setFont(line);
 
-    dispX += (mEnScreenSaver) ? (_mExtra % 7) : 0;
-    mDisplay->drawStr(dispX, mLineOffsets[line], text);
+    uint8_t dispX = mLineXOffsets[line] + ((mEnScreenSaver) ? (_mExtra % 7) : 0);
+
+    if (isTwoRowLine(line)){
+        String stringText = String(text);
+        int space = stringText.indexOf(" ");
+        mDisplay->drawStr(dispX, mLineYOffsets[line], stringText.substring(0,space).c_str());
+        if (space>0)
+            mDisplay->drawStr(dispX, mLineYOffsets[line] + mDisplay->getMaxCharHeight(), stringText.substring(space+1).c_str());
+    } else {
+        mDisplay->drawStr(dispX, mLineYOffsets[line], text);
+    }
 }
+
+

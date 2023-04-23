@@ -4,6 +4,7 @@
 #include <U8g2lib.h>
 #define DISP_DEFAULT_TIMEOUT 60  // in seconds
 #define DISP_FMT_TEXT_LEN    32
+#define BOTTOM_MARGIN         5
 
 class DisplayMono {
    public:
@@ -15,9 +16,11 @@ class DisplayMono {
       void disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
 
    private:
-      void calcLineHeights();
+      void calcLinePositions();
       void setFont(uint8_t line);
-      void printText(const char* text, uint8_t line, uint8_t dispX = 5);
+      uint8_t getColumn(uint8_t line);
+      bool isTwoRowLine(uint8_t line);
+      void printText(const char* text, uint8_t line);
 
       U8G2* mDisplay;
 
@@ -25,10 +28,12 @@ class DisplayMono {
       bool mEnPowerSafe, mEnScreenSaver;
       uint8_t mLuminance;
 
-      bool mIsLarge = false;
+      bool mIsTall = false;
+      bool mIsWide = false;
       uint8_t mLoopCnt;
       uint32_t* mUtcTs;
-      uint8_t mLineOffsets[5];
+      uint8_t mLineXOffsets[5];
+      uint8_t mLineYOffsets[5];
 
       uint16_t _dispY;
 
