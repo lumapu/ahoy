@@ -148,6 +148,14 @@ class esp32_3wSpi {
         spi_device_handle_t spi_reg, spi_fifo;
         bool mInitialized;
 };
+#else
+    template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4>
+    class esp32_3wSpi {
+        public:
+            esp32_3wSpi() {}
+            void setup() {}
+            void loop() {}
+    };
 #endif
 
 #endif /*__ESP32_3WSPI_H__*/
