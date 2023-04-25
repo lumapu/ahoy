@@ -22,6 +22,7 @@
 #include "../hm/hmSystem.h"
 
 #include "pubMqttDefs.h"
+#include "pubMqttIvData.h"
 
 #define QOS_0   0
 
@@ -33,6 +34,13 @@ struct alarm_t {
     uint32_t end;
     alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
 };
+
+typedef struct {
+    bool running;
+    uint8_t lastIvId;
+    uint8_t sub;
+    uint8_t foundIvCnt;
+} discovery_t;
 
 template<class HMSYSTEM>
 class PubMqtt {
@@ -56,8 +64,8 @@ class PubMqtt {
             mUtcTimestamp    = utcTs;
             mIntervalTimeout = 1;
 
+            mSendIvData.setup(sys, utcTs);
             mDiscovery.running = false;
-            mSendIvData.running = false;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
 
@@ -82,15 +90,12 @@ class PubMqtt {
         }
 
         void loop() {
+            mSendIvData.loop();
+
             #if defined(ESP8266)
             mClient.loop();
             yield();
             #endif
-
-            if(mSendIvData.running) {
-                sendIvDataLoop();
-                return;
-            }
 
             if(mDiscovery.running)
                 discoveryConfigLoop();
@@ -106,14 +111,13 @@ class PubMqtt {
                 return; // next try in a second
             }
 
-            if(0 == mCfgMqtt->interval) { // no fixed interval, publish once new data were received (from inverter)
-                sendIvDataStart();
-            }
+            if(0 == mCfgMqtt->interval) // no fixed interval, publish once new data were received (from inverter)
+                sendIvData();
             else { // send mqtt data in a fixed interval
                 if(mIntervalTimeout == 0) {
                     mIntervalTimeout = mCfgMqtt->interval;
                     mSendList.push(RealTimeRunData_Debug);
-                    sendIvDataStart();
+                    sendIvData();
                 }
             }
         }
@@ -554,65 +558,55 @@ class PubMqtt {
             }
         }
 
-        void sendIvDataStart() {
-            mSendIvData.RTRDataHasBeenSent = false;
-            memset(mSendIvData.total, 0, sizeof(float) * 4);
-            for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                Inverter<> *iv = mSys->getInverterByPos(id);
-                if (NULL != iv) {
-                    if (iv->config->enabled) {
-                        mSendIvData.lastIvId = id;
-                        mSendIvData.running = true;
-                        mSendIvData.lastIvReached = false;
-                        mSendIvData.sendTotals = false;
-                        break;
-                    }
-                }
-            }
-        }
-
-        void sendIvDataLoop(void) {
+        void sendIvData() {
             bool anyAvail = processIvStatus();
             if (mLastAnyAvail != anyAvail)
-                mSendList.push(RealTimeRunData_Debug);  // makes sure that total values are calculated
+                mSendList.push(RealTimeRunData_Debug);  // makes shure that total values are calculated
 
-            if(mSendList.empty()) {
-                mSendIvData.running = false;
+            if(mSendList.empty())
                 return;
-            }
 
+            float total[4];
+            bool RTRDataHasBeenSent = false;
 
-            //while(!mSendList.empty()) {
+            while(!mSendList.empty()) {
+                memset(total, 0, sizeof(float) * 4);
                 uint8_t curInfoCmd = mSendList.front();
-                if ((curInfoCmd != RealTimeRunData_Debug) || !mSendIvData.RTRDataHasBeenSent) { // send RTR Data only once
-                    mSendIvData.sendTotals = (curInfoCmd == RealTimeRunData_Debug);
 
-                    if(!mSendIvData.lastIvReached) {
-                        Inverter<> *iv = mSys->getInverterByPos(mSendIvData.lastIvId);
+                if ((curInfoCmd != RealTimeRunData_Debug) || !RTRDataHasBeenSent) { // send RTR Data only once
+                    bool sendTotals = (curInfoCmd == RealTimeRunData_Debug);
+
+                    for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
+                        Inverter<> *iv = mSys->getInverterByPos(id);
+                        if (NULL == iv)
+                            continue; // skip to next inverter
+                        if (!iv->config->enabled)
+                            continue; // skip to next inverter
+
                         // send RTR Data only if status is available
-                        if ((curInfoCmd != RealTimeRunData_Debug) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD != mLastIvState[mSendIvData.lastIvId]))
+                        if ((curInfoCmd != RealTimeRunData_Debug) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD != mLastIvState[id]))
                             sendData(iv, curInfoCmd);
 
                         // calculate total values for RealTimeRunData_Debug
-                        if (mSendIvData.sendTotals) {
+                        if (sendTotals) {
                             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
-                            mSendIvData.sendTotals &= (iv->getLastTs(rec) > 0);
-                            if (mSendIvData.sendTotals) {
+                            sendTotals &= (iv->getLastTs(rec) > 0);
+                            if (sendTotals) {
                                 for (uint8_t i = 0; i < rec->length; i++) {
                                     if (CH0 == rec->assign[i].ch) {
                                         switch (rec->assign[i].fieldId) {
                                             case FLD_PAC:
-                                                mSendIvData.total[0] += iv->getValue(i, rec);
+                                                total[0] += iv->getValue(i, rec);
                                                 break;
                                             case FLD_YT:
-                                                mSendIvData.total[1] += iv->getValue(i, rec);
+                                                total[1] += iv->getValue(i, rec);
                                                 break;
                                             case FLD_YD:
-                                                mSendIvData.total[2] += iv->getValue(i, rec);
+                                                total[2] += iv->getValue(i, rec);
                                                 break;
                                             case FLD_PDC:
-                                                mSendIvData.total[3] += iv->getValue(i, rec);
+                                                total[3] += iv->getValue(i, rec);
                                                 break;
                                         }
                                     }
@@ -620,21 +614,9 @@ class PubMqtt {
                             }
                         }
                         yield();
-
-                        // get next inverter
-                        for (uint8_t id = mSendIvData.lastIvId; id < mSys->getNumInverters(); id++) {
-                            Inverter<> *iv = mSys->getInverterByPos(id);
-                            if (NULL != iv) {
-                                if (iv->config->enabled) {
-                                    mSendIvData.lastIvId = id;
-                                    return;
-                                }
-                            }
-                        }
-                        mSendIvData.lastIvReached = true;
                     }
 
-                    if (mSendIvData.sendTotals) {
+                    if (sendTotals) {
                         uint8_t fieldId;
                         for (uint8_t i = 0; i < 4; i++) {
                             bool retained = true;
@@ -656,35 +638,19 @@ class PubMqtt {
                                     break;
                             }
                             snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                            snprintf(mVal, 40, "%g", ah::round3(mSendIvData.total[i]));
+                            snprintf(mVal, 40, "%g", ah::round3(total[i]));
                             publish(mSubTopic, mVal, retained);
                         }
-                        mSendIvData.RTRDataHasBeenSent = true;
+                        RTRDataHasBeenSent = true;
                         yield();
                     }
                 }
 
                 mSendList.pop(); // remove from list once all inverters were processed
-            //} // end while
+            }
 
             mLastAnyAvail = anyAvail;
         }
-
-        typedef struct {
-            bool running;
-            uint8_t lastIvId;
-            bool lastIvReached;
-            bool sendTotals;
-            float total[4];
-            bool RTRDataHasBeenSent;
-        } publish_t;
-
-        typedef struct {
-            bool running;
-            uint8_t lastIvId;
-            uint8_t sub;
-            uint8_t foundIvCnt;
-        } discovery_t;
 
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt;
@@ -693,6 +659,8 @@ class PubMqtt {
         #endif
 
         HMSYSTEM *mSys;
+        PubMqttIvData<HMSYSTEM> mSendIvData;
+
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;
         std::queue<uint8_t> mSendList;
@@ -712,7 +680,6 @@ class PubMqtt {
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[40];
         discovery_t mDiscovery;
-        publish_t mSendIvData;
 };
 
 #endif /*__PUB_MQTT_H__*/
