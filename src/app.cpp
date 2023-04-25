@@ -59,7 +59,8 @@ void app::setup() {
 
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
-    mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+    }
 
     #if defined(ESP32)
         mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
@@ -72,7 +73,7 @@ void app::setup() {
     DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
     if(mConfig->nrf.enabled) {
-        if (!mSys.Radio.isChipConnected())
+        if (!mNrfRadio.isChipConnected())
             DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
     }
 
@@ -482,6 +483,6 @@ void app::updateLed(void) {
             digitalWrite(mConfig->led.led1, led_on);
         } else {
             digitalWrite(mConfig->led.led1, led_off);
-}
+        }
     }
 }
