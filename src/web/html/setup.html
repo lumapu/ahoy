@@ -21,7 +21,7 @@
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3">Dark Mode</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
-                            <div class="col-8 col-sm-3">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
+                            <div class="col-12">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
                         </div>
                     </fieldset>
                     <fieldset class="mb-4">
@@ -33,7 +33,7 @@
                         <div id="rf24"></div>
 
                         <p class="des">Radio (CMT2300A)</p>
-                        <div id="cmt"></div>
+                        <div id="cmt"><div class="col-12">(ESP32 only)</div></div>
 
                         <p class="des">Serial Console</p>
                         <div class="row mb-3">
@@ -695,6 +695,16 @@
 
             function parseNrfRadio(obj, type, system) {
                 var e = document.getElementById("rf24");
+                var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
+                en.checked = obj["en"];
+
+                e.replaceChildren (
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "NRF24 Enable"),
+                        ml("div", {class: "col-4 col-sm-9"}, en)
+                    ])
+                );
+
                 if ("ESP8266" == type) {
                     pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
                 } else {
@@ -730,7 +740,7 @@
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 en.checked = obj["en"];
 
-                e.append(
+                e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-8 col-sm-3 my-2"}, "CMT2300A Enable"),
                         ml("div", {class: "col-4 col-sm-9"}, en)

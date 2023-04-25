@@ -36,11 +36,13 @@
 #define ASIN(x) (degrees(asin(x)))
 #define ACOS(x) (degrees(acos(x)))
 
-typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
+#ifdef ESP32
+typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
 typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
+#endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
@@ -66,9 +68,11 @@ class app : public IApp, public ah::Scheduler {
             mNrfRadio.handleIntr();
         }
 
+        #ifdef ESP32
         void handleHmsIntr(void) {
             mCmtRadio.handleIntr();
         }
+        #endif
 
         uint32_t getUptime() {
             return Scheduler::getUptime();
@@ -299,7 +303,6 @@ class app : public IApp, public ah::Scheduler {
 
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
-        CmtRadioType mCmtRadio;
 
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
@@ -309,8 +312,11 @@ class app : public IApp, public ah::Scheduler {
         RestApiType mApi;
         PayloadType mPayload;
         MiPayloadType mMiPayload;
-        HmsPayloadType mHmsPayload;
         PubSerialType mPubSerial;
+        #ifdef ESP32
+        CmtRadioType mCmtRadio;
+        HmsPayloadType mHmsPayload;
+        #endif
 
         char mVersion[12];
         settings mSettings;

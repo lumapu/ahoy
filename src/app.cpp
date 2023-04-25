@@ -61,22 +61,20 @@ void app::setup() {
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
     mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
-    if(!mNrfRadio.isChipConnected())
-            DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
-    }
-    //if(mConfig->cmt.enabled) {
+    #if defined(ESP32)
         mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
         mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
-    //}
-
+    #endif
     /*DBGPRINTLN("--- after payload");
     DBGPRINTLN(String(ESP.getFreeHeap()));
     DBGPRINTLN(String(ESP.getHeapFragmentation()));
     DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
-    //if (!mSys.Radio.isChipConnected())
-    //    DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+    if(mConfig->nrf.enabled) {
+        if (!mSys.Radio.isChipConnected())
+            DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+    }
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
@@ -371,10 +369,12 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    /*if(!mNrfRadio.isChipConnected()) {
-        DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
-        return;
-    }*/
+    if(mConfig->nrf.enabled) {
+        if(!mNrfRadio.isChipConnected()) {
+            DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
+            return;
+        }
+    }
     if (mIVCommunicationOn) {
         if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {

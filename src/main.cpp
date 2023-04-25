@@ -14,9 +14,11 @@ IRAM_ATTR void handleIntr(void) {
 }
 
 //-----------------------------------------------------------------------------
+#ifdef ESP32
 IRAM_ATTR void handleHmsIntr(void) {
     myApp.handleHmsIntr();
 }
+#endif
 
 //-----------------------------------------------------------------------------
 void setup() {
@@ -26,10 +28,12 @@ void setup() {
         if(DEF_PIN_OFF != myApp.getNrfIrqPin())
             attachInterrupt(digitalPinToInterrupt(myApp.getNrfIrqPin()), handleIntr, FALLING);
     }
+    #ifdef ESP32
     if(myApp.getCmtEnabled()) {
         if(DEF_PIN_OFF != myApp.getCmtIrqPin())
             attachInterrupt(digitalPinToInterrupt(myApp.getCmtIrqPin()), handleHmsIntr, RISING);
     }
+    #endif
 }
 
 
