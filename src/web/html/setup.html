@@ -693,7 +693,7 @@
                 )
             }
 
-            function parseNrfRadio(obj, type, system) {
+            function parseNrfRadio(obj, objPin, type, system) {
                 var e = document.getElementById("rf24");
                 var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
                 en.checked = obj["en"];
@@ -715,7 +715,7 @@
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
+                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, objPin[p[0]])
                             )
                         ])
                     );
@@ -844,7 +844,7 @@
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
-                    parseNrfRadio(root["radioNrf"], root["system"]["esp_type"], root["system"]);
+                    parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
                     if(root["generic"]["esp_type"] == "ESP32")
                         parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     parseSerial(root["serial"]);
