@@ -32,7 +32,7 @@ void app::setup() {
     mSys.enableDebug();
     mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
 
-#if defined(AP_ONLY)
+    #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
     #else
     mInnerLoopCb = std::bind(&app::loopWifi, this);
@@ -171,6 +171,8 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
+
+    // every([this]() {mPayload.simulation();}, 15, "simul");
 }
 
 //-----------------------------------------------------------------------------

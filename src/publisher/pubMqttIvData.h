@@ -85,6 +85,8 @@ class PubMqttIvData {
                 }
             }
 
+            mLastIvId++;
+
             mPos = 0;
             if(found)
                 mState = SEND_DATA;
@@ -102,8 +104,6 @@ class PubMqttIvData {
                 pubData &= (lastTs != mIvLastRTRpub[mIv->id]);
 
             if (pubData) {
-                mIvLastRTRpub[mIv->id] = lastTs;
-                //for (uint8_t i = 0; i < rec->length; i++) {
                 if(mPos < rec->length) {
                     bool retained = false;
                     if (mCmd == RealTimeRunData_Debug) {
@@ -135,7 +135,8 @@ class PubMqttIvData {
                                     break;
                             }
                         }
-                    }
+                    } else
+                        mIvLastRTRpub[mIv->id] = lastTs;
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                     snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
@@ -149,7 +150,6 @@ class PubMqttIvData {
 
         void stateSendTotals() {
             uint8_t fieldId;
-            //for (uint8_t i = 0; i < 4; i++) {
             if(mPos < 4) {
                 bool retained = true;
                 switch (mPos) {
