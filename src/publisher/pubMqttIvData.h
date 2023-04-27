@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2023 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
+//-----------------------------------------------------------------------------
+
 #ifndef __PUB_MQTT_IV_DATA_H__
 #define __PUB_MQTT_IV_DATA_H__
 
@@ -10,12 +15,14 @@ typedef std::function<void(const char *subTopic, const char *payload, bool retai
 template<class HMSYSTEM>
 class PubMqttIvData {
     public:
-        void setup(HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<uint8_t> *sendList) {
             mSys          = sys;
             mUtcTimestamp = utcTs;
+            mSendList     = sendList;
             mState        = IDLE;
 
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
+            mRTRDataHasBeenSent = false;
 
             mTable[IDLE]        = &PubMqttIvData::stateIdle;
             mTable[START]       = &PubMqttIvData::stateStart;
@@ -29,11 +36,11 @@ class PubMqttIvData {
             yield();
         }
 
-        bool start(uint8_t cmd) {
+        bool start(void) {
             if(IDLE != mState)
                 return false;
 
-            mCmd   = cmd;
+            mRTRDataHasBeenSent = false;
             mState = START;
             return true;
         }
@@ -52,10 +59,17 @@ class PubMqttIvData {
 
         void stateStart() {
             mLastIvId = 0;
-            mSendTotals = (RealTimeRunData_Debug == mCmd);
-            memset(mTotal, 0, sizeof(float) * 4);
+            if(!mSendList->empty()) {
+                mCmd = mSendList->front();
 
-            mState = FIND_NXT_IV;
+                if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) {
+                    mSendTotals = (RealTimeRunData_Debug == mCmd);
+                    memset(mTotal, 0, sizeof(float) * 4);
+                    mState = FIND_NXT_IV;
+                } else
+                    mSendList->pop();
+            } else
+                mState = IDLE;
         }
 
         void stateFindNxtIv() {
@@ -159,10 +173,12 @@ class PubMqttIvData {
                 snprintf(mVal, 40, "%g", ah::round3(mTotal[mPos]));
                 mPublish(mSubTopic, mVal, retained);
                 mPos++;
-            } else
-                mState = IDLE;
+            } else {
+                mSendList->pop();
+                mState = START;
+            }
 
-            RTRDataHasBeenSent = true;
+            mRTRDataHasBeenSent = true;
         }
 
         HMSYSTEM *mSys;
@@ -179,9 +195,12 @@ class PubMqttIvData {
         Inverter<> *mIv;
         uint8_t mPos;
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
+        bool mRTRDataHasBeenSent;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[40];
+
+        std::queue<uint8_t> *mSendList;
 };
 
 #endif /*__PUB_MQTT_IV_DATA_H__*/

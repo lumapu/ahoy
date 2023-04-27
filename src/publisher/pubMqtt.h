@@ -64,7 +64,10 @@ class PubMqtt {
             mUtcTimestamp    = utcTs;
             mIntervalTimeout = 1;
 
-            mSendIvData.setup(sys, utcTs);
+            mSendIvData.setup(sys, utcTs, &mSendList);
+            mSendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained) {
+                publish(subTopic, payload, retained);
+            });
             mDiscovery.running = false;
 
             snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
@@ -566,89 +569,7 @@ class PubMqtt {
             if(mSendList.empty())
                 return;
 
-            float total[4];
-            bool RTRDataHasBeenSent = false;
-
-            while(!mSendList.empty()) {
-                memset(total, 0, sizeof(float) * 4);
-                uint8_t curInfoCmd = mSendList.front();
-
-                if ((curInfoCmd != RealTimeRunData_Debug) || !RTRDataHasBeenSent) { // send RTR Data only once
-                    bool sendTotals = (curInfoCmd == RealTimeRunData_Debug);
-
-                    for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
-                        Inverter<> *iv = mSys->getInverterByPos(id);
-                        if (NULL == iv)
-                            continue; // skip to next inverter
-                        if (!iv->config->enabled)
-                            continue; // skip to next inverter
-
-                        // send RTR Data only if status is available
-                        if ((curInfoCmd != RealTimeRunData_Debug) || (MQTT_STATUS_NOT_AVAIL_NOT_PROD != mLastIvState[id]))
-                            sendData(iv, curInfoCmd);
-
-                        // calculate total values for RealTimeRunData_Debug
-                        if (sendTotals) {
-                            record_t<> *rec = iv->getRecordStruct(curInfoCmd);
-
-                            sendTotals &= (iv->getLastTs(rec) > 0);
-                            if (sendTotals) {
-                                for (uint8_t i = 0; i < rec->length; i++) {
-                                    if (CH0 == rec->assign[i].ch) {
-                                        switch (rec->assign[i].fieldId) {
-                                            case FLD_PAC:
-                                                total[0] += iv->getValue(i, rec);
-                                                break;
-                                            case FLD_YT:
-                                                total[1] += iv->getValue(i, rec);
-                                                break;
-                                            case FLD_YD:
-                                                total[2] += iv->getValue(i, rec);
-                                                break;
-                                            case FLD_PDC:
-                                                total[3] += iv->getValue(i, rec);
-                                                break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        yield();
-                    }
-
-                    if (sendTotals) {
-                        uint8_t fieldId;
-                        for (uint8_t i = 0; i < 4; i++) {
-                            bool retained = true;
-                            switch (i) {
-                                default:
-                                case 0:
-                                    fieldId = FLD_PAC;
-                                    retained = false;
-                                    break;
-                                case 1:
-                                    fieldId = FLD_YT;
-                                    break;
-                                case 2:
-                                    fieldId = FLD_YD;
-                                    break;
-                                case 3:
-                                    fieldId = FLD_PDC;
-                                    retained = false;
-                                    break;
-                            }
-                            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                            snprintf(mVal, 40, "%g", ah::round3(total[i]));
-                            publish(mSubTopic, mVal, retained);
-                        }
-                        RTRDataHasBeenSent = true;
-                        yield();
-                    }
-                }
-
-                mSendList.pop(); // remove from list once all inverters were processed
-            }
-
+            mSendIvData.start();
             mLastAnyAvail = anyAvail;
         }
 
