@@ -74,8 +74,8 @@ class HmPayload {
             DPRINTLN(DBG_DEBUG, F("zeroYieldDay"));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             uint8_t pos;
-            for(uint8_t ch = 0; ch < iv->channels; ch++) {
-                pos = iv->getPosByChFld(CH0, FLD_YD, rec);
+            for(uint8_t ch = 0; ch <= iv->channels; ch++) {
+                pos = iv->getPosByChFld(ch, FLD_YD, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
         }
