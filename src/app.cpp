@@ -219,6 +219,8 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
+
+    // every([this]() {mPayload.simulation();}, 15, "simul");
 }
 
 //-----------------------------------------------------------------------------

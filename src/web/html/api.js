@@ -78,7 +78,7 @@ function parseNav(obj) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
-        if(window.location.pathname == "/" + l.href.split('/').pop())
+        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop())
             l.classList.add("active");
 
         if(obj["menu_protEn"]) {
