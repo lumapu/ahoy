@@ -92,8 +92,10 @@ class PubMqttIvData {
                 mState = SEND_DATA;
             else if(mSendTotals)
                 mState = SEND_TOTALS;
-            else
-                mState = IDLE;
+            else {
+                mSendList->pop();
+                mState = START;
+            }
         }
 
         void stateSend() {
