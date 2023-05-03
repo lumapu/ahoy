@@ -7,6 +7,8 @@ ahoy:
     filename: 'hoymiles.log'
     # DEBUG, INFO, WARNING, ERROR, FATAL
     level: 'INFO'
+    max_log_filesize: 1000000
+    max_log_files: 1
 
   sunset:
     disabled: false

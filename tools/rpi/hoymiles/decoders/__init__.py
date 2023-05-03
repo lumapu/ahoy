@@ -515,9 +515,17 @@ class Hm300Decode0B(StatusResponse):
         """ reactive power """
         return self.unpack('>H', 20)[0]/10
     @property
+    def powerfactor(self):
+        """ Powerfactor """
+        return self.unpack('>H', 24)[0]/1000
+    @property
     def temperature(self):
         """ Inverter temperature in °C """
         return self.unpack('>h', 26)[0]/10
+    @property
+    def event_count(self):
+        """ Event counter """
+        return self.unpack('>H', 28)[0]
 
 class Hm300Decode0C(Hm300Decode0B):
     """ 1121-series mirco-inverters status data """
