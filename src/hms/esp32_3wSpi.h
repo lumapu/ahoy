@@ -17,6 +17,11 @@
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
+// for ESP32 this is the so-called HSPI
+// for ESP32-S2/S3/C3 this nomenclature does not really exist anymore,
+// it is simply the first externally usable hardware SPI master controller
+#define SPI_CMT SPI2_HOST
+
 template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4> //, uint8_t GPIO3_PIN=15>
 class esp32_3wSpi {
     public:
@@ -34,10 +39,12 @@ class esp32_3wSpi {
                 .max_transfer_sz = 32,
             };
             spi_device_interface_config_t devcfg = {
-                .command_bits = 0,
-                .address_bits = 0,
+                .command_bits = 1,
+                .address_bits = 7,
                 .dummy_bits = 0,
-                .mode = 0,                 // SPI mode 0
+                .mode = 0,
+                .cs_ena_pretrans = 1,
+                .cs_ena_posttrans = 1,
                 .clock_speed_hz = SPI_CLK,
                 .spics_io_num = pinCsb,
                 .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_3WIRE,
@@ -46,15 +53,15 @@ class esp32_3wSpi {
                 .post_cb = NULL,
             };
 
-            ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_reg));
+            ESP_ERROR_CHECK(spi_bus_initialize(SPI_CMT, &buscfg, SPI_DMA_DISABLED));
+            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg, &spi_reg));
 
             // FiFo
             spi_device_interface_config_t devcfg2 = {
                 .command_bits = 0,
                 .address_bits = 0,
                 .dummy_bits = 0,
-                .mode = 0, // SPI mode 0
+                .mode = 0,
                 .cs_ena_pretrans = 2,
                 .cs_ena_posttrans = (uint8_t)(1 / (SPI_CLK * 10e6 * 2) + 2), // >2 us
                 .clock_speed_hz = SPI_CLK,
@@ -64,9 +71,9 @@ class esp32_3wSpi {
                 .pre_cb = NULL,
                 .post_cb = NULL,
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg2, &spi_fifo));
+            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg2, &spi_fifo));
 
-            esp_rom_gpio_connect_out_signal(MOSI_PIN, spi_periph_signal[SPI2_HOST].spid_out, true, false);
+            esp_rom_gpio_connect_out_signal(MOSI_PIN, spi_periph_signal[SPI_CMT].spid_out, true, false);
             delay(100);
 
             //pinMode(pinGpio3, INPUT);
@@ -77,11 +84,12 @@ class esp32_3wSpi {
             if(!mInitialized)
                 return;
 
-            uint8_t tx_data[2];
-            tx_data[0] = ~addr;
-            tx_data[1] = ~reg;
+            uint8_t tx_data;
+            tx_data = ~reg;
             spi_transaction_t t = {
-                .length = 2 * 8,
+                .cmd = 1,
+                .addr = (uint64_t)(~addr),
+                .length = 8,
                 .tx_buffer = &tx_data,
                 .rx_buffer = NULL
             };
@@ -93,12 +101,13 @@ class esp32_3wSpi {
             if(!mInitialized)
                 return 0;
 
-            uint8_t tx_data, rx_data;
-            tx_data = ~(addr | 0x80); // negation and MSB high (read command)
+            uint8_t rx_data;
             spi_transaction_t t = {
+                .cmd = 0,
+                .addr = (uint64_t)(~addr),
                 .length = 8,
                 .rxlength = 8,
-                .tx_buffer = &tx_data,
+                .tx_buffer = NULL,
                 .rx_buffer = &rx_data
             };
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi_reg, &t));
@@ -112,7 +121,6 @@ class esp32_3wSpi {
             uint8_t tx_data;
 
             spi_transaction_t t = {
-                .flags     = SPI_TRANS_MODE_OCT,
                 .length    = 8,
                 .tx_buffer = &tx_data, // reference to write data
                 .rx_buffer = NULL
