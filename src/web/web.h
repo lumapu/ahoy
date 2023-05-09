@@ -188,13 +188,17 @@ class Web {
             if (final) {
                 mUploadFp.close();
                 char pwd[PWD_LEN];
+                #if !defined(ETHERNET)
                 strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
+                #endif
                 if (!mApp->readSettings("/tmp.json")) {
                     mUploadFail = true;
                     DPRINTLN(DBG_ERROR, F("upload JSON error!"));
                 } else {
                     LittleFS.remove("/tmp.json");
+                    #if !defined(ETHERNET)
                     strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
+                    #endif
                     mApp->saveSettings(true);
                 }
                 if (!mUploadFail)

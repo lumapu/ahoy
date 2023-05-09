@@ -18,9 +18,9 @@
 #include "AsyncJson.h"
 #if defined(ETHERNET)
 #include "AsyncWebServer_ESP32_W5500.h"
-#else /* defined(ETHERNET) */
+#else
 #include "ESPAsyncWebServer.h"
-#endif /* defined(ETHERNET) */
+#endif
 
 #if defined(F) && defined(ESP32)
 #undef F
