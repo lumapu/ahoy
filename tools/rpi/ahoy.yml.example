@@ -2,6 +2,7 @@
 
 ahoy:
   interval: 5
+  transmit_retries: 5
 
   logging:
     filename: 'hoymiles.log'

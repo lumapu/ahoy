@@ -128,6 +128,7 @@ def main_loop(ahoy_config):
     dtu_name = ahoy_config.get('dtu', {}).get('name', 'hoymiles-dtu')
     sunset.sun_status2mqtt(dtu_ser, dtu_name)
     loop_interval = ahoy_config.get('interval', 1)
+    transmit_retries = ahoy_config.get('transmit_retries', 5)
 
     try:
         do_init = True
@@ -144,7 +145,7 @@ def main_loop(ahoy_config):
                    sys.exit(999)
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
                     logging.info(f'Poll inverter name={inverter["name"]} ser={inverter["serial"]}')
-                poll_inverter(inverter, dtu_ser, do_init, 3)
+                poll_inverter(inverter, dtu_ser, do_init, transmit_retries)
             do_init = False
 
             if loop_interval > 0:
