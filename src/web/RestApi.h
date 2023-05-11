@@ -553,7 +553,7 @@ class RestApi {
 
             if(F("power") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);
-            else if(F("restart") == jsonIn[F("restart")])
+            else if(F("restart") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest(Restart);
             else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
                 iv->powerLimit[0] = jsonIn["val"];
