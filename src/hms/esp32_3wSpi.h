@@ -11,11 +11,20 @@
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
 
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+#define CLK_PIN     6
+#define MOSI_PIN    5
+#else
 #define CLK_PIN     18
 #define MOSI_PIN    23
-#define MISO_PIN    -1
+#endif
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
+
+#define SPI_PARAM_LOCK() \
+    do {                 \
+    } while (xSemaphoreTake(paramLock, portMAX_DELAY) != pdPASS)
+#define SPI_PARAM_UNLOCK() xSemaphoreGive(paramLock)
 
 // for ESP32 this is the so-called HSPI
 // for ESP32-S2/S3/C3 this nomenclature does not really exist anymore,
@@ -30,9 +39,10 @@ class esp32_3wSpi {
         }
 
         void setup(uint8_t pinCsb = CSB_PIN, uint8_t pinFcsb = FCSB_PIN) { //, uint8_t pinGpio3 = GPIO3_PIN) {
+            paramLock = xSemaphoreCreateMutex();
             spi_bus_config_t buscfg = {
                 .mosi_io_num = MOSI_PIN,
-                .miso_io_num = MISO_PIN,
+                .miso_io_num = -1, // single wire MOSI/MISO
                 .sclk_io_num = CLK_PIN,
                 .quadwp_io_num = -1,
                 .quadhd_io_num = -1,
@@ -93,7 +103,9 @@ class esp32_3wSpi {
                 .tx_buffer = &tx_data,
                 .rx_buffer = NULL
             };
+            SPI_PARAM_LOCK();
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi_reg, &t));
+            SPI_PARAM_UNLOCK();
             delayMicroseconds(100);
         }
 
@@ -110,7 +122,10 @@ class esp32_3wSpi {
                 .tx_buffer = NULL,
                 .rx_buffer = &rx_data
             };
+
+            SPI_PARAM_LOCK();
             ESP_ERROR_CHECK(spi_device_polling_transmit(spi_reg, &t));
+            SPI_PARAM_UNLOCK();
             delayMicroseconds(100);
             return rx_data;
         }
@@ -126,11 +141,13 @@ class esp32_3wSpi {
                 .rx_buffer = NULL
             };
 
+            SPI_PARAM_LOCK();
             for(uint8_t i = 0; i < len; i++) {
                 tx_data = ~buf[i]; // negate buffer contents
                 ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
                 delayMicroseconds(4); // > 4 us
             }
+            SPI_PARAM_UNLOCK();
         }
 
         void readFifo(uint8_t buf[], uint8_t len) {
@@ -145,16 +162,19 @@ class esp32_3wSpi {
                 .rx_buffer = &rx_data
             };
 
+	    SPI_PARAM_LOCK();
             for(uint8_t i = 0; i < len; i++) {
                 ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
                 delayMicroseconds(4); // > 4 us
                 buf[i] = rx_data;
             }
+	    SPI_PARAM_UNLOCK();
         }
 
     private:
         spi_device_handle_t spi_reg, spi_fifo;
         bool mInitialized;
+        SemaphoreHandle_t paramLock = NULL;
 };
 #else
     template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4>
