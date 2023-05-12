@@ -11,7 +11,7 @@
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
 
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32S3
 #define CLK_PIN     6
 #define MOSI_PIN    5
 #else
