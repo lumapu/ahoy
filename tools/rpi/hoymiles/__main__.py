@@ -19,6 +19,7 @@ import yaml
 from yaml.loader import SafeLoader
 import hoymiles
 import logging
+from logging.handlers import RotatingFileHandler
 
 ################################################################################
 """ Signal Handler """
@@ -127,6 +128,7 @@ def main_loop(ahoy_config):
     dtu_name = ahoy_config.get('dtu', {}).get('name', 'hoymiles-dtu')
     sunset.sun_status2mqtt(dtu_ser, dtu_name)
     loop_interval = ahoy_config.get('interval', 1)
+    transmit_retries = ahoy_config.get('transmit_retries', 5)
 
     try:
         do_init = True
@@ -143,7 +145,7 @@ def main_loop(ahoy_config):
                    sys.exit(999)
                 if hoymiles.HOYMILES_DEBUG_LOGGING:
                     logging.info(f'Poll inverter name={inverter["name"]} ser={inverter["serial"]}')
-                poll_inverter(inverter, dtu_ser, do_init, 3)
+                poll_inverter(inverter, dtu_ser, do_init, transmit_retries)
             do_init = False
 
             if loop_interval > 0:
@@ -298,6 +300,8 @@ def init_logging(ahoy_config):
     log_config = ahoy_config.get('logging')
     fn = 'hoymiles.log'
     lvl = logging.ERROR
+    max_log_filesize = 1000000
+    max_log_files = 1
     if log_config:
         fn = log_config.get('filename', fn)
         level = log_config.get('level', 'ERROR')
@@ -311,9 +315,11 @@ def init_logging(ahoy_config):
             lvl = logging.ERROR
         elif level == 'FATAL':
             lvl = logging.FATAL
+        max_log_filesize  = log_config.get('max_log_filesize', max_log_filesize)
+        max_log_files = log_config.get('max_log_files', max_log_files)
     if hoymiles.HOYMILES_TRANSACTION_LOGGING:
        lvl = logging.DEBUG
-    logging.basicConfig(filename=fn, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
+    logging.basicConfig(handlers=[RotatingFileHandler(fn, maxBytes=max_log_filesize, backupCount=max_log_files)], format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
     dtu_name = ahoy_config.get('dtu',{}).get('name','hoymiles-dtu')
     logging.info(f'start logging for {dtu_name} with level: {logging.root.level}')
 
