@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.6.13 - 2023-05-16
+* merge PR #934 (fix JSON API) and #944 (update manual)
+
 ## 0.6.12 - 2023-04-28
 * improved MqTT
 * fix menu active item

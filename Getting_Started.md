@@ -217,6 +217,14 @@ Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities t
 
 ! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!
 
+#### Flashing on Linux with `esptool.py` (ESP32)
+1. install [esptool.py](https://docs.espressif.com/projects/esptool/en/latest/esp32/) if you haven't already.
+2. download and extract the latest release bin-file from [ahoy_](https://github.com/grindylow/ahoy/releases)
+3. `cd ahoy_v<XXX> && cp *esp32.bin esp32.bin`
+4. Perhaps you need to replace `/dev/ttyUSB0` to match your acual device in the following command. Execute it afterwards: `esptool.py --port /dev/ttyUSB0 --chip esp32 --before default_reset --after hard_reset   write_flash --flash_mode dout --flash_freq 40m --flash_size detect   0x1000 bootloader.bin   0x8000 partitions.bin   0x10000 esp32.bin`
+5. Unplug and replug your device.
+6. Open a serial monitor (e.g. Putty) @ 115200 Baud. You should see some messages regarding wifi.
+
 ## Connect to your Ahoy DTU
 
 When everything is wired up and the firmware is flashed, it is time to connect to your Ahoy DTU.
