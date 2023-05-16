@@ -162,13 +162,13 @@ class esp32_3wSpi {
                 .rx_buffer = &rx_data
             };
 
-	    SPI_PARAM_LOCK();
+        SPI_PARAM_LOCK();
             for(uint8_t i = 0; i < len; i++) {
                 ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
                 delayMicroseconds(4); // > 4 us
                 buf[i] = rx_data;
             }
-	    SPI_PARAM_UNLOCK();
+        SPI_PARAM_UNLOCK();
         }
 
     private:
