@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.6.14 - 2023-05-21
+* merge PR #902 Mono-Display
+
 ## 0.6.13 - 2023-05-16
 * merge PR #934 (fix JSON API) and #944 (update manual)
 
