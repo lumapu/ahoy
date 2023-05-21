@@ -58,9 +58,9 @@ class Display {
     }
 
     void tickerSecond() {
-        if (mMono!=NULL){
+        if (mMono != NULL)
             mMono->loop();
-        }
+
         if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
@@ -97,7 +97,7 @@ class Display {
             totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
         }
 
-        if ((0 < mCfg->type) && (mCfg->type < 10) && mMono!=NULL) {
+        if ((0 < mCfg->type) && (mCfg->type < 10) && (mMono != NULL)) {
             mMono->disp(totalPower, totalYieldDay, totalYieldTotal, isprod);
         } else if (mCfg->type >= 10) {
 #if defined(ESP32)
