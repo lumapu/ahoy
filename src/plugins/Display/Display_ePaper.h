@@ -39,6 +39,7 @@ class DisplayEPaper {
       void headlineIP();
       void actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod);
       void lastUpdatePaged();
+      void offlineFooter();
 
       uint8_t mDisplayRotation;
       bool _changed = false;
