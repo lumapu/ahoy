@@ -197,7 +197,6 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
             snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", _isprod);
             _display->println(_fmtText);
 
-
         }
     } while (_display->nextPage());
 }
@@ -217,9 +216,8 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
     if ((isprod > 0) && (_changed)) {
         _changed = false;
         lastUpdatePaged();
-    } else if(totalPower==0) {
+    } else if(totalPower==0)
         offlineFooter();
-    }
 
     _display->powerOff();
 }
