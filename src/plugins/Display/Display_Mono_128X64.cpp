@@ -1,21 +1,24 @@
+
 // SPDX-License-Identifier: GPL-2.0-or-later
+#include "Display_Mono_128X64.h"
+
 #include "Display_Mono.h"
 
 #ifdef ESP8266
-    #include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h>
 #elif defined(ESP32)
-    #include <WiFi.h>
+#include <WiFi.h>
 #endif
 #include "../../utils/helper.h"
 
-//#ifdef U8X8_HAVE_HW_SPI
-//#include <SPI.h>
-//#endif
-//#ifdef U8X8_HAVE_HW_I2C
-//#include <Wire.h>
-//#endif
+// #ifdef U8X8_HAVE_HW_SPI
+// #include <SPI.h>
+// #endif
+// #ifdef U8X8_HAVE_HW_I2C
+// #include <Wire.h>
+// #endif
 
-DisplayMono::DisplayMono() {
+DisplayMono128X64::DisplayMono128X64() : DisplayMono::DisplayMono() {
     mEnPowerSafe = true;
     mEnScreenSaver = true;
     mLuminance = 60;
@@ -25,13 +28,11 @@ DisplayMono::DisplayMono() {
     mType = 0;
 }
 
-
-
-void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char* version) {
-    if ((0 < type) && (type < 4)) {
+void DisplayMono128X64::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char *version) {
+    if ((0 < type) && (type < 5)) {
         u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
         mType = type;
-        switch(type) {
+        switch (type) {
             case 1:
                 mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
                 break;
@@ -39,21 +40,16 @@ void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, u
             case 2:
                 mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
                 break;
-            case 3:
-                mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
-                break;
         }
 
         mUtcTs = utcTs;
 
         mDisplay->begin();
 
-        mIsLarge = (mDisplay->getWidth() > 120);
         calcLineHeights();
 
         mDisplay->clearBuffer();
-        if (3 != mType)
-            mDisplay->setContrast(mLuminance);
+        mDisplay->setContrast(mLuminance);
         printText("AHOY!", 0, 35);
         printText("ahoydtu.de", 2, 20);
         printText(version, 3, 46);
@@ -61,21 +57,19 @@ void DisplayMono::init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, u
     }
 }
 
-void DisplayMono::config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
+void DisplayMono128X64::config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
     mEnPowerSafe = enPowerSafe;
     mEnScreenSaver = enScreenSaver;
     mLuminance = lum;
 }
 
-void DisplayMono::loop(void) {
+void DisplayMono128X64::loop(void) {
     if (mEnPowerSafe)
-        if(mTimeout != 0)
-           mTimeout--;
+        if (mTimeout != 0)
+            mTimeout--;
 }
 
-void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
-
-
+void DisplayMono128X64::disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
     mDisplay->clearBuffer();
 
     // set Contrast of the Display to raise the lifetime
@@ -111,10 +105,9 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
         snprintf(_fmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
         printText(_fmtText, 3);
     } else {
-        if(mIsLarge && (NULL != mUtcTs))
+        if (NULL != mUtcTs) {
             printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
-        else
-            printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+        }
     }
 
     mDisplay->sendBuffer();
@@ -123,7 +116,7 @@ void DisplayMono::disp(float totalPower, float totalYieldDay, float totalYieldTo
     _mExtra++;
 }
 
-void DisplayMono::calcLineHeights() {
+void DisplayMono128X64::calcLineHeights() {
     uint8_t yOff = 0;
     for (uint8_t i = 0; i < 4; i++) {
         setFont(i);
@@ -132,24 +125,20 @@ void DisplayMono::calcLineHeights() {
     }
 }
 
-inline void DisplayMono::setFont(uint8_t line) {
+inline void DisplayMono128X64::setFont(uint8_t line) {
     switch (line) {
         case 0:
-            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB14_tr : u8g2_font_logisoso16_tr);
+            mDisplay->setFont(u8g2_font_ncenB14_tr);
             break;
         case 3:
             mDisplay->setFont(u8g2_font_5x8_tr);
             break;
         default:
-            mDisplay->setFont((mIsLarge) ? u8g2_font_ncenB10_tr : u8g2_font_5x8_tr);
+            mDisplay->setFont(u8g2_font_ncenB10_tr);
             break;
     }
 }
-
-void DisplayMono::printText(const char* text, uint8_t line, uint8_t dispX) {
-    if (!mIsLarge) {
-        dispX = (line == 0) ? 10 : 5;
-    }
+void DisplayMono128X64::printText(const char *text, uint8_t line, uint8_t dispX) {
     setFont(line);
 
     dispX += (mEnScreenSaver) ? (_mExtra % 7) : 0;
