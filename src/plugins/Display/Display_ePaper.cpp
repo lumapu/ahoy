@@ -57,8 +57,9 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     }
 }
 
-void DisplayEPaper::config(uint8_t rotation) {
+void DisplayEPaper::config(uint8_t rotation, bool enPowerSafe) {
     mDisplayRotation = rotation;
+    mEnPowerSafe = enPowerSafe;
 }
 
 //***************************************************************************
@@ -142,7 +143,7 @@ void DisplayEPaper::offlineFooter() {
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod) {
+void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
     int16_t tbx, tby;
     uint16_t tbw, tbh, x, y;
 
@@ -152,16 +153,16 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
     _display->setPartialWindow(0, mHeadFootPadding, _display->width(), _display->height() - (mHeadFootPadding * 2));
     _display->fillScreen(GxEPD_WHITE);
     do {
-        if (_totalPower > 9999) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.1f kW", (_totalPower / 10000));
+        if (totalPower > 9999) {
+            snprintf(_fmtText, sizeof(_fmtText), "%.1f kW", (totalPower / 10000));
             _changed = true;
-        } else if ((_totalPower > 0) && (_totalPower <= 9999)) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.0f W", _totalPower);
+        } else if ((totalPower > 0) && (totalPower <= 9999)) {
+            snprintf(_fmtText, sizeof(_fmtText), "%.0f W", totalPower);
             _changed = true;
         } else {
             snprintf(_fmtText, sizeof(_fmtText), "offline");
         }
-        if (_totalPower == 0){
+        if (totalPower == 0){
             _display->fillRect(0, mHeadFootPadding, 200,200, GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
         } else {
@@ -174,7 +175,7 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
             y = _display->height() / 2;
             _display->setCursor(5, y);
             _display->print("today:");
-            snprintf(_fmtText, _display->width(), "%.0f", _totalYieldDay);
+            snprintf(_fmtText, _display->width(), "%.0f", totalYieldDay);
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             x = ((_display->width() - tbw) / 2) - tbx;
             _display->setCursor(x, y);
@@ -185,7 +186,7 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
             y = y + tbh + 7;
             _display->setCursor(5, y);
             _display->print("total:");
-            snprintf(_fmtText, _display->width(), "%.1f", _totalYieldTotal);
+            snprintf(_fmtText, _display->width(), "%.1f", totalYieldTotal);
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             x = ((_display->width() - tbw) / 2) - tbx;
             _display->setCursor(x, y);
@@ -194,7 +195,7 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
             _display->println("kWh");
 
             _display->setCursor(10, _display->height() - (mHeadFootPadding + 10));
-            snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", _isprod);
+            snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", isprod);
             _display->println(_fmtText);
 
         }
@@ -216,7 +217,7 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
     if ((isprod > 0) && (_changed)) {
         _changed = false;
         lastUpdatePaged();
-    } else if(totalPower==0)
+    } else if((0 == totalPower) && (mEnPowerSafe))
         offlineFooter();
 
     _display->powerOff();
