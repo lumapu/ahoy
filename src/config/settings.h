@@ -643,7 +643,10 @@ class settings {
                 getVal<bool>(obj, F("en"), &cfg->enabled);
                 getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
-                for(uint8_t i = 0; i < (sizeof(obj[F("yield")])/sizeof(int32_t)); i++) {
+                uint8_t size = 4;
+                if(obj.containsKey(F("pwr")))
+                    size = obj[F("pwr")].size();
+                for(uint8_t i = 0; i < size; i++) {
                     if(obj.containsKey(F("yield"))) cfg->yieldCor[i] = obj[F("yield")][i];
                     if(obj.containsKey(F("pwr"))) cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     if(obj.containsKey(F("chName"))) snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());
