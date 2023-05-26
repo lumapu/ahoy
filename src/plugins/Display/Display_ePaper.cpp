@@ -57,8 +57,9 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     }
 }
 
-void DisplayEPaper::config(uint8_t rotation) {
+void DisplayEPaper::config(uint8_t rotation, bool enPowerSafe) {
     mDisplayRotation = rotation;
+    mEnPowerSafe = enPowerSafe;
 }
 
 //***************************************************************************
@@ -120,7 +121,29 @@ void DisplayEPaper::lastUpdatePaged() {
     } while (_display->nextPage());
 }
 //***************************************************************************
-void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod) {
+void DisplayEPaper::offlineFooter() {
+    int16_t tbx, tby;
+    uint16_t tbw, tbh;
+
+    _display->setFont(&FreeSans9pt7b);
+    _display->setTextColor(GxEPD_WHITE);
+
+    _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
+    _display->fillScreen(GxEPD_BLACK);
+    do {
+        if (NULL != mUtcTs) {
+            snprintf(_fmtText, sizeof(_fmtText), "offline");
+
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            uint16_t x = ((_display->width() - tbw) / 2) - tbx;
+
+            _display->setCursor(x, (_display->height() - 3));
+            _display->println(_fmtText);
+        }
+    } while (_display->nextPage());
+}
+//***************************************************************************
+void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
     int16_t tbx, tby;
     uint16_t tbw, tbh, x, y;
 
@@ -130,47 +153,52 @@ void DisplayEPaper::actualPowerPaged(float _totalPower, float _totalYieldDay, fl
     _display->setPartialWindow(0, mHeadFootPadding, _display->width(), _display->height() - (mHeadFootPadding * 2));
     _display->fillScreen(GxEPD_WHITE);
     do {
-        if (_totalPower > 9999) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.1f kW", (_totalPower / 10000));
+        if (totalPower > 9999) {
+            snprintf(_fmtText, sizeof(_fmtText), "%.1f kW", (totalPower / 10000));
             _changed = true;
-        } else if ((_totalPower > 0) && (_totalPower <= 9999)) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.0f W", _totalPower);
+        } else if ((totalPower > 0) && (totalPower <= 9999)) {
+            snprintf(_fmtText, sizeof(_fmtText), "%.0f W", totalPower);
             _changed = true;
         } else {
             snprintf(_fmtText, sizeof(_fmtText), "offline");
         }
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        x = ((_display->width() - tbw) / 2) - tbx;
-        _display->setCursor(x, mHeadFootPadding + tbh + 10);
-        _display->print(_fmtText);
+        if (totalPower == 0){
+            _display->fillRect(0, mHeadFootPadding, 200,200, GxEPD_BLACK);
+            _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+        } else {
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            x = ((_display->width() - tbw) / 2) - tbx;
+            _display->setCursor(x, mHeadFootPadding + tbh + 10);
+            _display->print(_fmtText);
 
-        _display->setFont(&FreeSans12pt7b);
-        y = _display->height() / 2;
-        _display->setCursor(5, y);
-        _display->print("today:");
-        snprintf(_fmtText, _display->width(), "%.0f", _totalYieldDay);
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        x = ((_display->width() - tbw) / 2) - tbx;
-        _display->setCursor(x, y);
-        _display->print(_fmtText);
-        _display->setCursor(_display->width() - 38, y);
-        _display->println("Wh");
+            _display->setFont(&FreeSans12pt7b);
+            y = _display->height() / 2;
+            _display->setCursor(5, y);
+            _display->print("today:");
+            snprintf(_fmtText, _display->width(), "%.0f", totalYieldDay);
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            x = ((_display->width() - tbw) / 2) - tbx;
+            _display->setCursor(x, y);
+            _display->print(_fmtText);
+            _display->setCursor(_display->width() - 38, y);
+            _display->println("Wh");
 
-        y = y + tbh + 7;
-        _display->setCursor(5, y);
-        _display->print("total:");
-        snprintf(_fmtText, _display->width(), "%.1f", _totalYieldTotal);
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        x = ((_display->width() - tbw) / 2) - tbx;
-        _display->setCursor(x, y);
-        _display->print(_fmtText);
-        _display->setCursor(_display->width() - 50, y);
-        _display->println("kWh");
+            y = y + tbh + 7;
+            _display->setCursor(5, y);
+            _display->print("total:");
+            snprintf(_fmtText, _display->width(), "%.1f", totalYieldTotal);
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            x = ((_display->width() - tbw) / 2) - tbx;
+            _display->setCursor(x, y);
+            _display->print(_fmtText);
+            _display->setCursor(_display->width() - 50, y);
+            _display->println("kWh");
 
-        _display->setCursor(10, _display->height() - (mHeadFootPadding + 10));
-        snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", _isprod);
-        _display->println(_fmtText);
+            _display->setCursor(10, _display->height() - (mHeadFootPadding + 10));
+            snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", isprod);
+            _display->println(_fmtText);
 
+        }
     } while (_display->nextPage());
 }
 //***************************************************************************
@@ -185,11 +213,12 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
     // call the PowerPage to change the PV Power Values
     actualPowerPaged(totalPower, totalYieldDay, totalYieldTotal, isprod);
 
-    // if there was an change and the Inverter is producing set a new Timestam in the footline
+    // if there was an change and the Inverter is producing set a new Timestamp in the footline
     if ((isprod > 0) && (_changed)) {
         _changed = false;
         lastUpdatePaged();
-    }
+    } else if((0 == totalPower) && (mEnPowerSafe))
+        offlineFooter();
 
     _display->powerOff();
 }

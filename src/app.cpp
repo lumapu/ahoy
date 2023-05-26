@@ -322,6 +322,7 @@ void app::tickComm(void) {
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
@@ -329,7 +330,11 @@ void app::tickZeroValues(void) {
             continue;  // skip to next inverter
 
         mPayload.zeroInverterValues(iv);
+        changed = true;
     }
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 }
 
 //-----------------------------------------------------------------------------
@@ -337,15 +342,21 @@ void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
             continue;  // skip to next inverter
 
-        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
+        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled) {
             mPayload.zeroInverterValues(iv);
+            changed = true;
+        }
     }
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 }
 
 //-----------------------------------------------------------------------------
@@ -356,15 +367,19 @@ void app::tickMidnight(void) {
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yield total
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
             continue;  // skip to next inverter
 
-        mPayload.zeroInverterValues(iv);
-        mPayload.zeroYieldDay(iv);
+        mPayload.zeroInverterValues(iv, false);
+        changed = true;
     }
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();

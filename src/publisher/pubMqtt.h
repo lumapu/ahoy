@@ -564,7 +564,7 @@ class PubMqtt {
         void sendIvData() {
             bool anyAvail = processIvStatus();
             if (mLastAnyAvail != anyAvail)
-                mSendList.push(RealTimeRunData_Debug);  // makes shure that total values are calculated
+                mSendList.push(RealTimeRunData_Debug);  // makes sure that total values are calculated
 
             if(mSendList.empty())
                 return;

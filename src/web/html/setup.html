@@ -784,7 +784,7 @@
                     );
                 }
 
-                var opts = [[0, "None"], [1, "SSD1306 0.96\""], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
+                var opts = [[0, "None"], [1, "SSD1306 0.96\" 128X64"], [2, "SH1106 1.3\""], [3, "Nokia5110"], [4, "SSD1306 0.96\" 128X32"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
                 var dispType = sel("disp_typ", opts, obj["disp_typ"]);
@@ -820,7 +820,7 @@
 
                     if(0 == dispType)
                         cl.add("hide");
-                    else if(dispType <= 2) { // OLED
+                    else if(dispType <= 2 || dispType == 4) { // OLED
                         if(i < 2)
                             cl.remove("hide");
                         else
