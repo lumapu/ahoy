@@ -1,9 +1,9 @@
 #include "Display_ePaper.h"
 
 #ifdef ESP8266
-    #include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h>
 #elif defined(ESP32)
-    #include <WiFi.h>
+#include <WiFi.h>
 #endif
 #include "../../utils/helper.h"
 #include "imagedata.h"
@@ -21,7 +21,6 @@ DisplayEPaper::DisplayEPaper() {
     mHeadFootPadding = 16;
 }
 
-
 //***************************************************************************
 void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char *version) {
     mUtcTs = utcTs;
@@ -29,12 +28,14 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     if (type > 9) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
-        hspi.begin(_SCK, _BUSY, _MOSI, _CS);
 
 #if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
+        hspi.begin(_SCK, _BUSY, _MOSI, _CS);
         _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
 #endif
-        _display->init(115200, true, 2, false);
+
+        _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
+        _display->init(115200, true, 20, false);
         _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
 
@@ -162,8 +163,8 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
         } else {
             snprintf(_fmtText, sizeof(_fmtText), "offline");
         }
-        if (totalPower == 0){
-            _display->fillRect(0, mHeadFootPadding, 200,200, GxEPD_BLACK);
+        if (totalPower == 0) {
+            _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
         } else {
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
@@ -197,7 +198,6 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
             _display->setCursor(10, _display->height() - (mHeadFootPadding + 10));
             snprintf(_fmtText, sizeof(_fmtText), "%d Inverter online", isprod);
             _display->println(_fmtText);
-
         }
     } while (_display->nextPage());
 }
@@ -217,10 +217,10 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
     if ((isprod > 0) && (_changed)) {
         _changed = false;
         lastUpdatePaged();
-    } else if((0 == totalPower) && (mEnPowerSafe))
+    } else if ((0 == totalPower) && (mEnPowerSafe))
         offlineFooter();
 
     _display->powerOff();
 }
 //***************************************************************************
-#endif // ESP32
+#endif  // ESP32

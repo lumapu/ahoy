@@ -4,7 +4,7 @@
 #if defined(ESP32)
 
 // uncomment next line to use HSPI for EPD (and VSPI for SD), e.g. with Waveshare ESP32 Driver Board
-#define USE_HSPI_FOR_EPD
+// #define USE_HSPI_FOR_EPD
 
 /// uncomment next line to use class GFX of library GFX_Root instead of Adafruit_GFX, to use less code and ram
 // #include <GFX.h>
@@ -28,27 +28,26 @@
 
 class DisplayEPaper {
    public:
-      DisplayEPaper();
-      void fullRefresh();
-      void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char* version);
-      void config(uint8_t rotation, bool enPowerSafe);
-      void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
-
+    DisplayEPaper();
+    void fullRefresh();
+    void init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t* utcTs, const char* version);
+    void config(uint8_t rotation, bool enPowerSafe);
+    void loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod);
 
    private:
-      void headlineIP();
-      void actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod);
-      void lastUpdatePaged();
-      void offlineFooter();
+    void headlineIP();
+    void actualPowerPaged(float _totalPower, float _totalYieldDay, float _totalYieldTotal, uint8_t _isprod);
+    void lastUpdatePaged();
+    void offlineFooter();
 
-      uint8_t mDisplayRotation;
-      bool _changed = false;
-      char _fmtText[35];
-      const char* _settedIP;
-      uint8_t mHeadFootPadding;
-      GxEPD2_GFX* _display;
-      uint32_t *mUtcTs;
-      bool mEnPowerSafe;
+    uint8_t mDisplayRotation;
+    bool _changed = false;
+    char _fmtText[35];
+    const char* _settedIP;
+    uint8_t mHeadFootPadding;
+    GxEPD2_GFX* _display;
+    uint32_t* mUtcTs;
+    bool mEnPowerSafe;
 };
 
-#endif // ESP32
+#endif  // ESP32
