@@ -93,6 +93,10 @@ class app : public IApp, public ah::Scheduler {
             return mSettings.getLastSaveSucceed();
         }
 
+        bool getShouldReboot() {
+            return mSaveReboot;
+        }
+
         statistics_t *getStatistics() {
             return &mStat;
         }

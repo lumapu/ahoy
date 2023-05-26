@@ -321,6 +321,19 @@ Send Power Limit:
 - A persistent limit is only needed if you want to throttle your inverter permanently or you can use it to set a start value on the battery, which is then always the switch-on limit when switching on, otherwise it would ramp up to 100% without regulation, which is continuous load is not healthy.
 - You can set a new limit in the turn-off state, which is then used for on (switching on again), otherwise the last limit from before the turn-off is used, but of course this only applies if DC voltage is applied the whole time.
 - If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
+### Update your AHOY-DTU Firmware
+To update your AHOY-DTU, you have to download the latest firmware package.
+Here are the [latest stable releases](https://github.com/lumapu/ahoy/releases/) and [latest development builds](https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip) available for download.
+As soon as you have downloaded the firmware package, unzip it. On the WebUI, navigate to Update and press on select firmware file.
+From the unzipped files, select the right .bin file for your hardware and needs.
+- If you use an ESP8266, select the file ending with esp8266.bin 
+- If you use an ESP8266 with prometheus, select the file ending with esp8266_prometheus.bin 
+- If you use an ESP32, select the file ending with esp32.bin
+- If you use an ESP32 with prometheus, select the file ending with esp32_prometheus.bin
+
+Note: if you want to use prometheus, the usage of an ESP32 is recommended, since the ESP8266 is at its performance limits and therefore can cause stability issues.
+
+After selecting the right firmware file, press update. Your AHOY-DTU will now install the new firmware and reboot.
 
 ## Additional Notes
 ### MI Inverters

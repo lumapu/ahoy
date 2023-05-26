@@ -12,7 +12,7 @@ Prometheus metrics provided at `/metrics`.
 | name         | Inverter name from setup              |
 | serial       | Serial number of inverter             |
 | inverter     | Inverter name from setup              |
-| channel      | Channel name from setup               |
+| channel      | Channel (Module) name from setup. Label only available if max power level of module is set to non-zero. Be sure to have a cannel name set in configuration. |
 
 ## Exported Metrics
 | Metric name                            | Type    | Description                                            | Labels       | 

@@ -1,20 +1,25 @@
 # Development Changes
 
-## 0.6.4 - 2023-04-06
-* merge PR #846, improved NRF24 communication and MI, thx @beegee3 & @rejoe2
-* merge PR #859, fix burger menu height, thx @ThomasPohl
+## 0.6.15 - 2023-05-25
+* improved Prometheus Endpoint PR #958
+* fix turn off ePaper only if setting was set #956
+* improved reset values and update MqTT #957
 
-## 0.6.3 - 2023-04-04
-* fix login, password length was not checked #852
-* merge PR #854 optimize browser caching, thx @tastendruecker123 #828
-* fix WiFi reconnect not working #851
-* updated issue templates #822
+## 0.6.14 - 2023-05-21
+* merge PR #902 Mono-Display
 
-## 0.6.2 - 2023-04-04
-* fix login from multiple clients #819
-* fix login screen on small displays
+## 0.6.13 - 2023-05-16
+* merge PR #934 (fix JSON API) and #944 (update manual)
 
-## 0.6.1 - 2023-04-01
-* merge LED fix - LED1 shows MqTT state, LED configureable active high/low #839
-* only publish new inverter data #826
-* potential fix of WiFi hostname during boot up #752
+## 0.6.12 - 2023-04-28
+* improved MqTT
+* fix menu active item
+
+## 0.6.11 - 2023-04-27
+* added MqTT class for publishing all values in Arduino `loop`
+
+## 0.6.10 - HMS
+* Version available in `HMS` branch
+
+## 0.6.9
+* last Relaese

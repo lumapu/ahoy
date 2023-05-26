@@ -78,7 +78,7 @@ function parseNav(obj) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
-        if(window.location.pathname == "/" + l.href.split('/').pop())
+        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop())
             l.classList.add("active");
 
         if(obj["menu_protEn"]) {
@@ -103,7 +103,7 @@ function parseVersion(obj) {
 }
 
 function parseESP(obj) {
-    document.getElementById("esp_type").append(
+    document.getElementById("esp_type").replaceChildren(
         document.createTextNode("Board: " + obj["esp_type"])
     );
 }

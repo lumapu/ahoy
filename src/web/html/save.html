@@ -8,11 +8,13 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <div id="html" class="mt-3 mb-3"></div>
+                <div id="html" class="mt-3 mb-3">Saving settings...</div>
             </div>
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
+            var intervalId = null;
+
             function parseGeneric(obj) {
                 parseNav(obj);
                 parseESP(obj);
@@ -21,18 +23,24 @@
 
             function parseHtml(obj) {
                 var html = "";
-                if(obj.pending)
-                    html = "saving settings ...";
-                else {
-                    if(obj.success)
-                        html = "settings successfully saved";
-                    else
-                        html = "failed saving settings";
-
-                    var meta = document.createElement('meta');
-                    meta.httpEquiv = "refresh"
-                    meta.content = 1 + "; URL=/setup";
-                    document.getElementsByTagName('head')[0].appendChild(meta);
+                if(!obj.pending) {
+                    if(intervalId != null) {
+                        clearInterval(intervalId);
+                    }
+                    if(obj.success) {
+                        var meta = document.createElement('meta');
+                        meta.httpEquiv = "refresh"
+                        if(!obj.reboot) {
+                            html = "Settings successfully saved. Automatic page reload in 3 seconds.";
+                            meta.content = 3;
+                        } else {
+                            html = "Settings successfully saved. Rebooting. Automatic redirect in 20 seconds.";
+                            meta.content = 20 + "; URL=/";
+                        }
+                        document.getElementsByTagName('head')[0].appendChild(meta);
+                    } else {
+                        html = "Failed saving settings.";
+                    }
                 }
                 document.getElementById("html").innerHTML = html;
             }
@@ -41,11 +49,9 @@
                 if(null != obj) {
                     parseGeneric(obj["generic"]);
                     parseHtml(obj);
-                    window.setInterval("getAjax('/api/html/save', parse)", 1100);
                 }
             }
-
-            getAjax("/api/html/save", parse);
+           intervalId =  window.setInterval("getAjax('/api/html/save', parse)", 2500);
         </script>
     </body>
 </html>

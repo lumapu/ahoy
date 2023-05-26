@@ -70,17 +70,30 @@ class HmPayload {
             }
         }
 
-        void zeroYieldDay(Inverter<> *iv) {
-            DPRINTLN(DBG_DEBUG, F("zeroYieldDay"));
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            uint8_t pos;
-            for(uint8_t ch = 0; ch < iv->channels; ch++) {
-                pos = iv->getPosByChFld(CH0, FLD_YD, rec);
-                iv->setValue(pos, rec, 0.0f);
-            }
-        }
+        /*void simulation() {
+            uint8_t pay[] = {
+                0x00, 0x01, 0x01, 0x24, 0x02, 0x28, 0x02, 0x33,
+                0x06, 0x49, 0x06, 0x6a, 0x00, 0x05, 0x5f, 0x1b,
+                0x00, 0x06, 0x66, 0x9a, 0x03, 0xfd, 0x04, 0x0b,
+                0x01, 0x23, 0x02, 0x28, 0x02, 0x28, 0x06, 0x41,
+                0x06, 0x43, 0x00, 0x05, 0xdc, 0x2c, 0x00, 0x06,
+                0x2e, 0x3f, 0x04, 0x01, 0x03, 0xfb, 0x09, 0x78,
+                0x13, 0x86, 0x18, 0x15, 0x00, 0xcf, 0x00, 0xfe,
+                0x03, 0xe7, 0x01, 0x42, 0x00, 0x03
+            };
 
-        void zeroInverterValues(Inverter<> *iv) {
+            Inverter<> *iv = mSys->getInverterByPos(0);
+            record_t<> *rec = iv->getRecordStruct(0x0b);
+            rec->ts = *mTimestamp;
+            for (uint8_t i = 0; i < rec->length; i++) {
+                iv->addValue(i, pay, rec);
+                yield();
+            }
+            iv->doCalculations();
+            notify(0x0b);
+        }*/
+
+        void zeroInverterValues(Inverter<> *iv, bool skipYieldDay = true) {
             DPRINTLN(DBG_DEBUG, F("zeroInverterValues"));
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             for(uint8_t ch = 0; ch <= iv->channels; ch++) {
@@ -88,15 +101,18 @@ class HmPayload {
                 for(uint8_t fld = 0; fld < FLD_EVT; fld++) {
                     switch(fld) {
                         case FLD_YD:
+                            if(skipYieldDay)
+                                continue;
+                            else
+                                break;
                         case FLD_YT:
                             continue;
                     }
                     pos = iv->getPosByChFld(ch, fld, rec);
                     iv->setValue(pos, rec, 0.0f);
                 }
+                iv->doCalculations();
             }
-
-            notify(RealTimeRunData_Debug);
         }
 
         void ivSendHighPrio(Inverter<> *iv) {

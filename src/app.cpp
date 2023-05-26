@@ -175,6 +175,7 @@ void app::regularTickers(void) {
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
     //everySec(std::bind(&Improv::tickSerial, &mImprov), "impro");
+    // every([this]() {mPayload.simulation();}, 15, "simul");
 }
 
 //-----------------------------------------------------------------------------
@@ -276,6 +277,7 @@ void app::tickComm(void) {
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
@@ -283,7 +285,11 @@ void app::tickZeroValues(void) {
             continue;  // skip to next inverter
 
         mPayload.zeroInverterValues(iv);
+        changed = true;
     }
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 }
 
 //-----------------------------------------------------------------------------
@@ -291,15 +297,21 @@ void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yields
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
             continue;  // skip to next inverter
 
-        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled)
+        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled) {
             mPayload.zeroInverterValues(iv);
+            changed = true;
     }
+}
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 }
 
 //-----------------------------------------------------------------------------
@@ -310,15 +322,19 @@ void app::tickMidnight(void) {
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
     Inverter<> *iv;
+    bool changed = false;
     // set values to zero, except yield total
     for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
         iv = mSys.getInverterByPos(id);
         if (NULL == iv)
             continue;  // skip to next inverter
 
-        mPayload.zeroInverterValues(iv);
-        mPayload.zeroYieldDay(iv);
+        mPayload.zeroInverterValues(iv, false);
+        changed = true;
     }
+
+    if(changed)
+        payloadEventListener(RealTimeRunData_Debug);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();
@@ -393,8 +409,7 @@ void app::mqttSubRxCb(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
-
-    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
 
     if (mConfig->led.led0 != 0xff) {
         pinMode(mConfig->led.led0, OUTPUT);
@@ -408,9 +423,8 @@ void app::setupLed(void) {
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
-
-    uint8_t led_off = (mConfig->led.led_high_active != 0) ? LOW : HIGH;
-    uint8_t led_on = (mConfig->led.led_high_active != 0) ? HIGH : LOW;
+    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
+    uint8_t led_on = (mConfig->led.led_high_active) ? HIGH : LOW;
 
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
