@@ -118,7 +118,7 @@ void app::loop(void) {
 void app::loopStandard(void) {
     ah::Scheduler::loop();
 
-    if (mNrfRadio.loop()) {
+    if (mNrfRadio.loop() && mConfig->nrf.enabled) {
         while (!mNrfRadio.mBufCtrl.empty()) {
             packet_t *p = &mNrfRadio.mBufCtrl.front();
 
@@ -146,7 +146,7 @@ void app::loopStandard(void) {
         mMiPayload.process(true);
     }
     #if defined(ESP32)
-    if (mCmtRadio.loop()) {
+    if (mCmtRadio.loop() && mConfig->cmt.enabled) {
         while (!mCmtRadio.mBufCtrl.empty()) {
             hmsPacket_t *p = &mCmtRadio.mBufCtrl.front();
             if (mConfig->serial.debug) {
@@ -418,13 +418,17 @@ void app::tickSend(void) {
 
         if (NULL != iv) {
             if (iv->config->enabled) {
-                if (iv->ivGen == IV_HM)
-                    mPayload.ivSend(iv);
-                else if(iv->ivGen == IV_MI)
-                    mMiPayload.ivSend(iv);
+                if(mConfig->nrf.enabled) {
+                    if (iv->ivGen == IV_HM)
+                        mPayload.ivSend(iv);
+                    else if(iv->ivGen == IV_MI)
+                        mMiPayload.ivSend(iv);
+                }
                 #if defined(ESP32)
-                else if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.ivSend(iv);
+                if(mCmtRadio.enabled) {
+                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                        mHmsPayload.ivSend(iv);
+                }
                 #endif
             }
         }
