@@ -425,7 +425,7 @@ void app::tickSend(void) {
                         mMiPayload.ivSend(iv);
                 }
                 #if defined(ESP32)
-                if(mCmtRadio.enabled) {
+                if(mConfig->cmt.enabled) {
                     if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                         mHmsPayload.ivSend(iv);
                 }
