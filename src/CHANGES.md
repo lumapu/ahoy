@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.0 - 2023-06-04
+* HMS / HMT support for ESP32 devices
+
 ## 0.6.15 - 2023-05-25
 * improved Prometheus Endpoint PR #958
 * fix turn off ePaper only if setting was set #956
