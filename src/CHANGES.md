@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.1 - 2023-06-05
+* enabled power limit control for HMS / HMT devices
+* changed NRF24 lib version back to 1.4.5 because of compile problems for EPS8266
+
 ## 0.7.0 - 2023-06-04
 * HMS / HMT support for ESP32 devices
 

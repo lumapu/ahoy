@@ -9,7 +9,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <RF24.h>
-#include <RF24_config.h>
 
 #include "appInterface.h"
 #include "config/settings.h"

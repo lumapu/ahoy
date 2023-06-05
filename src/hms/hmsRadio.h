@@ -63,6 +63,24 @@ class CmtRadio {
             mSerialDebug = true;
         }
 
+        void sendControlPacket(const uint64_t *ivId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+            DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
+            DBGHEXLN(cmd);
+            initPacket(ivId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
+            uint8_t cnt = 10;
+
+            mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
+            mTxBuf[cnt++] = 0x00;
+            if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
+                mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
+                mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
+                mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
+                mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+            }
+
+            sendPacket(cnt, isRetransmit);
+        }
+
         bool switchFrequency(const uint64_t *ivId, uint32_t fromkHz, uint32_t tokHz) {
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
