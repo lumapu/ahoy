@@ -136,7 +136,8 @@ static uint32_t tmp32 = 0;
 static uint8_t mCountdown_noSignal[MAX_NUM_INVERTERS];                        // counter down of number of Inverter Requests if no response received, in dark or no signal
 static volatile uint32_t mSendInterval_ms[MAX_NUM_INVERTERS];
 static volatile uint32_t polling_req_msec[MAX_NUM_INVERTERS];                 // will be set via serial interface
-static volatile boolean m_next_invIX = false;                               //after successful receiving of one inverter switch to the next
+static volatile uint32_t mTimer_InvChange_msec[MAX_NUM_INVERTERS];        // timestamp when this inverter is left to poll the next inverter
+static volatile boolean m_next_invIX = false;                                 // after successful receiving of one inverter switch to the next
 
 static bool iv_devControlReq = false;                // this is one kind of requests, see devControlCmds
 static uint8_t iv_devControlCmd = ActivePowerContr;  // for now the only devControlCmd
@@ -181,12 +182,14 @@ void setup() {
     mPayload[0].invId[0] = (uint8_t)0x01;
     swap_bytes(&mPayload[0].invId[1], (uint32_t)IV1_RADIO_ID);  // high byte is at lowest index
     mPayload[0].invType = (uint16_t)(IV1_RADIO_ID >> 32);       // keep just upper 6 and 5th byte (e.g.0x1141) of interter plate id for type
+    hmRadio.dumpBuf(DBG_INFO, "\nIV1 ", &mPayload[0].invId[1], 4);
     
     //2nd inverter
 #if defined(IV2_RADIO_ID)
     mPayload[1].invId[0] = (uint8_t)0x01;
     swap_bytes(&mPayload[1].invId[1], (uint32_t)IV2_RADIO_ID);  // high byte is at lowest index
     mPayload[1].invType = (uint16_t)(IV2_RADIO_ID >> 32);       // keep just upper 6 and 5th byte (e.g.0x1141) of interter plate id for type
+    hmRadio.dumpBuf(DBG_INFO, "IV2 ", &mPayload[1].invId[1], 4);
 #endif
 
     // hmRadio.dumpBuf("\nsetup InvID ", &mPayload[0].invId[0], 5, DBG_DEBUG);
@@ -248,16 +251,18 @@ void loop() {
     // automode RF-Tx-trigger
     if (automode) {
 
-        // increment the the inverter-index
-        if ( m_next_invIX || (millis() > INVERTER_TIMEOUT_sec * 1000  && (millis() - lastInvChange_millis) > INVERTER_TIMEOUT_sec * 1000)) {
+        // increment the inverter-index
+        if ( m_next_invIX || ((millis() > INVERTER_TIMEOUT_sec * 1000L)  && ((millis() - lastInvChange_millis) > (INVERTER_TIMEOUT_sec * 1000L))) ) {
             lastInvChange_millis = millis();
+            mTimer_InvChange_msec[m_inv_ix] = millis();                                 //store timestamp when this Inverter is left, use next for correct timing for each inverter
             m_next_invIX = false;
-            DPRINT(DBG_INFO, F("Change inverter index to "));
-            tmp8 = m_inv_ix;                                //save last valid ix value
+            DPRINT(DBG_INFO, F("Change inverter index "));
+            tmp8 = m_inv_ix;                                                            //save last valid ix value
             m_inv_ix++;
             if (m_inv_ix >= MAX_NUM_INVERTERS) {
                 m_inv_ix = 0;
             }
+            tmp32 = millis() - mTimer_InvChange_msec[m_inv_ix];           //todo: time that current inverter was not polled, must be removed from current millis() for all timings aquired in the last iteration of this inverter
 
             if (mPayload[m_inv_ix].invType == 0x0000) {
                 //inverter index is invalid
@@ -275,7 +280,7 @@ void loop() {
             // initial fast send as long as no rx
             mSendInterval_ms[m_inv_ix] = (SEND_NOSIGNAL_SHORT * ONE_SECOND);
 
-        } else if (millis() - lastRx_millis[m_inv_ix] > (8 * polling_req_msec[m_inv_ix])) {
+        } else if (millis() - lastRx_millis[m_inv_ix] > (12 * polling_req_msec[m_inv_ix])) {
             // no Rx in time reduce Tx polling
             if (mCountdown_noSignal[m_inv_ix] ) {
                 // keep fast Tx on initial no-signal for countdown > 0

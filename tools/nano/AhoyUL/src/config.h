@@ -15,6 +15,12 @@
     #define DEF_RF24_CS_PIN              15
     #define DEF_RF24_CE_PIN              2
     #define DEF_RF24_IRQ_PIN             0
+#elif defined(ESP32WROOM)
+    // todo: not yet tested on real HW, check pins in detail
+    #define DEF_DEVICE_NAME "\n\n +++ AHOY-UL ESP32wroom +++"
+    #define DEF_RF24_CS_PIN              (5)
+    #define DEF_RF24_CE_PIN              (4)
+    #define DEF_RF24_IRQ_PIN             (16)
 #else
     // default pinout (GPIO Number) for Arduino Nano 328p
     #define DEF_DEVICE_NAME "\n\n +++ AHOY-UL A-NANO +++"
@@ -45,8 +51,8 @@
 // default send interval
 #define SEND_INTERVAL            (60)                      //send interval if Rx OK
 #define SEND_NOSIGNAL_SHORT      (10)                      //short send interval if no RX (used initial sync or signal loss)
-#define SEND_REPEAT              (6)                       //number of tries of short send interval to sync faster to inverter after night
-#define SEND_NOSIGNAL_LONG       (20*60)                   //long TX interval when no SIGNAL for long time, e.g. over night
+#define SEND_REPEAT              (7)                       //number of tries of short send interval to sync faster to inverter after night
+#define SEND_NOSIGNAL_LONG       (21*60)                   //long TX interval when no SIGNAL for long time, e.g. over night
 
 #define INVERTER_TIMEOUT_sec    (SEND_INTERVAL * 2)          //max duration of send to one inverter
 
@@ -63,7 +69,7 @@
 #define DEF_MAX_RETRANS_PER_PYLD    10
 
 // number of seconds since last successful response, before inverter is marked inactive
-#define INACT_THRES_SEC         300
+#define INACT_THRES_SEC         370
 
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3
