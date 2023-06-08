@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.7.2 - 2023-06-08
+* fix HMS-800 and HMS-1000 assignments #981
+* make nrf enabled all the time for ESP8266
+* fix menu item `active` highlight for 'API' and 'Doku'
+* fix MqTT totals issue #927, #980
+* reduce maximum number of inverters to 4 for ESP8266, increase to 16 for ESP32
+
 ## 0.7.1 - 2023-06-05
 * enabled power limit control for HMS / HMT devices
 * changed NRF24 lib version back to 1.4.5 because of compile problems for EPS8266

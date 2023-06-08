@@ -72,7 +72,11 @@
 #define PACKET_BUFFER_SIZE      30
 
 // number of configurable inverters
-#define MAX_NUM_INVERTERS       10
+#if defined(ESP32)
+    #define MAX_NUM_INVERTERS   16
+#else
+    #define MAX_NUM_INVERTERS   4
+#endif
 
 // default serial interval
 #define SERIAL_INTERVAL         5

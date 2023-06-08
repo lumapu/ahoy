@@ -414,7 +414,7 @@ class settings {
             mCfg.plugin.display.pxShift = true;
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF;  // SDA
-            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;  // SCL
             mCfg.plugin.display.disp_cs    = DEF_PIN_OFF;
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
@@ -476,7 +476,11 @@ class settings {
                 getVal<uint8_t>(obj, F("mosi"), &mCfg.nrf.pinMosi);
                 getVal<uint8_t>(obj, F("miso"), &mCfg.nrf.pinMiso);
                 getVal<uint8_t>(obj, F("pwr"), &mCfg.nrf.amplifierPower);
-                mCfg.nrf.enabled           = (bool) obj[F("en")];
+                #if !defined(ESP32)
+                mCfg.nrf.enabled = true; // ESP8266, read always as enabled
+                #else
+                mCfg.nrf.enabled = (bool) obj[F("en")];
+                #endif
                 if((obj[F("cs")] == obj[F("ce")])) {
                     mCfg.nrf.pinCs   = DEF_CS_PIN;
                     mCfg.nrf.pinCe   = DEF_CE_PIN;

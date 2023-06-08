@@ -78,8 +78,10 @@ function parseNav(obj) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
-        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop())
-            l.classList.add("active");
+        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
+            if((i != 8 )&& (i != 9))
+                l.classList.add("active");
+        }
 
         if(obj["menu_protEn"]) {
             if(obj["menu_prot"]) {

@@ -114,6 +114,7 @@ class PubMqttIvData {
                             case FLD_YD:
                                 if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
                                     mPos++;
+                                    mSendTotals = false; // avoid send total values on not producing, because the sum of values is no built
                                     return;
                                 }
                                 retained = true;

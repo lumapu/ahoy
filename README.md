@@ -22,7 +22,7 @@ Table of approaches:
 
 | Board  | MI | HM | HMS/HMT | comment | HowTo start |
 | ------ | -- | -- | ------- | ------- | ---------- |
-| [ESP8266/ESP32, C++](Getting_Started.md) | ✔️ | ✔️ | coming soon✨ |  👈 the most effort is spent here | [create your own DTU](https://ahoydtu.de/getting_started/) |
+| [ESP8266/ESP32, C++](Getting_Started.md) | ✔️ | ✔️ | ✔️ development version ✨ |  👈 the most effort is spent here | [create your own DTU](https://ahoydtu.de/getting_started/) |
 | [Arduino Nano, C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ | |
 | [Raspberry Pi, Python](tools/rpi/) | ❌ | ✔️ | ❌ | |
 | [Others, C/C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ |  |
