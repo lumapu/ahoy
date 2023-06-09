@@ -2,6 +2,17 @@ id = "debug"
 name = "Debugging"
 
 [[items]]
-
 question = "Wie kann ich sehen, ob die Firmware richtig aufgespielt wurde?"
-answer = "Die Serielle Konsole über USB gibt beim Start verschiedene Informationen aus. Es werden neben der WLAN Verbindung auch Informationen zum NRF24 Modul ausgegeben."
+answer = "Die Serielle Konsole über USB gibt beim Start verschiedene Informationen aus. Es werden neben der WLAN Verbindung auch Informationen zum NRF24 Modul ausgegeben. In der Fußzeile auf der rechten Seite ist die Versionsnummer, sowie der entsprechende Git-SHA zu finden (dieser ist eindeutig)"
+
+[[items]]
+question = "Wie kann ich alle Daten im Log sehen, die gesendet als auch empfangen werden?"
+answer = "Unter 'Settings' muss in der Rubrik 'System Config' der Haken bei 'Serial Debug' gesetzt sein."
+
+[[items]]
+question = "Mein HMT Wechselrichter will nicht einspeisen"
+answer = "Die Besonderheit bei den dreiphasigen Wechselrichtern besteht darin, dass alle drei Phasen vorhanden sein müssen. Auch für den provisorischen Aufbau sind hier alle Phasen nötig."
+
+[[items]]
+question = "Speist ein dreiphasiger HMT Wechselrichter symmetrisch ein?"
+answer = "Ja, es wird die identische Leistung auf allen drei Phasen eingespeist."

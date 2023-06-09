@@ -3,11 +3,15 @@ name = "Basics"
 
 [[items]]
 question = "Wo finde ich die aktuelle (stabile) Firmware?"
-answer = "Releases können hier gefunden werden: https://github.com/lumapu/ahoy/releases/"
+answer = "Releases können hier gefunden werden: https://github.com/lumapu/ahoy/releases/ Man läd ein Zip-Archiv herunter, welches anschließend lokal entpackt werden muss. Im nun erstellten Ordner befinden sich verschiedene Verisonen, vor allem wichtig ist die Unterscheidung des verwendeten ESP-Modells. Des weiteren befinden sich dort auch 'Spezialversionen', zB. eine Firmware mit Prometheus Endpoint"
 
 [[items]]
 question = "Ich habe von Development Builds gehört, wo kann ich die finden und herunterladen?"
 answer = "Die Development Builds werden automatisch erstellt und sind in Github unter [Actions](https://github.com/lumapu/ahoy/actions) zu finden. Für den Download muss man bei Github eingeloggt sein. Man bekommt ein Zip mit den Firmwares für ESP8266 und ESP32."
+
+[[items]]
+question = "Wie kann ich Ahoy Updaten?"
+answer = "Entweder kann über die integrierte Update-Funktion ein OTA (over the air) Update erfolgen oder alternativ kann über den Webinstaller (hier auf der Seite, oben im Menü) einfach die Firmware überschrieben werden. Im letzten Fall bitte daruauf achten, dass die Option 'erase' nicht aktiv ist, da sonst die Einstellungen verloren gehen."
 
 [[items]]
 question = "Wie verbinde ich den Ahoy mit meinem WLAN?"
@@ -19,7 +23,7 @@ answer = "Das Passwort lautet: esp_8266"
 
 [[items]]
 question = "Welche Inverter werden unterstützt?"
-answer = "aktuell wird nur die HM-Serie unterstützt. (HM300, HM400, HM600, HM800, HM1200 und HM1500) Es werden auch TSOL Wechselrichter unterstützt."
+answer = "aktuell wird nur die HM-Serie unterstützt. (Mi-300, Mi-600, Mi-1000, Mi-1200, Mi-1500, HM-300, HM-400, HM-600, HM-800, HM-1200 und HM-1500, HMS-350, HMS-500, HMS-800, HMS-1000, HMS-1800, HMS-2000, HMT-1800, HMT-2250) Es werden auch TSOL Wechselrichter unterstützt."
 
 [[items]]
 question = "Wird die MI-Serie unterstützt?"
@@ -27,7 +31,7 @@ answer = "Ja aber noch rudimentär. In der aktuellen Development Version werden 
 
 [[items]]
 question = "Wird die HMS- HMT-Serie unterstützt?"
-answer = "Sehr bald wird Ahoy auch die neueste Serie unterstützen. Es werden sowohl die 1-phasigen, als auch die 3-phasigen Wechselrichter unterstüzt."
+answer = "Ja in einer Development Preview werden diese bereits unterstützt. Es werden sowohl die 1-phasigen, als auch die 3-phasigen Wechselrichter unterstüzt."
 
 [[items]]
 question = "Wird eine Nulleinspeisung unterstützt?"
@@ -36,3 +40,39 @@ answer = "Ja und nein. Ahoy bietet die nötigen Daten um eine Nulleinspeisung / 
 [[items]]
 question = "Kann man den Wechselrichter limitieren?"
 answer = "Ja der Wechselrichter kann limitiert werden. So kann man zB. einen HM-1500 auf 600W limitieren. Es gibt zwei verschiedene Arten von Limit: persistent und nicht persistent. Ersteres wird im Wechselrichter gespeichert und gilt ab Wechselrichter-Start. Zweites wird für die Nulleinspeisung verwendet, da es sich um eine temporäre Limitierung handelt."
+
+[[items]]
+question = "Kann ich Wechselrichter verschiedener Baureihen / Serien auslesen?"
+answer = "Ja Ahoy unterstützt alle drei bisher erschienenen Serien: Mi, HM und HMS / HMT."
+
+[[items]]
+question = "Welches Funkmodul benötige ich für Mi Wechselrichter?"
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss."
+
+[[items]]
+question = "Welches Funkmodul benötige ich für HM Wechselrichter?"
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss."
+
+[[items]]
+question = "Welches Funkmodul benötige ich für HMS / HMT Wechselrichter?"
+answer = "Man benötigt ein CMT2300A Funkmodul. Dieses funkt auf 868MHz und kann nur mit der neuesten Serie verwendet werden. Wir empfehlen das 900M20S von Ebyte. Bei diesem Modul muss in der Regel eine Platine eingesetzt werden, da die Kontakte sehr filigran sind."
+
+[[items]]
+question = "Welche Displays werden von Ahoy unterstützt? (ePaper, OLED)"
+answer = "Es werden zwei verschiedene OLEDs (SH1106 und SSD1306) unterstützt. Zudem gibt es noch ein LCD (Nokia5110) und ein ePaper (Waveshare 1.54 sw) unterstützt. Letzteres wird nur vom ESP32 unterstützt, da der ESP8266 zu wenige SPI-Busse hat."
+
+[[items]]
+question = "Wie wird das SH1106 OLED Display angeschlossen?"
+answer = "Schematics für die verschiedenen Varianten folgen bald."
+
+[[items]]
+question = "Wie wird das SSH1306 OLED Display angeschlossen?"
+answer = "Schematics für die verschiedenen Varianten folgen bald."
+
+[[items]]
+question = "Wie wird das 1.54 Zoll Waveshare ePaper Display angeschlossen?"
+answer = "Schematics für die verschiedenen Varianten folgen bald."
+
+[[items]]
+question = "Gibt es eine Ethernet (PoE) Variante (Olimex, W5500)?"
+answer = "Ja es gibt eine Entwickler Version, zu finden in Github in Issue #904"

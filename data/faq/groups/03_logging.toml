@@ -2,6 +2,17 @@ id = "logging"
 name = "Logging"
 
 [[items]]
-
 question = "Kann Ahoy die geloggten Daten abspeichern und vorhalten? Wenn ja wie lange?"
 answer = "Nein Ahoy ist eine DTU (data transfer unit), die nur als Brücke zwischen Wechselrichter und Hausautomatisierung zu sehen ist."
+
+[[items]]
+question = "Wie kann ich die gesammelten Daten speichern?"
+answer = "Hierfür wird ein MqTT Broker wie zB. Mosquitto benötigt. Auch gängige Smart-Home System wie zB. ioBroker haben (nachinstallierbare) MqTT Broker. An diesen Broker muss eine Datenbank zB. Influxx oder MYSQL gebunden werden. Ahoy sendet beim erhalt von neuen Werten des Wechselrichters diese direkt weiter an den MqTT Broker."
+
+[[items]]
+question = "Wie kann ich meine Daten visualisieren?"
+answer = "Hierfür ist auch ein Smart-Home System notwendig. Im Netz gibt es einige verschiedene Anleitungen, vor allem zum Thema Grafana."
+
+[[items]]
+question = "Wird Prometheus auch unterstützt?"
+answer = "Ja durch eine gesonderte Firmware. Diese muss über Github.com heruntergeladen werden, zu finden in der Rubrik 'Releases'. Von Github läd man ein Zip-Archiv herunter, das muss lokal entpackt werden. Die Firmware mit dem Prometheus Endpunkt ist entsprechend im Namen markiert."
