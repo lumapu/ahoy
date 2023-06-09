@@ -12,10 +12,16 @@
 
 typedef std::function<void(const char *subTopic, const char *payload, bool retained)> pubMqttPublisherType;
 
+struct sendListCmdIv {
+    uint8_t cmd;
+    Inverter<> *iv;
+    sendListCmdIv(uint8_t a, Inverter<> *i) : cmd(a), iv(i) {}
+};
+
 template<class HMSYSTEM>
 class PubMqttIvData {
     public:
-        void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<uint8_t> *sendList) {
+        void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
             mSys          = sys;
             mUtcTimestamp = utcTs;
             mSendList     = sendList;
@@ -60,7 +66,8 @@ class PubMqttIvData {
         void stateStart() {
             mLastIvId = 0;
             if(!mSendList->empty()) {
-                mCmd = mSendList->front();
+                mCmd = mSendList->front().cmd;
+                mIvSend = mSendList->front().iv;
 
                 if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) {
                     mSendTotals = (RealTimeRunData_Debug == mCmd);
@@ -141,9 +148,11 @@ class PubMqttIvData {
                     } else
                         mIvLastRTRpub[mIv->id] = lastTs;
 
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
-                    snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
-                    mPublish(mSubTopic, mVal, retained);
+                    if((mIvSend == mIv) || (NULL == mIvSend)) { // send only updated values, or all if the inverter is NULL
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
+                        snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
+                        mPublish(mSubTopic, mVal, retained);
+                    }
                     mPos++;
                 } else
                     mState = FIND_NXT_IV;
@@ -195,7 +204,7 @@ class PubMqttIvData {
         bool mSendTotals;
         float mTotal[4];
 
-        Inverter<> *mIv;
+        Inverter<> *mIv, *mIvSend;
         uint8_t mPos;
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         bool mRTRDataHasBeenSent;
@@ -203,7 +212,7 @@ class PubMqttIvData {
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[40];
 
-        std::queue<uint8_t> *mSendList;
+        std::queue<sendListCmdIv> *mSendList;
 };
 
 #endif /*__PUB_MQTT_IV_DATA_H__*/

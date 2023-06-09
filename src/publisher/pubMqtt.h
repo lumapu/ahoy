@@ -119,7 +119,7 @@ class PubMqtt {
             else { // send mqtt data in a fixed interval
                 if(mIntervalTimeout == 0) {
                     mIntervalTimeout = mCfgMqtt->interval;
-                    mSendList.push(RealTimeRunData_Debug);
+                    mSendList.push(sendListCmdIv(RealTimeRunData_Debug, NULL));
                     sendIvData();
                 }
             }
@@ -165,10 +165,10 @@ class PubMqtt {
             publish(mSubTopic, mVal, true);
         }
 
-        void payloadEventListener(uint8_t cmd) {
+        void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
                 if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
-                    mSendList.push(cmd);
+                    mSendList.push(sendListCmdIv(cmd, iv));
             }
         }
 
@@ -564,7 +564,7 @@ class PubMqtt {
         void sendIvData() {
             bool anyAvail = processIvStatus();
             if (mLastAnyAvail != anyAvail)
-                mSendList.push(RealTimeRunData_Debug);  // makes sure that total values are calculated
+                mSendList.push(sendListCmdIv(RealTimeRunData_Debug, NULL));  // makes sure that total values are calculated
 
             if(mSendList.empty())
                 return;
@@ -584,7 +584,7 @@ class PubMqtt {
 
         uint32_t *mUtcTimestamp;
         uint32_t mRxCnt, mTxCnt;
-        std::queue<uint8_t> mSendList;
+        std::queue<sendListCmdIv> mSendList;
         std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;

@@ -242,10 +242,10 @@ class app : public IApp, public ah::Scheduler {
 
         void resetSystem(void);
 
-        void payloadEventListener(uint8_t cmd) {
+        void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             #if !defined(AP_ONLY)
             if (mMqttEnabled)
-                mMqtt.payloadEventListener(cmd);
+                mMqtt.payloadEventListener(cmd, iv);
             #endif
             if(mConfig->plugin.display.type != 0)
                mDisplay.payloadEventListener(cmd);

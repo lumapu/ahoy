@@ -104,10 +104,15 @@ void ahoywifi::tickWifiLoop() {
             DBGPRINTLN(String(mConfig->sys.stationSsid));
             mScanCnt = 0;
             mScanActive = true;
+            uint8_t *ssid = ([this] () {
+                if(mConfig->sys.isHidden)
+                    return (uint8_t *)NULL;
+                return (uint8_t *)(mConfig->sys.stationSsid);
+            })();
             #if defined(ESP8266)
-            WiFi.scanNetworks(true, false, 0U, (uint8_t *)mConfig->sys.stationSsid);
+            WiFi.scanNetworks(true, true, 0U, ssid);
             #else
-            WiFi.scanNetworks(true, false, false, 300U, 0U, mConfig->sys.stationSsid);
+            WiFi.scanNetworks(true, true, false, 300U, 0U, ssid);
             #endif
             return;
         }

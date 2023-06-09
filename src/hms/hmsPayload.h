@@ -29,7 +29,7 @@ typedef struct {
 } hmsPayload_t;
 
 
-typedef std::function<void(uint8_t)> payloadListenerType;
+typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
 
 
@@ -305,7 +305,7 @@ class HmsPayload {
                                 yield();
                             }
                             iv->doCalculations();
-                            notify(mPayload[iv->id].txCmd);
+                            notify(mPayload[iv->id].txCmd, iv);
 
                             /*if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
@@ -335,9 +335,9 @@ class HmsPayload {
         }
 
     private:
-        void notify(uint8_t val) {
+        void notify(uint8_t val, Inverter<> *iv) {
             if(NULL != mCbPayload)
-                (mCbPayload)(val);
+                (mCbPayload)(val, iv);
         }
 
         void notify(uint16_t code, uint32_t start, uint32_t endTime) {

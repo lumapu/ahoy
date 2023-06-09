@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.3 - 2023-06-09
+* fix hidden SSID scan #983
+* improved NRF24 missing message on home screen #981
+* fix MqTT publishing only updated values #982
+
 ## 0.7.2 - 2023-06-08
 * fix HMS-800 and HMS-1000 assignments #981
 * make nrf enabled all the time for ESP8266

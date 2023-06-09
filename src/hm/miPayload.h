@@ -33,7 +33,7 @@ typedef struct {
 } miPayload_t;
 
 
-typedef std::function<void(uint8_t)> miPayloadListenerType;
+typedef std::function<void(uint8_t, Inverter<> *)> miPayloadListenerType;
 
 
 template<class HMSYSTEM, class HMRADIO>
@@ -363,7 +363,7 @@ const byteAssign_t InfoAssignment[] = {
                         yield();
                     }
                     iv->doCalculations();
-                    notify(mPayload[iv->id].txCmd);
+                    notify(mPayload[iv->id].txCmd, iv);
 
                     if(AlarmData == mPayload[iv->id].txCmd) {
                         uint8_t i = 0;
@@ -556,9 +556,9 @@ const byteAssign_t InfoAssignment[] = {
         }
 
     private:
-        void notify(uint8_t val) {
+        void notify(uint8_t val, Inverter<> *iv) {
             if(NULL != mCbMiPayload)
-                (mCbMiPayload)(val);
+                (mCbMiPayload)(val, iv);
         }
 
         void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t stschan = CH1) {
@@ -752,7 +752,7 @@ const byteAssign_t InfoAssignment[] = {
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
             yield();
-            notify(RealTimeRunData_Debug); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
+            notify(RealTimeRunData_Debug, iv); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
         }
 
         bool build(uint8_t id, bool *complete) {

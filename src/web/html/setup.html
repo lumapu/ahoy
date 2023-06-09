@@ -72,7 +72,11 @@
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><div>
+                            </div>
+                            <div class="row mb-2 mb-sm-3">
+                                <div class="col-12 col-sm-3 my-2">hidden SSID</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="hidd"/><div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">Password</div>
@@ -617,6 +621,7 @@
             function parseSys(obj) {
                 for(var i of [["device", "device_name"], ["ssid", "ssid"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
+                document.getElementsByName("hidd")[0].checked = obj["hidd"];
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
                 e = document.getElementsByName("adminpwd")[0];
                 if(!obj["pwd_set"])

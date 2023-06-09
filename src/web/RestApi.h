@@ -206,6 +206,7 @@ class RestApi {
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
+            obj[F("hidd")]         = mConfig->sys.isHidden;
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
 
@@ -467,7 +468,7 @@ class RestApi {
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
             if(!mRadio->isChipConnected())
-                warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
+                warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
             else if(!mRadio->isPVariant())
                 warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())

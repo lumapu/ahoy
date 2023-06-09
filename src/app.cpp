@@ -55,11 +55,11 @@ void app::setup() {
     if(mConfig->nrf.enabled) {
         mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mPayload.enableSerialDebug(mConfig->serial.debug);
-        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
-        mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     #if defined(ESP32)
@@ -334,7 +334,7 @@ void app::tickZeroValues(void) {
     }
 
     if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
+        payloadEventListener(RealTimeRunData_Debug, NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -356,7 +356,7 @@ void app::tickMinute(void) {
     }
 
     if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
+        payloadEventListener(RealTimeRunData_Debug, NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -379,7 +379,7 @@ void app::tickMidnight(void) {
     }
 
     if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
+        payloadEventListener(RealTimeRunData_Debug, NULL);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();
