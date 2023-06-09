@@ -14,13 +14,13 @@
 <div class="container my-5">
     <div class="row p-4 pb-0 pe-lg-0 pt-lg-5 align-items-center">
         <p class="lead">
-            Wir haben eine Firmware programmiert, die es ermöglicht Hoymiles ® Wechselrichter der Generationen MI, HM, HMS und HMT auszulesen. Das ganze passiert lokal und ohne Cloud. Die DTU verbindet sich per WLAN und stellt die Daten live per übersichtlicher Weboberfläche im (lokalen) Netzwerk bereit.
+            Wir haben eine Firmware programmiert, die es ermöglicht Hoymiles ® Wechselrichter der Generationen MI, HM, HMS und HMT auszulesen. Das Ganze geschieht lokal und ohne Cloud. Die DTU verbindet sich per WLAN und stellt die Daten live auf einer übersichtlichen Weboberfläche im (lokalen) Netzwerk bereit.
         </p>
         <p class="lead">
-            Durch MqTT und eine REST API lässt sich die AhoyDTU sehr leicht in ein bestehendes Smart-Home integrieren. Erfolgreich wurde die AhoyDTU schon in zB. <a href="https://www.iobroker.net/" target="_blank">ioBroker</a> und <a href="https://www.home-assistant.io/" target="_blank">Home-Assistant</a> eingesetzt. Die Daten können zB. mit <a href="https://grafana.com/" target="_blank">Grafana</a> visualisiert werden. Über das Smart-Home System kann auch eine Nulleinspeisung erfolgen.
+            Durch MqTT und eine REST API lässt sich die AhoyDTU sehr leicht in ein bestehendes Smart-Home System integrieren. Die AhoyDTU wurde bereits erfolgreich in <a href="https://www.iobroker.net/" target="_blank">ioBroker</a> und <a href="https://www.home-assistant.io/" target="_blank">Home-Assistant</a> eingebunden. Die Daten können z.B. mit <a href="https://grafana.com/" target="_blank">Grafana</a> visualisiert werden. Über das Smart-Home System kann auch eine Nulleinspeisung erfolgen.
         </p>
         <p class="lead">
-            Durch die Weboberfläche können sehr leicht Wechselrichter eingerichtet werden. Für jedes angeschlossene Panel (ann. ein Panel pro Eingang) wird Spannung, Strom, Leistung und Ertrag dargestellt. Das macht eine Fehlersuche einfach oder ermöglicht ein Monitoring der gesamten Anlage. Auch für die Optimierung der Ausrichtung (zB. Winkel, Abschattung) einzelner Module eignet sich die AhoyDTU sehr gut. Eine AhoyDTU kann je nach Ausbaustufe bis zu 16 Wechselrichter verwalten - <strong>alle Generation mit einem Gerät</strong>.
+            Auf der Weboberfläche können sehr leicht Wechselrichter eingerichtet werden. Für jedes angeschlossene Panel (Ann. ein Panel pro Eingang) wird Spannung, Strom, Leistung und Ertrag dargestellt, dies macht eine Fehlersuche einfach oder ermöglicht ein Monitoring der gesamten Anlage. Die AhoyDTU eignet sich für die Optimierung der Ausrichtung (z.B. Winkel, Abschattung) einzelner Module sehr gut. Eine AhoyDTU kann je nach Ausbaustufe bis zu 16 Wechselrichter verwalten - <strong>alle Generation mit einem Gerät</strong>.
         </p>
     </div>
 </div>
@@ -33,8 +33,10 @@
             <h1 class="display-4 fw-bold lh-1">Neuigkeiten</h1>
             <h4>Juni 2023: HMS / HMT Preview Firmware veröffentlicht</h4>
             <p class="lead">
-                Ahoy unterstützt mit dem ESP32 und einem anderen Funkmodul CMT2300A jetzt auch die HMS und HMT Serie.<br/>
-                Folgende Inverter werden unterstützt:<br/>
+                Ahoy unterstützt mit dem ESP32 und einem Funkmodul (CMT2300A) jetzt auch die HMS und HMT Serie.
+            </p>
+            <p class="lead">
+                Folgende Inverter werden zusätzlich unterstützt:<br/>
                 HMS-350, HMS-500, HMS-800, HMS-1000, HMS-1800, HMS-2000, HMT-1800, HMT-2250
             </p>
             <p class="lead">
@@ -53,8 +55,8 @@
     <div class="row p-4 pb-0 pe-lg-0 pt-lg-5 align-items-center">
         <div class="col-lg-7 p-3 p-lg-5 pt-lg-3">
             <h1 class="display-4 fw-bold lh-1">Visualisierung</h1>
-            <p class="lead">Lese alle Werte deines Hoymiles ® Wechselrichters ohne Cloudanbindung.<br/>
-            Sowohl die AC-Parameter (nebenstehend auf grünem Hintergrund) als auch die DC-Paramter (Panele, blauer Hintergrund) werden ausgelesen. Die Visualisierung schafft eine schnelle Übersicht über den Zustand des / der Inverter.</p>
+            <p class="lead">Lasse alle Werte deines Hoymiles ® Wechselrichters ohne Cloudanbindung auslesen.<br/>
+            Sowohl die AC-Parameter (grüner Hintergrund) als auch die DC-Paramter (Panele, blauer Hintergrund) werden ausgelesen. Die Visualisierung schafft eine schnelle Übersicht über den Zustand des / der Inverter.</p>
         </div>
         <div class="col-lg-4 offset-lg-1 p-0 overflow-hidden">
             <img class="rounded-lg-3" src="/img/screenshot/live.png" alt="" width="560">
@@ -72,7 +74,7 @@
         <div class="col-lg-7 p-3 p-lg-5 pt-lg-3">
             <h1 class="display-4 fw-bold lh-1">Hardware</h1>
             <p class="lead">Die Hardware besteht im wesentlichen nur aus zwei Komponenten: Einem Wifi-Modul ESP32 (wahlweise ESP8266) und einem Funkmodul NRF24L01+ (oder CMT2300A für HMS / HMT)<br/>
-            Die Hardwarekosten belaufen sich auf ca. 15€ und wird damit zu den günstigsten Teilen der PV Anlage zählen. Die Komponenten können sehr einfach zusammengebaut werden (löten) und ohne Programmierkenntnisse über unser Online-Tool mit Firmware versehen werden.</p>
+            Die Hardwarekosten belaufen sich auf ca. 15€ und werden damit zu den günstigsten Teilen der PV Anlage zählen. Die Komponenten können sehr einfach zusammengebaut werden (löten) und ohne Programmierkenntnisse über unser <a href="/getting_started">Online-Tool</a> mit der Firmware versehen werden.</p>
         </div>
     </div>
 </div>
@@ -83,7 +85,7 @@
     <div class="row p-4 pb-0 pe-lg-0 pt-lg-5 align-items-center">
         <div class="col-lg-7 p-3 p-lg-5 pt-lg-3">
             <h1 class="display-4 fw-bold lh-1">Verbindungen</h1>
-            <p class="lead">AhoyDTU understützt sowohl MqTT und hat zusätzlich eine REST API. Im Fall von MqTT werden alle ermittelten Werte wahlweise im Sekundentakt an den hinterlegten (in den Einstellungen gesetzt) MqTT-Broker veröffentlicht.</p>
+            <p class="lead">AhoyDTU unterstützt MqTT und hat zusätzlich eine REST API. Im Fall von MqTT werden alle ermittelten Werte, wahlweise im Sekundentakt, an den hinterlegten (in den Einstellungen gesetzt) MqTT-Broker gesendet.</p>
         </div>
         <div class="col-lg-4 offset-lg-1 p-0 overflow-hidden">
             <img class="rounded-lg-3" src="/img/comp/connect.png" alt="" width="310">

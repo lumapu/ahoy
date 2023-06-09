@@ -3,7 +3,7 @@ name = "Troubleshooting"
 
 [[items]]
 question = "Ich kann keine Daten vom Inverter empfangen"
-answer = "Folgende Punkte sollten mit ja beantwortet werden können: Schon ein anderes Pinout verwendet (vor allem IRQ)? Verbindungen verlötet? Power Versorung ok, evtl. Kondensator nahe an NRF24? Es ist Tag (Inverter braucht DC Spannung um zu antworten)?"
+answer = "Folgende Punkte sollten mit ja beantwortet werden können: Schon ein anderes Pinout verwendet (vor allem IRQ)? Verbindungen verlötet? Power Versorung ok, evtl. Kondensator nahe am Funkmodul (NRF24)? Es ist Tag (Inverter braucht DC Spannung um zu antworten)?"
 
 [[items]]
 question = "Ich habe einen ESP8266 und kann keine Daten empfangen"
@@ -11,7 +11,7 @@ answer = "Hier muss geprüft werden, ob es evtl. hilft die Pins von CE und IRQ z
 
 [[items]]
 question = "Ich empfange keine Daten vom Wechselrichter"
-answer = "Prüfe, ob dein NRF24 Modul evtl. Lötfehler auf der Platine hat. Leider schwankt die Qualität hier sehr stark. Im Zweifel ein weiteres Funkmodul testen. Ist die Seriennummer korrekt eingetragen? Bei ESP8266 und NRF24: Wurde ein Kondensator verbaut? Steht das 'Power Level' vom NRF Modul auf 'MIN'? Wenn nicht sollte diese Einstellung versucht werden, da hier nicht gilt: 'viel hilft viel'"
+answer = "Prüfe, ob dein NRF24 Modul evtl. Lötfehler auf der Platine hat. Leider schwankt die Qualität hier sehr stark. Im Zweifel ein weiteres Funkmodul testen. Ist die Seriennummer korrekt eingetragen? Bei der Kombination ESP8266 mit NRF24: Wurde ein Kondensator verbaut? Steht das 'Power Level' des NRF Moduls auf 'MIN'? Wenn nicht sollte hier das Level auf 'MIN' gesetzt werden, da hier nicht gilt: 'viel hilft viel'"
 
 [[items]]
 question = "Welchen Kondensator soll ich für das NRF24 Modul kaufen?"
@@ -31,4 +31,4 @@ answer = "Leider kann man hier nur über den Web-Installer oä. den ESP neu besp
 
 [[items]]
 question = "Mein Limitierter Wechselrichter hält das Limit nicht, obwohl genug Leistung vorhanden wäre"
-answer = "Im Fall, dass zB. ein Modul verschattet ist, das andere aber noch volle Sonne hat kann es bei einer Leistungslimitierung passieren, dass dieses trotz der vorhannden Leistung unterschritten wird. Das liegt an der Implementierung im Wechselrichter und kann von Ahoy nicht beeinflusst werden. Hoymiles setzt das Limit immer zu gleichen Teilen auf die Eingänge um. Ein Wechselrichter mit zwei Eingängen limitiert auf 600W setzt demzufolge pro Eingang ein Limit von 300W. In dem zuerst geschilderten Fall kann jetzt das voll beschienene Modul nur 300W beitragen, während das andere durch die Verschattung einen kleineren Beitrag als 300W liefern kann."
+answer = "Im Fall, dass z.B. ein Modul verschattet ist, das andere aber noch volle Sonne hat kann es bei einer Leistungslimitierung passieren, dass dieses trotz der vorhandenen Leistung unterschritten wird. Das liegt an der Implementierung im Wechselrichter und kann von Ahoy nicht beeinflusst werden. Hoymiles setzt das Limit immer zu gleichen Teilen auf die Eingänge um. Ein Wechselrichter mit zwei Eingängen, der auf 600W limitiert wurde, setzt demzufolge pro Eingang ein Limit von 300W. In dem zuerst geschilderten Fall kann jetzt das voll beschienene Modul nur 300W beitragen, während das andere durch die Verschattung einen kleineren Beitrag als 300W liefern wird."

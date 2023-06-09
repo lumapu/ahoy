@@ -3,19 +3,19 @@ name = "Basics"
 
 [[items]]
 question = "Wo finde ich die aktuelle (stabile) Firmware?"
-answer = "Releases können hier gefunden werden: https://github.com/lumapu/ahoy/releases/ Man läd ein Zip-Archiv herunter, welches anschließend lokal entpackt werden muss. Im nun erstellten Ordner befinden sich verschiedene Verisonen, vor allem wichtig ist die Unterscheidung des verwendeten ESP-Modells. Des weiteren befinden sich dort auch 'Spezialversionen', zB. eine Firmware mit Prometheus Endpoint"
+answer = "Releases können hier gefunden werden: https://github.com/lumapu/ahoy/releases/ Lade ein Zip-Archiv herunter, welches anschließend lokal entpackt werden muss. Im nun erstellten Ordner befinden sich verschiedene Versionen. Hier ist vor allem die Unterscheidung des verwendeten ESP-Modells wichtig. Des weiteren befinden sich dort auch 'Spezialversionen', z.B. eine Firmware mit Prometheus Endpoint"
 
 [[items]]
 question = "Ich habe von Development Builds gehört, wo kann ich die finden und herunterladen?"
 answer = "Die Development Builds werden automatisch erstellt und sind in Github unter [Actions](https://github.com/lumapu/ahoy/actions) zu finden. Für den Download muss man bei Github eingeloggt sein. Man bekommt ein Zip mit den Firmwares für ESP8266 und ESP32."
 
 [[items]]
-question = "Wie kann ich Ahoy Updaten?"
-answer = "Entweder kann über die integrierte Update-Funktion ein OTA (over the air) Update erfolgen oder alternativ kann über den Webinstaller (hier auf der Seite, oben im Menü) einfach die Firmware überschrieben werden. Im letzten Fall bitte daruauf achten, dass die Option 'erase' nicht aktiv ist, da sonst die Einstellungen verloren gehen."
+question = "Wie kann ich Ahoy updaten?"
+answer = "Entweder kann über die integrierte Update-Funktion ein OTA (over the air) Update erfolgen oder alternativ kann über den Webinstaller (hier auf der Seite, oben im Menü) einfach die Firmware überschrieben werden. Im letzten Fall bitte darauf achten, dass die Option 'erase' nicht aktiv ist, da sonst die Einstellungen verloren gehen."
 
 [[items]]
-question = "Wie verbinde ich den Ahoy mit meinem WLAN?"
-answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen Access Point (AP). Dieser hat den Namen 'AhoyDTU'. Dieses WLAN muss mit einem anderen WLAN Gerät gesucht werden (z.B. PC oder Smartphone) und eine Verbindung hergestellt werden. Besteht die Verbindung, in den Browser wechseln und die IP http://192.168.4.1 aufrufen um auf die Weboberfläche zu gelangen. Jetzt kann über die Rubrik 'Settings' unter anderem das heimische WLAN eingetragen werden."
+question = "Wie verbinde ich Ahoy mit meinem WLAN?"
+answer = "Eine frisch aufgespielte Firmware öffnet direkt nach dem Booten einen Access Point (AP). Dieser hat den Namen 'Ahoy-DTU'. Dieses WLAN muss mit einem anderen WLAN Gerät gesucht werden (z.B. PC oder Smartphone) und eine Verbindung hergestellt werden. Besteht die Verbindung, in den Browser wechseln und die IP http://192.168.4.1 aufrufen um auf die Weboberfläche zu gelangen. Jetzt kann über die Rubrik 'Settings' unter anderem das heimische WLAN eingetragen werden."
 
 [[items]]
 question = "Wie ist das default Passwort im AP mode?"
@@ -30,36 +30,36 @@ question = "Wird die MI-Serie unterstützt?"
 answer = "Ja aber noch rudimentär. In der aktuellen Development Version werden erste Datenfragmente bereits empfangen und dekodiert."
 
 [[items]]
-question = "Wird die HMS- HMT-Serie unterstützt?"
+question = "Wird die HMS / HMT-Serie unterstützt?"
 answer = "Ja in einer Development Preview werden diese bereits unterstützt. Es werden sowohl die 1-phasigen, als auch die 3-phasigen Wechselrichter unterstüzt."
 
 [[items]]
 question = "Wird eine Nulleinspeisung unterstützt?"
-answer = "Ja und nein. Ahoy bietet die nötigen Daten um eine Nulleinspeisung / Zeroexport zu ermöglichen. Für die Umsetzung ist ein Smarthome System nötig. Ahoy liefert die Daten des / der Wechselrichter per MQTT oder JSON je nach Einstellung max. alle 5 Sekunden."
+answer = "Ja und nein. Ahoy bietet die nötigen Schnittstellen um eine Nulleinspeisung / Zeroexport zu ermöglichen. Für die Umsetzung ist ein Smart-Home System nötig."
 
 [[items]]
 question = "Kann man den Wechselrichter limitieren?"
-answer = "Ja der Wechselrichter kann limitiert werden. So kann man zB. einen HM-1500 auf 600W limitieren. Es gibt zwei verschiedene Arten von Limit: persistent und nicht persistent. Ersteres wird im Wechselrichter gespeichert und gilt ab Wechselrichter-Start. Zweites wird für die Nulleinspeisung verwendet, da es sich um eine temporäre Limitierung handelt."
+answer = "Ja der Wechselrichter kann limitiert werden. So kann man z.B. einen HM-1500 auf 600W limitieren. Es gibt zwei verschiedene Arten des Limits: persistent und nicht persistent. Ersteres wird im Wechselrichter gespeichert und gilt ab Wechselrichter-Start. Zweites wird für die Nulleinspeisung verwendet, da es sich um eine temporäre Limitierung handelt."
 
 [[items]]
 question = "Kann ich Wechselrichter verschiedener Baureihen / Serien auslesen?"
-answer = "Ja Ahoy unterstützt alle drei bisher erschienenen Serien: Mi, HM und HMS / HMT."
+answer = "Ja, Ahoy unterstützt alle drei bisher erschienenen Serien: Mi, HM und HMS / HMT."
 
 [[items]]
 question = "Welches Funkmodul benötige ich für Mi Wechselrichter?"
-answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss."
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch für die HM Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
 
 [[items]]
 question = "Welches Funkmodul benötige ich für HM Wechselrichter?"
-answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss."
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch für die Mi Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
 
 [[items]]
 question = "Welches Funkmodul benötige ich für HMS / HMT Wechselrichter?"
 answer = "Man benötigt ein CMT2300A Funkmodul. Dieses funkt auf 868MHz und kann nur mit der neuesten Serie verwendet werden. Wir empfehlen das 900M20S von Ebyte. Bei diesem Modul muss in der Regel eine Platine eingesetzt werden, da die Kontakte sehr filigran sind."
 
 [[items]]
-question = "Welche Displays werden von Ahoy unterstützt? (ePaper, OLED)"
-answer = "Es werden zwei verschiedene OLEDs (SH1106 und SSD1306) unterstützt. Zudem gibt es noch ein LCD (Nokia5110) und ein ePaper (Waveshare 1.54 sw) unterstützt. Letzteres wird nur vom ESP32 unterstützt, da der ESP8266 zu wenige SPI-Busse hat."
+question = "Welche Displays werden von Ahoy unterstützt (ePaper, OLED) ?"
+answer = "Es werden zwei verschiedene OLEDs (SH1106 und SSD1306) unterstützt. Zudem wird ein LCD (Nokia5110) und ein ePaper Display (Waveshare 1.54 sw) unterstützt. Letzteres wird nur vom ESP32 unterstützt, da der ESP8266 zu wenige SPI-Busse hat."
 
 [[items]]
 question = "Wie wird das SH1106 OLED Display angeschlossen?"
@@ -75,4 +75,4 @@ answer = "Schematics für die verschiedenen Varianten folgen bald."
 
 [[items]]
 question = "Gibt es eine Ethernet (PoE) Variante (Olimex, W5500)?"
-answer = "Ja es gibt eine Entwickler Version, zu finden in Github in Issue #904"
+answer = "Ja, es gibt eine Entwicklerversion, zu finden in Github in Issue #904"
