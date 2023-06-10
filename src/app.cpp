@@ -65,7 +65,7 @@ void app::setup() {
     #if defined(ESP32)
         mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
-        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     #endif
     /*DBGPRINTLN("--- after payload");
     DBGPRINTLN(String(ESP.getFreeHeap()));
