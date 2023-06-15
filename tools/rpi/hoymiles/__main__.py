@@ -101,7 +101,7 @@ class SunsetHandler:
                 logging.info (f'Woke up...')
 
     def sun_status2mqtt(self, dtu_ser, dtu_name):
-        if not mqtt_client:
+        if not mqtt_client or not self.suntimes:
             return
         local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
         local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
