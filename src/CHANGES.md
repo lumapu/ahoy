@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.4 - 2023-06-15
+* fix MqTT `P_AC` send if inverters are available #987
+* fix assignments for HMS 1CH and 2CH devices
+* fixed uptime overflow #990
+
 ## 0.7.3 - 2023-06-09
 * fix hidden SSID scan #983
 * improved NRF24 missing message on home screen #981

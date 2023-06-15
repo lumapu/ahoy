@@ -56,12 +56,13 @@ class PubMqtt {
 
         ~PubMqtt() { }
 
-        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
             mCfgMqtt         = cfg_mqtt;
             mDevName         = devName;
             mVersion         = version;
             mSys             = sys;
             mUtcTimestamp    = utcTs;
+            mUptime          = uptime;
             mIntervalTimeout = 1;
 
             mSendIvData.setup(sys, utcTs, &mSendList);
@@ -126,7 +127,7 @@ class PubMqtt {
         }
 
         void tickerMinute() {
-            snprintf(mVal, 40, "%ld", millis() / 1000);
+            snprintf(mVal, 40, "%d", (*mUptime));
             publish(subtopics[MQTT_UPTIME], mVal);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
@@ -582,7 +583,7 @@ class PubMqtt {
         HMSYSTEM *mSys;
         PubMqttIvData<HMSYSTEM> mSendIvData;
 
-        uint32_t *mUtcTimestamp;
+        uint32_t *mUtcTimestamp, *mUptime;
         uint32_t mRxCnt, mTxCnt;
         std::queue<sendListCmdIv> mSendList;
         std::queue<alarm_t> mAlarmList;

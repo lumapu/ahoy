@@ -422,16 +422,28 @@ class Inverter {
             switch (cmd) {
                 case RealTimeRunData_Debug:
                     if (INV_TYPE_1CH == type) {
-                        rec->length  = (uint8_t)(HM1CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm1chAssignment;
-                        rec->pyldLen = HM1CH_PAYLOAD_LEN;
-                        channels     = 1;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm1chAssignment;
+                            rec->pyldLen = HM1CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms1chAssignment;
+                            rec->pyldLen = HMS1CH_PAYLOAD_LEN;
+                        }
+                        channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
-                        rec->length  = (uint8_t)(HM2CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm2chAssignment;
-                        rec->pyldLen = HM2CH_PAYLOAD_LEN;
-                        channels     = 2;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM2CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm2chAssignment;
+                            rec->pyldLen = HM2CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS2CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms2chAssignment;
+                            rec->pyldLen = HMS2CH_PAYLOAD_LEN;
+                        }
+                        channels = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
                         if(IV_HM == ivGen) {

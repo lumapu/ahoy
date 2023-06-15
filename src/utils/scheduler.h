@@ -117,6 +117,7 @@ namespace ah {
 
         protected:
             uint32_t mTimestamp;
+            uint32_t mUptime;
 
         private:
             inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
@@ -162,7 +163,6 @@ namespace ah {
             sP mTicker[MAX_NUM_TICKER];
             bool mTickerInUse[MAX_NUM_TICKER];
             uint32_t mMillis, mPrevMillis, mDiff;
-            uint32_t mUptime;
             uint8_t mDiffSeconds;
             uint8_t mMax;
     };
