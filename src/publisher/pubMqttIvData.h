@@ -26,6 +26,7 @@ class PubMqttIvData {
             mUtcTimestamp = utcTs;
             mSendList     = sendList;
             mState        = IDLE;
+            mZeroValues   = false;
 
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
             mRTRDataHasBeenSent = false;
@@ -53,6 +54,10 @@ class PubMqttIvData {
 
         void setPublishFunc(pubMqttPublisherType cb) {
             mPublish = cb;
+        }
+
+        void setZeroValuesEnable(void) {
+            mZeroValues = true;
         }
 
     private:
@@ -101,6 +106,7 @@ class PubMqttIvData {
                 mState = SEND_TOTALS;
             else {
                 mSendList->pop();
+                mZeroValues = false;
                 mState = START;
             }
         }
@@ -119,11 +125,13 @@ class PubMqttIvData {
                         switch (rec->assign[mPos].fieldId) {
                             case FLD_YT:
                             case FLD_YD:
-                                if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
-                                    mPos++;
-                                    if(!mIv->isAvailable(*mUtcTimestamp))
-                                        mSendTotals = false; // avoid send total values on not producing, because the sum of values is no built
-                                    return;
+                                if(!mZeroValues) {
+                                    if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
+                                        mPos++;
+                                        if(!mIv->isAvailable(*mUtcTimestamp))
+                                            mSendTotals = false; // avoid send total values on not producing, because the sum of values is no built
+                                        return;
+                                    }
                                 }
                                 retained = true;
                                 break;
@@ -188,6 +196,7 @@ class PubMqttIvData {
                 mPos++;
             } else {
                 mSendList->pop();
+                mZeroValues = false;
                 mState = START;
             }
 
@@ -212,6 +221,7 @@ class PubMqttIvData {
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[40];
+        bool mZeroValues;
 
         std::queue<sendListCmdIv> *mSendList;
 };

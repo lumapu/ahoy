@@ -241,6 +241,7 @@ class app : public IApp, public ah::Scheduler {
         typedef std::function<void()> innerLoopCb;
 
         void resetSystem(void);
+        void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             #if !defined(AP_ONLY)

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.5 - 2023-06-16
+* fix yield day reset on midnight #957
+* improved tickers in `app.cpp`
+
 ## 0.7.4 - 2023-06-15
 * fix MqTT `P_AC` send if inverters are available #987
 * fix assignments for HMS 1CH and 2CH devices

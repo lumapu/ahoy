@@ -321,42 +321,14 @@ void app::tickComm(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yields
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        mPayload.zeroInverterValues(iv);
-        changed = true;
-    }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug, NULL);
+    zeroIvValues(false);
 }
 
 //-----------------------------------------------------------------------------
 void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yields
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled) {
-            mPayload.zeroInverterValues(iv);
-            changed = true;
-        }
-    }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug, NULL);
+    zeroIvValues(true);
 }
 
 //-----------------------------------------------------------------------------
@@ -366,20 +338,7 @@ void app::tickMidnight(void) {
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yield total
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        mPayload.zeroInverterValues(iv, false);
-        changed = true;
-    }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug, NULL);
+    zeroIvValues(false, false);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();
@@ -439,6 +398,51 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
+}
+
+//-----------------------------------------------------------------------------
+void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
+    Inverter<> *iv;
+    bool changed = false;
+    // set values to zero, except yields
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        iv = mSys.getInverterByPos(id);
+        if (NULL == iv)
+            continue;  // skip to next inverter
+        if (!iv->config->enabled)
+            continue;  // skip to next inverter
+
+        if (checkAvail) {
+            if (!iv->isAvailable(mTimestamp))
+                continue;
+        }
+
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        for(uint8_t ch = 0; ch <= iv->channels; ch++) {
+            uint8_t pos = 0;
+            for(uint8_t fld = 0; fld < FLD_EVT; fld++) {
+                switch(fld) {
+                    case FLD_YD:
+                        if(skipYieldDay)
+                            continue;
+                        else
+                            break;
+                    case FLD_YT:
+                        continue;
+                }
+                pos = iv->getPosByChFld(ch, fld, rec);
+                iv->setValue(pos, rec, 0.0f);
+            }
+            iv->doCalculations();
+        }
+        changed = true;
+    }
+
+    if(changed) {
+        if(mMqttEnabled)
+            mMqtt.setZeroValuesEnable();
+        payloadEventListener(RealTimeRunData_Debug, NULL);
+    }
 }
 
 //-----------------------------------------------------------------------------

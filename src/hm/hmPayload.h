@@ -95,28 +95,6 @@ class HmPayload {
             notify(0x0b);
         }*/
 
-        void zeroInverterValues(Inverter<> *iv, bool skipYieldDay = true) {
-            DPRINTLN(DBG_DEBUG, F("zeroInverterValues"));
-            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            for(uint8_t ch = 0; ch <= iv->channels; ch++) {
-                uint8_t pos = 0;
-                for(uint8_t fld = 0; fld < FLD_EVT; fld++) {
-                    switch(fld) {
-                        case FLD_YD:
-                            if(skipYieldDay)
-                                continue;
-                            else
-                                break;
-                        case FLD_YT:
-                            continue;
-                    }
-                    pos = iv->getPosByChFld(ch, fld, rec);
-                    iv->setValue(pos, rec, 0.0f);
-                }
-                iv->doCalculations();
-            }
-        }
-
         void ivSendHighPrio(Inverter<> *iv) {
             mHighPrioIv = iv;
         }

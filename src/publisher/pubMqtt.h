@@ -240,6 +240,10 @@ class PubMqtt {
             }
         }
 
+        void setZeroValuesEnable(void) {
+            mSendIvData.setZeroValuesEnable();
+        }
+
     private:
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
