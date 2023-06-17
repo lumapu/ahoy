@@ -132,7 +132,7 @@ typedef struct {
     char name[MAX_NAME_LENGTH];
     serial_u serial;
     uint16_t chMaxPwr[6];
-    double yieldCor[6];  // signed YieldTotal correction value
+    double yieldCor[6];  // YieldTotal correction value
     char chName[6][MAX_NAME_LENGTH];
 } cfgIv_t;
 

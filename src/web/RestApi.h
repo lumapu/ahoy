@@ -315,7 +315,7 @@ class RestApi {
                     obj2[F("version")]  = String(iv->getFwVersion());
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
-                        obj2[F("ch_yield_cor")][j] = iv->config->yieldCor[j];
+                        obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
                         obj2[F("ch_name")][j]      = iv->config->chName[j];
                         obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                     }

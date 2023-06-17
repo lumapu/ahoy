@@ -509,7 +509,7 @@ class Web {
 
                 // max channel power / name
                 for (uint8_t j = 0; j < 6; j++) {
-                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toInt();
+                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toDouble();
                     iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
                 }
