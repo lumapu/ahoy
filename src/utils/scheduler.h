@@ -31,9 +31,9 @@ namespace ah {
         public:
             Scheduler() {}
 
-            void setup() {
+            void setup(bool directStart) {
                 mUptime     = 0;
-                mTimestamp  = 0;
+                mTimestamp  = (directStart) ? 1 : 0;
                 mMax        = 0;
                 mPrevMillis = millis();
                 resetTicker();

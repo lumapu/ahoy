@@ -88,8 +88,12 @@
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);
                 var dSpan = document.getElementById("date");
-                if(0 != obj["ts_now"])
-                    dSpan.innerHTML = date.toLocaleString('de-DE');
+                if(0 != obj["ts_now"]) {
+                    if(obj["ts_now"] < 1680000000)
+                        setTime();
+                    else
+                        dSpan.innerHTML = date.toLocaleString('de-DE');
+                }
                 else {
                     dSpan.innerHTML = "";
                     var e = inp("set", "sync from browser", 0, ["btn"], "set", "button");

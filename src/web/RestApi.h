@@ -206,6 +206,7 @@ class RestApi {
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
+            obj[F("ap_pwd")]       = mConfig->sys.apPwd;
             obj[F("hidd")]         = mConfig->sys.isHidden;
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
@@ -326,6 +327,7 @@ class RestApi {
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+            obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {

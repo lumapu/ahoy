@@ -170,7 +170,7 @@ void ahoywifi::setupAp(void) {
     DBGPRINT(F("\n---------\nAP MODE\nSSID: "));
     DBGPRINTLN(WIFI_AP_SSID);
     DBGPRINT(F("PWD: "));
-    DBGPRINTLN(WIFI_AP_PWD);
+    DBGPRINTLN(mConfig->sys.apPwd);
     DBGPRINT(F("IP Address: http://"));
     DBGPRINTLN(mApIp.toString());
     DBGPRINTLN(F("---------\n"));
@@ -180,7 +180,7 @@ void ahoywifi::setupAp(void) {
 
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAPConfig(mApIp, mApIp, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PWD);
+    WiFi.softAP(WIFI_AP_SSID, mConfig->sys.apPwd);
 }
 
 

@@ -1,5 +1,13 @@
 # Development Changes
 
+## 0.7.6 - 2023-06-17
+* fix display of hidden SSID checkbox
+* changed yield correction data type to `double`, now decimal places are supported
+* corrected name of 0.91" display in settings
+* attempt to fix MqTT zero values only if setting is there #980, #957
+* made AP password configurable #951
+* added option to start without time-sync, eg. for AP-only-mode #951
+
 ## 0.7.5 - 2023-06-16
 * fix yield day reset on midnight #957
 * improved tickers in `app.cpp`

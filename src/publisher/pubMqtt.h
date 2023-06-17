@@ -52,6 +52,7 @@ class PubMqtt {
             memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
             mLastAnyAvail = false;
+            mZeroValues = false;
         }
 
         ~PubMqtt() { }
@@ -241,7 +242,7 @@ class PubMqtt {
         }
 
         void setZeroValuesEnable(void) {
-            mSendIvData.setZeroValuesEnable();
+            mZeroValues = true;
         }
 
     private:
@@ -574,7 +575,8 @@ class PubMqtt {
             if(mSendList.empty())
                 return;
 
-            mSendIvData.start();
+            mSendIvData.start(mZeroValues);
+            mZeroValues = false;
             mLastAnyAvail = anyAvail;
         }
 
@@ -593,6 +595,7 @@ class PubMqtt {
         std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;
+        bool mZeroValues;
         uint8_t mLastIvState[MAX_NUM_INVERTERS];
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;

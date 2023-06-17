@@ -43,10 +43,11 @@ class PubMqttIvData {
             yield();
         }
 
-        bool start(void) {
+        bool start(bool zeroValues = false) {
             if(IDLE != mState)
                 return false;
 
+            mZeroValues = zeroValues;
             mRTRDataHasBeenSent = false;
             mState = START;
             return true;
@@ -54,10 +55,6 @@ class PubMqttIvData {
 
         void setPublishFunc(pubMqttPublisherType cb) {
             mPublish = cb;
-        }
-
-        void setZeroValuesEnable(void) {
-            mZeroValues = true;
         }
 
     private:
@@ -100,8 +97,11 @@ class PubMqttIvData {
             mLastIvId++;
 
             mPos = 0;
-            if(found)
+            if(found) {
                 mState = SEND_DATA;
+                if(!mIv->isAvailable(*mUtcTimestamp))
+                    mSendTotals = false; // avoid send total values on not producing, because the sum of values is not built
+            }
             else if(mSendTotals)
                 mState = SEND_TOTALS;
             else {
@@ -122,19 +122,16 @@ class PubMqttIvData {
                 if(mPos < rec->length) {
                     bool retained = false;
                     if (mCmd == RealTimeRunData_Debug) {
-                        switch (rec->assign[mPos].fieldId) {
-                            case FLD_YT:
-                            case FLD_YD:
-                                if(!mZeroValues) {
-                                    if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
-                                        mPos++;
-                                        if(!mIv->isAvailable(*mUtcTimestamp))
-                                            mSendTotals = false; // avoid send total values on not producing, because the sum of values is no built
-                                        return;
-                                    }
+                        if(FLD_YT == rec->assign[mPos].fieldId)
+                            retained = true;
+                        else if(FLD_YD == rec->assign[mPos].fieldId) {
+                            if(!mZeroValues) {
+                                if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
+                                    mPos++;
+                                    return;
                                 }
-                                retained = true;
-                                break;
+                            }
+                            retained = true;
                         }
 
                         // calculate total values for RealTimeRunData_Debug
@@ -221,7 +218,7 @@ class PubMqttIvData {
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[40];
-        bool mZeroValues;
+        bool mZeroValues; // makes sure that yield day is sent even if no inverter is online
 
         std::queue<sendListCmdIv> *mSendList;
 };

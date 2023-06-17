@@ -55,6 +55,12 @@
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">AP Password (min. length: 8)</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
+                            </div>
+
                             <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
 
                             <div class="row mb-3">
@@ -72,11 +78,11 @@
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">hidden SSID</div>
-                                <div class="col-12 col-sm-9"><input type="checkbox" name="hidd"/><div>
+                                <div class="col-12 col-sm-3">SSID is hidden</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="hidd"/></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">Password</div>
@@ -161,6 +167,10 @@
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3">Reset values when inverter status is 'not available'</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Start without time sync (useful in AP-Only-Mode)</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -616,10 +626,11 @@
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of [["Mid", "rstMid"], ["ComStop", "rstComStop"], ["NotAvail", "rstNAvail"]])
                     document.getElementsByName("invRst"+i[0])[0].checked = obj[i[1]];
+                document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
             }
 
             function parseSys(obj) {
-                for(var i of [["device", "device_name"], ["ssid", "ssid"]])
+                for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 document.getElementsByName("hidd")[0].checked = obj["hidd"];
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
@@ -789,7 +800,7 @@
                     );
                 }
 
-                var opts = [[0, "None"], [1, "SSD1306 0.96\" 128X64"], [2, "SH1106 1.3\""], [3, "Nokia5110"], [4, "SSD1306 0.96\" 128X32"]];
+                var opts = [[0, "None"], [1, "SSD1306 0.96\" 128X64"], [2, "SH1106 1.3\""], [3, "Nokia5110"], [4, "SSD1306 0.91\" 128X32"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
                 var dispType = sel("disp_typ", opts, obj["disp_typ"]);

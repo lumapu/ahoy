@@ -17,12 +17,12 @@ void app::setup() {
     while (!Serial)
         yield();
 
-    ah::Scheduler::setup();
 
     resetSystem();
 
     mSettings.setup();
     mSettings.getPtr(mConfig);
+    ah::Scheduler::setup(mConfig->inst.startWithoutTime);
     DPRINT(DBG_INFO, F("Settings valid: "));
     if (mSettings.getValid())
         DBGPRINTLN(F("true"));
@@ -67,10 +67,6 @@ void app::setup() {
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
         mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     #endif
-    /*DBGPRINTLN("--- after payload");
-    DBGPRINTLN(String(ESP.getFreeHeap()));
-    DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));*/
 
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
@@ -101,12 +97,6 @@ void app::setup() {
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     regularTickers();
-
-
-    // DBGPRINTLN("--- end setup");
-    // DBGPRINTLN(String(ESP.getFreeHeap()));
-    // DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 }
 
 //-----------------------------------------------------------------------------
@@ -253,7 +243,6 @@ void app::tickNtpUpdate(void) {
         }
 
         // immediately start communicating
-        // @TODO: leads to reboot loops? not sure #674
         if (isOK && mSendFirst) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 2, "senOn");
@@ -439,7 +428,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
     }
 
     if(changed) {
-        if(mMqttEnabled)
+        if(mMqttEnabled && !skipYieldDay)
             mMqtt.setZeroValuesEnable();
         payloadEventListener(RealTimeRunData_Debug, NULL);
     }

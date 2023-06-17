@@ -448,6 +448,8 @@ class Web {
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
+            if (request->arg("ap_pwd") != "")
+                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
             mConfig->sys.isHidden = (request->arg("hidd") == "on");
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
@@ -521,6 +523,7 @@ class Web {
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
+            mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
 
             // pinout
             uint8_t pin;

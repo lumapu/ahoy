@@ -68,6 +68,7 @@ typedef struct {
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
+    char apPwd[PWD_LEN];
     bool isHidden;
 
     cfgIp_t ip;
@@ -131,7 +132,7 @@ typedef struct {
     char name[MAX_NAME_LENGTH];
     serial_u serial;
     uint16_t chMaxPwr[6];
-    int32_t yieldCor[6];  // signed YieldTotal correction value
+    double yieldCor[6];  // signed YieldTotal correction value
     char chName[6][MAX_NAME_LENGTH];
 } cfgIv_t;
 
@@ -142,6 +143,7 @@ typedef struct {
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
+    bool startWithoutTime;
 } cfgInst_t;
 
 typedef struct {
@@ -360,6 +362,7 @@ class settings {
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
+                snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
                 mCfg.sys.isHidden = false;
             }
 
@@ -404,6 +407,7 @@ class settings {
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
+            mCfg.inst.startWithoutTime  = false;
 
             mCfg.led.led0 = DEF_PIN_OFF;
             mCfg.led.led1 = DEF_PIN_OFF;
@@ -428,6 +432,7 @@ class settings {
                 char buf[16];
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
+                obj[F("ap_pwd")]  = mCfg.sys.apPwd;
                 obj[F("hidd")] = (bool) mCfg.sys.isHidden;
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
@@ -441,6 +446,7 @@ class settings {
             } else {
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
+                getChar(obj, F("ap_pwd"), mCfg.sys.apPwd, PWD_LEN);
                 getVal<bool>(obj, F("hidd"), &mCfg.sys.isHidden);
                 getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
@@ -617,12 +623,14 @@ class settings {
                 obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")]  = (bool)mCfg.inst.startWithoutTime;
             }
             else {
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
+                getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
             }
 
             JsonArray ivArr;
