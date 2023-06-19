@@ -12,7 +12,7 @@ draft: false
         <div class="col-lg-6">
             <h1 class="display-5 fw-bold lh-1 mb-3">Hardware / Einkaufsliste</h1>
             <p class="lead">
-                Die Hardware für AhoyDTU besteht nur aus zwei Modulen, einem WLAN-Modul und einem 2.4GHz Funkmodul. Für die Systemstabilität wird ein Kondensator nahe am Funkmodul empfohlen. 
+                Die Hardware für AhoyDTU besteht nur aus zwei Modulen, einem WLAN-Modul und einem Funkmodul. Für die Systemstabilität wird ein Kondensator nahe am Funkmodul empfohlen.
             </p>
             <p class="lead">
                 Der Gesamtpreis spiegelt wider was eine Hardware für Ahoy kosten darf. Auf gängigen Plattformen (z.B. ebay Kleinanzeigen) wird diese zu völlig überzogenen Preisen angeboten, also besser selbst zusammenbauen.
@@ -49,7 +49,7 @@ draft: false
                         <td>
                             <div>Wemos D1 Mini</div>
                             <div class="alert alert-success" role="alert">
-                                für bis zu 4 Inverter; Alternative zu ESP32; kostengünstiger
+                                für bis zu 4 Inverter; Alternative zu ESP32; kostengünstiger; nur für MI und HM
                             </div></td>
                         <td>(optional)</td>
                         <td>4,40 €</td>
@@ -57,7 +57,12 @@ draft: false
                         <td><a href="https://www.ebay.de/itm/153891459582" target="_blank">link</a></td>
                     </tr>
                     <tr>
-                        <td>NRF24L01+</td>
+                        <td>
+                            <div>NRF24L01+</div>
+                            <div class="alert alert-success" role="alert">
+                                für MI- und HM-Serie
+                            </div>
+                        </td>
                         <td>1</td>
                         <td>3,45 €</td>
                         <td><a href="https://www.makershop.de/module/funk/nrf24l01/" target="_blank">link</a></td>
@@ -69,6 +74,18 @@ draft: false
                         <td>4,50 €</td>
                         <td><a href="https://www.makershop.de/module/funk/nrf24l01-pa-lna-sma-antenne/" target="_blank">link</a></td>
                         <td><a href="https://www.ebay.de/itm/291793085079" target="_blank">link</a></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div>CMT2300A</div>
+                            <div class="alert alert-success" role="alert">
+                                für HMS- und HMT-Serie
+                            </div>
+                        </td>
+                        <td>1</td>
+                        <td>4,59 €</td>
+                        <td><a href="https://www.amazon.de/Lochabstand-E49-900M20S-Fernbedienung-%C3%9Cberwachung-Medizinische/dp/B09G9GJCXW" target="_blank">Amazon</a></td>
+                        <td>-</td>
                     </tr>
                     <tr>
                         <td>Jumper Kabel</td>
@@ -121,7 +138,10 @@ draft: false
 <div class="container col-xxl-8 px-4 py-5">
     <div class="row flex-lg-row align-items-center g-5 py-5">
         <div class="col-lg-6">
-            <h1 class="display-5 fw-bold lh-1 mb-3">Zusammenbau</h1>
+            <h1 class="display-5 fw-bold lh-1 mb-3">Zusammenbau NRF</h1>
+            <p class="lead">
+                Diese Anleitung richtet sich an alle, die einen MI- oder HM-Wechselrichter haben. Die neueste Generation benötigt ein anderes Funkmodul, dafür weiter unten weiterlesen.
+            </p>
             <p class="lead">
                 Für den Zusammenbau wird in der Regel ein Lötkolben benötigt. Es gibt zwei verschiedene Vorgehen, steckbar (mit Dunpont Kabeln) und fest verdrahtet.<br/>
                 Es wird die feste Verdrahtung empfohlen, da sie weniger anfällig ist.<br/><br/>
@@ -134,6 +154,29 @@ draft: false
         </div>
         <div class="col-10 col-sm-8 col-lg-6">
             <a href="/img/fritzing/AhoyWemos_Steckplatine.jpg" target="_blank"><img src="/img/fritzing/AhoyWemos_Steckplatine.jpg" class="d-block mx-lg-auto img-fluid" alt="schematics" width="450" loading="lazy"></a>
+        </div>
+    </div>
+</div>
+
+
+<div class="container col-xxl-8 px-4 py-5">
+    <div class="row flex-lg-row align-items-center g-5 py-5">
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold lh-1 mb-3">Zusammenbau NRF</h1>
+            <p class="lead">
+                Für die neueste Generation der Wechselrichter wird ein CMT2300A Funkmodul benötigt. Dieses funkt auf 868MHz.
+            </p>
+            <p class="lead">
+                Für den Zusammenbau wird in der Regel ein Lötkolben benötigt. Da das CMT2300A Modul (zB. E49-900M20S) sehr filigrane Pins hat wird eine Platine empfohlen. Starre Kabel werden schon nach kurzer Zeit das Funkmodul zerstören, die einzige Methode es von Hand aufzubauen ist eine Montage auf dem "Rücken liegend" (wie ein Käfer auf dem Rücken) und mit sehr feinen Drähten.
+            </p>
+            <p class="lead">
+                Diese Generation kann nur von einem ESP32 angesprochen werden, beim ESP8266 kann das SPI-Modul (im ESP) nicht in den Modus gebracht werden um korrekt mit dem CMT2300A zu sprechen.
+            </p>
+        </div>
+        <div class="col-10 col-sm-8 col-lg-6">
+            <p class="lead">
+                Bild folgt
+            </p>
         </div>
     </div>
 </div>
@@ -197,7 +240,7 @@ draft: false
                 Der Ahoy spannt automatisch ein WLAN mit dem Namen <strong>AHOY-DTU</strong> auf. Verbinden Sie ein beliebiges WLAN-fähiges Gerät mit diesem WLAN. Nach einer erfolgreichen Verbindung muss im Browser die Adresse <a href="http://192.168.4.1" target="_blank">http://192.168.4.1</a> aufgerufen werden.
             </p>
             <div class="alert alert-primary mt-3" role="alert">
-                Das Passwort für das WLAN <strong>AHOY-DTU</strong> ist <strong>esp_8266</strong>
+                Das Passwort für das WLAN <strong>AHOY-DTU</strong> ist <strong>esp_8266</strong> (auch bei Installationen auf dem ESP32)
             </div>
 
             <h4><span class="badge rounded-pill bg-primary mt-5">2</span> Ahoy als WLAN Client einrichten</h4>
