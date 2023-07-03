@@ -71,8 +71,7 @@ class PubMqttIvData {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
 
-                if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) {
-                    mSendTotals = (RealTimeRunData_Debug == mCmd);
+                if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) { // send RealTimeRunData only once
                     memset(mTotal, 0, sizeof(float) * 4);
                     mState = FIND_NXT_IV;
                 } else
@@ -97,18 +96,10 @@ class PubMqttIvData {
             mLastIvId++;
 
             mPos = 0;
-            if(found) {
+            if(found)
                 mState = SEND_DATA;
-                if(!mIv->isAvailable(*mUtcTimestamp))
-                    mSendTotals = false; // avoid send total values on no availability, because the sum of values is not built
-            }
-            else if(mSendTotals)
+            else
                 mState = SEND_TOTALS;
-            else {
-                mSendList->pop();
-                mZeroValues = false;
-                mState = START;
-            }
         }
 
         void stateSend() {
@@ -138,7 +129,8 @@ class PubMqttIvData {
                         if (CH0 == rec->assign[mPos].ch) {
                             switch (rec->assign[mPos].fieldId) {
                                 case FLD_PAC:
-                                    mTotal[0] += mIv->getValue(mPos, rec);
+                                    if(mIv->isProducing(*mUtcTimestamp))
+                                        mTotal[0] += mIv->getValue(mPos, rec);
                                     break;
                                 case FLD_YT:
                                     mTotal[1] += mIv->getValue(mPos, rec);
@@ -147,7 +139,8 @@ class PubMqttIvData {
                                     mTotal[2] += mIv->getValue(mPos, rec);
                                     break;
                                 case FLD_PDC:
-                                    mTotal[3] += mIv->getValue(mPos, rec);
+                                    if(mIv->isProducing(*mUtcTimestamp))
+                                        mTotal[3] += mIv->getValue(mPos, rec);
                                     break;
                             }
                         }
@@ -208,7 +201,6 @@ class PubMqttIvData {
 
         uint8_t mCmd;
         uint8_t mLastIvId;
-        bool mSendTotals;
         float mTotal[4];
 
         Inverter<> *mIv, *mIvSend;

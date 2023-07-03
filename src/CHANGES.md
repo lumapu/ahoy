@@ -2,6 +2,8 @@
 
 ## 0.7.7 - 2023-07-03
 * attempt to fix MqTT `YieldDay` in `TotalValues` #927
+* attempt to fix MqTT `YieldDay` and `YieldTotal` even if inverters are not completly available #929
+* fix wrong message 'NRF not connected' if it is disabled #1007
 
 ## 0.7.6 - 2023-06-17
 * fix display of hidden SSID checkbox

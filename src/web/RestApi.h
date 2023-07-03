@@ -469,9 +469,9 @@ class RestApi {
             }
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mRadio->isChipConnected())
+            if(!mRadio->isChipConnected() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            else if(!mRadio->isPVariant())
+            else if(!mRadio->isPVariant() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
