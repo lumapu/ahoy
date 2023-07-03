@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.7 - 2023-07-03
+* attempt to fix MqTT `YieldDay` in `TotalValues` #927
+
 ## 0.7.6 - 2023-06-17
 * fix display of hidden SSID checkbox
 * changed yield correction data type to `double`, now decimal places are supported

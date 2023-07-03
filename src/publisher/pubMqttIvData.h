@@ -100,7 +100,7 @@ class PubMqttIvData {
             if(found) {
                 mState = SEND_DATA;
                 if(!mIv->isAvailable(*mUtcTimestamp))
-                    mSendTotals = false; // avoid send total values on not producing, because the sum of values is not built
+                    mSendTotals = false; // avoid send total values on no availability, because the sum of values is not built
             }
             else if(mSendTotals)
                 mState = SEND_TOTALS;
@@ -125,12 +125,12 @@ class PubMqttIvData {
                         if(FLD_YT == rec->assign[mPos].fieldId)
                             retained = true;
                         else if(FLD_YD == rec->assign[mPos].fieldId) {
-                            if(!mZeroValues) {
+                            /*if(!mZeroValues) {
                                 if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
                                     mPos++;
                                     return;
                                 }
-                            }
+                            }*/
                             retained = true;
                         }
 
