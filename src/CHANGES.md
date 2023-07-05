@@ -3,6 +3,8 @@
 ## 0.7.8 - 2023-07-05
 * fix `YieldDay`, `YieldTotal` and `P_AC` in `TotalValues` #929
 * fix some serial debug prints
+* merge PR #1005 which fixes issue #889
+* merge homeassistant PR #963
 
 ## 0.7.7 - 2023-07-03
 * attempt to fix MqTT `YieldDay` in `TotalValues` #927
