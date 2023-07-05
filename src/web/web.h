@@ -454,6 +454,7 @@ class Web {
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
+            mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
 
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
