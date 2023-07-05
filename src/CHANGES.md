@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.8 - 2023-07-05
+* fix `YieldDay`, `YieldTotal` and `P_AC` in `TotalValues` #929
+* fix some serial debug prints
+
 ## 0.7.7 - 2023-07-03
 * attempt to fix MqTT `YieldDay` in `TotalValues` #927
 * attempt to fix MqTT `YieldDay` and `YieldTotal` even if inverters are not completly available #929

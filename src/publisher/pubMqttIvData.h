@@ -129,7 +129,7 @@ class PubMqttIvData {
                         if (CH0 == rec->assign[mPos].ch) {
                             switch (rec->assign[mPos].fieldId) {
                                 case FLD_PAC:
-                                    if(mIv->isProducing(*mUtcTimestamp))
+                                    if(mIv->isAvailable(*mUtcTimestamp))
                                         mTotal[0] += mIv->getValue(mPos, rec);
                                     break;
                                 case FLD_YT:
@@ -139,7 +139,7 @@ class PubMqttIvData {
                                     mTotal[2] += mIv->getValue(mPos, rec);
                                     break;
                                 case FLD_PDC:
-                                    if(mIv->isProducing(*mUtcTimestamp))
+                                    if(mIv->isAvailable(*mUtcTimestamp))
                                         mTotal[3] += mIv->getValue(mPos, rec);
                                     break;
                             }

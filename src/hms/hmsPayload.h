@@ -114,7 +114,7 @@ class HmsPayload {
             yield();
             if (mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
-                DBGPRINT(F(") Requesting Inv SN "));
+                DBGPRINT(F("Requesting Inv SN "));
                 DBGPRINTLN(String(iv->config->serial.u64, HEX));
             }
 
@@ -122,7 +122,7 @@ class HmsPayload {
             if (iv->getDevControlRequest()) {
                 if (mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, iv->id);
-                    DBGPRINT(F(") Devcontrol request 0x"));
+                    DBGPRINT(F("Devcontrol request 0x"));
                     DBGPRINT(String(iv->devControlCmd, HEX));
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
@@ -182,14 +182,13 @@ class HmsPayload {
                         mApp->setMqttPowerLimitAck(iv);
                     else
                         ok = false;
-                    DPRINT(DBG_INFO, F("(#"));
-                    DBGPRINT(String(iv->id));
+                    DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINT(F(" has "));
                     if(!ok) DBGPRINT(F("not "));
                     DBGPRINT(F("accepted power limit set point "));
                     DBGPRINT(String(iv->powerLimit[0]));
                     DBGPRINT(F(" with PowerLimitControl "));
-                    DBGPRINT(String(iv->powerLimit[1]));
+                    DBGPRINTLN(String(iv->powerLimit[1]));
 
                     iv->clearCmdQueue();
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
@@ -235,9 +234,8 @@ class HmsPayload {
                                         //DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
                                         //mRadio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
 
-                                        DPRINT(DBG_INFO, F("(#"));
-                                        DBGPRINT(String(iv->id));
-                                        DBGPRINTLN(F(") nothing received"));
+                                        DPRINT_IVID(DBG_INFO, iv->id);
+                                        DBGPRINTLN(F("nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
