@@ -314,7 +314,9 @@ class PubMqtt {
                 delete[] pyld;
             }
 
-            const char *p = topic;
+            # quick fix for #889
+            # initial line: const char *p = topic;
+            const char *p = topic + strlen(mCfgMqtt->topic);
             uint8_t pos = 0;
             uint8_t elm = 0;
             char tmp[30];
