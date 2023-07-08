@@ -288,12 +288,12 @@ void ahoywifi::scanAvailNetworks(void) {
 }
 
 //-----------------------------------------------------------------------------
-void ahoywifi::getAvailNetworks(JsonObject obj) {
+bool ahoywifi::getAvailNetworks(JsonObject obj) {
     JsonArray nets = obj.createNestedArray("networks");
 
     int n = WiFi.scanComplete();
     if (n < 0)
-        return;
+        return false;
     if(n > 0) {
         int sort[n];
         sortRSSI(&sort[0], n);
@@ -306,6 +306,8 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
     WiFi.scanDelete();
     if(mStaConn == IN_AP_MODE)
         WiFi.mode(WIFI_AP);
+
+    return true;
 }
 
 //-----------------------------------------------------------------------------

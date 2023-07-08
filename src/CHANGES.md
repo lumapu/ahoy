@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.9 - 2023-07-08
+* added 'improve' functions to set wifi password directly with ESP web tools #1014
+* fixed MqTT publish while appling power limit #1013
+* slightly improved HMT live view (Voltage & Current)
+
 ## 0.7.8 - 2023-07-05
 * fix `YieldDay`, `YieldTotal` and `P_AC` in `TotalValues` #929
 * fix some serial debug prints

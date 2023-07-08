@@ -24,6 +24,7 @@
 #endif
 
 const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
 
 template<class HMSYSTEM, class HMRADIO>
@@ -342,6 +343,7 @@ class RestApi {
                 obj[F("version")]          = String(iv->getFwVersion());
                 obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
                 obj[F("ts_last_success")]  = rec->ts;
+                obj[F("generation")]       = iv->ivGen;
 
                 JsonArray ch = obj.createNestedArray("ch");
 
@@ -349,9 +351,16 @@ class RestApi {
                 uint8_t pos;
                 obj[F("ch_name")][0] = "AC";
                 JsonArray ch0 = ch.createNestedArray();
-                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
-                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
-                    ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                if(IV_HMT == iv->ivGen) {
+                    for (uint8_t fld = 0; fld < sizeof(acListHmt); fld++) {
+                        pos = (iv->getPosByChFld(CH0, acListHmt[fld], rec));
+                        ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                    }
+                } else  {
+                    for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                        pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                        ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                    }
                 }
 
                 // DC

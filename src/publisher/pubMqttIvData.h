@@ -72,6 +72,7 @@ class PubMqttIvData {
                 mIvSend = mSendList->front().iv;
 
                 if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) { // send RealTimeRunData only once
+                    mSendTotals = (RealTimeRunData_Debug == mCmd);
                     memset(mTotal, 0, sizeof(float) * 4);
                     mState = FIND_NXT_IV;
                 } else
@@ -98,7 +99,7 @@ class PubMqttIvData {
             mPos = 0;
             if(found)
                 mState = SEND_DATA;
-            else
+            else if(mSendTotals)
                 mState = SEND_TOTALS;
         }
 
@@ -201,6 +202,7 @@ class PubMqttIvData {
 
         uint8_t mCmd;
         uint8_t mLastIvId;
+        bool mSendTotals;
         float mTotal[4];
 
         Inverter<> *mIv, *mIvSend;

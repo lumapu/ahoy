@@ -96,12 +96,15 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    mImprov.setup(this, mConfig->sys.deviceName, mVersion);
+
     regularTickers();
 }
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     mInnerLoopCb();
+    mImprov.tickSerial();
 }
 
 //-----------------------------------------------------------------------------
@@ -209,7 +212,7 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
-
+    //everySec(std::bind(&Improv::tickSerial, &mImprov), "impro");
     // every([this]() {mPayload.simulation();}, 15, "simul");
 }
 
@@ -326,7 +329,7 @@ void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
     zeroIvValues(true);
-}
+    }
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
