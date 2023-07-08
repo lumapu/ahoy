@@ -101,6 +101,8 @@ class PubMqttIvData {
                 mState = SEND_DATA;
             else if(mSendTotals)
                 mState = SEND_TOTALS;
+            else
+                mState = START;
         }
 
         void stateSend() {

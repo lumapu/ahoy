@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.10 - 2023-07-08
+* fix MqTT endless loop #1013
+
 ## 0.7.9 - 2023-07-08
 * added 'improve' functions to set wifi password directly with ESP web tools #1014
 * fixed MqTT publish while appling power limit #1013
