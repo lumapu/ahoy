@@ -489,9 +489,9 @@ class PubMqtt {
 
                 // inverter status
                 uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                if (iv->isAvailable(*mUtcTimestamp)) {
+                if (iv->isAvailable()) {
                     anyAvail = true;
-                    status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
+                    status = (iv->isProducing()) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
                 }
                 else // inverter is enabled but not available
                     allAvail = false;
@@ -551,7 +551,7 @@ class PubMqtt {
                         switch (rec->assign[i].fieldId) {
                             case FLD_YT:
                             case FLD_YD:
-                                if ((rec->assign[i].ch == CH0) && (!iv->isProducing(*mUtcTimestamp))) // avoids returns to 0 on restart
+                                if ((rec->assign[i].ch == CH0) && (!iv->isProducing())) // avoids returns to 0 on restart
                                     continue;
                                 retained = true;
                                 break;

@@ -89,7 +89,7 @@ class Display {
             if (iv == NULL)
                 continue;
 
-            if (iv->isProducing(*mUtcTs))
+            if (iv->isProducing())
                 isprod++;
 
             totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);

@@ -67,6 +67,7 @@ class PubMqttIvData {
 
         void stateStart() {
             mLastIvId = 0;
+            mTotalFound = false;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
@@ -99,7 +100,7 @@ class PubMqttIvData {
             mPos = 0;
             if(found)
                 mState = SEND_DATA;
-            else if(mSendTotals)
+            else if(mSendTotals && mTotalFound)
                 mState = SEND_TOTALS;
             else {
                 mSendList->pop();
@@ -122,32 +123,33 @@ class PubMqttIvData {
                         if(FLD_YT == rec->assign[mPos].fieldId)
                             retained = true;
                         else if(FLD_YD == rec->assign[mPos].fieldId) {
-                            /*if(!mZeroValues) {
-                                if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing(*mUtcTimestamp))) { // avoids returns to 0 on restart
+                            if(!mZeroValues) {
+                                if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing())) { // avoids returns to 0 on restart
                                     mPos++;
                                     return;
                                 }
-                            }*/
+                            }
                             retained = true;
                         }
 
                         // calculate total values for RealTimeRunData_Debug
                         if (CH0 == rec->assign[mPos].ch) {
-                            switch (rec->assign[mPos].fieldId) {
-                                case FLD_PAC:
-                                    if(mIv->isAvailable(*mUtcTimestamp))
+                            if(mIv->status > InverterStatus::STARTING) {
+                                mTotalFound = true;
+                                switch (rec->assign[mPos].fieldId) {
+                                    case FLD_PAC:
                                         mTotal[0] += mIv->getValue(mPos, rec);
-                                    break;
-                                case FLD_YT:
-                                    mTotal[1] += mIv->getValue(mPos, rec);
-                                    break;
-                                case FLD_YD:
-                                    mTotal[2] += mIv->getValue(mPos, rec);
-                                    break;
-                                case FLD_PDC:
-                                    if(mIv->isAvailable(*mUtcTimestamp))
+                                        break;
+                                    case FLD_YT:
+                                        mTotal[1] += mIv->getValue(mPos, rec);
+                                        break;
+                                    case FLD_YD:
+                                        mTotal[2] += mIv->getValue(mPos, rec);
+                                        break;
+                                    case FLD_PDC:
                                         mTotal[3] += mIv->getValue(mPos, rec);
-                                    break;
+                                        break;
+                                }
                             }
                         }
                     } else
@@ -207,7 +209,7 @@ class PubMqttIvData {
 
         uint8_t mCmd;
         uint8_t mLastIvId;
-        bool mSendTotals;
+        bool mSendTotals, mTotalFound;
         float mTotal[4];
 
         Inverter<> *mIv, *mIvSend;

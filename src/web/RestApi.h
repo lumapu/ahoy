@@ -472,8 +472,8 @@ class RestApi {
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
                     invObj[F("version")]         = String(iv->getFwVersion());
-                    invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp());
-                    invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp());
+                    invObj[F("is_avail")]        = iv->isAvailable();
+                    invObj[F("is_producing")]    = iv->isProducing();
                     invObj[F("ts_last_success")] = iv->getLastTs(rec);
                 }
             }

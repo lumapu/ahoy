@@ -13,7 +13,8 @@ class HmSystem {
     public:
         HmSystem() {}
 
-        void setup() {
+        void setup(uint32_t *timestamp) {
+            mInverter[0].timestamp = timestamp;
             mNumInv = 0;
         }
 

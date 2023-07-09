@@ -102,6 +102,13 @@ const calcFunc_t<T> calcFunctions[] = {
     { CALC_IRR_CH,  &calcIrradiation   }
 };
 
+enum class InverterStatus : uint8_t {
+    OFF,
+    STARTING,
+    PRODUCING,
+    WAS_PRODUCING,
+    WAS_ON
+};
 
 template <class REC_TYP>
 class Inverter {
@@ -123,6 +130,9 @@ class Inverter {
         //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
+        InverterStatus status;           // indicates the current inverter status
+
+        static uint32_t *timestamp;      // system timestamp
 
         Inverter() {
             ivGen              = IV_HM;
@@ -135,6 +145,7 @@ class Inverter {
             //lastAlarmMsg       = "nothing";
             alarmMesIndex      = 0;
             isConnected        = false;
+            status             = InverterStatus::OFF;
         }
 
         ~Inverter() {
@@ -319,6 +330,9 @@ class Inverter {
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
+
+            // update status state-machine
+            isProducing();
         }
 
         /*inline REC_TYP getPowerLimit(void) {
@@ -372,25 +386,39 @@ class Inverter {
             }
         }
 
-        bool isAvailable(uint32_t timestamp) {
-           if((timestamp - recordMeas.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordInfo.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordConfig.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordAlarm.ts) < INACT_THRES_SEC)
-                return true;
-            return false;
+        bool isAvailable() {
+            bool val = false;
+            if((*timestamp - recordMeas.ts) < INACT_THRES_SEC)
+                val = true;
+            if((*timestamp - recordInfo.ts) < INACT_THRES_SEC)
+                val = true;
+            if((*timestamp - recordConfig.ts) < INACT_THRES_SEC)
+                val = true;
+            if((*timestamp - recordAlarm.ts) < INACT_THRES_SEC)
+                val = true;
+
+            if(val) {
+                if((InverterStatus::OFF == status) || (InverterStatus::WAS_ON == status))
+                    status = InverterStatus::STARTING;
+            } else
+                status = InverterStatus::WAS_ON;
+
+            return val;
         }
 
-        bool isProducing(uint32_t timestamp) {
+        bool isProducing() {
+            bool val = false;
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
-            if(isAvailable(timestamp)) {
+            if(isAvailable()) {
                 uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
-                return (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
+                val = (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
+
+                if(val)
+                    status = InverterStatus::PRODUCING;
+                else if(InverterStatus::PRODUCING == status)
+                        status = InverterStatus::WAS_PRODUCING;
             }
-            return false;
+            return val;
         }
 
         uint16_t getFwVersion() {
@@ -604,6 +632,9 @@ class Inverter {
         std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
         bool          mDevControlRequest; // true if change needed
 };
+
+template <class REC_TYP>
+uint32_t *Inverter<REC_TYP>::timestamp {0};
 
 
 /**

@@ -1,5 +1,9 @@
 # Development Changes
 
+
+## 0.7.12 - 2023-07-09
+* added inverter status - state-machine #1016
+
 ## 0.7.11 - 2023-07-09
 * fix MqTT endless loop #1013
 

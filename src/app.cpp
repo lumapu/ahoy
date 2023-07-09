@@ -51,6 +51,7 @@ void app::setup() {
     everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
     #endif
 
+    mSys.setup(&mTimestamp);
     mSys.addInverters(&mConfig->inst);
     if(mConfig->nrf.enabled) {
         mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
@@ -413,7 +414,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
             continue;  // skip to next inverter
 
         if (checkAvail) {
-            if (!iv->isAvailable(mTimestamp))
+            if (!iv->isAvailable())
                 continue;
         }
 
@@ -496,7 +497,7 @@ void app::updateLed(void) {
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
-            if (iv->isProducing(mTimestamp))
+            if (iv->isProducing())
                 digitalWrite(mConfig->led.led0, led_on);
             else
                 digitalWrite(mConfig->led.led0, led_off);
