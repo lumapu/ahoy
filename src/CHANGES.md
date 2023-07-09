@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.11 - 2023-07-09
+* fix MqTT endless loop #1013
+
 ## 0.7.10 - 2023-07-08
 * fix MqTT endless loop #1013
 
