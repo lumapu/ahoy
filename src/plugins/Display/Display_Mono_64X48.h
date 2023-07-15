@@ -10,8 +10,8 @@ class DisplayMono64X48 : public DisplayMono {
     public:
         DisplayMono64X48() : DisplayMono() {
             mEnPowerSafe = true;
-            mEnScreenSaver = true;
-            mLuminance = 50;
+            mEnScreenSaver = false;
+            mLuminance = 20;
             mExtra = 0;
             mDispY = 0;
             mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
@@ -36,8 +36,8 @@ class DisplayMono64X48 : public DisplayMono {
             mDisplay->setContrast(mLuminance);
 
             printText("AHOY!", 0);
-            printText("ahoydtu.de", 2);
-            printText(version, 3);
+            printText("ahoydtu.de", 1);
+            printText(version, 2);
             mDisplay->sendBuffer();
         }
 
@@ -77,24 +77,24 @@ class DisplayMono64X48 : public DisplayMono {
                     mDisplay->setPowerSave(mEnPowerSafe);
             }
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "D: %4.0f Wh", totalYieldDay);
             printText(mFmtText, 1);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", totalYieldTotal);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "T: %.1f kWh", totalYieldTotal);
             printText(mFmtText, 2);
 
             IPAddress ip = WiFi.localIP();
             if (!(mExtra % 10) && (ip))
                 printText(ip.toString().c_str(), 3);
             else if (!(mExtra % 5)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "active Inv: %d", isprod);
                 printText(mFmtText, 3);
             } else if (NULL != mUtcTs)
                 printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
 
             mDisplay->sendBuffer();
 
-            mExtra = 1;
+            mExtra++;
         }
 
     private:
@@ -110,22 +110,25 @@ class DisplayMono64X48 : public DisplayMono {
         inline void setFont(uint8_t line) {
             switch (line) {
                 case 0:
-                    mDisplay->setFont(u8g2_font_logisoso16_tr);
+                    mDisplay->setFont(u8g2_font_fur11_tf);
+                    break;
+                case 1:
+                case 2:
+                    mDisplay->setFont(u8g2_font_6x10_tf);
                     break;
                 case 3:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
+                    mDisplay->setFont(u8g2_font_4x6_tr);
                     break;
-                default:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
+                case 4:
+                    mDisplay->setFont(u8g2_font_4x6_tr);
                     break;
             }
         }
 
         void printText(const char *text, uint8_t line) {
-            uint8_t dispX = (line == 0) ? 10 : 5;
+            uint8_t dispX = 0; //small display, use all we have
+            dispX += (mEnScreenSaver) ? (mExtra % 4) : 0;
             setFont(line);
-
-            dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
 };
