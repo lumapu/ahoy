@@ -701,7 +701,7 @@ class Web {
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
-                        uint32_t *nrfSendCnt, *nrfRetransmits;
+                        uint32_t *nrfSendCnt=NULL, *nrfRetransmits=NULL;
                         mApp->getNrfRadioCounters(nrfSendCnt, nrfRetransmits);
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
