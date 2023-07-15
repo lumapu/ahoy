@@ -92,7 +92,7 @@ class DisplayMono84X48 : public DisplayMono {
 
             mDisplay->sendBuffer();
 
-            mExtra = 1;
+            mExtra++;
         }
 
     private:
