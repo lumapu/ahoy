@@ -20,8 +20,6 @@ class DisplayMono84X48 : public DisplayMono {
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char *version) {
-            if((0 == type) || (type > 4))
-                return;
 
             u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
             mType = type;
@@ -33,8 +31,8 @@ class DisplayMono84X48 : public DisplayMono {
             calcLinePositions();
 
             mDisplay->clearBuffer();
-            if (3 != mType)
-                mDisplay->setContrast(mLuminance);
+            mDisplay->setContrast(mLuminance);
+
             printText("AHOY!", 0);
             printText("ahoydtu.de", 2);
             printText(version, 3);
@@ -58,8 +56,7 @@ class DisplayMono84X48 : public DisplayMono {
             mDisplay->clearBuffer();
 
             // set Contrast of the Display to raise the lifetime
-            if (3 != mType)
-                mDisplay->setContrast(mLuminance);
+            mDisplay->setContrast(mLuminance);
 
             if ((totalPower > 0) && (isprod > 0)) {
                 mTimeout = DISP_DEFAULT_TIMEOUT;

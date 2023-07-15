@@ -10,6 +10,7 @@
 #include "Display_Mono_128X32.h"
 #include "Display_Mono_128X64.h"
 #include "Display_Mono_84X48.h"
+#include "Display_Mono_64X48.h"
 #include "Display_ePaper.h"
 
 template <class HMSYSTEM>
@@ -30,9 +31,8 @@ class Display {
 
         if ((0 < mCfg->type) && (mCfg->type < 10)) {
             switch (mCfg->type) {
+                case 1: // fall-through
                 case 2:
-                case 1:
-                default:
                     mMono = new DisplayMono128X64();
                     break;
                 case 3:
@@ -40,6 +40,13 @@ class Display {
                     break;
                 case 4:
                     mMono = new DisplayMono128X32();
+                    break;
+                case 5:
+                    mMono = new DisplayMono64X48();
+                    break;
+
+                default:
+                    mMono = new DisplayMono128X64();
                     break;
             }
             mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);

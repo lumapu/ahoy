@@ -8,7 +8,7 @@
     "files.eol": "\n",
     "files.trimTrailingWhitespace": true,
     "diffEditor.ignoreTrimWhitespace": true,
-    "files.autoSave": "afterDelay",
+    "files.autoSave": "off",
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
     // `editor.tabSize` and `editor.insertSpaces` will be detected based on the file contents.
@@ -79,7 +79,8 @@
         "mutex": "cpp",
         "ranges": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "variant": "cpp"
     },
     "cmake.configureOnOpen": false,
     "editor.formatOnSave": false,

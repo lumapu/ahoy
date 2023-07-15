@@ -6,12 +6,13 @@
 #pragma once
 #include "Display_Mono.h"
 
-class DisplayMono128X64 : public DisplayMono {
+class DisplayMono64X48 : public DisplayMono {
     public:
-        DisplayMono128X64() : DisplayMono() {
+        DisplayMono64X48() : DisplayMono() {
             mEnPowerSafe = true;
             mEnScreenSaver = true;
-            mLuminance = 60;
+            mLuminance = 50;
+            mExtra = 0;
             mDispY = 0;
             mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
             mUtcTs = NULL;
@@ -23,15 +24,8 @@ class DisplayMono128X64 : public DisplayMono {
             u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
             mType = type;
 
-            switch (type) {
-                case 1:
-                    mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
-                    break;
-                default:
-                case 2:
-                    mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
-                    break;
-            }
+            // Wemos OLed Shield is not defined in u8 lib -> use nearest compatible
+            mDisplay = new U8G2_SSD1306_64X48_ER_F_HW_I2C(rot, reset, clock, data);
 
             mUtcTs = utcTs;
 
@@ -40,9 +34,10 @@ class DisplayMono128X64 : public DisplayMono {
 
             mDisplay->clearBuffer();
             mDisplay->setContrast(mLuminance);
-            printText("AHOY!", 0, 35);
-            printText("ahoydtu.de", 2, 20);
-            printText(version, 3, 46);
+
+            printText("AHOY!", 0);
+            printText("ahoydtu.de", 2);
+            printText(version, 3);
             mDisplay->sendBuffer();
         }
 
@@ -55,7 +50,7 @@ class DisplayMono128X64 : public DisplayMono {
         void loop(void) {
             if (mEnPowerSafe) {
                 if (mTimeout != 0)
-                    mTimeout--;
+                        mTimeout--;
             }
         }
 
@@ -76,10 +71,10 @@ class DisplayMono128X64 : public DisplayMono {
 
                 printText(mFmtText, 0);
             } else {
-                printText("offline", 0, 25);
+                printText("offline", 0);
                 // check if it's time to enter power saving mode
                 if (mTimeout == 0)
-                mDisplay->setPowerSave(mEnPowerSafe);
+                    mDisplay->setPowerSave(mEnPowerSafe);
             }
 
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
@@ -94,13 +89,12 @@ class DisplayMono128X64 : public DisplayMono {
             else if (!(mExtra % 5)) {
                 snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
                 printText(mFmtText, 3);
-            } else  if (NULL != mUtcTs)
-                printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+            } else if (NULL != mUtcTs)
+                printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
 
             mDisplay->sendBuffer();
 
-            mDispY = 0;
-            mExtra++;
+            mExtra = 1;
         }
 
     private:
@@ -116,17 +110,19 @@ class DisplayMono128X64 : public DisplayMono {
         inline void setFont(uint8_t line) {
             switch (line) {
                 case 0:
-                    mDisplay->setFont(u8g2_font_ncenB14_tr);
+                    mDisplay->setFont(u8g2_font_logisoso16_tr);
                     break;
                 case 3:
                     mDisplay->setFont(u8g2_font_5x8_tr);
                     break;
                 default:
-                    mDisplay->setFont(u8g2_font_ncenB10_tr);
+                    mDisplay->setFont(u8g2_font_5x8_tr);
                     break;
             }
         }
-        void printText(const char *text, uint8_t line, uint8_t dispX = 5) {
+
+        void printText(const char *text, uint8_t line) {
+            uint8_t dispX = (line == 0) ? 10 : 5;
             setFont(line);
 
             dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
