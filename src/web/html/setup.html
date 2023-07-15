@@ -805,7 +805,8 @@
                     );
                 }
 
-                var opts = [[0, "None"], [5, "SSD1306 0.66\" 64X48"], [4, "SSD1306 0.91\" 128X32"], [1, "SSD1306 0.96\" 128X64"], [2, "SH1106 1.3\""], [3, "Nokia5110"]];
+                // keep display types grouped
+                var opts = [[0, "None"], [2, "SH1106 1.3\" 128X64"], [5, "SSD1306 0.66\" 64X48"], [4, "SSD1306 0.91\" 128X32"], [1, "SSD1306 0.96\" 128X64"], [3, "Nokia5110"]];
                 if("ESP32" == type)
                     opts.push([10, "ePaper"]);
                 var dispType = sel("disp_typ", opts, obj["disp_typ"]);
