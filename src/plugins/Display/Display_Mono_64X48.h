@@ -80,7 +80,7 @@ class DisplayMono64X48 : public DisplayMono {
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "D: %4.0f Wh", totalYieldDay);
             printText(mFmtText, 1);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "T: %.1f kWh", totalYieldTotal);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "T: %4.0f kWh", totalYieldTotal);
             printText(mFmtText, 2);
 
             IPAddress ip = WiFi.localIP();
