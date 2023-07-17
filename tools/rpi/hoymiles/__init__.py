@@ -183,6 +183,8 @@ class ResponseDecoder(ResponseDecoderFactory):
                 model_desc = "Firmware version / date"
             elif command.upper() == '02':
                 model_desc = "Inverter generic events log"
+            elif command.upper() == '05':
+                model_desc = "Inverter generic SystemConfigPara"
             elif command.upper() == '0B':
                 model_desc = "mirco-inverters status data"
             elif command.upper() == '0C':

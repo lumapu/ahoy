@@ -175,7 +175,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
     inv_str = str(inverter_ser)
     if do_init:
       command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.InverterDevInform_All))
-#      command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.SystemConfigPara))
+      command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.SystemConfigPara))
     command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.RealTimeRunData_Debug))
 
     # Put all queued commands for current inverter on air

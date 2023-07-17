@@ -430,15 +430,15 @@ class DebugDecodeAny(UnknownResponse):
         l_payload = len(self.response)
         logging.debug(f' payload has {l_payload} bytes')
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: int')
         print_table_unpack('>B', self.response)
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: shorts')
         print_table_unpack('>H', self.response)
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: longs')
         print_table_unpack('>L', self.response)
 
