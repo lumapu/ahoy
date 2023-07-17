@@ -236,14 +236,14 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
             if isinstance(result, hoymiles.decoders.StatusResponse):
 
                 data = result.__dict__()
-                if 'event_count' in data:
+                if data is not None and 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
                         event_message_index[inv_str] = data['event_count']
                         command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
                    mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
-                    
+
                 if influx_client:
                    influx_client.store_status(result)
 
