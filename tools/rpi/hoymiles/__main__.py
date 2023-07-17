@@ -107,7 +107,7 @@ class SunsetHandler:
         if self.suntimes:
             local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
             local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
-            local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
+            local_zone = self.suntimes.setlocal(datetime.now()).tzinfo.key
             mqtt_client.info2mqtt({'topic' : f'{dtu_name}/{dtu_ser}'}, \
                          {'dis_night_comm' : 'True', \
                            'local_sunrise' : local_sunrise, \
