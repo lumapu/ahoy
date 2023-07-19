@@ -35,8 +35,8 @@ class DisplayMono {
 
       uint8_t mLoopCnt;
       uint32_t* mUtcTs;
-      uint8_t mLineXOffsets[5];
-      uint8_t mLineYOffsets[5];
+      uint8_t mLineXOffsets[5] = {};
+      uint8_t mLineYOffsets[5] = {};
 
       uint16_t mDispY;
 
