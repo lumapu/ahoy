@@ -154,15 +154,16 @@ class StatusResponse(Response):
         while s_exists:
             s_exists = False
             string_id = len(strings)
-            string = {}
-            string['name'] = self.inv_strings[string_id]['s_name']
-            for key in self.string_keys:
-                prop = f'dc_{key}_{string_id}'
-                if hasattr(self, prop):
-                    s_exists = True
-                    string[key] = getattr(self, prop)
-            if s_exists:
-                strings.append(string)
+            if string_id < len(self.inv_strings):
+              string = {}
+              string['name'] = self.inv_strings[string_id]['s_name']
+              for key in self.string_keys:
+                  prop = f'dc_{key}_{string_id}'
+                  if hasattr(self, prop):
+                      s_exists = True
+                      string[key] = getattr(self, prop)
+              if s_exists:
+                  strings.append(string)
 
         return strings
 
