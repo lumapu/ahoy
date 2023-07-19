@@ -26,7 +26,7 @@ DisplayEPaper::DisplayEPaper() {
 void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char *version) {
     mUtcTs = utcTs;
 
-    if (type > 9) {
+    if (type == 10) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
         hspi.begin(_SCK, _BUSY, _MOSI, _CS);

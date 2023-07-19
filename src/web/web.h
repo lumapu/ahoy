@@ -701,14 +701,15 @@ class Web {
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
-                        uint32_t *nrfSendCnt, *nrfRetransmits;
-                        mApp->getNrfRadioCounters(nrfSendCnt, nrfRetransmits);
+                        uint32_t nrfSendCnt;
+                        uint32_t nrfRetransmits;
+                        mApp->getNrfRadioCounters(&nrfSendCnt, &nrfRetransmits);
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         *nrfSendCnt);
-                        metrics += radioStatistic(F("retrans_cnt"),    *nrfRetransmits);
+                        metrics += radioStatistic(F("tx_cnt"),         nrfSendCnt);
+                        metrics += radioStatistic(F("retrans_cnt"),    nrfRetransmits);
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
