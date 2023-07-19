@@ -16,7 +16,9 @@
 template <class HMSYSTEM>
 class Display {
    public:
-    Display() {}
+    Display() {
+        mMono = NULL;
+    }
 
     void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, const char *version) {
         mCfg = cfg;
@@ -45,8 +47,7 @@ class Display {
 
             default: mMono = NULL; break;
         }
-        if(mMono)
-        {
+        if(mMono) {
             mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
         }
@@ -127,7 +128,7 @@ class Display {
 #if defined(ESP32)
     DisplayEPaper mEpaper;
 #endif
-    DisplayMono *mMono = NULL; //default !!!
+    DisplayMono *mMono;
 };
 
 #endif /*__DISPLAY__*/
