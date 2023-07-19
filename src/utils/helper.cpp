@@ -41,6 +41,15 @@ namespace ah {
         return String(str);
     }
 
+    String getDateTimeStrFile(time_t t) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "na");
+        else
+            sprintf(str, "%04d-%02d-%02d_%02d-%02d-%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+        return String(str);
+    }
+
     String getTimeStr(time_t t) {
         char str[9];
         if(0 == t)

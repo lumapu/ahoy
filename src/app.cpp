@@ -330,7 +330,7 @@ void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
     zeroIvValues(true);
-    }
+}
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {

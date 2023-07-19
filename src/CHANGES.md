@@ -2,6 +2,7 @@
 
 ## 0.7.13 - 2023-07-19
 * merged display PR #1027
+* add date, time and version to export json #1024
 
 ## 0.7.12 - 2023-07-09
 * added inverter status - state-machine #1016

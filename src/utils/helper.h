@@ -41,6 +41,7 @@ namespace ah {
     void ip2Char(uint8_t ip[], char *str);
     double round3(double value);
     String getDateTimeStr(time_t t);
+    String getDateTimeStrFile(time_t t);
     String getTimeStr(time_t t);
     uint64_t Serial2u64(const char *val);
     void dumpBuf(uint8_t buf[], uint8_t len);

@@ -184,9 +184,12 @@ class RestApi {
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
+            String filename = ah::getDateTimeStrFile(mApp->getTimezoneOffset());
+            filename += "_v" + String(mApp->getVersion());
+
             response->addHeader("Content-Type", "application/octet-stream");
             response->addHeader("Content-Description", "File Transfer");
-            response->addHeader("Content-Disposition", "attachment; filename=ahoy_setup.json");
+            response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_ahoy_setup.json");
             request->send(response);
             fp.close();
         }
