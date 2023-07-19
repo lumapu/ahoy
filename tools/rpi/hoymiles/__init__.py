@@ -183,6 +183,8 @@ class ResponseDecoder(ResponseDecoderFactory):
                 model_desc = "Firmware version / date"
             elif command.upper() == '02':
                 model_desc = "Inverter generic events log"
+            elif command.upper() == '05':
+                model_desc = "Inverter generic SystemConfigPara"
             elif command.upper() == '0B':
                 model_desc = "mirco-inverters status data"
             elif command.upper() == '0C':
@@ -191,6 +193,8 @@ class ResponseDecoder(ResponseDecoderFactory):
                 model_desc = "Inverter generic events log"
             elif command.upper() == '12':
                 model_desc = "Inverter major events log"
+            else:
+                model_desc = "event not configured - check ahoy script"
             logging.info(f'model_decoder: {model}Decode{command.upper()} - {model_desc}')
 
         model_decoders = __import__('hoymiles.decoders')
