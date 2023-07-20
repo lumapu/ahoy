@@ -737,7 +737,7 @@ class Web {
                     case metricsStateInverter3: // Information about all inverters configured : fit to one packet
                         metrics += "# TYPE ahoy_solar_inverter_is_available gauge\n";
                         metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_available {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isAvailable(mApp->getTimestamp());});
+                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isAvailable();});
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         metricsStep = metricsStateInverter4;
                         break;
@@ -745,7 +745,7 @@ class Web {
                     case metricsStateInverter4: // Information about all inverters configured : fit to one packet
                         metrics += "# TYPE ahoy_solar_inverter_is_producing gauge\n";
                         metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_producing {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isProducing(mApp->getTimestamp());});
+                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isProducing();});
                                 len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Start Realtime Field loop
                         metricsFieldId = FLD_UDC;
