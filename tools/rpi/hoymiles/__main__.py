@@ -325,7 +325,7 @@ def init_logging(ahoy_config):
        lvl = logging.DEBUG
     logging.basicConfig(handlers=[RotatingFileHandler(fn, maxBytes=max_log_filesize, backupCount=max_log_files)], 
         format='%(asctime)s %(levelname)s: %(message)s', 
-        datefmt='%Y-%m-%d %H:%M:%S.%f', level=lvl)
+        datefmt='%Y-%m-%d %H:%M:%S.%s', level=lvl)
     dtu_name = ahoy_config.get('dtu',{}).get('name','hoymiles-dtu')
     logging.info(f'start logging for {dtu_name} with level: {logging.getLevelName(logging.root.level)}')
 
