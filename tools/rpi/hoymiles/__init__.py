@@ -179,18 +179,45 @@ class ResponseDecoder(ResponseDecoderFactory):
         command = self.request_command
 
         if HOYMILES_DEBUG_LOGGING:
-            if   command.upper() == '01':
+            if   command.upper() == '00':
+                model_desc = "Inverter Dev Inform Simple"
+            elif command.upper() == '01':
                 model_desc = "Firmware version / date"
             elif command.upper() == '02':
                 model_desc = "Inverter generic events log"
-            elif command.upper() == '0B':
+            elif command.upper() == '03':                         ## HardWareConfig
+                model_desc = "Hardware configuration"
+            elif command.upper() == '04':                         ## SimpleCalibrationPara
+                model_desc = "Simple Calibration Parameter"
+            elif command.upper() == '05':                         ## SystemConfigPara
+                model_desc = "Inverter generic SystemConfigPara"
+            elif command.upper() == '0B':                         ## 11 - RealTimeRunData_Debug
                 model_desc = "mirco-inverters status data"
-            elif command.upper() == '0C':
+            elif command.upper() == '0C':                         ## 12 - RealTimeRunData_Reality
                 model_desc = "mirco-inverters status data"
-            elif command.upper() == '11':
+            elif command.upper() == '0D':                         ## 13 - RealTimeRunData_A_Phase
+                model_desc = "Real-Time Run Data A Phase "
+            elif command.upper() == '0E':                         ## 14 - RealTimeRunData_B_Phase
+                model_desc = "Real-Time Run Data B Phase "
+            elif command.upper() == '0F':                         ## 15 - RealTimeRunData_C_Phase
+                model_desc = "Real-Time Run Data C Phase "
+            elif command.upper() == '11':                         ## 17 - AlarmData
                 model_desc = "Inverter generic events log"
-            elif command.upper() == '12':
+            elif command.upper() == '12':                         ## 18 - AlarmUpdate
                 model_desc = "Inverter major events log"
+            elif command.upper() == '13':                         ## 19 - RecordData
+                model_desc = "Record Data"
+            elif command.upper() == '14':                         ## 20 - InternalData
+                model_desc = "Internal Data"
+            elif command.upper() == '15':                         ## 21 - GetLossRate
+                model_desc = "Get Loss Rate"
+            elif command.upper() == '1E':                         ## 30 - GetSelfCheckState
+                model_desc = "Get Self Check State"
+            elif command.upper() == 'FF':                         ## 255 - InitDataState
+                model_desc = "Initi Data State"
+
+            else:
+                model_desc = "event not configured - check ahoy script"
             logging.info(f'model_decoder: {model}Decode{command.upper()} - {model_desc}')
 
         model_decoders = __import__('hoymiles.decoders')
@@ -290,10 +317,9 @@ class InverterPacketFragment:
         :return: log line received frame
         :rtype: str
         """
-        c_datetime = self.time_rx.strftime("%Y-%m-%d %H:%M:%S.%f")
         size = len(self.frame)
         channel = f' channel {self.ch_rx}' if self.ch_rx else ''
-        return f"{c_datetime} Received {size} bytes{channel}: {hexify_payload(self.frame)}"
+        return f"Received {size} bytes{channel}: {hexify_payload(self.frame)}"
 
 class HoymilesNRF:
     """Hoymiles NRF24 Interface"""
@@ -743,9 +769,8 @@ class InverterTransaction:
         :return: log line of payload for transmission
         :rtype: str
         """
-        c_datetime = self.request_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         size = len(self.request)
-        return f'{c_datetime} Transmit | {hexify_payload(self.request)}'
+        return f'Transmit | {hexify_payload(self.request)}'
 
 def hexify_payload(byte_var):
     """

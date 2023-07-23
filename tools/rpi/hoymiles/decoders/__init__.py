@@ -151,18 +151,19 @@ class StatusResponse(Response):
         """
         strings = []
         s_exists = True
-        while s_exists:
+        while s_exists and len(strings) < len(self.inv_strings):
             s_exists = False
             string_id = len(strings)
-            string = {}
-            string['name'] = self.inv_strings[string_id]['s_name']
-            for key in self.string_keys:
-                prop = f'dc_{key}_{string_id}'
-                if hasattr(self, prop):
-                    s_exists = True
-                    string[key] = getattr(self, prop)
-            if s_exists:
-                strings.append(string)
+            if string_id < len(self.inv_strings):
+              string = {}
+              string['name'] = self.inv_strings[string_id]['s_name']
+              for key in self.string_keys:
+                  prop = f'dc_{key}_{string_id}'
+                  if hasattr(self, prop):
+                      s_exists = True
+                      string[key] = getattr(self, prop)
+              if s_exists:
+                  strings.append(string)
 
         return strings
 
@@ -430,15 +431,15 @@ class DebugDecodeAny(UnknownResponse):
         l_payload = len(self.response)
         logging.debug(f' payload has {l_payload} bytes')
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: int')
         print_table_unpack('>B', self.response)
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: shorts')
         print_table_unpack('>H', self.response)
 
-        logging.debug()
+        logging.debug('')
         logging.debug('Field view: longs')
         print_table_unpack('>L', self.response)
 

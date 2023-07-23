@@ -129,6 +129,11 @@ def main_loop(ahoy_config):
     sunset.sun_status2mqtt(dtu_ser, dtu_name)
     loop_interval = ahoy_config.get('interval', 1)
     transmit_retries = ahoy_config.get('transmit_retries', 5)
+    if (transmit_retries <= 0):
+        logging.critical('Parameter "transmit_retries" must be >0 - please check ahoy.yml.')
+        # print message to console too
+        print('Parameter "transmit_retries" must be >0 - please check ahoy.yml - STOP(0)x')
+        sys.exit(0)
 
     try:
         do_init = True
@@ -175,15 +180,16 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
     inv_str = str(inverter_ser)
     if do_init:
       command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.InverterDevInform_All))
-#      command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.SystemConfigPara))
+      #command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.SystemConfigPara))
     command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.RealTimeRunData_Debug))
 
     # Put all queued commands for current inverter on air
     while len(command_queue[inv_str]) > 0:
-        payload = command_queue[inv_str].pop(0)
+        payload = command_queue[inv_str].pop(0)    ## Sub.Cmd
 
         # Send payload {ttl}-times until we get at least one reponse
         payload_ttl = retries
+        response = None
         while payload_ttl > 0:
             payload_ttl = payload_ttl - 1
             com = hoymiles.InverterTransaction(
@@ -197,7 +203,6 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
                         src=dtu_ser,
                         dst=inverter_ser
                         )))
-            response = None
             while com.rxtx():
                 try:
                     response = com.get_payload()
@@ -210,8 +215,7 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
         # Handle the response data if any
         if response:
             if hoymiles.HOYMILES_TRANSACTION_LOGGING:
-                c_datetime = datetime.now()
-                logging.debug(f'{c_datetime} Payload: ' + hoymiles.hexify_payload(response))
+                logging.debug(f'Payload: ' + hoymiles.hexify_payload(response))
 
             # prepare decoder object
             decoder = hoymiles.ResponseDecoder(response,
@@ -319,9 +323,11 @@ def init_logging(ahoy_config):
         max_log_files = log_config.get('max_log_files', max_log_files)
     if hoymiles.HOYMILES_TRANSACTION_LOGGING:
        lvl = logging.DEBUG
-    logging.basicConfig(handlers=[RotatingFileHandler(fn, maxBytes=max_log_filesize, backupCount=max_log_files)], format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=lvl)
+    logging.basicConfig(handlers=[RotatingFileHandler(fn, maxBytes=max_log_filesize, backupCount=max_log_files)], 
+        format='%(asctime)s %(levelname)s: %(message)s', 
+        datefmt='%Y-%m-%d %H:%M:%S.%s', level=lvl)
     dtu_name = ahoy_config.get('dtu',{}).get('name','hoymiles-dtu')
-    logging.info(f'start logging for {dtu_name} with level: {logging.root.level}')
+    logging.info(f'start logging for {dtu_name} with level: {logging.getLevelName(logging.root.level)}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Ahoy - Hoymiles solar inverter gateway', prog="hoymiles")
