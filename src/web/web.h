@@ -559,6 +559,7 @@ class Web {
             if (request->arg("ntpAddr") != "") {
                 request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
                 mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
+                mConfig->ntp.interval = request->arg("ntpIntvl").toInt() & 0xffff;
             }
 
             // sun

@@ -44,7 +44,7 @@ class DisplayMono64X48 : public DisplayMono {
         void config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
             mEnPowerSafe = enPowerSafe;
             mEnScreenSaver = enScreenSaver;
-            mLuminance = lum * 255 / 100;
+            mLuminance = lum;
         }
 
         void loop(void) {

@@ -98,6 +98,7 @@ typedef struct {
 typedef struct {
     char addr[NTP_ADDR_LEN];
     uint16_t port;
+    uint16_t interval; // in minutes
 } cfgNtp_t;
 
 typedef struct {
@@ -390,6 +391,7 @@ class settings {
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
             mCfg.ntp.port = DEF_NTP_PORT;
+            mCfg.ntp.interval = 720;
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
@@ -524,11 +526,16 @@ class settings {
 
         void jsonNtp(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("addr")] = mCfg.ntp.addr;
-                obj[F("port")] = mCfg.ntp.port;
+                obj[F("addr")]  = mCfg.ntp.addr;
+                obj[F("port")]  = mCfg.ntp.port;
+                obj[F("intvl")] = mCfg.ntp.interval;
             } else {
                 getChar(obj, F("addr"), mCfg.ntp.addr, NTP_ADDR_LEN);
                 getVal<uint16_t>(obj, F("port"), &mCfg.ntp.port);
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.ntp.interval);
+
+                if(mCfg.ntp.interval < 5) // minimum 5 minutes
+                    mCfg.ntp.interval = 720; // default -> 12 hours
             }
         }
 

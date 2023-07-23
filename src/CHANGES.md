@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.15 - 2023-07-23
+* add NTP sync interval #1019
+* adjusted range of contrast / luminance setting #1041
+* use only ISO time format in Web-UI #913
+
 ## 0.7.14 - 2023-07-23
 * fix Contrast for Nokia Display #1041
 * attempt to fix #1016 by improving inverter status

@@ -390,8 +390,9 @@ class RestApi {
         }
 
         void getNtp(JsonObject obj) {
-            obj[F("addr")] = String(mConfig->ntp.addr);
-            obj[F("port")] = String(mConfig->ntp.port);
+            obj[F("addr")]     = String(mConfig->ntp.addr);
+            obj[F("port")]     = String(mConfig->ntp.port);
+            obj[F("interval")] = String(mConfig->ntp.interval);
         }
 
         void getSun(JsonObject obj) {

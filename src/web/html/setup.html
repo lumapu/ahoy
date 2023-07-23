@@ -196,6 +196,10 @@
                             <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">NTP Intervall (in Minutes, min. 5 Minutes)</div>
+                            <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">set system time</div>
                             <div class="col-12 col-sm-9">
                                 <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
@@ -284,7 +288,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Luminance</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="100"></select></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
                         </div>
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
@@ -681,7 +685,7 @@
             }
 
             function parseNtp(obj) {
-                for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"]])
+                for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"], ["ntpIntvl", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 

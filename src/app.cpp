@@ -247,7 +247,7 @@ void app::tickNtpUpdate(void) {
             }
         }
 
-        nxtTrig = isOK ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
+        nxtTrig = isOK ? (mConfig->ntp.interval * 60) : 60;  // depending on NTP update success check again in 12h (depends on setting) or in 1 min
 
         if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
             mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;

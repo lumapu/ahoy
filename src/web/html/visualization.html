@@ -158,7 +158,7 @@
                 var ageInfo = "Last received data requested at: ";
                 if(ts > 0) {
                     var date = new Date(ts * 1000);
-                    ageInfo += date.toLocaleString('de-DE');
+                    ageInfo += date.toISOString().substring(0, 19).replace('T', ', ');
                 }
                 else
                     ageInfo += "nothing received";
