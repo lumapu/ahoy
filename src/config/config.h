@@ -97,7 +97,10 @@
 #define DEF_MAX_RETRANS_PER_PYLD 5
 
 // number of seconds since last successful response, before inverter is marked inactive
-#define INACT_THRES_SEC         300
+#define INVERTER_INACT_THRES_SEC    300
+
+// number of seconds since last successful response, before inverter is marked offline
+#define INVERTER_OFF_THRES_SEC      3600
 
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3

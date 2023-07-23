@@ -133,6 +133,7 @@ class Inverter {
         InverterStatus status;           // indicates the current inverter status
 
         static uint32_t *timestamp;      // system timestamp
+        static cfgInst_t *generalConfig; // general inverter configuration from setup
 
         Inverter() {
             ivGen              = IV_HM;
@@ -281,7 +282,9 @@ class Inverter {
                             // temperature, Qvar, and power factor are a signed values
                             rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                        } else if (FLD_YD == rec->assign[pos].fieldId) {
+                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
@@ -387,38 +390,42 @@ class Inverter {
         }
 
         bool isAvailable() {
-            bool val = false;
-            if((*timestamp - recordMeas.ts) < INACT_THRES_SEC)
-                val = true;
-            if((*timestamp - recordInfo.ts) < INACT_THRES_SEC)
-                val = true;
-            if((*timestamp - recordConfig.ts) < INACT_THRES_SEC)
-                val = true;
-            if((*timestamp - recordAlarm.ts) < INACT_THRES_SEC)
-                val = true;
+            bool avail = false;
+            if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordConfig.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordAlarm.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
 
-            if(val) {
-                if((InverterStatus::OFF == status) || (InverterStatus::WAS_ON == status))
+            if(avail) {
+                if(InverterStatus::OFF == status)
                     status = InverterStatus::STARTING;
-            } else
-                status = InverterStatus::WAS_ON;
+                else
+                    status = InverterStatus::WAS_ON;
+            } else {
+                if((*timestamp - recordMeas.ts) < INVERTER_OFF_THRES_SEC)
+                    status = InverterStatus::OFF;
+            }
 
-            return val;
+            return avail;
         }
 
         bool isProducing() {
-            bool val = false;
+            bool producing = false;
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
             if(isAvailable()) {
                 uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
-                val = (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
+                producing = (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
 
-                if(val)
+                if(producing)
                     status = InverterStatus::PRODUCING;
                 else if(InverterStatus::PRODUCING == status)
-                        status = InverterStatus::WAS_PRODUCING;
+                    status = InverterStatus::WAS_PRODUCING;
             }
-            return val;
+            return producing;
         }
 
         uint16_t getFwVersion() {
@@ -635,6 +642,8 @@ class Inverter {
 
 template <class REC_TYP>
 uint32_t *Inverter<REC_TYP>::timestamp {0};
+template <class REC_TYP>
+cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
 
 
 /**

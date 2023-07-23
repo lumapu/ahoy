@@ -145,6 +145,7 @@ typedef struct {
     bool rstValsNotAvail;
     bool rstValsCommStop;
     bool startWithoutTime;
+    float yieldEffiency;
 } cfgInst_t;
 
 typedef struct {
@@ -409,7 +410,8 @@ class settings {
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
-            mCfg.inst.startWithoutTime  = false;
+            mCfg.inst.startWithoutTime = false;
+            mCfg.inst.yieldEffiency    = 0.955f;
 
             mCfg.led.led0 = DEF_PIN_OFF;
             mCfg.led.led1 = DEF_PIN_OFF;
@@ -624,10 +626,11 @@ class settings {
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
-                obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
-                obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
-                obj[F("strtWthtTime")]  = (bool)mCfg.inst.startWithoutTime;
+                obj[F("rstMidNight")]  = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstNotAvail")]  = (bool)mCfg.inst.rstValsNotAvail;
+                obj[F("rstComStop")]   = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
+                obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
             }
             else {
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
@@ -635,6 +638,12 @@ class settings {
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
+                getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+
+                if(mCfg.inst.yieldEffiency < 0.5)
+                    mCfg.inst.yieldEffiency = 1.0f;
+                else if(mCfg.inst.yieldEffiency > 1.0f)
+                    mCfg.inst.yieldEffiency = 1.0f;
             }
 
             JsonArray ivArr;

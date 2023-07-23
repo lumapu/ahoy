@@ -525,6 +525,8 @@ class Web {
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
+            mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+
 
             // pinout
             uint8_t pin;

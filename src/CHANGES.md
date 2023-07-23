@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.14 - 2023-07-23
+* fix Contrast for Nokia Display #1041
+* attempt to fix #1016 by improving inverter status
+* added option to adjust effiency for yield (day/total) #1028
+
 ## 0.7.13 - 2023-07-19
 * merged display PR #1027
 * add date, time and version to export json #1024

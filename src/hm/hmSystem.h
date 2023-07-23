@@ -19,6 +19,7 @@ class HmSystem {
         }
 
         void addInverters(cfgInst_t *config) {
+            mInverter[0].generalConfig = config;
             Inverter<> *iv;
             for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 iv = addInverter(&config->iv[i]);

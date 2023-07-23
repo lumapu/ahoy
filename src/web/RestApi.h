@@ -333,6 +333,7 @@ class RestApi {
             obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
+            obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
