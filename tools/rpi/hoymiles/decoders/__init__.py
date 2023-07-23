@@ -151,7 +151,7 @@ class StatusResponse(Response):
         """
         strings = []
         s_exists = True
-        while s_exists:
+        while s_exists and len(strings) < len(self.inv_strings):
             s_exists = False
             string_id = len(strings)
             if string_id < len(self.inv_strings):
