@@ -68,6 +68,7 @@ class PubMqttIvData {
         void stateStart() {
             mLastIvId = 0;
             mTotalFound = false;
+            mAllTotalFound = true;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
@@ -150,7 +151,8 @@ class PubMqttIvData {
                                         mTotal[3] += mIv->getValue(mPos, rec);
                                         break;
                                 }
-                            }
+                            } else
+                                mAllTotalFound = false;
                         }
                     } else
                         mIvLastRTRpub[mIv->id] = lastTs;
@@ -169,6 +171,7 @@ class PubMqttIvData {
 
         void stateSendTotals() {
             uint8_t fieldId;
+            mRTRDataHasBeenSent = true;
             if(mPos < 4) {
                 bool retained = true;
                 switch (mPos) {
@@ -178,9 +181,17 @@ class PubMqttIvData {
                         retained = false;
                         break;
                     case 1:
+                        if(!mAllTotalFound) {
+                            mPos++
+                            return;
+                        }
                         fieldId = FLD_YT;
                         break;
                     case 2:
+                        if(!mAllTotalFound) {
+                            mPos++
+                            return;
+                        }
                         fieldId = FLD_YD;
                         break;
                     case 3:
@@ -197,8 +208,6 @@ class PubMqttIvData {
                 mZeroValues = false;
                 mState = START;
             }
-
-            mRTRDataHasBeenSent = true;
         }
 
         HMSYSTEM *mSys;
@@ -209,7 +218,7 @@ class PubMqttIvData {
 
         uint8_t mCmd;
         uint8_t mLastIvId;
-        bool mSendTotals, mTotalFound;
+        bool mSendTotals, mTotalFound, mAllTotalFound;
         float mTotal[4];
 
         Inverter<> *mIv, *mIvSend;

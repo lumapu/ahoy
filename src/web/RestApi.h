@@ -184,7 +184,7 @@ class RestApi {
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
-            String filename = ah::getDateTimeStrFile(mApp->getTimezoneOffset());
+            String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
             filename += "_v" + String(mApp->getVersion());
 
             response->addHeader("Content-Type", "application/octet-stream");

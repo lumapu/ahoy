@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.16 - 2023-07-24
+* next attempt to fix yield day for multiple inverters #1016
+* fix export settings date #1040
+* fix time on WebUI (timezone was not observed) #913 #1016
+
 ## 0.7.15 - 2023-07-23
 * add NTP sync interval #1019
 * adjusted range of contrast / luminance setting #1041

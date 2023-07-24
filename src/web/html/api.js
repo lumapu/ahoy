@@ -119,6 +119,10 @@ function parseRssi(obj) {
     document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "wifi", obj["wifi_rssi"]));
 }
 
+function toIsoDateStr(d) {
+    return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(0, 19).replace('T', ', ');
+}
+
 function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {

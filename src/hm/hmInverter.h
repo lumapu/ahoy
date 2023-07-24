@@ -401,7 +401,7 @@ class Inverter {
                 avail = true;
 
             if(avail) {
-                if(InverterStatus::OFF == status)
+                if(status < InverterStatus::PRODUCING)
                     status = InverterStatus::STARTING;
                 else
                     status = InverterStatus::WAS_ON;
