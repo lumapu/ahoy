@@ -182,14 +182,14 @@ class PubMqttIvData {
                         break;
                     case 1:
                         if(!mAllTotalFound) {
-                            mPos++
+                            mPos++;
                             return;
                         }
                         fieldId = FLD_YT;
                         break;
                     case 2:
                         if(!mAllTotalFound) {
-                            mPos++
+                            mPos++;
                             return;
                         }
                         fieldId = FLD_YD;
