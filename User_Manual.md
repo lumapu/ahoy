@@ -48,9 +48,11 @@ The AhoyDTU will publish on the following topics
 
 | status code | Remarks |
 |---|---|
-| 0 | not available and not producing |
+| 0 | off: not available and not producing |
 | 1 | available but not producing |
 | 2 | available and producing |
+| 3 | available and was producing |
+| 4 | was available |
 
 
 ### `<TOPIC>/<INVERTER_NAME_FROM_SETUP>/ch0/#`

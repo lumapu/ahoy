@@ -239,6 +239,9 @@ class app : public IApp, public ah::Scheduler {
         }
 
     private:
+        #define CHECK_AVAIL     true
+        #define SKIP_YIELD_DAY  true
+
         typedef std::function<void()> innerLoopCb;
 
         void resetSystem(void);

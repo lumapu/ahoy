@@ -99,9 +99,10 @@ class PubMqttIvData {
             mLastIvId++;
 
             mPos = 0;
-            if(found)
+            if(found) {
+                mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
-            else if(mSendTotals && mTotalFound)
+            } else if(mSendTotals && mTotalFound)
                 mState = SEND_TOTALS;
             else {
                 mSendList->pop();

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.17 - 2023-07-25
+* next attempt to fix yield day for multiple inverters #1016
+* added two more states for the inverter status (also docu)
+
 ## 0.7.16 - 2023-07-24
 * next attempt to fix yield day for multiple inverters #1016
 * fix export settings date #1040

@@ -49,7 +49,7 @@ class PubMqtt {
             mRxCnt = 0;
             mTxCnt = 0;
             mSubscriptionCb = NULL;
-            memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
+            memset(mLastIvState, (uint8_t)InverterStatus::OFF, MAX_NUM_INVERTERS);
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
             mLastAnyAvail = false;
             mZeroValues = false;
@@ -488,24 +488,22 @@ class PubMqtt {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
                 // inverter status
-                uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                if (iv->isAvailable()) {
+                iv->isProducing(); // recalculate status
+                if (iv->isAvailable())
                     anyAvail = true;
-                    status = (iv->isProducing()) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
-                }
                 else // inverter is enabled but not available
                     allAvail = false;
 
-                if(mLastIvState[id] != status) {
+                if(mLastIvState[id] != iv->status) {
                     // if status changed from producing to not producing send last data immediately
-                    if (MQTT_STATUS_AVAIL_PROD == mLastIvState[id])
+                    if (InverterStatus::WAS_PRODUCING == mLastIvState[id])
                         sendData(iv, RealTimeRunData_Debug);
 
-                    mLastIvState[id] = status;
+                    mLastIvState[id] = iv->status;
                     changed = true;
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(mVal, 40, "%d", status);
+                    snprintf(mVal, 40, "%d", (uint8_t)iv->status);
                     publish(mSubTopic, mVal, true);
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
@@ -596,7 +594,7 @@ class PubMqtt {
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;
         bool mZeroValues;
-        uint8_t mLastIvState[MAX_NUM_INVERTERS];
+        InverterStatus mLastIvState[MAX_NUM_INVERTERS];
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 

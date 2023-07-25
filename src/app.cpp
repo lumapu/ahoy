@@ -322,14 +322,14 @@ void app::tickComm(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
-    zeroIvValues(false);
+    zeroIvValues(!CHECK_AVAIL, SKIP_YIELD_DAY);
 }
 
 //-----------------------------------------------------------------------------
 void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
-    zeroIvValues(true);
+    zeroIvValues(CHECK_AVAIL, SKIP_YIELD_DAY);
 }
 
 //-----------------------------------------------------------------------------
@@ -339,7 +339,7 @@ void app::tickMidnight(void) {
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
-    zeroIvValues(false, false);
+    zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();
