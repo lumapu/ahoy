@@ -403,11 +403,11 @@ class Inverter {
             if(avail) {
                 if(status < InverterStatus::PRODUCING)
                     status = InverterStatus::STARTING;
+            } else {
+                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC)
+                    status = InverterStatus::OFF;
                 else
                     status = InverterStatus::WAS_ON;
-            } else {
-                if((*timestamp - recordMeas.ts) < INVERTER_OFF_THRES_SEC)
-                    status = InverterStatus::OFF;
             }
 
             return avail;
@@ -417,8 +417,7 @@ class Inverter {
             bool producing = false;
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
             if(isAvailable()) {
-                uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
-                producing = (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
+                producing = (getChannelFieldValue(CH0, FLD_PAC, &recordMeas) > INACT_PWR_THRESH);
 
                 if(producing)
                     status = InverterStatus::PRODUCING;
