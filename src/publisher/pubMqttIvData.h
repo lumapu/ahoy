@@ -122,17 +122,8 @@ class PubMqttIvData {
                 if(mPos < rec->length) {
                     bool retained = false;
                     if (mCmd == RealTimeRunData_Debug) {
-                        if(FLD_YT == rec->assign[mPos].fieldId)
+                        if((FLD_YT == rec->assign[mPos].fieldId) || (FLD_YD == rec->assign[mPos].fieldId))
                             retained = true;
-                        else if(FLD_YD == rec->assign[mPos].fieldId) {
-                            if(!mZeroValues) {
-                                if ((rec->assign[mPos].ch == CH0) && (!mIv->isProducing())) { // avoids returns to 0 on restart
-                                    mPos++;
-                                    return;
-                                }
-                            }
-                            retained = true;
-                        }
 
                         // calculate total values for RealTimeRunData_Debug
                         if (CH0 == rec->assign[mPos].ch) {

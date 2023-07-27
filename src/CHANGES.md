@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.19 - 2023-07-27
+* next attempt to fix yield day for multiple inverters #1016
+* reduced threshold for inverter state machine from 60min to 15min to go from state `WAS_ON` to `OFF`
+
 ## 0.7.18 - 2023-07-26
 * next attempt to fix yield day for multiple inverters #1016
 
