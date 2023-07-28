@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.20 - 2023-07-28
+* merge PR #1048 version and hash in API, fixes #1045
+* fix: no yield day update if yield day reads `0` after inverter reboot (mostly on evening) #848
+* try to fix Wifi override #1047
+* added information after NTP sync to WebUI #1040
+
 ## 0.7.19 - 2023-07-27
 * next attempt to fix yield day for multiple inverters #1016
 * reduced threshold for inverter state machine from 60min to 15min to go from state `WAS_ON` to `OFF`

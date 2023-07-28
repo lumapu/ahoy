@@ -200,12 +200,16 @@
                             <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">set system time</div>
+                            <div class="col-12 col-sm-3 my-2">set System time</div>
                             <div class="col-12 col-sm-9">
                                 <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
-                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/>
+                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/><br/>
                                 <span id="apiResultNtp"></span>
                             </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">System Time</div>
+                            <div class="col-12 col-sm-9 my-2"><span id="date"></span></div>
                         </div>
                     </fieldset>
                     </div>
@@ -333,6 +337,7 @@
         <script type="text/javascript">
             var highestId = 0;
             var maxInv = 0;
+            var ts = 0;
 
             var esp8266pins = [
                 [255, "off / default"],
@@ -474,9 +479,15 @@
             function apiCbNtp(obj) {
                 var e = document.getElementById("apiResultNtp");
                 if(obj["success"])
-                    e.innerHTML = "command excuted";
+                    e.innerHTML = "command excuted, set new time ...";
                 else
                     e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function apiCbNtp2(obj) {
+                var e = document.getElementById("apiResultNtp");
+                var date = new Date(obj["ts_now"] * 1000);
+                e.innerHTML = "synced at: " + toIsoDateStr(date) + ", difference: " + (ts - obj["ts_now"]) + "ms";
             }
 
             function apiCbMqtt(obj) {
@@ -493,6 +504,7 @@
                 obj.cmd = "set_time";
                 obj.val = parseInt(date.getTime() / 1000);
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
             }
 
             function scan() {
@@ -506,6 +518,7 @@
                 var obj = new Object();
                 obj.cmd = "sync_ntp";
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
             }
 
             function sendDiscoveryConfig() {
@@ -664,6 +677,9 @@
                 parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
+
+                ts = obj["ts_now"];
+                window.setInterval("tick()", 1000);
             }
 
             function parseStaticIp(obj) {
@@ -867,6 +883,10 @@
                         cl.add("hide");
                     }
                 }
+            }
+
+            function tick() {
+                document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
             }
 
             function parse(root) {

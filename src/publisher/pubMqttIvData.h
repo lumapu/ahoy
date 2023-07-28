@@ -68,6 +68,7 @@ class PubMqttIvData {
         void stateStart() {
             mLastIvId = 0;
             mTotalFound = false;
+            mSendTotalYd = true;
             mAllTotalFound = true;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
@@ -136,9 +137,14 @@ class PubMqttIvData {
                                     case FLD_YT:
                                         mTotal[1] += mIv->getValue(mPos, rec);
                                         break;
-                                    case FLD_YD:
-                                        mTotal[2] += mIv->getValue(mPos, rec);
+                                    case FLD_YD: {
+                                        uint8_t val = mIv->getValue(mPos, rec);
+                                        if(0 == val) // inverter restarted during day
+                                            mSendTotalYd = false;
+                                        else
+                                            mTotal[2] += val;
                                         break;
+                                    }
                                     case FLD_PDC:
                                         mTotal[3] += mIv->getValue(mPos, rec);
                                         break;
@@ -180,7 +186,7 @@ class PubMqttIvData {
                         fieldId = FLD_YT;
                         break;
                     case 2:
-                        if(!mAllTotalFound) {
+                        if((!mAllTotalFound) || (!mSendTotalYd)) {
                             mPos++;
                             return;
                         }
@@ -210,7 +216,7 @@ class PubMqttIvData {
 
         uint8_t mCmd;
         uint8_t mLastIvId;
-        bool mSendTotals, mTotalFound, mAllTotalFound;
+        bool mSendTotals, mTotalFound, mAllTotalFound, mSendTotalYd;
         float mTotal[4];
 
         Inverter<> *mIv, *mIvSend;

@@ -197,6 +197,7 @@ class RestApi {
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]   = mApp->getUptime();
+            obj[F("ts_now")]      = mApp->getTimestamp();
             obj[F("version")]     = String(mApp->getVersion());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("menu_prot")]   = mApp->getProtection(request);

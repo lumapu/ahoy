@@ -54,14 +54,16 @@ void ahoywifi::setupWifi(bool startAP = false) {
         }
     #endif
     #if !defined(AP_ONLY)
-        if(mConfig->valid) {
-            #if !defined(FB_WIFI_OVERRIDDEN)
+        #if defined(FB_WIFI_OVERRIDDEN)
+            snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
+            snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
+            setupStation();
+        #else
+            if(mConfig->valid) {
                 if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
                     setupStation();
-            #else
-                setupStation();
-            #endif
-        }
+            }
+        #endif
     #endif
 }
 
