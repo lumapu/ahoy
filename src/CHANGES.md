@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.21 - 2023-07-30
+* fix MqTT YieldDay Total goes to 0 serveral times #1016
+
 ## 0.7.20 - 2023-07-28
 * merge PR #1048 version and hash in API, fixes #1045
 * fix: no yield day update if yield day reads `0` after inverter reboot (mostly on evening) #848

@@ -138,7 +138,7 @@ class PubMqttIvData {
                                         mTotal[1] += mIv->getValue(mPos, rec);
                                         break;
                                     case FLD_YD: {
-                                        uint8_t val = mIv->getValue(mPos, rec);
+                                        float val = mIv->getValue(mPos, rec);
                                         if(0 == val) // inverter restarted during day
                                             mSendTotalYd = false;
                                         else
