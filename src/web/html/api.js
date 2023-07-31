@@ -52,8 +52,7 @@ function ml(tagName, ...args) {
 
 function nester(el, n) {
     if (typeof n === "string") {
-        var t = document.createTextNode(n);
-        el.appendChild(t);
+        el.innerHTML = n;
     } else if (n instanceof Array) {
         for(var i = 0; i < n.length; i++) {
             if (typeof n[i] === "string") {

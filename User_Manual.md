@@ -63,7 +63,7 @@ The AhoyDTU will publish on the following topics
 |Q_AC | 21.200| actual AC reactive power in var|
 |F_AC | 49.990| actual AC Frequency in Hz|
 |PF_AC | 95.800| actual AC Power factor|
-|Temp | 19.800|Temperature of inverter in Celsius|
+|Temp | 19.800|Temperature of inverter in degree Celsius|
 |EVT | 9.000|Last Event/Alarm Message Index|
 |YieldDay | 51.000|Energy converted to AC per day in Watt hours (measured on DC)|
 |YieldTotal | 465.294|Energy converted to AC since reset Watt hours (measured on DC)|
