@@ -475,6 +475,11 @@ input[type=text], input[type=password], select, input[type=number] {
     color: var(--fg);
 }
 
+input:invalid {
+    border: 2px solid #f00 !important;
+    background-color: #400 !important;
+}
+
 input.sh {
     max-width: 150px !important;
     margin-right: 10px;

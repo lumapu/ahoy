@@ -33,15 +33,15 @@ typedef struct {
 } miPayload_t;
 
 
-typedef std::function<void(uint8_t)> miPayloadListenerType;
+typedef std::function<void(uint8_t, Inverter<> *)> miPayloadListenerType;
 
 
-template<class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class MiPayload {
     public:
         MiPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
             mStat       = stat;
@@ -90,20 +90,20 @@ class MiPayload {
                             DPRINT_IVID(DBG_INFO, iv->id);
                         if (!mPayload[iv->id].gotFragment) {
                             mStat->rxFailNoAnser++; // got nothing
-                            if (mSerialDebug)
-                                DBGPRINTLN(F("enqueued cmd failed/timeout"));
+                        if (mSerialDebug)
+                            DBGPRINTLN(F("enqueued cmd failed/timeout"));
                         } else {
                             mStat->rxFail++;        // got "fragments" (part of the required messages)
                                                     // but no complete set of responses
-                            if (mSerialDebug) {
+                        if (mSerialDebug) {
                                 DBGPRINT(F("no complete Payload received! (retransmits: "));
-                                DBGPRINT(String(mPayload[iv->id].retransmits));
-                                DBGPRINTLN(F(")"));
-                            }
+                            DBGPRINT(String(mPayload[iv->id].retransmits));
+                            DBGPRINTLN(F(")"));
                         }
-                        iv->setQueuedCmdFinished(); // command failed
                     }
+                        iv->setQueuedCmdFinished(); // command failed
                 }
+            }
             }
 
             reset(iv->id);
@@ -124,7 +124,7 @@ class MiPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false, false);
+                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 mPayload[iv->id].limitrequested = true;
 
@@ -148,10 +148,10 @@ class MiPayload {
                 if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
                     cmd  = 0x0f;                              // for MI, these seem to make part of the  Polling the device software and hardware version number command
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
+                    mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 } else {
                     //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
+                    mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 };
 
                 mPayload[iv->id].txCmd = cmd;
@@ -236,27 +236,27 @@ const byteAssign_t InfoAssignment[] = {
                     mPayload[iv->id].gotFragment = true;
                     if(mSerialDebug) {
                         DPRINT_IVID(DBG_INFO, iv->id);
-                        DPRINT(DBG_INFO,F("HW_VER is "));
-                        DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
+                    DPRINT(DBG_INFO,F("HW_VER is "));
+                    DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
                     }
                 } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINT_IVID(DBG_INFO, iv->id);
                     if ( p->packet[9] == 0x01 ) {
                         DBGPRINTLN(F("got 2nd frame (hw info)"));
-                        DPRINT(DBG_INFO,F("HW_PartNo "));
-                        DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
+                    DPRINT(DBG_INFO,F("HW_PartNo "));
+                    DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
                         mPayload[iv->id].gotFragment = true;
                         iv->setValue(iv->getPosByChFld(0, FLD_YT, rec), rec, (float) ((p->packet[20] << 8) + p->packet[21])/1);
                         if(mSerialDebug) {
-                            DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
-                            DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
-                            DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
-                            DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
-                            DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
-                            DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                        DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
+                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                        DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
+                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                        DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
+                        DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
                             DPRINT(DBG_INFO,F("HW_ECapValue "));
                             DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
-                        }
+                    }
                     } else {
                         DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
                     }
@@ -348,7 +348,7 @@ const byteAssign_t InfoAssignment[] = {
                     DPRINT(DBG_INFO, F("Payload ("));
                     DBGPRINT(String(payloadLen));
                     DBGPRINT("): ");
-                    mSys->Radio.dumpBuf(payload, payloadLen);
+                    ah::dumpBuf(payload, payloadLen);
                 }
 
                 if (NULL == rec) {
@@ -363,7 +363,7 @@ const byteAssign_t InfoAssignment[] = {
                         yield();
                     }
                     iv->doCalculations();
-                    notify(mPayload[iv->id].txCmd);
+                    notify(mPayload[iv->id].txCmd, iv);
 
                     if(AlarmData == mPayload[iv->id].txCmd) {
                         uint8_t i = 0;
@@ -431,7 +431,7 @@ const byteAssign_t InfoAssignment[] = {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINT_IVID(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("retransmit power limit"));
-                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true, false);
+                                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true, false);
                             } else {
                                 uint8_t cmd = mPayload[iv->id].txCmd;
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -442,7 +442,7 @@ const byteAssign_t InfoAssignment[] = {
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
+                                        mRadio->sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
                                         //iv->setQueuedCmdFinished();
                                         //cmd = iv->getQueuedCmd();
                                     } else {
@@ -479,7 +479,7 @@ const byteAssign_t InfoAssignment[] = {
                                         }
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
                                         //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
                                     }
@@ -497,7 +497,7 @@ const byteAssign_t InfoAssignment[] = {
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
                             //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
-                            mSys->Radio.sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
+                            mRadio->sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
                     /*else {  // payload complete
@@ -556,9 +556,9 @@ const byteAssign_t InfoAssignment[] = {
         }
 
     private:
-        void notify(uint8_t val) {
+        void notify(uint8_t val, Inverter<> *iv) {
             if(NULL != mCbMiPayload)
-                (mCbMiPayload)(val);
+                (mCbMiPayload)(val, iv);
         }
 
         void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t stschan = CH1) {
@@ -704,20 +704,20 @@ const byteAssign_t InfoAssignment[] = {
 
             }
 
-            /*
-            if(AlarmData == mPayload[iv->id].txCmd) {
-                uint8_t i = 0;
-                uint16_t code;
-                uint32_t start, end;
-                while(1) {
-                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                    if(0 == code)
-                        break;
-                    if (NULL != mCbMiAlarm)
-                        (mCbAlarm)(code, start, end);
-                    yield();
-                }
-            }*/
+/*
+                            if(AlarmData == mPayload[iv->id].txCmd) {
+                                uint8_t i = 0;
+                                uint16_t code;
+                                uint32_t start, end;
+                                while(1) {
+                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
+                                    if(0 == code)
+                                        break;
+                                    if (NULL != mCbMiAlarm)
+                                        (mCbAlarm)(code, start, end);
+                                    yield();
+                                }
+                            }*/
 
             //if ( mPayload[iv->id].complete ||  //4ch device
             if ( p->packet[0] == (0x39 + ALL_FRAMES) ||  //4ch device - last message
@@ -725,12 +725,12 @@ const byteAssign_t InfoAssignment[] = {
                  && mPayload[iv->id].dataAB[CH0]
                  && mPayload[iv->id].stsAB[CH0])) {
                      miComplete(iv);
-            }
+        }
         }
 
         void miComplete(Inverter<> *iv) {
             if ( mPayload[iv->id].complete )  //  && iv->type != INV_TYPE_4CH)
-                return;                       // if we got second message as well in repreated attempt
+                return; //if we got second message as well in repreated attempt
             mPayload[iv->id].complete = true;
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINTLN(F("got all msgs"));
@@ -752,7 +752,7 @@ const byteAssign_t InfoAssignment[] = {
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
             yield();
-            notify(RealTimeRunData_Debug); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
+            notify(RealTimeRunData_Debug, iv); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
         }
 
         bool build(uint8_t id, bool *complete) {
@@ -826,6 +826,7 @@ const byteAssign_t InfoAssignment[] = {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;

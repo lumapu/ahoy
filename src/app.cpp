@@ -23,12 +23,12 @@ void app::setup() {
     while (!Serial)
         yield();
 
-    ah::Scheduler::setup();
 
     resetSystem();
 
     mSettings.setup();
     mSettings.getPtr(mConfig);
+    ah::Scheduler::setup(mConfig->inst.startWithoutTime);
     DPRINT(DBG_INFO, F("Settings valid: "));
     DSERIAL.flush();
     if (mSettings.getValid())
@@ -36,8 +36,16 @@ void app::setup() {
     else
         DBGPRINTLN(F("false"));
 
-    mSys.enableDebug();
-    mSys.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+    if(mConfig->nrf.enabled) {
+        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+        mNrfRadio.enableDebug();
+    }
+    #if defined(ESP32)
+    if(mConfig->cmt.enabled) {
+        mCmtRadio.setup(mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.enableDebug();
+    }
+    #endif
     #ifdef ETHERNET
     delay(1000);
     DPRINT(DBG_INFO, F("mEth setup..."));
@@ -62,29 +70,34 @@ void app::setup() {
     #endif
 #endif /* defined(ETHERNET) */
 
+    mSys.setup(&mTimestamp);
     mSys.addInverters(&mConfig->inst);
-
-    mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    if(mConfig->nrf.enabled) {
+        mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
-    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
-    mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
-    mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
+        mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    }
 
-    // DBGPRINTLN("--- after payload");
-    // DBGPRINTLN(String(ESP.getFreeHeap()));
-    // DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
+    #if defined(ESP32)
+        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
+        mHmsPayload.enableSerialDebug(mConfig->serial.debug);
+        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    #endif
 
-    if (!mSys.Radio.isChipConnected())
+    if(mConfig->nrf.enabled) {
+        if (!mNrfRadio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+    }
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp);
+        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         mMiPayload.addAlarmListener(std::bind(&PubMqttType::alarmEventListener, &mMqtt, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -95,7 +108,7 @@ void app::setup() {
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
+    mApi.setup(this, &mSys, &mNrfRadio, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     if (mConfig->plugin.display.type != 0)
@@ -103,28 +116,29 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    #if !defined(ETHERNET)
+    mImprov.setup(this, mConfig->sys.deviceName, mVersion);
+    #endif
+
     regularTickers();
-
-
-    // DBGPRINTLN("--- end setup");
-    // DBGPRINTLN(String(ESP.getFreeHeap()));
-    // DBGPRINTLN(String(ESP.getHeapFragmentation()));
-    // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 }
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     if (mInnerLoopCb)
         mInnerLoopCb();
+    #if !defined(ETHERNET)
+    mImprov.tickSerial();
+    #endif
 }
 
 //-----------------------------------------------------------------------------
 void app::loopStandard(void) {
     ah::Scheduler::loop();
 
-    if (mSys.Radio.loop()) {
-        while (!mSys.Radio.mBufCtrl.empty()) {
-            packet_t *p = &mSys.Radio.mBufCtrl.front();
+    if (mNrfRadio.loop() && mConfig->nrf.enabled) {
+        while (!mNrfRadio.mBufCtrl.empty()) {
+            packet_t *p = &mNrfRadio.mBufCtrl.front();
 
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
@@ -132,7 +146,7 @@ void app::loopStandard(void) {
                 DBGPRINT(F("B Ch"));
                 DBGPRINT(String(p->ch));
                 DBGPRINT(F(" | "));
-                mSys.Radio.dumpBuf(p->packet, p->len);
+                ah::dumpBuf(p->packet, p->len);
             }
             mStat.frmCnt++;
 
@@ -143,14 +157,42 @@ void app::loopStandard(void) {
                 else
                     mMiPayload.add(iv, p);
             }
-            mSys.Radio.mBufCtrl.pop();
+            mNrfRadio.mBufCtrl.pop();
             yield();
         }
         mPayload.process(true);
         mMiPayload.process(true);
     }
+    #if defined(ESP32)
+    if (mCmtRadio.loop() && mConfig->cmt.enabled) {
+        while (!mCmtRadio.mBufCtrl.empty()) {
+            hmsPacket_t *p = &mCmtRadio.mBufCtrl.front();
+            if (mConfig->serial.debug) {
+                DPRINT(DBG_INFO, F("RX "));
+                DBGPRINT(String(p->data[0]));
+                DBGPRINT(F(" RSSI "));
+                DBGPRINT(String(p->rssi));
+                DBGPRINT(F("dBm | "));
+                ah::dumpBuf(&p->data[1], p->data[0]);
+            }
+            mStat.frmCnt++;
+
+            Inverter<> *iv = mSys.findInverter(&p->data[2]);
+            if(NULL != iv) {
+                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                    mHmsPayload.add(iv, p);
+            }
+            mCmtRadio.mBufCtrl.pop();
+            yield();
+        }
+        mHmsPayload.process(false); //true
+    }
+    #endif
     mPayload.loop();
     mMiPayload.loop();
+    #if defined(ESP32)
+    mHmsPayload.loop();
+    #endif
 
     if (mMqttEnabled)
         mMqtt.loop();
@@ -171,6 +213,10 @@ void app::onNetwork(bool gotIp) {
     regularTickers();  // reinstall regular tickers
     if (gotIp) {
         every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+        #if defined(ESP32)
+        if(mConfig->cmt.enabled)
+            everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
+        #endif
         mMqttReconnect = true;
         mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
         once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -199,33 +245,8 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
-
+    //everySec(std::bind(&Improv::tickSerial, &mImprov), "impro");
     // every([this]() {mPayload.simulation();}, 15, "simul");
-}
-
-//-----------------------------------------------------------------------------
-void app::tickNtpUpdate(void) {
-    uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    bool isOK = false;
-#if defined(ETHERNET)
-    if (!(isOK = mEth.updateNtpTime()))
-        once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
-#else /* defined(ETHERNET) */
-    isOK = mWifi.getNtpTime();
-    if (isOK || mTimestamp != 0) {
-        this->updateNtp();
-        nxtTrig = isOK ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
-    }
-    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
-#endif /* defined(ETHERNET) */
-
-    // immediately start communicating
-    // @TODO: leads to reboot loops? not sure #674
-    if (isOK && mSendFirst) {
-        mSendFirst = false;
-        once(std::bind(&app::tickSend, this), 2, "senOn");
-    }
-
 }
 
 #if defined(ETHERNET)
@@ -242,30 +263,54 @@ void app::onNtpUpdate(bool gotTime)
 
 //-----------------------------------------------------------------------------
 void app::updateNtp(void) {
-        if (mMqttReconnect && mMqttEnabled) {
-            mMqtt.tickerSecond();
-            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
-            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
-        }
+    if (mMqttReconnect && mMqttEnabled) {
+        mMqtt.tickerSecond();
+        everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
+        everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
+    }
 
-        // only install schedulers once even if NTP wasn't successful in first loop
-        if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
-            if (mConfig->inst.rstValsNotAvail)
-                everyMin(std::bind(&app::tickMinute, this), "tMin");
-            if (mConfig->inst.rstYieldMidNight) {
-                uint32_t localTime = gTimezone.toLocal(mTimestamp);
-                uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
-                onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
-            }
+    // only install schedulers once even if NTP wasn't successful in first loop
+    if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
+        if (mConfig->inst.rstValsNotAvail)
+            everyMin(std::bind(&app::tickMinute, this), "tMin");
+        if (mConfig->inst.rstYieldMidNight) {
+            uint32_t localTime = gTimezone.toLocal(mTimestamp);
+            uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
+            onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
         }
+    }
 
-        if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
-            mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-            tickCalcSunrise();
+    if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
+        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+        tickCalcSunrise();
+    }
+
+    mMqttReconnect = false;
+}
+
+//-----------------------------------------------------------------------------
+void app::tickNtpUpdate(void) {
+    uint32_t nxtTrig = 5;  // default: check again in 5 sec
+    #if defined(ETHERNET)
+    bool isOK = mEth.updateNtpTime();
+    #else
+    bool isOK = mWifi.getNtpTime();
+    #endif
+    if (isOK || mTimestamp != 0) {
+        this->updateNtp();
+
+        nxtTrig = isOK ? (mConfig->ntp.interval * 60) : 60;  // depending on NTP update success check again in 12h (depends on setting) or in 1 min
+
+        // immediately start communicating
+        if (isOK && mSendFirst) {
+            mSendFirst = false;
+            once(std::bind(&app::tickSend, this), 2, "senOn");
         }
 
         mMqttReconnect = false;
     }
+    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
+}
 
 //-----------------------------------------------------------------------------
 void app::tickCalcSunrise(void) {
@@ -324,43 +369,15 @@ void app::tickComm(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yields
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        mPayload.zeroInverterValues(iv);
-        changed = true;
+    zeroIvValues(!CHECK_AVAIL, SKIP_YIELD_DAY);
     }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
-}
 
 //-----------------------------------------------------------------------------
 void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yields
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        if (!iv->isAvailable(mTimestamp) && !iv->isProducing(mTimestamp) && iv->config->enabled) {
-            mPayload.zeroInverterValues(iv);
-            changed = true;
+    zeroIvValues(CHECK_AVAIL, SKIP_YIELD_DAY);
         }
-    }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
-}
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
@@ -369,20 +386,7 @@ void app::tickMidnight(void) {
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
-    Inverter<> *iv;
-    bool changed = false;
-    // set values to zero, except yield total
-    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-        iv = mSys.getInverterByPos(id);
-        if (NULL == iv)
-            continue;  // skip to next inverter
-
-        mPayload.zeroInverterValues(iv, false);
-        changed = true;
-    }
-
-    if(changed)
-        payloadEventListener(RealTimeRunData_Debug);
+    zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
 
     if (mMqttEnabled)
         mMqtt.tickerMidnight();
@@ -390,17 +394,27 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if (!mSys.Radio.isChipConnected()) {
+    if(mConfig->nrf.enabled) {
+        if(!mNrfRadio.isChipConnected()) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
     }
+    }
     if (mIVCommunicationOn) {
-        if (!mSys.Radio.mBufCtrl.empty()) {
+        if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_DEBUG, F("recbuf not empty! #"));
-                DBGPRINTLN(String(mSys.Radio.mBufCtrl.size()));
+                DBGPRINTLN(String(mNrfRadio.mBufCtrl.size()));
             }
         }
+        #if defined(ESP32)
+        if (!mCmtRadio.mBufCtrl.empty()) {
+            if (mConfig->serial.debug) {
+                DPRINT(DBG_INFO, F("recbuf not empty! #"));
+                DBGPRINTLN(String(mCmtRadio.mBufCtrl.size()));
+            }
+        }
+        #endif
 
         int8_t maxLoop = MAX_NUM_INVERTERS;
         Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
@@ -411,10 +425,18 @@ void app::tickSend(void) {
 
         if (NULL != iv) {
             if (iv->config->enabled) {
+                if(mConfig->nrf.enabled) {
                 if (iv->ivGen == IV_HM)
                     mPayload.ivSend(iv);
-                else
+                    else if(iv->ivGen == IV_MI)
                     mMiPayload.ivSend(iv);
+            }
+                #if defined(ESP32)
+                if(mConfig->cmt.enabled) {
+                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                        mHmsPayload.ivSend(iv);
+        }
+                #endif
             }
         }
     } else {
@@ -424,6 +446,51 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
+}
+
+//-----------------------------------------------------------------------------
+void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
+    Inverter<> *iv;
+    bool changed = false;
+    // set values to zero, except yields
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        iv = mSys.getInverterByPos(id);
+        if (NULL == iv)
+            continue;  // skip to next inverter
+        if (!iv->config->enabled)
+            continue;  // skip to next inverter
+
+        if (checkAvail) {
+            if (!iv->isAvailable())
+                continue;
+        }
+
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        for(uint8_t ch = 0; ch <= iv->channels; ch++) {
+            uint8_t pos = 0;
+            for(uint8_t fld = 0; fld < FLD_EVT; fld++) {
+                switch(fld) {
+                    case FLD_YD:
+                        if(skipYieldDay)
+                            continue;
+                        else
+                            break;
+                    case FLD_YT:
+                        continue;
+                }
+                pos = iv->getPosByChFld(ch, fld, rec);
+                iv->setValue(pos, rec, 0.0f);
+            }
+            iv->doCalculations();
+        }
+        changed = true;
+    }
+
+    if(changed) {
+        if(mMqttEnabled && !skipYieldDay)
+            mMqtt.setZeroValuesEnable();
+        payloadEventListener(RealTimeRunData_Debug, NULL);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -477,7 +544,7 @@ void app::updateLed(void) {
     if (mConfig->led.led0 != 0xff) {
         Inverter<> *iv = mSys.getInverterByPos(0);
         if (NULL != iv) {
-            if (iv->isProducing(mTimestamp))
+            if (iv->isProducing())
                 digitalWrite(mConfig->led.led0, led_on);
             else
                 digitalWrite(mConfig->led.led0, led_off);

@@ -49,19 +49,21 @@ class PubMqtt {
             mRxCnt = 0;
             mTxCnt = 0;
             mSubscriptionCb = NULL;
-            memset(mLastIvState, MQTT_STATUS_NOT_AVAIL_NOT_PROD, MAX_NUM_INVERTERS);
+            memset(mLastIvState, (uint8_t)InverterStatus::OFF, MAX_NUM_INVERTERS);
             memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
             mLastAnyAvail = false;
+            mZeroValues = false;
         }
 
         ~PubMqtt() { }
 
-        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs) {
+        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
             mCfgMqtt         = cfg_mqtt;
             mDevName         = devName;
             mVersion         = version;
             mSys             = sys;
             mUtcTimestamp    = utcTs;
+            mUptime          = uptime;
             mIntervalTimeout = 1;
 
             mSendIvData.setup(sys, utcTs, &mSendList);
@@ -119,14 +121,14 @@ class PubMqtt {
             else { // send mqtt data in a fixed interval
                 if(mIntervalTimeout == 0) {
                     mIntervalTimeout = mCfgMqtt->interval;
-                    mSendList.push(RealTimeRunData_Debug);
+                    mSendList.push(sendListCmdIv(RealTimeRunData_Debug, NULL));
                     sendIvData();
                 }
             }
         }
 
         void tickerMinute() {
-            snprintf(mVal, 40, "%ld", millis() / 1000);
+            snprintf(mVal, 40, "%d", (*mUptime));
             publish(subtopics[MQTT_UPTIME], mVal);
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
@@ -165,10 +167,10 @@ class PubMqtt {
             publish(mSubTopic, mVal, true);
         }
 
-        void payloadEventListener(uint8_t cmd) {
+        void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             if(mClient.connected()) { // prevent overflow if MQTT broker is not reachable but set
                 if((0 == mCfgMqtt->interval) || (RealTimeRunData_Debug != cmd)) // no interval or no live data
-                    mSendList.push(cmd);
+                    mSendList.push(sendListCmdIv(cmd, iv));
             }
         }
 
@@ -237,6 +239,10 @@ class PubMqtt {
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
                 publish(mSubTopic, "true", true);
             }
+        }
+
+        void setZeroValuesEnable(void) {
+            mZeroValues = true;
         }
 
     private:
@@ -308,7 +314,7 @@ class PubMqtt {
                 delete[] pyld;
             }
 
-            const char *p = topic;
+            const char *p = topic + strlen(mCfgMqtt->topic);
             uint8_t pos = 0;
             uint8_t elm = 0;
             char tmp[30];
@@ -482,24 +488,22 @@ class PubMqtt {
                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
                 // inverter status
-                uint8_t status = MQTT_STATUS_NOT_AVAIL_NOT_PROD;
-                if (iv->isAvailable(*mUtcTimestamp)) {
+                iv->isProducing(); // recalculate status
+                if (iv->isAvailable())
                     anyAvail = true;
-                    status = (iv->isProducing(*mUtcTimestamp)) ? MQTT_STATUS_AVAIL_PROD : MQTT_STATUS_AVAIL_NOT_PROD;
-                }
                 else // inverter is enabled but not available
                     allAvail = false;
 
-                if(mLastIvState[id] != status) {
+                if(mLastIvState[id] != iv->status) {
                     // if status changed from producing to not producing send last data immediately
-                    if (MQTT_STATUS_AVAIL_PROD == mLastIvState[id])
+                    if (InverterStatus::WAS_PRODUCING == mLastIvState[id])
                         sendData(iv, RealTimeRunData_Debug);
 
-                    mLastIvState[id] = status;
+                    mLastIvState[id] = iv->status;
                     changed = true;
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(mVal, 40, "%d", status);
+                    snprintf(mVal, 40, "%d", (uint8_t)iv->status);
                     publish(mSubTopic, mVal, true);
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
@@ -545,7 +549,7 @@ class PubMqtt {
                         switch (rec->assign[i].fieldId) {
                             case FLD_YT:
                             case FLD_YD:
-                                if ((rec->assign[i].ch == CH0) && (!iv->isProducing(*mUtcTimestamp))) // avoids returns to 0 on restart
+                                if ((rec->assign[i].ch == CH0) && (!iv->isProducing())) // avoids returns to 0 on restart
                                     continue;
                                 retained = true;
                                 break;
@@ -564,12 +568,13 @@ class PubMqtt {
         void sendIvData() {
             bool anyAvail = processIvStatus();
             if (mLastAnyAvail != anyAvail)
-                mSendList.push(RealTimeRunData_Debug);  // makes sure that total values are calculated
+                mSendList.push(sendListCmdIv(RealTimeRunData_Debug, NULL));  // makes sure that total values are calculated
 
             if(mSendList.empty())
                 return;
 
-            mSendIvData.start();
+            mSendIvData.start(mZeroValues);
+            mZeroValues = false;
             mLastAnyAvail = anyAvail;
         }
 
@@ -582,13 +587,14 @@ class PubMqtt {
         HMSYSTEM *mSys;
         PubMqttIvData<HMSYSTEM> mSendIvData;
 
-        uint32_t *mUtcTimestamp;
+        uint32_t *mUtcTimestamp, *mUptime;
         uint32_t mRxCnt, mTxCnt;
-        std::queue<uint8_t> mSendList;
+        std::queue<sendListCmdIv> mSendList;
         std::queue<alarm_t> mAlarmList;
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;
-        uint8_t mLastIvState[MAX_NUM_INVERTERS];
+        bool mZeroValues;
+        InverterStatus mLastIvState[MAX_NUM_INVERTERS];
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 

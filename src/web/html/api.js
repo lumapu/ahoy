@@ -78,8 +78,10 @@ function parseNav(obj) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
-        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop())
-            l.classList.add("active");
+        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
+            if((i != 8 )&& (i != 9))
+                l.classList.add("active");
+        }
 
         if(obj["menu_protEn"]) {
             if(obj["menu_prot"]) {
@@ -115,6 +117,10 @@ function parseRssi(obj) {
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
     document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "wifi", obj["wifi_rssi"]));
+}
+
+function toIsoDateStr(d) {
+    return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(0, 19).replace('T', ', ');
 }
 
 function setHide(id, hide) {

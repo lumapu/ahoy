@@ -19,7 +19,6 @@
             var units, ivEn;
             var mIvHtml = [];
             var mNum = 0;
-            var names = ["Voltage", "Current", "Power", "Yield Day", "Yield Total", "Irradiation"];
             var total = Array(5).fill(0);
 
             function parseGeneric(obj) {
@@ -159,7 +158,7 @@
                 var ageInfo = "Last received data requested at: ";
                 if(ts > 0) {
                     var date = new Date(ts * 1000);
-                    ageInfo += date.toLocaleString('de-DE');
+                    ageInfo += toIsoDateStr(date);
                 }
                 else
                     ageInfo += "nothing received";

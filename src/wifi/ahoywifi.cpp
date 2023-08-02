@@ -17,6 +17,12 @@
 ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
 
 
+/**
+ * TODO: ESP32 has native strongest AP support!
+ *       WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+         WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+*/
+
 //-----------------------------------------------------------------------------
 void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mConfig = config;
@@ -49,14 +55,16 @@ void ahoywifi::setupWifi(bool startAP = false) {
         }
     #endif
     #if !defined(AP_ONLY)
-        if(mConfig->valid) {
-            #if !defined(FB_WIFI_OVERRIDDEN)
+        #if defined(FB_WIFI_OVERRIDDEN)
+            snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", FB_WIFI_SSID);
+            snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", FB_WIFI_PWD);
+            setupStation();
+        #else
+            if(mConfig->valid) {
                 if(strncmp(mConfig->sys.stationSsid, FB_WIFI_SSID, 14) != 0)
                     setupStation();
-            #else
-                setupStation();
-            #endif
-        }
+            }
+        #endif
     #endif
 }
 
@@ -100,9 +108,17 @@ void ahoywifi::tickWifiLoop() {
             mScanCnt = 0;
             mScanActive = true;
             #if defined(ESP8266)
-            WiFi.scanNetworks(true, false, 0U, (uint8_t *)mConfig->sys.stationSsid);
+            WiFi.scanNetworks(true, true, 0U, ([this] () {
+                if(mConfig->sys.isHidden)
+                    return (uint8_t *)NULL;
+                return (uint8_t *)(mConfig->sys.stationSsid);
+            })());
             #else
-            WiFi.scanNetworks(true, false, false, 300U, 0U, mConfig->sys.stationSsid);
+            WiFi.scanNetworks(true, true, false, 300U, 0U, ([this] () {
+                if(mConfig->sys.isHidden)
+                    return (char*)NULL;
+                return (mConfig->sys.stationSsid);
+            })());
             #endif
             return;
         }
@@ -157,7 +173,7 @@ void ahoywifi::setupAp(void) {
     DBGPRINT(F("\n---------\nAP MODE\nSSID: "));
     DBGPRINTLN(WIFI_AP_SSID);
     DBGPRINT(F("PWD: "));
-    DBGPRINTLN(WIFI_AP_PWD);
+    DBGPRINTLN(mConfig->sys.apPwd);
     DBGPRINT(F("IP Address: http://"));
     DBGPRINTLN(mApIp.toString());
     DBGPRINTLN(F("---------\n"));
@@ -167,7 +183,7 @@ void ahoywifi::setupAp(void) {
 
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAPConfig(mApIp, mApIp, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PWD);
+    WiFi.softAP(WIFI_AP_SSID, mConfig->sys.apPwd);
 }
 
 
@@ -275,12 +291,12 @@ void ahoywifi::scanAvailNetworks(void) {
 }
 
 //-----------------------------------------------------------------------------
-void ahoywifi::getAvailNetworks(JsonObject obj) {
+bool ahoywifi::getAvailNetworks(JsonObject obj) {
     JsonArray nets = obj.createNestedArray("networks");
 
     int n = WiFi.scanComplete();
     if (n < 0)
-        return;
+        return false;
     if(n > 0) {
         int sort[n];
         sortRSSI(&sort[0], n);
@@ -293,6 +309,8 @@ void ahoywifi::getAvailNetworks(JsonObject obj) {
     WiFi.scanDelete();
     if(mStaConn == IN_AP_MODE)
         WiFi.mode(WIFI_AP);
+
+    return true;
 }
 
 //-----------------------------------------------------------------------------

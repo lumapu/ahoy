@@ -10,12 +10,15 @@
 #include "Display_Mono_128X32.h"
 #include "Display_Mono_128X64.h"
 #include "Display_Mono_84X48.h"
+#include "Display_Mono_64X48.h"
 #include "Display_ePaper.h"
 
 template <class HMSYSTEM>
 class Display {
    public:
-    Display() {}
+    Display() {
+        mMono = NULL;
+    }
 
     void setup(display_t *cfg, HMSYSTEM *sys, uint32_t *utcTs, const char *version) {
         mCfg = cfg;
@@ -25,31 +28,28 @@ class Display {
         mLoopCnt = 0;
         mVersion = version;
 
-        if (mCfg->type == 0)
-            return;
+        switch (mCfg->type) {
+            case 0: mMono = NULL; break;
+            case 1: // fall-through
+            case 2: mMono = new DisplayMono128X64(); break;
+            case 3: mMono = new DisplayMono84X48(); break;
+            case 4: mMono = new DisplayMono128X32(); break;
+            case 5: mMono = new DisplayMono64X48(); break;
 
-        if ((0 < mCfg->type) && (mCfg->type < 10)) {
-            switch (mCfg->type) {
-                case 2:
-                case 1:
-                default:
-                    mMono = new DisplayMono128X64();
-                    break;
-                case 3:
-                    mMono = new DisplayMono84X48();
-                    break;
-                case 4:
-                    mMono = new DisplayMono128X32();
-                    break;
-            }
+#if defined(ESP32)
+            case 10:
+                mMono = NULL;   // ePaper does not use this
+                mRefreshCycle = 0;
+                mEpaper.config(mCfg->rot, mCfg->pwrSaveAtIvOffline);
+                mEpaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
+                break;
+#endif
+
+            default: mMono = NULL; break;
+        }
+        if(mMono) {
             mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
-        } else if (mCfg->type >= 10) {
-#if defined(ESP32)
-            mRefreshCycle = 0;
-            mEpaper.config(mCfg->rot, mCfg->pwrSaveAtIvOffline);
-            mEpaper.init(mCfg->type, mCfg->disp_cs, mCfg->disp_dc, mCfg->disp_reset, mCfg->disp_busy, mCfg->disp_clk, mCfg->disp_data, mUtcTs, mVersion);
-#endif
         }
     }
 
@@ -89,7 +89,7 @@ class Display {
             if (iv == NULL)
                 continue;
 
-            if (iv->isProducing(*mUtcTs))
+            if (iv->isProducing())
                 isprod++;
 
             totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
@@ -97,14 +97,16 @@ class Display {
             totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
         }
 
-        if ((0 < mCfg->type) && (mCfg->type < 10) && (mMono != NULL)) {
+        if (mMono ) {
             mMono->disp(totalPower, totalYieldDay, totalYieldTotal, isprod);
-        } else if (mCfg->type >= 10) {
+        }
 #if defined(ESP32)
+        else if (mCfg->type == 10) {
+
             mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
             mRefreshCycle++;
-#endif
         }
+#endif
 
 #if defined(ESP32)
         if (mRefreshCycle > 480) {

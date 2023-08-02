@@ -6,12 +6,12 @@
 #pragma once
 #include "Display_Mono.h"
 
-class DisplayMono84X48 : public DisplayMono {
+class DisplayMono64X48 : public DisplayMono {
     public:
-        DisplayMono84X48() : DisplayMono() {
+        DisplayMono64X48() : DisplayMono() {
             mEnPowerSafe = true;
-            mEnScreenSaver = true;
-            mLuminance = 60;
+            mEnScreenSaver = false;
+            mLuminance = 20;
             mExtra = 0;
             mDispY = 0;
             mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
@@ -23,7 +23,9 @@ class DisplayMono84X48 : public DisplayMono {
 
             u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
             mType = type;
-            mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
+
+            // Wemos OLed Shield is not defined in u8 lib -> use nearest compatible
+            mDisplay = new U8G2_SSD1306_64X48_ER_F_HW_I2C(rot, reset, clock, data);
 
             mUtcTs = utcTs;
 
@@ -34,8 +36,8 @@ class DisplayMono84X48 : public DisplayMono {
             mDisplay->setContrast(mLuminance);
 
             printText("AHOY!", 0);
-            printText("ahoydtu.de", 2);
-            printText(version, 3);
+            printText("ahoydtu.de", 1);
+            printText(version, 2);
             mDisplay->sendBuffer();
         }
 
@@ -75,17 +77,17 @@ class DisplayMono84X48 : public DisplayMono {
                     mDisplay->setPowerSave(mEnPowerSafe);
             }
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "D: %4.0f Wh", totalYieldDay);
             printText(mFmtText, 1);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", totalYieldTotal);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "T: %4.0f kWh", totalYieldTotal);
             printText(mFmtText, 2);
 
             IPAddress ip = WiFi.localIP();
             if (!(mExtra % 10) && (ip))
                 printText(ip.toString().c_str(), 3);
             else if (!(mExtra % 5)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "active Inv: %d", isprod);
                 printText(mFmtText, 3);
             } else if (NULL != mUtcTs)
                 printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
@@ -108,22 +110,25 @@ class DisplayMono84X48 : public DisplayMono {
         inline void setFont(uint8_t line) {
             switch (line) {
                 case 0:
-                    mDisplay->setFont(u8g2_font_logisoso16_tr);
+                    mDisplay->setFont(u8g2_font_fur11_tf);
+                    break;
+                case 1:
+                case 2:
+                    mDisplay->setFont(u8g2_font_6x10_tf);
                     break;
                 case 3:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
+                    mDisplay->setFont(u8g2_font_4x6_tr);
                     break;
-                default:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
+                case 4:
+                    mDisplay->setFont(u8g2_font_4x6_tr);
                     break;
             }
         }
 
         void printText(const char *text, uint8_t line) {
-            uint8_t dispX = (line == 0) ? 10 : 5;
+            uint8_t dispX = 0; //small display, use all we have
+            dispX += (mEnScreenSaver) ? (mExtra % 4) : 0;
             setFont(line);
-
-            dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
 };

@@ -28,9 +28,10 @@
 #endif
 
 const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
+const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
 const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
 
-template <class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class RestApi {
     public:
         RestApi() {
@@ -41,10 +42,11 @@ class RestApi {
             nr = 0;
         }
 
-        void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, AsyncWebServer *srv, settings_t *config) {
             mApp     = app;
             mSrv     = srv;
             mSys     = sys;
+            mRadio   = radio;
             mConfig  = config;
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
@@ -188,9 +190,12 @@ class RestApi {
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
+            String filename = ah::getDateTimeStrFile(gTimezone.toLocal(mApp->getTimestamp()));
+            filename += "_v" + String(mApp->getVersion());
+
             response->addHeader("Content-Type", "application/octet-stream");
             response->addHeader("Content-Description", "File Transfer");
-            response->addHeader("Content-Disposition", "attachment; filename=ahoy_setup.json");
+            response->addHeader("Content-Disposition", "attachment; filename=" + filename + "_ahoy_setup.json");
             request->send(response);
             fp.close();
         }
@@ -198,6 +203,9 @@ class RestApi {
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]   = mApp->getUptime();
+            obj[F("ts_now")]      = mApp->getTimestamp();
+            obj[F("version")]     = String(mApp->getVersion());
+            obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("menu_prot")]   = mApp->getProtection(request);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
@@ -212,9 +220,12 @@ class RestApi {
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
             #if !defined(ETHERNET)
             obj[F("ssid")]         = mConfig->sys.stationSsid;
+            obj[F("ap_pwd")]       = mConfig->sys.apPwd;
+            obj[F("hidd")]         = mConfig->sys.isHidden;
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
+            obj[F("sched_reboot")]    = (bool)mConfig->sys.schedReboot;
 
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
@@ -228,7 +239,7 @@ class RestApi {
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(request, obj);
 
-            getRadio(obj.createNestedObject(F("radio")));
+            getRadioNrf(obj.createNestedObject(F("radio")));
             getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
@@ -300,8 +311,8 @@ class RestApi {
             obj[F("rx_fail")]        = stat->rxFail;
             obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
             obj[F("frame_cnt")]      = stat->frmCnt;
-            obj[F("tx_cnt")]         = mSys->Radio.mSendCnt;
-            obj[F("retransmits")]    = mSys->Radio.mRetransmits;
+            obj[F("tx_cnt")]         = mRadio->mSendCnt;
+            obj[F("retransmits")]    = mRadio->mRetransmits;
         }
 
         void getInverterList(JsonObject obj) {
@@ -320,7 +331,7 @@ class RestApi {
                     obj2[F("version")]  = String(iv->getFwVersion());
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
-                        obj2[F("ch_yield_cor")][j] = iv->config->yieldCor[j];
+                        obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
                         obj2[F("ch_name")][j]      = iv->config->chName[j];
                         obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                     }
@@ -332,6 +343,8 @@ class RestApi {
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
+            obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
+            obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -345,6 +358,7 @@ class RestApi {
                 obj[F("version")]          = String(iv->getFwVersion());
                 obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
                 obj[F("ts_last_success")]  = rec->ts;
+                obj[F("generation")]       = iv->ivGen;
 
                 JsonArray ch = obj.createNestedArray("ch");
 
@@ -352,9 +366,16 @@ class RestApi {
                 uint8_t pos;
                 obj[F("ch_name")][0] = "AC";
                 JsonArray ch0 = ch.createNestedArray();
+                if(IV_HMT == iv->ivGen) {
+                    for (uint8_t fld = 0; fld < sizeof(acListHmt); fld++) {
+                        pos = (iv->getPosByChFld(CH0, acListHmt[fld], rec));
+                        ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                    }
+                } else  {
                 for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                     pos = (iv->getPosByChFld(CH0, acList[fld], rec));
                     ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                }
                 }
 
                 // DC
@@ -382,6 +403,7 @@ class RestApi {
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
             obj[F("port")] = String(mConfig->ntp.port);
+            obj[F("interval")] = String(mConfig->ntp.interval);
         }
 
         void getSun(JsonObject obj) {
@@ -403,11 +425,19 @@ class RestApi {
             obj[F("led_high_active")] = mConfig->led.led_high_active;
         }
 
-        void getRadio(JsonObject obj) {
+        void getRadioCmt(JsonObject obj) {
+            obj[F("csb")]  = mConfig->cmt.pinCsb;
+            obj[F("fcsb")] = mConfig->cmt.pinFcsb;
+            obj[F("irq")]  = mConfig->cmt.pinIrq;
+            obj[F("en")]   = (bool) mConfig->cmt.enabled;
+        }
+
+        void getRadioNrf(JsonObject obj) {
             obj[F("power_level")] = mConfig->nrf.amplifierPower;
-            obj[F("isconnected")] = mSys->Radio.isChipConnected();
-            obj[F("DataRate")] = mSys->Radio.getDataRate();
-            obj[F("isPVariant")] = mSys->Radio.isPVariant();
+            obj[F("isconnected")] = mRadio->isChipConnected();
+            obj[F("DataRate")] = mRadio->getDataRate();
+            obj[F("isPVariant")] = mRadio->isPVariant();
+            obj[F("en")]         = (bool) mConfig->nrf.enabled;
         }
 
         void getSerial(JsonObject obj) {
@@ -458,16 +488,16 @@ class RestApi {
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
                     invObj[F("version")]         = String(iv->getFwVersion());
-                    invObj[F("is_avail")]        = iv->isAvailable(mApp->getTimestamp());
-                    invObj[F("is_producing")]    = iv->isProducing(mApp->getTimestamp());
+                    invObj[F("is_avail")]        = iv->isAvailable();
+                    invObj[F("is_producing")]    = iv->isProducing();
                     invObj[F("ts_last_success")] = iv->getLastTs(rec);
                 }
             }
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mSys->Radio.isChipConnected())
-                warn.add(F("your NRF24 module can't be reached, check the wiring and pinout"));
-            else if(!mSys->Radio.isPVariant())
+            if(!mRadio->isChipConnected() && mConfig->nrf.enabled)
+                warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
+            else if(!mRadio->isPVariant() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
@@ -496,7 +526,8 @@ class RestApi {
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));
-            getRadio(obj.createNestedObject(F("radio")));
+            getRadioCmt(obj.createNestedObject(F("radioCmt")));
+            getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));
@@ -620,6 +651,7 @@ class RestApi {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         AsyncWebServer *mSrv;
         settings_t *mConfig;
 

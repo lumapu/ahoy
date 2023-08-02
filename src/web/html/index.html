@@ -62,10 +62,6 @@
                 getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
             }
 
-            function ts2Span(ts) {
-                return span(new Date(ts * 1000).toLocaleString('de-DE'));
-            }
-
             function parseGeneric(obj) {
                 if(exeOnce)
                     parseESP(obj);
@@ -88,8 +84,12 @@
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);
                 var dSpan = document.getElementById("date");
-                if(0 != obj["ts_now"])
-                    dSpan.innerHTML = date.toLocaleString('de-DE');
+                if(0 != obj["ts_now"]) {
+                    if(obj["ts_now"] < 1680000000)
+                        setTime();
+                    else
+                        dSpan.innerHTML = toIsoDateStr(date);
+                }
                 else {
                     dSpan.innerHTML = "";
                     var e = inp("set", "sync from browser", 0, ["btn"], "set", "button");
@@ -153,7 +153,7 @@
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {
                             var date = new Date(i["ts_last_success"] * 1000);
-                            p.append(span("-> last successful transmission: " + date.toLocaleString('de-DE')), br());
+                            p.append(span("-> last successful transmission: " + toIsoDateStr(date)), br());
                         }
                     }
                 }
@@ -186,7 +186,7 @@
 
             function tick() {
                 if(0 != ts)
-                    document.getElementById("date").innerHTML = (new Date((++ts) * 1000)).toLocaleString('de-DE');
+                    document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
                 if(++tickCnt >= 10) {
                     tickCnt = 0;
                     getAjax('/api/index', parse);

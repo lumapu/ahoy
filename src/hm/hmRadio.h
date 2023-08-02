@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __RADIO_H__
@@ -25,27 +25,6 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
 //-----------------------------------------------------------------------------
-// MACROS
-//-----------------------------------------------------------------------------
-#define CP_U32_LittleEndian(buf, v) ({ \
-    uint8_t *b = buf; \
-    b[0] = ((v >> 24) & 0xff); \
-    b[1] = ((v >> 16) & 0xff); \
-    b[2] = ((v >>  8) & 0xff); \
-    b[3] = ((v      ) & 0xff); \
-})
-
-#define CP_U32_BigEndian(buf, v) ({ \
-    uint8_t *b = buf; \
-    b[3] = ((v >> 24) & 0xff); \
-    b[2] = ((v >> 16) & 0xff); \
-    b[1] = ((v >>  8) & 0xff); \
-    b[0] = ((v      ) & 0xff); \
-})
-
-#define BIT_CNT(x)  ((x)<<3)
-
-//-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
 template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_SCLK_PIN, uint8_t MOSI_PIN = DEF_MOSI_PIN, uint8_t MISO_PIN = DEF_MISO_PIN>
@@ -53,7 +32,7 @@ class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             if(mSerialDebug) {
-                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
                 DBGPRINT(String(CE_PIN));
                 DBGPRINT(F(", CS_PIN: "));
                 DBGPRINT(String(CS_PIN));
@@ -105,8 +84,8 @@ class HmRadio {
             DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
-                #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S3
-                    mSpi = new SPIClass(FSPI);
+                #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+                    mSpi = new SPIClass(HSPI);
                 #else
                     mSpi = new SPIClass(VSPI);
                 #endif
@@ -242,21 +221,12 @@ class HmRadio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(invId, 24, isRetransmit, true);
+            sendPacket(invId, 24, isRetransmit);
         }
 
         void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
             initPacket(invId, mid, pid);
             sendPacket(invId, 10, isRetransmit, appendCrc16);
-        }
-
-        void dumpBuf(uint8_t buf[], uint8_t len) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:dumpBuf"));
-            for(uint8_t i = 0; i < len; i++) {
-                DHEX(buf[i]);
-                DBGPRINT(" ");
-            }
-            DBGPRINTLN("");
         }
 
         uint8_t getDataRate(void) {
@@ -291,17 +261,17 @@ class HmRadio {
                     p.len = len;
                     mNrf24.read(p.packet, len);
                     if (p.packet[0] != 0x00) {
-                        mBufCtrl.push(p);
-                        if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
+                    mBufCtrl.push(p);
+                    if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
                             isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
-                        else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
+                    else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
                             isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
                         else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
-                            isLastPackage = true;                       // response from dev control command
+                        isLastPackage = true;                       // response from dev control command
                     }
                 }
-                yield();
-            }
+                    yield();
+                }
             return isLastPackage;
         }
 
@@ -311,7 +281,7 @@ class HmRadio {
                 DHEX(mid);
                 DBGPRINT(F(" pid: "));
                 DBGHEXLN(pid);
-            }
+        }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -344,7 +314,7 @@ class HmRadio {
                 DBGPRINT("B Ch");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
-                dumpBuf(mTxBuf, len);
+                ah::dumpBuf(mTxBuf, len);
             }
 
             mNrf24.stopListening();

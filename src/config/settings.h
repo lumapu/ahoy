@@ -64,6 +64,7 @@ typedef struct {
     char adminPwd[PWD_LEN];
     uint16_t protectionMask;
     bool darkMode;
+    bool schedReboot;
 
 #if defined(ETHERNET)
     // ethernet
@@ -72,12 +73,15 @@ typedef struct {
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
+    char apPwd[PWD_LEN];
+    bool isHidden;
 #endif /* defined(ETHERNET) */
 
     cfgIp_t ip;
 } cfgSys_t;
 
 typedef struct {
+    bool enabled;
     uint16_t sendInterval;
     uint8_t maxRetransPerPyld;
     uint8_t pinCs;
@@ -90,8 +94,16 @@ typedef struct {
 } cfgNrf24_t;
 
 typedef struct {
+    bool enabled;
+    uint8_t pinCsb;
+    uint8_t pinFcsb;
+    uint8_t pinIrq;
+} cfgCmt_t;
+
+typedef struct {
     char addr[NTP_ADDR_LEN];
     uint16_t port;
+    uint16_t interval; // in minutes
 } cfgNtp_t;
 
 typedef struct {
@@ -126,9 +138,9 @@ typedef struct {
     bool enabled;
     char name[MAX_NAME_LENGTH];
     serial_u serial;
-    uint16_t chMaxPwr[4];
-    int32_t yieldCor[4];  // signed YieldTotal correction value
-    char chName[4][MAX_NAME_LENGTH];
+    uint16_t chMaxPwr[6];
+    double yieldCor[6];  // YieldTotal correction value
+    char chName[6][MAX_NAME_LENGTH];
 } cfgIv_t;
 
 typedef struct {
@@ -138,6 +150,8 @@ typedef struct {
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
+    bool startWithoutTime;
+    float yieldEffiency;
 } cfgInst_t;
 
 typedef struct {
@@ -163,6 +177,7 @@ typedef struct {
 typedef struct {
     cfgSys_t    sys;
     cfgNrf24_t  nrf;
+    cfgCmt_t    cmt;
     cfgNtp_t    ntp;
     cfgSun_t    sun;
     cfgSerial_t serial;
@@ -257,6 +272,9 @@ class settings {
                     mCfg.valid = true;
                     if(root.containsKey(F("wifi"))) jsonNetwork(root[F("wifi")]);
                     if(root.containsKey(F("nrf"))) jsonNrf(root[F("nrf")]);
+                    #if defined(ESP32)
+                    if(root.containsKey(F("cmt"))) jsonCmt(root[F("cmt")]);
+                    #endif
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
                     if(root.containsKey(F("serial"))) jsonSerial(root[F("serial")]);
@@ -281,6 +299,9 @@ class settings {
             JsonObject root = json.to<JsonObject>();
             jsonNetwork(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
+            #if defined(ESP32)
+            jsonCmt(root.createNestedObject(F("cmt")), true);
+            #endif
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
             jsonSerial(root.createNestedObject(F("serial")), true);
@@ -343,7 +364,7 @@ class settings {
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
             mCfg.sys.darkMode = false;
-
+            mCfg.sys.schedReboot = false;
             // restore temp settings
             #if defined(ETHERNET)
             memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
@@ -353,6 +374,8 @@ class settings {
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
+                snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
+                mCfg.sys.isHidden = false;
             }
             #endif /* defined(ETHERNET) */
 
@@ -368,9 +391,16 @@ class settings {
             mCfg.nrf.pinSclk           = DEF_SCLK_PIN;
 
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
+            mCfg.nrf.enabled           = true;
+
+            mCfg.cmt.pinCsb            = DEF_PIN_OFF;
+            mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
+            mCfg.cmt.pinIrq            = DEF_PIN_OFF;
+            mCfg.cmt.enabled           = false;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
             mCfg.ntp.port = DEF_NTP_PORT;
+            mCfg.ntp.interval = 720;
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
@@ -391,6 +421,8 @@ class settings {
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
+            mCfg.inst.startWithoutTime = false;
+            mCfg.inst.yieldEffiency    = 0.955f;
 
             mCfg.led.led0 = DEF_PIN_OFF;
             mCfg.led.led1 = DEF_PIN_OFF;
@@ -416,11 +448,14 @@ class settings {
                 #if !defined(ETHERNET)
                 obj[F("ssid")] = mCfg.sys.stationSsid;
                 obj[F("pwd")]  = mCfg.sys.stationPwd;
+                obj[F("ap_pwd")]  = mCfg.sys.apPwd;
+                obj[F("hidd")] = (bool) mCfg.sys.isHidden;
                 #endif /* !defined(ETHERNET) */
                 obj[F("dev")]  = mCfg.sys.deviceName;
                 obj[F("adm")]  = mCfg.sys.adminPwd;
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
+                obj[F("reb")] = (bool) mCfg.sys.schedReboot;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -430,11 +465,14 @@ class settings {
                 #if !defined(ETHERNET)
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
                 getChar(obj, F("pwd"), mCfg.sys.stationPwd, PWD_LEN);
+                getChar(obj, F("ap_pwd"), mCfg.sys.apPwd, PWD_LEN);
+                getVal<bool>(obj, F("hidd"), &mCfg.sys.isHidden);
                 #endif /* !defined(ETHERNET) */
                 getChar(obj, F("dev"), mCfg.sys.deviceName, DEVNAME_LEN);
                 getChar(obj, F("adm"), mCfg.sys.adminPwd, PWD_LEN);
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
+                getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
@@ -458,6 +496,7 @@ class settings {
                 obj[F("mosi")]      = mCfg.nrf.pinMosi;
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
                 obj[F("pwr")]       = mCfg.nrf.amplifierPower;
+                obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
                 getVal<uint8_t>(obj, F("maxRetry"), &mCfg.nrf.maxRetransPerPyld);
@@ -468,6 +507,11 @@ class settings {
                 getVal<uint8_t>(obj, F("mosi"), &mCfg.nrf.pinMosi);
                 getVal<uint8_t>(obj, F("miso"), &mCfg.nrf.pinMiso);
                 getVal<uint8_t>(obj, F("pwr"), &mCfg.nrf.amplifierPower);
+                #if !defined(ESP32)
+                mCfg.nrf.enabled = true; // ESP8266, read always as enabled
+                #else
+                mCfg.nrf.enabled = (bool) obj[F("en")];
+                #endif
                 if((obj[F("cs")] == obj[F("ce")])) {
                     mCfg.nrf.pinCs   = DEF_CS_PIN;
                     mCfg.nrf.pinCe   = DEF_CE_PIN;
@@ -479,13 +523,32 @@ class settings {
             }
         }
 
+        void jsonCmt(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("csb")]  = mCfg.cmt.pinCsb;
+                obj[F("fcsb")] = mCfg.cmt.pinFcsb;
+                obj[F("irq")]  = mCfg.cmt.pinIrq;
+                obj[F("en")]   = (bool) mCfg.cmt.enabled;
+            } else {
+                mCfg.cmt.pinCsb  = obj[F("csb")];
+                mCfg.cmt.pinFcsb = obj[F("fcsb")];
+                mCfg.cmt.pinIrq  = obj[F("irq")];
+                mCfg.cmt.enabled = (bool) obj[F("en")];
+            }
+        }
+
         void jsonNtp(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("addr")] = mCfg.ntp.addr;
                 obj[F("port")] = mCfg.ntp.port;
+                obj[F("intvl")] = mCfg.ntp.interval;
             } else {
                 getChar(obj, F("addr"), mCfg.ntp.addr, NTP_ADDR_LEN);
                 getVal<uint16_t>(obj, F("port"), &mCfg.ntp.port);
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.ntp.interval);
+
+                if(mCfg.ntp.interval < 5) // minimum 5 minutes
+                    mCfg.ntp.interval = 720; // default -> 12 hours
             }
         }
 
@@ -586,12 +649,21 @@ class settings {
                 obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
+                obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
             }
             else {
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
+                getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
+                getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+
+                if(mCfg.inst.yieldEffiency < 0.5)
+                    mCfg.inst.yieldEffiency = 1.0f;
+                else if(mCfg.inst.yieldEffiency > 1.0f)
+                    mCfg.inst.yieldEffiency = 1.0f;
             }
 
             JsonArray ivArr;
@@ -611,7 +683,7 @@ class settings {
                 obj[F("en")]   = (bool)cfg->enabled;
                 obj[F("name")] = cfg->name;
                 obj[F("sn")]   = cfg->serial.u64;
-                for(uint8_t i = 0; i < 4; i++) {
+                for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
                     obj[F("chName")][i] = cfg->chName[i];
@@ -620,7 +692,10 @@ class settings {
                 getVal<bool>(obj, F("en"), &cfg->enabled);
                 getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
-                for(uint8_t i = 0; i < 4; i++) {
+                uint8_t size = 4;
+                if(obj.containsKey(F("pwr")))
+                    size = obj[F("pwr")].size();
+                for(uint8_t i = 0; i < size; i++) {
                     if(obj.containsKey(F("yield"))) cfg->yieldCor[i] = obj[F("yield")][i];
                     if(obj.containsKey(F("pwr"))) cfg->chMaxPwr[i] = obj[F("pwr")][i];
                     if(obj.containsKey(F("chName"))) snprintf(cfg->chName[i], MAX_NAME_LENGTH, "%s", obj[F("chName")][i].as<const char*>());

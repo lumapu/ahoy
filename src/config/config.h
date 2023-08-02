@@ -84,7 +84,11 @@
 #define PACKET_BUFFER_SIZE      30
 
 // number of configurable inverters
-#define MAX_NUM_INVERTERS       10
+#if defined(ESP32)
+    #define MAX_NUM_INVERTERS   16
+#else
+    #define MAX_NUM_INVERTERS   4
+#endif
 
 // default serial interval
 #define SERIAL_INTERVAL         5
@@ -105,7 +109,10 @@
 #define DEF_MAX_RETRANS_PER_PYLD 5
 
 // number of seconds since last successful response, before inverter is marked inactive
-#define INACT_THRES_SEC         300
+#define INVERTER_INACT_THRES_SEC    5*60
+
+// number of seconds since last successful response, before inverter is marked offline
+#define INVERTER_OFF_THRES_SEC      15*60
 
 // threshold of minimum power on which the inverter is marked as inactive
 #define INACT_PWR_THRESH        3

@@ -12,8 +12,8 @@
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       6
-#define VERSION_PATCH       15
+#define VERSION_MINOR       7
+#define VERSION_PATCH       21
 
 //-------------------------------------
 typedef struct {
@@ -73,10 +73,6 @@ union serial_u {
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
 
-
-#define MQTT_STATUS_NOT_AVAIL_NOT_PROD      0
-#define MQTT_STATUS_AVAIL_NOT_PROD          1
-#define MQTT_STATUS_AVAIL_PROD              2
 
 enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 

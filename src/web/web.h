@@ -38,7 +38,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -459,10 +459,14 @@ class Web {
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
+            if (request->arg("ap_pwd") != "")
+                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
+            mConfig->sys.isHidden = (request->arg("hidd") == "on");
             #endif /* !defined(ETHERNET) */
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
+            mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
 
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
@@ -499,8 +503,16 @@ class Web {
                     memset(buf, 0, 20);
                 iv->config->serial.u64 = ah::Serial2u64(buf);
                 switch(iv->config->serial.b[4]) {
+                    case 0x24:
+                    case 0x22:
                     case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
+
+                    case 0x44:
+                    case 0x42:
                     case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
+
+                    case 0x64:
+                    case 0x62:
                     case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
                     default:  break;
                 }
@@ -509,8 +521,8 @@ class Web {
                 request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
 
                 // max channel power / name
-                for (uint8_t j = 0; j < 4; j++) {
-                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toInt();
+                for (uint8_t j = 0; j < 6; j++) {
+                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toDouble();
                     iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
                     request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
                 }
@@ -524,13 +536,16 @@ class Web {
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
+            mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
+            mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 9; i++) {
+            for (uint8_t i = 0; i < 12; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
-                    default: mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
+                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
                     case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_SCLK_PIN); break;
@@ -539,16 +554,24 @@ class Web {
                     case 6:  mConfig->led.led0 = pin; break;
                     case 7:  mConfig->led.led1 = pin; break;
                     case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 9:  mConfig->cmt.pinCsb   = pin; break;
+                    case 10: mConfig->cmt.pinFcsb  = pin; break;
+                    case 11: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
             // nrf24 amplifier power
             mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
+            mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
+
+            // cmt
+            mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
 
             // ntp
             if (request->arg("ntpAddr") != "") {
                 request->arg("ntpAddr").toCharArray(mConfig->ntp.addr, NTP_ADDR_LEN);
                 mConfig->ntp.port = request->arg("ntpPort").toInt() & 0xffff;
+                mConfig->ntp.interval = request->arg("ntpIntvl").toInt() & 0xffff;
             }
 
             // sun
@@ -585,7 +608,7 @@ class Web {
                 mConfig->serial.debug = (request->arg("serDbg") == "on");
                 mConfig->serial.showIv = (request->arg("serEn") == "on");
                 // Needed to log TX buffers to serial console
-                mSys->Radio.mSerialDebug = mConfig->serial.debug;
+                // mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
 
             // display
@@ -693,11 +716,15 @@ class Web {
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
+                        uint32_t nrfSendCnt;
+                        uint32_t nrfRetransmits;
+                        mApp->getNrfRadioCounters(&nrfSendCnt, &nrfRetransmits);
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
+                        metrics += radioStatistic(F("tx_cnt"),         nrfSendCnt);
+                        metrics += radioStatistic(F("retrans_cnt"),    nrfRetransmits);
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
@@ -725,7 +752,7 @@ class Web {
                     case metricsStateInverter3: // Information about all inverters configured : fit to one packet
                         metrics += "# TYPE ahoy_solar_inverter_is_available gauge\n";
                         metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_available {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isAvailable(mApp->getTimestamp());});
+                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isAvailable();});
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         metricsStep = metricsStateInverter4;
                         break;
@@ -733,7 +760,7 @@ class Web {
                     case metricsStateInverter4: // Information about all inverters configured : fit to one packet
                         metrics += "# TYPE ahoy_solar_inverter_is_producing gauge\n";
                         metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_producing {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isProducing(mApp->getTimestamp());});
+                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isProducing();});
                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Start Realtime Field loop
                         metricsFieldId = FLD_UDC;
@@ -767,7 +794,6 @@ class Web {
 
                                     // Try inverter channel (channel 0) or any channel with maxPwr > 0
                                     if (0 == channel || 0 != iv->config->chMaxPwr[channel-1]) {
-
                                         if (metricsFieldId == iv->getByteAssign(metricsChannelId, rec)->fieldId) {
                                             // This is the correct field to report
                                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));

@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 #include "helper.h"
+#include "dbg.h"
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
@@ -40,6 +41,15 @@ namespace ah {
         return String(str);
     }
 
+    String getDateTimeStrFile(time_t t) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "na");
+        else
+            sprintf(str, "%04d-%02d-%02d_%02d-%02d-%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+        return String(str);
+    }
+
     String getTimeStr(time_t t) {
         char str[9];
         if(0 == t)
@@ -63,5 +73,13 @@ namespace ah {
             ret |= (u64 << ((5-i) << 3));
         }
         return ret;
+    }
+
+    void dumpBuf(uint8_t buf[], uint8_t len) {
+        for(uint8_t i = 0; i < len; i++) {
+            DHEX(buf[i]);
+            DBGPRINT(" ");
+        }
+        DBGPRINTLN("");
     }
 }

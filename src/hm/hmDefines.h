@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
+// 2023 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -10,7 +10,7 @@
 #include <cstdint>
 
 // inverter generations
-enum {IV_HM = 0, IV_MI};
+enum {IV_HM = 0, IV_MI, IV_HMS, IV_HMT};
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
@@ -18,19 +18,22 @@ const char* const units[] = {"V", "A", "W", "Wh", "kWh", "Hz", "°C", "%", "var"
 
 // field types
 enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
-        FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_T, FLD_PF, FLD_EFF,
+        FLD_UAC, FLD_UAC_1N, FLD_UAC_2N, FLD_UAC_3N, FLD_UAC_12, FLD_UAC_23, FLD_UAC_31, FLD_IAC,
+        FLD_IAC_1, FLD_IAC_2, FLD_IAC_3, FLD_PAC, FLD_F, FLD_T, FLD_PF, FLD_EFF,
         FLD_IRR, FLD_Q, FLD_EVT, FLD_FW_VERSION, FLD_FW_BUILD_YEAR,
         FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_HW_ID,
         FLD_ACT_ACTIVE_PWR_LIMIT, /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE};
         
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
-        "U_AC", "I_AC", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
+        "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
+        "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
         "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","HWPartId",
         "active_PowerLimit", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode"};
 const char* const notAvail = "n/a";
 
 const uint8_t fieldUnits[] = {UNIT_V, UNIT_A, UNIT_W, UNIT_WH, UNIT_KWH, UNIT_KWH,
-        UNIT_V, UNIT_A, UNIT_W, UNIT_HZ, UNIT_C, UNIT_NONE, UNIT_PCT, UNIT_PCT, UNIT_VAR,
+        UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_A, UNIT_A, UNIT_A, UNIT_A,
+        UNIT_W, UNIT_HZ, UNIT_C, UNIT_NONE, UNIT_PCT, UNIT_PCT, UNIT_VAR,
         UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE};
 
 // mqtt discovery device classes
@@ -53,7 +56,7 @@ const byteAssign_fieldDeviceClass deviceFieldAssignment[] = {
     {FLD_UAC, DEVICE_CLS_VOLTAGE, STATE_CLS_MEASUREMENT},
     {FLD_IAC, DEVICE_CLS_CURRENT, STATE_CLS_MEASUREMENT},
     {FLD_PAC, DEVICE_CLS_PWR,     STATE_CLS_MEASUREMENT},
-    {FLD_F,   DEVICE_CLS_FREQ,    STATE_CLS_NONE},
+    {FLD_F,   DEVICE_CLS_FREQ,    STATE_CLS_MEASUREMENT},
     {FLD_T,   DEVICE_CLS_TEMP,    STATE_CLS_MEASUREMENT},
     {FLD_PF,  DEVICE_CLS_NONE,    STATE_CLS_NONE},
     {FLD_EFF, DEVICE_CLS_NONE,    STATE_CLS_NONE},
@@ -67,9 +70,9 @@ enum {CMD_CALC = 0xffff};
 
 
 // CH0 is default channel (freq, ac, temp)
-enum {CH0 = 0, CH1, CH2, CH3, CH4};
+enum {CH0 = 0, CH1, CH2, CH3, CH4, CH5, CH6};
 
-enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH};
+enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
 
 
 typedef struct {

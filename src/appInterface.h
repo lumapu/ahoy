@@ -34,7 +34,7 @@ class IApp {
 
         #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;
-        virtual void getAvailNetworks(JsonObject obj) = 0;
+        virtual bool getAvailNetworks(JsonObject obj) = 0;
         #endif /* defined(ETHERNET) */
 
         virtual uint32_t getUptime() = 0;
@@ -59,6 +59,9 @@ class IApp {
         virtual uint32_t getMqttTxCnt() = 0;
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
+
+        virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
+        //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
 };
 
 #endif /*__IAPP_H__*/

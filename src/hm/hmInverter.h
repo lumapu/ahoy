@@ -12,6 +12,7 @@
 #endif
 
 #include "hmDefines.h"
+#include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
 #include "../config/settings.h"
@@ -101,6 +102,13 @@ const calcFunc_t<T> calcFunctions[] = {
     { CALC_IRR_CH,  &calcIrradiation   }
 };
 
+enum class InverterStatus : uint8_t {
+    OFF,
+    STARTING,
+    PRODUCING,
+    WAS_PRODUCING,
+    WAS_ON
+};
 
 template <class REC_TYP>
 class Inverter {
@@ -122,6 +130,10 @@ class Inverter {
         //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
+        InverterStatus status;           // indicates the current inverter status
+
+        static uint32_t *timestamp;      // system timestamp
+        static cfgInst_t *generalConfig; // general inverter configuration from setup
 
         Inverter() {
             ivGen              = IV_HM;
@@ -134,6 +146,7 @@ class Inverter {
             //lastAlarmMsg       = "nothing";
             alarmMesIndex      = 0;
             isConnected        = false;
+            status             = InverterStatus::OFF;
         }
 
         ~Inverter() {
@@ -265,11 +278,13 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
-                        if (FLD_T == rec->assign[pos].fieldId) {
-                            // temperature is a signed value!
-                            rec->record[pos] = (REC_TYP)((int16_t)val) / (REC_TYP)(div);
+                        if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
+                            // temperature, Qvar, and power factor are a signed values
+                            rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                        } else if (FLD_YD == rec->assign[pos].fieldId) {
+                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
@@ -318,6 +333,9 @@ class Inverter {
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
+
+            // update status state-machine
+            isProducing();
         }
 
         /*inline REC_TYP getPowerLimit(void) {
@@ -371,25 +389,42 @@ class Inverter {
             }
         }
 
-        bool isAvailable(uint32_t timestamp) {
-           if((timestamp - recordMeas.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordInfo.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordConfig.ts) < INACT_THRES_SEC)
-                return true;
-            if((timestamp - recordAlarm.ts) < INACT_THRES_SEC)
-                return true;
-            return false;
+        bool isAvailable() {
+            bool avail = false;
+            if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordConfig.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+            if((*timestamp - recordAlarm.ts) < INVERTER_INACT_THRES_SEC)
+                avail = true;
+
+            if(avail) {
+                if(status < InverterStatus::PRODUCING)
+                    status = InverterStatus::STARTING;
+            } else {
+                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC)
+                    status = InverterStatus::OFF;
+                else
+                    status = InverterStatus::WAS_ON;
+            }
+
+            return avail;
         }
 
-        bool isProducing(uint32_t timestamp) {
+        bool isProducing() {
+            bool producing = false;
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:isProducing"));
-            if(isAvailable(timestamp)) {
-                uint8_t pos = getPosByChFld(CH0, FLD_PAC, &recordMeas);
-                return (getValue(pos, &recordMeas) > INACT_PWR_THRESH);
+            if(isAvailable()) {
+                producing = (getChannelFieldValue(CH0, FLD_PAC, &recordMeas) > INACT_PWR_THRESH);
+
+                if(producing)
+                    status = InverterStatus::PRODUCING;
+                else if(InverterStatus::PRODUCING == status)
+                    status = InverterStatus::WAS_PRODUCING;
             }
-            return false;
+            return producing;
         }
 
         uint16_t getFwVersion() {
@@ -421,22 +456,46 @@ class Inverter {
             switch (cmd) {
                 case RealTimeRunData_Debug:
                     if (INV_TYPE_1CH == type) {
-                        rec->length  = (uint8_t)(HM1CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm1chAssignment;
-                        rec->pyldLen = HM1CH_PAYLOAD_LEN;
-                        channels     = 1;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm1chAssignment;
+                            rec->pyldLen = HM1CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms1chAssignment;
+                            rec->pyldLen = HMS1CH_PAYLOAD_LEN;
+                        }
+                        channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
-                        rec->length  = (uint8_t)(HM2CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm2chAssignment;
-                        rec->pyldLen = HM2CH_PAYLOAD_LEN;
-                        channels     = 2;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM2CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm2chAssignment;
+                            rec->pyldLen = HM2CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS2CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms2chAssignment;
+                            rec->pyldLen = HMS2CH_PAYLOAD_LEN;
+                        }
+                        channels = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
-                        rec->length  = (uint8_t)(HM4CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hm4chAssignment;
-                        rec->pyldLen = HM4CH_PAYLOAD_LEN;
-                        channels     = 4;
+                        if(IV_HM == ivGen) {
+                            rec->length  = (uint8_t)(HM4CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm4chAssignment;
+                            rec->pyldLen = HM4CH_PAYLOAD_LEN;
+                        } else if(IV_HMS == ivGen) {
+                            rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hms4chAssignment;
+                            rec->pyldLen = HMS4CH_PAYLOAD_LEN;
+                        }
+                        channels = 4;
+                    }
+                    else if (INV_TYPE_6CH == type) {
+                        rec->length  = (uint8_t)(HMT6CH_LIST_LEN);
+                        rec->assign  = (byteAssign_t *)hmt6chAssignment;
+                        rec->pyldLen = HMT6CH_PAYLOAD_LEN;
+                        channels = 6;
                     }
                     else {
                         rec->length  = 0;
@@ -579,6 +638,11 @@ class Inverter {
         std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
         bool          mDevControlRequest; // true if change needed
 };
+
+template <class REC_TYP>
+uint32_t *Inverter<REC_TYP>::timestamp {0};
+template <class REC_TYP>
+cfgInst_t *Inverter<REC_TYP>::generalConfig {0};
 
 
 /**

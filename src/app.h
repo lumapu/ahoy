@@ -9,19 +9,23 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <RF24.h>
-#include <RF24_config.h>
 
 #include "appInterface.h"
 #include "config/settings.h"
 #include "defines.h"
 #include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
+#include "hm/hmRadio.h"
+#include "hms/hmsRadio.h"
+#include "hms/hmsPayload.h"
+#include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 #include "utils/crc.h"
 #include "utils/dbg.h"
 #include "utils/scheduler.h"
+#include "utils/improv.h"
 #include "web/RestApi.h"
 #include "web/web.h"
 #if defined(ETHERNET)
@@ -37,10 +41,14 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef HmPayload<HmSystemType> PayloadType;
-typedef MiPayload<HmSystemType> MiPayloadType;
+typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
+typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
+#ifdef ESP32
+typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
+typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
+#endif
 typedef Web<HmSystemType> WebType;
-typedef RestApi<HmSystemType> RestApiType;
+typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
@@ -63,8 +71,14 @@ class app : public IApp, public ah::Scheduler {
         void regularTickers(void);
 
         void handleIntr(void) {
-            mSys.Radio.handleIntr();
+            mNrfRadio.handleIntr();
         }
+
+        #ifdef ESP32
+        void handleHmsIntr(void) {
+            mCmtRadio.handleIntr();
+        }
+        #endif
 
         uint32_t getUptime() {
             return Scheduler::getUptime();
@@ -78,6 +92,10 @@ class app : public IApp, public ah::Scheduler {
             mShowRebootRequest = true; // only message on index, no reboot
             mSavePending = true;
             mSaveReboot = reboot;
+            if(reboot) {
+                onNetwork(false);
+                ah::Scheduler::resetTicker();
+            }
             once(std::bind(&app::tickSave, this), 3, "save");
             return true;
         }
@@ -111,8 +129,8 @@ class app : public IApp, public ah::Scheduler {
             mWifi.scanAvailNetworks();
         }
 
-        void getAvailNetworks(JsonObject obj) {
-            mWifi.getAvailNetworks(obj);
+        bool getAvailNetworks(JsonObject obj) {
+            return mWifi.getAvailNetworks(obj);
         }
 
         void setOnUpdate() {
@@ -177,8 +195,25 @@ class app : public IApp, public ah::Scheduler {
             return mWeb.isProtected(request);
         }
 
-        uint8_t getIrqPin(void) {
+        void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
+            *sendCnt = mNrfRadio.mSendCnt;
+            *retransmits = mNrfRadio.mRetransmits;
+        }
+
+        bool getNrfEnabled(void) {
+            return mConfig->nrf.enabled;
+        }
+
+        bool getCmtEnabled(void) {
+            return mConfig->cmt.enabled;
+        }
+
+        uint8_t getNrfIrqPin(void) {
             return mConfig->nrf.pinIrq;
+        }
+
+        uint8_t getCmtIrqPin(void) {
+            return mConfig->cmt.pinIrq;
         }
 
         String getTimeStr(uint32_t offset = 0) {
@@ -217,17 +252,19 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        HmSystemType mSys;
-
     private:
+        #define CHECK_AVAIL     true
+        #define SKIP_YIELD_DAY  true
+
         typedef std::function<void()> innerLoopCb;
 
         void resetSystem(void);
+        void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
-        void payloadEventListener(uint8_t cmd) {
+        void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             #if !defined(AP_ONLY)
             if (mMqttEnabled)
-                mMqtt.payloadEventListener(cmd);
+                mMqtt.payloadEventListener(cmd, iv);
             #endif
             if(mConfig->plugin.display.type != 0)
                mDisplay.payloadEventListener(cmd);
@@ -270,22 +307,11 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
-        /*void tickSerial(void) {
-            if(Serial.available() == 0)
-                return;
-
-            uint8_t buf[80];
-            uint8_t len = Serial.readBytes(buf, 80);
-            DPRINTLN(DBG_INFO, "got serial data, len: " + String(len));
-            for(uint8_t i = 0; i < len; i++) {
-                if((0 != i) && (i % 8 == 0))
-                    DBGPRINTLN("");
-                DBGPRINT(String(buf[i], HEX) + " ");
-            }
-            DBGPRINTLN("");
-        }*/
 
         innerLoopCb mInnerLoopCb;
+
+        HmSystemType mSys;
+        HmRadio<> mNrfRadio;
 
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
@@ -300,6 +326,13 @@ class app : public IApp, public ah::Scheduler {
         PayloadType mPayload;
         MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
+        #if !defined(ETHERNET)
+        Improv mImprov;
+        #endif
+        #ifdef ESP32
+        CmtRadioType mCmtRadio;
+        HmsPayloadType mHmsPayload;
+        #endif
 
         char mVersion[12];
         settings mSettings;
