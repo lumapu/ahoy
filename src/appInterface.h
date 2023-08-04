@@ -40,14 +40,17 @@ class IApp {
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
+#ifdef AHOY_MQTT_SUPPORT
         virtual void setMqttDiscoveryFlag() = 0;
         virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
+#endif
 
         virtual void ivSendHighPrio(Inverter<> *iv) = 0;
-
+#ifdef AHOY_MQTT_SUPPORT
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
+#endif
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 };

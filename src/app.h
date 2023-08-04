@@ -37,12 +37,15 @@ typedef HmPayload<HmSystemType> PayloadType;
 typedef MiPayload<HmSystemType> MiPayloadType;
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
+#ifdef AHOY_MQTT_SUPPORT
 typedef PubMqtt<HmSystemType> PubMqttType;
+#endif
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
 #include "plugins/Display/Display.h"
 typedef Display<HmSystemType> DisplayType;
+// #include <SoftwareSerial.h>
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -54,6 +57,7 @@ class app : public IApp, public ah::Scheduler {
         void loopStandard(void);
         void loopWifi(void);
         void onWifi(bool gotIp);
+        void cleanup_history(void);
         void regularTickers(void);
 
         void handleIntr(void) {
@@ -135,7 +139,7 @@ class app : public IApp, public ah::Scheduler {
         bool getRebootRequestState() {
             return mShowRebootRequest;
         }
-
+#ifdef AHOY_MQTT_SUPPORT
         void setMqttDiscoveryFlag() {
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1, "disCf");
         }
@@ -143,7 +147,7 @@ class app : public IApp, public ah::Scheduler {
         void setMqttPowerLimitAck(Inverter<> *iv) {
             mMqtt.setPowerLimitAck(iv);
         }
-
+#endif
         void ivSendHighPrio(Inverter<> *iv) {
             if(mIVCommunicationOn) { // only send commands if communcation is enabled
                 if (iv->ivGen == IV_HM)
@@ -152,7 +156,7 @@ class app : public IApp, public ah::Scheduler {
                     mMiPayload.ivSendHighPrio(iv);
             }
         }
-
+#ifdef AHOY_MQTT_SUPPORT
         bool getMqttIsConnected() {
             return mMqtt.isConnected();
         }
@@ -164,7 +168,7 @@ class app : public IApp, public ah::Scheduler {
         uint32_t getMqttRxCnt() {
             return mMqtt.getRxCnt();
         }
-
+#endif
         bool getProtection(AsyncWebServerRequest *request) {
             return mWeb.isProtected(request);
         }
@@ -205,21 +209,23 @@ class app : public IApp, public ah::Scheduler {
 
         HmSystemType mSys;
 
+
     private:
         typedef std::function<void()> innerLoopCb;
 
         void resetSystem(void);
 
         void payloadEventListener(uint8_t cmd) {
-            #if !defined(AP_ONLY)
+            #if !defined(AP_ONLY) && defined(AHOY_MQTT_SUPPORT)
             if (mMqttEnabled)
                 mMqtt.payloadEventListener(cmd);
             #endif
             if(mConfig->plugin.display.type != 0)
                mDisplay.payloadEventListener(cmd);
         }
-
+#ifdef AHOY_MQTT_SUPPORT
         void mqttSubRxCb(JsonObject obj);
+#endif
 
         void setupLed();
         void updateLed();
@@ -251,7 +257,11 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
-        /*void tickSerial(void) {
+        void check_hist_file (File file);
+        void show_history (String path);
+
+
+        /* void tickSerial(void) {
             if(Serial.available() == 0)
                 return;
 
@@ -264,7 +274,7 @@ class app : public IApp, public ah::Scheduler {
                 DBGPRINT(String(buf[i], HEX) + " ");
             }
             DBGPRINTLN("");
-        }*/
+        } */
 
         innerLoopCb mInnerLoopCb;
 
@@ -283,16 +293,19 @@ class app : public IApp, public ah::Scheduler {
         settings_t *mConfig;
         bool mSavePending;
         bool mSaveReboot;
+        bool mCritical;
 
         uint8_t mSendLastIvId;
         bool mSendFirst;
 
         statistics_t mStat;
 
+#ifdef AHOY_MQTT_SUPPORT
         // mqtt
         PubMqttType mMqtt;
-        bool mMqttReconnect;
         bool mMqttEnabled;
+#endif
+        bool mMqttReconnect;
 
         // sun
         int32_t mCalculatedTimezoneOffset;

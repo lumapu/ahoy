@@ -69,10 +69,17 @@ union serial_u {
     uint8_t  b[8];
 };
 
+
 #define MIN_SERIAL_INTERVAL     2 // 5
 #define MIN_SEND_INTERVAL       15
 #define MIN_MQTT_INTERVAL       60
 
+#define AHOY_HIST_PATH "/hist"
+// reduce resources and increase clarity for statistic output
+#define AHOY_MIN_PAC_SUN_HOUR 6
+#define AHOY_MAX_PAC_SUN_HOUR 20
+// average power interval in minutes
+#define AHOY_PAC_INTERVAL 10
 
 #define MQTT_STATUS_NOT_AVAIL_NOT_PROD      0
 #define MQTT_STATUS_AVAIL_NOT_PROD          1
