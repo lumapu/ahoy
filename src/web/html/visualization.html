@@ -241,7 +241,7 @@
             function parseCSV(data) {
                 document.getElementById("csv").innerHTML = data;
 
-                // the following line may not be distributed functionally with this project. See comment above
+                // the following line may not be distributed functionally with this project. See comment at the top area of this file about the commercial license of this chart lib
                 // mychart.update({data: {csv: document.getElementById("csv").innerHTML}});
             }
 
@@ -275,7 +275,7 @@
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
                         exeOnce = false;
 
-                        // This object may not be distributed functionally with this project. See comment above
+                        // This object may not be distributed functionally with this project. See the comment at the top area of this file about the commercial license of this chart lib
                         /*
                         mychart = Highcharts.chart('powerchart', {
                             accessibility: {
