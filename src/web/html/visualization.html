@@ -6,13 +6,29 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
     </head>
     <body>
+        <!-- The following lines are commented out because there is no right to distribute this
+        chart lib reference functionally with the CC BY-NC-SA 4.0 license of the AHOY DTU.
+        This chart lib has a proprietary and commercial license model. See their web site for details.
+        Therefore these lines are prepared for private testing only! Choose another chart lib with matching
+        open source license in case you want to distribute the chart function with this project. -->
+        <!--
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/modules/data.js"></script>
+        -->
+
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
                 <div id="live"></div>
+                <div id="powerchart"></div>
                 <p>Every <span id="refresh"></span> seconds the values are updated</p>
             </div>
         </div>
+        <pre id="dyn_csv_url" style="display:none">empty</pre>
+        <pre id="csv" style="display:none">empty</pre>
+        <pre id="chart_title" style="display:none">empty</pre>
+        <pre id="yaxis_grid_power_title" style="display:none">empty</pre>
+
         {#HTML_FOOTER}
         <script type="text/javascript">
             var exeOnce = true;
@@ -21,6 +37,7 @@
             var mNum = 0;
             var names = ["Voltage", "Current", "Power", "Yield Day", "Yield Total", "Irradiation"];
             var total = Array(5).fill(0);
+            var mychart;
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
@@ -31,7 +48,7 @@
             }
 
             function numBig(val, unit, des) {
-                return ml("div", {class: "col-6 col-sm-4 a-c"}, [
+                return ml("div", {class: "col-6 col-sm-4 col-md-3 a-c"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
                             ml("span", {class: "fs-5 fs-md-4"}, String(Math.round(val * 100) / 100)),
@@ -106,10 +123,22 @@
                         ml("div", {class: "p-2 iv-bg"}, [
                             ml("div", {class: "row"},[
                                 numBig(obj.ch[0][2], "W", "AC Power"),
+                                numBig(obj.ch[0][11], "W", "Max AC Power"),
                                 numBig(obj.ch[0][7], "Wh", "Yield Day"),
                                 numBig(obj.ch[0][6], "kWh", "Yield Total")
                             ]),
                             ml("div", {class: "hr"}),
+                            obj["grid_power"] ?
+                            ml("div", {class: "row mt-2"},[
+                                numMid(obj.ch[0][8], "W", "DC Power"),
+                                numMid(obj.grid_power, "W", "Grid Power"),
+                                numMid(obj.ch[0][0], "V", "Voltage"),
+                                numMid(obj.ch[0][1], "A", "Current"),
+                                numMid(obj.ch[0][3], "Hz", "Frequency"),
+                                numMid(obj.ch[0][9], "%", "Efficiency"),
+                                numMid(obj.ch[0][10], "var", "Reactive Power"),
+                                numMid(obj.ch[0][4], "", "Power Factor")
+                            ]) :
                             ml("div", {class: "row mt-2"},[
                                 numMid(obj.ch[0][8], "W", "DC Power"),
                                 numMid(obj.ch[0][0], "V", "Voltage"),
@@ -124,7 +153,7 @@
                 );
             }
 
-            function numCh(val, unit, des) {
+           function numCh(val, unit, des) {
                 return ml("div", {class: "col-12 col-sm-6 col-md-12 mb-2"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
@@ -145,6 +174,7 @@
                     ml("div", {class: "p-2 ch-bg"}, [
                         ml("div", {class: "row"}, [
                             numCh(vals[2], units[2], "Power"),
+                            numCh(vals[6], units[2], "Max Power"),
                             numCh(vals[5], units[5], "Irradiation"),
                             numCh(vals[3], units[3], "Yield Day"),
                             numCh(vals[4], units[4], "Yield Total"),
@@ -178,6 +208,7 @@
                 mNum++;
 
                 var chn = [];
+
                 for(var i = 1; i < obj.ch.length; i++) {
                     var name = obj.ch_name[i];
                     if(name.length == 0)
@@ -185,6 +216,7 @@
                     if(obj.ch_max_pwr[i] > 0) // show channel only if max mod pwr
                         chn.push(ch(name, obj.ch[i]));
                 }
+
                 mIvHtml.push(
                     ml("div", {}, [
                         ivHead(obj),
@@ -208,6 +240,13 @@
                 }
             }
 
+            function parseCSV(data) {
+                document.getElementById("csv").innerHTML = data;
+
+                // the following line may not be distributed functionally with this project. See comment above
+                // mychart.update({data: {csv: document.getElementById("csv").innerHTML}});
+            }
+
             function parse(obj) {
                 if(null != obj) {
                     parseGeneric(obj["generic"]);
@@ -222,16 +261,76 @@
                             break;
                         }
                     }
-                    document.getElementById("refresh").innerHTML = obj["refresh"];
                     if(true == exeOnce) {
+                        var r = document.querySelector(':root');
+                        var rs = getComputedStyle(r);
+
+                        document.getElementById("dyn_csv_url").innerHTML = document.baseURI.split ("\/live")[0] + "/get_chartdata/chartdata.csv";
+                        document.getElementById("refresh").innerHTML = obj["refresh"];
+                        if (obj["grid_power"]) {
+                            document.getElementById("chart_title").innerHTML = "Solar and Grid Power during Daylight";
+                            document.getElementById("yaxis_grid_power_title").innerHTML = "Grid Power in W";
+                        } else {
+                            document.getElementById("chart_title").innerHTML = "Solar Power during Daylight";
+                            document.getElementById("yaxis_grid_power_title").innerHTML = "";
+                        }
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
                         exeOnce = false;
-                    }
-                }
-                else
-                    document.getElementById("refresh").innerHTML = "n/a";
-            }
 
+                        // This object may not be distributed functionally with this project. See comment above
+                        /*
+                        mychart = Highcharts.chart('powerchart', {
+                            accessibility: {
+                                enabled: false
+                            },
+
+                            data: {
+                                csv: document.getElementById('csv').innerHTML,
+                                enablePolling: false,
+                                dataRefreshRate: 30
+                            },
+
+                            series: [{
+                                yAxis: 0,
+                                type: 'column',
+                            }, {
+                                yAxis: 1,
+                                type: 'areaspline',
+                                fillOpacity: 0.3
+                            }],
+
+                            yAxis: [{
+                                title: {
+                                    text: 'AC Power in W'
+                                }},
+                                {
+                                title: {
+                                    text: document.getElementById('yaxis_grid_power_title').innerHTML
+                                },
+                                opposite: true
+                                }
+                            ],
+
+                            title: {
+                                text: document.getElementById('chart_title').innerHTML
+                            },
+
+                            subtitle: {
+                                text: 'Values averaged every 10 minutes'
+                            },
+
+                            legend: {
+                                enabled: false
+                            },
+                            colors: [rs.getPropertyValue('--iv-head-bg'), '#ffa500']
+                        });
+                        */
+                    }
+                } else {
+                    document.getElementById("refresh").innerHTML = "n/a";
+                }
+                getCSV(document.getElementById("dyn_csv_url").innerHTML, parseCSV)
+            }
             getAjax("/api/live", parse);
         </script>
     </body>
