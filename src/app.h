@@ -8,7 +8,6 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <RF24.h>
 
 #include "appInterface.h"
 #include "config/settings.h"
@@ -29,6 +28,8 @@
 #include "web/RestApi.h"
 #include "web/web.h"
 #include "wifi/ahoywifi.h"
+
+#include <RF24.h> // position is relevant since version 1.4.7 of this library
 
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))

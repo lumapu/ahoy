@@ -221,9 +221,11 @@
                             break;
                         }
                     }
-                    document.getElementById("refresh").innerHTML = obj["refresh"];
+                    if(obj.refresh < 5)
+                        obj.refresh = 5;
+                    document.getElementById("refresh").innerHTML = obj.refresh;
                     if(true == exeOnce) {
-                        window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
+                        window.setInterval("getAjax('/api/live', parse)", obj.refresh * 1000);
                         exeOnce = false;
                     }
                 }

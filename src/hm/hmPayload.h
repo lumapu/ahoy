@@ -92,7 +92,7 @@ class HmPayload {
                 yield();
             }
             iv->doCalculations();
-            notify(0x0b);
+            notify(0x0b, iv);
         }*/
 
         void ivSendHighPrio(Inverter<> *iv) {
