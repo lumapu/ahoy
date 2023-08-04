@@ -378,7 +378,7 @@ void app::tickSend(void) {
     if (mIVCommunicationOn) {
         if (!mSys.Radio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
-                DPRINT(DBG_INFO, F("recbuf not empty! #"));
+                DPRINT(DBG_DEBUG, F("recbuf not empty! #"));
                 DBGPRINTLN(String(mSys.Radio.mBufCtrl.size()));
             }
         }
@@ -392,15 +392,11 @@ void app::tickSend(void) {
 
         if (NULL != iv) {
             if (iv->config->enabled) {
-                    if (iv->ivGen == IV_HM)
-                        mPayload.ivSend(iv);
-                    else
-                        mMiPayload.ivSend(iv);
-            } else {
-                DPRINTLN (DBG_INFO, "iv not enabled");
+                if (iv->ivGen == IV_HM)
+                    mPayload.ivSend(iv);
+                else
+                    mMiPayload.ivSend(iv);
             }
-        } else {
-            DPRINTLN (DBG_INFO, "no inverter");
         }
     } else {
         if (mConfig->serial.debug)

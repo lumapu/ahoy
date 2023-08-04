@@ -45,7 +45,6 @@ typedef PubSerial<HmSystemType> PubSerialType;
 // PLUGINS
 #include "plugins/Display/Display.h"
 typedef Display<HmSystemType> DisplayType;
-// #include <SoftwareSerial.h>
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -57,7 +56,6 @@ class app : public IApp, public ah::Scheduler {
         void loopStandard(void);
         void loopWifi(void);
         void onWifi(bool gotIp);
-        void cleanup_history(void);
         void regularTickers(void);
 
         void handleIntr(void) {
@@ -209,7 +207,6 @@ class app : public IApp, public ah::Scheduler {
 
         HmSystemType mSys;
 
-
     private:
         typedef std::function<void()> innerLoopCb;
 
@@ -257,10 +254,6 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
-        void check_hist_file (File file);
-        void show_history (String path);
-
-
         /* void tickSerial(void) {
             if(Serial.available() == 0)
                 return;
@@ -274,7 +267,8 @@ class app : public IApp, public ah::Scheduler {
                 DBGPRINT(String(buf[i], HEX) + " ");
             }
             DBGPRINTLN("");
-        } */
+        }*/
+        void show_history (String path);
 
         innerLoopCb mInnerLoopCb;
 
@@ -293,7 +287,6 @@ class app : public IApp, public ah::Scheduler {
         settings_t *mConfig;
         bool mSavePending;
         bool mSaveReboot;
-        bool mCritical;
 
         uint8_t mSendLastIvId;
         bool mSendFirst;
