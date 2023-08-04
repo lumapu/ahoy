@@ -30,7 +30,7 @@ iconSuccess = [
     "M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"
 ];
 
-/**
+ /**
  * GENERIC FUNCTIONS
  */
 function ml(tagName, ...args) {
@@ -140,21 +140,13 @@ function getCSV(url, ptr) {
     if(xhr != null) {
        xhr.open("GET", url, true);
        xhr.onreadystatechange = q;
-       try {
-           xhr.send();
-       } catch (error) {
-           console.log(error.message);
-       }
+       xhr.send();
     }
     function q() {
         if(xhr.readyState == 4) {
             if(null != xhr.responseText) {
                 if(null != ptr) {
-                    try {
-                        ptr(xhr.responseText);
-                    } catch (error) {
-                        console.log(error.message);
-                    }
+                    ptr(xhr.responseText);
                 }
             }
         }
@@ -168,22 +160,13 @@ function getAjax(url, ptr, method="GET", json=null) {
        xhr.onreadystatechange = p;
        if("POST" == method)
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-       try {
-           xhr.send(json);
-       } catch (error) {
-           console.log(error.message);
-       }
+       xhr.send(json);
     }
     function p() {
         if(xhr.readyState == 4) {
             if(null != xhr.responseText) {
-                if(null != ptr) {
-                    try {
-                        ptr(JSON.parse(xhr.responseText));
-                    } catch (error) {
-                        console.log(error.message);
-                    }
-                }
+                if(null != ptr)
+                    ptr(JSON.parse(xhr.responseText));
             }
         }
     }
