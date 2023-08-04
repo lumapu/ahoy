@@ -77,36 +77,36 @@ class RestApi {
 
 
             String path = request->url().substring(5);
-                AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
-                JsonObject root = response->getRoot();
-                if(path == "html/system")         getHtmlSystem(request, root);
-                else if(path == "html/logout")    getHtmlLogout(request, root);
-                else if(path == "html/reboot")    getHtmlReboot(request, root);
-                else if(path == "html/save")      getHtmlSave(request, root);
-                else if(path == "system")         getSysInfo(request, root);
-                else if(path == "generic")        getGeneric(request, root);
-                else if(path == "reboot")         getReboot(request, root);
-                else if(path == "statistics")     getStatistics(root);
-                else if(path == "inverter/list")  getInverterList(root);
-                else if(path == "index")          getIndex(request, root);
-                else if(path == "setup")          getSetup(request, root);
-                else if(path == "setup/networks") getNetworks(root);
-                else if(path == "live")           getLive(request, root);
-                else if(path == "record/info")    getRecord(root, InverterDevInform_All);
-                else if(path == "record/alarm")   getRecord(root, AlarmData);
-                else if(path == "record/config")  getRecord(root, SystemConfigPara);
-                else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
-                else {
-                    if(path.substring(0, 12) == "inverter/id/")
-                        getInverter(root, request->url().substring(17).toInt());
-                    else
-                        getNotFound(root, F("http://") + request->host() + F("/api/"));
-                }
-                //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
-                response->addHeader("Access-Control-Allow-Origin", "*");
-                response->addHeader("Access-Control-Allow-Headers", "content-type");
-                response->setLength();
-                request->send(response);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            JsonObject root = response->getRoot();
+            if(path == "html/system")         getHtmlSystem(request, root);
+            else if(path == "html/logout")    getHtmlLogout(request, root);
+            else if(path == "html/reboot")    getHtmlReboot(request, root);
+            else if(path == "html/save")      getHtmlSave(request, root);
+            else if(path == "system")         getSysInfo(request, root);
+            else if(path == "generic")        getGeneric(request, root);
+            else if(path == "reboot")         getReboot(request, root);
+            else if(path == "statistics")     getStatistics(root);
+            else if(path == "inverter/list")  getInverterList(root);
+            else if(path == "index")          getIndex(request, root);
+            else if(path == "setup")          getSetup(request, root);
+            else if(path == "setup/networks") getNetworks(root);
+            else if(path == "live")           getLive(request, root);
+            else if(path == "record/info")    getRecord(root, InverterDevInform_All);
+            else if(path == "record/alarm")   getRecord(root, AlarmData);
+            else if(path == "record/config")  getRecord(root, SystemConfigPara);
+            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
+            else {
+                if(path.substring(0, 12) == "inverter/id/")
+                    getInverter(root, request->url().substring(17).toInt());
+                else
+                    getNotFound(root, F("http://") + request->host() + F("/api/"));
+            }
+            //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Allow-Headers", "content-type");
+            response->setLength();
+            request->send(response);
         }
 
         void onApiPost(AsyncWebServerRequest *request) {
@@ -748,13 +748,13 @@ class RestApi {
                 mApp->setTimestamp(jsonIn[F("val")]);
             else if(F("sync_ntp") == jsonIn[F("cmd")])
                 mApp->setTimestamp(0); // 0: update ntp flag
-            else if(F("serial_utc_offset") == jsonIn[F("cmd")]) {
+            else if(F("serial_utc_offset") == jsonIn[F("cmd")])
                 mTimezoneOffset = jsonIn[F("val")];
 #ifdef AHOY_MQTT_SUPPORT
-            else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
+            else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
 #endif
-            } else {
+            else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
             }
