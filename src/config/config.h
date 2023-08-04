@@ -71,8 +71,8 @@
 // number of packets hold in buffer
 #define PACKET_BUFFER_SIZE      30
 
-// number of configurable inverters
-#define MAX_NUM_INVERTERS       10
+// number of configurable inverters (increase if you need, and if there is enough heap available for stable operation)
+#define MAX_NUM_INVERTERS       2
 
 // default serial interval
 #define SERIAL_INTERVAL         5
@@ -110,6 +110,15 @@
 // NTP refresh interval in ms (default 12h)
 #define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
 
+#define AHOY_SML_OBIS_SUPPORT
+#ifdef AHOY_SML_OBIS_SUPPORT
+#define AHOY_CHARTDATA_HDR "Time, AC Power, Net Power"
+#else
+#define AHOY_CHARTDATA_HDR "Time, AC Power"
+#endif
+
+// #define AHOY_MQTT_SUPPORT
+
 // default mqtt interval
 #define MQTT_INTERVAL           90
 
@@ -127,6 +136,9 @@
 
 // default MQTT topic
 #define DEF_MQTT_TOPIC         "inverter"
+
+
+
 
 // discovery prefix
 #define MQTT_DISCOVERY_PREFIX   "homeassistant"
