@@ -32,7 +32,17 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
 
     DPRINTLN(DBG_INFO, F("[ETH]: begin..."));
     Serial.flush();
+    if(mConfig->sys.ip.ip[0] != 0) {
+        IPAddress ip(mConfig->sys.ip.ip);
+        IPAddress mask(mConfig->sys.ip.mask);
+        IPAddress dns1(mConfig->sys.ip.dns1);
+        IPAddress dns2(mConfig->sys.ip.dns2);
+        IPAddress gateway(mConfig->sys.ip.gateway);
+        if(!ETH.config(ip, gateway, mask, dns1, dns2))
+            DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
+    }
     ETH.begin(ETH_MISO_GPIO, ETH_MOSI_GPIO, ETH_SCK_GPIO, ETH_CS_PIN, ETH_INT_GPIO, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
+
 }
 
 
