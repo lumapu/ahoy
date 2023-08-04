@@ -8,6 +8,10 @@
 
 #include "hmInverter.h"
 #include "hmRadio.h"
+#include "../config/settings.h"
+
+#define AC_POWER_PATH AHOY_HIST_PATH "/ac_power"
+#define AC_FORMAT_FILE_NAME "%02u_%02u_%04u.bin"
 
 template <uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
@@ -21,7 +25,8 @@ class HmSystem {
             Radio.setup();
         }
 
-        void setup(uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
+        void setup(uint32 *timestamp, uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
+            mTimestamp = timestamp;
             mNumInv = 0;
             Radio.setup(ampPwr, irqPin, cePin, csPin, sclkPin, mosiPin, misoPin);
         }
@@ -128,9 +133,179 @@ class HmSystem {
             Radio.enableDebug();
         }
 
+        //-----------------------------------------------------------------------------
+        void cleanup_history ()
+        {
+            time_t time_today;
+            INVERTERTYPE *p;
+            uint16_t i;
+
+            time_today = *mTimestamp;
+
+            cur_pac_index = 0;
+            for (i = 0, p = mInverter; i < MAX_NUM_INVERTERS; i++, p++) {
+                p->pac_cnt = 0;
+                p->pac_sum = 0;
+            }
+
+            if (time_today) {
+                Dir ac_power_dir;
+                struct tm tm_today;
+                char cur_file_name[sizeof (AC_FORMAT_FILE_NAME)];
+
+                localtime_r (&time_today, &tm_today);
+                snprintf (cur_file_name, sizeof (cur_file_name), AC_FORMAT_FILE_NAME,
+                    tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+                ac_power_dir = LittleFS.openDir (AC_POWER_PATH);
+                /* design: no dataserver, cleanup old history */
+
+                while (ac_power_dir.next()) {
+                    if (ac_power_dir.fileName() != cur_file_name) {
+                        DPRINTLN (DBG_INFO, "Remove file " + ac_power_dir.fileName() +
+                            ", Size: " + String (ac_power_dir.fileSize()));
+                        LittleFS.remove (AC_POWER_PATH "/" + ac_power_dir.fileName());
+                    }
+                }
+            } else {
+                DPRINTLN (DBG_WARN, "cleanup_history, no time yet");
+            }
+        }
+
+        //-----------------------------------------------------------------------------
+        File open_hist ()
+        {
+            File file = (File) NULL;
+            char file_name[sizeof (AC_POWER_PATH) + sizeof (AC_FORMAT_FILE_NAME)];
+            time_t time_today = *mTimestamp;
+            struct tm tm_today;
+
+            localtime_r (&time_today, &tm_today);
+            snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
+                tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+            file = LittleFS.open (file_name, "r");
+            if (!file) {
+                DPRINT (DBG_WARN, "open_hist, failed to open ");
+                DBGPRINTLN (file_name);
+            }
+            return file;
+        }
+
+        //-----------------------------------------------------------------------------
+        bool has_pac_value ()
+        {
+            if (*mTimestamp) {
+                INVERTERTYPE *p;
+                uint16_t i;
+
+                for (i = 0, p = mInverter; i < MAX_NUM_INVERTERS; i++, p++) {
+                    if (p->config->serial.u64 && p->isConnected && p->pac_cnt) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        //-----------------------------------------------------------------------------
+        uint16_t get_pac_average (bool cleanup)
+        {
+            uint32_t pac_average = 0;
+            INVERTERTYPE *p;
+            uint16_t i;
+
+            for (i = 0, p = mInverter; i < MAX_NUM_INVERTERS; i++, p++) {
+                if (p->config->serial.u64 && p->isConnected && p->pac_cnt) {
+                    pac_average += (p->pac_sum + (p->pac_cnt >> 1)) / p->pac_cnt;
+                }
+                if (cleanup) {
+                    p->pac_sum = 0;
+                    p->pac_cnt = 0;
+                }
+            }
+            if (pac_average > UINT16_MAX) {
+                pac_average = UINT16_MAX;
+            }
+            return (uint16_t)pac_average;
+        }
+
+        //-----------------------------------------------------------------------------
+        bool get_cur_value (uint16_t *interval, uint16_t *pac)
+        {
+            if (has_pac_value()) {
+                *interval = cur_pac_index;
+                *pac = get_pac_average (false);
+                return true;
+            }
+            DPRINTLN (DBG_INFO, "get_cur_value: none");
+            return false;
+        }
+
+        //-----------------------------------------------------------------------------
+        void close_hist (File file)
+        {
+            if (file) {
+                file.close ();
+            }
+        }
+
+        //-----------------------------------------------------------------------------
+        void handle_pac (INVERTERTYPE *p, uint16_t pac)
+        {
+           if (*mTimestamp) {
+                uint32_t pac_index = gTimezone.toLocal (*mTimestamp);
+
+                pac_index = hour(pac_index) * 60 + minute(pac_index);
+                pac_index /= AHOY_PAC_INTERVAL;
+                if (pac_index != cur_pac_index) {
+                    if (has_pac_value ()) {
+                        /* calc sum of all inverter averages for last interval */
+                        /* and cleanup all counts and sums */
+                        uint16_t pac_average = get_pac_average(true);
+                        File file;
+                        char file_name[sizeof (AC_POWER_PATH) + sizeof (AC_FORMAT_FILE_NAME)];
+                        time_t time_today = *mTimestamp;
+                        struct tm tm_today;
+
+                        localtime_r (&time_today, &tm_today);
+                        snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
+                            tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+                        // append last average
+                        if ((file = LittleFS.open (file_name, "a"))) {
+                            unsigned char buf[4];
+                            buf[0] = cur_pac_index & 0xff;
+                            buf[1] = cur_pac_index >> 8;
+                            buf[2] = pac_average & 0xff;
+                            buf[3] = pac_average >> 8;
+                            if (file.write (buf, sizeof (buf)) != sizeof (buf)) {
+                                DPRINTLN (DBG_WARN, "handle_pac, failed_to_write");
+                            } else {
+                                DPRINTLN (DBG_DEBUG, "handle_pac, write to " + String(file_name));
+                            }
+                            file.close ();
+                        } else {
+                            DPRINTLN (DBG_WARN, "handle_pac, failed to open");
+                        }
+                    }
+                    cur_pac_index = pac_index;
+                }
+                if ((pac_index >= AHOY_MIN_PAC_SUN_HOUR * 60 / AHOY_PAC_INTERVAL) &&
+                        (pac_index < AHOY_MAX_PAC_SUN_HOUR * 60 / AHOY_PAC_INTERVAL)) {
+                    p->pac_sum += pac;
+                    p->pac_cnt++;
+                } else {
+                    DPRINTLN (DBG_INFO, "handle_pac, outside daylight, minutes: " + String (pac_index * AHOY_PAC_INTERVAL));
+                }
+            } else {
+                DPRINTLN (DBG_INFO, "handle_pac, no time2");
+            }
+        }
+
     private:
         INVERTERTYPE mInverter[MAX_INVERTER];
         uint8_t mNumInv;
+        uint32_t *mTimestamp;
+        uint16_t cur_pac_index;
+
 };
 
 #endif /*__HM_SYSTEM_H__*/

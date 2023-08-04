@@ -48,6 +48,12 @@ template<class T=float>
 static T calcIrradiation(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
+static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
 
 template<class T=float>
@@ -98,7 +104,9 @@ const calcFunc_t<T> calcFunctions[] = {
     { CALC_UDC_CH,  &calcUdcCh         },
     { CALC_PDC_CH0, &calcPowerDcCh0    },
     { CALC_EFF_CH0, &calcEffiencyCh0   },
-    { CALC_IRR_CH,  &calcIrradiation   }
+    { CALC_IRR_CH,  &calcIrradiation   },
+    { CALC_MPAC_CH0, &calcMaxPowerAcCh0   },
+    { CALC_MPDC_CH, &calcMaxPowerDc   }
 };
 
 
@@ -122,6 +130,8 @@ class Inverter {
         //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
+        uint32_t      pac_sum;           // average calc for Highcharts: sum of ac power values for cur interval
+        uint16_t      pac_cnt;           // average calc for Highcharts: number of ac power values for cur interval
 
         Inverter() {
             ivGen              = IV_HM;
@@ -143,9 +153,11 @@ class Inverter {
         template <typename T>
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
+#ifdef undef
            DPRINT_IVID(DBG_INFO, id);
            DBGPRINT(F("enqueCommand: 0x"));
            DBGHEXLN(cmd);
+#endif
         }
 
         void setQueuedCmdFinished() {
@@ -675,6 +687,47 @@ static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
             return iv->getValue(pos, rec) / iv->config->chMaxPwr[arg0-1] * 100.0f;
     }
     return 0.0;
+}
+
+template<class T=float>
+static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerAcCh0"));
+    T acMaxPower = 0.0;
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC, rec);
+        T acPower = iv->getValue(pos, rec);
+
+        for(uint8_t i = 0; i < rec->length; i++) {
+            if((FLD_MP == rec->assign[i].fieldId) && (0 == rec->assign[i].ch)) {
+                acMaxPower = iv->getValue(i, rec);
+            }
+        }
+        if(acPower > acMaxPower)
+            return acPower;
+    }
+    return acMaxPower;
+}
+
+template<class T=float>
+static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerDc"));
+    // arg0 = channel
+    T dcMaxPower = 0.0;
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC, rec);
+        T dcPower = iv->getValue(pos, rec);
+
+        for(uint8_t i = 0; i < rec->length; i++) {
+            if((FLD_MP == rec->assign[i].fieldId) && (arg0 == rec->assign[i].ch)) {
+                dcMaxPower = iv->getValue(i, rec);
+            }
+        }
+        if(dcPower > dcMaxPower)
+            return dcPower;
+    }
+    return dcMaxPower;
 }
 
 #endif /*__HM_INVERTER_H__*/

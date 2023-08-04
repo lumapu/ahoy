@@ -11,6 +11,7 @@
 #include "../utils/crc.h"
 #include "../config/config.h"
 #include <Arduino.h>
+#include <Timezone.h>
 
 typedef struct {
     uint32_t ts;
@@ -311,7 +312,9 @@ const byteAssign_t InfoAssignment[] = {
                 iv->clearDevControlRequest();
 
                 if ((p->packet[9] == 0x5a) && (p->packet[10] == 0x5a)) {
+#ifdef AHOY_MQTT_SUPPORT
                     mApp->setMqttPowerLimitAck(iv);
+#endif
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINT(F("has accepted power limit set point "));
                     DBGPRINT(String(iv->powerLimit[0]));
@@ -747,7 +750,6 @@ const byteAssign_t InfoAssignment[] = {
             }
             ac_pow = (int) (ac_pow*9.5);
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
-
             iv->doCalculations();
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;

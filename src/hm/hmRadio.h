@@ -306,12 +306,14 @@ class HmRadio {
         }
 
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
+#ifdef undef
             if(mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
                 DHEX(mid);
                 DBGPRINT(F(" pid: "));
                 DBGHEXLN(pid);
             }
+#endif
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
@@ -341,10 +343,14 @@ class HmRadio {
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
                 DBGPRINT(String(len));
+#ifdef undef
                 DBGPRINT("B Ch");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 dumpBuf(mTxBuf, len);
+#else
+                DBGPRINTLN (" Bytes");
+#endif
             }
 
             mNrf24.stopListening();
