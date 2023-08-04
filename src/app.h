@@ -254,7 +254,7 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
-        /* void tickSerial(void) {
+        /*void tickSerial(void) {
             if(Serial.available() == 0)
                 return;
 
@@ -268,6 +268,7 @@ class app : public IApp, public ah::Scheduler {
             }
             DBGPRINTLN("");
         }*/
+        void check_hist_file (File file);
         void show_history (String path);
 
         innerLoopCb mInnerLoopCb;
