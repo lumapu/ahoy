@@ -92,14 +92,14 @@
                 total[2] += obj.ch[0][6]; // YieldTotal
                 total[3] += obj.ch[0][8]; // P_DC
                 total[4] += obj.ch[0][10]; // Q_AC
-                var t = span(" &deg; C");
+                var t = span("&nbsp;&deg;C");
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 iv-h"},
                             ml("div", {class: "row"}, [
                                 ml("div", {class: "col mx-2 mx-md-1"}, obj.name),
-                                ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + " %"))),
-                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5]) + t.innerHTML)
+                                ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + "&nbsp;%"))),
+                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5]) + t.innerText)
                             ])
                         ),
                         ml("div", {class: "p-2 iv-bg"}, [
@@ -221,9 +221,11 @@
                             break;
                         }
                     }
-                    document.getElementById("refresh").innerHTML = obj["refresh"];
+                    if(obj.refresh < 5)
+                        obj.refresh = 5;
+                    document.getElementById("refresh").innerHTML = obj.refresh;
                     if(true == exeOnce) {
-                        window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
+                        window.setInterval("getAjax('/api/live', parse)", obj.refresh * 1000);
                         exeOnce = false;
                     }
                 }

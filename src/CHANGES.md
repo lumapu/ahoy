@@ -1,5 +1,15 @@
 # Development Changes
 
+## 0.7.23 - 2023-08-04
+* merge PR #1056, visualization html
+* update MqTT library to 1.4.4
+* update RF24 library to 1.4.7
+* update ArduinoJson library to 6.21.3
+* set minimum invervall for `/live` to 5 seconds
+
+## 0.7.22 - 2023-08-04
+* attempt to fix homeassistant auto discovery #1066
+
 ## 0.7.21 - 2023-07-30
 * fix MqTT YieldDay Total goes to 0 serveral times #1016
 

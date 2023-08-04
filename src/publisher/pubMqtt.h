@@ -184,23 +184,13 @@ class PubMqtt {
             if(!mClient.connected())
                 return;
 
-            if(addTopic){
+            if(addTopic)
                 snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
-            } else {
+            else
                 snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
-            }
 
-            do {
-                if(0 != mClient.publish(mTopic, QOS_0, retained, payload))
-                   break;
-                if(!mClient.connected())
-                    break;
-                #if defined(ESP8266)
-                mClient.loop();
-                #endif
-                yield();
-            } while(1);
-
+            mClient.publish(mTopic, QOS_0, retained, payload);
+            yield();
             mTxCnt++;
         }
 
@@ -391,9 +381,9 @@ class PubMqtt {
                 const char *devCls, *stateCls;
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
-                        snprintf(name, 32, "%s %s", iv->config->name, iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name, 32, "%s", iv->getFieldName(mDiscovery.sub, rec));
                     else
-                        snprintf(name, 32, "%s CH%d %s", iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name, 32, "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                     snprintf(topic, 64, "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                     snprintf(uniq_id, 32, "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
 
