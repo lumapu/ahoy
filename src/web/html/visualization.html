@@ -208,7 +208,6 @@
                 mNum++;
 
                 var chn = [];
-
                 for(var i = 1; i < obj.ch.length; i++) {
                     var name = obj.ch_name[i];
                     if(name.length == 0)
@@ -216,7 +215,6 @@
                     if(obj.ch_max_pwr[i] > 0) // show channel only if max mod pwr
                         chn.push(ch(name, obj.ch[i]));
                 }
-
                 mIvHtml.push(
                     ml("div", {}, [
                         ivHead(obj),
