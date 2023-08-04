@@ -112,7 +112,7 @@
 
 #define AHOY_SML_OBIS_SUPPORT
 #ifdef AHOY_SML_OBIS_SUPPORT
-#define AHOY_CHARTDATA_HDR "Time, AC Power, Net Power"
+#define AHOY_CHARTDATA_HDR "Time, AC Power, Grid Power"
 #else
 #define AHOY_CHARTDATA_HDR "Time, AC Power"
 #endif
@@ -136,9 +136,6 @@
 
 // default MQTT topic
 #define DEF_MQTT_TOPIC         "inverter"
-
-
-
 
 // discovery prefix
 #define MQTT_DISCOVERY_PREFIX   "homeassistant"
