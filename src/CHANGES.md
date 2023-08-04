@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.22 - 2023-08-04
+* attempt to fix homeassistant auto discovery #1066
+
 ## 0.7.21 - 2023-07-30
 * fix MqTT YieldDay Total goes to 0 serveral times #1016
 
