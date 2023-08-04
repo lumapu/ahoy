@@ -7,6 +7,7 @@
 #define __WEB_API_H__
 
 #include "../utils/dbg.h"
+#include "../config/config.h"
 #ifdef ESP32
 #include "AsyncTCP.h"
 #else
@@ -17,14 +18,15 @@
 #include "../utils/helper.h"
 #include "AsyncJson.h"
 #include "ESPAsyncWebServer.h"
+#include "../plugins/SML_OBIS_Parser.h"
 
 #if defined(F) && defined(ESP32)
 #undef F
 #define F(sl) (sl)
 #endif
 
-const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
-const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
+const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
 template <class HMSYSTEM>
 class RestApi {
@@ -45,8 +47,8 @@ class RestApi {
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
-
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
+            mSrv->on("/get_chartdata", HTTP_GET,  std::bind(&RestApi::onGetChartData, this, std::placeholders::_1));
         }
 
         uint32_t getTimezoneOffset(void) {
@@ -73,39 +75,38 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
-            JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
-            if(path == "html/system")         getHtmlSystem(request, root);
-            else if(path == "html/logout")    getHtmlLogout(request, root);
-            else if(path == "html/reboot")    getHtmlReboot(request, root);
-            else if(path == "html/save")      getHtmlSave(request, root);
-            else if(path == "system")         getSysInfo(request, root);
-            else if(path == "generic")        getGeneric(request, root);
-            else if(path == "reboot")         getReboot(request, root);
-            else if(path == "statistics")     getStatistics(root);
-            else if(path == "inverter/list")  getInverterList(root);
-            else if(path == "index")          getIndex(request, root);
-            else if(path == "setup")          getSetup(request, root);
-            else if(path == "setup/networks") getNetworks(root);
-            else if(path == "live")           getLive(request, root);
-            else if(path == "record/info")    getRecord(root, InverterDevInform_All);
-            else if(path == "record/alarm")   getRecord(root, AlarmData);
-            else if(path == "record/config")  getRecord(root, SystemConfigPara);
-            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
-            else {
-                if(path.substring(0, 12) == "inverter/id/")
-                    getInverter(root, request->url().substring(17).toInt());
-                else
-                    getNotFound(root, F("http://") + request->host() + F("/api/"));
-            }
-
-            //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
-            response->addHeader("Access-Control-Allow-Origin", "*");
-            response->addHeader("Access-Control-Allow-Headers", "content-type");
-            response->setLength();
-            request->send(response);
+                AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+                JsonObject root = response->getRoot();
+                if(path == "html/system")         getHtmlSystem(request, root);
+                else if(path == "html/logout")    getHtmlLogout(request, root);
+                else if(path == "html/reboot")    getHtmlReboot(request, root);
+                else if(path == "html/save")      getHtmlSave(request, root);
+                else if(path == "system")         getSysInfo(request, root);
+                else if(path == "generic")        getGeneric(request, root);
+                else if(path == "reboot")         getReboot(request, root);
+                else if(path == "statistics")     getStatistics(root);
+                else if(path == "inverter/list")  getInverterList(root);
+                else if(path == "index")          getIndex(request, root);
+                else if(path == "setup")          getSetup(request, root);
+                else if(path == "setup/networks") getNetworks(root);
+                else if(path == "live")           getLive(request, root);
+                else if(path == "record/info")    getRecord(root, InverterDevInform_All);
+                else if(path == "record/alarm")   getRecord(root, AlarmData);
+                else if(path == "record/config")  getRecord(root, SystemConfigPara);
+                else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
+                else {
+                    if(path.substring(0, 12) == "inverter/id/")
+                        getInverter(root, request->url().substring(17).toInt());
+                    else
+                        getNotFound(root, F("http://") + request->host() + F("/api/"));
+                }
+                //DPRINTLN(DBG_INFO, "API mem usage: " + String(root.memoryUsage()));
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Allow-Headers", "content-type");
+                response->setLength();
+                request->send(response);
         }
 
         void onApiPost(AsyncWebServerRequest *request) {
@@ -159,6 +160,25 @@ class RestApi {
             ep[F("record/live")]   = url + F("record/live");
         }
 
+        unsigned int get_int_length (int value)
+        {
+            unsigned int length = 1;
+            unsigned int base10 = 10, last_base10;
+
+            if (value < 0) {
+                length++;
+                value = -value;
+            }
+            while ((unsigned int)value >= base10) {
+                length++;
+                last_base10 = base10;
+                base10 *= 10;
+                if (base10 <= last_base10) {
+                    break;
+                }
+            }
+            return length;
+        }
 
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
@@ -187,6 +207,132 @@ class RestApi {
             response->addHeader("Content-Disposition", "attachment; filename=ahoy_setup.json");
             request->send(response);
             fp.close();
+        }
+
+        void onGetChartData(AsyncWebServerRequest *request) {
+            AsyncWebServerResponse *response;
+            File ac_hist;
+            unsigned char *ac_hist_buf, *cur_ac_hist_buf, *end_ac_hist_buf;
+            uint16_t ac_power, cur_interval, length = 0;
+            size_t ac_hist_size;
+
+            // phase 1: count mem needed for CSV String
+
+            if ((ac_hist = mSys->open_hist()) &&
+                    (ac_hist_size = ac_hist.size()) &&
+                    (ac_hist_size <= (AHOY_MAX_PAC_SUN_HOUR - AHOY_MIN_PAC_SUN_HOUR) * 60 / AHOY_PAC_INTERVAL * 4) &&
+                    (ac_hist_buf = (unsigned char *)malloc (ac_hist_size))) {
+                ac_hist.read (ac_hist_buf, ac_hist_size);
+                mSys->close_hist (ac_hist);
+                ac_hist.close();
+                cur_ac_hist_buf = ac_hist_buf;
+                end_ac_hist_buf = cur_ac_hist_buf + ac_hist_size;
+                while (cur_ac_hist_buf < end_ac_hist_buf) {
+                    cur_interval = *cur_ac_hist_buf++;
+                    cur_interval += (*cur_ac_hist_buf++) << 8;
+                    ac_power = *cur_ac_hist_buf++;
+                    ac_power += (*cur_ac_hist_buf++) << 8;
+                    if (cur_interval < 600 / AHOY_PAC_INTERVAL) {
+                        length += 1 + 4 + 1;    // +1: comma, +1: lf
+                    } else {
+                        length += 1 + 5 + 1;
+                    }
+                    length += get_int_length (ac_power);
+#ifdef AHOY_SML_OBIS_SUPPORT
+                    length += 1 + 6;   // reserve longest power value ,-abcde
+#endif
+                }
+
+                if (mSys->get_cur_value (&cur_interval, &ac_power)) {
+                    if (cur_interval < 600 / AHOY_PAC_INTERVAL) {
+                        length += 1 + 4 + 1;
+                    } else {
+                        length += 1 + 5 + 1;
+                    }
+                    length += get_int_length (ac_power);
+#ifdef AHOY_SML_OBIS_SUPPORT
+                    length += 1 + 6;  // reserve longest power value ,-abcde
+#endif
+                }
+                length += sizeof (AHOY_CHARTDATA_HDR);
+            }
+
+            // phase 2: concatenate CSV string
+
+            if (length) {
+                char *content = NULL;
+                unsigned int index;
+
+                if ((content = (char *)malloc (length))) {
+                    uint16_t minutes;
+#ifdef AHOY_SML_OBIS_SUPPORT
+                    int sml_power;
+                    File sml_hist = sml_open_hist ();
+#endif
+
+                    strcpy (content, AHOY_CHARTDATA_HDR);
+                    index = strlen (content);
+
+                    cur_ac_hist_buf = ac_hist_buf;
+                    end_ac_hist_buf = cur_ac_hist_buf + ac_hist_size;
+                    while (cur_ac_hist_buf < end_ac_hist_buf) {
+                        cur_interval = *cur_ac_hist_buf++;
+                        cur_interval += (*cur_ac_hist_buf++) << 8;
+                        ac_power = *cur_ac_hist_buf++;
+                        ac_power += (*cur_ac_hist_buf++) << 8;
+
+                        minutes = cur_interval * AHOY_PAC_INTERVAL;
+
+#ifdef AHOY_SML_OBIS_SUPPORT
+                        if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u,",
+                                minutes / 60, minutes % 60, ac_power);
+                        } else {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
+                                minutes / 60, minutes % 60, ac_power, sml_power);
+                        }
+#else
+                        snprintf (&content[index], length - index, "\n%u:%02u,%u",
+                            minutes / 60, minutes % 60, ac_power);
+#endif
+                        index += strlen (&content[index]);
+                    }
+                    free (ac_hist_buf);
+                    if (mSys->get_cur_value (&cur_interval, &ac_power)) {
+                        uint16_t minutes = cur_interval * AHOY_PAC_INTERVAL;
+
+#ifdef AHOY_SML_OBIS_SUPPORT
+                        if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u,",
+                                minutes / 60, minutes % 60, ac_power);
+                        } else {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
+                                minutes / 60, minutes % 60, ac_power, sml_power);
+                        }
+#else
+                        snprintf (&content[index], length - index, "\n%u:%02u,%u",
+                            minutes / 60, minutes % 60, ac_power);
+#endif
+                        index += strlen (&content[index]);
+                    }
+#ifdef AHOY_SML_OBIS_SUPPORT
+                    sml_close_hist (sml_hist);
+#endif
+                    response = request->beginResponse(200, F("text/plain"), content);
+                    free (content);
+                } else {
+                    response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_HDR "\nno memory");
+                }
+            } else {
+                response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_HDR "\nno value found");
+            }
+            if (response) {
+                response->addHeader("Content-Description", "File Transfer");
+                response->addHeader("Content-Disposition", "attachment; filename=chartdata.csv");
+                request->send(response);
+            } else {
+                request->send(404);
+            }
         }
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
@@ -337,6 +483,10 @@ class RestApi {
                 obj[F("version")]          = String(iv->getFwVersion());
                 obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
                 obj[F("ts_last_success")]  = rec->ts;
+#ifdef AHOY_SML_OBIS_SUPPORT
+                // design: no value og inverter but I want this value to be displayed prominently
+                obj[F("grid_power")]        = sml_get_obis_pac ();
+#endif
 
                 JsonArray ch = obj.createNestedArray("ch");
 
@@ -469,15 +619,15 @@ class RestApi {
                 warn.add(F("time not set. No communication to inverter possible"));
             /*if(0 == mSys->getNumInverters())
                 warn.add(F("no inverter configured"));*/
-
+#ifdef AHOY_MQTT_SUPPORT
             if((!mApp->getMqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
                 warn.add(F("MQTT is not connected"));
-
             JsonArray info = obj.createNestedArray(F("infos"));
             if(mApp->getMqttIsConnected())
                 info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent, ") + String(mApp->getMqttRxCnt()) + F(" packets received"));
             if(mConfig->mqtt.interval > 0)
                 info.add(F("MQTT publishes in a fixed interval of ") + String(mConfig->mqtt.interval) + F(" seconds"));
+#endif
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
@@ -501,6 +651,10 @@ class RestApi {
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->nrf.sendInterval;
+#ifdef AHOY_SML_OBIS_SUPPORT
+            // additionally here for correct chart titles
+            obj[F("grid_power")] = sml_get_obis_pac ();
+#endif
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -512,6 +666,7 @@ class RestApi {
             }
 
             Inverter<> *iv;
+
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
                 bool parse = false;
@@ -593,10 +748,12 @@ class RestApi {
                 mApp->setTimestamp(jsonIn[F("val")]);
             else if(F("sync_ntp") == jsonIn[F("cmd")])
                 mApp->setTimestamp(0); // 0: update ntp flag
-            else if(F("serial_utc_offset") == jsonIn[F("cmd")])
+            else if(F("serial_utc_offset") == jsonIn[F("cmd")]) {
                 mTimezoneOffset = jsonIn[F("val")];
+#ifdef AHOY_MQTT_SUPPORT
             else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
+#endif
             } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
