@@ -130,8 +130,8 @@ class Inverter {
         //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
-        uint32_t      pac_sum;           // average calc for Highcharts: sum of ac power values for cur interval
-        uint16_t      pac_cnt;           // average calc for Highcharts: number of ac power values for cur interval
+        uint32_t      pac_sum;           // average calc for chart: sum of ac power values for cur interval
+        uint16_t      pac_cnt;           // average calc for chart: number of ac power values for cur interval
 
         Inverter() {
             ivGen              = IV_HM;

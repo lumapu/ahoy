@@ -11,7 +11,6 @@
 #include "../utils/crc.h"
 #include "../config/config.h"
 #include <Arduino.h>
-#include <Timezone.h>
 
 typedef struct {
     uint32_t ts;
@@ -750,6 +749,7 @@ const byteAssign_t InfoAssignment[] = {
             }
             ac_pow = (int) (ac_pow*9.5);
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
+
             iv->doCalculations();
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
