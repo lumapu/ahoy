@@ -6,6 +6,8 @@
 #ifndef __PUB_MQTT_DEFS_H__
 #define __PUB_MQTT_DEFS_H__
 
+#ifdef AHOY_MQTT_SUPPORT
+
 #include <Arduino.h>
 
 enum {
@@ -92,5 +94,6 @@ enum {
 const char* const subscr[] PROGMEM = {
     "setup/set_time"
 };
+#endif
 
 #endif /*__PUB_MQTT_DEFS_H__*/
