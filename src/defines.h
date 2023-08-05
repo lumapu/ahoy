@@ -85,6 +85,7 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 #define NTP_ADDR_LEN            32 // DNS Name
 
 #define MQTT_ADDR_LEN           64 // DNS Name
+#define MQTT_CLIENTID_LEN       65
 #define MQTT_USER_LEN           65 // there is another byte necessary for \0
 #define MQTT_PWD_LEN            65
 #define MQTT_TOPIC_LEN          65

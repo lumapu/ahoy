@@ -582,6 +582,7 @@ class Web {
                 addr.toCharArray(mConfig->mqtt.broker, MQTT_ADDR_LEN);
             } else
                 mConfig->mqtt.broker[0] = '\0';
+            request->arg("mqttClientId").toCharArray(mConfig->mqtt.clientId, MQTT_CLIENTID_LEN);
             request->arg("mqttUser").toCharArray(mConfig->mqtt.user, MQTT_USER_LEN);
             if (request->arg("mqttPwd") != "{PWD}")
                 request->arg("mqttPwd").toCharArray(mConfig->mqtt.pwd, MQTT_PWD_LEN);

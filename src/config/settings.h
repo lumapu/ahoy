@@ -123,6 +123,7 @@ typedef struct {
 typedef struct {
     char broker[MQTT_ADDR_LEN];
     uint16_t port;
+    char clientId[MQTT_CLIENTID_LEN];
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
