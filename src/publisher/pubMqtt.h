@@ -76,17 +76,23 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 24, "%s-", mDevName);
-            uint8_t pos = strlen(mClientId);
-            mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(13, 14).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
-            mClientId[pos++] = '\0';
+            if(strlen(mCfgMqtt->clientId) > 0)
+            {
+                snprintf(mClientId, 24, "%s-", mCfgMqtt->clientId);
+                mClient.setClientId(mCfgMqtt->clientId);
+            }else{
+                snprintf(mClientId, 24, "%s-", mDevName);
+                uint8_t pos = strlen(mClientId);
+                mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(13, 14).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
+                mClientId[pos++] = '\0';
 
-            mClient.setClientId(mClientId);
+                mClient.setClientId(mClientId);
+            }
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
             mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
