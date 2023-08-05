@@ -6,11 +6,11 @@
         <meta name="apple-mobile-web-app-capable" content="yes">
     </head>
     <body>
-        <!-- The following lines are commented out because there is no right to distribute this
-        chart lib reference functionally with the CC BY-NC-SA 4.0 license of the AHOY DTU.
-        This chart lib has a proprietary and commercial license model. See their web site for details.
-        Therefore these lines are prepared for private testing only! Choose another chart lib with matching
-        open source license in case you want to distribute the chart function with this project. -->
+        <!-- The following lines are commented out as there is no permission to redistribute this
+        charting lib reference functional with the CC BY-NC-SA 4.0 license of the AHOY DTU.
+        This charting lib has a proprietary and commercial license model. See their web site for details.
+        Therefore these lines are prepared for private testing only. See how easy to use this library is - technically speaking.
+        Choose another charting lib with a matching open source license if you want to redistribute the charting function with this project. -->
         <!--
         <script src="https://code.highcharts.com/highcharts.js"></script>
         <script src="https://code.highcharts.com/modules/data.js"></script>
@@ -241,7 +241,8 @@
             function parseCSV(data) {
                 document.getElementById("csv").innerHTML = data;
 
-                // the following line may not be distributed functionally with this project. See comment at the top area of this file about the commercial license of this chart lib
+                // The following code line may not be redistributed functional with this project.
+                // Also see the comment at the top area of this file about the commercial license model of this charting lib.
                 // mychart.update({data: {csv: document.getElementById("csv").innerHTML}});
             }
 
@@ -275,7 +276,8 @@
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
                         exeOnce = false;
 
-                        // This object may not be distributed functionally with this project. See the comment at the top area of this file about the commercial license of this chart lib
+                        // The following object may not be redistributed functional with this project.
+                        // Also see the comment at the top area of this file about the commercial license model of this charting lib.
                         /*
                         mychart = Highcharts.chart('powerchart', {
                             accessibility: {
