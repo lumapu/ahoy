@@ -76,11 +76,10 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            if(strlen(mCfgMqtt->clientId) > 0)
-            {
-                snprintf(mClientId, 24, "%s-", mCfgMqtt->clientId);
+            if(strlen(mCfgMqtt->clientId) > 0) {
+                snprintf(mClientId, 23, "%s-", mCfgMqtt->clientId);
                 mClient.setClientId(mCfgMqtt->clientId);
-            }else{
+            } else{
                 snprintf(mClientId, 24, "%s-", mDevName);
                 uint8_t pos = strlen(mClientId);
                 mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
@@ -485,8 +484,13 @@ class PubMqtt {
 
                 // inverter status
                 iv->isProducing(); // recalculate status
-                if (iv->isAvailable())
+                if (InverterStatus::OFF < iv->status) {
                     anyAvail = true;
+
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
+                    snprintf(mVal, 40, "%d", iv->getLastTs(rec));
+                    publish(mSubTopic, mVal, true);
+                }
                 else // inverter is enabled but not available
                     allAvail = false;
 
@@ -500,10 +504,6 @@ class PubMqtt {
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                     snprintf(mVal, 40, "%d", (uint8_t)iv->status);
-                    publish(mSubTopic, mVal, true);
-
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                    snprintf(mVal, 40, "%d", iv->getLastTs(rec));
                     publish(mSubTopic, mVal, true);
                 }
             }

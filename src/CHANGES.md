@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.7.24 - 2023-08-05
+* merge PR #1069 make MqTT client ID configurable
+* fix #1016, general MqTT status depending on inverter state machine
+* changed icon for fully available inverter to a filled check mark #1070
+* fixed `last_success` update with MqTT #1068
+* removed `improv` esp-web-installer script, because it is not fully functional at this time
+
 ## 0.7.23 - 2023-08-04
 * merge PR #1056, visualization html
 * update MqTT library to 1.4.4
