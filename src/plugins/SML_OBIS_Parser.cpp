@@ -1014,7 +1014,7 @@ void sml_loop ()
         do {
             serial_read = sml_parse_stream (serial_avail);
             serial_avail -= serial_read;
-            yield();
+            //  yield();  /* unconditionally called this might have a bad effect for TX Retransmit to the Inverter via NRF24L01+ (not quite sure) */
         } while (serial_read && serial_avail);
     }
 }
