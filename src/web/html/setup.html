@@ -700,7 +700,7 @@
             }
 
             function parseMqtt(obj) {
-                for(var i of [["Addr", "broker"], ["Port", "port"], ["CLientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
+                for(var i of [["Addr", "broker"], ["Port", "port"], ["ClientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
             }
 
