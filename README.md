@@ -49,6 +49,4 @@ If you run into any issues, please feel free to use the issue tracker here on Gi
 
 ### Related Projects
 - [OpenDTU](https://github.com/tbnobody/OpenDTU)
-  <- Our sister project ✨ for Hoymiles HM-300, HM-600, HM-1200 (for ESP32 only!)
-- [DTU Simulator](https://github.com/Ziyatoe/DTUsimMI1x00-Hoymiles) 
-  <- Go here ✨ for Hoymiles MI-300, MI-600, MI-1200 Software (single inverter only)
+  <- Our sister project ✨ for Hoymiles HM- and HMS-/HMT-series (for ESP32 only!)
