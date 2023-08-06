@@ -111,11 +111,9 @@
 #define NTP_REFRESH_INTERVAL    12 * 3600 * 1000
 
 #define AHOY_SML_OBIS_SUPPORT
-#ifdef AHOY_SML_OBIS_SUPPORT
-#define AHOY_CHARTDATA_HDR "Time, AC Power, Grid Power"
-#else
+#define AHOY_CHARTDATA_WITH_GRID_HDR "Time, AC Power, Grid Power"
 #define AHOY_CHARTDATA_HDR "Time, AC Power"
-#endif
+
 
 // #define AHOY_MQTT_SUPPORT
 

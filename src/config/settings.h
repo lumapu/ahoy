@@ -152,6 +152,10 @@ typedef struct {
 } display_t;
 
 typedef struct {
+    bool ir_connected;
+} cfgSML_t;
+
+typedef struct {
     display_t display;
 } plugins_t;
 
@@ -164,6 +168,7 @@ typedef struct {
     cfgMqtt_t   mqtt;
     cfgLed_t    led;
     cfgInst_t   inst;
+    cfgSML_t    sml_obis;
     plugins_t   plugin;
     bool        valid;
 } settings_t;
@@ -255,8 +260,13 @@ class settings {
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
                     if(root.containsKey(F("serial"))) jsonSerial(root[F("serial")]);
+#ifdef AHOY_MQTT_SUPPORT
                     if(root.containsKey(F("mqtt"))) jsonMqtt(root[F("mqtt")]);
+#endif
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
+#ifdef AHOY_SML_OBIS_SUPPORT
+                    if(root.containsKey(F("sml_obis"))) jsonSML(root[F("sml_obis")]);
+#endif
                     if(root.containsKey(F("plugin"))) jsonPlugin(root[F("plugin")]);
                     if(root.containsKey(F("inst"))) jsonInst(root[F("inst")]);
                 }
@@ -279,8 +289,13 @@ class settings {
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
             jsonSerial(root.createNestedObject(F("serial")), true);
+#ifdef AHOY_MQTT_SUPPORT
             jsonMqtt(root.createNestedObject(F("mqtt")), true);
+#endif
             jsonLed(root.createNestedObject(F("led")), true);
+#ifdef AHOY_SML_OBIS_SUPPORT
+            jsonSML(root.createNestedObject(F("sml_obis")), true);
+#endif
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
 
@@ -387,6 +402,8 @@ class settings {
             mCfg.led.led_high_active = false;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
+
+            mCfg.sml_obis.ir_connected     = false;
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
@@ -501,6 +518,7 @@ class settings {
             }
         }
 
+#ifdef AHOY_MQTT_SUPPORT
         void jsonMqtt(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("broker")] = mCfg.mqtt.broker;
@@ -519,6 +537,7 @@ class settings {
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
             }
         }
+#endif
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
@@ -531,6 +550,16 @@ class settings {
                 getVal<bool>(obj, F("act_high"), &mCfg.led.led_high_active);
             }
         }
+
+#ifdef AHOY_SML_OBIS_SUPPORT
+        void jsonSML(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("show")]  = mCfg.sml_obis.ir_connected;
+            } else {
+                getVal<bool>(obj, F("show"), &mCfg.sml_obis.ir_connected);
+            }
+        }
+#endif
 
         void jsonPlugin(JsonObject obj, bool set = false) {
             if(set) {
