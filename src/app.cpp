@@ -158,7 +158,9 @@ void app::loopStandard(void) {
 #endif
 
 #ifdef AHOY_SML_OBIS_SUPPORT
-    sml_loop ();
+    if (mConfig->sml_obis.ir_connected) {
+        sml_loop ();
+    }
 #endif
 }
 
@@ -227,7 +229,9 @@ void app::tickNtpUpdate(void) {
 
             mSys.cleanup_history();
 #ifdef AHOY_SML_OBIS_SUPPORT
-            sml_cleanup_history ();
+            if (mConfig->sml_obis.ir_connected) {
+                sml_cleanup_history ();
+            }
 #endif
         }
 
@@ -365,7 +369,9 @@ void app::tickMidnight(void) {
     }
     mSys.cleanup_history ();
 #ifdef AHOY_SML_OBIS_SUPPORT
-    sml_cleanup_history();
+    if (mConfig->sml_obis.ir_connected) {
+        sml_cleanup_history();
+    }
 #endif
 }
 
