@@ -191,7 +191,7 @@ const unsigned char sml_test_telegram[] = {
     					0x01,
     					0x62, 0x1b,             // Einheit "W"
     					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x01, 0x29, // Wert fuer momentane Gesamtwirkleistung
+    					0x55, 0x00, 0x00, 0x00, 0x2a, // Wert fuer momentane Gesamtwirkleistung
     					0x01,
     				0x77,
     					0x07, 0x01, 0x00, 0x24, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Wirkleistung L1
@@ -199,7 +199,7 @@ const unsigned char sml_test_telegram[] = {
     					0x01,
     					0x62, 0x1b,             // Einheit "W"
     					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x01, 0x29, // Wert fuer momentane Wirkleistung L1
+    					0x55, 0x00, 0x00, 0x00, 0x2a, // Wert fuer momentane Wirkleistung L1
     					0x01,
     				0x77,
     					0x07, 0x01, 0x00, 0x38, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Wirkleistung L2
@@ -232,7 +232,7 @@ const unsigned char sml_test_telegram[] = {
     	0x63, 0x91, 0x26,
     	0x00,
     0x1b, 0x1b, 0x1b, 0x1b,                     // Escapesequenz
-    0x1a, 0x00, 0x7d, 0x9d	                    // 1a + Fuellbyte + CRC16 des gesamten Telegrammes (ggf. passend eintragen)
+    0x1a, 0x00, 0xbf, 0xd7	                    // 1a + Fuellbyte + CRC16 des gesamten Telegrammes (ggf. passend eintragen)
 };
 #endif
 
