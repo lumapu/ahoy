@@ -20,7 +20,7 @@
         <div id="wrapper">
             <div id="content">
                 <div id="live"></div>
-                <div id="powerchart"></div>
+                <div id="powerchart">Please find a charting library with a suitable license model.</div>
                 <p>Every <span id="refresh"></span> seconds the values are updated</p>
             </div>
         </div>
@@ -128,26 +128,26 @@
                                 numBig(obj.ch[0][6], "kWh", "Yield Total")
                             ]),
                             ml("div", {class: "hr"}),
-                            obj["grid_power"] ?
-                            ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][8], "W", "DC Power"),
-                                numMid(obj.grid_power, "W", "Grid Power"),
-                                numMid(obj.ch[0][0], "V", "Voltage"),
-                                numMid(obj.ch[0][1], "A", "Current"),
-                                numMid(obj.ch[0][3], "Hz", "Frequency"),
-                                numMid(obj.ch[0][9], "%", "Efficiency"),
-                                numMid(obj.ch[0][10], "var", "Reactive Power"),
-                                numMid(obj.ch[0][4], "", "Power Factor")
-                            ]) :
-                            ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][8], "W", "DC Power"),
-                                numMid(obj.ch[0][0], "V", "Voltage"),
-                                numMid(obj.ch[0][1], "A", "Current"),
-                                numMid(obj.ch[0][3], "Hz", "Frequency"),
-                                numMid(obj.ch[0][9], "%", "Efficiency"),
-                                numMid(obj.ch[0][10], "var", "Reactive Power"),
-                                numMid(obj.ch[0][4], "", "Power Factor")
-                            ])
+                            (obj["grid_power"] === undefined) ?
+                                ml("div", {class: "row mt-2"},[
+                                    numMid(obj.ch[0][8], "W", "DC Power"),
+                                    numMid(obj.ch[0][0], "V", "Voltage"),
+                                    numMid(obj.ch[0][1], "A", "Current"),
+                                    numMid(obj.ch[0][3], "Hz", "Frequency"),
+                                    numMid(obj.ch[0][9], "%", "Efficiency"),
+                                    numMid(obj.ch[0][10], "var", "Reactive Power"),
+                                    numMid(obj.ch[0][4], "", "Power Factor")
+                                ]) :
+                                ml("div", {class: "row mt-2"},[
+                                    numMid(obj.ch[0][8], "W", "DC Power"),
+                                    numMid(obj.grid_power, "W", "Grid Power"),
+                                    numMid(obj.ch[0][0], "V", "Voltage"),
+                                    numMid(obj.ch[0][1], "A", "Current"),
+                                    numMid(obj.ch[0][3], "Hz", "Frequency"),
+                                    numMid(obj.ch[0][9], "%", "Efficiency"),
+                                    numMid(obj.ch[0][10], "var", "Reactive Power"),
+                                    numMid(obj.ch[0][4], "", "Power Factor")
+                                ])
                         ])
                     ])
                 );
@@ -266,12 +266,12 @@
 
                         document.getElementById("dyn_csv_url").innerHTML = document.baseURI.split ("\/live")[0] + "/get_chartdata/chartdata.csv";
                         document.getElementById("refresh").innerHTML = obj["refresh"];
-                        if (obj["grid_power"]) {
-                            document.getElementById("chart_title").innerHTML = "Solar and Grid Power during Daylight";
-                            document.getElementById("yaxis_grid_power_title").innerHTML = "Grid Power in W";
-                        } else {
+                        if (obj["grid_power"] === undefined) {
                             document.getElementById("chart_title").innerHTML = "Solar Power during Daylight";
                             document.getElementById("yaxis_grid_power_title").innerHTML = "";
+                        } else {
+                            document.getElementById("chart_title").innerHTML = "Solar and Grid Power during Daylight";
+                            document.getElementById("yaxis_grid_power_title").innerHTML = "Grid Power in W";
                         }
                         window.setInterval("getAjax('/api/live', parse)", obj["refresh"] * 1000);
                         exeOnce = false;

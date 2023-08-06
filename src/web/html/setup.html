@@ -265,6 +265,18 @@
                     </fieldset>
                     </div>
 
+                    <button type="button" class="s_collapsible">Smart Meter (OBIS)</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des mx-2">Smart Meter (OBIS)</legend>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">IR Sensor via UART0</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="irEn"/></div>
+                                <div class="col-8 col-sm-3">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
+                        </div>
+                        </fieldset>
+                    </div>
+
                     <div class="row mb-4 mt-4">
                         <div class="col-8 col-sm-3">Reboot device after successful save</div>
                         <div class="col-4 col-sm-9">
@@ -784,6 +796,10 @@
                 }
             }
 
+            function parseSML(obj) {
+                document.getElementsByName("irEn")[0].checked = obj["show_grid_data"];
+            }
+
             function parse(root) {
                 if(null != root) {
                     parseSys(root["system"]);
@@ -796,6 +812,7 @@
                     parseRadio(root["radio"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    parseSML(root["sml_obis"]);
                     getAjax("/api/inverter/list", parseIv);
                 }
             }
