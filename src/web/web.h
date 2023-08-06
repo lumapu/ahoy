@@ -434,7 +434,7 @@ class Web {
         }
 
         void showSave(AsyncWebServerRequest *request) {
-            DPRINTLN(DBG_VERBOSE, F("showSave"));
+            DPRINTLN(DBG_INFO, F("showSave"));
 
             checkProtection(request);
 
@@ -552,6 +552,7 @@ class Web {
                 mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
             }
 
+#ifdef AHOY_MQTT_SUPPORT
             // mqtt
             if (request->arg("mqttAddr") != "") {
                 String addr = request->arg("mqttAddr");
@@ -565,6 +566,7 @@ class Web {
             request->arg("mqttTopic").toCharArray(mConfig->mqtt.topic, MQTT_TOPIC_LEN);
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
+#endif
 
             // serial console
             if (request->arg("serIntvl") != "") {
@@ -575,6 +577,11 @@ class Web {
                 // Needed to log TX buffers to serial console
                 mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
+
+#ifdef AHOY_SML_OBIS_SUPPORT
+            // sml_obis
+            mConfig->sml_obis.ir_connected = (request->arg("irEn") == "on");
+#endif
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
@@ -590,7 +597,6 @@ class Web {
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
 
             mApp->saveSettings((request->arg("reboot") == "on"));
-
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), save_html, save_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);

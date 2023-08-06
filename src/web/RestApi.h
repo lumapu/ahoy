@@ -212,9 +212,9 @@ class RestApi {
         void onGetChartData(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
             File ac_hist;
-            unsigned char *ac_hist_buf, *cur_ac_hist_buf, *end_ac_hist_buf;
+            unsigned char *ac_hist_buf = NULL, *cur_ac_hist_buf, *end_ac_hist_buf;
             uint16_t ac_power, cur_interval, length = 0;
-            size_t ac_hist_size;
+            size_t ac_hist_size = 0;
 
             // phase 1: count mem needed for CSV String
 
@@ -239,22 +239,27 @@ class RestApi {
                     }
                     length += get_int_length (ac_power);
 #ifdef AHOY_SML_OBIS_SUPPORT
-                    length += 1 + 6;   // reserve longest power value ,-abcde
-#endif
-                }
-
-                if (mSys->get_cur_value (&cur_interval, &ac_power)) {
-                    if (cur_interval < 600 / AHOY_PAC_INTERVAL) {
-                        length += 1 + 4 + 1;
-                    } else {
-                        length += 1 + 5 + 1;
+                    if (mConfig->sml_obis.ir_connected) {
+                        length += 1 + 6;   // reserve longest power value ,-abcde
                     }
-                    length += get_int_length (ac_power);
-#ifdef AHOY_SML_OBIS_SUPPORT
-                    length += 1 + 6;  // reserve longest power value ,-abcde
 #endif
                 }
-                length += sizeof (AHOY_CHARTDATA_HDR);
+            }
+            if (mSys->get_cur_value (&cur_interval, &ac_power)) {
+                if (cur_interval < 600 / AHOY_PAC_INTERVAL) {
+                    length += 1 + 4 + 1;
+                } else {
+                    length += 1 + 5 + 1;
+                }
+                length += get_int_length (ac_power);
+#ifdef AHOY_SML_OBIS_SUPPORT
+                if (mConfig->sml_obis.ir_connected) {
+                    length += 1 + 6;  // reserve longest power value ,-abcde
+                }
+#endif
+            }
+            if (length) {
+                length += mConfig->sml_obis.ir_connected ? sizeof (AHOY_CHARTDATA_WITH_GRID_HDR) : sizeof (AHOY_CHARTDATA_HDR);
             }
 
             // phase 2: concatenate CSV string
@@ -267,10 +272,16 @@ class RestApi {
                     uint16_t minutes;
 #ifdef AHOY_SML_OBIS_SUPPORT
                     int sml_power;
-                    File sml_hist = sml_open_hist ();
-#endif
+                    File sml_hist;
 
-                    strcpy (content, AHOY_CHARTDATA_HDR);
+                    if (mConfig->sml_obis.ir_connected) {
+                        sml_hist = sml_open_hist ();
+                        strcpy (content, AHOY_CHARTDATA_WITH_GRID_HDR);
+                    } else
+#endif
+                    {
+                        strcpy (content, AHOY_CHARTDATA_HDR);
+                    }
                     index = strlen (content);
 
                     cur_ac_hist_buf = ac_hist_buf;
@@ -284,45 +295,59 @@ class RestApi {
                         minutes = cur_interval * AHOY_PAC_INTERVAL;
 
 #ifdef AHOY_SML_OBIS_SUPPORT
-                        if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
-                            snprintf (&content[index], length - index, "\n%u:%02u,%u,",
-                                minutes / 60, minutes % 60, ac_power);
-                        } else {
-                            snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
-                                minutes / 60, minutes % 60, ac_power, sml_power);
-                        }
-#else
-                        snprintf (&content[index], length - index, "\n%u:%02u,%u",
-                            minutes / 60, minutes % 60, ac_power);
+                        if (mConfig->sml_obis.ir_connected) {
+                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                                snprintf (&content[index], length - index, "\n%u:%02u,%u,",
+                                    minutes / 60, minutes % 60, ac_power);
+                            } else {
+                                snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
+                                    minutes / 60, minutes % 60, ac_power, sml_power);
+                            }
+                        } else
 #endif
+                        {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u",
+                                minutes / 60, minutes % 60, ac_power);
+                        }
                         index += strlen (&content[index]);
                     }
-                    free (ac_hist_buf);
+                    if (ac_hist_buf) {
+                        free (ac_hist_buf);
+                    }
                     if (mSys->get_cur_value (&cur_interval, &ac_power)) {
                         uint16_t minutes = cur_interval * AHOY_PAC_INTERVAL;
 
 #ifdef AHOY_SML_OBIS_SUPPORT
-                        if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
-                            snprintf (&content[index], length - index, "\n%u:%02u,%u,",
-                                minutes / 60, minutes % 60, ac_power);
-                        } else {
-                            snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
-                                minutes / 60, minutes % 60, ac_power, sml_power);
-                        }
-#else
-                        snprintf (&content[index], length - index, "\n%u:%02u,%u",
-                            minutes / 60, minutes % 60, ac_power);
+                        if (mConfig->sml_obis.ir_connected) {
+                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                                snprintf (&content[index], length - index, "\n%u:%02u,%u,",
+                                    minutes / 60, minutes % 60, ac_power);
+                            } else {
+                                snprintf (&content[index], length - index, "\n%u:%02u,%u,%d",
+                                    minutes / 60, minutes % 60, ac_power, sml_power);
+                            }
+                        } else
 #endif
+                        {
+                            snprintf (&content[index], length - index, "\n%u:%02u,%u",
+                                minutes / 60, minutes % 60, ac_power);
+                        }
                         index += strlen (&content[index]);
                     }
 #ifdef AHOY_SML_OBIS_SUPPORT
-                    sml_close_hist (sml_hist);
+                    if (mConfig->sml_obis.ir_connected) {
+                        sml_close_hist (sml_hist);
+                    }
 #endif
                     response = request->beginResponse(200, F("text/plain"), content);
                     free (content);
+                } else if (mConfig->sml_obis.ir_connected) {
+                    response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_WITH_GRID_HDR "\nno memory");
                 } else {
                     response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_HDR "\nno memory");
                 }
+            } else if (mConfig->sml_obis.ir_connected) {
+                response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_WITH_GRID_HDR "\nno value found");
             } else {
                 response = request->beginResponse(200, F("text/plain"), AHOY_CHARTDATA_HDR "\nno value found");
             }
@@ -484,8 +509,10 @@ class RestApi {
                 obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
                 obj[F("ts_last_success")]  = rec->ts;
 #ifdef AHOY_SML_OBIS_SUPPORT
-                // design: no value og inverter but I want this value to be displayed prominently
-                obj[F("grid_power")]        = sml_get_obis_pac ();
+                if (mConfig->sml_obis.ir_connected) {
+                    // design: no value of inverter but I want this value to be displayed prominently
+                    obj[F("grid_power")]        = sml_get_obis_pac ();
+                }
 #endif
 
                 JsonArray ch = obj.createNestedArray("ch");
@@ -581,6 +608,10 @@ class RestApi {
             obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
         }
 
+        void getSML(JsonObject obj) {
+            obj[F("show_grid_data")] = mConfig->sml_obis.ir_connected;
+        }
+
         void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("ts_now")]       = mApp->getTimestamp();
@@ -642,6 +673,7 @@ class RestApi {
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));
+            getSML(obj.createNestedObject(F("sml_obis")));
         }
 
         void getNetworks(JsonObject obj) {
@@ -652,8 +684,10 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->nrf.sendInterval;
 #ifdef AHOY_SML_OBIS_SUPPORT
-            // additionally here for correct chart titles
-            obj[F("grid_power")] = sml_get_obis_pac ();
+            if (mConfig->sml_obis.ir_connected) {
+                // additionally here for correct chart titles
+                obj[F("grid_power")] = sml_get_obis_pac ();
+            }
 #endif
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
