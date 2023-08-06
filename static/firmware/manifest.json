@@ -10,13 +10,13 @@
         { "path": "/firmware/bootloader.bin", "offset": 4096 },
         { "path": "/firmware/partitions.bin", "offset": 32768 },
         { "path": "/firmware/ota.bin", "offset": 57344 },
-        { "path": "/firmware/230805_ahoy_0.7.25_bab700c_esp32.bin", "offset": 65536 }
+        { "path": "/firmware/230806_ahoy_0.7.26_cbdb150_esp32.bin", "offset": 65536 }
       ]
     },
     {
       "chipFamily": "ESP8266",
       "parts": [
-        { "path": "/firmware/230805_ahoy_0.7.25_bab700c_esp8266.bin", "offset": 0 }
+        { "path": "/firmware/230806_ahoy_0.7.26_cbdb150_esp8266.bin", "offset": 0 }
       ]
     }
   ]
