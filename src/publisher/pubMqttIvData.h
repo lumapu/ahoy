@@ -101,6 +101,11 @@ class PubMqttIvData {
 
             mPos = 0;
             if(found) {
+                record_t<> *rec = mIv->getRecordStruct(mCmd);
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
+                snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
+                mPublish(mSubTopic, mVal, true);
+
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
             } else if(mSendTotals && mTotalFound)

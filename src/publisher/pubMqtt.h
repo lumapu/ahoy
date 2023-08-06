@@ -465,13 +465,12 @@ class PubMqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
-         bool processIvStatus() {
+        bool processIvStatus() {
             // returns true if any inverter is available
             bool allAvail = true;   // shows if all enabled inverters are available
             bool anyAvail = false;  // shows if at least one enabled inverter is available
             bool changed = false;
             Inverter<> *iv;
-            record_t<> *rec;
 
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 iv = mSys->getInverterByPos(id);
@@ -480,17 +479,10 @@ class PubMqtt {
                 if (!iv->config->enabled)
                     continue; // skip to next inverter
 
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-
                 // inverter status
                 iv->isProducing(); // recalculate status
-                if (InverterStatus::OFF < iv->status) {
+                if (InverterStatus::OFF < iv->status)
                     anyAvail = true;
-
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                    snprintf(mVal, 40, "%d", iv->getLastTs(rec));
-                    publish(mSubTopic, mVal, true);
-                }
                 else // inverter is enabled but not available
                     allAvail = false;
 
