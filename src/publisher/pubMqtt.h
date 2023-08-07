@@ -76,17 +76,22 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            snprintf(mClientId, 24, "%s-", mDevName);
-            uint8_t pos = strlen(mClientId);
-            mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(13, 14).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
-            mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
-            mClientId[pos++] = '\0';
+            if(strlen(mCfgMqtt->clientId) > 0) {
+                snprintf(mClientId, 23, "%s-", mCfgMqtt->clientId);
+                mClient.setClientId(mCfgMqtt->clientId);
+            } else{
+                snprintf(mClientId, 24, "%s-", mDevName);
+                uint8_t pos = strlen(mClientId);
+                mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(13, 14).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
+                mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
+                mClientId[pos++] = '\0';
 
-            mClient.setClientId(mClientId);
+                mClient.setClientId(mClientId);
+            }
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
             mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
@@ -460,13 +465,12 @@ class PubMqtt {
             return (pos >= DEVICE_CLS_ASSIGN_LIST_LEN) ? NULL : stateClasses[deviceFieldAssignment[pos].stateClsId];
         }
 
-         bool processIvStatus() {
+        bool processIvStatus() {
             // returns true if any inverter is available
             bool allAvail = true;   // shows if all enabled inverters are available
             bool anyAvail = false;  // shows if at least one enabled inverter is available
             bool changed = false;
             Inverter<> *iv;
-            record_t<> *rec;
 
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 iv = mSys->getInverterByPos(id);
@@ -475,11 +479,9 @@ class PubMqtt {
                 if (!iv->config->enabled)
                     continue; // skip to next inverter
 
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-
                 // inverter status
                 iv->isProducing(); // recalculate status
-                if (iv->isAvailable())
+                if (InverterStatus::OFF < iv->status)
                     anyAvail = true;
                 else // inverter is enabled but not available
                     allAvail = false;
@@ -494,10 +496,6 @@ class PubMqtt {
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
                     snprintf(mVal, 40, "%d", (uint8_t)iv->status);
-                    publish(mSubTopic, mVal, true);
-
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", iv->config->name);
-                    snprintf(mVal, 40, "%d", iv->getLastTs(rec));
                     publish(mSubTopic, mVal, true);
                 }
             }

@@ -119,10 +119,12 @@
             function parseIv(obj) {
                 var p = div(["none"]);
                 for(var i of obj) {
-                    var icon = iconWarn;
-                    var cl = "icon-warn";
-                    avail = "";
+                    var icon = iconSuccess;
+                    var cl = "icon-success";
+                    var avail = "";
                     if(false == i["enabled"]) {
+                        icon = iconWarn;
+                        cl = "icon-warn";
                         avail = "disabled";
                     }
                     else if(false == i["is_avail"]) {
@@ -131,16 +133,14 @@
                         avail = "not yet available";
                     }
                     else if(0 == i["ts_last_success"]) {
-                        icon = iconSuccess;
                         avail = "available but no data was received until now";
                     }
                     else {
-                        icon = iconSuccess;
                         avail = "available and is ";
                         if(false == i["is_producing"])
                             avail += "not ";
                         else
-                            cl = "icon-success";
+                            icon = iconSuccessFull;
                         avail += "producing";
                     }
 

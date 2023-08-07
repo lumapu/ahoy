@@ -393,6 +393,7 @@ class RestApi {
 
         void getMqtt(JsonObject obj) {
             obj[F("broker")]     = String(mConfig->mqtt.broker);
+            obj[F("clientId")]   = String(mConfig->mqtt.clientId);
             obj[F("port")]       = String(mConfig->mqtt.port);
             obj[F("user")]       = String(mConfig->mqtt.user);
             obj[F("pwd")]        = (strlen(mConfig->mqtt.pwd) > 0) ? F("{PWD}") : String("");

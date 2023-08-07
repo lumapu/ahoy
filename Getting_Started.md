@@ -293,10 +293,9 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 | `ESP Async WebServer` | 1.2.3   | LGPL-3.0 |
 | `ESPAsyncTCP`         | 1.2.2   | LGPL-3.0 |
 | `Time`                | 1.6.1   | LGPL-2.1 |
-| `RF24`                | 1.4.5   | GPL-2.0  |
-| `PubSubClient`        | 2.8     | MIT      |
-| `ArduinoJson`         | 6.19.4  | MIT      |
-| `ESP Async WebServer` | 4.3.0   | ?        |
+| `RF24`                | 1.4.7   | GPL-2.0  |
+| `espMqttClient`       | 1.4.4   | MIT      |
+| `ArduinoJson`         | 6.21.3  | MIT      |
 
 ## ToDo
 
