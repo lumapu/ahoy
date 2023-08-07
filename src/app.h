@@ -24,13 +24,13 @@
 #include "utils/crc.h"
 #include "utils/dbg.h"
 #include "utils/scheduler.h"
-//#include "utils/improv.h"
 #include "web/RestApi.h"
 #include "web/web.h"
 #if defined(ETHERNET)
-#include "eth/ahoyeth.h"
+    #include "eth/ahoyeth.h"
 #else /* defined(ETHERNET) */
-#include "wifi/ahoywifi.h"
+    #include "wifi/ahoywifi.h"
+    #include "utils/improv.h"
 #endif /* defined(ETHERNET) */
 
 #include <RF24.h> // position is relevant since version 1.4.7 of this library
