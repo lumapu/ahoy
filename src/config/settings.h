@@ -260,9 +260,7 @@ class settings {
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
                     if(root.containsKey(F("serial"))) jsonSerial(root[F("serial")]);
-#ifdef AHOY_MQTT_SUPPORT
                     if(root.containsKey(F("mqtt"))) jsonMqtt(root[F("mqtt")]);
-#endif
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
 #ifdef AHOY_SML_OBIS_SUPPORT
                     if(root.containsKey(F("sml_obis"))) jsonSML(root[F("sml_obis")]);
@@ -289,9 +287,7 @@ class settings {
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
             jsonSerial(root.createNestedObject(F("serial")), true);
-#ifdef AHOY_MQTT_SUPPORT
             jsonMqtt(root.createNestedObject(F("mqtt")), true);
-#endif
             jsonLed(root.createNestedObject(F("led")), true);
 #ifdef AHOY_SML_OBIS_SUPPORT
             jsonSML(root.createNestedObject(F("sml_obis")), true);
@@ -518,7 +514,11 @@ class settings {
             }
         }
 
+/*
 #ifdef AHOY_MQTT_SUPPORT
+    // design: always read/write back Mqtt so you wont loose your (old) MQTT settings
+#endif
+*/
         void jsonMqtt(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("broker")] = mCfg.mqtt.broker;
@@ -537,7 +537,6 @@ class settings {
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
             }
         }
-#endif
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
