@@ -79,7 +79,7 @@ def readVersion(path, infile):
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
-    versionout = version[:-1] + "_" + sha + "esp32_ethernet.bin"
+    versionout = version[:-1] + "_" + sha + "_esp32_ethernet.bin"
     src = path + ".pio/build/esp32-wroom32-ethernet-release/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)

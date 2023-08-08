@@ -47,38 +47,38 @@ void app::setup() {
     }
     #endif
     #ifdef ETHERNET
-    delay(1000);
-    DPRINT(DBG_INFO, F("mEth setup..."));
-    DSERIAL.flush();
-    mEth.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
-    DBGPRINTLN(F("done..."));
-    DSERIAL.flush();
+        delay(1000);
+        DPRINT(DBG_INFO, F("mEth setup..."));
+        DSERIAL.flush();
+        mEth.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
+        DBGPRINTLN(F("done..."));
+        DSERIAL.flush();
     #endif // ETHERNET
 
     #if !defined(ETHERNET)
-    #if defined(AP_ONLY)
-    mInnerLoopCb = std::bind(&app::loopStandard, this);
-    #else
-    mInnerLoopCb = std::bind(&app::loopWifi, this);
-    #endif
+        #if defined(AP_ONLY)
+            mInnerLoopCb = std::bind(&app::loopStandard, this);
+        #else
+            mInnerLoopCb = std::bind(&app::loopWifi, this);
+        #endif
     #endif /* !defined(ETHERNET) */
 
-#if !defined(ETHERNET)
-    mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
-    #if !defined(AP_ONLY)
-    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-    #endif
-#endif /* defined(ETHERNET) */
+    #if !defined(ETHERNET)
+        mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
+        #if !defined(AP_ONLY)
+            everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+        #endif
+    #endif /* defined(ETHERNET) */
 
     mSys.setup(&mTimestamp);
     mSys.addInverters(&mConfig->inst);
-    if(mConfig->nrf.enabled) {
+    if (mConfig->nrf.enabled) {
         mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-    mPayload.enableSerialDebug(mConfig->serial.debug);
+        mPayload.enableSerialDebug(mConfig->serial.debug);
         mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-    mMiPayload.enableSerialDebug(mConfig->serial.debug);
+        mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
 
@@ -90,7 +90,7 @@ void app::setup() {
 
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
-        DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
+            DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
     }
 
     // when WiFi is in client mode, then enable mqtt broker
@@ -228,12 +228,12 @@ void app::onNetwork(bool gotIp) {
         #endif /* !defined(ETHERNET) */
         mInnerLoopCb = [this]() { this->loopStandard(); };
     } else {
-#if defined(ETHERNET)
-        mInnerLoopCb = nullptr;
-#else /* defined(ETHERNET) */
-        mInnerLoopCb = [this]() { this->loopWifi(); };
-        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-#endif /* defined(ETHERNET) */
+        #if defined(ETHERNET)
+                mInnerLoopCb = nullptr;
+        #else /* defined(ETHERNET) */
+                mInnerLoopCb = [this]() { this->loopWifi(); };
+                everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+        #endif /* defined(ETHERNET) */
     }
 }
 
@@ -370,14 +370,14 @@ void app::tickComm(void) {
 //-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
     zeroIvValues(!CHECK_AVAIL, SKIP_YIELD_DAY);
-    }
+}
 
 //-----------------------------------------------------------------------------
 void app::tickMinute(void) {
     // only triggered if 'reset values on no avail is enabled'
 
     zeroIvValues(CHECK_AVAIL, SKIP_YIELD_DAY);
-        }
+}
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
@@ -396,9 +396,9 @@ void app::tickMidnight(void) {
 void app::tickSend(void) {
     if(mConfig->nrf.enabled) {
         if(!mNrfRadio.isChipConnected()) {
-        DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
-        return;
-    }
+            DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
+            return;
+        }
     }
     if (mIVCommunicationOn) {
         if (!mNrfRadio.mBufCtrl.empty()) {
@@ -428,15 +428,15 @@ void app::tickSend(void) {
                 if(mConfig->nrf.enabled) {
                 if (iv->ivGen == IV_HM)
                     mPayload.ivSend(iv);
-                    else if(iv->ivGen == IV_MI)
+                else if(iv->ivGen == IV_MI)
                     mMiPayload.ivSend(iv);
             }
-                #if defined(ESP32)
-                if(mConfig->cmt.enabled) {
-                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                        mHmsPayload.ivSend(iv);
-        }
-                #endif
+            #if defined(ESP32)
+            if(mConfig->cmt.enabled) {
+                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                    mHmsPayload.ivSend(iv);
+            }
+            #endif
             }
         }
     } else {

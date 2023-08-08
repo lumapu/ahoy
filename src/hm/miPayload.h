@@ -44,6 +44,7 @@ class MiPayload {
         void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
+            mRadio      = radio;
             mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;

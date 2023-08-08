@@ -281,7 +281,7 @@ class HmRadio {
                 DHEX(mid);
                 DBGPRINT(F(" pid: "));
                 DBGHEXLN(pid);
-        }
+            }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id
             CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
