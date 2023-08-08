@@ -229,9 +229,8 @@ void app::tickNtpUpdate(void) {
 
             mSys.cleanup_history();
 #ifdef AHOY_SML_OBIS_SUPPORT
-            if (mConfig->sml_obis.ir_connected) {
-                sml_cleanup_history ();
-            }
+            // design: allways try to clean up
+            sml_cleanup_history ();
 #endif
         }
 
@@ -369,9 +368,8 @@ void app::tickMidnight(void) {
     }
     mSys.cleanup_history ();
 #ifdef AHOY_SML_OBIS_SUPPORT
-    if (mConfig->sml_obis.ir_connected) {
-        sml_cleanup_history();
-    }
+    // design: allways try to clean up
+    sml_cleanup_history();
 #endif
 }
 

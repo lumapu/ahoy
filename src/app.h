@@ -204,6 +204,7 @@ class app : public IApp, public ah::Scheduler {
             else
                 Scheduler::setTimestamp(newTime);
         }
+        void show_history (String path);
 
         HmSystemType mSys;
 
@@ -269,7 +270,6 @@ class app : public IApp, public ah::Scheduler {
             DBGPRINTLN("");
         }*/
         void check_hist_file (File file);
-        void show_history (String path);
 
         innerLoopCb mInnerLoopCb;
 
