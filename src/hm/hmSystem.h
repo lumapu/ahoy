@@ -140,22 +140,19 @@ class HmSystem {
             INVERTERTYPE *p;
             uint16_t i;
 
-            time_today = *mTimestamp;
-
             cur_pac_index = 0;
             for (i = 0, p = mInverter; i < MAX_NUM_INVERTERS; i++, p++) {
                 p->pac_cnt = 0;
                 p->pac_sum = 0;
             }
 
-            if (time_today) {
+            if ((time_today = *mTimestamp)) {
                 Dir ac_power_dir;
-                struct tm tm_today;
                 char cur_file_name[sizeof (AC_FORMAT_FILE_NAME)];
 
-                localtime_r (&time_today, &tm_today);
+                time_today = gTimezone.toLocal (time_today);
                 snprintf (cur_file_name, sizeof (cur_file_name), AC_FORMAT_FILE_NAME,
-                    tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+                    day(time_today), month(time_today), year(time_today));
                 ac_power_dir = LittleFS.openDir (AC_POWER_PATH);
                 /* design: no dataserver, cleanup old history */
 
@@ -174,18 +171,21 @@ class HmSystem {
         //-----------------------------------------------------------------------------
         File open_hist ()
         {
+            time_t time_today;
             File file = (File) NULL;
             char file_name[sizeof (AC_POWER_PATH) + sizeof (AC_FORMAT_FILE_NAME)];
-            time_t time_today = *mTimestamp;
-            struct tm tm_today;
 
-            localtime_r (&time_today, &tm_today);
-            snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
-                tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
-            file = LittleFS.open (file_name, "r");
-            if (!file) {
-                DPRINT (DBG_WARN, "open_hist, failed to open ");
-                DBGPRINTLN (file_name);
+            if ((time_today = *mTimestamp)) {
+                time_today = gTimezone.toLocal (time_today);
+                snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
+                    day(time_today), month(time_today), year(time_today));
+                file = LittleFS.open (file_name, "r");
+                if (!file) {
+                    DPRINT (DBG_WARN, "open_hist, failed to open ");
+                    DBGPRINTLN (file_name);
+                }
+            } else {
+                DPRINTLN (DBG_WARN, "open_history, no time yet");
             }
             return file;
         }
@@ -251,10 +251,13 @@ class HmSystem {
         //-----------------------------------------------------------------------------
         void handle_pac (INVERTERTYPE *p, uint16_t pac)
         {
-           if (*mTimestamp) {
-                uint32_t pac_index = gTimezone.toLocal (*mTimestamp);
+           time_t time_today;
 
-                pac_index = hour(pac_index) * 60 + minute(pac_index);
+           if ((time_today = *mTimestamp)) {
+                uint32_t pac_index;
+
+                time_today = gTimezone.toLocal (time_today);
+                pac_index = hour(time_today) * 60 + minute(time_today);
                 pac_index /= AHOY_PAC_INTERVAL;
                 if (pac_index != cur_pac_index) {
                     if (has_pac_value ()) {
@@ -263,12 +266,9 @@ class HmSystem {
                         uint16_t pac_average = get_pac_average(true);
                         File file;
                         char file_name[sizeof (AC_POWER_PATH) + sizeof (AC_FORMAT_FILE_NAME)];
-                        time_t time_today = *mTimestamp;
-                        struct tm tm_today;
 
-                        localtime_r (&time_today, &tm_today);
                         snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
-                            tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+                            day (time_today), month (time_today), year (time_today));
                         // append last average
                         if ((file = LittleFS.open (file_name, "a"))) {
                             unsigned char buf[4];
@@ -293,7 +293,7 @@ class HmSystem {
                     p->pac_sum += pac;
                     p->pac_cnt++;
                 } else {
-                    DPRINTLN (DBG_INFO, "handle_pac, outside daylight, minutes: " + String (pac_index * AHOY_PAC_INTERVAL));
+                    DPRINTLN (DBG_DEBUG, "handle_pac, outside daylight, minutes: " + String (pac_index * AHOY_PAC_INTERVAL));
                 }
             } else {
                 DPRINTLN (DBG_INFO, "handle_pac, no time2");
