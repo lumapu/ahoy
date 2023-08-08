@@ -86,11 +86,12 @@ static unsigned char sml_serial_buf[SML_MAX_SERIAL_BUF];
 static unsigned char *cur_serial_buf = sml_serial_buf;
 static uint16 sml_serial_len = 0;
 static uint16 sml_skip_len = 0;
+static uint32 sml_message = 0;
 static obis_state_t obis_state = OBIS_ST_NONE;
 static int obis_power_all_scale, obis_power_all_value;
 /* design: max 16 bit fuer aktuelle Powerwerte */
 static int16_t obis_cur_pac;
-static uint16_t obis_crc;
+static uint16_t sml_telegram_crc;
 static uint16_t obis_cur_pac_cnt;
 static uint16_t obis_cur_pac_index;
 static int32_t obis_pac_sum;
@@ -106,14 +107,14 @@ const unsigned char esc_seq[] = {SML_ESCAPE_CHAR, SML_ESCAPE_CHAR, SML_ESCAPE_CH
 #ifdef SML_OBIS_TEST
 static size_t sml_test_telegram_offset;
 const unsigned char sml_test_telegram[] = {
-    0x1b, 0x1b, 0x1b, 0x1b,                     // Escapesequenz
+    0x1b, 0x1b, 0x1b, 0x1b,                     // Escape sequence
     0x01, 0x01, 0x01, 0x01,                     // Version 1
-    0x76,                                       // Liste mit 6 Eintraegen (1. SML Nachricht dieses Telegramms)
+    0x76,                                       // List with 6 enties (1st SML message of this telegram)
     	0x05, 0x03, 0x2b, 0x18, 0x20,
     	0x62, 0x00,
     	0x62, 0x00,
     	0x72,
-    		0x63, 0x01, 0x01,                   // Messagetyp: OpenResponse
+    		0x63, 0x01, 0x01,                   // Message type: OpenResponse
     		0x76,
     			0x01,
     			0x01,
@@ -123,12 +124,12 @@ const unsigned char sml_test_telegram[] = {
     			0x01,
     	0x63, 0x53, 0x34,
     	0x00,
-    0x76,                                       // Liste mit 6 Eintraegen (2. SML Nachricht dieses Telegramms)
+    0x76,                                       // List with 6 entries (2. SML mesaage of this telegram)
     	0x05, 0x03, 0x2b, 0x18, 0x21,
     	0x62, 0x00,
     	0x62, 0x00,
     	0x72,
-    		0x63, 0x07, 0x01,                   // Messagetyp: GetListResponse
+    		0x63, 0x07, 0x01,                   // Message type: GetListResponse
     		0x77,
     			0x01,
     			0x0b, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
@@ -138,107 +139,107 @@ const unsigned char sml_test_telegram[] = {
     				0x65, 0x02, 0x1a, 0x58, 0x7f,
     			0x7a,
     				0x77,
-    					0x07, 0x01, 0x00, 0x01, 0x08, 0x00, 0xff, // OBIS Kennzahl fuer Wirkenergie Bezug gesamt tariflos
+    					0x07, 0x01, 0x00, 0x01, 0x08, 0x00, 0xff, // OBIS: Energy in overall - no tarif
     					0x65, 0x00, 0x01, 0x01, 0x80,
     					0x01,
     					0x62, 0x1e,             // Einheit "Wh"
     					0x52, 0xff,             // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0xc3, 0x05, // Wert fuer Wirkenergie Bezug gesamt tariflos
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0xc3, 0x05, // value
     					0x01,
     				0x77,
-    					0x07, 0x01, 0x00, 0x01, 0x08, 0x01, 0xff, // OBIS-Kennzahl fuer Wirkenergie Bezug Tarif 1
+    					0x07, 0x01, 0x00, 0x01, 0x08, 0x01, 0xff, // OBIS: Energy in -  tarif 1
     					0x01,
     					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,             // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0xc3, 0x05, // Wert fuer Wirkenergie Bezug Tarif 1
-    					0x01,
-    				0x77,
-    					0x07, 0x01, 0x00, 0x01, 0x08, 0x02, 0xff, // OBIS-Kennzahl fuer Wirkenergie Bezug Tarif 2
-    					0x01,
-    					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,	            // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wert fuer Wirkenergie Bezug Tarif 2
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,             // scaler 0.1
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0xc3, 0x05, // value
     					0x01,
     				0x77,
-    					0x07, 0x01, 0x00, 0x02, 0x08, 0x00, 0xff, // OBIS-Kennzahl für Wirkenergie Einspeisung gesamt tariflos
+    					0x07, 0x01, 0x00, 0x01, 0x08, 0x02, 0xff, // OBIS: Energy in - tarif 2
     					0x01,
     					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,             // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wert für Wirkenergie Einspeisung gesamt tariflos
-    					0x01,
-    				0x77,
-    					0x07, 0x01, 0x00, 0x02, 0x08, 0x01, 0xff, // OBIS-Kennzahl für Wirkenergie Einspeisung Tarif1
-    					0x01,
-    					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,             // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wert fuer Wirkenergie Einspeisung Tarif 1
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,	            // scaler 0.1
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // value
     					0x01,
     				0x77,
-    					0x07, 0x01, 0x00, 0x02, 0x08, 0x02, 0xff, // OBIS-Kennzahl für Wirkenergie Einspeisung Tarif 2
+    					0x07, 0x01, 0x00, 0x02, 0x08, 0x00, 0xff, // OBIS: energy out overall - no tarif
     					0x01,
     					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,             // Skalierung 0.1
-    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Wert für Wirkenergie Einspeisung Tarif 2
-    					0x01,
-    				0x77,
-    					0x07, 0x01, 0x00, 0x10, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Gesamtwirkleistung
-    					0x01,
-    					0x01,
-    					0x62, 0x1b,             // Einheit "W"
-    					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x00, 0x2a, // Wert fuer momentane Gesamtwirkleistung
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,             // scaler 0.1
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // value
     					0x01,
     				0x77,
-    					0x07, 0x01, 0x00, 0x24, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Wirkleistung L1
+    					0x07, 0x01, 0x00, 0x02, 0x08, 0x01, 0xff, // OBIS: energy out - tarif 1
     					0x01,
     					0x01,
-    					0x62, 0x1b,             // Einheit "W"
-    					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x00, 0x2a, // Wert fuer momentane Wirkleistung L1
-    					0x01,
-    				0x77,
-    					0x07, 0x01, 0x00, 0x38, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Wirkleistung L2
-    					0x01,
-    					0x01,
-    					0x62, 0x1b,             // Einheit "W"
-    					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x00, 0x00, // Wert für momentane Wirkleistung L2
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,             // scaler 0.1
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // value
     					0x01,
     				0x77,
-    					0x07, 0x01, 0x00, 0x4c, 0x07, 0x00, 0xff, // OBIS-Kennzahl fuer momentane Wirkleistung L3
+    					0x07, 0x01, 0x00, 0x02, 0x08, 0x02, 0xff, // OBIS: energy out - tarif 2
     					0x01,
     					0x01,
-    					0x62, 0x1b,             // Einheit "W"
-    					0x52, 0x00,             // Skalierung 1
-    					0x55, 0x00, 0x00, 0x00, 0x00, // Wert fuer momentane Wirkleistung L3
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,             // scaler 0.1
+    					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // value
+    					0x01,
+    				0x77,
+    					0x07, 0x01, 0x00, 0x10, 0x07, 0x00, 0xff, // OBIS: power overall
+    					0x01,
+    					0x01,
+    					0x62, 0x1b,             // "W"
+    					0x52, 0x00,             // scaler 1
+    					0x55, 0x00, 0x00, 0x00, 0x2a, // value
+    					0x01,
+    				0x77,
+    					0x07, 0x01, 0x00, 0x24, 0x07, 0x00, 0xff, // OBIS: power  L1
+    					0x01,
+    					0x01,
+    					0x62, 0x1b,             // "W"
+    					0x52, 0x00,             // scaler 1
+    					0x55, 0x00, 0x00, 0x00, 0x2a, // value
+    					0x01,
+    				0x77,
+    					0x07, 0x01, 0x00, 0x38, 0x07, 0x00, 0xff, // OBIS: power L2
+    					0x01,
+    					0x01,
+    					0x62, 0x1b,             // "W"
+    					0x52, 0x00,             // scaler 1
+    					0x55, 0x00, 0x00, 0x00, 0x00, // value
+    					0x01,
+    				0x77,
+    					0x07, 0x01, 0x00, 0x4c, 0x07, 0x00, 0xff, // OBIS: power L3
+    					0x01,
+    					0x01,
+    					0x62, 0x1b,             // "W"
+    					0x52, 0x00,             // scaler 1
+    					0x55, 0x00, 0x00, 0x00, 0x00, // value
     					0x01,
     			0x01,
     			0x01,
     	0x63, 0x23, 0x59,
     	0x00,
-    0x76,                                       // Liste mit 6 Eintraegen (3. SML Nachricht dieses Telegramms)
+    0x76,                                       // List with 6 entries (3rd SML message of this telegram)
     	0x05, 0x03, 0x2b, 0x18, 0x22,
     	0x62, 0x00,
     	0x62, 0x00,
     	0x72,
-    		0x63, 0x02, 0x01,                   // Messagetyp: CloseResponse
+    		0x63, 0x02, 0x01,                   // Message type: CloseResponse
     		0x71,
     			0x01,
     	0x63, 0x91, 0x26,
     	0x00,
-    0x1b, 0x1b, 0x1b, 0x1b,                     // Escapesequenz
-    0x1a, 0x00, 0xbf, 0xd7	                    // 1a + Fuellbyte + CRC16 des gesamten Telegrammes (ggf. passend eintragen)
+    0x1b, 0x1b, 0x1b, 0x1b,                     // Escape sequence
+    0x1a, 0x00, 0xbf, 0xd7	                    // 1a + number of fill bytes + CRC16 of telegram (change this to your needs)
 };
 #endif
 
 //-----------------------------------------------------------------------------
 // DIN EN 62056-46, Polynom 0x1021
-static const uint16_t obis_crctab[256] = {
+static const uint16_t sml_crctab[256] = {
     0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf, 0x8c48, 0x9dc1, 0xaf5a, 0xbed3,
     0xca6c, 0xdbe5, 0xe97e, 0xf8f7, 0x1081, 0x0108, 0x3393, 0x221a, 0x56a5, 0x472c, 0x75b7, 0x643e,
     0x9cc9, 0x8d40, 0xbfdb, 0xae52, 0xdaed, 0xcb64, 0xf9ff, 0xe876, 0x2102, 0x308b, 0x0210, 0x1399,
@@ -263,25 +264,26 @@ static const uint16_t obis_crctab[256] = {
     0x3de3, 0x2c6a, 0x1ef1, 0x0f78};
 
 //-----------------------------------------------------------------------------
-void sml_init_obis_crc ()
+uint16_t sml_init_crc ()
 {
-    obis_crc = 0xffff;
+    return 0xffff;
 }
 
 //-----------------------------------------------------------------------------
-void sml_calc_obis_crc (unsigned int len, unsigned char *data)
+uint16_t sml_calc_crc (uint16_t crc, unsigned int len, unsigned char *data)
 {
     while (len--) {
-        obis_crc = (obis_crc >> 8) ^ obis_crctab[(obis_crc ^ *data++) & 0xff];
+        crc = (crc >> 8) ^ sml_crctab[(crc ^ *data++) & 0xff];
     }
+    return crc;
 }
 
 //-----------------------------------------------------------------------------
-uint16_t sml_finit_obis_crc ()
+uint16_t sml_finit_crc (uint16_t crc)
 {
-    obis_crc ^= 0xffff;
-    obis_crc = (obis_crc << 8) | (obis_crc >> 8);
-    return obis_crc;
+    crc ^= 0xffff;
+    crc = (crc << 8) | (crc >> 8);
+    return crc;
 }
 
 //-----------------------------------------------------------------------------
@@ -295,20 +297,17 @@ void sml_cleanup_history ()
 {
     time_t time_today;
 
-    time_today = *obis_timestamp;
-
     obis_cur_pac = 0;
     obis_cur_pac_cnt = 0;
     obis_cur_pac_index = 0;
     obis_pac_sum = 0;
-    if (time_today) {
+    if ((time_today = *obis_timestamp)) {
         Dir grid_power_dir;
-        struct tm tm_today;
         char cur_file_name[sizeof (SML_OBIS_FORMAT_FILE_NAME)];
 
-        localtime_r (&time_today, &tm_today);
+        time_today = gTimezone.toLocal (time_today);
         snprintf (cur_file_name, sizeof (cur_file_name), SML_OBIS_FORMAT_FILE_NAME,
-            tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+            day(time_today), month (time_today), year (time_today));
         grid_power_dir = LittleFS.openDir (SML_OBIS_GRID_POWER_PATH);
         /* design: no dataserver, cleanup old history */
 
@@ -327,16 +326,15 @@ void sml_cleanup_history ()
 //-----------------------------------------------------------------------------
 File sml_open_hist ()
 {
+    time_t time_today;
     File file = (File) NULL;
 
-    if (*obis_timestamp) {
+    if ((time_today = *obis_timestamp)) {
         char file_name[sizeof (SML_OBIS_GRID_POWER_PATH) + sizeof (SML_OBIS_FORMAT_FILE_NAME)];
-        time_t time_today = *obis_timestamp;
-        struct tm tm_today;
 
-        localtime_r (&time_today, &tm_today);
+        time_today = gTimezone.toLocal(time_today);
         snprintf (file_name, sizeof (file_name), SML_OBIS_GRID_POWER_PATH "/" SML_OBIS_FORMAT_FILE_NAME,
-            tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+            day(time_today), month(time_today), year(time_today));
         file = LittleFS.open (file_name, "r");
         if (!file) {
             DPRINT (DBG_WARN, "sml_open_hist, failed to open ");
@@ -411,7 +409,7 @@ void sml_handle_obis_state (unsigned char *buf)
             "." + String (buf[3], HEX) + "." + String(buf[4], HEX) + "*" + String(buf[5], HEX));
     }
 #endif
-    if (obis_state != OBIS_ST_NONE) {
+    if (sml_message == SML_MSG_GET_LIST_RSP) {
         if (buf[0] == 1) {
             if (!memcmp (&buf[2], OBIS_SIG_YIELD_IN_ALL, 3)) {
                 obis_state = OBIS_ST_YIELD_IN_ALL;
@@ -533,12 +531,15 @@ int16_t sml_get_obis_pac_average ()
 //-----------------------------------------------------------------------------
 void sml_handle_obis_pac (int16_t pac)
 {
+    time_t time_today;
     obis_cur_pac = pac;
 
-    if (*obis_timestamp) {
-        uint32_t pac_index = gTimezone.toLocal (*obis_timestamp);
+    if ((time_today = *obis_timestamp)) {
+        uint32_t pac_index;
 
-        pac_index = hour(pac_index) * 60 + minute(pac_index);
+        time_today = gTimezone.toLocal (time_today);
+
+        pac_index = hour(time_today) * 60 + minute(time_today);
         pac_index /= AHOY_PAC_INTERVAL;
 
         if (pac_index != obis_cur_pac_index) {
@@ -547,12 +548,9 @@ void sml_handle_obis_pac (int16_t pac)
                 int16_t pac_average = sml_get_obis_pac_average();
                 File file;
                 char file_name[sizeof (SML_OBIS_GRID_POWER_PATH) + sizeof (SML_OBIS_FORMAT_FILE_NAME)];
-                time_t time_today = *obis_timestamp;
-                struct tm tm_today;
 
-                localtime_r (&time_today, &tm_today);
                 snprintf (file_name, sizeof (file_name), SML_OBIS_GRID_POWER_PATH "/" SML_OBIS_FORMAT_FILE_NAME,
-                    tm_today.tm_mday, tm_today.tm_mon+1, tm_today.tm_year + 1900);
+                    day(time_today), month(time_today), year(time_today));
                 // append last average
                 if ((file = LittleFS.open (file_name, "a"))) {
                     unsigned char buf[4];
@@ -579,7 +577,7 @@ void sml_handle_obis_pac (int16_t pac)
             obis_pac_sum += pac;
             obis_cur_pac_cnt++;
         } else {
-            DPRINTLN (DBG_INFO, "sml_handle_obis_pac, outside daylight, minutes: " + String (pac_index * AHOY_PAC_INTERVAL));
+            DPRINTLN (DBG_DEBUG, "sml_handle_obis_pac, outside daylight, minutes: " + String (pac_index * AHOY_PAC_INTERVAL));
         }
     } else {
         DPRINTLN (DBG_INFO, "sml_handle_obis_pac, no time2");
@@ -624,6 +622,7 @@ bool sml_get_list_entries (uint16_t layer)
         sml_list_entry_type_t type = (sml_list_entry_type_t)(*cur_serial_buf & 0x70);
         unsigned char entry_len;
         // Acc. to Spec there might be len_info > 2. But does this happen in real life?
+        // Also: an info_len > 2 could be due to corrupt data. So better break.
         uint16 len_info = (*cur_serial_buf & SML_EXT_LENGTH) ? 2 : 1;
 
 #ifdef undef
@@ -648,7 +647,7 @@ bool sml_get_list_entries (uint16_t layer)
                 entry_len = *cur_serial_buf & 0x0f; /* bei Listen andere Bedeutung */
             }
             if ((type == SML_TYPE_LIST) || (sml_serial_len >= entry_len)) {
-                sml_calc_obis_crc (len_info, cur_serial_buf);
+                sml_telegram_crc = sml_calc_crc (sml_telegram_crc, len_info, cur_serial_buf);
                 sml_serial_len -= len_info;
                 if (entry_len && (type != SML_TYPE_LIST)) {
                     entry_len -= len_info;
@@ -669,10 +668,8 @@ bool sml_get_list_entries (uint16_t layer)
                             break;
                         case SML_TYPE_INT:
                             if (layer == 1) {
-                                if ((obis_state == OBIS_ST_NONE) &&
-                                        (sml_list_layer_entries[layer] == 2) &&
-                                        (sml_obis_get_int (cur_serial_buf, entry_len) == SML_MSG_GET_LIST_RSP)) {
-                                    obis_state = OBIS_ST_UNKNOWN;
+                                if (!sml_message && (sml_list_layer_entries[layer] == 2)) {
+                                    sml_message = sml_obis_get_int (cur_serial_buf, entry_len);
                                 }
                             } else if (layer == 4) {
                                 if (obis_state == OBIS_ST_POWER_ALL) {
@@ -698,10 +695,8 @@ bool sml_get_list_entries (uint16_t layer)
                             break;
                         case SML_TYPE_UINT:
                             if (layer == 1) {
-                                if ((obis_state == OBIS_ST_NONE) &&
-                                        (sml_list_layer_entries[layer] == 2) &&
-                                        (sml_obis_get_uint (cur_serial_buf, entry_len) == SML_MSG_GET_LIST_RSP)) {
-                                    obis_state = OBIS_ST_UNKNOWN;
+                                if (!sml_message && (sml_list_layer_entries[layer] == 2)) {
+                                    sml_message = sml_obis_get_uint (cur_serial_buf, entry_len);
                                 }
                             } else if (layer == 4) {
                                 if (obis_state == OBIS_ST_YIELD_IN_ALL) {
@@ -740,7 +735,7 @@ bool sml_get_list_entries (uint16_t layer)
                             return sml_serial_len ? false : true;
                     }
                     if (type != SML_TYPE_LIST) {
-                        sml_calc_obis_crc (entry_len, cur_serial_buf);
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, entry_len, cur_serial_buf);
                         sml_serial_len -= entry_len;
                         if (sml_serial_len) {
                             cur_serial_buf += entry_len;
@@ -796,8 +791,8 @@ uint16_t sml_parse_stream (uint16 len)
                     unsigned char *last_serial_buf = cur_serial_buf;
 
                     if ((cur_serial_buf = (unsigned char *)memmem (cur_serial_buf, sml_serial_len, esc_seq, sizeof (esc_seq)))) {
-                        sml_init_obis_crc ();
-                        sml_calc_obis_crc (sizeof (esc_seq), cur_serial_buf);
+                        sml_telegram_crc = sml_init_crc ();
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, sizeof (esc_seq), cur_serial_buf);
                         sml_serial_len -= cur_serial_buf - last_serial_buf;
                         sml_serial_len -= sizeof (esc_seq);
                         if (sml_serial_len) {
@@ -831,7 +826,7 @@ uint16_t sml_parse_stream (uint16 len)
             case SML_ST_FIND_VERSION:
                 if (sml_serial_len >=sizeof (version_seq)) {
                     if (!memcmp (cur_serial_buf, version_seq, sizeof (version_seq))) {
-                        sml_calc_obis_crc (sizeof (version_seq), cur_serial_buf);
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, sizeof (version_seq), cur_serial_buf);
                         sml_state = SML_ST_FIND_MSG;
 #ifdef undef
                         DPRINTLN(DBG_INFO, "VERSION, rest " + String (sml_serial_len - sizeof (version_seq)));
@@ -860,13 +855,14 @@ uint16_t sml_parse_stream (uint16 len)
                         sml_state = SML_ST_FIND_END_TAG;
                         parse_continue = true;
                     } else if ((*cur_serial_buf & 0x70) == 0x70) {
-                        /* todo: extended list on 1st level */
-                        sml_calc_obis_crc (1, cur_serial_buf);
+                        /* todo: extended list on 1st level (does this happen in real life?) */
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, 1, cur_serial_buf);
 #ifdef undef
                         DPRINTLN (DBG_INFO, "TOPLIST 0x" + String(*cur_serial_buf, HEX) + ", rest " + String (sml_serial_len - 1));
 #endif
                         sml_state = SML_ST_FIND_LIST_ENTRIES;
                         cur_sml_list_layer = 0;
+                        sml_message = 0;
                         obis_state = OBIS_ST_NONE;
                         sml_list_layer_entries[0] = *cur_serial_buf & 0xf;
                         sml_serial_len--;
@@ -878,7 +874,7 @@ uint16_t sml_parse_stream (uint16 len)
                         }
                     } else if (*cur_serial_buf == 0x00) {
                         /* fill byte (depends on the size of the telegram) */
-                        sml_calc_obis_crc (1, cur_serial_buf);
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, 1, cur_serial_buf);
                         sml_serial_len--;
                         if (sml_serial_len) {
                             cur_serial_buf++;
@@ -900,7 +896,7 @@ uint16_t sml_parse_stream (uint16 len)
                 if (sml_serial_len) {   /* design: keep rcv buf small and skip irrelevant long list entries */
                     size_t len = min (sml_serial_len, sml_skip_len);
 
-                    sml_calc_obis_crc (len, cur_serial_buf);
+                    sml_telegram_crc = sml_calc_crc (sml_telegram_crc, len, cur_serial_buf);
                     sml_serial_len -= len;
                     if (sml_serial_len) {
                         cur_serial_buf += len;
@@ -929,7 +925,7 @@ uint16_t sml_parse_stream (uint16 len)
             case SML_ST_FIND_END_TAG:
                 if (sml_serial_len >= sizeof (esc_seq)) {
                     if (!memcmp (cur_serial_buf, esc_seq, sizeof (esc_seq))) {
-                        sml_calc_obis_crc (sizeof (esc_seq), cur_serial_buf);
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, sizeof (esc_seq), cur_serial_buf);
                         sml_state = SML_ST_CHECK_CRC;
                     } else {
                         DPRINTLN(DBG_WARN, "Missing END_TAG, found 0x" + String (*cur_serial_buf) +
@@ -955,12 +951,13 @@ uint16_t sml_parse_stream (uint16 len)
                     if (*cur_serial_buf == 0x1a) {
                         uint16_t calc_crc16, rcv_crc16;
 
-                        sml_calc_obis_crc (2, cur_serial_buf);
-                        calc_crc16 = sml_finit_obis_crc ();
+                        sml_telegram_crc = sml_calc_crc (sml_telegram_crc, 2, cur_serial_buf);
+                        calc_crc16 = sml_finit_crc (sml_telegram_crc);
                         rcv_crc16 = (*(cur_serial_buf+2) << 8) + *(cur_serial_buf+3);
                         if (calc_crc16 == rcv_crc16) {
                             obis_power_all_value = sml_obis_scale_int (obis_power_all_value, obis_power_all_scale);
 #ifdef undef
+                            // a bit more verbose info
                             obis_yield_in_all_value = sml_obis_scale_uint (obis_yield_in_all_value, obis_yield_in_all_scale);
                             obis_yield_out_all_value = sml_obis_scale_uint (obis_yield_out_all_value, obis_yield_out_all_scale);
                             DPRINTLN(DBG_INFO, "Power " + String (obis_power_all_value) +
