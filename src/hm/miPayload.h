@@ -66,7 +66,7 @@ class MiPayload {
         }
 
         void addAlarmListener(alarmListenerType cb) {
-            mCbMiAlarm = cb;
+            mCbAlarm = cb;
         }
 
         void loop() {
@@ -125,6 +125,7 @@ class MiPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
+                iv->powerLimitAck = false;
                 mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 mPayload[iv->id].limitrequested = true;
@@ -313,6 +314,7 @@ const byteAssign_t InfoAssignment[] = {
 
                 if ((p->packet[9] == 0x5a) && (p->packet[10] == 0x5a)) {
                     mApp->setMqttPowerLimitAck(iv);
+                    iv->powerLimitAck = true;
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINT(F("has accepted power limit set point "));
                     DBGPRINT(String(iv->powerLimit[0]));
@@ -368,14 +370,11 @@ const byteAssign_t InfoAssignment[] = {
 
                     if(AlarmData == mPayload[iv->id].txCmd) {
                         uint8_t i = 0;
-                        uint16_t code;
-                        uint32_t start, end;
                         while(1) {
-                            code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                            if(0 == code)
+                            if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
                                 break;
-                            if (NULL != mCbMiAlarm)
-                                (mCbMiAlarm)(code, start, end);
+                            if (NULL != mCbAlarm)
+                                (mCbAlarm)(iv);
                             yield();
                         }
                     }
@@ -714,7 +713,7 @@ const byteAssign_t InfoAssignment[] = {
                                     code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
                                     if(0 == code)
                                         break;
-                                    if (NULL != mCbMiAlarm)
+                                    if (NULL != mCbAlarm)
                                         (mCbAlarm)(code, start, end);
                                     yield();
                                 }
@@ -835,7 +834,7 @@ const byteAssign_t InfoAssignment[] = {
         bool mSerialDebug;
 
         Inverter<> *mHighPrioIv;
-        alarmListenerType mCbMiAlarm;
+        alarmListenerType mCbAlarm;
         payloadListenerType mCbMiPayload;
 };
 

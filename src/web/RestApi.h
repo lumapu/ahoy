@@ -98,13 +98,15 @@ class RestApi {
             else if(path == "setup/networks") getNetworks(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
-            else if(path == "record/info")    getRecord(root, InverterDevInform_All);
+            /*else if(path == "record/info")    getRecord(root, InverterDevInform_All);
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
-            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);
+            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);*/
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
+                else if(path.substring(0, 15) == "inverter/alarm/")
+                    getIvAlarms(root, request->url().substring(20).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -155,16 +157,15 @@ class RestApi {
 
         void getNotFound(JsonObject obj, String url) {
             JsonObject ep = obj.createNestedObject("avail_endpoints");
-            ep[F("system")]        = url + F("system");
-            ep[F("statistics")]    = url + F("statistics");
-            ep[F("inverter/list")] = url + F("inverter/list");
-            ep[F("index")]         = url + F("index");
-            ep[F("setup")]         = url + F("setup");
-            ep[F("live")]          = url + F("live");
-            ep[F("record/info")]   = url + F("record/info");
-            ep[F("record/alarm")]  = url + F("record/alarm");
-            ep[F("record/config")] = url + F("record/config");
-            ep[F("record/live")]   = url + F("record/live");
+            ep[F("inverter/list")]    = url + F("inverter/list");
+            ep[F("inverter/id/0")]    = url + F("inverter/id/0");
+            ep[F("inverter/alarm/0")] = url + F("inverter/alarm/0");
+            ep[F("statistics")]       = url + F("statistics");
+            ep[F("generic")]          = url + F("generic");
+            ep[F("index")]            = url + F("index");
+            ep[F("setup")]            = url + F("setup");
+            ep[F("system")]           = url + F("system");
+            ep[F("live")]             = url + F("live");
         }
 
 
@@ -349,45 +350,67 @@ class RestApi {
 
         void getInverter(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
-            if(NULL != iv) {
-                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                obj[F("id")]               = id;
-                obj[F("enabled")]          = (bool)iv->config->enabled;
-                obj[F("name")]             = String(iv->config->name);
-                obj[F("serial")]           = String(iv->config->serial.u64, HEX);
-                obj[F("version")]          = String(iv->getFwVersion());
-                obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
-                obj[F("ts_last_success")]  = rec->ts;
-                obj[F("generation")]       = iv->ivGen;
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
 
-                JsonArray ch = obj.createNestedArray("ch");
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            obj[F("id")]               = id;
+            obj[F("enabled")]          = (bool)iv->config->enabled;
+            obj[F("name")]             = String(iv->config->name);
+            obj[F("serial")]           = String(iv->config->serial.u64, HEX);
+            obj[F("version")]          = String(iv->getFwVersion());
+            obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
+            obj[F("power_limit_ack")]  = iv->powerLimitAck;
+            obj[F("ts_last_success")]  = rec->ts;
+            obj[F("generation")]       = iv->ivGen;
 
-                // AC
-                uint8_t pos;
-                obj[F("ch_name")][0] = "AC";
-                JsonArray ch0 = ch.createNestedArray();
-                if(IV_HMT == iv->ivGen) {
-                    for (uint8_t fld = 0; fld < sizeof(acListHmt); fld++) {
-                        pos = (iv->getPosByChFld(CH0, acListHmt[fld], rec));
-                        ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-                    }
-                } else  {
-                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
-                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+            JsonArray ch = obj.createNestedArray("ch");
+
+            // AC
+            uint8_t pos;
+            obj[F("ch_name")][0] = "AC";
+            JsonArray ch0 = ch.createNestedArray();
+            if(IV_HMT == iv->ivGen) {
+                for (uint8_t fld = 0; fld < sizeof(acListHmt); fld++) {
+                    pos = (iv->getPosByChFld(CH0, acListHmt[fld], rec));
                     ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                 }
-                }
+            } else  {
+            for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+            }
+            }
 
-                // DC
-                for(uint8_t j = 0; j < iv->channels; j ++) {
-                    obj[F("ch_name")][j+1] = iv->config->chName[j];
-                    obj[F("ch_max_pwr")][j+1] = iv->config->chMaxPwr[j];
-                    JsonArray cur = ch.createNestedArray();
-                    for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
-                        pos = (iv->getPosByChFld((j+1), dcList[fld], rec));
-                        cur[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-                    }
+            // DC
+            for(uint8_t j = 0; j < iv->channels; j ++) {
+                obj[F("ch_name")][j+1] = iv->config->chName[j];
+                obj[F("ch_max_pwr")][j+1] = iv->config->chMaxPwr[j];
+                JsonArray cur = ch.createNestedArray();
+                for (uint8_t fld = 0; fld < sizeof(dcList); fld++) {
+                    pos = (iv->getPosByChFld((j+1), dcList[fld], rec));
+                    cur[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                 }
+            }
+        }
+
+        void getIvAlarms(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+
+            obj["cnt"] = iv->alarmCnt;
+
+            JsonArray alarm = obj.createNestedArray(F("alarm"));
+            for(uint8_t i = 0; i < 10; i++) {
+                alarm[i][F("code")]  = iv->lastAlarm[i].code;
+                alarm[i][F("str")]   = iv->getAlarmStr(iv->lastAlarm[i].code);
+                alarm[i][F("start")] = iv->lastAlarm[i].start;
+                alarm[i][F("end")]   = iv->lastAlarm[i].end;
             }
         }
 
@@ -563,7 +586,7 @@ class RestApi {
             }
         }
 
-        void getRecord(JsonObject obj, uint8_t recType) {
+        /*void getRecord(JsonObject obj, uint8_t recType) {
             JsonArray invArr = obj.createNestedArray(F("inverter"));
 
             Inverter<> *iv;
@@ -583,7 +606,7 @@ class RestApi {
                     }
                 }
             }
-        }
+        }*/
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);

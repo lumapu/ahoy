@@ -29,7 +29,7 @@ typedef struct {
 
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
-typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
+typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 
 template<class HMSYSTEM, class HMRADIO>
@@ -143,6 +143,7 @@ class HmPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
+                iv->powerLimitAck = false;
                 mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
@@ -190,9 +191,10 @@ class HmPayload {
 
                 if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
                     bool ok = true;
-                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00))
+                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00)) {
                         mApp->setMqttPowerLimitAck(iv);
-                    else
+                        iv->powerLimitAck = true;
+                    } else
                         ok = false;
 
                     DPRINT_IVID(DBG_INFO, iv->id);
@@ -289,10 +291,10 @@ class HmPayload {
                         record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
                         mPayload[iv->id].complete = true;
 
-                        uint8_t payload[128];
+                        uint8_t payload[100];
                         uint8_t payloadLen = 0;
 
-                        memset(payload, 0, 128);
+                        memset(payload, 0, 100);
 
                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
                             memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
@@ -324,14 +326,12 @@ class HmPayload {
 
                             if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
-                                uint16_t code;
                                 uint32_t start, end;
                                 while(1) {
-                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                                    if(0 == code)
+                                    if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
                                         break;
                                     if (NULL != mCbAlarm)
-                                        (mCbAlarm)(code, start, end);
+                                        (mCbAlarm)(iv);
                                     yield();
                                 }
                             }
@@ -353,11 +353,6 @@ class HmPayload {
         void notify(uint8_t val, Inverter<> *iv) {
             if(NULL != mCbPayload)
                 (mCbPayload)(val, iv);
-        }
-
-        void notify(uint16_t code, uint32_t start, uint32_t endTime) {
-            if (NULL != mCbAlarm)
-                (mCbAlarm)(code, start, endTime);
         }
 
         bool build(uint8_t id, bool *complete) {

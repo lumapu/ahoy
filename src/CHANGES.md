@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.29 - 2023-08-09
+* MqTT alarm data was never sent, fixed
+* REST API: added alarm data
+* REST API: made get record obsolete
+* REST API: added power limit acknowledge `/api/inverter/id/[0-x]` #1072
+
 ## 0.7.28 - 2023-08-08
 * fix MI inverter support #1078
 

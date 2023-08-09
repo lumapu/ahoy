@@ -66,6 +66,14 @@ struct record_t {
     uint8_t pyldLen;      // expected payload length for plausibility check
 };
 
+struct alarm_t {
+    uint16_t code;
+    uint32_t start;
+    uint32_t end;
+    alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
+    alarm_t() : code(0), start(0), end(0) {}
+};
+
 class CommandAbstract {
     public:
         CommandAbstract(uint8_t txType = 0, uint8_t cmd = 0) {
@@ -120,6 +128,7 @@ class Inverter {
         uint16_t      alarmMesIndex;     // Last recorded Alarm Message Index
         uint16_t      powerLimit[2];     // limit power output
         float         actPowerLimit;     // actual power limit
+        bool          powerLimitAck;     // acknowledged power limit (default: false)
         uint8_t       devControlCmd;     // carries the requested cmd
         serial_u      radioId;           // id converted to modbus
         uint8_t       channels;          // number of PV channels (1-4)
@@ -131,6 +140,10 @@ class Inverter {
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
+        std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
+        uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
+        uint16_t      alarmCnt;          // counts the total number of occured alarms
+
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -139,6 +152,7 @@ class Inverter {
             ivGen              = IV_HM;
             powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
             powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
+            powerLimitAck      = false;
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
@@ -147,6 +161,8 @@ class Inverter {
             alarmMesIndex      = 0;
             isConnected        = false;
             status             = InverterStatus::OFF;
+            alarmNxtWrPos      = 0;
+            alarmCnt           = 0;
         }
 
         ~Inverter() {
@@ -338,11 +354,6 @@ class Inverter {
             isProducing();
         }
 
-        /*inline REC_TYP getPowerLimit(void) {
-            record_t<> *rec = getRecordStruct(SystemConfigPara);
-            return getChannelFieldValue(CH0, FLD_ACT_ACTIVE_PWR_LIMIT, rec);
-        }*/
-
         bool setValue(uint8_t pos, record_t<> *rec, REC_TYP val) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:setValue"));
             if(NULL == rec)
@@ -530,27 +541,32 @@ class Inverter {
             }
         }
 
-        uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
+        uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
                 return 0;
 
             uint16_t wCode = ((uint16_t)pyld[startOff]) << 8 | pyld[startOff+1];
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
+            uint32_t start, endTime;
 
             if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
                 startTimeOffset = 12 * 60 * 60;
             if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
                 endTimeOffset = 12 * 60 * 60;
 
-            *start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
-            *endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
+            start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
+            endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
 
-            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(*start) + ", end: " + ah::getTimeStr(*endTime));
+            DPRINTLN(DBG_DEBUG, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
+            addAlarm(pyld[startOff+1], start, endTime);
+
+            alarmCnt++;
+
             return pyld[startOff+1];
         }
 
-        String getAlarmStr(uint16_t alarmCode) {
+        static String getAlarmStr(uint16_t alarmCode) {
             switch (alarmCode) { // breaks are intentionally missing!
                 case 1:    return String(F("Inverter start"));
                 case 2:    return String(F("DTU command failed"));
@@ -625,6 +641,12 @@ class Inverter {
         }
 
     private:
+        inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
+            lastAlarm[alarmNxtWrPos] = alarm_t(code, start, end);
+            if(++alarmNxtWrPos >= 10) // rolling buffer
+                alarmNxtWrPos = 0;
+        }
+
         void toRadioId(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:toRadioId"));
             radioId.u64  = 0ULL;

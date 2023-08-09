@@ -177,6 +177,10 @@ class app : public IApp, public ah::Scheduler {
                     mPayload.ivSendHighPrio(iv);
                 else if (iv->ivGen == IV_MI)
                     mMiPayload.ivSendHighPrio(iv);
+                #if defined(ESP32)
+                else if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                    mHmsPayload.ivSendHighPrio(iv);
+                #endif
             }
         }
 

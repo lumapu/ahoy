@@ -28,13 +28,6 @@
 
 typedef std::function<void(JsonObject)> subscriptionCb;
 
-struct alarm_t {
-    uint16_t code;
-    uint32_t start;
-    uint32_t end;
-    alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
-};
-
 typedef struct {
     bool running;
     uint8_t lastIvId;
@@ -76,10 +69,10 @@ class PubMqtt {
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
-            if(strlen(mCfgMqtt->clientId) > 0) {
-                snprintf(mClientId, 23, "%s-", mCfgMqtt->clientId);
-                mClient.setClientId(mCfgMqtt->clientId);
-            } else{
+
+            if(strlen(mCfgMqtt->clientId) > 0)
+                snprintf(mClientId, 23, "%s", mCfgMqtt->clientId);
+            else{
                 snprintf(mClientId, 24, "%s-", mDevName);
                 uint8_t pos = strlen(mClientId);
                 mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
@@ -89,9 +82,9 @@ class PubMqtt {
                 mClientId[pos++] = WiFi.macAddress().substring(15, 16).c_str()[0];
                 mClientId[pos++] = WiFi.macAddress().substring(16, 17).c_str()[0];
                 mClientId[pos++] = '\0';
-
-                mClient.setClientId(mClientId);
             }
+
+            mClient.setClientId(mClientId);
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
             mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
@@ -111,7 +104,6 @@ class PubMqtt {
                 discoveryConfigLoop();
         }
 
-
         void tickerSecond() {
             if (mIntervalTimeout > 0)
                 mIntervalTimeout--;
@@ -130,6 +122,8 @@ class PubMqtt {
                     sendIvData();
                 }
             }
+
+            sendAlarmData();
         }
 
         void tickerMinute() {
@@ -179,10 +173,8 @@ class PubMqtt {
             }
         }
 
-        void alarmEventListener(uint16_t code, uint32_t start, uint32_t endTime) {
-            if(mClient.connected()) {
-                mAlarmList.push(alarm_t(code, start, endTime));
-            }
+        void alarmEvent(Inverter<> *iv) {
+            mSendAlarm[iv->id] = true;
         }
 
         void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true) {
@@ -509,15 +501,43 @@ class PubMqtt {
         }
 
         void sendAlarmData() {
-            if(mAlarmList.empty())
-                return;
-            Inverter<> *iv = mSys->getInverterByPos(0, false);
-            while(!mAlarmList.empty()) {
-                alarm_t alarm = mAlarmList.front();
-                publish(subtopics[MQTT_ALARM], iv->getAlarmStr(alarm.code).c_str());
-                publish(subtopics[MQTT_ALARM_START], String(alarm.start).c_str());
-                publish(subtopics[MQTT_ALARM_END], String(alarm.end).c_str());
-                mAlarmList.pop();
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                if(!mSendAlarm[i])
+                    continue;
+
+                iv = mSys->getInverterByPos(i, false);
+                if (NULL == iv)
+                    continue;
+                if (!iv->config->enabled)
+                    continue;
+
+                mSendAlarm[i] = false;
+
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/cnt", iv->config->name);
+                snprintf(mVal, 40, "%d", iv->alarmCnt);
+                publish(mSubTopic, mVal, true);
+
+                for(uint8_t j = 0; j < 10; j++) {
+                    if(0 != iv->lastAlarm[j].code) {
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/code", iv->config->name, j);
+                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].code);
+                        publish(mSubTopic, mVal, true);
+
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/str", iv->config->name, j);
+                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code));
+                        publish(mSubTopic, mVal, true);
+
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);
+                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start);
+                        publish(mSubTopic, mVal, true);
+
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/end", iv->config->name, j);
+                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end);
+                        publish(mSubTopic, mVal, true);
+                        yield();
+                    }
+                }
             }
         }
 
@@ -578,7 +598,7 @@ class PubMqtt {
         uint32_t *mUtcTimestamp, *mUptime;
         uint32_t mRxCnt, mTxCnt;
         std::queue<sendListCmdIv> mSendList;
-        std::queue<alarm_t> mAlarmList;
+        std::array<bool, MAX_NUM_INVERTERS> mSendAlarm{};
         subscriptionCb mSubscriptionCb;
         bool mLastAnyAvail;
         bool mZeroValues;

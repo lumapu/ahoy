@@ -53,9 +53,6 @@ enum {
     MQTT_DEVICE,
     MQTT_IP_ADDR,
     MQTT_STATUS,
-    MQTT_ALARM,
-    MQTT_ALARM_START,
-    MQTT_ALARM_END,
     MQTT_LWT_ONLINE,
     MQTT_LWT_OFFLINE,
     MQTT_ACK_PWR_LMT
@@ -77,9 +74,6 @@ const char* const subtopics[] PROGMEM = {
     "device",
     "ip_addr",
     "status",
-    "alarm",
-    "alarm_start",
-    "alarm_end",
     "connected",
     "not_connected",
     "ack_pwr_limit"

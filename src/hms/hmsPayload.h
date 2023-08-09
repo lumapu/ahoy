@@ -30,7 +30,7 @@ typedef struct {
 
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
-typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
+typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 
 template<class HMSYSTEM, class RADIO>
@@ -50,7 +50,7 @@ class HmsPayload {
                 mIvCmd56Cnt[i] = 0;
             }
             mSerialDebug = false;
-            //mHighPrioIv  = NULL;
+            mHighPrioIv  = NULL;
             mCbAlarm     = NULL;
             mCbPayload   = NULL;
             //mLastRx      = 0;
@@ -69,14 +69,14 @@ class HmsPayload {
         }
 
         void loop() {
-            /*if(NULL != mHighPrioIv) {
+            if(NULL != mHighPrioIv) {
                 ivSend(mHighPrioIv, true);
                 mHighPrioIv = NULL;
-            }*/
+            }
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
-            //mHighPrioIv = iv;
+            mHighPrioIv = iv;
         }
 
         void ivSend(Inverter<> *iv, bool highPrio = false) {
@@ -127,6 +127,7 @@ class HmsPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
+                iv->powerLimitAck = false;
                 mRadio->sendControlPacket(&iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
@@ -178,9 +179,10 @@ class HmsPayload {
 
                 if ((p->data[13] == ActivePowerContr) && (p->data[14] == 0x00)) {
                     bool ok = true;
-                    if((p->data[11] == 0x00) && (p->data[12] == 0x00))
+                    if((p->data[11] == 0x00) && (p->data[12] == 0x00)) {
                         mApp->setMqttPowerLimitAck(iv);
-                    else
+                        iv->powerLimitAck = true;
+                    } else
                         ok = false;
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINT(F(" has "));
@@ -192,6 +194,8 @@ class HmsPayload {
 
                     iv->clearCmdQueue();
                     iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                    if(mHighPrioIv == NULL)                          // do it immediately if possible
+                        mHighPrioIv = iv;
                 }
                 iv->devControlCmd = Init;
             }
@@ -305,19 +309,17 @@ class HmsPayload {
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd, iv);
 
-                            /*if(AlarmData == mPayload[iv->id].txCmd) {
+                            if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
-                                uint16_t code;
                                 uint32_t start, end;
                                 while(1) {
-                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                                    if(0 == code)
+                                    if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
                                         break;
                                     if (NULL != mCbAlarm)
-                                        (mCbAlarm)(code, start, end);
+                                        (mCbAlarm)(iv);
                                     yield();
                                 }
-                            }*/
+                            }
                         } else {
                             DPRINT(DBG_ERROR, F("plausibility check failed, expected "));
                             DBGPRINT(String(rec->pyldLen));
@@ -336,11 +338,6 @@ class HmsPayload {
         void notify(uint8_t val, Inverter<> *iv) {
             if(NULL != mCbPayload)
                 (mCbPayload)(val, iv);
-        }
-
-        void notify(uint16_t code, uint32_t start, uint32_t endTime) {
-            if (NULL != mCbAlarm)
-                (mCbAlarm)(code, start, endTime);
         }
 
         bool build(uint8_t id, bool *complete) {
@@ -376,7 +373,7 @@ class HmsPayload {
             DPRINT(DBG_INFO, "resetPayload: id: ");
             DBGPRINTLN(String(id));
             memset(&mPayload[id], 0, sizeof(hmsPayload_t));
-            //mPayload[id].txCmd       = 0;
+            mPayload[id].txCmd       = 0;
             mPayload[id].gotFragment = false;
             //mPayload[id].retransmits = 0;
             mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;
