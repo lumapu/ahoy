@@ -131,7 +131,6 @@ void app::loop(void) {
     if (mInnerLoopCb)
         mInnerLoopCb();
     #if !defined(ETHERNET)
-    mImprov.tickSerial();
     #endif
 }
 
@@ -248,13 +247,14 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
-    //everySec(std::bind(&Improv::tickSerial, &mImprov), "impro");
-    // every([this]() {mPayload.simulation();}, 15, "simul");
+    #if !defined(ETHERNET)
+    everySec([this]() { mImprov.tickSerial(); }, "impro");
+    #endif
+    // every([this]() { mPayload.simulation();}, 15, "simul");
 }
 
 #if defined(ETHERNET)
-void app::onNtpUpdate(bool gotTime)
-{
+void app::onNtpUpdate(bool gotTime) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
     if (gotTime || mTimestamp != 0) {
         this->updateNtp();

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.30 - 2023-08-10
+* attempt to improve speed / repsonse times (Schwuppdizitaet) #1075
+
 ## 0.7.29 - 2023-08-09
 * MqTT alarm data was never sent, fixed
 * REST API: added alarm data
