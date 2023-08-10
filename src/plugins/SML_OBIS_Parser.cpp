@@ -27,6 +27,7 @@
 #define SML_OBIS_GRID_POWER_PATH AHOY_HIST_PATH "/grid_power"
 #define SML_OBIS_FORMAT_FILE_NAME "%02u_%02u_%04u.bin"
 
+#define SML_MSG_NONE                0
 #define SML_MSG_GET_LIST_RSP        0x701
 
 #define OBIS_SIG_YIELD_IN_ALL       "\x01\x08\x00"
@@ -86,12 +87,14 @@ static unsigned char sml_serial_buf[SML_MAX_SERIAL_BUF];
 static unsigned char *cur_serial_buf = sml_serial_buf;
 static uint16 sml_serial_len = 0;
 static uint16 sml_skip_len = 0;
-static uint32 sml_message = 0;
+static uint32 sml_message = SML_MSG_NONE;
 static obis_state_t obis_state = OBIS_ST_NONE;
 static int obis_power_all_scale, obis_power_all_value;
 /* design: max 16 bit fuer aktuelle Powerwerte */
 static int16_t obis_cur_pac;
 static uint16_t sml_telegram_crc;
+static uint16_t sml_msg_crc;
+static bool sml_msg_failure;
 static uint16_t obis_cur_pac_cnt;
 static uint16_t obis_cur_pac_index;
 static int32_t obis_pac_sum;
@@ -122,7 +125,7 @@ const unsigned char sml_test_telegram[] = {
     			0x0b, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
     			0x01,
     			0x01,
-    	0x63, 0x53, 0x34,
+    	0x63, 0xea, 0xbf,                       // msg crc (adjust to your needs)
     	0x00,
     0x76,                                       // List with 6 entries (2. SML mesaage of this telegram)
     	0x05, 0x03, 0x2b, 0x18, 0x21,
@@ -142,8 +145,8 @@ const unsigned char sml_test_telegram[] = {
     					0x07, 0x01, 0x00, 0x01, 0x08, 0x00, 0xff, // OBIS: Energy in overall - no tarif
     					0x65, 0x00, 0x01, 0x01, 0x80,
     					0x01,
-    					0x62, 0x1e,             // Einheit "Wh"
-    					0x52, 0xff,             // Skalierung 0.1
+    					0x62, 0x1e,             // "Wh"
+    					0x52, 0xff,             // scaler 0.1
     					0x59, 0x00, 0x00, 0x00, 0x00, 0x00, 0x85, 0xc3, 0x05, // value
     					0x01,
     				0x77,
@@ -220,7 +223,7 @@ const unsigned char sml_test_telegram[] = {
     					0x01,
     			0x01,
     			0x01,
-    	0x63, 0x23, 0x59,
+    	0x63, 0x43, 0x92,                       // msg crc (adjust to your needs)
     	0x00,
     0x76,                                       // List with 6 entries (3rd SML message of this telegram)
     	0x05, 0x03, 0x2b, 0x18, 0x22,
@@ -230,10 +233,10 @@ const unsigned char sml_test_telegram[] = {
     		0x63, 0x02, 0x01,                   // Message type: CloseResponse
     		0x71,
     			0x01,
-    	0x63, 0x91, 0x26,
+    	0x63, 0x86, 0x5b,                       // msg crc (adjust to your needs)
     	0x00,
     0x1b, 0x1b, 0x1b, 0x1b,                     // Escape sequence
-    0x1a, 0x00, 0xbf, 0xd7	                    // 1a + number of fill bytes + CRC16 of telegram (change this to your needs)
+    0x1a, 0x00, 0xd9, 0x66	                    // 1a + number of fill bytes + CRC16 of telegram (change this to your needs)
 };
 #endif
 
@@ -648,6 +651,10 @@ bool sml_get_list_entries (uint16_t layer)
             }
             if ((type == SML_TYPE_LIST) || (sml_serial_len >= entry_len)) {
                 sml_telegram_crc = sml_calc_crc (sml_telegram_crc, len_info, cur_serial_buf);
+                if (layer || (sml_list_layer_entries[layer] > 2)) {
+                    sml_msg_crc = sml_calc_crc (sml_msg_crc, len_info, cur_serial_buf);
+                }
+
                 sml_serial_len -= len_info;
                 if (entry_len && (type != SML_TYPE_LIST)) {
                     entry_len -= len_info;
@@ -667,8 +674,19 @@ bool sml_get_list_entries (uint16_t layer)
                         case SML_TYPE_BOOL:
                             break;
                         case SML_TYPE_INT:
-                            if (layer == 1) {
-                                if (!sml_message && (sml_list_layer_entries[layer] == 2)) {
+                            if (!layer && (sml_list_layer_entries[layer] == 2)) {
+                                // perhaps there is a creepy smart meter that does send crc as int?
+                                uint16_t rcv_crc = sml_obis_get_int (cur_serial_buf, entry_len);
+
+                                sml_msg_crc = sml_finit_crc (sml_msg_crc);
+                                if (rcv_crc != sml_msg_crc) {
+                                    DPRINTLN(DBG_WARN, "Wrong CRC for msg 0x" + String (sml_message, HEX) +
+                                        ", 0x" + String (sml_msg_crc, HEX) + " <-> 0x" + String (rcv_crc, HEX));
+                                } else {
+                                    sml_msg_failure = 0;
+                                }
+                            } else if (layer == 1) {
+                                if ((sml_message == SML_MSG_NONE) && (sml_list_layer_entries[layer] == 2)) {
                                     sml_message = sml_obis_get_int (cur_serial_buf, entry_len);
                                 }
                             } else if (layer == 4) {
@@ -694,8 +712,18 @@ bool sml_get_list_entries (uint16_t layer)
                             }
                             break;
                         case SML_TYPE_UINT:
-                            if (layer == 1) {
-                                if (!sml_message && (sml_list_layer_entries[layer] == 2)) {
+                            if (!layer && (sml_list_layer_entries[layer] == 2)) {
+                                uint16_t rcv_crc = sml_obis_get_uint (cur_serial_buf, entry_len);
+
+                                sml_msg_crc = sml_finit_crc (sml_msg_crc);
+                                if (rcv_crc != sml_msg_crc) {
+                                    DPRINTLN(DBG_WARN, "Wrong CRC for msg 0x" + String (sml_message, HEX) +
+                                        ", 0x" + String (sml_msg_crc, HEX) + " <-> 0x" + String (rcv_crc, HEX));
+                                } else {
+                                    sml_msg_failure = 0;
+                                }
+                            } else if (layer == 1) {
+                                if ((sml_message == SML_MSG_NONE) && (sml_list_layer_entries[layer] == 2)) {
                                     sml_message = sml_obis_get_uint (cur_serial_buf, entry_len);
                                 }
                             } else if (layer == 4) {
@@ -736,6 +764,9 @@ bool sml_get_list_entries (uint16_t layer)
                     }
                     if (type != SML_TYPE_LIST) {
                         sml_telegram_crc = sml_calc_crc (sml_telegram_crc, entry_len, cur_serial_buf);
+                        if (layer || (sml_list_layer_entries[layer] > 2)) {
+                            sml_msg_crc = sml_calc_crc (sml_msg_crc, entry_len, cur_serial_buf);
+                        }
                         sml_serial_len -= entry_len;
                         if (sml_serial_len) {
                             cur_serial_buf += entry_len;
@@ -827,6 +858,7 @@ uint16_t sml_parse_stream (uint16 len)
                 if (sml_serial_len >=sizeof (version_seq)) {
                     if (!memcmp (cur_serial_buf, version_seq, sizeof (version_seq))) {
                         sml_telegram_crc = sml_calc_crc (sml_telegram_crc, sizeof (version_seq), cur_serial_buf);
+                        sml_msg_failure = 0;
                         sml_state = SML_ST_FIND_MSG;
 #ifdef undef
                         DPRINTLN(DBG_INFO, "VERSION, rest " + String (sml_serial_len - sizeof (version_seq)));
@@ -850,7 +882,10 @@ uint16_t sml_parse_stream (uint16 len)
                 }
                 break;
             case SML_ST_FIND_MSG:
-                if (sml_serial_len) {
+                if (sml_msg_failure) {
+                    sml_state = SML_ST_FIND_START_TAG;
+                    parse_continue = sml_serial_len ? true : false;
+                } else if (sml_serial_len) {
                     if (*cur_serial_buf == 0x1b) {
                         sml_state = SML_ST_FIND_END_TAG;
                         parse_continue = true;
@@ -862,7 +897,10 @@ uint16_t sml_parse_stream (uint16 len)
 #endif
                         sml_state = SML_ST_FIND_LIST_ENTRIES;
                         cur_sml_list_layer = 0;
-                        sml_message = 0;
+                        sml_message = SML_MSG_NONE;
+                        sml_msg_failure = 1;    // assume corrupt data (crc of this msg must proof ok)
+                        sml_msg_crc = sml_init_crc ();
+                        sml_msg_crc = sml_calc_crc (sml_msg_crc, 1, cur_serial_buf);
                         obis_state = OBIS_ST_NONE;
                         sml_list_layer_entries[0] = *cur_serial_buf & 0xf;
                         sml_serial_len--;
@@ -897,6 +935,9 @@ uint16_t sml_parse_stream (uint16 len)
                     size_t len = min (sml_serial_len, sml_skip_len);
 
                     sml_telegram_crc = sml_calc_crc (sml_telegram_crc, len, cur_serial_buf);
+                    if (cur_sml_list_layer || (sml_list_layer_entries[cur_sml_list_layer] > 2)) {
+                        sml_msg_crc = sml_calc_crc (sml_msg_crc, len, cur_serial_buf);
+                    }
                     sml_serial_len -= len;
                     if (sml_serial_len) {
                         cur_serial_buf += len;
