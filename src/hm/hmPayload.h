@@ -285,7 +285,8 @@ class HmPayload {
                                         }
                                     }
                                 }
-                            } else {
+                            } else if (false == mPayload[iv->id].gotFragment) {
+                                // only if there is no sign of life
                                 mPayload[iv->id].rxTmo = true; // inv might be down, no complete retransmit anymore
                             }
                         }
@@ -298,6 +299,9 @@ class HmPayload {
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                        } else if (false == mPayload[iv->id].gotFragment) {
+                            // only if there is no sign of life
+                            mPayload[iv->id].rxTmo = true; // inv might be down, no complete retransmit anymore
                         }
                     } else {  // payload complete
 #ifdef undef
