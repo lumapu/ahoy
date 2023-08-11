@@ -203,18 +203,69 @@ draft: false
             <p class="lead">
                 Für den Zusammenbau wird in der Regel ein Lötkolben benötigt. Es gibt zwei verschiedene Vorgehen, steckbar (mit Dunpont Kabeln) und fest verdrahtet.<br/>
                 Es wird die feste Verdrahtung empfohlen, da sie weniger anfällig ist.<br/><br/>
-                Für die Stabilität ist es wichtig, einen 100uF (oder größeren) Kondensator an das NRF24 Modul anzubinden, da dieses beim Senden hohe Ströme fordert.<br/>
+                Für die Stabilität ist es wichtig, einen 47uF bis 100uF Kondensator an das NRF24 Modul anzubinden, da dieses beim Senden hohe Ströme fordert.<br/>
                 Dieser Kondensator sollte möglichst nahe am NRF24 an Pin 1 (sw) und Pin 2 (rt) positioniert werden.
             </p>
-            <div class="alert alert-primary" role="alert">
-                <strong>Hinweis: </strong>Es kann auch zuerst der ESP geflasht werden, dann hängen noch nicht so viele Kabel dran.
-            </div>
         </div>
         <div class="col-10 col-sm-8 col-lg-6">
-            <a href="/img/fritzing/AhoyWemos_Steckplatine.jpg" target="_blank"><img src="/img/fritzing/AhoyWemos_Steckplatine.jpg" class="d-block mx-lg-auto img-fluid" alt="schematics" width="450" loading="lazy"></a>
+            <p class="lead">
+                <a href="/img/fritzing/esp8266_nrf_ssd1306.png" target="_blank"><img src="/img/fritzing/esp8266_nrf_ssd1306.png" class="d-block mx-lg-auto img-fluid" alt="schematics" width="450" loading="lazy"></a>
+            </p>
+            <p class="lead">
+                <a href="/img/fritzing/esp8266_nrf_ssd1306_sch.png" target="_blank"><img src="/img/fritzing/esp8266_nrf_ssd1306_sch.png" class="d-block mx-lg-auto img-fluid" alt="schematics" width="450" loading="lazy"></a>
+            </p>
+        </div>
+        <div class="col-lg-12">
+            <p class="lead">
+                <h4>Aufbau - Alternativen (NRF24)</h4>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">ESP</th>
+                            <th scope="col">Display</th>
+                            <th scope="col">Steckplatine</th>
+                            <th scope="col">Schaltbild</th>
+                            <th scope="col">Fritzing</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ESP8266</td>
+                            <td>nein</td>
+                            <td><a target="_blank" href="/img/fritzing/esp8266_nrf.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/esp8266_nrf_sch.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/src/esp8266_nrf.fzz">link</a></td>
+                        </tr>
+                        <tr>
+                            <td>ESP8266</td>
+                            <td>ja</td>
+                            <td><a target="_blank" href="/img/fritzing/esp8266_nrf_ssd1306.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/esp8266_nrf_ssd1306_sch.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/src/esp8266_nrf_ssd1306.fzz">link</a></td>
+                        </tr>
+                        <tr>
+                            <td>ESP32 (38Pin)</td>
+                            <td>nein</td>
+                            <td><a target="_blank" href="/img/fritzing/esp32-38_nrf.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/esp32-38_nrf_sch.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/src/esp32-38_nrf.fzz">link</a></td>
+                        </tr>
+                        <tr>
+                            <td>ESP32 (38Pin)</td>
+                            <td>ja</td>
+                            <td><a target="_blank" href="/img/fritzing/esp32-38_nrf_ssd1306.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/esp32-38_nrf_ssd1306_sch.png">link</a></td>
+                            <td><a target="_blank" href="/img/fritzing/src/esp32-38_nrf_ssd1306.fzz">link</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </p>
         </div>
     </div>
 </div>
+
+
+<div class="b-example-divider"></div>
 
 
 <div class="container col-xxl-8 px-4 py-5">
