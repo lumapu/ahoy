@@ -19,6 +19,7 @@
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
+
 #define SML_ESCAPE_CHAR   0x1b
 #define SML_VERSION1_CHAR 0x01
 #define SML_MAX_LIST_LAYER 8
@@ -377,7 +378,7 @@ int sml_find_hist_power (File file, uint16_t index)
                 return sml_get_obis_pac_average ();
             }
             DPRINTLN (DBG_DEBUG, "sml_find_hist_power(1), cant find " + String (index));
-            return -1;
+            return INT32_MIN;
         }
         if (cmp_index == index) {
             return (int16_t)(data[2] + (data[3] << 8));
@@ -387,7 +388,7 @@ int sml_find_hist_power (File file, uint16_t index)
     } else if ((index == obis_cur_pac_index) && obis_cur_pac_cnt) {
         return sml_get_obis_pac_average ();
     }
-    return -1;
+    return INT32_MIN;
 }
 
 //-----------------------------------------------------------------------------
