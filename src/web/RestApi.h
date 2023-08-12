@@ -296,7 +296,7 @@ class RestApi {
 
 #ifdef AHOY_SML_OBIS_SUPPORT
                         if (mConfig->sml_obis.ir_connected) {
-                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == INT32_MIN) {
                                 snprintf (&content[index], length - index, "\n%u:%02u,%u,",
                                     minutes / 60, minutes % 60, ac_power);
                             } else {
@@ -319,7 +319,7 @@ class RestApi {
 
 #ifdef AHOY_SML_OBIS_SUPPORT
                         if (mConfig->sml_obis.ir_connected) {
-                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == -1) {
+                            if ((sml_power = sml_find_hist_power(sml_hist, cur_interval)) == INT32_MIN) {
                                 snprintf (&content[index], length - index, "\n%u:%02u,%u,",
                                     minutes / 60, minutes % 60, ac_power);
                             } else {

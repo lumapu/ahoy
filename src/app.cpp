@@ -121,15 +121,16 @@ void app::loopStandard(void) {
             packet_t *p = &mSys.Radio.mBufCtrl.front();
 
             if (mConfig->serial.debug) {
+#ifdef undef
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->len));
-#ifdef undef
                 DBGPRINT(F("B Ch"));
                 DBGPRINT(String(p->ch));
                 DBGPRINT(F(" | "));
                 mSys.Radio.dumpBuf(p->packet, p->len);
 #else
-                DBGPRINTLN(" Bytes");
+                DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), " +
+                    String (p->len) + " Bytes");
 #endif
             }
 
@@ -366,7 +367,8 @@ void app::tickMidnight(void) {
             mMqtt.tickerMidnight();
 #endif
     }
-    mSys.cleanup_history ();
+    mSys.Radio.resetSendChannelQuality();
+    mSys.cleanup_history();
 #ifdef AHOY_SML_OBIS_SUPPORT
     // design: allways try to clean up
     sml_cleanup_history();

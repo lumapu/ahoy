@@ -1,10 +1,11 @@
 Changelog for ahoy-all-in-one compared to 0.6.9 of the main project
 
-- read SML/OBIS from UART (stream parser with min resources needed); Connections 9600,8,n,1, GND-GND, VCC-3V3, TX-TX, RX-RX
+- configurable read SML/OBIS from UART (stream parser with min resources needed); Connections 9600,8,n,1, GND-GND, VCC-3V3, TX-TX, RX-RX
 - prepared to show chart of grid power and total solar ac power for current days daylight period (6 a.m. to 8 p.m.)
 - show current grid power
 - show max solar ac/dc power
-- improved radio retransmit (complete retransmit if nothing was received, but only when inverter ought to be active) for the hm series
+- improved radio retransmit (complete retransmit if nothing was received, but only when inverter ought to be active) for the hm series)
+- Heuristic for choosing the best send channel (of 5 possible) helps reducing retransmits
 - shortcut radio traces a little bit
 
 DRAWBACKS:

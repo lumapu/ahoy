@@ -25,6 +25,7 @@ typedef struct {
     bool requested;
     bool gotFragment;
     bool rxTmo;
+    uint8_t lastFragments;  // for send quality measurement
 } invPayload_t;
 
 
@@ -246,7 +247,13 @@ class HmPayload {
 
                 if (!mPayload[iv->id].complete) {
                     bool crcPass, pyldComplete;
-                    crcPass = build(iv->id, &pyldComplete);
+                    uint8 Fragments;
+                    crcPass = build(iv->id, &pyldComplete, &Fragments);
+
+                    // evaluate quality of send channel with rcv params
+                    mSys->Radio.evalSendChannelQuality (crcPass, mPayload[iv->id].retransmits,
+                        Fragments, mPayload[iv->id].lastFragments);
+                    mPayload[iv->id].lastFragments = Fragments;
                     if (!crcPass && !pyldComplete) { // payload not complete
                         if ((mPayload[iv->id].requested) && (retransmit)) {
                             if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -351,6 +358,7 @@ class HmPayload {
                             }
                             iv->doCalculations();
                             uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC, rec);
+
                             if (pos != 0xff) {
                                 float ac_power = iv->getValue(pos, rec);
                                 mSys->handle_pac (iv, (uint16_t)(ac_power+0.5f));
@@ -396,7 +404,7 @@ class HmPayload {
                 (mCbAlarm)(code, start, endTime);
         }
 
-        bool build(uint8_t id, bool *complete) {
+        bool build(uint8_t id, bool *complete, uint8_t *fragments) {
             DPRINTLN(DBG_VERBOSE, F("build"));
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             if (mPayload[id].maxPackId > MAX_PAYLOAD_ENTRIES)
@@ -404,9 +412,13 @@ class HmPayload {
 
             // check if all fragments are there
             *complete = true;
+            *fragments = 0;
             for (uint8_t i = 0; i < mPayload[id].maxPackId; i++) {
-                if(mPayload[id].len[i] == 0)
+                if(mPayload[id].len[i] == 0) {
                     *complete = false;
+                } else {
+                    (*fragments)++;
+                }
             }
             if(!*complete)
                 return false;
@@ -440,6 +452,7 @@ class HmPayload {
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
             mPayload[id].rxTmo       = true; // design: dont start with complete retransmit
+            mPayload[id].lastFragments = 0;  // for send channel quality measurement
         }
 
         IApp *mApp;
