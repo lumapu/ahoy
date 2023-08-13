@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 
+enum { QOS_0 = 0, QOS_1, QOS_2 };
+
 enum {
     STR_TRUE,
     STR_FALSE

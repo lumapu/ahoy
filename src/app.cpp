@@ -120,7 +120,7 @@ void app::setup() {
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     #if !defined(ETHERNET)
-    mImprov.setup(this, mConfig->sys.deviceName, mVersion);
+    //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
     #endif
 
     regularTickers();
@@ -248,7 +248,7 @@ void app::regularTickers(void) {
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
     #if !defined(ETHERNET)
-    everySec([this]() { mImprov.tickSerial(); }, "impro");
+    //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
     // every([this]() { mPayload.simulation();}, 15, "simul");
 }

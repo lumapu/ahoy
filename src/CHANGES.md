@@ -1,5 +1,16 @@
 # Development Changes
 
+## 0.7.31 - 2023-08-13
+* fixed docu #1085
+* changed active power limit MqTT messages to QOS2 #1072
+* improved alarm messages, added alarm-id to log #1089
+* trigger power limit read on next day (if inverter was offline meanwhile)
+* disabled improv implementation to check if it is related to 'Schwuppdizitaet'
+* changed live view to gray once inverter isn't available
+* added inverter status to API
+* changed sum of totals on WebGui depending on inverter status #1084
+* merge maximum power (AC and DC) from PR #1080
+
 ## 0.7.30 - 2023-08-10
 * attempt to improve speed / repsonse times (Schwuppdizitaet) #1075
 

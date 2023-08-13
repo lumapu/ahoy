@@ -168,7 +168,7 @@ This feature was removed. The persisten limit should not be modified cyclic by a
 
 ### Generic Information
 
-The rest API works with *JSON* POST requests. All the following instructions must be sent to the `/api` endpoint of the AhoyDTU.
+The rest API works with *JSON* POST requests. All the following instructions must be sent to the `/api/ctrl` endpoint of the AhoyDTU.
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 

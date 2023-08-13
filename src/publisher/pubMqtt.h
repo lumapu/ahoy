@@ -24,8 +24,6 @@
 #include "pubMqttDefs.h"
 #include "pubMqttIvData.h"
 
-#define QOS_0   0
-
 typedef std::function<void(JsonObject)> subscriptionCb;
 
 typedef struct {
@@ -60,8 +58,8 @@ class PubMqtt {
             mIntervalTimeout = 1;
 
             mSendIvData.setup(sys, utcTs, &mSendList);
-            mSendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained) {
-                publish(subTopic, payload, retained);
+            mSendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
+                publish(subTopic, payload, retained, true, qos);
             });
             mDiscovery.running = false;
 
@@ -177,7 +175,7 @@ class PubMqtt {
             mSendAlarm[iv->id] = true;
         }
 
-        void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true) {
+        void publish(const char *subTopic, const char *payload, bool retained = false, bool addTopic = true, uint8_t qos = QOS_0) {
             if(!mClient.connected())
                 return;
 
@@ -186,15 +184,15 @@ class PubMqtt {
             else
                 snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
 
-            mClient.publish(mTopic, QOS_0, retained, payload);
+            mClient.publish(mTopic, qos, retained, payload);
             yield();
             mTxCnt++;
         }
 
-        void subscribe(const char *subTopic) {
+        void subscribe(const char *subTopic, uint8_t qos = QOS_0) {
             char topic[MQTT_TOPIC_LEN + 20];
             snprintf(topic, (MQTT_TOPIC_LEN + 20), "%s/%s", mCfgMqtt->topic, subTopic);
-            mClient.subscribe(topic, QOS_0);
+            mClient.subscribe(topic, qos);
         }
 
         void setSubscriptionCb(subscriptionCb cb) {
@@ -224,7 +222,7 @@ class PubMqtt {
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(mSubTopic, "true", true);
+                publish(mSubTopic, "true", true, true, QOS_2);
             }
         }
 
@@ -244,7 +242,7 @@ class PubMqtt {
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 snprintf(mVal, 20, "ctrl/limit/%d", i);
-                subscribe(mVal);
+                subscribe(mVal, QOS_2);
                 snprintf(mVal, 20, "ctrl/restart/%d", i);
                 subscribe(mVal);
                 snprintf(mVal, 20, "ctrl/power/%d", i);
@@ -525,7 +523,7 @@ class PubMqtt {
                         publish(mSubTopic, mVal, true);
 
                         snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/str", iv->config->name, j);
-                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code));
+                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code).c_str());
                         publish(mSubTopic, mVal, true);
 
                         snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);

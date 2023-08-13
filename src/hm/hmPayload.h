@@ -326,7 +326,6 @@ class HmPayload {
 
                             if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
-                                uint32_t start, end;
                                 while(1) {
                                     if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
                                         break;

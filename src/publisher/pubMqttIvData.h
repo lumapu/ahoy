@@ -10,7 +10,7 @@
 #include "../hm/hmSystem.h"
 #include "pubMqttDefs.h"
 
-typedef std::function<void(const char *subTopic, const char *payload, bool retained)> pubMqttPublisherType;
+typedef std::function<void(const char *subTopic, const char *payload, bool retained, uint8_t qos)> pubMqttPublisherType;
 
 struct sendListCmdIv {
     uint8_t cmd;
@@ -104,7 +104,7 @@ class PubMqttIvData {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
                 snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
-                mPublish(mSubTopic, mVal, true);
+                mPublish(mSubTopic, mVal, true, QOS_0);
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
@@ -160,10 +160,14 @@ class PubMqttIvData {
                     } else
                         mIvLastRTRpub[mIv->id] = lastTs;
 
+                    uint8_t qos = QOS_0;
+                    if(FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId)
+                        qos = QOS_2;
+
                     if((mIvSend == mIv) || (NULL == mIvSend)) { // send only updated values, or all if the inverter is NULL
                         snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                         snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
-                        mPublish(mSubTopic, mVal, retained);
+                        mPublish(mSubTopic, mVal, retained, qos);
                     }
                     mPos++;
                 } else
@@ -204,7 +208,7 @@ class PubMqttIvData {
                 }
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                 snprintf(mVal, 40, "%g", ah::round3(mTotal[mPos]));
-                mPublish(mSubTopic, mVal, retained);
+                mPublish(mSubTopic, mVal, retained, QOS_0);
                 mPos++;
             } else {
                 mSendList->pop();

@@ -217,6 +217,7 @@
 
             function parseRelease(obj) {
                 release = obj["name"].substring(6);
+                getAjax("/api/index", parse);
             }
 
             getAjax("/api/index", parse);

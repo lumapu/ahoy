@@ -27,9 +27,9 @@
 #define F(sl) (sl)
 #endif
 
-const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
-const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q};
-const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR};
+const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
 template<class HMSYSTEM, class HMRADIO>
 class RestApi {
@@ -365,6 +365,7 @@ class RestApi {
             obj[F("power_limit_ack")]  = iv->powerLimitAck;
             obj[F("ts_last_success")]  = rec->ts;
             obj[F("generation")]       = iv->ivGen;
+            obj[F("status")]           = (uint8_t)iv->status;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -403,7 +404,10 @@ class RestApi {
                 return;
             }
 
-            obj["cnt"] = iv->alarmCnt;
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+            obj["cnt"]     = iv->alarmCnt;
+            obj["last_id"] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
 
             JsonArray alarm = obj.createNestedArray(F("alarm"));
             for(uint8_t i = 0; i < 10; i++) {

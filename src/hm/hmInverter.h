@@ -49,6 +49,12 @@ template<class T=float>
 static T calcIrradiation(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
+static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
+static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
 using func_t = T (Inverter<> *, uint8_t);
 
 template<class T=float>
@@ -102,12 +108,14 @@ class InfoCommand : public CommandAbstract {
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {
-    { CALC_YT_CH0,  &calcYieldTotalCh0 },
-    { CALC_YD_CH0,  &calcYieldDayCh0   },
-    { CALC_UDC_CH,  &calcUdcCh         },
-    { CALC_PDC_CH0, &calcPowerDcCh0    },
-    { CALC_EFF_CH0, &calcEffiencyCh0   },
-    { CALC_IRR_CH,  &calcIrradiation   }
+    { CALC_YT_CH0,   &calcYieldTotalCh0 },
+    { CALC_YD_CH0,   &calcYieldDayCh0   },
+    { CALC_UDC_CH,   &calcUdcCh         },
+    { CALC_PDC_CH0,  &calcPowerDcCh0    },
+    { CALC_EFF_CH0,  &calcEffiencyCh0   },
+    { CALC_IRR_CH,   &calcIrradiation   },
+    { CALC_MPAC_CH0, &calcMaxPowerAcCh0 },
+    { CALC_MPDC_CH,  &calcMaxPowerDc    }
 };
 
 enum class InverterStatus : uint8_t {
@@ -314,8 +322,8 @@ class Inverter {
                     DPRINTLN(DBG_VERBOSE, "add real time");
 
                     // get last alarm message index and save it in the inverter object
-                    if (getPosByChFld(0, FLD_EVT, rec) == pos){
-                        if (alarmMesIndex < rec->record[pos]){
+                    if (getPosByChFld(0, FLD_EVT, rec) == pos) {
+                        if (alarmMesIndex < rec->record[pos]) {
                             alarmMesIndex = rec->record[pos];
                             //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
 
@@ -415,8 +423,10 @@ class Inverter {
                 if(status < InverterStatus::PRODUCING)
                     status = InverterStatus::STARTING;
             } else {
-                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC)
+                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     status = InverterStatus::OFF;
+                    actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                }
                 else
                     status = InverterStatus::WAS_ON;
             }
@@ -680,8 +690,7 @@ static T calcYieldTotalCh0(Inverter<> *iv, uint8_t arg0) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
-            uint8_t pos = iv->getPosByChFld(i, FLD_YT, rec);
-            yield += iv->getValue(pos, rec);
+            yield += iv->getChannelFieldValue(i, FLD_YT, rec);
         }
         return yield;
     }
@@ -695,8 +704,7 @@ static T calcYieldDayCh0(Inverter<> *iv, uint8_t arg0) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         T yield = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
-            uint8_t pos = iv->getPosByChFld(i, FLD_YD, rec);
-            yield += iv->getValue(pos, rec);
+            yield += iv->getChannelFieldValue(i, FLD_YD, rec);
         }
         return yield;
     }
@@ -724,8 +732,7 @@ static T calcPowerDcCh0(Inverter<> *iv, uint8_t arg0) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         T dcPower = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
-            uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
-            dcPower += iv->getValue(pos, rec);
+            dcPower += iv->getChannelFieldValue(i, FLD_PDC, rec);
         }
         return dcPower;
     }
@@ -737,12 +744,10 @@ static T calcEffiencyCh0(Inverter<> *iv, uint8_t arg0) {
     DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcEfficiencyCh0"));
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-        uint8_t pos = iv->getPosByChFld(CH0, FLD_PAC, rec);
-        T acPower = iv->getValue(pos, rec);
+        T acPower = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
         T dcPower = 0;
         for(uint8_t i = 1; i <= iv->channels; i++) {
-            pos = iv->getPosByChFld(i, FLD_PDC, rec);
-            dcPower += iv->getValue(pos, rec);
+            dcPower += iv->getChannelFieldValue(i, FLD_PDC, rec);
         }
         if(dcPower > 0)
             return acPower / dcPower * 100.0f;
@@ -756,11 +761,49 @@ static T calcIrradiation(Inverter<> *iv, uint8_t arg0) {
     // arg0 = channel
     if(NULL != iv) {
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-        uint8_t pos = iv->getPosByChFld(arg0, FLD_PDC, rec);
         if(iv->config->chMaxPwr[arg0-1] > 0)
-            return iv->getValue(pos, rec) / iv->config->chMaxPwr[arg0-1] * 100.0f;
+            return iv->getChannelFieldValue(arg0, FLD_PDC, rec) / iv->config->chMaxPwr[arg0-1] * 100.0f;
     }
     return 0.0;
+}
+
+template<class T=float>
+static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerAcCh0"));
+    T acMaxPower = 0.0;
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        T acPower = iv->getChannelFieldValue(arg0, FLD_PAC, rec);
+
+        for(uint8_t i = 0; i < rec->length; i++) {
+            if((FLD_MP == rec->assign[i].fieldId) && (0 == rec->assign[i].ch)) {
+                acMaxPower = iv->getValue(i, rec);
+            }
+        }
+        if(acPower > acMaxPower)
+            return acPower;
+    }
+    return acMaxPower;
+}
+
+template<class T=float>
+static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxPowerDc"));
+    // arg0 = channel
+    T dcMaxPower = 0.0;
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        T dcPower = iv->getChannelFieldValue(arg0, FLD_PDC, rec);
+
+        for(uint8_t i = 0; i < rec->length; i++) {
+            if((FLD_MP == rec->assign[i].fieldId) && (arg0 == rec->assign[i].ch)) {
+                dcMaxPower = iv->getValue(i, rec);
+            }
+        }
+        if(dcPower > dcMaxPower)
+            return dcPower;
+    }
+    return dcMaxPower;
 }
 
 #endif /*__HM_INVERTER_H__*/

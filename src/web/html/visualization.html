@@ -87,22 +87,26 @@
                 );
             }
             function ivHead(obj) {
-                total[0] += obj.ch[0][2]; // P_AC
-                total[1] += obj.ch[0][7]; // YieldDay
-                total[2] += obj.ch[0][6]; // YieldTotal
-                total[3] += obj.ch[0][8]; // P_DC
-                total[4] += obj.ch[0][10]; // Q_AC
+                if(0 != obj.status) { // only add totals if inverter is online
+                    total[0] += obj.ch[0][2]; // P_AC
+                    total[1] += obj.ch[0][7]; // YieldDay
+                    total[2] += obj.ch[0][6]; // YieldTotal
+                    total[3] += obj.ch[0][8]; // P_DC
+                    total[4] += obj.ch[0][10]; // Q_AC
+                }
                 var t = span("&nbsp;&deg;C");
+                var clh  = (0 == obj.status) ? "iv-h-dis" : "iv-h";
+                var clbg = (0 == obj.status) ? "iv-bg-dis" : "iv-bg";
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
-                        ml("div", {class: "p-2 iv-h"},
+                        ml("div", {class: "p-2 " + clh},
                             ml("div", {class: "row"}, [
                                 ml("div", {class: "col mx-2 mx-md-1"}, obj.name),
                                 ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + "&nbsp;%"))),
                                 ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5]) + t.innerText)
                             ])
                         ),
-                        ml("div", {class: "p-2 iv-bg"}, [
+                        ml("div", {class: "p-2 " + clbg}, [
                             ml("div", {class: "row"},[
                                 numBig(obj.ch[0][2], "W", "AC Power"),
                                 numBig(obj.ch[0][7], "Wh", "Yield Day"),
@@ -110,6 +114,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
+                                numMid(obj.ch[0][11], "W", "Max AC Power"),
                                 numMid(obj.ch[0][8], "W", "DC Power"),
                                 numMid(obj.ch[0][0], "V", "Voltage"),
                                 numMid(obj.ch[0][1], "A", "Current"),
@@ -138,12 +143,15 @@
                 ]);
             }
 
-            function ch(name, vals) {
+            function ch(status, name, vals) {
+                var clh  = (0 == status) ? "iv-h-dis" : "iv-h";
+                var clbg = (0 == status) ? "iv-bg-dis" : "iv-bg";
                 return ml("div", {class: "col-6 col-md-3 mt-2"}, [
-                    ml("div", {class: "ch-h p-2 a-c"}, name),
-                    ml("div", {class: "p-2 ch-bg"}, [
+                    ml("div", {class: "p-2 a-c " + clh}, name),
+                    ml("div", {class: "p-2 " + clbg}, [
                         ml("div", {class: "row"}, [
                             numCh(vals[2], units[2], "Power"),
+                            numCh(vals[6], units[2], "Max Power"),
                             numCh(vals[5], units[5], "Irradiation"),
                             numCh(vals[3], units[3], "Yield Day"),
                             numCh(vals[4], units[4], "Yield Total"),
@@ -182,7 +190,7 @@
                     if(name.length == 0)
                         name = "CHANNEL " + i;
                     if(obj.ch_max_pwr[i] > 0) // show channel only if max mod pwr
-                        chn.push(ch(name, obj.ch[i]));
+                        chn.push(ch(obj.status, name, obj.ch[i]));
                 }
                 mIvHtml.push(
                     ml("div", {}, [

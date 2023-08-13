@@ -141,6 +141,16 @@ span.seperator {
     color: var(--fg2);
 }
 
+.iv-h-dis {
+    background-color: var(--iv-dis-title);
+    color: var(--fg2);
+}
+
+.iv-bg-dis {
+    background-color: var(--iv-dis);
+    color: var(--fg2);
+}
+
 .ch-h {
     background-color: var(--ch-head-title);
     color: var(--fg2);

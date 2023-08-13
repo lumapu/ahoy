@@ -332,7 +332,7 @@ class app : public IApp, public ah::Scheduler {
         MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
         #if !defined(ETHERNET)
-        Improv mImprov;
+        //Improv mImprov;
         #endif
         #ifdef ESP32
         CmtRadioType mCmtRadio;
