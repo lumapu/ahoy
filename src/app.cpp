@@ -484,6 +484,12 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, fld, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
+            // zero max power
+            if(!skipYieldDay) {
+                pos = iv->getPosByChFld(ch, FLD_MP, rec);
+                iv->setValue(pos, rec, 0.0f);
+            }
+
             iv->doCalculations();
         }
         changed = true;
