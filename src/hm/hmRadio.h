@@ -217,10 +217,10 @@ class HmRadio {
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
+            /*if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }
+            }*/
             sendPacket(invId, 24, isRetransmit);
         }
 

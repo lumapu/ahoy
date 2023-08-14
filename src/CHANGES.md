@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.32 - 2023-08-14
+* fix colors of live view #1091
+
 ## 0.7.31 - 2023-08-13
 * fixed docu #1085
 * changed active power limit MqTT messages to QOS2 #1072

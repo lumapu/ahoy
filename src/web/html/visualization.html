@@ -144,8 +144,8 @@
             }
 
             function ch(status, name, vals) {
-                var clh  = (0 == status) ? "iv-h-dis" : "iv-h";
-                var clbg = (0 == status) ? "iv-bg-dis" : "iv-bg";
+                var clh  = (0 == status) ? "iv-h-dis" : "ch-h";
+                var clbg = (0 == status) ? "iv-bg-dis" : "ch-bg";
                 return ml("div", {class: "col-6 col-md-3 mt-2"}, [
                     ml("div", {class: "p-2 a-c " + clh}, name),
                     ml("div", {class: "p-2 " + clbg}, [
