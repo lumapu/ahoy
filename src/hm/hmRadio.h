@@ -278,9 +278,9 @@ class HmRadio {
         void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
             if(mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
-                DHEX(mid);
-                DBGPRINT(F(" pid: "));
-                DBGHEXLN(pid);
+                DPRINT(DBG_VERBOSE, String(mid, HEX));
+                DPRINT(DBG_VERBOSE,F(" pid: "));
+                DPRINTLN(DBG_VERBOSE,String(pid, HEX));
             }
             memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
             mTxBuf[0] = mid; // message id

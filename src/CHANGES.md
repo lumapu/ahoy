@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.34 - 2023-08-15
+* fix MI chrashes
+* fix some lost debug messages
+
 ## 0.7.33 - 2023-08-15
 * add alarms overview to WebGui #608
 * fix webGui total values #1084

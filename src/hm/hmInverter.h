@@ -485,7 +485,9 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hms1chAssignment;
                             rec->pyldLen = HMS1CH_PAYLOAD_LEN;
-                        }
+                        }  else if(IV_MI == ivGen) {
+                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm1chAssignment;}
                         channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
@@ -497,7 +499,9 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS2CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hms2chAssignment;
                             rec->pyldLen = HMS2CH_PAYLOAD_LEN;
-                        }
+                        }  else if(IV_MI == ivGen) {
+                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm2chAssignment;                        }
                         channels = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
@@ -509,7 +513,9 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hms4chAssignment;
                             rec->pyldLen = HMS4CH_PAYLOAD_LEN;
-                        }
+                        }  else if(IV_MI == ivGen) {
+                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
+                            rec->assign  = (byteAssign_t *)hm4chAssignment;                        }
                         channels = 4;
                     }
                     else if (INV_TYPE_6CH == type) {

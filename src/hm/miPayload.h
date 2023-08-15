@@ -748,6 +748,9 @@ const byteAssign_t InfoAssignment[] = {
             ac_pow = (int) (ac_pow*9.5);
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
 
+             // update status state-machine,
+            iv->isProducing();
+
             iv->doCalculations();
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
