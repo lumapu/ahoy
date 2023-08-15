@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.33 - 2023-08-15
+* add alarms overview to WebGui #608
+* fix webGui total values #1084
+
 ## 0.7.32 - 2023-08-14
 * fix colors of live view #1091
 

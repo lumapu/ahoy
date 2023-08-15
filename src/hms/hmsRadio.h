@@ -98,10 +98,10 @@ class CmtRadio {
             initPacket(ivId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
+            /*if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }
+            }*/
             sendPacket(24, isRetransmit);
         }
 

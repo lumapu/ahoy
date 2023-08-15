@@ -651,3 +651,75 @@ div.hr {
     margin-left: -5px;
     transform: translate(0,0px);
 }
+
+#modal {
+    max-width: 700px;
+    margin: 1.75rem auto;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1072;
+    display: block;
+}
+
+#modal-wrapper {
+    background-color: #000;
+    opacity: 0.5;
+    bottom: 0;
+}
+
+.modal-content {
+    border-radius: .3rem;
+    position: relative;
+    display: flex;
+    width: 100%;
+    background-color: var(--nav-active);
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.2);
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header .close {
+    padding: 0.7rem;
+    margin: -1rem -1rem -1rem auto;
+}
+
+.modal-body {
+    padding: 1rem 1rem 2rem 1rem;
+}
+
+.close {
+    font-size: 2rem;
+    opacity: 0.5;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+}
+
+button.close {
+    background-color: transparent;
+    border: 0;
+}
+
+h5 {
+    font-size: 1.25rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.pointer {
+    cursor: pointer;
+}

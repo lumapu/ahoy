@@ -366,6 +366,7 @@ class RestApi {
             obj[F("ts_last_success")]  = rec->ts;
             obj[F("generation")]       = iv->ivGen;
             obj[F("status")]           = (uint8_t)iv->status;
+            obj[F("alarm_cnt")]        = iv->alarmCnt;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -406,8 +407,9 @@ class RestApi {
 
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
-            obj["cnt"]     = iv->alarmCnt;
-            obj["last_id"] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
+            obj[F("iv_id")]   = id;
+            obj[F("cnt")]     = iv->alarmCnt;
+            obj[F("last_id")] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
 
             JsonArray alarm = obj.createNestedArray(F("alarm"));
             for(uint8_t i = 0; i < 10; i++) {

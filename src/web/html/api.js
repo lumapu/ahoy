@@ -126,6 +126,10 @@ function toIsoDateStr(d) {
     return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(0, 19).replace('T', ', ');
 }
 
+function toIsoTimeStr(d) {
+    return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(11, 19).replace('T', ', ');
+}
+
 function setHide(id, hide) {
     var elm = document.getElementById(id);
     if(hide) {
@@ -271,4 +275,30 @@ function svg(data=null, w=24, h=24, cl=null, tooltip=null) {
         s.appendChild(t);
     }
     return s;
+}
+
+function modal(title, body) {
+    if(null == document.getElementById("modal")) {
+        document.getElementById("wrapper").append(
+            ml("div", {id: "modal-wrapper", class: "modal", onclick: modalClose}),
+            ml("div", {id: "modal", class: "modal"},
+                ml("div", {class: "modal-content"}, [
+                        ml("div", {class: "modal-header"}, [
+                            ml("h5", {}, title),
+                            ml("button", {class: "close", type: "button", onclick: modalClose}, "&times;")
+                        ]),
+                        ml("div", {class: "modal-body"}, body)
+                    ]
+                )
+            )
+        );
+    }
+}
+
+function modalClose() {
+    var e = document.getElementById("modal");
+    if(null != e) {
+        e.remove();
+        document.getElementById("modal-wrapper").remove();
+    }
 }
