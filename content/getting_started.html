@@ -346,7 +346,7 @@ draft: false
                 Nach einer erfolgreichen Installation sollte der Ahoy durch ab- und anstecken neu gestartet werden.<br/>
             </p>
             <p class="lead">
-                Der Ahoy spannt automatisch ein WLAN mit dem Namen <strong>AHOY-DTU</strong> auf. Verbinden Sie ein beliebiges WLAN-fähiges Gerät mit diesem WLAN. Nach einer erfolgreichen Verbindung muss im Browser die Adresse <a href="http://192.168.4.1" target="_blank">http://192.168.4.1</a> aufgerufen werden.
+                Die AhoyDTU spannt automatisch ein WLAN mit dem Namen <strong>AHOY-DTU</strong> auf. Verbinden Sie ein beliebiges WLAN-fähiges Gerät mit diesem WLAN. Nach einer erfolgreichen Verbindung muss im Browser die Adresse <a href="http://192.168.4.1" target="_blank">http://192.168.4.1</a> aufgerufen werden.
             </p>
             <div class="alert alert-primary mt-3" role="alert">
                 Das Passwort für das WLAN <strong>AHOY-DTU</strong> ist <strong>esp_8266</strong> (auch bei Installationen auf dem ESP32)
@@ -368,8 +368,7 @@ draft: false
             <p class="lead">
                 Durch einen Neustart meldet sich der Ahoy automatisch in dem eingestellten WLAN an.
             </p>
-        </div>
-        <div class="col-10 col-sm-8 col-lg-6">
+
             <h4><span class="badge rounded-pill bg-primary">3</span> Ahoy in Netzwerk finden</h4>
             <p class="lead">
                 Wurde in den Einstellungen der Defaultwert für den Gerätename nicht verändert kann mit einem <strong>ping AHOY-DTU</strong> die IP-Adresse herausgefunden werden.
@@ -380,8 +379,20 @@ draft: false
             <p class="lead">
                 Die dritte Möglichkeit ist über die Serielle Console (integriert in Web Installer). Während dem Start von Ahoy wird die zugewiesene IP Adresse ausgegeben.
             </p>
+        </div>
+        <div class="col-10 col-sm-8 col-lg-6">
+            <h4><span class="badge rounded-pill bg-primary mt-5">4</span> Pinout prüfen</h4>
+            <p class="lead">
+                Die Pins für <strong>IRQ</strong> und <strong>CE</strong> müssen geprüft werden. Nach den Schaltbildern auf dieser Website müssen diese für Versionen vor <strong>0.7.34</strong> folgendermaßen gestellt werden: <strong>CE auf D3</strong> und <strong>IRQ auf D4</strong>
+                <div class="alert alert-success" role="alert">
+                    Die Änderung war nötig, da viele Nutzer beim ESP8266 Empfangsprobleme hatten. Mit dieser Konfiguration konnte bisher allen geholfen werden und wird dadruch zum Standard.
+                </div>
+            </p>
+            <p class="lead">
+                <a target="_blank" href="/img/screenshot/pinoutNew.png"><img src="/img/screenshot/pinoutNew.png" class="d-block mx-lg-auto img-fluid" alt="pinout config" width="450" loading="lazy"></a>
+            </p>
 
-            <h4><span class="badge rounded-pill bg-primary mt-5">4</span> Wechselrichter hinzufügen</h4>
+            <h4><span class="badge rounded-pill bg-primary mt-5">5</span> Wechselrichter hinzufügen</h4>
             <p class="lead">
                 Jeder Wechselrichter hat eine eindeutige Seriennummer. Diese muss in den Einstellungen eingetragen werden. Hierzu wieder die Einstellungen über die zuvor ermittelte IP-Adresse aufrufen.
             </p>
