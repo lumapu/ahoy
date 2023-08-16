@@ -50,6 +50,17 @@ namespace ah {
         return String(str);
     }
 
+    String getDateTimeStrShort(time_t t) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else {
+            sprintf(str, "%3s ", dayShortStr(dayOfWeek(t)));
+            sprintf(str+4, "%2d.%3s %02d:%02d", day(t), monthShortStr(month(t)), hour(t), minute(t));
+        }
+        return String(str);
+    }
+
     String getTimeStr(time_t t) {
         char str[9];
         if(0 == t)
