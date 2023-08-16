@@ -17,6 +17,7 @@ class DisplayMono84X48 : public DisplayMono {
             mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
             mUtcTs = NULL;
             mType = 0;
+            mDispWidth = 0;
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char *version) {
@@ -28,14 +29,15 @@ class DisplayMono84X48 : public DisplayMono {
             mUtcTs = utcTs;
 
             mDisplay->begin();
+            mDispWidth = mDisplay->getDisplayWidth();
             calcLinePositions();
 
             mDisplay->clearBuffer();
             mDisplay->setContrast(mLuminance);
 
-            printText("AHOY!", 0);
-            printText("ahoydtu.de", 2);
-            printText(version, 3);
+            printText("AHOY!", l_Ahoy);
+            printText("ahoydtu.de", l_Website);
+            printText(version, l_Version);
             mDisplay->sendBuffer();
         }
 
@@ -63,32 +65,33 @@ class DisplayMono84X48 : public DisplayMono {
                 mDisplay->setPowerSave(false);
 
                 if (totalPower > 999)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%2.2f kW", (totalPower / 1000));
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (totalPower / 1000));
                 else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%3.0f W", totalPower);
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", totalPower);
 
-                printText(mFmtText, 0);
+                printText(mFmtText, l_TotalPower);
             } else {
-                printText("offline", 0);
+                printText("offline", l_TotalPower);
                 // check if it's time to enter power saving mode
                 if (mTimeout == 0)
                     mDisplay->setPowerSave(mEnPowerSafe);
             }
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
-            printText(mFmtText, 1);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Today: %4.0f Wh", totalYieldDay);
+            printText(mFmtText, l_YieldDay);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", totalYieldTotal);
-            printText(mFmtText, 2);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Total: %.1f kWh", totalYieldTotal);
+            printText(mFmtText, l_YieldTotal);
+
+            if (NULL != mUtcTs)
+                printText(ah::getDateTimeStrShort(gTimezone.toLocal(*mUtcTs)).c_str(), l_Time);
 
             IPAddress ip = WiFi.localIP();
-            if (!(mExtra % 10) && (ip))
-                printText(ip.toString().c_str(), 3);
-            else if (!(mExtra % 5)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", isprod);
-                printText(mFmtText, 3);
-            } else if (NULL != mUtcTs)
-                printText(ah::getTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+            if (!(mExtra % 5) && (ip))
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", ip.toString().c_str());
+            else
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Inv.On: %d", isprod);
+            printText(mFmtText, l_Status);
 
             mDisplay->sendBuffer();
 
@@ -96,33 +99,52 @@ class DisplayMono84X48 : public DisplayMono {
         }
 
     private:
+        uint16_t mDispWidth;
+        enum _dispLine
+            {
+            // start page
+            l_Website = 0,
+            l_Ahoy = 2,
+            l_Version = 4,
+            // run page
+            l_Time = 0,
+            l_Status = 1,
+            l_TotalPower = 2,
+            l_YieldDay = 3,
+            l_YieldTotal = 4,
+            // End
+            l_MAX_LINES = 5,
+            };
+
         void calcLinePositions() {
             uint8_t yOff = 0;
-            for (uint8_t i = 0; i < 4; i++) {
+            uint8_t i = 0;
+            uint8_t asc, dsc;
+
+            do {
                 setFont(i);
-                yOff += (mDisplay->getMaxCharHeight());
+                asc = mDisplay->getAscent();
+                yOff += asc;
                 mLineYOffsets[i] = yOff;
-            }
+                dsc = mDisplay->getDescent();
+                if (l_TotalPower!=i)   // power line needs no descent spacing
+                    yOff -= dsc;
+                yOff++;     // instead lets spend one pixel space between all lines
+                i++;
+            } while(l_MAX_LINES>i);
         }
 
         inline void setFont(uint8_t line) {
-            switch (line) {
-                case 0:
-                    mDisplay->setFont(u8g2_font_logisoso16_tr);
-                    break;
-                case 3:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
-                    break;
-                default:
-                    mDisplay->setFont(u8g2_font_5x8_tr);
-                    break;
-            }
+            if ((line == l_TotalPower) || (line == l_Ahoy))
+                mDisplay->setFont(u8g2_font_logisoso16_tr);
+            else
+                mDisplay->setFont(u8g2_font_5x8_tr);
         }
 
         void printText(const char *text, uint8_t line) {
-            uint8_t dispX = (line == 0) ? 10 : 5;
+            uint8_t dispX;
             setFont(line);
-
+            dispX = (mDispWidth - mDisplay->getStrWidth(text)) / 2;  // center text
             dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
