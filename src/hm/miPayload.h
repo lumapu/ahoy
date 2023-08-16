@@ -152,7 +152,6 @@ class MiPayload {
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
                     mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 } else {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
                     mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
                 };
 
@@ -480,7 +479,6 @@ const byteAssign_t InfoAssignment[] = {
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
                                         mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
-                                        //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
                                     }
                                 }
@@ -496,60 +494,10 @@ const byteAssign_t InfoAssignment[] = {
 
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
-                            //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                             mRadio->sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
-                    /*else {  // payload complete
-                        //This tree is not really tested, most likely it's not truly complete....
-                        DPRINTLN(DBG_INFO, F("procPyld: cmd:  0x") + String(mPayload[iv->id].txCmd, HEX));
-                        DPRINTLN(DBG_INFO, F("procPyld: txid: 0x") + String(mPayload[iv->id].txId, HEX));
-                        //DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
-                        //record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
-                        //uint8_t payload[128];
-                        //uint8_t payloadLen = 0;
-                        //memset(payload, 0, 128);
-                        //for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
-                        //    memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
-                        //    payloadLen += (mPayload[iv->id].len[i]);
-                        //    yield();
-                        //}
-                        //payloadLen -= 2;
-                        //if (mSerialDebug) {
-                        //    DPRINT(DBG_INFO, F("Payload (") + String(payloadLen) + "): ");
-                        //    mSys->Radio.dumpBuf(payload, payloadLen);
-                        //}
-                        //if (NULL == rec) {
-                        //    DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                        //} else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
-                        //    if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
-                        //        mStat->rxSuccess++;
-                        //    rec->ts = mPayload[iv->id].ts;
-                        //    for (uint8_t i = 0; i < rec->length; i++) {
-                        //        iv->addValue(i, payload, rec);
-                        //        yield();
-                        //    }
-                        //    iv->doCalculations();
-                        //    notify(mPayload[iv->id].txCmd);
-                        //    if(AlarmData == mPayload[iv->id].txCmd) {
-                        //        uint8_t i = 0;
-                        //        uint16_t code;
-                        //        uint32_t start, end;
-                        //        while(1) {
-                        //            code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                        //            if(0 == code)
-                        //                break;
-                        //            if (NULL != mCbAlarm)
-                        //                (mCbAlarm)(code, start, end);
-                        //            yield();
-                        //        }
-                        //    }
-                        //} else {
-                        //    DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
-                        //    mStat->rxFail++;
-                        //}
-                        //iv->setQueuedCmdFinished();
-                    //}*/
+
                 }
                 yield();
             }
@@ -579,27 +527,27 @@ const byteAssign_t InfoAssignment[] = {
 
         void miStsConsolidate(Inverter<> *iv, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
             //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
-            uint16_t status = 3; // regular status for MI, change to 1 later?
+            uint16_t statusMi = 3; // regular status for MI, change to 1 later?
             if ( uState == 2 ) {
-                status = 5050 + stschan; //first approach, needs review!
+                statusMi = 5050 + stschan; //first approach, needs review!
                 if (lState)
-                    status +=  lState*10;
+                    statusMi +=  lState*10;
             } else if ( uState > 3 ) {
-                status = uState*1000 + uEnum*10;
+                statusMi = uState*1000 + uEnum*10;
                 if (lState)
-                    status +=  lState*100; //needs review, esp. for 4ch-8310 state!
+                    statusMi +=  lState*100; //needs review, esp. for 4ch-8310 state!
                 //if (lEnum)
-                status +=  lEnum;
+                statusMi +=  lEnum;
                 if (uEnum < 6) {
-                    status += stschan;
+                    statusMi += stschan;
                 }
-                if (status == 8000)
-                    status = 8310;       //trick?
+                if (statusMi == 8000)
+                    statusMi = 8310;       //trick?
             }
 
-            uint16_t prntsts = status == 3 ? 1 : status;
-            if ( status != mPayload[iv->id].sts[stschan] ) { //sth.'s changed?
-                mPayload[iv->id].sts[stschan] = status;
+            uint16_t prntsts = statusMi == 3 ? 1 : statusMi;
+            if ( statusMi != mPayload[iv->id].sts[stschan] ) { //sth.'s changed?
+                mPayload[iv->id].sts[stschan] = statusMi;
                 DPRINT(DBG_WARN, F("Status change for CH"));
                 DBGPRINT(String(stschan)); DBGPRINT(F(" ("));
                 DBGPRINT(String(prntsts)); DBGPRINT(F("): "));
@@ -682,26 +630,10 @@ const byteAssign_t InfoAssignment[] = {
                 miStsConsolidate(iv, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    /*uint8_t cmd = p->packet[0] - ALL_FRAMES + 1;
-                    mSys->Radio.prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mPayload[iv->id].txCmd = cmd;*/
                     mPayload[iv->id].txCmd++;
                     mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
                     mPayload[iv->id].complete = false;
                 }
-
-                /*else if ( p->packet[0] == (0x39 + ALL_FRAMES) ) {
-                    mPayload[iv->id].complete = true;
-                }*/
-
-                /*if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]){
-                    iv->alarmMesIndex = rec->record[iv->getPosByChFld(0, FLD_EVT, rec)];
-
-                    DPRINT_IVID(DBG_INFO, iv->id);
-                    DBGPRINT_TXT(TXT_INCRALM);
-                    DBGPRINTLN(String(iv->alarmMesIndex));
-                }*/
-
             }
 
 /*
@@ -714,9 +646,8 @@ const byteAssign_t InfoAssignment[] = {
                                     if(0 == code)
                                         break;
                                     if (NULL != mCbAlarm)
-                                        (mCbAlarm)(code, start, end);
-                                    yield();
-                                }
+                                        (mCbAl    { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
+
                             }*/
 
             //if ( mPayload[iv->id].complete ||  //4ch device
@@ -729,7 +660,7 @@ const byteAssign_t InfoAssignment[] = {
         }
 
         void miComplete(Inverter<> *iv) {
-            if ( mPayload[iv->id].complete )  //  && iv->type != INV_TYPE_4CH)
+            if ( mPayload[iv->id].complete )
                 return; //if we got second message as well in repreated attempt
             mPayload[iv->id].complete = true;
             DPRINT_IVID(DBG_INFO, iv->id);
@@ -748,14 +679,14 @@ const byteAssign_t InfoAssignment[] = {
             ac_pow = (int) (ac_pow*9.5);
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
 
+            iv->doCalculations();
              // update status state-machine,
             iv->isProducing();
 
-            iv->doCalculations();
             iv->setQueuedCmdFinished();
             mStat->rxSuccess++;
             yield();
-            notify(RealTimeRunData_Debug, iv); //iv->type == INV_TYPE_4CH ? 0x36 : 0x09 );
+            notify(RealTimeRunData_Debug, iv);
         }
 
         bool build(uint8_t id, bool *complete) {
