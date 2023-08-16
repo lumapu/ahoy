@@ -281,6 +281,14 @@ void app::updateNtp(void) {
             uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
             onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
         }
+        if (mConfig->sys.schedReboot) {
+            uint32_t localTime = gTimezone.toLocal(mTimestamp);
+            uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
+            if (rebootTrig <= mTimestamp) { //necessary for times other than midnight to prevent reboot loop
+               rebootTrig += 86400;
+            }
+            onceAt(std::bind(&app::tickReboot, this), rebootTrig, "midRe");
+        }
     }
 
     if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
