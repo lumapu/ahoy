@@ -477,7 +477,7 @@ class Inverter {
             switch (cmd) {
                 case RealTimeRunData_Debug:
                     if (INV_TYPE_1CH == type) {
-                        if(IV_HM == ivGen || IV_MI == ivGen) {
+                        if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM1CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hm1chAssignment;
                             rec->pyldLen = HM1CH_PAYLOAD_LEN;
@@ -492,7 +492,7 @@ class Inverter {
                         channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
-                        if(IV_HM == ivGen || IV_MI == ivGen) {
+                        if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM2CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hm2chAssignment;
                             rec->pyldLen = HM2CH_PAYLOAD_LEN;
@@ -504,7 +504,7 @@ class Inverter {
                         channels = 2;
                     }
                     else if (INV_TYPE_4CH == type) {
-                        if(IV_HM == ivGen || IV_MI == ivGen) {
+                        if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM4CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hm4chAssignment;
                             rec->pyldLen = HM4CH_PAYLOAD_LEN;
