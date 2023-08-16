@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.34 - 2023-08-16
+* fixed timezone offset of alarms
+* added `AC` and `DC` to `/live` #1098
+* changed `ESP8266` default NRF24 pin assignments (`D3` = `CE` and `D4` = `IRQ`)
+* fixed background of modal window for bright color
+
 ## 0.7.33 - 2023-08-15
 * add alarms overview to WebGui #608
 * fix webGui total values #1084

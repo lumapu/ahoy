@@ -68,8 +68,8 @@
     #define DEF_SCLK_PIN            18
 #else
     #define DEF_CS_PIN              15
-    #define DEF_CE_PIN              2
-    #define DEF_IRQ_PIN             0
+    #define DEF_CE_PIN              0
+    #define DEF_IRQ_PIN             2
     // these are given to relay the correct values via API
     // they cannot actually be moved for ESP82xx models
     #define DEF_MISO_PIN            12

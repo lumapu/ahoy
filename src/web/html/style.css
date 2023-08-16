@@ -677,7 +677,7 @@ div.hr {
     position: relative;
     display: flex;
     width: 100%;
-    background-color: var(--nav-active);
+    background-color: var(--modal-bg);
     background-clip: padding-box;
     border: 1px solid rgba(0,0,0,.2);
     flex-direction: column;

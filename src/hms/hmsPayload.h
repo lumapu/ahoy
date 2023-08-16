@@ -276,12 +276,16 @@ class HmsPayload {
                         record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
                         mPayload[iv->id].complete = true;
 
-                        uint8_t payload[100];
+                        uint8_t payload[150];
                         uint8_t payloadLen = 0;
 
-                        memset(payload, 0, 100);
+                        memset(payload, 0, 150);
 
                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
+                            if((mPayload[iv->id].len[i] + payloadLen) > 150) {
+                                DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
+                                break;
+                            }
                             memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
                             payloadLen += (mPayload[iv->id].len[i]);
                             yield();

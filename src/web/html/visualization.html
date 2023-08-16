@@ -120,8 +120,8 @@
                             ml("div", {class: "row mt-2"},[
                                 numMid(obj.ch[0][11], "W", "Max AC Power"),
                                 numMid(obj.ch[0][8], "W", "DC Power"),
-                                numMid(obj.ch[0][0], "V", "Voltage"),
-                                numMid(obj.ch[0][1], "A", "Current"),
+                                numMid(obj.ch[0][0], "V", "AC Voltage"),
+                                numMid(obj.ch[0][1], "A", "AC Current"),
                                 numMid(obj.ch[0][3], "Hz", "Frequency"),
                                 numMid(obj.ch[0][9], "%", "Efficiency"),
                                 numMid(obj.ch[0][10], "var", "Reactive Power"),
@@ -154,13 +154,13 @@
                     ml("div", {class: "p-2 a-c " + clh}, name),
                     ml("div", {class: "p-2 " + clbg}, [
                         ml("div", {class: "row"}, [
-                            numCh(vals[2], units[2], "Power"),
+                            numCh(vals[2], units[2], "DC Power"),
                             numCh(vals[6], units[2], "Max Power"),
                             numCh(vals[5], units[5], "Irradiation"),
                             numCh(vals[3], units[3], "Yield Day"),
                             numCh(vals[4], units[4], "Yield Total"),
-                            numCh(vals[0], units[0], "Voltage"),
-                            numCh(vals[1], units[1], "Current")
+                            numCh(vals[0], units[0], "DC Voltage"),
+                            numCh(vals[1], units[1], "DC Current")
                         ])
                     ])
                 ]);
@@ -222,6 +222,7 @@
 
             function parseIvAlarm(obj) {
                 var html = [];
+                var offs = new Date().getTimezoneOffset() * -60;
                 html.push(
                     ml("div", {class: "row"}, [
                         ml("div", {class: "col"}, ml("strong", {}, "String")),
@@ -237,8 +238,8 @@
                             ml("div", {class: "row"}, [
                                 ml("div", {class: "col mt-3"}, String(a.str)),
                                 ml("div", {class: "col mt-3"}, String(a.code)),
-                                ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date(a.start * 1000)))),
-                                ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date(a.end * 1000))))
+                                ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date((a.start + offs) * 1000)))),
+                                ml("div", {class: "col mt-3"}, String(toIsoTimeStr(new Date((a.end + offs) * 1000))))
                             ])
                         );
                     }
