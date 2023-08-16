@@ -10,6 +10,7 @@
 * merged PR #1095, MI fixes for 0.7.x versions
 * fix scheduled reboot #1097
 * added vector graphic logo `/doc/logo.svg`
+* merge PR #1093, improved Nokia5110 display layout
 
 ## 0.7.33 - 2023-08-15
 * add alarms overview to WebGui #608

@@ -100,8 +100,7 @@ class DisplayMono84X48 : public DisplayMono {
 
     private:
         uint16_t mDispWidth;
-        enum _dispLine
-            {
+        enum _dispLine {
             // start page
             l_Website = 0,
             l_Ahoy = 2,
@@ -114,7 +113,7 @@ class DisplayMono84X48 : public DisplayMono {
             l_YieldTotal = 4,
             // End
             l_MAX_LINES = 5,
-            };
+        };
 
         void calcLinePositions() {
             uint8_t yOff = 0;
