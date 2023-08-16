@@ -7,6 +7,7 @@
 * fixed background of modal window for bright color
 * fix MI chrashes
 * fix some lost debug messages
+* merged PR #1095, MI fixes for 0.7.x versions
 
 ## 0.7.33 - 2023-08-15
 * add alarms overview to WebGui #608
