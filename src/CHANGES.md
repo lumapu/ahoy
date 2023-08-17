@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.35 - 2023-08-17
+* fixed timestamp for alarms send over MqTT
+* auto-patch of `AsyncWebServer` #834, #1036
+* Update documentation in Git regarding `ESP8266` default NRF24 pin assignments
+
 ## 0.7.34 - 2023-08-16
 * fixed timezone offset of alarms
 * added `AC` and `DC` to `/live` #1098

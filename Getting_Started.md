@@ -1,4 +1,4 @@
-## Overview
+ ## Overview
 
 On this page, you'll find detailed instructions on how to wire the module of a Wemos D1 mini or ESP32 to the radio module, as well as how to flash it with the latest firmware. This information will enable you to communicate with compatible inverters.
 
@@ -122,11 +122,11 @@ This is an example wiring using a Wemos D1 mini.<br>
 
 ##### Schematic
 
-![Schematic](doc/AhoyWemos_Schaltplan.jpg)
+![Schematic](https://ahoydtu.de/img/fritzing/esp8266_nrf_sch.png)
 
 ##### Symbolic view
 
-![Symbolic](doc/AhoyWemos_Steckplatine.jpg)
+![Symbolic](https://ahoydtu.de/img/fritzing/esp8266_nrf.png)
 
 #### ESP8266 wiring example on 30pin Lolin NodeMCU v3
 
@@ -146,11 +146,11 @@ Example wiring for a 38pin ESP32 module
 
 ##### Schematic
 
-![Schematic](doc/Wiring_ESP32_Schematic.png)
+![Schematic](https://ahoydtu.de/img/fritzing/esp32-38_nrf_sch.png)
 
 ##### Symbolic view
 
-![Symbolic](doc/Wiring_ESP32_Symbol.png)
+![Symbolic](https://ahoydtu.de/img/fritzing/esp32-38_nrf.png)
 
 ##### ESP32 GPIO settings
 

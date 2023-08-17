@@ -500,6 +500,8 @@ class PubMqtt {
 
         void sendAlarmData() {
             Inverter<> *iv;
+            uint32_t localTime = gTimezone.toLocal(*mUtcTimestamp);
+            uint32_t lastMidnight = gTimezone.toUTC(localTime - (localTime % 86400));  // last midnight local time
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 if(!mSendAlarm[i])
                     continue;
@@ -527,11 +529,11 @@ class PubMqtt {
                         publish(mSubTopic, mVal, true);
 
                         snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start);
+                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start + lastMidnight);
                         publish(mSubTopic, mVal, true);
 
                         snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/end", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end);
+                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end + lastMidnight);
                         publish(mSubTopic, mVal, true);
                         yield();
                     }
