@@ -51,7 +51,7 @@ jobs:
       run: python convert.py
 
     - name: Run PlatformIO
-      run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment opendtufusionv1-release
+      run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment esp32-wroom32-ethernet-release --environment opendtufusionv1-release
 
     - name: Copy boot_app0.bin
       run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusionv1-release/ota.bin
