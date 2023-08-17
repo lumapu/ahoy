@@ -3,6 +3,9 @@ import subprocess
 Import("env")
 
 def applyPatch(libName, patchFile):
+    if os.path.exists('.pio/libdeps/' + env['PIOENV'] + '/' + libName) == False:
+        return
+
     os.chdir('.pio/libdeps/' + env['PIOENV'] + '/' + libName)
 
     process = subprocess.run(['git', 'apply', '--reverse', '--check', '../../../../' + patchFile], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

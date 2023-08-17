@@ -1,55 +1,15 @@
-# Development Changes
+Changelog v0.7.36
 
-## 0.7.35 - 2023-08-17
-* fixed timestamp for alarms send over MqTT
-* auto-patch of `AsyncWebServer` #834, #1036
-* Update documentation in Git regarding `ESP8266` default NRF24 pin assignments
-
-## 0.7.34 - 2023-08-16
-* fixed timezone offset of alarms
-* added `AC` and `DC` to `/live` #1098
+* added Ethernet variant
+* fix configuration of ePaper
+* fix MI inverter support
+* endpoints `/api/record/live`, `/api/record/alarm`, `/api/record/config`, `/api/record/info` are obsolete
+* added `/api/inverter/alarm/[ID]` to read inverter alarms
+* added Alarms in Live View as modal window
+* added MqTT transmission of last 10 alarms
+* updated documentation
 * changed `ESP8266` default NRF24 pin assignments (`D3` = `CE` and `D4` = `IRQ`)
-* fixed background of modal window for bright color
-* fix MI chrashes
-* fix some lost debug messages
-* merged PR #1095, MI fixes for 0.7.x versions
-* fix scheduled reboot #1097
-* added vector graphic logo `/doc/logo.svg`
-* merge PR #1093, improved Nokia5110 display layout
-
-## 0.7.33 - 2023-08-15
-* add alarms overview to WebGui #608
-* fix webGui total values #1084
-
-## 0.7.32 - 2023-08-14
-* fix colors of live view #1091
-
-## 0.7.31 - 2023-08-13
-* fixed docu #1085
-* changed active power limit MqTT messages to QOS2 #1072
-* improved alarm messages, added alarm-id to log #1089
-* trigger power limit read on next day (if inverter was offline meanwhile)
-* disabled improv implementation to check if it is related to 'Schwuppdizitaet'
-* changed live view to gray once inverter isn't available
-* added inverter status to API
-* changed sum of totals on WebGui depending on inverter status #1084
-* merge maximum power (AC and DC) from PR #1080
-
-## 0.7.30 - 2023-08-10
-* attempt to improve speed / repsonse times (Schwuppdizitaet) #1075
-
-## 0.7.29 - 2023-08-09
-* MqTT alarm data was never sent, fixed
-* REST API: added alarm data
-* REST API: made get record obsolete
-* REST API: added power limit acknowledge `/api/inverter/id/[0-x]` #1072
-
-## 0.7.28 - 2023-08-08
-* fix MI inverter support #1078
-
-## 0.7.27 - 2023-08-08
-* added compile option for ethernet #886
-* fix ePaper configuration, missing `Busy`-Pin #1075
-
-## 0.7.26
-* last Release
+* changed live view to gray once inverter isn't available -> fast identify if inverters are online
+* added information about maximum power (AC and DC)
+* updated documentation
+* several small fixes
