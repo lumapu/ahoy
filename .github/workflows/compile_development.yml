@@ -47,7 +47,8 @@ jobs:
       run: python convert.py
 
     - name: Run PlatformIO
-      run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment esp32-wroom32-ethernet-release --environment opendtufusionv1-release
+      run: pio run -d src --environment esp8266-release --environment esp32-wroom32-release
+      #run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment esp32-wroom32-ethernet-release --environment opendtufusionv1-release
 
     - name: Copy boot_app0.bin
       run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusionv1-release/ota.bin
@@ -77,3 +78,12 @@ jobs:
           src/User_Manual.md
           src/install.html
 
+    - name: Deploy
+      uses: nogsantos/scp-deploy@master
+      with:
+        src: src/firmware/
+        host: ${{ secrets.SSH_HOST }}
+        remote: ${{ secrets.SSH_DIR }}/dev
+        port: ${{ secrets.SSH_PORT }}
+        user: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
