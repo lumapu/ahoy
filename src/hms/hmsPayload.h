@@ -19,6 +19,7 @@ typedef struct {
     //uint8_t invId;
     uint32_t ts;
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
+    int8_t rssi[MAX_PAYLOAD_ENTRIES];
     uint8_t len[MAX_PAYLOAD_ENTRIES];
     bool complete;
     uint8_t maxPackId;
@@ -160,6 +161,7 @@ class HmsPayload {
                         memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->data[11], p->data[0] - 11);
                         mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->data[0] -11;
                         mPayload[iv->id].gotFragment = true;
+                        mPayload[iv->id].rssi[(*pid & 0x7F) - 1] = p->rssi;
                     }
 
                     if ((*pid & ALL_FRAMES) == ALL_FRAMES) {
@@ -281,6 +283,8 @@ class HmsPayload {
 
                         memset(payload, 0, 150);
 
+                        int8_t rssi = -127;
+
                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
                             if((mPayload[iv->id].len[i] + payloadLen) > 150) {
                                 DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
@@ -288,6 +292,9 @@ class HmsPayload {
                             }
                             memcpy(&payload[payloadLen], mPayload[iv->id].data[i], (mPayload[iv->id].len[i]));
                             payloadLen += (mPayload[iv->id].len[i]);
+                            // get worst RSSI
+                            if(mPayload[iv->id].rssi[i] > rssi)
+                                rssi = mPayload[iv->id].rssi[i];
                             yield();
                         }
                         payloadLen -= 2;
@@ -310,6 +317,7 @@ class HmsPayload {
                                 iv->addValue(i, payload, rec);
                                 yield();
                             }
+                            iv->rssi = rssi;
                             iv->doCalculations();
                             notify(mPayload[iv->id].txCmd, iv);
 

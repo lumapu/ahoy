@@ -1,15 +1,8 @@
-Changelog v0.7.36
+# Development Changes
 
-* added Ethernet variant
-* fix configuration of ePaper
-* fix MI inverter support
-* endpoints `/api/record/live`, `/api/record/alarm`, `/api/record/config`, `/api/record/info` are obsolete
-* added `/api/inverter/alarm/[ID]` to read inverter alarms
-* added Alarms in Live View as modal window
-* added MqTT transmission of last 10 alarms
-* updated documentation
-* changed `ESP8266` default NRF24 pin assignments (`D3` = `CE` and `D4` = `IRQ`)
-* changed live view to gray once inverter isn't available -> fast identify if inverters are online
-* added information about maximum power (AC and DC)
-* updated documentation
-* several small fixes
+## 0.7.37 - 2023-08-18
+* fix alarm time on WebGui #1099
+* added RSSI info for HMS and HMT inverters (MqTT + REST API)
+
+## 0.7.36
+* last Release

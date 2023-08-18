@@ -367,6 +367,7 @@ class RestApi {
             obj[F("generation")]       = iv->ivGen;
             obj[F("status")]           = (uint8_t)iv->status;
             obj[F("alarm_cnt")]        = iv->alarmCnt;
+            obj[F("rssi")]             = iv->rssi;
 
             JsonArray ch = obj.createNestedArray("ch");
 

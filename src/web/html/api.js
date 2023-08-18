@@ -126,8 +126,8 @@ function toIsoDateStr(d) {
     return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(0, 19).replace('T', ', ');
 }
 
-function toIsoTimeStr(d) {
-    return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(11, 19).replace('T', ', ');
+function toIsoTimeStr(d) { // UTC!
+    return new Date(d.getTime()).toISOString().substring(11, 19).replace('T', ', ');
 }
 
 function setHide(id, hide) {

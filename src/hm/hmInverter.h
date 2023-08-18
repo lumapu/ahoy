@@ -151,6 +151,7 @@ class Inverter {
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
         uint16_t      alarmCnt;          // counts the total number of occured alarms
+        int8_t        rssi;              // HMS and HMT inverters only
 
 
         static uint32_t *timestamp;      // system timestamp
@@ -171,6 +172,7 @@ class Inverter {
             status             = InverterStatus::OFF;
             alarmNxtWrPos      = 0;
             alarmCnt           = 0;
+            rssi               = -127;
         }
 
         ~Inverter() {
