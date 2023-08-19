@@ -81,8 +81,8 @@ jobs:
       uses: nogsantos/scp-deploy@master
       with:
         src: src/firmware/
-        host: ${{ secrets.SSH_HOST }}
-        remote: ${{ secrets.SSH_DIR }}/dev
-        port: ${{ secrets.SSH_PORT }}
-        user: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
+        host: ${{ secrets.FW_SSH_HOST }}
+        remote: ${{ secrets.FW_SSH_DIR }}/dev
+        port: ${{ secrets.FW_SSH_PORT }}
+        user: ${{ secrets.FW_SSH_USER }}
+        key: ${{ secrets.FW_SSH_KEY }}
