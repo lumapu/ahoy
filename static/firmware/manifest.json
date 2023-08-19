@@ -1,6 +1,5 @@
 {
   "name": "AhoyDTU",
-  "version": "0.7.36",
   "funding_url": "https://ko-fi.com/lumapu",
   "new_install_prompt_erase": true,
   "builds": [
