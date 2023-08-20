@@ -107,7 +107,7 @@ class RestApi {
                     getInverter(root, request->url().substring(17).toInt());
                 else if(path.substring(0, 15) == "inverter/alarm/")
                     getIvAlarms(root, request->url().substring(20).toInt());
-                else if(path.substring(0, 15) == "inverter/version/")
+                else if(path.substring(0, 17) == "inverter/version/")
                     getIvVersion(root, request->url().substring(20).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
@@ -438,8 +438,8 @@ class RestApi {
             obj[F("max_pwr")]    = iv->getMaxPower();
             obj[F("part_num")]   = iv->getChannelFieldValueInt(CH0, FLD_PART_NUM, rec);
             obj[F("hw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_HW_VERSION, rec);
-            obj[F("prod_cw")]    = ((iv->radioId.b[3] & 0x0f) * 10 + ((iv->radioId.b[4] & 0x0f)));
-            obj[F("prod_year")]  = ((iv->radioId.b[3] >> 4) & 0x0f) + 2014;
+            obj[F("prod_cw")]    = ((iv->config->serial.b[3] & 0x0f) * 10 + ((iv->config->serial.b[2] & 0x0f)));
+            obj[F("prod_year")]  = ((iv->config->serial.b[3] >> 4) & 0x0f) + 2014;
 
 
             rec = iv->getRecordStruct(InverterDevInform_All);
