@@ -142,6 +142,7 @@ class Inverter {
         uint8_t       channels;          // number of PV channels (1-4)
         record_t<REC_TYP> recordMeas;    // structure for measured values
         record_t<REC_TYP> recordInfo;    // structure for info values
+        record_t<REC_TYP> recordHwInfo;    // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
         //String        lastAlarmMsg;
@@ -189,7 +190,6 @@ class Inverter {
 
         void setQueuedCmdFinished() {
             if (!_commandQueue.empty()) {
-                // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop();
             }
         }
@@ -197,7 +197,6 @@ class Inverter {
         void clearCmdQueue() {
             DPRINTLN(DBG_INFO, F("clearCmdQueue"));
             while (!_commandQueue.empty()) {
-                // Will destroy CommandAbstract Class Object (?)
                 _commandQueue.pop();
             }
         }
@@ -207,6 +206,8 @@ class Inverter {
                 if (ivGen != IV_MI) {
                     if (getFwVersion() == 0)
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
+                    else if (getHwVersion() == 0)
+                        enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
                     enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                 } else if (ivGen == IV_MI){
                     if (getFwVersion() == 0)
@@ -229,6 +230,7 @@ class Inverter {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:init"));
             initAssignment(&recordMeas, RealTimeRunData_Debug);
             initAssignment(&recordInfo, InverterDevInform_All);
+            initAssignment(&recordHwInfo, InverterDevInform_Simple);
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
@@ -340,6 +342,10 @@ class Inverter {
                     // eg. fw version ...
                     isConnected = true;
                 }
+                else if (rec->assign == SimpleInfoAssignment) {
+                    DPRINTLN(DBG_DEBUG, "add simple info");
+                    // eg. hw version ...
+                }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
                     if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
@@ -388,6 +394,10 @@ class Inverter {
             }
             else
                 return 0;
+        }
+
+        uint32_t getChannelFieldValueInt(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
+            return (uint32_t) getChannelFieldValue(channel, fieldId, rec);
         }
 
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
@@ -452,8 +462,24 @@ class Inverter {
 
         uint16_t getFwVersion() {
             record_t<> *rec = getRecordStruct(InverterDevInform_All);
-            uint8_t pos = getPosByChFld(CH0, FLD_FW_VERSION, rec);
-            return getValue(pos, rec);
+            return getChannelFieldValue(CH0, FLD_FW_VERSION, rec);
+        }
+
+        uint16_t getHwVersion() {
+            record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+            return getChannelFieldValue(CH0, FLD_HW_VERSION, rec);
+        }
+
+        uint16_t getMaxPower() {
+            record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+            if(0 == getChannelFieldValue(CH0, FLD_HW_VERSION, rec))
+                return 0;
+
+            for(uint8_t i = 0; i < sizeof(devInfo) / sizeof(devInfo_t); i++) {
+                if(devInfo[i].hwPart == (getChannelFieldValueInt(CH0, FLD_PART_NUM, rec) >> 8))
+                    return devInfo[i].maxPower;
+            }
+            return 0;
         }
 
         uint32_t getLastTs(record_t<> *rec) {
@@ -463,11 +489,12 @@ class Inverter {
 
         record_t<> *getRecordStruct(uint8_t cmd) {
             switch (cmd) {
-                case RealTimeRunData_Debug: return &recordMeas;   // 11 = 0x0b
-                case InverterDevInform_All: return &recordInfo;   //  1 = 0x01
-                case SystemConfigPara:      return &recordConfig; //  5 = 0x05
-                case AlarmData:             return &recordAlarm;  // 17 = 0x11
-                default:                    break;
+                case RealTimeRunData_Debug:    return &recordMeas;   // 11 = 0x0b
+                case InverterDevInform_Simple: return &recordHwInfo;   //  0 = 0x00
+                case InverterDevInform_All:    return &recordInfo; //  1 = 0x01
+                case SystemConfigPara:         return &recordConfig; //  5 = 0x05
+                case AlarmData:                return &recordAlarm;  // 17 = 0x11
+                default:                       break;
             }
             return NULL;
         }
@@ -534,6 +561,11 @@ class Inverter {
                     rec->length  = (uint8_t)(HMINFO_LIST_LEN);
                     rec->assign  = (byteAssign_t *)InfoAssignment;
                     rec->pyldLen = HMINFO_PAYLOAD_LEN;
+                    break;
+                case InverterDevInform_Simple:
+                    rec->length  = (uint8_t)(HMSIMPLE_INFO_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)SimpleInfoAssignment;
+                    rec->pyldLen = HMSIMPLE_INFO_PAYLOAD_LEN;
                     break;
                 case SystemConfigPara:
                     rec->length  = (uint8_t)(HMSYSTEM_LIST_LEN);

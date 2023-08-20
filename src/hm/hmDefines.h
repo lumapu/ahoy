@@ -10,7 +10,8 @@
 #include <cstdint>
 
 // inverter generations
-enum {IV_HM = 0, IV_MI, IV_HMS, IV_HMT};
+enum {IV_MI = 0, IV_HM, IV_HMS, IV_HMT, IV_UNKNOWN};
+const char* const generationNames[] = {"HM", "MI", "HMS", "HMT", "UNKNOWN"};
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};
@@ -21,20 +22,22 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_UAC, FLD_UAC_1N, FLD_UAC_2N, FLD_UAC_3N, FLD_UAC_12, FLD_UAC_23, FLD_UAC_31, FLD_IAC,
         FLD_IAC_1, FLD_IAC_2, FLD_IAC_3, FLD_PAC, FLD_F, FLD_T, FLD_PF, FLD_EFF,
         FLD_IRR, FLD_Q, FLD_EVT, FLD_FW_VERSION, FLD_FW_BUILD_YEAR,
-        FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_HW_ID,
-        FLD_ACT_ACTIVE_PWR_LIMIT, /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP};
+        FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_BOOTLOADER_VER,
+        FLD_ACT_ACTIVE_PWR_LIMIT, FLD_PART_NUM, FLD_HW_VERSION, FLD_GRID_PROFILE_CODE,
+        FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP};
         
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
         "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
-        "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","HWPartId",
-        "active_PowerLimit", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode", "MaxPower"};
+        "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","BootloaderVersion",
+        "active_PowerLimit", "HWPartNumber", "HWVersion", "GridProfileCode",
+        "GridProfileVersion", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode", "MaxPower"};
 const char* const notAvail = "n/a";
 
 const uint8_t fieldUnits[] = {UNIT_V, UNIT_A, UNIT_W, UNIT_WH, UNIT_KWH, UNIT_KWH,
         UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_A, UNIT_A, UNIT_A, UNIT_A,
         UNIT_W, UNIT_HZ, UNIT_C, UNIT_NONE, UNIT_PCT, UNIT_PCT, UNIT_VAR,
-        UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE, UNIT_W};
+        UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_W};
 
 // mqtt discovery device classes
 enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
@@ -98,10 +101,19 @@ const byteAssign_t InfoAssignment[] = {
     { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
     { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
     { FLD_FW_BUILD_HOUR_MINUTE, UNIT_NONE,   CH0,  6, 2, 1 },
-    { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
+    { FLD_BOOTLOADER_VER,       UNIT_NONE,   CH0,  8, 2, 1 }
 };
 #define HMINFO_LIST_LEN     (sizeof(InfoAssignment) / sizeof(byteAssign_t))
 #define HMINFO_PAYLOAD_LEN  14
+
+const byteAssign_t SimpleInfoAssignment[] = {
+    { FLD_PART_NUM,             UNIT_NONE,   CH0,  2, 4, 1 },
+    { FLD_HW_VERSION,           UNIT_NONE,   CH0,  6, 2, 1 },
+    { FLD_GRID_PROFILE_CODE,    UNIT_NONE,   CH0,  8, 2, 1 },
+    { FLD_GRID_PROFILE_VERSION, UNIT_NONE,   CH0, 10, 2, 1 }
+};
+#define HMSIMPLE_INFO_LIST_LEN     (sizeof(SimpleInfoAssignment) / sizeof(byteAssign_t))
+#define HMSIMPLE_INFO_PAYLOAD_LEN  14
 
 const byteAssign_t SystemConfigParaAssignment[] = {
     { FLD_ACT_ACTIVE_PWR_LIMIT,    UNIT_PCT,   CH0,  2, 2, 10   }/*,
@@ -241,5 +253,46 @@ const byteAssign_t hm4chAssignment[] = {
 #define HM4CH_LIST_LEN      (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
 #define HM4CH_PAYLOAD_LEN   62
 
+
+typedef struct {
+    uint32_t hwPart;
+    uint16_t maxPower;
+} devInfo_t;
+
+const devInfo_t devInfo[] = {
+    // MI 3rd gen
+    { 0x100230, 1500 },
+
+    // HM
+    { 0x101010,  300 },
+    { 0x101020,  350 },
+    { 0x101030,  400 },
+    { 0x101040,  400 },
+    { 0x101110,  600 },
+    { 0x101120,  700 },
+    { 0x101130,  800 },
+    { 0x101140,  800 },
+    { 0x101210, 1200 },
+    { 0x101230, 1500 },
+
+    // HMS
+    { 0x102021,  350 },
+    { 0x102041,  400 },
+    { 0x101051,  450 },
+    { 0x101071,  500 },
+    { 0x102111,  600 },
+    { 0x102141,  800 },
+    { 0x101151,  900 },
+    { 0x102171, 1000 },
+    { 0x102241, 1600 },
+    { 0x101251, 1800 },
+    { 0x102251, 1800 },
+    { 0x101271, 2000 },
+    { 0x102271, 2000 },
+
+    // HMT
+    { 0x103311, 1800 },
+    { 0x103331, 2250 }
+};
 
 #endif /*__HM_DEFINES_H__*/

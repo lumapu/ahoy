@@ -318,6 +318,20 @@ p {
     .col-md-12 { width: 100%; }
 }
 
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    text-align: inherit;
+}
+
+.table td, .table th {
+    padding: .75rem;
+    border-bottom: 1px solid var(--nav-bg);
+}
+
 #wrapper {
     min-height: 100%;
 }

@@ -102,7 +102,9 @@
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
                             ml("div", {class: "row"}, [
-                                ml("div", {class: "col mx-2 mx-md-1"}, obj.name),
+                                ml("div", {class: "col mx-2 mx-md-1"}, ml("span", { class: "pointer", onclick: function() {
+                                    getAjax("/api/inverter/version/" + obj.id, parseIvVersion);
+                                }}, obj.name)),
                                 ml("div", {class: "col a-c"}, "Power limit " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + "&nbsp;%"))),
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
@@ -248,6 +250,45 @@
                     }
                 }
                 modal("Alarms of inverter #" + obj.iv_id, ml("div", {}, html));
+            }
+
+            function parseIvVersion(obj) {
+                var model;
+                switch(obj.generation) {
+                    case 0: model = "MI-"; break;
+                    case 1: model = "HM-"; break;
+                    case 2: model = "HMS-"; break;
+                    case 3: model = "HMT-"; break;
+                    default: model = "???-"; break;
+                }
+                model += String(obj.max_pwr);
+
+
+                var html = ml("table", {class: "table"}, [
+                    ml("tbody", {}, [
+                        ml("tr", {}, [
+                            ml("th", {}, "Model"),
+                            ml("td", {}, model)
+                        ]),
+                        ml("tr", {}, [
+                            ml("th", {}, "Firmware Version / Build"),
+                            ml("td", {}, String(obj.fw_ver) + " (build: " + String(obj.fw_date) + " " + String(obj.fw_time) + ")")
+                        ]),
+                        ml("tr", {}, [
+                            ml("th", {}, "Hardware Version / Build"),
+                            ml("td", {}, String(obj.hw_ver) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
+                        ]),
+                        ml("tr", {}, [
+                            ml("th", {}, "Hardware Number"),
+                            ml("td", {}, String(obj.part_num))
+                        ]),
+                        ml("tr", {}, [
+                            ml("th", {}, "Bootloader Version"),
+                            ml("td", {}, String(obj.boot_ver))
+                        ])
+                    ])
+                ]);
+                modal("Info for inverter " + obj.name, ml("div", {}, html));
             }
 
             function parse(obj) {

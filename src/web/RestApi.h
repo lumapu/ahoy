@@ -107,6 +107,8 @@ class RestApi {
                     getInverter(root, request->url().substring(17).toInt());
                 else if(path.substring(0, 15) == "inverter/alarm/")
                     getIvAlarms(root, request->url().substring(20).toInt());
+                else if(path.substring(0, 15) == "inverter/version/")
+                    getIvVersion(root, request->url().substring(20).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -419,6 +421,34 @@ class RestApi {
                 alarm[i][F("start")] = iv->lastAlarm[i].start;
                 alarm[i][F("end")]   = iv->lastAlarm[i].end;
             }
+        }
+
+        void getIvVersion(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+
+            record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);
+
+            obj[F("name")]       = String(iv->config->name);
+            obj[F("generation")] = iv->ivGen;
+            obj[F("max_pwr")]    = iv->getMaxPower();
+            obj[F("part_num")]   = iv->getChannelFieldValueInt(CH0, FLD_PART_NUM, rec);
+            obj[F("hw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_HW_VERSION, rec);
+            obj[F("prod_cw")]    = ((iv->radioId.b[3] & 0x0f) * 10 + ((iv->radioId.b[4] & 0x0f)));
+            obj[F("prod_year")]  = ((iv->radioId.b[3] >> 4) & 0x0f) + 2014;
+
+
+            rec = iv->getRecordStruct(InverterDevInform_All);
+            obj[F("fw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_FW_VERSION, rec);
+            obj[F("fw_date")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_YEAR, rec))
+                                  + "-" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec) / 100)
+                                  + "-" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec) % 100);
+            obj[F("fw_time")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec) / 100)
+                                  + ":" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec) % 100);
+            obj[F("boot_ver")]   = iv->getChannelFieldValueInt(CH0, FLD_BOOTLOADER_VER, rec);
         }
 
         void getMqtt(JsonObject obj) {
