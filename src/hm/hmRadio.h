@@ -21,7 +21,6 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
-#define SEND_CHANNEL_QUALITY_INTEGRATOR_SIZE 4
 #define SEND_CHANNEL_MAX_QUALITY 4
 #define SEND_CHANNEL_MIN_QUALITY -6
 #define SEND_CHANNEL_QUALITY_GOOD       2
@@ -247,7 +246,12 @@ class HmRadio {
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == RealTimeRunData_Debug || cmd == AlarmData ) {
+
+            if (cmd == AlarmData) {
+                // ask for last signalled alarm id only (index is one less)
+                if (alarmMesId) {
+                    alarmMesId--;
+                }
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
@@ -301,7 +305,6 @@ class HmRadio {
 
         void addSendChannelQuality (int8_t quality)
         {
-            // continous averaging
             // assume: mTxChIdx is still the last send channel index used
             quality = mChQuality[mTxChIdx] + quality;
             if (quality < SEND_CHANNEL_MIN_QUALITY) {

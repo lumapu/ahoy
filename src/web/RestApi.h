@@ -511,10 +511,19 @@ class RestApi {
 #ifdef AHOY_SML_OBIS_SUPPORT
                 if (mConfig->sml_obis.ir_connected) {
                     // design: no value of inverter but I want this value to be displayed prominently
-                    obj[F("grid_power")]        = sml_get_obis_pac ();
+                    obj[F("grid_power")]   = sml_get_obis_pac ();
                 }
 #endif
+                if (iv->alarmCode) {
+                    time_t midnight = mApp->getTimestamp();
 
+                    midnight -= midnight % 86400;
+                    obj[F("alarm_str")]        = iv->getAlarmStr(iv->alarmCode);
+                    obj[F("alarm_start")]      = String(midnight + iv->alarmStart);
+                    if (iv->alarmEnd && (iv->alarmEnd > iv->alarmStart)) {
+                        obj[F("alarm_end")]        = String(midnight + iv->alarmEnd);
+                    }
+                }
                 JsonArray ch = obj.createNestedArray("ch");
 
                 // AC

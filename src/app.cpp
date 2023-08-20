@@ -381,7 +381,7 @@ void app::tickSend(void) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
     }
-    if (mIVCommunicationOn) {
+    if (mIVCommunicationOn && mTimestamp) {
         if (!mSys.Radio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_DEBUG, F("recbuf not empty! #"));

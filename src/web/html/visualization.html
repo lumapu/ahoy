@@ -186,23 +186,31 @@
                 ]);
             }
 
-            function tsInfo(ts) {
-                var ageInfo = "Last received data requested at: ";
+            function tsInfo(ts, alarm_str, alarm_start, alarm_end) {
+                var ageInfo = "Last received data at ";
+                var alarmInfo = "";
                 if(ts > 0) {
                     var date = new Date(ts * 1000);
-                    ageInfo += date.toLocaleString('de-DE');
+                    ageInfo += date.toLocaleTimeString('de-DE');
                 }
-                else
-                    ageInfo += "nothing received";
-
-                return ml("div", {class: "mb-5"}, [
-                    ml("div", {class: "row p-1 ts-h mx-2"},
-                        ml("div", {class: "col"}, "")
-                    ),
-                    ml("div", {class: "row p-2 ts-bg mx-2"},
-                        ml("div", {class: "col mx-2"}, ageInfo)
-                    )
-                ]);
+                else {
+                    ageInfo += "---";
+                }
+                if (alarm_str !== undefined) {
+                    var start = new Date(alarm_start * 1000);
+                    alarmInfo += alarm_str + " at ";
+                    alarmInfo += start.toLocaleTimeString('de-DE');
+                    if (alarm_end !== undefined) {
+                        var end = new Date(alarm_end * 1000);
+                        alarmInfo += " until ";
+                        alarmInfo += end.toLocaleTimeString('de-DE');
+                    }
+                }
+                return ml("div", {class: "mb-5"},
+                    ml("div", {class: "row p-2 ts-bg mx-2"}, [
+                            ml("span", {class: "col mx-2"}, ageInfo),
+                            ml("span", {class: "col mx-2"}, alarmInfo)
+                            ]));
             }
 
             function parseIv(obj) {
@@ -220,7 +228,7 @@
                     ml("div", {}, [
                         ivHead(obj),
                         ml("div", {class: "row mb-2"}, chn),
-                        tsInfo(obj.ts_last_success)
+                        tsInfo(obj.ts_last_success, obj.alarm_str, obj.alarm_start, obj.alarm_end)
                     ])
                 );
 

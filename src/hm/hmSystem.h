@@ -181,7 +181,7 @@ class HmSystem {
                     day(time_today), month(time_today), year(time_today));
                 file = LittleFS.open (file_name, "r");
                 if (!file) {
-                    DPRINT (DBG_WARN, "open_hist, failed to open ");
+                    DPRINT (DBG_VERBOSE, "open_hist, failed to open ");  // typical: during night time after midnight
                     DBGPRINTLN (file_name);
                 }
             } else {
@@ -236,7 +236,7 @@ class HmSystem {
                 *pac = get_pac_average (false);
                 return true;
             }
-            DPRINTLN (DBG_INFO, "get_cur_value: none");
+            DPRINTLN (DBG_VERBOSE, "get_cur_value: none");
             return false;
         }
 

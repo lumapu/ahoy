@@ -100,7 +100,8 @@ class HmPayload {
                     iv->setValue(pos, rec, 0.0f);
                 }
             }
-
+            iv->alarmCode = 0;  // design: every day a new start
+            rec->ts = 0;        // design: every day a new start
             notify(RealTimeRunData_Debug);
         }
 

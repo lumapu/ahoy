@@ -629,15 +629,6 @@ bool sml_get_list_entries (uint16_t layer)
         // Also: an info_len > 2 could be due to corrupt data. So better break.
         uint16 len_info = (*cur_serial_buf & SML_EXT_LENGTH) ? 2 : 1;
 
-#ifdef undef
-        DPRINT (DBG_INFO, "get_list_entries");
-        DBGPRINT (", layer " + String (layer));
-        DBGPRINT (", entries " + String (sml_list_layer_entries[layer]));
-        DBGPRINT (", type 0x" + String (type, HEX));
-        DBGPRINT (", len_info " + String (len_info));
-        DBGPRINTLN (", sml_len " + String (sml_serial_len));
-#endif
-
         if (sml_serial_len < len_info) {
             if (cur_serial_buf > sml_serial_buf) {
                 memmove (sml_serial_buf, cur_serial_buf, sml_serial_len);
@@ -745,9 +736,7 @@ bool sml_get_list_entries (uint16_t layer)
                                 layer++;
                                 cur_sml_list_layer = layer;
                                 sml_list_layer_entries[layer] = entry_len;
-#ifdef undef
-                                DPRINTLN(DBG_INFO, "Open layer " + String(layer) + ", entries " + String(entry_len));
-#endif
+                                DPRINTLN(DBG_VERBOSE, "Open layer " + String(layer) + ", entries " + String(entry_len));
                                 if (!sml_serial_len) {
                                     error = true;
                                 }
@@ -779,9 +768,7 @@ bool sml_get_list_entries (uint16_t layer)
                     }
                 }
                 while (!sml_list_layer_entries[layer]) {
-#ifdef undef
-                    DPRINTLN(DBG_INFO, "COMPLETE, layer " + String (layer));
-#endif
+                    DPRINTLN(DBG_VERBOSE, "COMPLETE, layer " + String (layer));
                     if (layer) {
                         layer--;
                         cur_sml_list_layer = layer;
@@ -834,9 +821,7 @@ uint16_t sml_parse_stream (uint16 len)
                             cur_serial_buf = sml_serial_buf;
                         }
                         sml_state = SML_ST_FIND_VERSION;
-#ifdef undef
-                        DPRINTLN(DBG_INFO, "START_TAG, rest " + String(sml_serial_len));
-#endif
+                        DPRINTLN(DBG_VERBOSE, "START_TAG, rest " + String(sml_serial_len));
                     } else {
                         cur_serial_buf = last_serial_buf + sml_serial_len;
                         last_serial_buf = cur_serial_buf;
@@ -861,13 +846,8 @@ uint16_t sml_parse_stream (uint16 len)
                         sml_telegram_crc = sml_calc_crc (sml_telegram_crc, sizeof (version_seq), cur_serial_buf);
                         sml_msg_failure = 0;
                         sml_state = SML_ST_FIND_MSG;
-#ifdef undef
-                        DPRINTLN(DBG_INFO, "VERSION, rest " + String (sml_serial_len - sizeof (version_seq)));
-#endif
+                        DPRINTLN(DBG_VERBOSE, "VERSION, rest " + String (sml_serial_len - sizeof (version_seq)));
                     } else {
-#ifdef undef
-                        DPRINTLN(DBG_INFO, "no VERSION, rest " + String (sml_serial_len - sizeof (version_seq)));
-#endif
                         sml_state = SML_ST_FIND_START_TAG;
                     }
                     sml_serial_len -= sizeof (version_seq);
@@ -892,10 +872,8 @@ uint16_t sml_parse_stream (uint16 len)
                         parse_continue = true;
                     } else if ((*cur_serial_buf & 0x70) == 0x70) {
                         /* todo: extended list on 1st level (does this happen in real life?) */
+                        DPRINTLN (DBG_VERBOSE, "TOPLIST 0x" + String(*cur_serial_buf, HEX) + ", rest " + String (sml_serial_len - 1));
                         sml_telegram_crc = sml_calc_crc (sml_telegram_crc, 1, cur_serial_buf);
-#ifdef undef
-                        DPRINTLN (DBG_INFO, "TOPLIST 0x" + String(*cur_serial_buf, HEX) + ", rest " + String (sml_serial_len - 1));
-#endif
                         sml_state = SML_ST_FIND_LIST_ENTRIES;
                         cur_sml_list_layer = 0;
                         sml_message = SML_MSG_NONE;
@@ -951,9 +929,7 @@ uint16_t sml_parse_stream (uint16 len)
                         sml_state = SML_ST_FIND_LIST_ENTRIES;
                         sml_list_layer_entries[cur_sml_list_layer]--;
                         while (!sml_list_layer_entries[cur_sml_list_layer]) {
-#ifdef undef
-                            DPRINTLN(DBG_INFO, "COMPLETE, layer " + String (cur_sml_list_layer));
-#endif
+                            DPRINTLN(DBG_VERBOSE, "COMPLETE, layer " + String (cur_sml_list_layer));
                             if (cur_sml_list_layer) {
                                 cur_sml_list_layer--;
                             } else {
@@ -1006,7 +982,7 @@ uint16_t sml_parse_stream (uint16 len)
                                 ", Yield in " + String (obis_yield_in_all_value) +
                                 ", Yield out " + String (obis_yield_out_all_value));
 #else
-                            DPRINTLN(DBG_INFO, "Power " + String (obis_power_all_value));
+                            DPRINTLN(DBG_VERBOSE, "Power " + String (obis_power_all_value));
 #endif
                             sml_handle_obis_pac (obis_power_all_value);
                         } else {

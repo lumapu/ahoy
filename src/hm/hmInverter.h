@@ -127,11 +127,13 @@ class Inverter {
         record_t<REC_TYP> recordInfo;    // structure for info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         uint32_t      pac_sum;           // average calc for chart: sum of ac power values for cur interval
         uint16_t      pac_cnt;           // average calc for chart: number of ac power values for cur interval
+        uint16_t      alarmCode;         // last Alarm
+        uint32_t      alarmStart;
+        uint32_t      alarmEnd;
 
         Inverter() {
             ivGen              = IV_HM;
@@ -141,9 +143,9 @@ class Inverter {
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
             initialized        = false;
-            //lastAlarmMsg       = "nothing";
             alarmMesIndex      = 0;
             isConnected        = false;
+            alarmCode          = 0;
         }
 
         ~Inverter() {
@@ -178,9 +180,11 @@ class Inverter {
         uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
                 if (ivGen != IV_MI) {
-                    if (getFwVersion() == 0)
+                    if (getFwVersion()) {
+                        enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
+                    } else {
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
-                    enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
+                    }
                 } else if (ivGen == IV_MI){
                     if (getFwVersion() == 0)
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version; might not work, esp. for 1/2 ch hardware
@@ -321,9 +325,6 @@ class Inverter {
                 }
                 else if (rec->assign == AlarmDataAssignment) {
                     DPRINTLN(DBG_DEBUG, "add alarm");
-                    //if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
-                    //    lastAlarmMsg = getAlarmStr(rec->record[pos]);
-                    //}
                 }
                 else
                     DPRINTLN(DBG_WARN, F("add with unknown assginment"));
@@ -489,18 +490,22 @@ class Inverter {
                 return 0;
 
             uint16_t wCode = ((uint16_t)pyld[startOff]) << 8 | pyld[startOff+1];
-            uint32_t startTimeOffset = 0, endTimeOffset = 0;
 
+            alarmStart = 0;
+            alarmEnd = 0;
             if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
-                startTimeOffset = 12 * 60 * 60;
+                alarmStart = 12 * 60 * 60;
             if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
-                endTimeOffset = 12 * 60 * 60;
+                alarmEnd = 12 * 60 * 60;
 
-            *start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
-            *endTime   = (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7])) + endTimeOffset;
+            alarmCode = pyld[startOff+1];
+            alarmStart += (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5]));
+            alarmEnd += (((uint16_t)pyld[startOff + 6] << 8) | ((uint16_t)pyld[startOff + 7]));
+            *start = alarmStart;
+            *endTime = alarmEnd;
 
-            DPRINTLN(DBG_INFO, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(*start) + ", end: " + ah::getTimeStr(*endTime));
-            return pyld[startOff+1];
+            DPRINTLN(DBG_INFO, "Alarm " + String(pyld[startOff+3]) + ", #" + String(alarmCode) + " '" + String(getAlarmStr(alarmCode)) + "' start: " + ah::getTimeStr(alarmStart) + ", end: " + ah::getTimeStr(alarmEnd));
+            return alarmCode;
         }
 
         String getAlarmStr(uint16_t alarmCode) {
