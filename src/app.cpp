@@ -276,11 +276,11 @@ void app::updateNtp(void) {
     if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
         if (mConfig->inst.rstValsNotAvail)
             everyMin(std::bind(&app::tickMinute, this), "tMin");
-        if (mConfig->inst.rstYieldMidNight) {
-            uint32_t localTime = gTimezone.toLocal(mTimestamp);
-            uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
-            onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
-        }
+
+        uint32_t localTime = gTimezone.toLocal(mTimestamp);
+        uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
+        onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
+
         if (mConfig->sys.schedReboot) {
             uint32_t localTime = gTimezone.toLocal(mTimestamp);
             uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
@@ -392,15 +392,37 @@ void app::tickMinute(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
-    // only triggered if 'reset values at midnight is enabled'
     uint32_t localTime = gTimezone.toLocal(mTimestamp);
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
-    zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
+    Inverter<> *iv;
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        iv = mSys.getInverterByPos(id);
+        if (NULL == iv)
+            continue;  // skip to next inverter
 
-    if (mMqttEnabled)
-        mMqtt.tickerMidnight();
+        // reset alarms
+        if(InverterStatus::OFF == iv->status)
+            iv->resetAlarms();
+
+        // clear max values
+        if(mConfig->inst.rstMaxValsMidNight) {
+            uint8_t pos;
+            record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            for(uint8_t i = 0; i <= iv->channels; i++) {
+                pos = iv->getPosByChFld(i, FLD_MP, rec);
+                iv->setValue(pos, rec, 0.0f);
+            }
+        }
+    }
+
+    if (mConfig->inst.rstYieldMidNight) {
+        zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
+
+        if (mMqttEnabled)
+            mMqtt.tickerMidnight();
+    }
 }
 
 //-----------------------------------------------------------------------------

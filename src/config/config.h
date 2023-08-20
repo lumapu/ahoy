@@ -66,6 +66,10 @@
     #define DEF_MISO_PIN            19
     #define DEF_MOSI_PIN            23
     #define DEF_SCLK_PIN            18
+
+    #define DEF_CMT_CSB             27
+    #define DEF_CMT_FCSB            26
+    #define DEF_CMT_IRQ             34
 #else
     #define DEF_CS_PIN              15
     #define DEF_CE_PIN              0

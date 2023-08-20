@@ -556,6 +556,12 @@ class Inverter {
             }
         }
 
+        void resetAlarms() {
+            lastAlarm.fill({0, 0, 0});
+            alarmNxtWrPos = 0;
+            alarmCnt = 0;
+        }
+
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
