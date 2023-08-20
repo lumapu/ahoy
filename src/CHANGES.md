@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.38 - 2023-08-21
+* reset alarms at midnight (if inverter is not available) #1105, #1096
+* add option to reset 'max' values on midnight #1102
+* added default pins for CMT2300A (matching OpenDTU)
+
 ## 0.7.37 - 2023-08-18
 * fix alarm time on WebGui #1099
 * added RSSI info for HMS and HMT inverters (MqTT + REST API)

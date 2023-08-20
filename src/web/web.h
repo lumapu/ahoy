@@ -537,6 +537,7 @@ class Web {
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
+            mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
 
 

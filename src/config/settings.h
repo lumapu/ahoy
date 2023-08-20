@@ -151,6 +151,7 @@ typedef struct {
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
+    bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
 } cfgInst_t;
@@ -394,9 +395,9 @@ class settings {
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
             mCfg.nrf.enabled           = true;
 
-            mCfg.cmt.pinCsb            = DEF_PIN_OFF;
-            mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
-            mCfg.cmt.pinIrq            = DEF_PIN_OFF;
+            mCfg.cmt.pinCsb            = DEF_CMT_CSB;
+            mCfg.cmt.pinFcsb           = DEF_CMT_FCSB;
+            mCfg.cmt.pinIrq            = DEF_CMT_IRQ;
             mCfg.cmt.enabled           = false;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
@@ -423,6 +424,7 @@ class settings {
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
+            mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 0.955f;
 
             mCfg.led.led0 = DEF_PIN_OFF;
@@ -651,6 +653,7 @@ class settings {
                 obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
                 obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
+                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
                 obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
             }
             else {
@@ -659,6 +662,7 @@ class settings {
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
+                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
 
                 if(mCfg.inst.yieldEffiency < 0.5)

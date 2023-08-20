@@ -173,6 +173,10 @@
                             <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Reset 'max' values at midnight</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMaxMid"/></div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-8 col-sm-3">Start without time sync (useful in AP-Only-Mode)</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
@@ -653,8 +657,8 @@
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"], ["invRetry", "retries"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
-                for(var i of [["Mid", "rstMid"], ["ComStop", "rstComStop"], ["NotAvail", "rstNAvail"]])
-                    document.getElementsByName("invRst"+i[0])[0].checked = obj[i[1]];
+                for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
+                    document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
                 document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
             }
 

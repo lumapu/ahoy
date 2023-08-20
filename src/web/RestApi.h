@@ -344,9 +344,10 @@ class RestApi {
             obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
-            obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
+            obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
+            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
         }
 
