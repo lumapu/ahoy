@@ -78,11 +78,12 @@ jobs:
           src/install.html
 
     - name: Deploy
+      working-directory: src/firmware
       uses: nogsantos/scp-deploy@master
       with:
-        src: src/firmware/
+        src: src/firmware/*
         host: ${{ secrets.FW_SSH_HOST }}
-        remote: ${{ secrets.FW_SSH_DIR }}/dev
+        remote: ${{ secrets.FW_SSH_DIR }}/dev/${{ steps.rename-binary-files.outputs.name }}/
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}
