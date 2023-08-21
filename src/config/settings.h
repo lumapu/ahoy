@@ -29,7 +29,6 @@
  * More info:
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
-#define DEF_PIN_OFF         255
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -385,12 +384,12 @@ class settings {
 
             mCfg.nrf.sendInterval      = SEND_INTERVAL;
             mCfg.nrf.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
-            mCfg.nrf.pinCs             = DEF_CS_PIN;
-            mCfg.nrf.pinCe             = DEF_CE_PIN;
-            mCfg.nrf.pinIrq            = DEF_IRQ_PIN;
-            mCfg.nrf.pinMiso           = DEF_MISO_PIN;
-            mCfg.nrf.pinMosi           = DEF_MOSI_PIN;
-            mCfg.nrf.pinSclk           = DEF_SCLK_PIN;
+            mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
+            mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
+            mCfg.nrf.pinIrq            = DEF_NRF_IRQ_PIN;
+            mCfg.nrf.pinMiso           = DEF_NRF_MISO_PIN;
+            mCfg.nrf.pinMosi           = DEF_NRF_MOSI_PIN;
+            mCfg.nrf.pinSclk           = DEF_NRF_SCLK_PIN;
 
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
             mCfg.nrf.enabled           = true;
@@ -433,9 +432,9 @@ class settings {
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 0.955f;
 
-            mCfg.led.led0 = DEF_PIN_OFF;
-            mCfg.led.led1 = DEF_PIN_OFF;
-            mCfg.led.led_high_active = false;
+            mCfg.led.led0 = DEF_LED0;
+            mCfg.led.led1 = DEF_LED1;
+            mCfg.led.led_high_active = LED_HIGH_ACTIVE;
 
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
@@ -522,12 +521,12 @@ class settings {
                 mCfg.nrf.enabled = (bool) obj[F("en")];
                 #endif
                 if((obj[F("cs")] == obj[F("ce")])) {
-                    mCfg.nrf.pinCs   = DEF_CS_PIN;
-                    mCfg.nrf.pinCe   = DEF_CE_PIN;
-                    mCfg.nrf.pinIrq  = DEF_IRQ_PIN;
-                    mCfg.nrf.pinSclk = DEF_SCLK_PIN;
-                    mCfg.nrf.pinMosi = DEF_MOSI_PIN;
-                    mCfg.nrf.pinMiso = DEF_MISO_PIN;
+                    mCfg.nrf.pinCs   = DEF_NRF_CS_PIN;
+                    mCfg.nrf.pinCe   = DEF_NRF_CE_PIN;
+                    mCfg.nrf.pinIrq  = DEF_NRF_IRQ_PIN;
+                    mCfg.nrf.pinSclk = DEF_NRF_SCLK_PIN;
+                    mCfg.nrf.pinMosi = DEF_NRF_MOSI_PIN;
+                    mCfg.nrf.pinMiso = DEF_NRF_MISO_PIN;
                 }
             }
         }

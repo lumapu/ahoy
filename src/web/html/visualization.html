@@ -276,7 +276,7 @@
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Hardware Version / Build"),
-                            ml("td", {}, (obj.hw_ver.toString(16) / 100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
+                            ml("td", {}, (obj.hw_ver/100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Hardware Number"),
@@ -284,7 +284,7 @@
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Bootloader Version"),
-                            ml("td", {}, (obj.boot_ver / 100).toFixed(2))
+                            ml("td", {}, (obj.boot_ver/100).toFixed(2))
                         ])
                     ])
                 ]);

@@ -7,6 +7,10 @@
 #define __CONFIG_H__
 
 
+// globally used
+#define DEF_PIN_OFF         255
+
+
 //-------------------------------------
 // WIFI CONFIGURATION
 //-------------------------------------
@@ -60,25 +64,66 @@
     // for the ESP32-S3 there is no sane 'default', as it has full flexibility
     // to map its two HW SPIs anywhere and PCBs differ materially,
     // so it has to be selected in the Web UI
-    #define DEF_CS_PIN              5
-    #define DEF_CE_PIN              17
-    #define DEF_IRQ_PIN             16
-    #define DEF_MISO_PIN            19
-    #define DEF_MOSI_PIN            23
-    #define DEF_SCLK_PIN            18
+    #ifndef DEF_NRF_CS_PIN
+        #define DEF_NRF_CS_PIN          5
+    #endif
+    #ifndef DEF_NRF_CE_PIN
+        #define DEF_NRF_CE_PIN          17
+    #endif
+    #ifndef DEF_NRF_IRQ_PIN
+        #define DEF_NRF_IRQ_PIN         16
+    #endif
+    #ifndef DEF_NRF_MISO_PIN
+        #define DEF_NRF_MISO_PIN        19
+    #endif
+    #ifndef DEF_NRF_MOSI_PIN
+        #define DEF_NRF_MOSI_PIN        23
+    #endif
+    #ifndef DEF_NRF_SCLK_PIN
+        #define DEF_NRF_SCLK_PIN        18
+    #endif
 
-    #define DEF_CMT_CSB             27
-    #define DEF_CMT_FCSB            26
-    #define DEF_CMT_IRQ             34
+    #ifndef DEF_CMT_CSB
+        #define DEF_CMT_CSB             27
+    #endif
+    #ifndef DEF_CMT_FCSB
+        #define DEF_CMT_FCSB            26
+    #endif
+    #ifndef DEF_CMT_IRQ
+        #define DEF_CMT_IRQ             34
+    #endif
 #else
-    #define DEF_CS_PIN              15
-    #define DEF_CE_PIN              0
-    #define DEF_IRQ_PIN             2
+    #ifndef DEF_NRF_CS_PIN
+        #define DEF_NRF_CS_PIN          15
+    #endif
+    #ifndef DEF_NRF_CE_PIN
+        #define DEF_NRF_CE_PIN          0
+    #endif
+    #ifndef DEF_NRF_IRQ_PIN
+        #define DEF_NRF_IRQ_PIN         2
+    #endif
     // these are given to relay the correct values via API
     // they cannot actually be moved for ESP82xx models
-    #define DEF_MISO_PIN            12
-    #define DEF_MOSI_PIN            13
-    #define DEF_SCLK_PIN            14
+    #ifndef DEF_NRF_MISO_PIN
+        #define DEF_NRF_MISO_PIN        12
+    #endif
+    #ifndef DEF_NRF_MOSI_PIN
+        #define DEF_NRF_MOSI_PIN        13
+    #endif
+    #ifndef DEF_NRF_SCLK_PIN
+        #define DEF_NRF_SCLK_PIN        14
+    #endif
+#endif
+#ifndef DEF_LED0
+    #define DEF_LED0                DEF_PIN_OFF
+#endif
+#ifndef DEF_LED1
+    #define DEF_LED1                DEF_PIN_OFF
+#endif
+#ifdef LED_ACTIVE_HIGH
+    #define LED_HIGH_ACTIVE         true
+#else
+    #define LED_HIGH_ACTIVE         false
 #endif
 
 // default NRF24 power, possible values (0 - 3)

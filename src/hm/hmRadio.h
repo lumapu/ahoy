@@ -27,7 +27,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t IRQ_PIN = DEF_IRQ_PIN, uint8_t CE_PIN = DEF_CE_PIN, uint8_t CS_PIN = DEF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_SCLK_PIN, uint8_t MOSI_PIN = DEF_MOSI_PIN, uint8_t MISO_PIN = DEF_MISO_PIN>
+template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN>
 class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {

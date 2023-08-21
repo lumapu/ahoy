@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.40 - 2023-08-21
+* added default pins for opendtu-fusion-v1 board
+* fixed hw version display in `live`
+* removed development builds, renamed environments in `platform.ini`
+
 ## 0.7.39 - 2023-08-21
 * fix background color of invalid inputs
 * add hardware info (click in `live` on inverter name)

@@ -546,12 +546,12 @@ class Web {
             for (uint8_t i = 0; i < 12; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
-                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_SCLK_PIN); break;
-                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_MOSI_PIN); break;
-                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_MISO_PIN); break;
+                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
+                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_NRF_CE_PIN);  break;
+                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_NRF_IRQ_PIN); break;
+                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
+                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
+                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
                     case 6:  mConfig->led.led0 = pin; break;
                     case 7:  mConfig->led.led1 = pin; break;
                     case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
