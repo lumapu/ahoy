@@ -94,12 +94,15 @@ jobs:
         asset_name: ${{ steps.rename-binary-files.outputs.name }}.zip
         asset_content_type: application/zip
 
+    - name: Rename firmware directory
+      run: mv src/firmware src/${{ steps.rename-binary-files.outputs.name }}
+
     - name: Deploy
       uses: nogsantos/scp-deploy@master
       with:
-        src: src/firmware/*
+        src: src/${{ steps.rename-binary-files.outputs.name }}/
         host: ${{ secrets.FW_SSH_HOST }}
-        remote: ${{ secrets.FW_SSH_DIR }}/release/${{ steps.rename-binary-files.outputs.name }}/
+        remote: ${{ secrets.FW_SSH_DIR }}/release
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}

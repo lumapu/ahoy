@@ -77,12 +77,15 @@ jobs:
           src/User_Manual.md
           src/install.html
 
+    - name: Rename firmware directory
+      run: mv src/firmware src/${{ steps.rename-binary-files.outputs.name }}
+
     - name: Deploy
       uses: nogsantos/scp-deploy@master
       with:
-        src: src/firmware/*
+        src: src/${{ steps.rename-binary-files.outputs.name }}/
         host: ${{ secrets.FW_SSH_HOST }}
-        remote: ${{ secrets.FW_SSH_DIR }}/dev/${{ steps.rename-binary-files.outputs.name }}/
+        remote: ${{ secrets.FW_SSH_DIR }}/dev
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}
