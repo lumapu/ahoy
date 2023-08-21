@@ -395,9 +395,15 @@ class settings {
             mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
             mCfg.nrf.enabled           = true;
 
+            #if defined(ESP32)
             mCfg.cmt.pinCsb            = DEF_CMT_CSB;
             mCfg.cmt.pinFcsb           = DEF_CMT_FCSB;
             mCfg.cmt.pinIrq            = DEF_CMT_IRQ;
+            #else
+            mCfg.cmt.pinCsb            = DEF_PIN_OFF;
+            mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
+            mCfg.cmt.pinIrq            = DEF_PIN_OFF;
+            #endif
             mCfg.cmt.enabled           = false;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
