@@ -261,7 +261,7 @@
                     case 3: model = "HMT-"; break;
                     default: model = "???-"; break;
                 }
-                model += String(obj.max_pwr);
+                model += String(obj.max_pwr) + " (Serial: " + obj.serial + ")";
 
 
                 var html = ml("table", {class: "table"}, [
@@ -276,15 +276,15 @@
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Hardware Version / Build"),
-                            ml("td", {}, String(obj.hw_ver) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
+                            ml("td", {}, (obj.hw_ver.toString(16) / 100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Hardware Number"),
-                            ml("td", {}, String(obj.part_num))
+                            ml("td", {}, obj.part_num.toString(16))
                         ]),
                         ml("tr", {}, [
                             ml("th", {}, "Bootloader Version"),
-                            ml("td", {}, String(obj.boot_ver))
+                            ml("td", {}, (obj.boot_ver / 100).toFixed(2))
                         ])
                     ])
                 ]);

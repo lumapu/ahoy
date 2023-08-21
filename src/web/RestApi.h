@@ -98,17 +98,13 @@ class RestApi {
             else if(path == "setup/networks") getNetworks(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
-            /*else if(path == "record/info")    getRecord(root, InverterDevInform_All);
-            else if(path == "record/alarm")   getRecord(root, AlarmData);
-            else if(path == "record/config")  getRecord(root, SystemConfigPara);
-            else if(path == "record/live")    getRecord(root, RealTimeRunData_Debug);*/
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
                 else if(path.substring(0, 15) == "inverter/alarm/")
                     getIvAlarms(root, request->url().substring(20).toInt());
                 else if(path.substring(0, 17) == "inverter/version/")
-                    getIvVersion(root, request->url().substring(20).toInt());
+                    getIvVersion(root, request->url().substring(22).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -434,21 +430,28 @@ class RestApi {
             record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);
 
             obj[F("name")]       = String(iv->config->name);
+            obj[F("serial")]     = String(iv->config->serial.u64, HEX);
             obj[F("generation")] = iv->ivGen;
             obj[F("max_pwr")]    = iv->getMaxPower();
             obj[F("part_num")]   = iv->getChannelFieldValueInt(CH0, FLD_PART_NUM, rec);
             obj[F("hw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_HW_VERSION, rec);
-            obj[F("prod_cw")]    = ((iv->config->serial.b[3] & 0x0f) * 10 + ((iv->config->serial.b[2] & 0x0f)));
+            obj[F("prod_cw")]    = ((iv->config->serial.b[3] & 0x0f) * 10 + (((iv->config->serial.b[2] >> 4) & 0x0f)));
             obj[F("prod_year")]  = ((iv->config->serial.b[3] >> 4) & 0x0f) + 2014;
 
 
             rec = iv->getRecordStruct(InverterDevInform_All);
-            obj[F("fw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_FW_VERSION, rec);
-            obj[F("fw_date")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_YEAR, rec))
-                                  + "-" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec) / 100)
-                                  + "-" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec) % 100);
-            obj[F("fw_time")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec) / 100)
-                                  + ":" + String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec) % 100);
+            char buf[10];
+            uint16_t val;
+
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec);
+            snprintf(buf, 10, "-%02d-%02d", (val / 100), (val % 100));
+            obj[F("fw_date")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_YEAR, rec)) + String(buf);
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec);
+            snprintf(buf, 10, "%02d:%02d", (val / 100), (val % 100));
+            obj[F("fw_time")]    = String(buf);
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_VERSION, rec);
+            snprintf(buf, 10, "%d.%02d.%02d", (val / 10000), ((val % 10000) / 100), (val % 100));
+            obj[F("fw_ver")]     = String(buf);
             obj[F("boot_ver")]   = iv->getChannelFieldValueInt(CH0, FLD_BOOTLOADER_VER, rec);
         }
 

@@ -501,7 +501,7 @@ input[type=text], input[type=password], select, input[type=number] {
 
 input:invalid {
     border: 2px solid #f00 !important;
-    background-color: #400 !important;
+    background-color: var(--invalid-bg) !important;
 }
 
 input.sh {
