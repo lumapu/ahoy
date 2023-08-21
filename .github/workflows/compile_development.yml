@@ -78,7 +78,6 @@ jobs:
           src/install.html
 
     - name: Deploy
-      working-directory: src/firmware
       uses: nogsantos/scp-deploy@master
       with:
         src: src/firmware/*
