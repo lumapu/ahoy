@@ -210,7 +210,7 @@ class Inverter {
                         enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
                     enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                 } else if (ivGen == IV_MI){
-                    if (getFwVersion() == 0)
+                    if (getFwVersion() == 0 || getHwVersion() == 0)
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version; might not work, esp. for 1/2 ch hardware
                     if (type == INV_TYPE_4CH) {
                         enqueCommand<InfoCommand>(0x36);

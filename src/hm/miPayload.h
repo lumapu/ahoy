@@ -243,20 +243,26 @@ const byteAssign_t InfoAssignment[] = {
                     }
                     record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                     rec->ts = mPayload[iv->id].ts;
-                    iv->setValue(1, rec, (uint16_t) ((p->packet[24] << 8) + p->packet[25])/1);
+                    iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25]));
                     //28737
                 } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINT_IVID(DBG_INFO, iv->id);
                     if ( p->packet[9] == 0x01 ) {
                         DBGPRINTLN(F("got 2nd frame (hw info)"));
+                        /* according to xlsx (different start byte -1!)
+                        byte[11] to	 byte[14] HW_PN
+                        byte[15]	 byte[16] HW_FB_TLmValue
+                        byte[17]	 byte[18] HW_FB_ReSPRT
+                        byte[19]	 byte[20] HW_GridSamp_ResValule
+                        byte[21]	 byte[22] HW_ECapValue
+                        byte[23] to	 byte[26] Matching_APPFW_PN
+                    */
+
                         DPRINT(DBG_INFO,F("HW_PartNo "));
                         DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
                         mPayload[iv->id].gotFragment = true;
                         record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                         rec->ts = mPayload[iv->id].ts;
-                        /*for (uint8_t i = 0; i < 5; i++) {
-                            iv->setValue(i, rec, (float) ((p->packet[(10+2*i)] << 8) + p->packet[(11+2*i)])/1);
-                        }*/
                         iv->setValue(0, rec, (uint32_t) ((((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13])/1);
 
                         if(mSerialDebug) {
@@ -268,6 +274,8 @@ const byteAssign_t InfoAssignment[] = {
                             DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
                             DPRINT(DBG_INFO,F("HW_ECapValue "));
                             DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
+                            DPRINT(DBG_INFO,F("Matching_APPFW_PN "));
+                            DBGPRINTLN(String((uint32_t) (((p->packet[22] << 8) | p->packet[23]) << 8 | p->packet[24]) << 8 | p->packet[25]));
                         }
                     } else {
                         DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
@@ -276,6 +284,22 @@ const byteAssign_t InfoAssignment[] = {
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 3rd frame (hw info)"));
+                    /* according to xlsx (different start byte -1!)
+                        byte[11]	 byte[12] APPFW_MINVER
+                        byte[13]	 byte[14] HWInfoAddr
+                        byte[15]	 byte[16] PNInfoCRC_gusv
+                        byte[15]	 byte[16] PNInfoCRC_gusv
+                    */
+                    if(mSerialDebug) {
+                        DPRINT(DBG_INFO,F("APPFW_MINVER "));
+                        DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                        DPRINT(DBG_INFO,F("HWInfoAddr "));
+                        DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+                        DPRINT(DBG_INFO,F("PNInfoCRC_gusv "));
+                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                        DPRINT(DBG_INFO,F("PNInfoCRC_gusv (pt. 2?) "));
+                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                    }
                     iv->setQueuedCmdFinished();
                     mPayload[iv->id].complete = true;
                     mStat->rxSuccess++;
