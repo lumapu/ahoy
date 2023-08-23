@@ -205,7 +205,7 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
 void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
     // check if the IP has changed
     if (_settedIP != WiFi.localIP().toString().c_str()) {
-        // save the new IP and call the Headline Funktion to adapt the Headline
+        // save the new IP and call the Headline Function to adapt the Headline
         _settedIP = WiFi.localIP().toString().c_str();
         headlineIP();
     }
