@@ -25,7 +25,7 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_BOOTLOADER_VER,
         FLD_ACT_ACTIVE_PWR_LIMIT, FLD_PART_NUM, FLD_HW_VERSION, FLD_GRID_PROFILE_CODE,
         FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP};
-        
+
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
         "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
@@ -260,6 +260,10 @@ typedef struct {
 } devInfo_t;
 
 const devInfo_t devInfo[] = {
+    // MI 2nd gen
+    { 0x13118f, 600 },
+
+
     // MI 3rd gen
     { 0x100230, 1500 },
 
