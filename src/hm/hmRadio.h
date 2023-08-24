@@ -21,7 +21,7 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
-const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
+const char* const rf24AmpPowerNames[] = {"MIN (recommended)", "LOW", "HIGH", "MAX (experimental)"};
 
 
 //-----------------------------------------------------------------------------
@@ -205,6 +205,7 @@ class HmRadio {
                 }
                 cnt++;
             }
+
             sendPacket(invId, cnt, isRetransmit, isNoMI);
         }
 
@@ -237,6 +238,14 @@ class HmRadio {
 
         bool isPVariant(void) {
             return mNrf24.isPVariant();
+        }
+
+        bool goodSignal(void) {
+            bool goodSignal = mNrf24.testRPD();
+            DPRINT(DBG_INFO, F("NRF Signal: "));
+            DPRINT(DBG_INFO, String(goodSignal));
+            mNrf24.read(0,0);
+            return goodSignal;
         }
 
         std::queue<packet_t> mBufCtrl;

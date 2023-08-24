@@ -502,6 +502,7 @@ class RestApi {
             obj[F("isconnected")] = mRadio->isChipConnected();
             obj[F("DataRate")] = mRadio->getDataRate();
             obj[F("isPVariant")] = mRadio->isPVariant();
+            obj[F("goodSignal")] = mRadio->goodSignal();
             obj[F("en")]         = (bool) mConfig->nrf.enabled;
         }
 
@@ -570,6 +571,8 @@ class RestApi {
                 warn.add(F("reboot your ESP to apply all your configuration changes"));
             if(0 == mApp->getTimestamp())
                 warn.add(F("time not set. No communication to inverter possible"));
+
+
             /*if(0 == mSys->getNumInverters())
                 warn.add(F("no inverter configured"));*/
 
