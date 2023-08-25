@@ -338,6 +338,9 @@ class HmPayload {
                                     yield();
                                 }
                             }
+                            if( (InverterDevInform_All == mPayload[iv->id].txCmd) && (mHighPrioIv == NULL) )      // process next request immediately if possible
+                                mHighPrioIv = iv;
+
                         } else {
                             DPRINT(DBG_ERROR, F("plausibility check failed, expected "));
                             DBGPRINT(String(rec->pyldLen));

@@ -193,6 +193,8 @@ class MiPayload {
                 record_t<> *rec = iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
                 rec->ts = mPayload[iv->id].ts;
                 mPayload[iv->id].gotFragment = true;
+                if(mHighPrioIv == NULL)                          // process next request immediately if possible
+                    mHighPrioIv = iv;
 
 /*
  Polling the device software and hardware version number command
@@ -244,7 +246,7 @@ const byteAssign_t InfoAssignment[] = {
                     record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                     rec->ts = mPayload[iv->id].ts;
                     iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25])/1);
-                    notify(InverterDevInform_All, iv);
+                    //notify(InverterDevInform_All, iv);
                     //28737
                 } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINT_IVID(DBG_INFO, iv->id);
@@ -278,7 +280,8 @@ const byteAssign_t InfoAssignment[] = {
                             DPRINT(DBG_INFO,F("Matching_APPFW_PN "));
                             DBGPRINTLN(String((uint32_t) (((p->packet[22] << 8) | p->packet[23]) << 8 | p->packet[24]) << 8 | p->packet[25]));
                         }
-                        notify(InverterDevInform_Simple, iv);
+                        //notify(InverterDevInform_Simple, iv);
+                        notify(InverterDevInform_All, iv);
                     } else {
                         DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
                     }

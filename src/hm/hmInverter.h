@@ -339,6 +339,9 @@ class Inverter {
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
                             enqueCommand<InfoCommand>(AlarmData);
+//                            ivSendHighPrio(id);
+//                            if(mHighPrioIv == NULL)      // process the request immediately if possible
+//                                mHighPrioIv = iv;
                         }
                     }
                 }
