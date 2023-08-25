@@ -666,7 +666,7 @@ class Web {
 #ifdef ENABLE_PROMETHEUS_EP
         // Note
         // Prometheus exposition format is defined here: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-        // TODO: Check packetsize for MAX_NUM_INVERTERS. Successfull Tested with 4 Inverters (each with 4 channels)
+        // TODO: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
         enum {
             metricsStateStart,
             metricsStateInverter1, metricsStateInverter2, metricsStateInverter3, metricsStateInverter4,

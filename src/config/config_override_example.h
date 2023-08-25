@@ -9,11 +9,11 @@
 // override fallback WiFi info
 #define FB_WIFI_OVERRIDDEN
 
-// each ovveride must be preceeded with an #undef statement
+// each override must be preceded with an #undef statement
 #undef FB_WIFI_SSID
 #define FB_WIFI_SSID    "MY_SSID"
 
-// each ovveride must be preceeded with an #undef statement
+// each override must be preceded with an #undef statement
 #undef FB_WIFI_PWD
 #define FB_WIFI_PWD     "MY_WIFI_KEY"
 

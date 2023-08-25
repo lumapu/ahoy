@@ -65,7 +65,7 @@
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
 
-                            <p>Enter the credentials to your prefered WiFi station. After rebooting the device tries to connect with this information.</p>
+                            <p>Enter the credentials to your preferred WiFi station. After rebooting the device tries to connect with this information.</p>
 
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">Search Networks</div>
@@ -181,7 +181,7 @@
                             <div class="col-4 col-sm-9"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Yield Effiency (should be between 0.95 and 0.96)</div>
+                            <div class="col-8 col-sm-3">Yield Efficiency (should be between 0.95 and 0.96)</div>
                             <div class="col-4 col-sm-9"><input type="number" name="yldEff" step="any"/></div>
                         </div>
                     </fieldset>
@@ -200,7 +200,7 @@
                             <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Intervall (in Minutes, min. 5 Minutes)</div>
+                            <div class="col-12 col-sm-3 my-2">NTP Interval (in Minutes, min. 5 Minutes)</div>
                             <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
                         </div>
                         <div class="row mb-3">
@@ -487,7 +487,7 @@
             function apiCbNtp(obj) {
                 var e = document.getElementById("apiResultNtp");
                 if(obj["success"])
-                    e.innerHTML = "command excuted, set new time ...";
+                    e.innerHTML = "command executed, set new time ...";
                 else
                     e.innerHTML = "Error: " + obj["error"];
             }
@@ -501,7 +501,7 @@
             function apiCbMqtt(obj) {
                 var e = document.getElementById("apiResultMqtt");
                 if(obj["success"])
-                    e.innerHTML = "command excuted";
+                    e.innerHTML = "command executed";
                 else
                     e.innerHTML = "Error: " + obj["error"];
             }

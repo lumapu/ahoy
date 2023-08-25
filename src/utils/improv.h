@@ -39,7 +39,7 @@ class Improv {
             if(!checkPaket(&buf[0], len, [this](uint8_t type, uint8_t buf[], uint8_t len) {
                 parsePayload(type, buf, len);
             })) {
-                DBGPRINTLN(F("check paket failed"));
+                DBGPRINTLN(F("check packet failed"));
             }
             dumpBuf(buf, len);
         }
@@ -100,7 +100,7 @@ class Improv {
             if(0 != strncmp((char*)buf, "IMPROV", 6))
                 return false;
 
-            // verison check (only version 1 is supported!)
+            // version check (only version 1 is supported!)
             if(0x01 != buf[6])
                 return false;
 
@@ -124,7 +124,7 @@ class Improv {
         void sendDevInfo(void) {
             uint8_t buf[50];
             buf[7] = TYPE_RPC_RESPONSE;
-            buf[9] = GET_DEVICE_INFO; // repsonse to cmd
+            buf[9] = GET_DEVICE_INFO; // response to cmd
             uint8_t p = 11;
             // firmware name
             p += char2Improv("AhoyDTU", &buf[p]);
@@ -140,7 +140,7 @@ class Improv {
             p += char2Improv(mDevName, &buf[p]);
 
             buf[10] = p - 11; // sub length
-            buf[8] = p - 9; // paket length
+            buf[8] = p - 9; // packet length
 
             sendPaket(buf, p);
         }
@@ -157,7 +157,7 @@ class Improv {
 
             uint8_t buf[50];
             buf[7] = TYPE_RPC_RESPONSE;
-            buf[9] = GET_WIFI_NETWORKS; // repsonse to cmd
+            buf[9] = GET_WIFI_NETWORKS; // response to cmd
             uint8_t p = 11;
 
             JsonArray arr = obj[F("networks")];
@@ -170,7 +170,7 @@ class Improv {
                 p += char2Improv(String(arr[i][F("rssi")]).c_str(), &buf[p]);
 
                 buf[10] = p - 11; // sub length
-                buf[8] = p - 9; // paket length
+                buf[8] = p - 9; // packet length
 
                 sendPaket(buf, p);
             }
