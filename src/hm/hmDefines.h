@@ -9,6 +9,9 @@
 #include "../utils/dbg.h"
 #include <cstdint>
 
+#define RF_CHANNELS         5
+#define AHOY_RF24_DEF_TX_CHANNEL 2 // 40
+#define AHOY_RF24_DEF_RX_CHANNEL 0 // 3
 
 // inverter generations
 enum {IV_HM = 0, IV_MI};

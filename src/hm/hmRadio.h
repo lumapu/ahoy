@@ -14,20 +14,11 @@
 
 #define SPI_SPEED           1000000
 
-#define RF_CHANNELS         5
-
 #define TX_REQ_INFO         0x15
 #define TX_REQ_DEVCONTROL   0x51
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
-#define SEND_CHANNEL_MAX_QUALITY 4
-#define SEND_CHANNEL_MIN_QUALITY -6
-#define SEND_CHANNEL_QUALITY_GOOD       2
-#define SEND_CHANNEL_QUALITY_OK         1
-#define SEND_CHANNEL_QUALITY_NEUTRAL    0
-#define SEND_CHANNEL_QUALITY_LOW       -1
-#define SEND_CHANNEL_QUALITY_BAD       -2
 
 const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
@@ -79,8 +70,8 @@ class HmRadio {
             mRfChLst[4] = 75;
 
             // default channels
-            mTxChIdx    = 2; // Start TX with 40
-            mRxChIdx    = 0; // Start RX with 03
+            mTxChIdx    = AHOY_RF24_DEF_TX_CHANNEL;
+            mRxChIdx    = AHOY_RF24_DEF_RX_CHANNEL;
 
             mSendCnt        = 0;
             mRetransmits    = 0;
@@ -198,7 +189,7 @@ class HmRadio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
+        void sendControlPacket(uint64_t invId, uint8_t rf_ch, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -234,10 +225,10 @@ class HmRadio {
                 }
                 cnt++;
             }
-            sendPacket(invId, cnt, isRetransmit, isNoMI);
+            sendPacket(invId, rf_ch, cnt, isRetransmit, isNoMI);
         }
 
-        void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+        void prepareDevInformCmd(uint64_t invId, uint8_t rf_ch, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             if(mSerialDebug) {
                 DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
@@ -255,12 +246,12 @@ class HmRadio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(invId, 24, isRetransmit, true);
+            sendPacket(invId, rf_ch, 24, isRetransmit, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
+        void sendCmdPacket(uint64_t invId, uint8_t rf_ch, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
             initPacket(invId, mid, pid);
-            sendPacket(invId, 10, isRetransmit, appendCrc16);
+            sendPacket(invId, rf_ch, 10, isRetransmit, appendCrc16);
         }
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
@@ -280,81 +271,6 @@ class HmRadio {
 
         bool isPVariant(void) {
             return mNrf24.isPVariant();
-        }
-
-        bool isNewSendChannel ()
-        {
-            return mTxChIdx != mTxLastChIdx;
-        }
-
-        uint8_t getNextSendChannelIndex (void)
-        {
-            // start with the next index: round robbin in case of same max bad quality for all channels
-            uint8_t bestIndex = (mTxChIdx + 1) % RF_CHANNELS;
-            uint8_t curIndex = (bestIndex + 1) % RF_CHANNELS;
-            uint16_t i;
-
-            for (i=1; i<RF_CHANNELS; i++) {
-                if (mChQuality[curIndex] > mChQuality[bestIndex]) {
-                    bestIndex = curIndex;
-                }
-                curIndex = (curIndex + 1) % RF_CHANNELS;
-            }
-            return bestIndex;
-        }
-
-        void addSendChannelQuality (int8_t quality)
-        {
-            // assume: mTxChIdx is still the last send channel index used
-            quality = mChQuality[mTxChIdx] + quality;
-            if (quality < SEND_CHANNEL_MIN_QUALITY) {
-                quality = SEND_CHANNEL_MIN_QUALITY;
-            } else if (quality > SEND_CHANNEL_MAX_QUALITY) {
-                quality = SEND_CHANNEL_MAX_QUALITY;
-            }
-            mChQuality[mTxChIdx] = quality;
-        }
-
-        void evalSendChannelQuality (bool crcPass, uint8_t Retransmits, uint8_t rxFragments,
-            uint8_t lastRxFragments)
-        {
-            if (lastRxFragments == rxFragments) {
-                // nothing received: send probably lost
-                if (!Retransmits || isNewSendChannel()) {
-                    // dont overestimate burst distortion
-                    addSendChannelQuality (SEND_CHANNEL_QUALITY_BAD);
-                }
-            } else if (!lastRxFragments && crcPass) {
-                if (!Retransmits || isNewSendChannel()) {
-                    // every fragment received successfull immediately
-                    addSendChannelQuality (SEND_CHANNEL_QUALITY_GOOD);
-                } else {
-                    // every fragment received successfully
-                    addSendChannelQuality (SEND_CHANNEL_QUALITY_OK);
-                }
-            } else if (crcPass) {
-                if (isNewSendChannel ()) {
-                    // last Fragment successfully received on new send channel
-                    addSendChannelQuality (SEND_CHANNEL_QUALITY_OK);
-                }
-            } else if (!Retransmits || isNewSendChannel()) {
-                // no complete receive for this send channel
-                addSendChannelQuality (SEND_CHANNEL_QUALITY_LOW);
-            }
-        }
-
-        void resetSendChannelQuality ()
-        {
-            for(uint8_t i = 0; i < RF_CHANNELS; i++) {
-                mChQuality[mTxChIdx] = 0;
-            }
-        }
-
-        void dumpSendQuality()
-        {
-            for(uint8_t i = 0; i < RF_CHANNELS; i++) {
-                DBGPRINT(" " + String (mChQuality[i]));
-            }
         }
 
         std::queue<packet_t> mBufCtrl;
@@ -409,7 +325,7 @@ class HmRadio {
             mTxBuf[9]  = pid;
         }
 
-        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+        void sendPacket(uint64_t invId, uint8_t rf_ch, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
 
@@ -426,8 +342,7 @@ class HmRadio {
 
             // set TX and RX channels
 
-            mTxLastChIdx = mTxChIdx;
-            mTxChIdx = getNextSendChannelIndex ();
+            mTxChIdx = rf_ch;
             mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
 
             if(mSerialDebug) {
@@ -439,10 +354,8 @@ class HmRadio {
                 DBGPRINT(F(" | "));
                 dumpBuf(mTxBuf, len);
 #else
-                DPRINT(DBG_INFO, F("TX (Ch ") + String (mRfChLst[mTxChIdx]) + "), " +
-                    String (len) + " Bytes, Quality:");
-                dumpSendQuality();
-                DBGPRINTLN("");
+                DPRINTLN(DBG_INFO, F("TX (Ch ") + String (mRfChLst[mTxChIdx]) + "), " +
+                    String (len) + " Bytes");
 #endif
             }
             mNrf24.stopListening();
@@ -460,14 +373,13 @@ class HmRadio {
         uint64_t DTU_RADIO_ID;
 
         uint8_t mRfChLst[RF_CHANNELS];
-        int8_t mChQuality[RF_CHANNELS];
-        uint8_t mTxChIdx;
-        uint8_t mTxLastChIdx;
-        uint8_t mRxChIdx;
 
         SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+        uint8_t mTxChIdx;
+        uint8_t mRxChIdx;
+
 };
 
 #endif /*__RADIO_H__*/

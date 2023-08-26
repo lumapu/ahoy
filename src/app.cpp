@@ -346,13 +346,14 @@ void app::tickMinute(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
+    Inverter<> *iv;
+
     if (mConfig->inst.rstYieldMidNight) {
         // only if 'reset values at midnight is enabled'
         uint32_t localTime = gTimezone.toLocal(mTimestamp);
         uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
         onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
 
-        Inverter<> *iv;
         // set values to zero, except yield total
         for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
             iv = mSys.getInverterByPos(id);
@@ -367,7 +368,11 @@ void app::tickMidnight(void) {
             mMqtt.tickerMidnight();
 #endif
     }
-    mSys.Radio.resetSendChannelQuality();
+    for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+        if ((iv = mSys.getInverterByPos(id))) {
+            iv->cleanupRxInfo();
+        }
+    }
     mSys.cleanup_history();
 #ifdef AHOY_SML_OBIS_SUPPORT
     // design: allways try to clean up
