@@ -1,7 +1,8 @@
 # Development Changes
 
 ## 0.7.41 - 2023-08-26
-* merge PR #1117 code spelling
+* merge PR #1117 code spelling fixes #1112
+* alarms were not read after the first day
 
 ## 0.7.40 - 2023-08-21
 * added default pins for opendtu-fusion-v1 board

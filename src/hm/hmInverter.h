@@ -438,6 +438,7 @@ class Inverter {
                 if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                    alarmMesIndex = 0;
                 }
                 else
                     status = InverterStatus::WAS_ON;
