@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.41 - 2023-08-26
+* merge PR #1117 code spelling
+
 ## 0.7.40 - 2023-08-21
 * added default pins for opendtu-fusion-v1 board
 * fixed hw version display in `live`
