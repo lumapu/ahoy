@@ -65,7 +65,7 @@ struct calcFunc_t {
 
 template<class T=float>
 struct record_t {
-    byteAssign_t* assign; // assigment of bytes in payload
+    byteAssign_t* assign; // assignment of bytes in payload
     uint8_t length;       // length of the assignment list
     T *record;            // data pointer
     uint32_t ts;          // timestamp of last received payload
@@ -151,7 +151,7 @@ class Inverter {
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
-        uint16_t      alarmCnt;          // counts the total number of occured alarms
+        uint16_t      alarmCnt;          // counts the total number of occurred alarms
         int8_t        rssi;              // HMS and HMT inverters only
 
 
@@ -361,7 +361,7 @@ class Inverter {
                     //}
                 }
                 else
-                    DPRINTLN(DBG_WARN, F("add with unknown assginment"));
+                    DPRINTLN(DBG_WARN, F("add with unknown assignment"));
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
@@ -438,6 +438,7 @@ class Inverter {
                 if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                    alarmMesIndex = 0;
                 }
                 else
                     status = InverterStatus::WAS_ON;

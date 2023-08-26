@@ -47,7 +47,7 @@
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
                 if(obj["success"]) {
-                    e.innerHTML = " command excuted";
+                    e.innerHTML = " command executed";
                     getAjax("/api/index", parse);
                 }
                 else

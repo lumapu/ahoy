@@ -8,7 +8,7 @@
 
 #include "esp32_3wSpi.h"
 
-#define WORK_FREQ_KHZ       865000 // disired work frequency between DTU and
+#define WORK_FREQ_KHZ       865000 // desired work frequency between DTU and
                                    // inverter in kHz
 #define HOY_BASE_FREQ_KHZ   860000 // in kHz
 #define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
@@ -153,7 +153,7 @@
 #define CMT2300A_MASK_TX_DONE_FLG       0x08
 #define CMT2300A_MASK_PKT_OK_FLG        0x01
 
-// default CMT paramters
+// default CMT parameters
 static uint8_t cmtConfig[0x60] PROGMEM {
     // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
     0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
@@ -360,7 +360,7 @@ class Cmt2300a {
 
         inline uint8_t freq2Chan(const uint32_t freqKhz) {
             if((freqKhz % FREQ_STEP_KHZ) != 0) {
-                DPRINT(DBG_WARN, F("swtich frequency to "));
+                DPRINT(DBG_WARN, F("switch frequency to "));
                 DBGPRINT(String(freqKhz));
                 DBGPRINT(F("kHz not possible!"));
                 return 0xff; // error
@@ -373,7 +373,7 @@ class Cmt2300a {
                 return 0xff; // error
 
             if((freqKhz < FREQ_WARN_MIN_KHZ) || (freqKhz > FREQ_WARN_MAX_KHZ))
-                DPRINTLN(DBG_WARN, F("Disired frequency is out of EU legal range! (863 - 870MHz)"));
+                DPRINTLN(DBG_WARN, F("Desired frequency is out of EU legal range! (863 - 870MHz)"));
 
             return (freqKhz - HOY_BASE_FREQ_KHZ) / FREQ_STEP_KHZ;
         }

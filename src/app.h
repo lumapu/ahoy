@@ -172,7 +172,7 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void ivSendHighPrio(Inverter<> *iv) {
-            if(mIVCommunicationOn) { // only send commands if communcation is enabled
+            if(mIVCommunicationOn) { // only send commands if communication is enabled
                 if (iv->ivGen == IV_HM)
                     mPayload.ivSendHighPrio(iv);
                 else if (iv->ivGen == IV_MI)

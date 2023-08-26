@@ -280,7 +280,7 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
-            obj[F("html")] = F("succesfully logged out");
+            obj[F("html")] = F("successfully logged out");
         }
 
         void getHtmlReboot(AsyncWebServerRequest *request, JsonObject obj) {

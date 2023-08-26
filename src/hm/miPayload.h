@@ -271,7 +271,7 @@ const byteAssign_t InfoAssignment[] = {
                 }
 
             } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) // response from get information command
-                     || (p->packet[0] == 0xB6 && mPayload[iv->id].txCmd != 0x36)) {                   // strange short response from MI-1500 3rd gen; might be missleading!
+                     || (p->packet[0] == 0xB6 && mPayload[iv->id].txCmd != 0x36)) {                   // strange short response from MI-1500 3rd gen; might be misleading!
                 // atm, we just do nothing else than print out what we got...
                 // for decoding see xls- Data collection instructions - #147ff
                 //mPayload[iv->id].txId = p->packet[0];
@@ -280,7 +280,7 @@ const byteAssign_t InfoAssignment[] = {
                 if (*pid == 0x00) {
                     DPRINT(DBG_DEBUG, F("fragment number zero received"));
                     iv->setQueuedCmdFinished();
-                } else if (p->packet[9] == 0x81) { // might need some additional check, as this is only ment for short answers!
+                } else if (p->packet[9] == 0x81) { // might need some additional check, as this is only meant for short answers!
                     DPRINT_IVID(DBG_WARN, iv->id);
                     DBGPRINTLN(F("seems to use 3rd gen. protocol - switching ivGen!"));
                     iv->ivGen = IV_HM;
@@ -404,7 +404,7 @@ const byteAssign_t InfoAssignment[] = {
                     (mPayload[iv->id].txId != (0x88)) &&
                     (mPayload[iv->id].txId != (0x92)) &&
                     (mPayload[iv->id].txId != 0 )) {
-                    // no processing needed if txId is not one of 0x95, 0x88, 0x89, 0x91, 0x92 or resonse to 0x36ff
+                    // no processing needed if txId is not one of 0x95, 0x88, 0x89, 0x91, 0x92 or response to 0x36ff
                     mPayload[iv->id].complete = true;
                     continue; // skip to next inverter
                 }

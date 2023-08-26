@@ -606,7 +606,7 @@ class PubMqtt {
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 
-        // last will topic and payload must be available trough lifetime of 'espMqttClient'
+        // last will topic and payload must be available through lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
         char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
