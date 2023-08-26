@@ -21,7 +21,7 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
-const char* const rf24AmpPowerNames[] = {"MIN (recommended)", "LOW", "HIGH", "MAX (experimental)"};
+const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
 
 //-----------------------------------------------------------------------------
@@ -240,10 +240,13 @@ class HmRadio {
             return mNrf24.isPVariant();
         }
 
+        /* Test whether a signal (carrier or otherwise) greater than or equal to -64dBm is present on the channel.
+         Valid only on nRF24L01P (+) hardware. On nRF24L01, use testCarrier().
+         Useful to check for interference on the current channel and channel hopping strategies.
+         bool goodSignal = radio.testRPD();
+         if(radio.available()){ Serial.println(goodSignal ? "Strong signal > 64dBm" : "Weak signal < 64dBm" ); radio.read(0,0); } */
         bool goodSignal(void) {
             bool goodSignal = mNrf24.testRPD();
-            DPRINT(DBG_INFO, F("NRF Signal: "));
-            DPRINT(DBG_INFO, String(goodSignal));
             mNrf24.read(0,0);
             return goodSignal;
         }
