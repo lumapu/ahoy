@@ -71,11 +71,9 @@ void ahoywifi::setupWifi(bool startAP = false) {
 
 
 void ahoywifi::tickWifiLoop() {
-    static const uint8_t DISCONN_TIMEOUT = 10;
     static const uint8_t TIMEOUT = 20;
     static const uint8_t SCAN_TIMEOUT = 10;
     #if !defined(AP_ONLY)
-    uint8_t timeout = (mStaConn == DISCONNECTED) ? DISCONN_TIMEOUT : TIMEOUT; // seconds
 
     mCnt++;
 
