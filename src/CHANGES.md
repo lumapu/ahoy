@@ -3,6 +3,10 @@
 ## 0.7.42 - 2023-08-27
 * fix ePaper for opendtufusion_v2.x boards (Software SPI)
 * add signal strength for NRF24 - PR #1119
+* refactor wifi class to support ESP32 S2 PR #1127
+* update platform for ESP32 to 6.3.2
+* fix opendtufusion LED (were mixed)
+* fix `last_success` transmitted to often #1124
 
 ## 0.7.41 - 2023-08-26
 * merge PR #1117 code spelling fixes #1112
