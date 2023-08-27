@@ -29,12 +29,14 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     if (type == 10) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
-        hspi.begin(_SCK, _BUSY, _MOSI, _CS);
 
 #if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
+        hspi.begin(_SCK, _BUSY, _MOSI, _CS);
         _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
+#elif defined(ESP32)
+        _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
 #endif
-        _display->init(115200, true, 2, false);
+        _display->init(115200, true, 20, false);
         _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
 
