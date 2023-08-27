@@ -225,9 +225,9 @@ void app::onNetwork(bool gotIp) {
         #if !defined(ETHERNET)
         if (WIFI_AP == WiFi.getMode()) {
             mMqttEnabled = false;
-            everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
         }
-        #endif /* !defined(ETHERNET) */
+        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+#endif /* !defined(ETHERNET) */
         mInnerLoopCb = [this]() { this->loopStandard(); };
     } else {
         #if defined(ETHERNET)

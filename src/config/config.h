@@ -56,6 +56,17 @@
 
 // default pinout (GPIO Number)
 #if defined(ESP32)
+#if defined(CONFIG_IDF_TARGET_ESP32S2)
+    // Layout for the ESP32-S2 mini from LOLIN.
+    // The pins are all lined up on the outer side of the board
+    // We will use HSPI
+    #define DEF_CS_PIN              12
+    #define DEF_CE_PIN              3
+    #define DEF_IRQ_PIN             5
+    #define DEF_MISO_PIN            9
+    #define DEF_MOSI_PIN            11
+    #define DEF_SCLK_PIN            7
+#else
     // this is the default ESP32 (son-S) pinout on the WROOM modules for VSPI,
     // for the ESP32-S3 there is no sane 'default', as it has full flexibility
     // to map its two HW SPIs anywhere and PCBs differ materially,
@@ -66,6 +77,7 @@
     #define DEF_MISO_PIN            19
     #define DEF_MOSI_PIN            23
     #define DEF_SCLK_PIN            18
+#endif
 #else
     #define DEF_CS_PIN              15
     #define DEF_CE_PIN              0
