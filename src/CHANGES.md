@@ -2,6 +2,7 @@
 
 ## 0.7.42 - 2023-08-27
 * fix ePaper for opendtufusion_v2.x boards (Software SPI)
+* add signal strength for NRF24 - PR #1119
 
 ## 0.7.41 - 2023-08-26
 * merge PR #1117 code spelling fixes #1112
