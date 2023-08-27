@@ -239,6 +239,16 @@ class HmRadio {
             return mNrf24.isPVariant();
         }
 
+        /* Test whether a signal (carrier or otherwise) greater than or equal to -64dBm is present on the channel.
+         Valid only on nRF24L01P (+) hardware. On nRF24L01, use testCarrier().
+         Useful to check for interference on the current channel and channel hopping strategies.
+         bool goodSignal = radio.testRPD();*/
+        bool goodSignal(void) {
+            bool goodSignal = mNrf24.testRPD();
+            mNrf24.read(0,0);
+            return goodSignal;
+        }
+
         std::queue<packet_t> mBufCtrl;
 
         uint32_t mSendCnt;
