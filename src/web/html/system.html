@@ -60,8 +60,10 @@
                 h.appendChild(r);
                 main.appendChild(h);
 
-                main.appendChild(genTabRow("nrf24l01" + (obj["isPVariant"] ? "+ " : ""), (obj["isconnected"] ? "is connected " : "is not connected ")));
-                main.appendChild(genTabRow("NRF Signal: ",                               (obj["goodSignal"] ? "Strong signal > 64dBm" : "Weak signal < 64dBm")));
+                main.append(
+                    genTabRow("nrf24l01" + (obj["isPVariant"] ? "+ " : ""), (obj["isconnected"] ? "is connected " : "is not connected ")),
+                    genTabRow("NRF Signal: ", (obj["goodSignal"] ? "Strong signal > 64dBm" : "Weak signal < 64dBm"))
+                );
 
                 if(obj["isconnected"]) {
                     main.appendChild(genTabRow("Datarate", datarate[obj["DataRate"]]));
