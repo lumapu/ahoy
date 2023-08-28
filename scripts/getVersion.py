@@ -50,7 +50,10 @@ def readVersion(path, infile):
                     versionnumber += line[p+13:].rstrip() + "."
     
     os.mkdir(path + "firmware/")
-    os.mkdir(path + "firmware/s3/")
+    os.mkdir(path + "firmware/ESP8266/")
+    os.mkdir(path + "firmware/ESP32/")
+    os.mkdir(path + "firmware/ESP32-S2/")
+    os.mkdir(path + "firmware/ESP32-S3/")
     sha = os.getenv("SHA",default="sha")
 
     versionout = version[:-1] + "_" + sha + "_esp8266.bin"
