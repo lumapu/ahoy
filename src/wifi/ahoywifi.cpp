@@ -29,7 +29,8 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mUtcTimestamp = utcTimestamp;
     mAppWifiCb = cb;
 
-    mStaConn    = DISCONNECTED;
+    mGotDisconnect = false;
+    mStaConn = DISCONNECTED;
     mCnt        = 0;
     mScanActive = false;
     mScanCnt    = 0;
@@ -69,12 +70,33 @@ void ahoywifi::setupWifi(bool startAP = false) {
 }
 
 
-//-----------------------------------------------------------------------------
 void ahoywifi::tickWifiLoop() {
+    static const uint8_t TIMEOUT = 20;
+    static const uint8_t SCAN_TIMEOUT = 10;
     #if !defined(AP_ONLY)
-    if(mStaConn != GOT_IP) {
-        if (WiFi.softAPgetStationNum() > 0) { // do not reconnect if any AP connection exists
-            if(mStaConn != IN_AP_MODE) {
+
+    mCnt++;
+
+    switch (mStaConn) {
+        case IN_STA_MODE:
+            // Nothing to do
+            if (mGotDisconnect) {
+                mStaConn = RESET;
+            }
+            return;
+        case IN_AP_MODE:
+            if (WiFi.softAPgetStationNum() == 0) {
+                mCnt = 0;
+                mDns.stop();
+                WiFi.mode(WIFI_AP_STA);
+                mStaConn = DISCONNECTED;
+            } else {
+                mDns.processNextRequest();
+                return;
+            }
+            break;
+        case DISCONNECTED:
+            if (WiFi.softAPgetStationNum() > 0) {
                 mStaConn = IN_AP_MODE;
                 // first time switch to AP Mode
                 if (mScanActive) {
@@ -86,56 +108,45 @@ void ahoywifi::tickWifiLoop() {
                 WiFi.mode(WIFI_AP);
                 mDns.start(53, "*", mApIp);
                 mAppWifiCb(true);
+                mDns.processNextRequest();
+                return;
+            } else if (!mScanActive) {
+                DBGPRINT(F("scanning APs with SSID "));
+                DBGPRINTLN(String(mConfig->sys.stationSsid));
+                mScanCnt = 0;
+                mCnt = 0;
+                mScanActive = true;
+#if defined(ESP8266)
+                WiFi.scanNetworks(true, true, 0U, ([this]() {
+                    if (mConfig->sys.isHidden)
+                        return (uint8_t*)NULL;
+                    return (uint8_t*)(mConfig->sys.stationSsid);
+                    })());
+#else
+                WiFi.scanNetworks(true, true, false, 300U, 0U, ([this]() {
+                    if (mConfig->sys.isHidden)
+                        return (char*)NULL;
+                    return (mConfig->sys.stationSsid);
+                    })());
+#endif
+                return;
+            } else if(getBSSIDs()) {
+                // Scan ready
+                mStaConn = SCAN_READY;
+            } else {
+                // In case of a timeout, what do we do?
+                // For now we start scanning again as the original code did.
+                // Would be better to into PA mode
+
+                if (isTimeout(SCAN_TIMEOUT)) {
+                    WiFi.scanDelete();
+                    mScanActive = false;
+                }
             }
-            mDns.processNextRequest();
-            return;
-        }
-        else if(mStaConn == IN_AP_MODE) {
-            mCnt = 0;
-            mDns.stop();
-            WiFi.mode(WIFI_AP_STA);
-            mStaConn = DISCONNECTED;
-        }
-        mCnt++;
-
-        uint8_t timeout = (mStaConn == DISCONNECTED) ? 10 : 20; // seconds
-        if (mStaConn == CONNECTED) // connected but no ip
-            timeout = 20;
-
-        if(!mScanActive && mBSSIDList.empty() && (mStaConn == DISCONNECTED)) { // start scanning APs with the given SSID
-            DBGPRINT(F("scanning APs with SSID "));
-            DBGPRINTLN(String(mConfig->sys.stationSsid));
-            mScanCnt = 0;
-            mScanActive = true;
-            #if defined(ESP8266)
-            WiFi.scanNetworks(true, true, 0U, ([this] () {
-                if(mConfig->sys.isHidden)
-                    return (uint8_t *)NULL;
-                return (uint8_t *)(mConfig->sys.stationSsid);
-            })());
-            #else
-            WiFi.scanNetworks(true, true, false, 300U, 0U, ([this] () {
-                if(mConfig->sys.isHidden)
-                    return (char*)NULL;
-                return (mConfig->sys.stationSsid);
-            })());
-            #endif
-            return;
-        }
-        DBGPRINT(F("reconnect in "));
-        DBGPRINT(String(timeout-mCnt));
-        DBGPRINTLN(F(" seconds"));
-        if(mScanActive) {
-            getBSSIDs();
-            if((!mScanActive) && (!mBSSIDList.empty()))  // scan completed
-                if ((mCnt % timeout) < timeout - 2)
-                    mCnt = timeout - 2;
-        }
-        if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
-            mStaConn = CONNECTING;
-            WiFi.disconnect();
-
-            if(mBSSIDList.size() > 0) { // get first BSSID in list
+            break;
+        case SCAN_READY:
+                mStaConn = CONNECTING;
+                mCnt = 0;
                 DBGPRINT(F("try to connect to AP with BSSID:"));
                 uint8_t bssid[6];
                 for (int j = 0; j < 6; j++) {
@@ -144,17 +155,47 @@ void ahoywifi::tickWifiLoop() {
                     DBGPRINT(" "  + String(bssid[j], HEX));
                 }
                 DBGPRINTLN("");
+                mGotDisconnect = false;
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
+
+                break;
+        case CONNECTING:
+            if (isTimeout(TIMEOUT)) {
+                WiFi.disconnect();
+                mStaConn = mBSSIDList.empty() ? DISCONNECTED : SCAN_READY;
             }
-            else
-                mStaConn = DISCONNECTED;
-
-            mCnt = 0;
-        }
+            break;
+        case CONNECTED:
+            // Connection but no IP yet
+            if (isTimeout(TIMEOUT) || mGotDisconnect) {
+                mStaConn = RESET;
+            }
+            break;
+        case GOT_IP:
+            welcome(WiFi.localIP().toString(), F(" (Station)"));
+            WiFi.softAPdisconnect();
+            WiFi.mode(WIFI_STA);
+            DBGPRINTLN(F("[WiFi] AP disabled"));
+            delay(100);
+            mAppWifiCb(true);
+            mGotDisconnect = false;
+            mStaConn = IN_STA_MODE;
+            break;
+        case RESET:
+            mGotDisconnect = false;
+            mStaConn = DISCONNECTED;
+            mCnt = 5;     // try to reconnect in 5 sec
+            setupWifi();        // reconnect with AP / Station setup
+            mAppWifiCb(false);
+            DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
+            break;
+        default:
+            DBGPRINTLN(F("Unhandled status"));
+            break;
     }
-    #endif
-}
 
+#endif
+}
 
 //-----------------------------------------------------------------------------
 void ahoywifi::setupAp(void) {
@@ -213,7 +254,7 @@ void ahoywifi::setupStation(void) {
 
 //-----------------------------------------------------------------------------
 bool ahoywifi::getNtpTime(void) {
-    if(GOT_IP != mStaConn)
+    if(IN_STA_MODE != mStaConn)
         return false;
 
     IPAddress timeServer;
@@ -314,11 +355,12 @@ bool ahoywifi::getAvailNetworks(JsonObject obj) {
 }
 
 //-----------------------------------------------------------------------------
-void ahoywifi::getBSSIDs() {
+bool ahoywifi::getBSSIDs() {
+    bool result = false;
     int n = WiFi.scanComplete();
     if (n < 0) {
         if (++mScanCnt < 20)
-            return;
+            return false;
     }
     if(n > 0) {
         mBSSIDList.clear();
@@ -333,9 +375,11 @@ void ahoywifi::getBSSIDs() {
             }
             DBGPRINTLN("");
         }
+        result = true;
     }
     mScanActive = false;
     WiFi.scanDelete();
+    return result;
 }
 
 //-----------------------------------------------------------------------------
@@ -346,32 +390,17 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
         case CONNECTED:
             if(mStaConn != CONNECTED) {
                 mStaConn = CONNECTED;
+                mGotDisconnect = false;
                 DBGPRINTLN(F("\n[WiFi] Connected"));
             }
             break;
 
         case GOT_IP:
             mStaConn = GOT_IP;
-            if (mScanActive) {  // maybe another scan has started
-                 WiFi.scanDelete();
-                 mScanActive = false;
-            }
-            welcome(WiFi.localIP().toString(), F(" (Station)"));
-            WiFi.softAPdisconnect();
-            WiFi.mode(WIFI_STA);
-            DBGPRINTLN(F("[WiFi] AP disabled"));
-            delay(100);
-            mAppWifiCb(true);
             break;
 
         case DISCONNECTED:
-            if(mStaConn != CONNECTING) {
-                mStaConn = DISCONNECTED;
-                mCnt       = 5;     // try to reconnect in 5 sec
-                setupWifi();        // reconnect with AP / Station setup
-                mAppWifiCb(false);
-                DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");
-            }
+            mGotDisconnect = true;
             break;
 
         default:

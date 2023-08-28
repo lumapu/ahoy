@@ -3,9 +3,6 @@
 
 #if defined(ESP32)
 
-// uncomment next line to use HSPI for EPD (and VSPI for SD), e.g. with Waveshare ESP32 Driver Board
-#define USE_HSPI_FOR_EPD
-
 /// uncomment next line to use class GFX of library GFX_Root instead of Adafruit_GFX, to use less code and ram
 // #include <GFX.h>
 // base class GxEPD2_GFX can be used to pass references or pointers to the display instance as parameter, uses ~1.2k more code

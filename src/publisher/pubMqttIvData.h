@@ -102,14 +102,16 @@ class PubMqttIvData {
             mPos = 0;
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
-                snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
-                mPublish(mSubTopic, mVal, true, QOS_0);
+                if(mIv->getLastTs(rec) != mIvLastRTRpub[mIv->id]) {
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
+                    snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
+                    mPublish(mSubTopic, mVal, true, QOS_0);
 
-                if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch0/rssi", mIv->config->name);
-                    snprintf(mVal, 40, "%d", mIv->rssi);
-                    mPublish(mSubTopic, mVal, false, QOS_0);
+                    if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mVal, 40, "%d", mIv->rssi);
+                        mPublish(mSubTopic, mVal, false, QOS_0);
+                    }
                 }
 
                 mIv->isProducing(); // recalculate status
