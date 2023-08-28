@@ -135,6 +135,11 @@ typedef struct {
 } cfgMqtt_t;
 
 typedef struct {
+    char monitor_ip[ZEXPORT_ADDR_LEN];
+    bool enabled;
+} cfgzeroExport_t;
+
+typedef struct {
     bool enabled;
     char name[MAX_NAME_LENGTH];
     serial_u serial;
@@ -173,6 +178,7 @@ typedef struct {
 
 typedef struct {
     display_t display;
+    cfgzeroExport_t zexport;
 } plugins_t;
 
 typedef struct {
@@ -280,6 +286,7 @@ class settings {
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
                     if(root.containsKey(F("serial"))) jsonSerial(root[F("serial")]);
                     if(root.containsKey(F("mqtt"))) jsonMqtt(root[F("mqtt")]);
+                    if(root.containsKey(F("zeroExport"))) jsonzeroExport(root[F("zeroExport")]);
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
                     if(root.containsKey(F("plugin"))) jsonPlugin(root[F("plugin")]);
                     if(root.containsKey(F("inst"))) jsonInst(root[F("inst")]);
@@ -310,6 +317,7 @@ class settings {
             jsonLed(root.createNestedObject(F("led")), true);
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
+            jsonzeroExport(root.createNestedObject(F("zeroExport")), true);
 
             DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
@@ -425,6 +433,9 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
+            snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            mCfg.plugin.zexport.enabled    = false;
+
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
@@ -464,11 +475,12 @@ class settings {
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
                 obj[F("reb")] = (bool) mCfg.sys.schedReboot;
-                ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
-                ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
-                ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
-                ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")] = String(buf);
-                ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")] = String(buf);
+                ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]     = String(buf);
+                ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")]   = String(buf);
+                ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")]   = String(buf);
+                ah::ip2Char(mCfg.sys.ip.dns2, buf);    obj[F("dns2")]   = String(buf);
+                ah::ip2Char(mCfg.sys.ip.gateway, buf); obj[F("gtwy")]   = String(buf);
+
             } else {
                 #if !defined(ETHERNET)
                 getChar(obj, F("ssid"), mCfg.sys.stationSsid, SSID_LEN);
@@ -481,11 +493,11 @@ class settings {
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
-                if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
-                if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
-                if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
-                if(obj.containsKey(F("dns2"))) ah::ip2Arr(mCfg.sys.ip.dns2,    obj[F("dns2")].as<const char*>());
-                if(obj.containsKey(F("gtwy"))) ah::ip2Arr(mCfg.sys.ip.gateway, obj[F("gtwy")].as<const char*>());
+                if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,         obj[F("ip")].as<const char*>());
+                if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,     obj[F("mask")].as<const char*>());
+                if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,     obj[F("dns1")].as<const char*>());
+                if(obj.containsKey(F("dns2"))) ah::ip2Arr(mCfg.sys.ip.dns2,     obj[F("dns2")].as<const char*>());
+                if(obj.containsKey(F("gtwy"))) ah::ip2Arr(mCfg.sys.ip.gateway,  obj[F("gtwy")].as<const char*>());
 
                 if(mCfg.sys.protectionMask == 0)
                     mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
@@ -602,6 +614,18 @@ class settings {
                 getChar(obj, F("user"), mCfg.mqtt.user, MQTT_USER_LEN);
                 getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
+            }
+        }
+
+        void jsonzeroExport(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
+                obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
+            }
+            else
+            {
+                getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
+                getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
             }
         }
 

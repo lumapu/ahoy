@@ -465,6 +465,11 @@ class RestApi {
             obj[F("interval")]   = String(mConfig->mqtt.interval);
         }
 
+        void getzeroExport(JsonObject obj) {
+            obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
+            obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
+        }
+
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
             obj[F("port")] = String(mConfig->ntp.port);
@@ -588,6 +593,7 @@ class RestApi {
             getSysInfo(request, obj.createNestedObject(F("system")));
             //getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
+            getzeroExport(obj.createNestedObject(F("zeroExport")));
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));

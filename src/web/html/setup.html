@@ -10,6 +10,7 @@
             <div id="content">
                 <form method="post" action="/save" id="settings">
                     <fieldset>
+                    <!-- System Config -->
                     <button type="button" class="s_collapsible mt-4">System Config</button>
                     <div class="s_content">
                     <fieldset class="mb-2">
@@ -55,6 +56,7 @@
                     </fieldset>
                     </div>
 
+                    <!-- Network -->
                     <button type="button" class="s_collapsible">Network</button>
                     <div class="s_content">
                         <fieldset class="mb-2">
@@ -122,6 +124,7 @@
                         </fieldset>
                     </div>
 
+                    <!-- Protection -->
                     <button type="button" class="s_collapsible">Protection</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -135,6 +138,7 @@
                         </fieldset>
                     </div>
 
+                    <!-- Inverter -->
                     <button type="button" class="s_collapsible">Inverter</button>
                     <div class="s_content">
                     <fieldset class="mb-4">
@@ -187,6 +191,7 @@
                     </fieldset>
                     </div>
 
+                    <!-- NTP Server -->
                     <button type="button" class="s_collapsible">NTP Server</button>
                     <div class="s_content">
                     <fieldset class="mb-4">
@@ -218,6 +223,7 @@
                     </fieldset>
                     </div>
 
+                    <!-- Sunrise & Sunset -->
                     <button type="button" class="s_collapsible">Sunrise & Sunset</button>
                     <div class="s_content">
                     <fieldset class="mb-4">
@@ -241,6 +247,7 @@
                     </fieldset>
                     </div>
 
+                    <!-- MQTT -->
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
                     <fieldset class="mb-4">
@@ -284,6 +291,7 @@
                     </fieldset>
                     </div>
 
+                    <!-- Display Config -->
                     <button type="button" class="s_collapsible">Display Config</button>
                     <div class="s_content">
                     <fieldset class="mb-4">
@@ -304,6 +312,25 @@
                         </div>
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
+                    </fieldset>
+                    </div>
+
+                    <!-- Zero Export -->
+                    <button type="button" class="s_collapsible">Zero Export</button>
+                    <div class="s_content">
+                    <fieldset class="mb-4">
+                        <legend class="des">Zero Export</legend>
+                        <div id="zeroType"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Enable zero export</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="en_zeroexport"/></div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
+                            <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -691,7 +718,7 @@
             }
 
             function parseStaticIp(obj) {
-                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"]])
+                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"], ["monitor_ipAddr", "mon_ip"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
@@ -897,6 +924,14 @@
                 document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
             }
 
+            function parsezeroExport(obj) {
+                // keep display types grouped
+                var opts = [[0, "None"], [1, "Shelly EM3"]];
+
+                document.getElementsByName("monitor_ipAddr")[0].value = obj["monitor_ipAddr"];
+
+            }
+
             function parse(root) {
                 if(null != root) {
                     parseSys(root["system"]);
@@ -911,6 +946,7 @@
                         parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    parsezeroExport(root["zeroExport"]);
                     getAjax("/api/inverter/list", parseIv);
                 }
             }

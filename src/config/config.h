@@ -184,6 +184,9 @@
 // default MQTT broker uri
 #define DEF_MQTT_BROKER         "\0"
 
+// default zero-export uri
+#define DEF_ZEXPORT             "\0"
+
 // default MQTT port
 #define DEF_MQTT_PORT           1883
 

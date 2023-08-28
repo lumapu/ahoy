@@ -55,7 +55,10 @@ typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
 #include "plugins/Display/Display.h"
+#include "plugins/zeroExport/zeroExport.h"
+
 typedef Display<HmSystemType> DisplayType;
+typedef ZeroExport<HmSystemType> ZeroExportType;
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -361,6 +364,7 @@ class app : public IApp, public ah::Scheduler {
 
         // plugins
         DisplayType mDisplay;
+        ZeroExportType mzExport;
 };
 
 #endif /*__APP_H__*/
