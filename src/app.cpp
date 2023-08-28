@@ -145,9 +145,11 @@ void app::loopStandard(void) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->len));
-                DBGPRINT(F("B Ch"));
+                DBGPRINT(F(" CH"));
                 DBGPRINT(String(p->ch));
-                DBGPRINT(F(" | "));
+                DBGPRINT(F(", "));
+                DBGPRINT(String(p->rssi));
+                DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
             mStat.frmCnt++;
@@ -172,7 +174,7 @@ void app::loopStandard(void) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->data[0]));
-                DBGPRINT(F(" RSSI "));
+                DBGPRINT(F(", "));
                 DBGPRINT(String(p->rssi));
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(&p->data[1], p->data[0]);

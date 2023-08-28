@@ -51,7 +51,9 @@
                     parseHtml(obj);
                 }
             }
-           intervalId =  window.setInterval("getAjax('/api/html/save', parse)", 2500);
+
+            intervalId =  window.setInterval("getAjax('/api/html/save', parse)", 2500);
+            getAjax("/api/generic", parseGeneric);
         </script>
     </body>
 </html>

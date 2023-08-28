@@ -177,8 +177,12 @@
                 else
                     ageInfo += "nothing received";
 
-                if((gen >= 2) && (rssi > -127))
-                    ageInfo += " (RSSI: " + rssi + "dBm)";
+                if(rssi > -127) {
+                    if(gen < 2)
+                        ageInfo += " (RSSI: " + ((rssi == -64) ? ">=" : "<") + " -64dBm)";
+                    else
+                        ageInfo += " (RSSI: " + rssi + "dBm)";
+                }
 
                 return ml("div", {class: "mb-5"}, [
                     ml("div", {class: "row p-1 ts-h mx-2"},

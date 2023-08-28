@@ -11,7 +11,7 @@
 
 // inverter generations
 enum {IV_MI = 0, IV_HM, IV_HMS, IV_HMT, IV_UNKNOWN};
-const char* const generationNames[] = {"HM", "MI", "HMS", "HMT", "UNKNOWN"};
+const char* const generationNames[] = {"MI", "HM", "HMS", "HMT", "UNKNOWN"};
 
 // units
 enum {UNIT_V = 0, UNIT_A, UNIT_W,  UNIT_WH, UNIT_KWH, UNIT_HZ, UNIT_C, UNIT_PCT, UNIT_VAR, UNIT_NONE};

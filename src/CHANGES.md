@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.43 - 2023-08-28
+* improved RSSI for NRF24, now it's read per package (and inverter) #1129
+* arranged `heap` related info together in `/system`
+* fix display navi during save
+* clean up binary output, separated to folders
+
 ## 0.7.42 - 2023-08-27
 * fix ePaper for opendtufusion_v2.x boards (Software SPI)
 * add signal strength for NRF24 - PR #1119

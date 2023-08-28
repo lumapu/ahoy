@@ -899,8 +899,8 @@
 
             function parse(root) {
                 if(null != root) {
-                    parseSys(root["system"]);
                     parseGeneric(root["generic"]);
+                    parseSys(root["system"]);
                     parseStaticIp(root["static_ip"]);
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
