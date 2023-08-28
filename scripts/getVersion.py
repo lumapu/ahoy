@@ -85,7 +85,7 @@ def readVersion(path, infile):
     os.rename(src, dst)
 
     versionout = version[:-1] + "_" + sha + "_esp32s2-mini.bin"
-    src = path + ".pio/build/ --environment esp32-s2-mini/firmware.bin"
+    src = path + ".pio/build/esp32-s2-mini/firmware.bin"
     dst = path + "firmware/" + versionout
     os.rename(src, dst)
 
