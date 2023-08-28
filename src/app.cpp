@@ -119,6 +119,11 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    // ZeroExport
+    if (mConfig->plugin.zexport.enabled) {
+        mzExport.setup(&mConfig->plugin.zexport, &mSys, mConfig);
+    }
+
     #if !defined(ETHERNET)
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
     #endif
@@ -248,6 +253,10 @@ void app::regularTickers(void) {
     // Plugins
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
+    // Plugins
+    if (mConfig->plugin.zexport.enabled)
+        everyMin(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
+
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
