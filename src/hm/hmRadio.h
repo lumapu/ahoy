@@ -239,16 +239,6 @@ class HmRadio {
             return mNrf24.isPVariant();
         }
 
-        /* Test whether a signal (carrier or otherwise) greater than or equal to -64dBm is present on the channel.
-         Valid only on nRF24L01P (+) hardware. On nRF24L01, use testCarrier().
-         Useful to check for interference on the current channel and channel hopping strategies.
-         bool goodSignal = radio.testRPD();*/
-        bool goodSignal(void) {
-            bool goodSignal = mNrf24.testRPD();
-            mNrf24.read(0,0);
-            return goodSignal;
-        }
-
         std::queue<packet_t> mBufCtrl;
 
         uint32_t mSendCnt;
@@ -268,16 +258,17 @@ class HmRadio {
                 if (len > 0) {
                     packet_t p;
                     p.ch = mRfChLst[mRxChIdx];
-                    p.len = len;
-                    mNrf24.read(p.packet, len);
+                    p.len = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
+                    p.rssi = mNrf24.testRPD() ? -64 : -75;
+                    mNrf24.read(p.packet, p.len);
                     if (p.packet[0] != 0x00) {
-                    mBufCtrl.push(p);
-                    if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
-                            isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
-                    else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
-                            isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
-                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
-                        isLastPackage = true;                       // response from dev control command
+                        mBufCtrl.push(p);
+                        if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
+                                isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                        else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
+                                isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
+                            else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
+                            isLastPackage = true;                       // response from dev control command
                     }
                 }
                     yield();
@@ -321,7 +312,7 @@ class HmRadio {
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
                 DBGPRINT(String(len));
-                DBGPRINT("B Ch");
+                DBGPRINT(" CH");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 ah::dumpBuf(mTxBuf, len);

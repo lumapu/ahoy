@@ -242,10 +242,10 @@ class RestApi {
             getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
-            obj[F("heap_total")]    = ESP.getHeapSize();
             obj[F("chip_revision")] = ESP.getChipRevision();
             obj[F("chip_model")]    = ESP.getChipModel();
             obj[F("chip_cores")]    = ESP.getChipCores();
+            obj[F("heap_total")]    = ESP.getHeapSize();
             //obj[F("core_version")]  = F("n/a");
             //obj[F("flash_size")]    = F("n/a");
             //obj[F("heap_frag")]     = F("n/a");
@@ -256,10 +256,10 @@ class RestApi {
             //obj[F("chip_revision")] = F("n/a");
             //obj[F("chip_model")]    = F("n/a");
             //obj[F("chip_cores")]    = F("n/a");
-            obj[F("core_version")]  = ESP.getCoreVersion();
-            obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
             obj[F("heap_frag")]     = mHeapFrag;
             obj[F("max_free_blk")]  = mHeapFreeBlk;
+            obj[F("core_version")]  = ESP.getCoreVersion();
+            obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
             obj[F("reboot_reason")] = ESP.getResetReason();
         #endif
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
@@ -502,7 +502,6 @@ class RestApi {
             obj[F("isconnected")] = mRadio->isChipConnected();
             obj[F("DataRate")] = mRadio->getDataRate();
             obj[F("isPVariant")] = mRadio->isPVariant();
-            obj[F("goodSignal")] = mRadio->goodSignal();
             obj[F("en")]         = (bool) mConfig->nrf.enabled;
         }
 

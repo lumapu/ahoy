@@ -272,8 +272,8 @@ class HmsPayload {
                     }*/ else {  // payload complete
                         DPRINT(DBG_INFO, F("procPyld: cmd:  0x"));
                         DBGPRINTLN(String(mPayload[iv->id].txCmd, HEX));
-                        DPRINT(DBG_INFO, F("procPyld: txid: 0x"));
-                        DBGPRINTLN(String(mPayload[iv->id].txId, HEX));
+                        //DPRINT(DBG_DEBUG, F("procPyld: txid: 0x"));
+                        //DBGPRINTLN(String(mPayload[iv->id].txId, HEX));
                         DPRINTLN(DBG_DEBUG, F("procPyld: max:  ") + String(mPayload[iv->id].maxPackId));
                         record_t<> *rec = iv->getRecordStruct(mPayload[iv->id].txCmd);  // choose the parser
                         mPayload[iv->id].complete = true;
@@ -300,7 +300,8 @@ class HmsPayload {
                         payloadLen -= 2;
 
                         if (mSerialDebug) {
-                            DPRINT(DBG_INFO, F("Payload ("));
+                            DPRINT_IVID(DBG_INFO, iv->id);
+                            DBGPRINT(F("Payload ("));
                             DBGPRINT(String(payloadLen));
                             DBGPRINT(F("): "));
                             ah::dumpBuf(payload, payloadLen);
@@ -382,8 +383,8 @@ class HmsPayload {
         }
 
         void reset(uint8_t id) {
-            DPRINT(DBG_INFO, "resetPayload: id: ");
-            DBGPRINTLN(String(id));
+            //DPRINT(DBG_INFO, "resetPayload: id: ");
+            //DBGPRINTLN(String(id));
             memset(&mPayload[id], 0, sizeof(hmsPayload_t));
             mPayload[id].txCmd       = 0;
             mPayload[id].gotFragment = false;
