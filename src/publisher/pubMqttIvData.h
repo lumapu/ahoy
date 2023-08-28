@@ -28,7 +28,8 @@ class PubMqttIvData {
             mState        = IDLE;
             mZeroValues   = false;
 
-            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
+            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * sizeof(uint32_t));
+            memset(mIvLastPublish, 0, MAX_NUM_INVERTERS * sizeof(uint32_t));
             mRTRDataHasBeenSent = false;
 
             mTable[IDLE]        = &PubMqttIvData::stateIdle;
@@ -102,7 +103,7 @@ class PubMqttIvData {
             mPos = 0;
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
-                if(mIv->getLastTs(rec) != mIvLastRTRpub[mIv->id]) {
+                if(mIv->getLastTs(rec) != mIvLastPublish[mIv->id]) {
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
                     snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
                     mPublish(mSubTopic, mVal, true, QOS_0);
@@ -133,6 +134,7 @@ class PubMqttIvData {
                 pubData &= (lastTs != mIvLastRTRpub[mIv->id]);
 
             if (pubData) {
+                mIvLastPublish[mIv->id] = lastTs;
                 if(mPos < rec->length) {
                     bool retained = false;
                     if (mCmd == RealTimeRunData_Debug) {
@@ -239,6 +241,7 @@ class PubMqttIvData {
         Inverter<> *mIv, *mIvSend;
         uint8_t mPos;
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
+        uint32_t mIvLastPublish[MAX_NUM_INVERTERS];
         bool mRTRDataHasBeenSent;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.44 - 2023-08-28
+* fix `last_success` transmitted to often #1124
+
 ## 0.7.43 - 2023-08-28
 * improved RSSI for NRF24, now it's read per package (and inverter) #1129
 * arranged `heap` related info together in `/system`

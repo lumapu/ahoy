@@ -51,6 +51,7 @@ def readVersion(path, infile):
     
     os.mkdir(path + "firmware/")
     os.mkdir(path + "firmware/ESP8266/")
+    os.mkdir(path + "firmware/ESP8285/")
     os.mkdir(path + "firmware/ESP32/")
     os.mkdir(path + "firmware/ESP32-S2/")
     os.mkdir(path + "firmware/ESP32-S3/")
