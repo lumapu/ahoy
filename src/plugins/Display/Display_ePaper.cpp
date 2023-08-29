@@ -53,6 +53,9 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
 
         headlineIP();
 
+        _version = version;
+        versionFooter();
+
         // call the PowerPage to change the PV Power Values
         actualPowerPaged(0, 0, 0, 0);
     }
@@ -119,6 +122,26 @@ void DisplayEPaper::lastUpdatePaged() {
             _display->setCursor(x, (_display->height() - 3));
             _display->println(_fmtText);
         }
+    } while (_display->nextPage());
+}
+//***************************************************************************
+void DisplayEPaper::versionFooter() {
+    int16_t tbx, tby;
+    uint16_t tbw, tbh;
+
+    _display->setFont(&FreeSans9pt7b);
+    _display->setTextColor(GxEPD_WHITE);
+
+    _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
+    _display->fillScreen(GxEPD_BLACK);
+    do {
+        snprintf(_fmtText, sizeof(_fmtText), "Version: %s", _version);
+
+        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+        uint16_t x = ((_display->width() - tbw) / 2) - tbx;
+
+        _display->setCursor(x, (_display->height() - 3));
+        _display->println(_fmtText);
     } while (_display->nextPage());
 }
 //***************************************************************************
