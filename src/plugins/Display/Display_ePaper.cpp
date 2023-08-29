@@ -165,75 +165,81 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
         } else {
             snprintf(_fmtText, sizeof(_fmtText), "offline");
         }
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        x = ((_display->width() - tbw) / 2) - tbx;
-        _display->setCursor(x, mHeadFootPadding + tbh + 10);
-        _display->print(_fmtText);
 
-        if ((totalYieldDay > 0) && (totalYieldTotal > 0)) {
-            // Today Production
-            _display->setFont(&FreeSans18pt7b);
-            y = _display->height() / 2;
-            _display->setCursor(5, y);
+        if ((totalPower == 0) && (mEnPowerSafe)) {
+            _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
+            _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+        } else {
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            x = ((_display->width() - tbw) / 2) - tbx;
+            _display->setCursor(x, mHeadFootPadding + tbh + 10);
+            _display->print(_fmtText);
 
-            if (totalYieldDay > 9999) {
-                snprintf(_fmtText, _display->width(), "%.1f", (totalYieldDay / 1000));
-                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                _display->drawInvertedBitmap(5, y - ((tbh + 30) / 2), myToday, 30, 30, GxEPD_BLACK);
-                x = ((_display->width() - tbw - 20) / 2) - tbx;
-                _display->setCursor(x, y);
-                _display->print(_fmtText);
-                _display->setCursor(_display->width() - 50, y);
-                _display->setFont(&FreeSans12pt7b);
-                _display->println("kWh");
-            } else if (totalYieldDay <= 9999) {
-                snprintf(_fmtText, _display->width(), "%.0f", (totalYieldDay));
-                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                _display->drawInvertedBitmap(5, y - tbh, myToday, 30, 30, GxEPD_BLACK);
-                x = ((_display->width() - tbw - 20) / 2) - tbx;
-                _display->setCursor(x, y);
-                _display->print(_fmtText);
-                _display->setCursor(_display->width() - 38, y);
-                _display->setFont(&FreeSans12pt7b);
-                _display->println("Wh");
+            if ((totalYieldDay > 0) && (totalYieldTotal > 0)) {
+                // Today Production
+                _display->setFont(&FreeSans18pt7b);
+                y = _display->height() / 2;
+                _display->setCursor(5, y);
+
+                if (totalYieldDay > 9999) {
+                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldDay / 1000));
+                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                    _display->drawInvertedBitmap(5, y - ((tbh + 30) / 2), myToday, 30, 30, GxEPD_BLACK);
+                    x = ((_display->width() - tbw - 20) / 2) - tbx;
+                    _display->setCursor(x, y);
+                    _display->print(_fmtText);
+                    _display->setCursor(_display->width() - 50, y);
+                    _display->setFont(&FreeSans12pt7b);
+                    _display->println("kWh");
+                } else if (totalYieldDay <= 9999) {
+                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldDay));
+                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                    _display->drawInvertedBitmap(5, y - tbh, myToday, 30, 30, GxEPD_BLACK);
+                    x = ((_display->width() - tbw - 20) / 2) - tbx;
+                    _display->setCursor(x, y);
+                    _display->print(_fmtText);
+                    _display->setCursor(_display->width() - 38, y);
+                    _display->setFont(&FreeSans12pt7b);
+                    _display->println("Wh");
+                }
+                y = y + tbh + 15;
+
+                // Total Production
+                _display->setFont(&FreeSans18pt7b);
+                _display->setCursor(5, y);
+                if (totalYieldTotal > 9999) {
+                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldTotal / 1000));
+                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                    _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
+                    x = ((_display->width() - tbw - 20) / 2) - tbx;
+                    _display->setCursor(x, y);
+                    _display->print(_fmtText);
+                    _display->setCursor(_display->width() - 59, y);
+                    _display->setFont(&FreeSans12pt7b);
+                    _display->println("MWh");
+                } else if (totalYieldTotal <= 9999) {
+                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldTotal));
+                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                    _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
+                    x = ((_display->width() - tbw - 20) / 2) - tbx;
+                    _display->setCursor(x, y);
+                    _display->print(_fmtText);
+                    _display->setCursor(_display->width() - 50, y);
+                    _display->setFont(&FreeSans12pt7b);
+                    _display->println("kWh");
+                }
             }
-            y = y + tbh + 15;
 
-            // Total Production
-            _display->setFont(&FreeSans18pt7b);
-            _display->setCursor(5, y);
-            if (totalYieldTotal > 9999) {
-                snprintf(_fmtText, _display->width(), "%.1f", (totalYieldTotal / 1000));
-                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
-                x = ((_display->width() - tbw - 20) / 2) - tbx;
-                _display->setCursor(x, y);
-                _display->print(_fmtText);
-                _display->setCursor(_display->width() - 59, y);
-                _display->setFont(&FreeSans12pt7b);
-                _display->println("MWh");
-            } else if (totalYieldTotal <= 9999) {
-                snprintf(_fmtText, _display->width(), "%.0f", (totalYieldTotal));
-                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
-                x = ((_display->width() - tbw - 20) / 2) - tbx;
-                _display->setCursor(x, y);
-                _display->print(_fmtText);
-                _display->setCursor(_display->width() - 50, y);
-                _display->setFont(&FreeSans12pt7b);
-                _display->println("kWh");
-            }
+            // Inverter online
+            _display->setFont(&FreeSans12pt7b);
+            y = _display->height() - (mHeadFootPadding + 10);
+            snprintf(_fmtText, sizeof(_fmtText), " %d online", isprod);
+            _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+            _display->drawInvertedBitmap(10, y - tbh, myWR, 20, 20, GxEPD_BLACK);
+            x = ((_display->width() - tbw - 20) / 2) - tbx;
+            _display->setCursor(x, y);
+            _display->println(_fmtText);
         }
-
-        // Inverter online
-        _display->setFont(&FreeSans12pt7b);
-        y = _display->height() - (mHeadFootPadding + 10);
-        snprintf(_fmtText, sizeof(_fmtText), " %d online", isprod);
-        _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-        _display->drawInvertedBitmap(10, y - tbh, myWR, 20, 20, GxEPD_BLACK);
-        x = ((_display->width() - tbw - 20) / 2) - tbx;
-        _display->setCursor(x, y);
-        _display->println(_fmtText);
     } while (_display->nextPage());
 }
 //***************************************************************************
