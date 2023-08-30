@@ -302,10 +302,10 @@ class HmPayload {
                                         }
                                     }
                                 }
-                            } else if (false == mPayload[iv->id].gotFragment) {
-                                // only if there is no sign of life
-                                mPayload[iv->id].rxTmo = true; // inv might be down, no complete retransmit anymore
                             }
+                        } else if (false == mPayload[iv->id].gotFragment) {
+                            // only if there is no sign of life
+                            mPayload[iv->id].rxTmo = true; // inv might be down, no complete retransmit anymore
                         }
                     } else if(!crcPass && pyldComplete) { // crc error on complete Payload
                         if (mPayload[iv->id].retransmits < mMaxRetrans) {
