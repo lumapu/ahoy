@@ -255,7 +255,7 @@ void app::regularTickers(void) {
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     // Plugins
     if (mConfig->plugin.zexport.enabled)
-        everyMin(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
+        everySec(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
 
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
     #if !defined(ETHERNET)

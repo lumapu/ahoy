@@ -9,9 +9,6 @@ class ZeroExport {
    public:
     ZeroExport() { }
 
-    WiFiClientSecure client;
-    const uint8_t fingerprint[20] = {0x5A, 0xCF, 0xFE, 0xF0, 0xF1, 0xA6, 0xF4, 0x5F, 0xD2, 0x11, 0x11, 0xC6, 0x1D, 0x2F, 0x0E, 0xBC, 0x39, 0x8D, 0x50, 0xE0};
-
     void setup(cfgzeroExport_t *cfg, HMSYSTEM *sys, settings_t *config) {
         mCfg    = cfg;
         mSys    = sys;
@@ -30,40 +27,41 @@ class ZeroExport {
         }
     }
 
+    void tickerMinute() {
+        zero();
+    }
+
     private:
         void zero() {
-            char host[20];
-            const char* meter = "/emeter/0";
-            sprintf(host, mCfg->monitor_ip, meter);
+            char meter[] = "192.168.5.30/emeter/0";
 
-            std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
-            client->setFingerprint(fingerprint);
-            HTTPClient https;
+            WiFiClient client;
+            HTTPClient http;
 
-            DPRINTLN(DBG_INFO, host);
-            if (https.begin(*client, host))   // HTTPS
-            {
-                DPRINTLN(DBG_INFO, F("[HTTPS] GET...\n"));
-                // start connection and send HTTP header
-                int httpCode = https.GET();
+            DPRINTLN(DBG_INFO, meter);
 
-                // httpCode will be negative on error
-                if (httpCode > 0) {
-                    // file found at server
-                    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-                    String payload = https.getString();
-                    DPRINTLN(DBG_INFO, payload);
-                    }
-                } else {
-                    DPRINTLN(DBG_INFO, https.errorToString(httpCode).c_str());
+            http.begin(client, meter);   // HTTPS
+            http.GET();
+
+            // Parse response
+            DynamicJsonDocument doc(2048);
+            deserializeJson(doc, http.getStream());
+
+            // Read values
+            DPRINTLN(DBG_INFO, doc["power"].as<String>());
+
+            // httpCode will be negative on error
+            /*if (httpCode > 0) {
+                // file found at server
+                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+                String payload = http.getString();
+                DPRINTLN(DBG_INFO, payload);
                 }
+            } else {
+                DPRINTLN(DBG_INFO, http.errorToString(httpCode).c_str());
+            }*/
 
-                https.end();
-            }
-            else
-            {
-                DPRINTLN(DBG_INFO, F("[HTTPS] Unable to connect\n"));
-            }
+            http.end();
         }
 
         // private member variables

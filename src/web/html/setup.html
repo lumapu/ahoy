@@ -718,7 +718,7 @@
             }
 
             function parseStaticIp(obj) {
-                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"], ["monitor_ipAddr", "mon_ip"]])
+                for(var i of [["ipAddr", "ip"], ["ipMask", "mask"], ["ipDns1", "dns1"], ["ipDns2", "dns2"], ["ipGateway", "gateway"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
@@ -925,11 +925,9 @@
             }
 
             function parsezeroExport(obj) {
-                // keep display types grouped
-                var opts = [[0, "None"], [1, "Shelly EM3"]];
-
-                document.getElementsByName("monitor_ipAddr")[0].value = obj["monitor_ipAddr"];
-
+                for(var i of [["monitor_ipAddr", "monitor_ipAddr"], ["en_zeroexport", "en_zeroexport"]])
+                    if(null != obj[i[1]])
+                        document.getElementsByName(i[0])[0].value = obj[i[1]];
             }
 
             function parse(root) {
