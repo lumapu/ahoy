@@ -275,6 +275,21 @@ typedef struct {
 //              7 = biggest with x inputs
 
 const devInfo_t devInfo[] = {
+    // MI 2nd gen; only 0x001311 is tested,
+    //                  others (starting with MI-250) according to https://github.com/lumapu/ahoy/issues/1111#issuecomment-1698100571
+    { 0x000111,  250 },
+    { 0x000311,  300 },
+    { 0x000411,  350 },
+    { 0x001111,  500 },
+    { 0x001311,  600 },
+    { 0x001321,  600 },
+    { 0x001421,  700 },
+    { 0x001411,  700 },
+    { 0x002111, 1000 },
+    { 0x002311, 1200 },
+    { 0x002511, 1500 },
+    { 0x002411, 1500 },
+
     // MI 3rd gen
     { 0x001311,  600 },
     { 0x001411,  700 },
