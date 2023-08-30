@@ -737,7 +737,7 @@ const byteAssign_t InfoAssignment[] = {
             uint8_t txCmd = mPayload[id].txCmd;
 
             if(!*complete) {
-                DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX));
+                DPRINTLN(DBG_VERBOSE, F("incomplete, txCmd is 0x") + String(txCmd, HEX));
                 //DBGHEXLN(txCmd);
                 if (txCmd == 0x09 || txCmd == 0x11 || (txCmd >= 0x36 && txCmd <= 0x39))
                     return false;
