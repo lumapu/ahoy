@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.45 - 2023-08-29
+* change ePaper text to symbols PR #1131
+* added some invertes to dev info list #1111
+
 ## 0.7.44 - 2023-08-28
 * fix `last_success` transmitted to often #1124
 
