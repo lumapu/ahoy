@@ -454,24 +454,26 @@ void app::tickSend(void) {
         int8_t maxLoop = MAX_NUM_INVERTERS;
         Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
         do {
-            mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
-            iv = mSys.getInverterByPos(mSendLastIvId);
-        } while ((NULL == iv) && ((maxLoop--) > 0));
+            do {
+                mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
+                iv = mSys.getInverterByPos(mSendLastIvId);
+            } while ((NULL == iv) && ((maxLoop--) > 0));
+        } while((!iv->config->enabled) && (maxLoop > 0));
 
         if (NULL != iv) {
             if (iv->config->enabled) {
                 if(mConfig->nrf.enabled) {
-                if (iv->ivGen == IV_HM)
-                    mPayload.ivSend(iv);
-                else if(iv->ivGen == IV_MI)
-                    mMiPayload.ivSend(iv);
-            }
-            #if defined(ESP32)
-            if(mConfig->cmt.enabled) {
-                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.ivSend(iv);
-            }
-            #endif
+                    if (iv->ivGen == IV_HM)
+                        mPayload.ivSend(iv);
+                    else if(iv->ivGen == IV_MI)
+                        mMiPayload.ivSend(iv);
+                }
+                #if defined(ESP32)
+                if(mConfig->cmt.enabled) {
+                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                        mHmsPayload.ivSend(iv);
+                }
+                #endif
             }
         }
     } else {

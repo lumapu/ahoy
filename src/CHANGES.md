@@ -4,6 +4,8 @@
 * removed `delay` from ePaper
 * started improvements of `/system`
 * fix LEDs to check all configured inverters
+* send loop skip disabled inverters fix
+* print generated DTU SN to console
 
 ## 0.7.45 - 2023-08-29
 * change ePaper text to symbols PR #1131

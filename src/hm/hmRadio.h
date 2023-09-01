@@ -32,7 +32,7 @@ class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             if(mSerialDebug) {
-            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
                 DBGPRINT(String(CE_PIN));
                 DBGPRINT(F(", CS_PIN: "));
                 DBGPRINT(String(CS_PIN));
@@ -117,8 +117,9 @@ class HmRadio {
             if(mNrf24.isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
                 mNrf24.printPrettyDetails();
-            }
-            else
+                DPRINT(DBG_INFO, F("DTU_SN: 0x"));
+                DBGPRINTLN(String(DTU_RADIO_ID, HEX));
+            } else
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
