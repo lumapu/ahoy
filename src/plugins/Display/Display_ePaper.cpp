@@ -21,9 +21,13 @@ DisplayEPaper::DisplayEPaper() {
     mHeadFootPadding = 16;
 }
 
+
 //***************************************************************************
 void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char *version) {
     mUtcTs = utcTs;
+
+    mRefreshState = RefreshStatus::LOGO;
+    mSecondCnt = 0;
 
     if (type == 10) {
         Serial.begin(115200);
@@ -38,26 +42,7 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
         _display->init(115200, true, 20, false);
         _display->setRotation(mDisplayRotation);
         _display->setFullWindow();
-
-        // Logo
-        _display->fillScreen(GxEPD_BLACK);
-        _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
-        while (_display->nextPage())
-            ;
-
-        // clean the screen
-        delay(2000);
-        _display->fillScreen(GxEPD_WHITE);
-        while (_display->nextPage())
-            ;
-
-        headlineIP();
-
         _version = version;
-        versionFooter();
-
-        // call the PowerPage to change the PV Power Values
-        actualPowerPaged(0, 0, 0, 0);
     }
 }
 
@@ -68,15 +53,51 @@ void DisplayEPaper::config(uint8_t rotation, bool enPowerSafe) {
 
 //***************************************************************************
 void DisplayEPaper::fullRefresh() {
-    // screen complete black
-    _display->fillScreen(GxEPD_BLACK);
-    while (_display->nextPage())
-        ;
-    delay(2000);
-    // screen complete white
-    _display->fillScreen(GxEPD_WHITE);
-    while (_display->nextPage())
-        ;
+    if(RefreshStatus::DONE != mRefreshState)
+        return;
+    mSecondCnt = 2;
+    mRefreshState = RefreshStatus::BLACK;
+}
+
+//***************************************************************************
+void DisplayEPaper::refreshLoop() {
+    switch(mRefreshState) {
+        case RefreshStatus::LOGO:
+            _display->fillScreen(GxEPD_BLACK);
+            _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+            mNextRefreshState = RefreshStatus::PARTITIALS;
+            mRefreshState = RefreshStatus::WAIT;
+            break;
+
+        case RefreshStatus::BLACK:
+            _display->fillScreen(GxEPD_BLACK);
+            mNextRefreshState = RefreshStatus::WHITE;
+            mRefreshState = RefreshStatus::WAIT;
+            break;
+
+        case RefreshStatus::WHITE:
+            if(mSecondCnt == 0) {
+                _display->fillScreen(GxEPD_WHITE);
+                mNextRefreshState = RefreshStatus::PARTITIALS;
+                mRefreshState = RefreshStatus::WAIT;
+            }
+            break;
+
+        case RefreshStatus::WAIT:
+            if(!_display->nextPage())
+                mRefreshState = mNextRefreshState;
+            break;
+
+        case RefreshStatus::PARTITIALS:
+            headlineIP();
+            versionFooter();
+            mSecondCnt = 4; // display Logo time during boot up
+            mRefreshState = RefreshStatus::DONE;
+            break;
+
+        default: // RefreshStatus::DONE
+            break;
+    }
 }
 //***************************************************************************
 void DisplayEPaper::headlineIP() {
@@ -185,9 +206,8 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
         } else if ((totalPower > 0) && (totalPower <= 9999)) {
             snprintf(_fmtText, sizeof(_fmtText), "%.0f W", totalPower);
             _changed = true;
-        } else {
+        } else
             snprintf(_fmtText, sizeof(_fmtText), "offline");
-        }
 
         if ((totalPower == 0) && (mEnPowerSafe)) {
             _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
@@ -200,57 +220,43 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
 
             if ((totalYieldDay > 0) && (totalYieldTotal > 0)) {
                 // Today Production
+                bool kwh = (totalYieldDay > 9999);
+                if(kwh)
+                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldDay / 1000));
+                else
+                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldDay));
+
                 _display->setFont(&FreeSans18pt7b);
                 y = _display->height() / 2;
                 _display->setCursor(5, y);
-
-                if (totalYieldDay > 9999) {
-                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldDay / 1000));
-                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                    _display->drawInvertedBitmap(5, y - ((tbh + 30) / 2), myToday, 30, 30, GxEPD_BLACK);
-                    x = ((_display->width() - tbw - 20) / 2) - tbx;
-                    _display->setCursor(x, y);
-                    _display->print(_fmtText);
-                    _display->setCursor(_display->width() - 50, y);
-                    _display->setFont(&FreeSans12pt7b);
-                    _display->println("kWh");
-                } else if (totalYieldDay <= 9999) {
-                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldDay));
-                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                    _display->drawInvertedBitmap(5, y - tbh, myToday, 30, 30, GxEPD_BLACK);
-                    x = ((_display->width() - tbw - 20) / 2) - tbx;
-                    _display->setCursor(x, y);
-                    _display->print(_fmtText);
-                    _display->setCursor(_display->width() - 38, y);
-                    _display->setFont(&FreeSans12pt7b);
-                    _display->println("Wh");
-                }
+                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                _display->drawInvertedBitmap(5, ((kwh) ? (y - ((tbh + 30) / 2)) : (y - tbh)), myToday, 30, 30, GxEPD_BLACK);
+                x = ((_display->width() - tbw - 20) / 2) - tbx;
+                _display->setCursor(x, y);
+                _display->print(_fmtText);
+                _display->setCursor(_display->width() - ((kwh) ? 50 : 38), y);
+                _display->setFont(&FreeSans12pt7b);
+                _display->println((kwh) ? "kWh" : "Wh");
                 y = y + tbh + 15;
 
+
                 // Total Production
+                bool mwh = (totalYieldTotal > 9999);
+                if(mwh)
+                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldTotal / 1000));
+                else
+                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldTotal));
+
                 _display->setFont(&FreeSans18pt7b);
                 _display->setCursor(5, y);
-                if (totalYieldTotal > 9999) {
-                    snprintf(_fmtText, _display->width(), "%.1f", (totalYieldTotal / 1000));
-                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                    _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
-                    x = ((_display->width() - tbw - 20) / 2) - tbx;
-                    _display->setCursor(x, y);
-                    _display->print(_fmtText);
-                    _display->setCursor(_display->width() - 59, y);
-                    _display->setFont(&FreeSans12pt7b);
-                    _display->println("MWh");
-                } else if (totalYieldTotal <= 9999) {
-                    snprintf(_fmtText, _display->width(), "%.0f", (totalYieldTotal));
-                    _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
-                    _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
-                    x = ((_display->width() - tbw - 20) / 2) - tbx;
-                    _display->setCursor(x, y);
-                    _display->print(_fmtText);
-                    _display->setCursor(_display->width() - 50, y);
-                    _display->setFont(&FreeSans12pt7b);
-                    _display->println("kWh");
-                }
+                _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
+                _display->drawInvertedBitmap(5, y - tbh, mySigma, 30, 30, GxEPD_BLACK);
+                x = ((_display->width() - tbw - 20) / 2) - tbx;
+                _display->setCursor(x, y);
+                _display->print(_fmtText);
+                _display->setCursor(_display->width() - ((mwh) ? 59 : 50), y);
+                _display->setFont(&FreeSans12pt7b);
+                _display->println((mwh) ? "MWh" : "kWh");
             }
 
             // Inverter online
@@ -263,14 +269,18 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
             _display->setCursor(x, y);
             _display->println(_fmtText);
         }
+        yield();
     } while (_display->nextPage());
 }
 //***************************************************************************
 void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+    if(RefreshStatus::DONE != mRefreshState)
+        return;
+
     // check if the IP has changed
-    if (_settedIP != WiFi.localIP().toString().c_str()) {
+    if (_settedIP != WiFi.localIP().toString()) {
         // save the new IP and call the Headline Function to adapt the Headline
-        _settedIP = WiFi.localIP().toString().c_str();
+        _settedIP = WiFi.localIP().toString();
         headlineIP();
     }
 
@@ -286,5 +296,11 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
 
     _display->powerOff();
 }
+
 //***************************************************************************
+void DisplayEPaper::tickerSecond() {
+    if(mSecondCnt != 0)
+        mSecondCnt--;
+    refreshLoop();
+}
 #endif  // ESP32

@@ -25,7 +25,8 @@ class CmtRadio {
     typedef Cmt2300a<SpiType> CmtType;
     public:
         CmtRadio() {
-            mDtuSn = DTU_SN;
+            mDtuSn    = DTU_SN;
+            mCmtAvail = false;
         }
 
         void setup(uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
@@ -61,6 +62,10 @@ class CmtRadio {
 
         void enableDebug() {
             mSerialDebug = true;
+        }
+
+        bool cmtIsAvail() {
+            return mCmtAvail;
         }
 
         void sendControlPacket(const uint64_t *ivId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
@@ -143,10 +148,14 @@ class CmtRadio {
         inline void reset(bool genDtuSn) {
             if(genDtuSn)
                 generateDtuSn();
-            if(!mCmt.reset())
+            if(!mCmt.reset()) {
+                mCmtAvail = false;
                 DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
-            else
+            }
+            else {
+                mCmtAvail = true;
                 mCmt.goRx();
+            }
 
             mSendCnt        = 0;
             mRetransmits    = 0;
@@ -208,6 +217,7 @@ class CmtRadio {
         bool mSerialDebug;
         bool mIrqRcvd;
         bool mRqstGetRx;
+        bool mCmtAvail;
 };
 
 #endif /*__HMS_RADIO_H__*/

@@ -61,11 +61,14 @@ class Display {
         if (mMono != NULL)
             mMono->loop();
 
-        if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
+        if (mNewPayload || (((++mLoopCnt) % 30) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
             DataScreen();
         }
+        #if defined(ESP32)
+            mEpaper.tickerSecond();
+        #endif
     }
 
    private:
@@ -102,13 +105,10 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-
             mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
             mRefreshCycle++;
         }
-#endif
 
-#if defined(ESP32)
         if (mRefreshCycle > 480) {
             mEpaper.fullRefresh();
             mRefreshCycle = 0;

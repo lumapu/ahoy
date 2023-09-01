@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.46 - 2023-09-01
+* removed `delay` from ePaper
+* started improvements of `/system`
+* fix LEDs to check all configured inverters
+
 ## 0.7.45 - 2023-08-29
 * change ePaper text to symbols PR #1131
 * added some invertes to dev info list #1111

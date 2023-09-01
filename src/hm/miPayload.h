@@ -728,8 +728,8 @@ const byteAssign_t InfoAssignment[] = {
 */
 
         void reset(uint8_t id, bool clrSts = false) {
-            DPRINT_IVID(DBG_INFO, id);
-            DBGPRINTLN(F("resetPayload"));
+            //DPRINT_IVID(DBG_INFO, id);
+            //DBGPRINTLN(F("resetPayload"));
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
             mPayload[id].gotFragment = false;
             /*mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;

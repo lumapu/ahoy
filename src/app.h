@@ -273,6 +273,7 @@ class app : public IApp, public ah::Scheduler {
             #endif
             if(mConfig->plugin.display.type != 0)
                mDisplay.payloadEventListener(cmd);
+           updateLed();
         }
 
         void mqttSubRxCb(JsonObject obj);

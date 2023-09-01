@@ -50,7 +50,7 @@ class DisplayMono84X48 : public DisplayMono {
         void loop(void) {
             if (mEnPowerSafe) {
                 if (mTimeout != 0)
-                        mTimeout--;
+                    mTimeout--;
             }
         }
 
