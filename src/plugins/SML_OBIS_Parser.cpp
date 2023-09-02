@@ -409,7 +409,7 @@ void sml_handle_obis_state (unsigned char *buf)
 {
 #ifdef undef
     if (sml_trace_obis) {
-        DPRINTLN(DBG_INFO, "OBIS " + String(buf[0], HEX) + "-" + String(buf[1], HEX) + ":" + String(buf[2], HEX) +
+        DPRINTLN(DBG_INFO, "OBIS: " + String(buf[0], HEX) + "-" + String(buf[1], HEX) + ":" + String(buf[2], HEX) +
             "." + String (buf[3], HEX) + "." + String(buf[4], HEX) + "*" + String(buf[5], HEX));
     }
 #endif
@@ -481,7 +481,7 @@ int64_t sml_obis_get_int (unsigned char *data, unsigned int len)
     int64_t value = 0;
 
     if (len > 8) {
-        DPRINTLN(DBG_WARN, "Int too big");
+        DPRINTLN(DBG_WARN, "SML: Int too big");
     } else {
         unsigned int i;
 
@@ -672,7 +672,7 @@ bool sml_get_list_entries (uint16_t layer)
 
                                 sml_msg_crc = sml_finit_crc (sml_msg_crc);
                                 if (rcv_crc != sml_msg_crc) {
-                                    DPRINTLN(DBG_WARN, "Wrong CRC for msg 0x" + String (sml_message, HEX) +
+                                    DPRINTLN(DBG_WARN, "SML: Wrong CRC for msg 0x" + String (sml_message, HEX) +
                                         ", 0x" + String (sml_msg_crc, HEX) + " <-> 0x" + String (rcv_crc, HEX));
                                 } else {
                                     sml_msg_failure = 0;
@@ -709,7 +709,7 @@ bool sml_get_list_entries (uint16_t layer)
 
                                 sml_msg_crc = sml_finit_crc (sml_msg_crc);
                                 if (rcv_crc != sml_msg_crc) {
-                                    DPRINTLN(DBG_WARN, "Wrong CRC for msg 0x" + String (sml_message, HEX) +
+                                    DPRINTLN(DBG_WARN, "SML: Wrong CRC for msg 0x" + String (sml_message, HEX) +
                                         ", 0x" + String (sml_msg_crc, HEX) + " <-> 0x" + String (rcv_crc, HEX));
                                 } else {
                                     sml_msg_failure = 0;
@@ -746,7 +746,7 @@ bool sml_get_list_entries (uint16_t layer)
                             }
                             break;
                         default:
-                            DPRINT(DBG_WARN, "Ill Element 0x" + String(type, HEX));
+                            DPRINT(DBG_WARN, "SML: Ill Element 0x" + String(type, HEX));
                             DBGPRINTLN(", len " + String (entry_len + len_info));
                             /* design: aussteigen */
                             sml_state = SML_ST_FIND_START_TAG;
@@ -778,7 +778,7 @@ bool sml_get_list_entries (uint16_t layer)
                     }
                 }
             } else if (entry_len > sizeof (sml_serial_buf)) {
-                DPRINTLN (DBG_INFO, "skip " + String (entry_len));
+                DPRINTLN (DBG_VERBOSE, "SML: skip " + String (entry_len));
                 sml_skip_len = entry_len;
                 sml_state = SML_ST_SKIP_LIST_ENTRY;
                 return false;
@@ -900,7 +900,7 @@ uint16_t sml_parse_stream (uint16 len)
                             cur_serial_buf = sml_serial_buf;
                         }
                     } else {
-                        DPRINTLN(DBG_WARN, "Unexpected 0x" + String(*cur_serial_buf, HEX) + ", rest: " + String (sml_serial_len));
+                        DPRINTLN(DBG_WARN, "SML: Unexpected 0x" + String(*cur_serial_buf, HEX) + ", rest: " + String (sml_serial_len));
                         sml_state = SML_ST_FIND_START_TAG;
                         parse_continue = true;
                     }
@@ -978,15 +978,15 @@ uint16_t sml_parse_stream (uint16 len)
                             // a bit more verbose info
                             obis_yield_in_all_value = sml_obis_scale_uint (obis_yield_in_all_value, obis_yield_in_all_scale);
                             obis_yield_out_all_value = sml_obis_scale_uint (obis_yield_out_all_value, obis_yield_out_all_scale);
-                            DPRINTLN(DBG_INFO, "Power " + String (obis_power_all_value) +
+                            DPRINTLN(DBG_INFO, "OBIS: Power " + String (obis_power_all_value) +
                                 ", Yield in " + String (obis_yield_in_all_value) +
                                 ", Yield out " + String (obis_yield_out_all_value));
 #else
-                            DPRINTLN(DBG_VERBOSE, "Power " + String (obis_power_all_value));
+                            DPRINTLN(DBG_VERBOSE, "OBIS: Power " + String (obis_power_all_value));
 #endif
                             sml_handle_obis_pac (obis_power_all_value);
                         } else {
-                            DPRINTLN(DBG_WARN, "CRC ERROR 0x" + String (calc_crc16, HEX) + " <-> 0x" + String (rcv_crc16, HEX));
+                            DPRINTLN(DBG_WARN, "SML: CRC ERROR 0x" + String (calc_crc16, HEX) + " <-> 0x" + String (rcv_crc16, HEX));
                         }
                     }
                     sml_state = SML_ST_FIND_START_TAG;

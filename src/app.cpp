@@ -129,8 +129,8 @@ void app::loopStandard(void) {
                 DBGPRINT(F(" | "));
                 mSys.Radio.dumpBuf(p->packet, p->len);
 #else
-                DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), " +
-                    String (p->len) + " Bytes");
+                DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), Delay " + String (p->delay) +
+                    " us, " + String (p->len) + " Bytes");
 #endif
             }
 

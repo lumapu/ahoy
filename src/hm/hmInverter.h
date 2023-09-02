@@ -408,6 +408,22 @@ class Inverter {
             }
         }
 
+        inv_type_t getType () {
+            if (ivGen == IV_HM) {
+                switch (type) {
+                    case INV_TYPE_1CH:
+                        return INV_TYPE_HMCH1;
+                    case INV_TYPE_2CH:
+                        return INV_TYPE_HMCH2;
+                    case INV_TYPE_4CH:
+                        return INV_TYPE_HMCH4;
+                    default:
+                        return INV_TYPE_DEFAULT;
+                }
+            }
+            return INV_TYPE_DEFAULT;
+        }
+
         bool isAvailable(uint32_t timestamp) {
            if((timestamp - recordMeas.ts) < INACT_THRES_SEC)
                 return true;

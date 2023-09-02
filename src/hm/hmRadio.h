@@ -19,9 +19,39 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
+#define RX_ANSWER_TMO       400
+#define RX_WAIT_SFR_TMO     40
+#define RX_WAIT_SAFETY_MRGN 20
+
+#define RX_CHAN_TMO         5110
+#define RX_CHAN_MHCH1_TMO   10220
+
+#define RX_DEF_MAX_CHANNELS RF_CHANNELS
+#define RX_HMCH1_MAX_CHANNELS 2
 
 const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
+// Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
+// Channel List      2403, 2423, 2440, 2461, 2475MHz
+const uint8_t rf24ChLst[RF_CHANNELS] = { 3, 23, 40, 61, 75 };
+
+// default rx channel hopping
+const uint8_t rf24RxDefChan[5][5] = {
+    { 40, 61, 75,  3, 23 },
+    { 61, 75,  3, 23, 40 },
+    { 75,  3, 23, 40, 61 },
+    {  3, 23, 40, 61, 75 },
+    { 23, 40, 61, 75, 03 }
+};
+
+// reduced rx channel hopping for HM Inverter with only 1 Input (HM300 testet)
+const uint8_t rf24RxHMCh1[5][5] = { // same formal array size for each variant
+    { 40, 61 },
+    { 61, 75 },
+    { 75, 75 /* 3 */ }, /* some strange problems with rx 3 especially here, so take 75 doubled instead */
+    {  3, 23 },
+    { 23, 40 }
+};
 
 //-----------------------------------------------------------------------------
 // MACROS
@@ -60,14 +90,6 @@ class HmRadio {
                 DBGPRINT(String(SPI_SPEED));
                 DBGPRINTLN(F(")"));
             }
-
-            // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
-            // Channel List      2403, 2423, 2440, 2461, 2475MHz
-            mRfChLst[0] = 03;
-            mRfChLst[1] = 23;
-            mRfChLst[2] = 40;
-            mRfChLst[3] = 61;
-            mRfChLst[4] = 75;
 
             // default channels
             mTxChIdx    = AHOY_RF24_DEF_TX_CHANNEL;
@@ -118,7 +140,7 @@ class HmRadio {
             mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
-            mNrf24.setChannel(mRfChLst[mRxChIdx]);
+            mNrf24.setChannel(rf24RxDefChan[AHOY_RF24_DEF_TX_CHANNEL][AHOY_RF24_DEF_RX_CHANNEL]);
             mNrf24.startListening();
             mNrf24.setDataRate(RF24_250KBPS);
             mNrf24.setAutoAck(true);
@@ -151,16 +173,17 @@ class HmRadio {
             mNrf24.flush_tx();                              // empty TX FIFO
 
             // start listening
-            mNrf24.setChannel(mRfChLst[mRxChIdx]);
+            mNrf24.setChannel(mRxChannels[mRxChIdx]);
             mNrf24.startListening();
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            while (millis()-loopMillis < 400) {
-                while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
+            while (millis()-loopMillis < mRxAnswerTmo) {
+                while (micros()-startMicros < mRxChanTmo ) {
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
+
                             return true;
                         }
                     }
@@ -168,9 +191,10 @@ class HmRadio {
                 }
                 // switch to next RX channel
                 startMicros = micros();
-                if(++mRxChIdx >= RF_CHANNELS)
+                if(++mRxChIdx >= mMaxRxChannels) {
                     mRxChIdx = 0;
-                mNrf24.setChannel(mRfChLst[mRxChIdx]);
+                }
+                mNrf24.setChannel(mRxChannels[mRxChIdx]);
                 yield();
             }
             // not finished but time is over
@@ -178,6 +202,10 @@ class HmRadio {
         }
 
         void handleIntr(void) {
+            if (mRfIrqIndex < MAX_PAYLOAD_ENTRIES) {
+                // it is allowed to call micros() inside irq handler to read the time (but check for unexpected restart reasons)
+                mRfIrqTime[mRfIrqIndex++] = micros(); // remember Time of tx_fail and rx_readies
+            }
             mIrqRcvd = true;
         }
 
@@ -189,9 +217,10 @@ class HmRadio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t rf_ch, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
+        void sendControlPacket(uint64_t invId, inv_type_t invType, uint8_t txChan, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
+            prepareReceive (invType, txChan, 1);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
             if (isNoMI) {
@@ -225,14 +254,17 @@ class HmRadio {
                 }
                 cnt++;
             }
-            sendPacket(invId, rf_ch, cnt, isRetransmit, isNoMI);
+            sendPacket(invId, txChan, cnt, isRetransmit, isNoMI);
         }
 
-        void prepareDevInformCmd(uint64_t invId, uint8_t rf_ch, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+        void prepareDevInformCmd(uint64_t invId, inv_type_t invType, uint8_t txChan, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             if(mSerialDebug) {
                 DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
             }
+            prepareReceive (invType, txChan,
+                // could be optimized for other inverter types as well
+                ((cmd == RealTimeRunData_Debug) && (invType == INV_TYPE_HMCH1)) ? 2 : 10);
             initPacket(invId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
@@ -246,12 +278,13 @@ class HmRadio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(invId, rf_ch, 24, isRetransmit, true);
+            sendPacket(invId, txChan, 24, isRetransmit, true);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t rf_ch, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
+        void sendCmdPacket(uint64_t invId, inv_type_t invType, uint8_t txChan, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
+            prepareReceive (invType, txChan, 1);
             initPacket(invId, mid, pid);
-            sendPacket(invId, rf_ch, 10, isRetransmit, appendCrc16);
+            sendPacket(invId, txChan, 10, isRetransmit, appendCrc16);
         }
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
@@ -281,6 +314,24 @@ class HmRadio {
         bool mSerialDebug;
 
     private:
+        void prepareReceive (inv_type_t invType, uint8_t txChan, uint8_t rxFrameCnt) {
+            if (invType == INV_TYPE_HMCH1) {
+                mRxChannels = (uint8_t *)(rf24RxHMCh1[txChan]);
+                mMaxRxChannels = RX_HMCH1_MAX_CHANNELS;
+                mRxAnswerTmo = rxFrameCnt * RX_WAIT_SFR_TMO;  // typical inverter answer has 2 packets
+                mRxAnswerTmo += RX_WAIT_SAFETY_MRGN;
+                if (mRxAnswerTmo > RX_ANSWER_TMO) {
+                    mRxAnswerTmo = RX_ANSWER_TMO;
+                }
+                mRxChanTmo = RX_CHAN_MHCH1_TMO;
+            } else {
+                mRxChannels = (uint8_t *)(rf24RxDefChan[txChan]);
+                mMaxRxChannels = RX_DEF_MAX_CHANNELS;
+                mRxAnswerTmo = RX_ANSWER_TMO;
+                mRxChanTmo = RX_CHAN_TMO;
+            }
+        }
+
         bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
@@ -288,11 +339,15 @@ class HmRadio {
             bool isLastPackage = false;
             while(mNrf24.available()) {
                 uint8_t len;
+
                 len = mNrf24.getDynamicPayloadSize(); // if payload size > 32, corrupt payload has been flushed
                 if (len > 0) {
                     packet_t p;
-                    p.ch = mRfChLst[mRxChIdx];
+                    p.ch = mRxChannels[mRxChIdx];
                     p.len = len;
+                    if (mRfIrqIndex) {
+                        p.delay = mRfIrqTime[mRfIrqIndex - 1] - mRfIrqTime[0];
+                    }
                     mNrf24.read(p.packet, len);
                     if (p.packet[0] != 0x00) {
                         mBufCtrl.push(p);
@@ -343,24 +398,25 @@ class HmRadio {
             // set TX and RX channels
 
             mTxChIdx = rf_ch;
-            mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+            mRxChIdx = 0;
 
             if(mSerialDebug) {
 #ifdef undef
                 DPRINT(DBG_INFO, F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT("B Ch");
-                DBGPRINT(String(mRfChLst[mTxChIdx]));
+                DBGPRINT(String(rf24ChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 dumpBuf(mTxBuf, len);
 #else
-                DPRINTLN(DBG_INFO, F("TX (Ch ") + String (mRfChLst[mTxChIdx]) + "), " +
+                DPRINTLN(DBG_INFO, F("TX (Ch ") + String (rf24ChLst[mTxChIdx]) + "), " +
                     String (len) + " Bytes");
 #endif
             }
             mNrf24.stopListening();
-            mNrf24.setChannel(mRfChLst[mTxChIdx]);
+            mNrf24.setChannel(rf24ChLst[mTxChIdx]);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
+            mRfIrqIndex = 0;
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
             if(isRetransmit)
@@ -371,15 +427,18 @@ class HmRadio {
 
         volatile bool mIrqRcvd;
         uint64_t DTU_RADIO_ID;
-
-        uint8_t mRfChLst[RF_CHANNELS];
+        volatile uint8_t mRfIrqIndex;
+        volatile long mRfIrqTime[1 + MAX_PAYLOAD_ENTRIES];
 
         SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
         uint8_t mTxChIdx;
-        uint8_t mRxChIdx;
-
+        uint8_t mRxChIdx;           // cur index in mRxChannels
+        uint8_t *mRxChannels;       // rx channel to be used; depends on inverter and previous tx channel
+        uint8_t mMaxRxChannels;     // actual size of mRxChannels; depends on inverter and previous tx channel
+        uint32  mRxAnswerTmo;       // max wait time in millis for answers of inverter
+        uint32  mRxChanTmo;         // max wait time in micros for a rx channel
 };
 
 #endif /*__RADIO_H__*/

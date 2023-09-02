@@ -157,7 +157,7 @@ class HmPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
-                mSys->Radio.sendControlPacket(iv->radioId.u64,
+                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
@@ -167,7 +167,7 @@ class HmPayload {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("prepareDevInformCmd 0x"));
                 DBGHEXLN(cmd);
-                mSys->Radio.prepareDevInformCmd(iv->radioId.u64,
+                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }
@@ -271,7 +271,7 @@ class HmPayload {
                                 } else if(iv->devControlCmd == ActivePowerContr) {
                                     DPRINT_IVID(DBG_INFO, iv->id);
                                     DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                    mSys->Radio.sendControlPacket(iv->radioId.u64,
+                                    mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
                                         iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, true);
                                 } else {
                                     if(false == mPayload[iv->id].gotFragment) {
@@ -284,7 +284,7 @@ class HmPayload {
                                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
 
-                                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64,
+                                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                                 iv->getNextTxChanIndex(), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         }
                                     } else {
@@ -294,7 +294,7 @@ class HmPayload {
                                                 DBGPRINT(F("Frame "));
                                                 DBGPRINT(String(i + 1));
                                                 DBGPRINTLN(F(" missing: Request Retransmit"));
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64,
+                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
                                                     iv->getNextTxChanIndex (), TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
                                             }
@@ -315,7 +315,7 @@ class HmPayload {
                             DPRINT_IVID(DBG_INFO, iv->id);
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
-                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64,
+                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                 iv->getNextTxChanIndex (), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         } else if (false == mPayload[iv->id].gotFragment) {
                             // only if there is no sign of life

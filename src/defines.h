@@ -19,8 +19,16 @@
 typedef struct {
     uint8_t ch;
     uint8_t len;
+    long delay;                 // micros since preceeding tx_fail irq and this rx_ready irq
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
+
+typedef enum {                  // for radio special handling
+    INV_TYPE_DEFAULT,
+    INV_TYPE_HMCH1,
+    INV_TYPE_HMCH2,
+    INV_TYPE_HMCH4,
+} inv_type_t;
 
 typedef enum {
     InverterDevInform_Simple = 0,  // 0x00
