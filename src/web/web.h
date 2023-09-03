@@ -604,11 +604,11 @@ class Web {
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // zero-export
+            mConfig->plugin.zexport.enabled = (request->arg("en_zeroexport") == "on");
             if (request->arg("monitor_ipAddr") != "") {
                 String addr = request->arg("monitor_ipAddr");
                 addr.trim();
                 addr.toCharArray(mConfig->plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
-                mConfig->plugin.zexport.enabled = (request->arg("en_zeroexport") == "on");
             } else
                 mConfig->plugin.zexport.monitor_ip[0] = '\0';
 

@@ -135,9 +135,21 @@ typedef struct {
 } cfgMqtt_t;
 
 typedef struct {
+    float power;
+    float pf;
+    float current;
+    float voltage;
+    bool is_valid;
+    uint16_t total;
+    uint16_t total_returned;
+} cfgShellyEM3_t;
+
+typedef struct {
     char monitor_ip[ZEXPORT_ADDR_LEN];
     bool enabled;
+    cfgShellyEM3_t PHASE[3];
 } cfgzeroExport_t;
+
 
 typedef struct {
     bool enabled;
@@ -433,8 +445,9 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
+            // Zero-Export
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
-            mCfg.plugin.zexport.enabled    = false;
+            mCfg.plugin.zexport.enabled = false;
 
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
@@ -621,6 +634,20 @@ class settings {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
                 obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
+
+                    if(!mCfg.plugin.zexport.PHASE) return;
+                    for (size_t i = 0; i < sizeof(mCfg.plugin.zexport.PHASE); i++)
+                    {
+                        char str[10];
+                        sprintf(str, "phase_%d", i);
+                        obj[str][F("power")] = mCfg.plugin.zexport.PHASE[i].power;
+                        obj[str][F("pf")] = mCfg.plugin.zexport.PHASE[i].pf;
+                        obj[str][F("current")] = mCfg.plugin.zexport.PHASE[i].current;
+                        obj[str][F("voltage")] = mCfg.plugin.zexport.PHASE[i].voltage;
+                        obj[str][F("is_valid")] = mCfg.plugin.zexport.PHASE[i].is_valid;
+                        obj[str][F("total")] = mCfg.plugin.zexport.PHASE[i].total;
+                        obj[str][F("total_returned")] = mCfg.plugin.zexport.PHASE[i].total_returned;
+                    }
             }
             else
             {

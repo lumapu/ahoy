@@ -468,6 +468,20 @@ class RestApi {
         void getzeroExport(JsonObject obj) {
             obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
             obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
+            for (size_t i = 0; i < 3; i++)
+            {
+                char str[10];
+                sprintf(str, "phase_%d", i);
+
+                JsonObject phases = obj.createNestedObject(str);
+                phases[F("power")] = mConfig->plugin.zexport.PHASE[i].power;
+                phases[F("pf")] = mConfig->plugin.zexport.PHASE[i].pf;
+                phases[F("current")] = mConfig->plugin.zexport.PHASE[i].current;
+                phases[F("voltage")] = mConfig->plugin.zexport.PHASE[i].voltage;
+                phases[F("is_valid")] = mConfig->plugin.zexport.PHASE[i].is_valid;
+                phases[F("total")] = mConfig->plugin.zexport.PHASE[i].total;
+                phases[F("total_returned")] = mConfig->plugin.zexport.PHASE[i].total_returned;
+            }
         }
 
         void getNtp(JsonObject obj) {

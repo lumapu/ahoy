@@ -328,7 +328,7 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
+                            <div class="col-12 col-sm-3 my-2">Shelly EM3 IP: </div>
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
                         </div>
                     </fieldset>
@@ -925,9 +925,11 @@
             }
 
             function parsezeroExport(obj) {
-                for(var i of [["monitor_ipAddr", "monitor_ipAddr"], ["en_zeroexport", "en_zeroexport"]])
+                for(var i of [["monitor_ipAddr", "monitor_ipAddr"],["phase_1", "phase_1"],["phase_2", "phase_2"],["phase_3", "phase_3"],["sum", "sum"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
+
+                document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
             }
 
             function parse(root) {
