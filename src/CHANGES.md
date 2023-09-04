@@ -10,6 +10,8 @@
 * 2.42" display (SSD1309) integration PR #1139
 * update user manual PR #1121
 * add / rename alarm codes PR #1118
+* revert default pin ESP32 for NRF23-CE #1132
+* luminance of display can be changed during runtime #1106
 
 ## 0.7.45 - 2023-08-29
 * change ePaper text to symbols PR #1131

@@ -59,7 +59,7 @@ class Display {
 
     void tickerSecond() {
         if (mMono != NULL)
-            mMono->loop();
+            mMono->loop(mCfg->contrast);
 
         if (mNewPayload || (((++mLoopCnt) % 30) == 0)) {
             mNewPayload = false;

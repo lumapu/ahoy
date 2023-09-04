@@ -54,10 +54,15 @@ class DisplayMono128X64 : public DisplayMono {
             mLuminance = lum;
         }
 
-        void loop(void) {
+        void loop(uint8_t lum) {
             if (mEnPowerSafe) {
                 if (mTimeout != 0)
                     mTimeout--;
+            }
+
+            if(mLuminance != lum) {
+                mLuminance = lum;
+                mDisplay->setContrast(mLuminance);
             }
         }
 
