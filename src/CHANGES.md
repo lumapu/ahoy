@@ -7,6 +7,7 @@
 * send loop skip disabled inverters fix
 * print generated DTU SN to console
 * HW Versions for MI series PR #1133
+* 2.42" display (SSD1309) integration PR #1139
 
 ## 0.7.45 - 2023-08-29
 * change ePaper text to symbols PR #1131
