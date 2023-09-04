@@ -35,7 +35,7 @@ class Display {
             case 3: mMono = new DisplayMono84X48(); break;
             case 4: mMono = new DisplayMono128X32(); break;
             case 5: mMono = new DisplayMono64X48(); break;
-
+            case 6: mMono = new DisplayMono128X64(); break;
 #if defined(ESP32)
             case 10:
                 mMono = NULL;   // ePaper does not use this
