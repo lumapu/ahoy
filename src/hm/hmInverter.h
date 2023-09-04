@@ -210,8 +210,13 @@ class Inverter {
                         enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
                     enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                 } else if (ivGen == IV_MI){
-                    if (getFwVersion() == 0)
-                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version; might not work, esp. for 1/2 ch hardware
+                    if (getFwVersion() == 0) {
+                        enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version
+                    } else {
+                        record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                            enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    }
                     if (type == INV_TYPE_4CH) {
                         enqueCommand<InfoCommand>(0x36);
                     } else {
@@ -334,6 +339,9 @@ class Inverter {
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
                             enqueCommand<InfoCommand>(AlarmData);
+//                            ivSendHighPrio(id);
+//                            if(mHighPrioIv == NULL)      // process the request immediately if possible
+//                                mHighPrioIv = iv;
                         }
                     }
                 }
