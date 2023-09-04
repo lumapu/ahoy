@@ -8,6 +8,8 @@
 * print generated DTU SN to console
 * HW Versions for MI series PR #1133
 * 2.42" display (SSD1309) integration PR #1139
+* update user manual PR #1121
+* add / rename alarm codes PR #1118
 
 ## 0.7.45 - 2023-08-29
 * change ePaper text to symbols PR #1131
