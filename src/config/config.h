@@ -72,7 +72,11 @@
 #define PACKET_BUFFER_SIZE      30
 
 // number of configurable inverters (increase if you need, and if there is enough heap available for stable operation)
+#if defined(ESP32)
+#define MAX_NUM_INVERTERS       16
+#else
 #define MAX_NUM_INVERTERS       2
+#endif
 
 // default serial interval
 #define SERIAL_INTERVAL         5
@@ -114,8 +118,12 @@
 #define AHOY_CHARTDATA_WITH_GRID_HDR "Time, AC Power, Grid Power"
 #define AHOY_CHARTDATA_HDR "Time, AC Power"
 
-
+#if defined(ESP32)
+#define AHOY_MQTT_SUPPORT
+#else
+// save RAM
 // #define AHOY_MQTT_SUPPORT
+#endif
 
 // default mqtt interval
 #define MQTT_INTERVAL           90

@@ -25,7 +25,7 @@ class HmSystem {
             Radio.setup();
         }
 
-        void setup(uint32 *timestamp, uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
+        void setup(uint32_t *timestamp, uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
             mTimestamp = timestamp;
             mNumInv = 0;
             Radio.setup(ampPwr, irqPin, cePin, csPin, sclkPin, mosiPin, misoPin);
@@ -147,15 +147,48 @@ class HmSystem {
             }
 
             if ((time_today = *mTimestamp)) {
+#ifdef ESP32
+                File ac_power_dir;
+                File file;
+#else
                 Dir ac_power_dir;
+#endif
                 char cur_file_name[sizeof (AC_FORMAT_FILE_NAME)];
 
                 time_today = gTimezone.toLocal (time_today);
                 snprintf (cur_file_name, sizeof (cur_file_name), AC_FORMAT_FILE_NAME,
                     day(time_today), month(time_today), year(time_today));
-                ac_power_dir = LittleFS.openDir (AC_POWER_PATH);
-                /* design: no dataserver, cleanup old history */
 
+                /* design: no dataserver, cleanup old history */
+#ifdef ESP32
+                if ((ac_power_dir = LittleFS.open (AC_POWER_PATH))) {
+                    while ((file = ac_power_dir.openNextFile())) {
+                        const char *fullName = file.name();
+                        char *name;
+
+                        if ((name = strrchr (fullName, '/')) && name[1]) {
+                            name++;
+                        } else {
+                            name = (char *)fullName;
+                        }
+                        if (strcmp (name, cur_file_name)) {
+                            char *path = strdup (fullName);
+
+                            file.close ();
+                            if (path) {
+                                DPRINTLN (DBG_INFO, "Remove file " + String (name) +
+                                    ", Size: " + String (ac_power_dir.size()));
+                                LittleFS.remove (path);
+                                free (path);
+                            }
+                        } else {
+                            file.close();
+                        }
+                    }
+                    ac_power_dir.close();
+                }
+#else
+                ac_power_dir = LittleFS.openDir (AC_POWER_PATH);
                 while (ac_power_dir.next()) {
                     if (ac_power_dir.fileName() != cur_file_name) {
                         DPRINTLN (DBG_INFO, "Remove file " + ac_power_dir.fileName() +
@@ -163,6 +196,7 @@ class HmSystem {
                         LittleFS.remove (AC_POWER_PATH "/" + ac_power_dir.fileName());
                     }
                 }
+#endif
             } else {
                 DPRINTLN (DBG_WARN, "cleanup_history, no time yet");
             }

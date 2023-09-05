@@ -13,7 +13,7 @@ void sml_close_hist (File file);
 int sml_find_hist_power (File file, uint16_t index);
 int16_t sml_get_obis_pac ();
 int16_t sml_get_obis_pac_average ();
-uint16_t sml_parse_stream (uint16 len);
+uint16_t sml_parse_stream (uint16_t len);
 void sml_set_trace_obis (bool trace_flag);
 void sml_loop();
 

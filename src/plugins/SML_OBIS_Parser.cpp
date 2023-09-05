@@ -1,7 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <HardwareSerial.h>
+#ifndef ESP32
 #include <user_interface.h>
+#endif
 #include "../utils/dbg.h"
 #include "../utils/scheduler.h"
 #include "../config/settings.h"
@@ -86,9 +88,9 @@ static uint16_t cur_sml_list_layer;
 static unsigned char sml_list_layer_entries [SML_MAX_LIST_LAYER];
 static unsigned char sml_serial_buf[SML_MAX_SERIAL_BUF];
 static unsigned char *cur_serial_buf = sml_serial_buf;
-static uint16 sml_serial_len = 0;
-static uint16 sml_skip_len = 0;
-static uint32 sml_message = SML_MSG_NONE;
+static uint16_t sml_serial_len = 0;
+static uint16_t sml_skip_len = 0;
+static uint32_t sml_message = SML_MSG_NONE;
 static obis_state_t obis_state = OBIS_ST_NONE;
 static int obis_power_all_scale, obis_power_all_value;
 /* design: max 16 bit fuer aktuelle Powerwerte */
@@ -306,14 +308,47 @@ void sml_cleanup_history ()
     obis_cur_pac_index = 0;
     obis_pac_sum = 0;
     if ((time_today = *obis_timestamp)) {
+#ifdef ESP32
+        File grid_power_dir;
+        File file;
+#else
         Dir grid_power_dir;
+#endif
         char cur_file_name[sizeof (SML_OBIS_FORMAT_FILE_NAME)];
 
         time_today = gTimezone.toLocal (time_today);
         snprintf (cur_file_name, sizeof (cur_file_name), SML_OBIS_FORMAT_FILE_NAME,
             day(time_today), month (time_today), year (time_today));
-        grid_power_dir = LittleFS.openDir (SML_OBIS_GRID_POWER_PATH);
         /* design: no dataserver, cleanup old history */
+#ifdef ESP32
+        grid_power_dir = LittleFS.open (SML_OBIS_GRID_POWER_PATH);
+        if (grid_power_dir) {
+            while ((file = grid_power_dir.openNextFile())) {
+                const char *fullName = file.name();
+                char *name;
+
+                if ((name = strrchr (fullName, '/')) && name[1]) {
+                    name++;
+                } else {
+                    name = (char *)fullName;
+                }
+                if (strcmp (name, cur_file_name)) {
+                    char *path = strdup (fullName);
+                    file.close ();
+                    if (path) {
+                        DPRINTLN (DBG_INFO, "Remove file " + String(name) +
+                            ", Size: " + String (grid_power_dir.size()));
+                        LittleFS.remove (path);
+                        free (path);
+                    }
+                } else {
+                    file.close();
+                }
+            }
+            grid_power_dir.close();
+        }
+#else
+        grid_power_dir = LittleFS.openDir (SML_OBIS_GRID_POWER_PATH);
 
         while (grid_power_dir.next()) {
             if (grid_power_dir.fileName() != cur_file_name) {
@@ -322,6 +357,7 @@ void sml_cleanup_history ()
                 LittleFS.remove (SML_OBIS_GRID_POWER_PATH "/" + grid_power_dir.fileName());
             }
         }
+#endif
     } else {
         DPRINTLN (DBG_WARN, "sml_cleanup_history, no time yet");
     }
@@ -627,7 +663,7 @@ bool sml_get_list_entries (uint16_t layer)
         unsigned char entry_len;
         // Acc. to Spec there might be len_info > 2. But does this happen in real life?
         // Also: an info_len > 2 could be due to corrupt data. So better break.
-        uint16 len_info = (*cur_serial_buf & SML_EXT_LENGTH) ? 2 : 1;
+        uint16_t len_info = (*cur_serial_buf & SML_EXT_LENGTH) ? 2 : 1;
 
         if (sml_serial_len < len_info) {
             if (cur_serial_buf > sml_serial_buf) {
@@ -795,7 +831,7 @@ bool sml_get_list_entries (uint16_t layer)
 }
 
 //-----------------------------------------------------------------------------
-uint16_t sml_parse_stream (uint16 len)
+uint16_t sml_parse_stream (uint16_t len)
 {
     bool parse_continue;
     uint16_t serial_read;

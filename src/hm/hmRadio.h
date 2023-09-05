@@ -202,10 +202,6 @@ class HmRadio {
         }
 
         void handleIntr(void) {
-            if (mRfIrqIndex < MAX_PAYLOAD_ENTRIES) {
-                // it is allowed to call micros() inside irq handler to read the time (but check for unexpected restart reasons)
-                mRfIrqTime[mRfIrqIndex++] = micros(); // remember Time of tx_fail and rx_readies
-            }
             mIrqRcvd = true;
         }
 
@@ -345,9 +341,6 @@ class HmRadio {
                     packet_t p;
                     p.ch = mRxChannels[mRxChIdx];
                     p.len = len;
-                    if (mRfIrqIndex) {
-                        p.delay = mRfIrqTime[mRfIrqIndex - 1] - mRfIrqTime[0];
-                    }
                     mNrf24.read(p.packet, len);
                     if (p.packet[0] != 0x00) {
                         mBufCtrl.push(p);
@@ -416,7 +409,6 @@ class HmRadio {
             mNrf24.stopListening();
             mNrf24.setChannel(rf24ChLst[mTxChIdx]);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
-            mRfIrqIndex = 0;
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
             if(isRetransmit)
@@ -427,8 +419,6 @@ class HmRadio {
 
         volatile bool mIrqRcvd;
         uint64_t DTU_RADIO_ID;
-        volatile uint8_t mRfIrqIndex;
-        volatile long mRfIrqTime[1 + MAX_PAYLOAD_ENTRIES];
 
         SPIClass* mSpi;
         RF24 mNrf24;
@@ -437,8 +427,8 @@ class HmRadio {
         uint8_t mRxChIdx;           // cur index in mRxChannels
         uint8_t *mRxChannels;       // rx channel to be used; depends on inverter and previous tx channel
         uint8_t mMaxRxChannels;     // actual size of mRxChannels; depends on inverter and previous tx channel
-        uint32  mRxAnswerTmo;       // max wait time in millis for answers of inverter
-        uint32  mRxChanTmo;         // max wait time in micros for a rx channel
+        uint32_t mRxAnswerTmo;       // max wait time in millis for answers of inverter
+        uint32_t mRxChanTmo;         // max wait time in micros for a rx channel
 };
 
 #endif /*__RADIO_H__*/

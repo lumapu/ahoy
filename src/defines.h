@@ -19,7 +19,6 @@
 typedef struct {
     uint8_t ch;
     uint8_t len;
-    long delay;                 // micros since preceeding tx_fail irq and this rx_ready irq
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
 } packet_t;
 

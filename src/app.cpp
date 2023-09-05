@@ -22,7 +22,11 @@ void app::setup() {
        Electricity meter sends SML telegrams via IR interface (9600,8,n,1) without being asked (typical behaviour).
        An IR sensor is connected to the UART0 of AHOY DTU. Connected pins: GND-GND, 3V3-VCC, RX-RX, TX-TX.
     */
+#ifdef ESP32
+    Serial.begin(9600, SERIAL_8N1, RX, -1);
+#else
     Serial.begin(9600, SERIAL_8N1, SERIAL_RX_ONLY);
+#endif
 #else
     Serial.begin(115200);
 #endif
@@ -129,8 +133,8 @@ void app::loopStandard(void) {
                 DBGPRINT(F(" | "));
                 mSys.Radio.dumpBuf(p->packet, p->len);
 #else
-                DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), Delay " + String (p->delay) +
-                    " us, " + String (p->len) + " Bytes");
+                DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), " +
+                    String (p->len) + " Bytes");
 #endif
             }
 
@@ -512,9 +516,29 @@ void app::check_hist_file (File file)
 //-----------------------------------------------------------------------------
 void app::show_history (String path)
 {
+#ifdef ESP32
+    File dir = LittleFS.open (path);
+    File file;
+#else
     Dir dir = LittleFS.openDir (path);
+#endif
 
     DPRINTLN (DBG_INFO, "Enter Dir: " + path);
+#ifdef ESP32
+    if (dir) {
+        while ((file = dir.openNextFile())) {
+            if (file.isDirectory()) {
+                show_history ((char *)file.name());
+                close (file);
+            } else {
+                DPRINTLN (DBG_INFO, "file " + String((char *)file.name()) +
+                    ", Size: " + String (file.size()));
+                check_hist_file (file); // closes file
+            }
+        }
+        dir.close();
+    }
+#else
     while (dir.next()) {
         if (dir.isDirectory ()) {
             show_history (path + "/" + dir.fileName());
@@ -524,5 +548,6 @@ void app::show_history (String path)
             check_hist_file (dir.openFile ("r"));
         }
     }
+#endif
     DPRINTLN (DBG_INFO, "Leave Dir: " + path);
 }

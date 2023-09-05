@@ -435,7 +435,7 @@ const byteAssign_t InfoAssignment[] = {
                     crcPass = build(iv->id, &pyldComplete);
 
                     // evaluate quality of send channel with rcv params
-                    if (retransmit) {
+                    if (retransmit && mPayload[iv->id].requested && (mPayload[iv->id].retransmits < mMaxRetrans)) {
                         iv->evalTxChanQuality (crcPass, mPayload[iv->id].retransmits,
                             mPayload[iv->id].fragments, mPayload[iv->id].lastFragments);
                         DPRINT (DBG_INFO, "Quality: ");
