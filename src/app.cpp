@@ -490,6 +490,7 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
+    zeroexport();
 }
 
 //-----------------------------------------------------------------------------
@@ -608,4 +609,22 @@ void app::updateLed(void) {
             digitalWrite(mConfig->led.led1, led_off);
         }
     }
+}
+//-----------------------------------------------------------------------------
+void app::zeroexport() {
+    if (!mConfig->plugin.zexport.enabled) return;
+
+    DynamicJsonDocument doc(512);
+    JsonObject object = doc.to<JsonObject>();
+
+    object["path"] = "ctrl";
+    object["id"] = 0;
+    object["val"] = round(mzExport.sum());
+    object["cmd"] = "limit_nonpersistent_absolute";
+
+    /*String data;
+    serializeJsonPretty(object, data);
+    DPRINTLN(DBG_INFO, data);*/
+
+    mApi.ctrlRequest(object);
 }

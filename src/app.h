@@ -282,6 +282,7 @@ class app : public IApp, public ah::Scheduler {
 
         void setupLed();
         void updateLed();
+        void zeroexport();
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));

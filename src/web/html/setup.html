@@ -331,6 +331,9 @@
                             <div class="col-12 col-sm-3 my-2">Shelly EM3 IP: </div>
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
                         </div>
+                        <p name="phase_0">L1: n/a</p>
+                        <p name="phase_1">L2: n/a</p>
+                        <p name="phase_2">L3: n/a</p>
                     </fieldset>
                     </div>
 
@@ -925,11 +928,14 @@
             }
 
             function parsezeroExport(obj) {
-                for(var i of [["monitor_ipAddr", "monitor_ipAddr"],["phase_1", "phase_1"],["phase_2", "phase_2"],["phase_3", "phase_3"],["sum", "sum"]])
+                for(var i of [["monitor_ipAddr", "monitor_ipAddr"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 
                 document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
+                document.getElementsByName("phase_0")[0].innerHTML = "L1: " + obj["phase_0"]["power"].toFixed(2) + "W";
+                document.getElementsByName("phase_1")[0].innerHTML = "L2: " + obj["phase_1"]["power"].toFixed(2) + "W";
+                document.getElementsByName("phase_2")[0].innerHTML = "L3: " + obj["phase_2"]["power"].toFixed(2) + "W";
             }
 
             function parse(root) {

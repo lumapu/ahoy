@@ -30,9 +30,25 @@ class ZeroExport {
         }
     }
 
-    uint8_t sum(int a, int b, int c)
+    double sum()
     {
-        return a + b + c;
+        double val = mCfg->PHASE[0].power + mCfg->PHASE[1].power + mCfg->PHASE[2].power;
+        if (val > 0) {
+            return val;
+        } else {
+            float totalPower = 0;
+            Inverter<> *iv;
+            record_t<> *rec;
+            for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+                iv = mSys->getInverterByPos(i);
+                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                if (iv == NULL)
+                    continue;
+                totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+            }
+
+            return totalPower - val;
+        }
     }
 
     private:
@@ -43,12 +59,15 @@ class ZeroExport {
         char msgBuffer[256] = {'\0'};
 
         const String serverIp = "192.168.5.30";
+        static char msg[50];
 
         void loop() { }
         void zero() {
             sendReq(0);
             sendReq(1);
             sendReq(2);
+
+
         }
 
         // TODO: change int to u_short
@@ -72,7 +91,7 @@ class ZeroExport {
             String raw = getData();
             deserializeJson(json, raw);
 
-            DPRINTLN(DBG_INFO, raw);
+            //DPRINTLN(DBG_INFO, raw);
 
             mCfg->PHASE[index].power          = json[F("power")];
             mCfg->PHASE[index].pf             = json[F("pf")];

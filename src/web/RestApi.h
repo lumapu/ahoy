@@ -60,9 +60,9 @@ class RestApi {
         }
 
         void ctrlRequest(JsonObject obj) {
-            /*char out[128];
+            char out[128];
             serializeJson(obj, out, 128);
-            DPRINTLN(DBG_INFO, "RestApi: " + String(out));*/
+            DPRINTLN(DBG_INFO, "RestApi: " + String(out));
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
