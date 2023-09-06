@@ -224,7 +224,7 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
-            obj[F("sched_reboot")]    = (bool)mConfig->sys.schedReboot;
+            obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;

@@ -27,9 +27,11 @@ class DisplayMono128X64 : public DisplayMono {
                 case 1:
                     mDisplay = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
                     break;
-                default:
                 case 2:
                     mDisplay = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, reset, clock, data);
+                    break;
+                case 6:
+                    mDisplay = new U8G2_SSD1309_128X64_NONAME0_F_HW_I2C(rot, reset, clock, data);
                     break;
             }
 
@@ -52,10 +54,15 @@ class DisplayMono128X64 : public DisplayMono {
             mLuminance = lum;
         }
 
-        void loop(void) {
+        void loop(uint8_t lum) {
             if (mEnPowerSafe) {
                 if (mTimeout != 0)
                     mTimeout--;
+            }
+
+            if(mLuminance != lum) {
+                mLuminance = lum;
+                mDisplay->setContrast(mLuminance);
             }
         }
 

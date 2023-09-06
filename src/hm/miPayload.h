@@ -193,6 +193,8 @@ class MiPayload {
                 record_t<> *rec = iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
                 rec->ts = mPayload[iv->id].ts;
                 mPayload[iv->id].gotFragment = true;
+                if(mHighPrioIv == NULL)                          // process next request immediately if possible
+                    mHighPrioIv = iv;
 
 /*
  Polling the device software and hardware version number command
@@ -219,12 +221,13 @@ case InverterDevInform_All:
                     rec->assign  = (byteAssign_t *)InfoAssignment;
                     rec->pyldLen = HMINFO_PAYLOAD_LEN;
                     break;
+
 const byteAssign_t InfoAssignment[] = {
     { FLD_FW_VERSION,           UNIT_NONE,   CH0,  0, 2, 1 },
     { FLD_FW_BUILD_YEAR,        UNIT_NONE,   CH0,  2, 2, 1 },
     { FLD_FW_BUILD_MONTH_DAY,   UNIT_NONE,   CH0,  4, 2, 1 },
     { FLD_FW_BUILD_HOUR_MINUTE, UNIT_NONE,   CH0,  6, 2, 1 },
-    { FLD_HW_ID,                UNIT_NONE,   CH0,  8, 2, 1 }
+    { FLD_BOOTLOADER_VER,       UNIT_NONE,   CH0,  8, 2, 1 }
 };
 */
 
@@ -237,27 +240,48 @@ const byteAssign_t InfoAssignment[] = {
                     mPayload[iv->id].gotFragment = true;
                     if(mSerialDebug) {
                         DPRINT_IVID(DBG_INFO, iv->id);
-                    DPRINT(DBG_INFO,F("HW_VER is "));
-                    DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
+                        DPRINT(DBG_INFO,F("HW_VER is "));
+                        DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
                     }
+                    record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+                    rec->ts = mPayload[iv->id].ts;
+                    iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25])/1);
+                    //notify(InverterDevInform_All, iv);
+                    //28737
                 } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                     DPRINT_IVID(DBG_INFO, iv->id);
                     if ( p->packet[9] == 0x01 ) {
                         DBGPRINTLN(F("got 2nd frame (hw info)"));
-                    DPRINT(DBG_INFO,F("HW_PartNo "));
-                    DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
+                        /* according to xlsx (different start byte -1!)
+                        byte[11] to	 byte[14] HW_PN
+                        byte[15]	 byte[16] HW_FB_TLmValue
+                        byte[17]	 byte[18] HW_FB_ReSPRT
+                        byte[19]	 byte[20] HW_GridSamp_ResValule
+                        byte[21]	 byte[22] HW_ECapValue
+                        byte[23] to	 byte[26] Matching_APPFW_PN
+                    */
+
+                        DPRINT(DBG_INFO,F("HW_PartNo "));
+                        DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
                         mPayload[iv->id].gotFragment = true;
-                        iv->setValue(iv->getPosByChFld(0, FLD_YT, rec), rec, (float) ((p->packet[20] << 8) + p->packet[21])/1);
+                        record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+                        rec->ts = mPayload[iv->id].ts;
+                        iv->setValue(0, rec, (uint32_t) ((((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13])/1);
+
                         if(mSerialDebug) {
-                        DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
-                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
-                        DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
-                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
-                        DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
-                        DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                            DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
+                            DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                            DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
+                            DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                            DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
+                            DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
                             DPRINT(DBG_INFO,F("HW_ECapValue "));
                             DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
-                    }
+                            DPRINT(DBG_INFO,F("Matching_APPFW_PN "));
+                            DBGPRINTLN(String((uint32_t) (((p->packet[22] << 8) | p->packet[23]) << 8 | p->packet[24]) << 8 | p->packet[25]));
+                        }
+                        //notify(InverterDevInform_Simple, iv);
+                        notify(InverterDevInform_All, iv);
                     } else {
                         DBGPRINTLN(F("3rd gen. inverter!"));           // see table in OpenDTU code, DevInfoParser.cpp devInfo[]
                     }
@@ -265,6 +289,22 @@ const byteAssign_t InfoAssignment[] = {
                 } else if ( p->packet[9] == 0x12 ) {//3rd frame
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINTLN(F("got 3rd frame (hw info)"));
+                    /* according to xlsx (different start byte -1!)
+                        byte[11]	 byte[12] APPFW_MINVER
+                        byte[13]	 byte[14] HWInfoAddr
+                        byte[15]	 byte[16] PNInfoCRC_gusv
+                        byte[15]	 byte[16] PNInfoCRC_gusv
+                    */
+                    if(mSerialDebug) {
+                        DPRINT(DBG_INFO,F("APPFW_MINVER "));
+                        DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                        DPRINT(DBG_INFO,F("HWInfoAddr "));
+                        DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+                        DPRINT(DBG_INFO,F("PNInfoCRC_gusv "));
+                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                        DPRINT(DBG_INFO,F("PNInfoCRC_gusv (pt. 2?) "));
+                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                    }
                     iv->setQueuedCmdFinished();
                     mPayload[iv->id].complete = true;
                     mStat->rxSuccess++;
@@ -697,7 +737,7 @@ const byteAssign_t InfoAssignment[] = {
             uint8_t txCmd = mPayload[id].txCmd;
 
             if(!*complete) {
-                DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX));
+                DPRINTLN(DBG_VERBOSE, F("incomplete, txCmd is 0x") + String(txCmd, HEX));
                 //DBGHEXLN(txCmd);
                 if (txCmd == 0x09 || txCmd == 0x11 || (txCmd >= 0x36 && txCmd <= 0x39))
                     return false;
@@ -728,8 +768,8 @@ const byteAssign_t InfoAssignment[] = {
 */
 
         void reset(uint8_t id, bool clrSts = false) {
-            DPRINT_IVID(DBG_INFO, id);
-            DBGPRINTLN(F("resetPayload"));
+            //DPRINT_IVID(DBG_INFO, id);
+            //DBGPRINTLN(F("resetPayload"));
             memset(mPayload[id].len, 0, MAX_PAYLOAD_ENTRIES);
             mPayload[id].gotFragment = false;
             /*mPayload[id].maxPackId   = MAX_PAYLOAD_ENTRIES;

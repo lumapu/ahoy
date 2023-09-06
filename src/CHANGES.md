@@ -1,5 +1,22 @@
 # Development Changes
 
+## 0.7.46 - 2023-09-04
+* removed `delay` from ePaper
+* started improvements of `/system`
+* fix LEDs to check all configured inverters
+* send loop skip disabled inverters fix
+* print generated DTU SN to console
+* HW Versions for MI series PR #1133
+* 2.42" display (SSD1309) integration PR #1139
+* update user manual PR #1121
+* add / rename alarm codes PR #1118
+* revert default pin ESP32 for NRF23-CE #1132
+* luminance of display can be changed during runtime #1106
+
+## 0.7.45 - 2023-08-29
+* change ePaper text to symbols PR #1131
+* added some invertes to dev info list #1111
+
 ## 0.7.44 - 2023-08-28
 * fix `last_success` transmitted to often #1124
 

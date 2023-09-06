@@ -25,7 +25,7 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_BOOTLOADER_VER,
         FLD_ACT_ACTIVE_PWR_LIMIT, FLD_PART_NUM, FLD_HW_VERSION, FLD_GRID_PROFILE_CODE,
         FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP};
-        
+
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
         "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
@@ -259,20 +259,60 @@ typedef struct {
     uint16_t maxPower;
 } devInfo_t;
 
+// https://github.com/lumapu/ahoy/issues/1111
+// Hardware number:
+// 0xAABBCCDD
+//   ^^ ------- always 10 (for MI, HM, HMS, HMT)
+//     ^ ------ 0 = MI
+//              1 = HM
+//              1, 2 = HMS (version)
+//              3 = HMT
+//      ^ ----- 0 = 1 Input
+//              1 = 2 Inputs
+//              2 = 4 Inputs
+//              3 = 6 Inputs
+//       ^ ---- 0 = smallest with x inputs
+//              7 = biggest with x inputs
+
 const devInfo_t devInfo[] = {
+    // MI 2nd gen; only 0x001311 is tested,
+    //                  others (starting with MI-250) according to https://github.com/lumapu/ahoy/issues/1111#issuecomment-1698100571
+    { 0x000111,  250 },
+    { 0x000311,  300 },
+    { 0x000411,  350 },
+    { 0x001111,  500 },
+    { 0x001311,  600 },
+    { 0x001321,  600 },
+    { 0x001421,  700 },
+    { 0x001411,  700 },
+    { 0x002111, 1000 },
+    { 0x002311, 1200 },
+    { 0x002511, 1500 },
+    { 0x002411, 1500 },
+
     // MI 3rd gen
+    { 0x100000,  250 },
+    { 0x100010,  300 },
+    { 0x100020,  350 },
+    { 0x100030,  400 },
+    { 0x100100,  500 },
+    { 0x100110,  600 },
+    { 0x100120,  700 },
+    { 0x100130,  800 },
+    { 0x100200, 1000 },
+    { 0x100210, 1200 },
     { 0x100230, 1500 },
 
     // HM
     { 0x101010,  300 },
     { 0x101020,  350 },
     { 0x101030,  400 },
-    { 0x101040,  400 },
-    { 0x101110,  600 }, // [TSOL800(DE) ..20, HWv=??], [HM-600 ..20, HWv=2.66]
+    { 0x101110,  600 }, // [TSOL800(DE) ..20, HWv=2.66], [HM-600 ..20, HWv=2.66]
     { 0x101120,  700 },
     { 0x101130,  800 },
     { 0x101140,  800 },
-    { 0x101210, 1200 }, // ..00
+    { 0x101200, 1000 },
+    { 0x101210, 1200 },
     { 0x101230, 1500 },
 
     // HMS
@@ -281,18 +321,19 @@ const devInfo_t devInfo[] = {
     { 0x101051,  450 },
     { 0x101071,  500 },
     { 0x102111,  600 },
+    { 0x101120,  700 },
     { 0x102141,  800 },
     { 0x101151,  900 },
     { 0x102171, 1000 },
     { 0x102241, 1600 },
     { 0x101251, 1800 },
     { 0x102251, 1800 },
-    { 0x101271, 2000 }, // ..00
-    { 0x102271, 2000 },
+    { 0x101271, 2000 }, // v1 grey backplane, 14A
+    { 0x102271, 2000 }, // v2 black backplane, 16A
 
     // HMT
     { 0x103311, 1800 },
-    { 0x103331, 2250 }  // ..00
+    { 0x103331, 2250 }
 };
 
 #endif /*__HM_DEFINES_H__*/

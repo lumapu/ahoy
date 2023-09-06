@@ -68,7 +68,7 @@
         #define DEF_NRF_CS_PIN          5
     #endif
     #ifndef DEF_NRF_CE_PIN
-        #define DEF_NRF_CE_PIN          17
+        #define DEF_NRF_CE_PIN          4
     #endif
     #ifndef DEF_NRF_IRQ_PIN
         #define DEF_NRF_IRQ_PIN         16

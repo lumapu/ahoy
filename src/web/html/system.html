@@ -49,33 +49,47 @@
                 }
             }
 
+            function badge(success, text) {
+                return ml("span", {class: "badge badge-" + ((success) ? "success" : "error")}, text);
+            }
+
+            function headline(text) {
+                return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
+            }
+
+            function tr(val1, val2) {
+                if(typeof val2 == "number")
+                    val2 = String(val2);
+                return ml("tr", {}, [
+                    ml("th", {}, val1),
+                    ml("td", {}, val2)
+                ]);
+            }
+
             function parseRadio(obj, stat) {
                 const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
                 const datarate = ["1 MBps", "2 MBps", "250 kbps"];
 
-                var main = document.getElementById("radio");
-                var h = div(["head", "p-2"]);
-                var r = div(["row"]);
-                r.appendChild(div(["col", "a-c"], "Radio"));
-                h.appendChild(r);
-                main.appendChild(h);
+                document.getElementById("radio").append(
+                    headline("NRF Radio"),
+                    ml("table", {class: "table"}, [
+                        ml("tbody", {}, [
+                            tr("NRF24L01", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected")),
+                            tr("Power Level", pa[obj.power_level])
+                        ])
+                    ]),
 
-                main.appendChild(
-                    genTabRow("nrf24l01" + (obj["isPVariant"] ? "+ " : ""), (obj["isconnected"] ? "is connected " : "is not connected "))
-                );
-
-                if(obj["isconnected"]) {
-                    main.appendChild(genTabRow("Datarate", datarate[obj["DataRate"]]));
-                    main.appendChild(genTabRow("Power Level", pa[obj["power_level"]]));
-                }
-
-                main.append(
-                    genTabRow("TX count", stat["tx_cnt"]),
-                    genTabRow("RX success", stat["rx_success"]),
-                    genTabRow("RX fail", stat["rx_fail"]),
-                    genTabRow("RX no answer", stat["rx_fail_answer"]),
-                    genTabRow("RX fragments", stat["frame_cnt"]),
-                    genTabRow("TX retransmits", stat["retransmits"])
+                    headline("Statistics"),
+                    ml("table", {class: "table"}, [
+                        ml("tbody", {}, [
+                            tr("TX count", stat.tx_cnt),
+                            tr("RX success", stat.rx_success),
+                            tr("RX fail", stat.rx_fail),
+                            tr("RX no answer", stat.rx_fail_answer),
+                            tr("RX fragments", stat.frame_cnt),
+                            tr("TX retransmits", stat.retransmits)
+                        ])
+                    ])
                 );
             }
 

@@ -35,7 +35,7 @@ class Display {
             case 3: mMono = new DisplayMono84X48(); break;
             case 4: mMono = new DisplayMono128X32(); break;
             case 5: mMono = new DisplayMono64X48(); break;
-
+            case 6: mMono = new DisplayMono128X64(); break;
 #if defined(ESP32)
             case 10:
                 mMono = NULL;   // ePaper does not use this
@@ -59,13 +59,16 @@ class Display {
 
     void tickerSecond() {
         if (mMono != NULL)
-            mMono->loop();
+            mMono->loop(mCfg->contrast);
 
-        if (mNewPayload || ((++mLoopCnt % 10) == 0)) {
+        if (mNewPayload || (((++mLoopCnt) % 30) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
             DataScreen();
         }
+        #if defined(ESP32)
+            mEpaper.tickerSecond();
+        #endif
     }
 
    private:
@@ -102,13 +105,10 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-
             mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
             mRefreshCycle++;
         }
-#endif
 
-#if defined(ESP32)
         if (mRefreshCycle > 480) {
             mEpaper.fullRefresh();
             mRefreshCycle = 0;

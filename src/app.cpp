@@ -463,24 +463,26 @@ void app::tickSend(void) {
         int8_t maxLoop = MAX_NUM_INVERTERS;
         Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
         do {
-            mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
-            iv = mSys.getInverterByPos(mSendLastIvId);
-        } while ((NULL == iv) && ((maxLoop--) > 0));
+            do {
+                mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
+                iv = mSys.getInverterByPos(mSendLastIvId);
+            } while ((NULL == iv) && ((maxLoop--) > 0));
+        } while((!iv->config->enabled) && (maxLoop > 0));
 
         if (NULL != iv) {
             if (iv->config->enabled) {
                 if(mConfig->nrf.enabled) {
-                if (iv->ivGen == IV_HM)
-                    mPayload.ivSend(iv);
-                else if(iv->ivGen == IV_MI)
-                    mMiPayload.ivSend(iv);
-            }
-            #if defined(ESP32)
-            if(mConfig->cmt.enabled) {
-                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.ivSend(iv);
-            }
-            #endif
+                    if (iv->ivGen == IV_HM)
+                        mPayload.ivSend(iv);
+                    else if(iv->ivGen == IV_MI)
+                        mMiPayload.ivSend(iv);
+                }
+                #if defined(ESP32)
+                if(mConfig->cmt.enabled) {
+                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
+                        mHmsPayload.ivSend(iv);
+                }
+                #endif
             }
         }
     } else {
@@ -577,11 +579,11 @@ void app::mqttSubRxCb(JsonObject obj) {
 void app::setupLed(void) {
     uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
 
-    if (mConfig->led.led0 != 0xff) {
+    if (mConfig->led.led0 != DEF_PIN_OFF) {
         pinMode(mConfig->led.led0, OUTPUT);
         digitalWrite(mConfig->led.led0, led_off);
     }
-    if (mConfig->led.led1 != 0xff) {
+    if (mConfig->led.led1 != DEF_PIN_OFF) {
         pinMode(mConfig->led.led1, OUTPUT);
         digitalWrite(mConfig->led.led1, led_off);
     }
@@ -592,17 +594,23 @@ void app::updateLed(void) {
     uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
     uint8_t led_on = (mConfig->led.led_high_active) ? HIGH : LOW;
 
-    if (mConfig->led.led0 != 0xff) {
-        Inverter<> *iv = mSys.getInverterByPos(0);
-        if (NULL != iv) {
-            if (iv->isProducing())
-                digitalWrite(mConfig->led.led0, led_on);
-            else
-                digitalWrite(mConfig->led.led0, led_off);
+    if (mConfig->led.led0 != DEF_PIN_OFF) {
+        Inverter<> *iv;
+        for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
+            iv = mSys.getInverterByPos(id);
+            if (NULL != iv) {
+                if (iv->isProducing()) {
+                    // turn on when at least one inverter is producing
+                    digitalWrite(mConfig->led.led0, led_on);
+                    break;
+                }
+                else if(iv->config->enabled)
+                    digitalWrite(mConfig->led.led0, led_off);
+            }
         }
     }
 
-    if (mConfig->led.led1 != 0xff) {
+    if (mConfig->led.led1 != DEF_PIN_OFF) {
         if (getMqttIsConnected()) {
             digitalWrite(mConfig->led.led1, led_on);
         } else {
