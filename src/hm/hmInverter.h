@@ -711,15 +711,20 @@ class Inverter {
                 }
             } else if (!Retransmits || isNewTxChan()) {
                 // no complete receive for this send channel
-                if (mTestTxChanIndex == RF_TX_TEST_CHAN_1ST_USE) {
-                    // we want _QUALITY_OK at least: switch back to orig quality
-                    mTxChanQuality[mBestTxChanIndex] = mSaveOldTestChanQuality;
-                }
-                addTxChanQuality (RF_TX_CHAN_QUALITY_LOW);
-                if (mTestPeriodFailCnt < 0xff) {
-                    mTestPeriodFailCnt++;
-                }
-            }
+                if (rxFragments - lastRxFragments > 2) {
+                    // graceful evaluation for big inverters that have to send 4 answer packets
+                    addTxChanQuality (RF_TX_CHAN_QUALITY_OK);
+                } else if (rxFragments - lastRxFragments < 2) {
+                    if (mTestTxChanIndex == RF_TX_TEST_CHAN_1ST_USE) {
+                        // we want _QUALITY_OK at least: switch back to orig quality
+                        mTxChanQuality[mBestTxChanIndex] = mSaveOldTestChanQuality;
+                    }
+                    addTxChanQuality (RF_TX_CHAN_QUALITY_LOW);
+                    if (mTestPeriodFailCnt < 0xff) {
+                        mTestPeriodFailCnt++;
+                    }
+                } // else: _QUALITY_NEUTRAL, keep any test channel
+            } // else: dont overestimate burst distortion
             if (mTestTxChanIndex == RF_TX_TEST_CHAN_1ST_USE) {
                 // special evaluation of test channel only at the beginning of current test period
                 mTestTxChanIndex = mBestTxChanIndex;
