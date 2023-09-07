@@ -50,7 +50,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="serIntvl" pattern="[0-9]+" title="Invalid input"/></div>
+                            <div class="col-12 col-sm-9"><input type="number" name="serIntvl" title="Invalid input"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -267,7 +267,7 @@
                         </div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Topic</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[A-Za-z0-9./#$%&=+_-]+" title="Invalid input" /></div>
+                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
                         </div>
                         <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
                         <div class="row mb-3">
@@ -449,7 +449,7 @@
                 [1, "high active"],
             ];
 
-            const re = /1[1,3][2,4,6,8][1,2,4].*/;
+            const re = /1[0,1,3][2,4,6,8][1,2,4].*/;
 
             window.onload = function() {
                 for(it of document.getElementsByClassName("s_collapsible")) {
@@ -576,7 +576,8 @@
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
 
-                var addr = inp(id + "Addr", obj["serial"], 12, ["text"], null, "text", "[0-9]+", "Invalid input");
+                var addr = ml("input", {name: id + "Addr", class: "text", type: "number", max: 138999999999, value: obj["serial"]}, null);
+
                 iv.append(
                     mlCb(id + "Enable", "Communication Enable", obj["enabled"]),
                     mlE("Serial Number (12 digits)*", addr)
@@ -599,6 +600,7 @@
                             if((serial.charAt(1) == 0) || (serial.charAt(1) == 1) || (serial.charAt(1) == 3)) {
                                 if((serial.charAt(3) == 1) || (serial.charAt(3) == 2) || (serial.charAt(3) == 4)) {
                                     switch(serial.charAt(2)) {
+                                        default:
                                         case "2": max = 1; break;
                                         case "4": max = 2; break;
                                         case "6": max = 4; break;
@@ -621,12 +623,12 @@
                     })
                 });
 
-                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[A-Za-z0-9./#$%&=+_-]+", "Invalid input")));
+                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[\\-\\+A-Za-z0-9.\\/#$%&=_]+", "Invalid input")));
 
                 for(var j of [
                     ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
                     ["ModName", "ch_name", "Module Name", 15, null],
-                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[0-9-\.]+"]]) {
+                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[\\-0-9\.]+"]]) {
 
                     var cl = (re.test(obj["serial"])) ? "" : " hide";
 
@@ -799,7 +801,7 @@
                         ml("div", {class: "col-4 col-sm-9"}, en)
                     ])
                 );
-                pins = [['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['irq', 'pinGpio3']];
+                pins = [['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['gpio3', 'pinGpio3']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
