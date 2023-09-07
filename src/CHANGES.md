@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.47 - 2023-09-07
+* fix boot loop #1140
+
 ## 0.7.46 - 2023-09-04
 * removed `delay` from ePaper
 * started improvements of `/system`

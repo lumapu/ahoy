@@ -126,16 +126,13 @@
                         icon = iconWarn;
                         cl = "icon-warn";
                         avail = "disabled";
-                    }
-                    else if(false == i["is_avail"]) {
+                    } else if(false == i["is_avail"]) {
                         icon = iconInfo;
                         cl = "icon-info";
                         avail = "not yet available";
-                    }
-                    else if(0 == i["ts_last_success"]) {
+                    } else if(0 == i["ts_last_success"]) {
                         avail = "available but no data was received until now";
-                    }
-                    else {
+                    } else {
                         avail = "available and is ";
                         if(false == i["is_producing"])
                             avail += "not ";
