@@ -28,5 +28,5 @@ def applyPatch(libName, patchFile):
 # list of patches to apply (relative to /src)
 applyPatch("ESP Async WebServer", "../patches/AsyncWeb_Prometheus.patch")
 
-if env['PIOENV'] == "opendtufusionv1":
+if env['PIOENV'] == "opendtufusion":
     applyPatch("GxEPD2", "../patches/GxEPD2_SW_SPI.patch")
