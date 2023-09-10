@@ -343,7 +343,6 @@
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
-            var highestId = 0;
             var maxInv = 0;
             var ts = 0;
 
@@ -470,9 +469,7 @@
             }
 
             document.getElementById("btnAdd").addEventListener("click", function() {
-                if(highestId <= (maxInv-1)) {
-                    ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":6,"ch_max_pwr":[0,0,0,0,0,0],"ch_name":["","","","","",""],"ch_yield_cor":[0,0,0,0,0,0]}'), highestId);
-                }
+                ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":6,"ch_max_pwr":[0,0,0,0,0,0],"ch_name":["","","","","",""],"ch_yield_cor":[0,0,0,0,0,0]}'));
             });
 
             function apiCbWifi(obj) {
@@ -542,12 +539,8 @@
             }
 
             function delIv() {
-                var id = this.id.substring(0,4);
-                var e = document.getElementsByName(id + "Addr")[0];
-                e.value = "";
-                e.dispatchEvent(new Event("keyup"));
-                e.dispatchEvent(new Event("change"));
-                document.getElementsByName(id + "Name")[0].value = "";
+                var id = this.id.substring(0, this.id.length-3);
+                document.getElementById(id).remove();
             }
 
             function mlCb(id, des, chk=false) {
@@ -567,12 +560,25 @@
                 ]);
             }
 
-            function ivHtml(obj, id) {
-                highestId = id + 1;
-                if(highestId == maxInv)
-                    setHide("btnAdd", true);
+            function getFreeId() {
+                var id = 0;
+                while(id < maxInv) {
+                    if(null == document.getElementById("inv" + id))
+                        return id;
+                    id++;
+                }
+                return null;
+            }
 
-                var iv = document.getElementById("inverter");
+            function ivHtml(obj) {
+                var id = getFreeId();
+                if(null == id) {
+                    setHide("btnAdd", true);
+                    return;
+                }
+
+                var iv = ml("div", {id: "inv" + id}, null);
+                document.getElementById("inverter").appendChild(iv);
                 iv.appendChild(des("Inverter " + id));
                 id = "inv" + id;
 
@@ -651,7 +657,7 @@
                     );
                 }
 
-                var del = inp(id+"del", "X", 0, ["btn", "btnDel"], id+"del", "button");
+                var del = ml("input", {class: "btn btnDel", type: "button", id: id+"del", value: "X"}, null);
                 del.addEventListener("click", delIv);
                 iv.append(mlE("Delete", del));
             }
@@ -699,10 +705,10 @@
             }
 
             function parseIv(obj) {
-                for(var i = 0; i < obj.inverter.length; i++)
-                    ivHtml(obj.inverter[i], i);
-                ivGlob(obj);
                 maxInv = obj["max_num_inverters"];
+                for(var i = 0; i < obj.inverter.length; i++)
+                    ivHtml(obj.inverter[i]);
+                ivGlob(obj);
             }
 
             function parseMqtt(obj) {
@@ -881,7 +887,8 @@
                     [2, [1,1,0,0,0,0]], //SH1106_128X64
                     [3, [1,1,1,1,0,0]], //PCD8544_84X48 /nokia5110
                     [4, [1,1,0,0,0,0]], //SSD1306_128X32
-                    [5, [1,1,0,0,0,0]], //SSD1306_64X48
+                    [5, [1,1,0,0,0,0]], //SSD1306_128x64
+                    [6, [1,1,0,0,0,0]], //SSD1309_128x64
                     [10, [1,1,1,1,1,1]] //ePaper
                 ])
                 for(var i = 0; i < pins.length; i++) {

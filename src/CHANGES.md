@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.48 - 2023-09-10
+* fix SSD1309 2.42" display pinout
+* improved setup page: save and delete of inverters
+
 ## 0.7.47 - 2023-09-07
 * fix boot loop #1140
 * fix regex in `setup` page
