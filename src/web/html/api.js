@@ -132,11 +132,12 @@ function toIsoTimeStr(d) { // UTC!
 
 function setHide(id, hide) {
     var elm = document.getElementById(id);
+    if(null == elm)
+        return;
     if(hide) {
         if(!elm.classList.contains("hide"))
             elm.classList.add("hide");
-    }
-    else
+    } else
         elm.classList.remove('hide');
 }
 

@@ -94,7 +94,7 @@ def readVersion(path, infile):
     os.rename(src, dst)
 
     versionout = version[:-1] + "_" + sha + "_esp32s3.bin"
-    src = path + ".pio/build/opendtufusionv1/firmware.bin"
+    src = path + ".pio/build/opendtufusion/firmware.bin"
     dst = path + "firmware/ESP32-S3/" + versionout
     os.rename(src, dst)
 
@@ -113,7 +113,7 @@ def readVersion(path, infile):
     genOtaBin(dst)
 
     # other ESP32-S3 bin files
-    src = path + ".pio/build/opendtufusionv1/"
+    src = path + ".pio/build/opendtufusion/"
     dst = path + "firmware/ESP32-S3/"
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")

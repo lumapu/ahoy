@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.47 - 2023-09-07
+* fix boot loop #1140
+* fix regex in `setup` page
+* fix MI serial number display `max-module-power` in `setup` #1142
+* renamed `opendtufusionv1` to `opendtufusion`
+
 ## 0.7.46 - 2023-09-04
 * removed `delay` from ePaper
 * started improvements of `/system`

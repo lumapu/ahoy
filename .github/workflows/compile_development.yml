@@ -47,10 +47,10 @@ jobs:
       run: python convert.py
 
     - name: Run PlatformIO
-      run: pio run -d src --environment esp8266 --environment esp8266-prometheus --environment esp8285 --environment esp32-wroom32 --environment esp32-wroom32-prometheus --environment esp32-wroom32-ethernet --environment esp32-s2-mini --environment opendtufusionv1
+      run: pio run -d src --environment esp8266 --environment esp8266-prometheus --environment esp8285 --environment esp32-wroom32 --environment esp32-wroom32-prometheus --environment esp32-wroom32-ethernet --environment esp32-s2-mini --environment opendtufusion
 
     - name: Copy boot_app0.bin
-      run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusionv1/ota.bin
+      run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
     - name: Rename Binary files
       id: rename-binary-files

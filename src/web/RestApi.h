@@ -493,7 +493,7 @@ class RestApi {
         void getRadioCmt(JsonObject obj) {
             obj[F("csb")]  = mConfig->cmt.pinCsb;
             obj[F("fcsb")] = mConfig->cmt.pinFcsb;
-            obj[F("irq")]  = mConfig->cmt.pinIrq;
+            obj[F("gpio3")]  = mConfig->cmt.pinIrq;
             obj[F("en")]   = (bool) mConfig->cmt.enabled;
         }
 
