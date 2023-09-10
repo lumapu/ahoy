@@ -115,7 +115,7 @@ void app::setup() {
 
     // Plugins
     if (mConfig->plugin.display.type != 0)
-        mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, mVersion);
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mTimestamp);
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 

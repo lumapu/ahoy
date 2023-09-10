@@ -96,15 +96,15 @@ class MiPayload {
                         } else {
                             mStat->rxFail++;        // got "fragments" (part of the required messages)
                                                     // but no complete set of responses
-                        if (mSerialDebug) {
+                            if (mSerialDebug) {
                                 DBGPRINT(F("no complete Payload received! (retransmits: "));
-                            DBGPRINT(String(mPayload[iv->id].retransmits));
-                            DBGPRINTLN(F(")"));
+                                DBGPRINT(String(mPayload[iv->id].retransmits));
+                                DBGPRINTLN(F(")"));
+                            }
                         }
-                    }
                         iv->setQueuedCmdFinished(); // command failed
+                    }
                 }
-            }
             }
 
             reset(iv->id);

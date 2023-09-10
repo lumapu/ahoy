@@ -46,9 +46,9 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     }
 }
 
-void DisplayEPaper::config(uint8_t rotation, bool enPowerSafe) {
+void DisplayEPaper::config(uint8_t rotation, bool enPowerSave) {
     mDisplayRotation = rotation;
-    mEnPowerSafe = enPowerSafe;
+    mEnPowerSave = enPowerSave;
 }
 
 //***************************************************************************
@@ -209,7 +209,7 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
         } else
             snprintf(_fmtText, sizeof(_fmtText), "offline");
 
-        if ((totalPower == 0) && (mEnPowerSafe)) {
+        if ((totalPower == 0) && (mEnPowerSave)) {
             _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
         } else {
@@ -291,7 +291,7 @@ void DisplayEPaper::loop(float totalPower, float totalYieldDay, float totalYield
     if ((isprod > 0) && (_changed)) {
         _changed = false;
         lastUpdatePaged();
-    } else if ((0 == totalPower) && (mEnPowerSafe))
+    } else if ((0 == totalPower) && (mEnPowerSave))
         offlineFooter();
 
     _display->powerOff();

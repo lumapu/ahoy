@@ -272,8 +272,8 @@ class HmRadio {
                             isLastPackage = true;                       // response from dev control command
                     }
                 }
-                    yield();
-                }
+                yield();
+            }
             return isLastPackage;
         }
 
