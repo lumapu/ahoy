@@ -47,17 +47,21 @@ class DisplayMono84X48 : public DisplayMono {
         }
 
         void disp(void) {
-            // Test
+            mDisplay->clearBuffer();
+
+            // Layout-Test
             /*
-            mDisplayData->nrSleeping = 10;
-            mDisplayData->nrProducing = 10;
+            mDisplayData->nrSleeping = 0;
+            mDisplayData->nrProducing = 1;
             mDisplayData->totalPower = 12345.67;
             mDisplayData->totalYieldDay = 12345.67;
             mDisplayData->totalYieldTotal = 1234;
             mDisplayData->utcTs += 1000000;
+            mDisplay->drawPixel(0, 0);
+            mDisplay->drawPixel(mDispWidth-1, 0);
+            mDisplay->drawPixel(0, mDispHeight-1);
+            mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
             */
-
-            mDisplay->clearBuffer();
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
@@ -91,14 +95,15 @@ class DisplayMono84X48 : public DisplayMono {
             }
             // print status of inverters
             else {
-                if (0 == mDisplayData->nrSleeping)
+                if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                else if (0 == mDisplayData->nrSleeping)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");
                 else if (0 == mDisplayData->nrProducing)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d\x86 %d\x87", mDisplayData->nrProducing, mDisplayData->nrSleeping);
-                setLineFont(l_Status);
-                printText(mFmtText, l_Status, (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2);
+                printText(mFmtText, l_Status, 0xff);
             }
 
             // print yields
