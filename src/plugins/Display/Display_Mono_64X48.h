@@ -52,7 +52,7 @@ class DisplayMono64X48 : public DisplayMono {
             // set Contrast of the Display to raise the lifetime
             mDisplay->setContrast(mLuminance);
 
-            if ((mDisplayData->totalPower > 0) && (mDisplayData->isProducing > 0)) {
+            if ((mDisplayData->totalPower > 0) && (mDisplayData->nrProducing > 0)) {
                 mTimeout = DISP_DEFAULT_TIMEOUT;
                 mDisplay->setPowerSave(false);
 
@@ -79,7 +79,7 @@ class DisplayMono64X48 : public DisplayMono {
             if (!(mExtra % 10) && (ip))
                 printText(ip.toString().c_str(), 3);
             else if (!(mExtra % 5)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "active Inv: %d", mDisplayData->isProducing);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "active Inv: %d", mDisplayData->nrProducing);
                 printText(mFmtText, 3);
             } else if (0 != mDisplayData->utcTs)
                 printText(ah::getTimeStr(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), 3);
@@ -102,11 +102,11 @@ class DisplayMono64X48 : public DisplayMono {
         inline void setFont(uint8_t line) {
             switch (line) {
                 case 0:
-                    mDisplay->setFont(u8g2_font_fur11_tf);
+                    mDisplay->setFont(u8g2_font_fur11_tr);
                     break;
                 case 1:
                 case 2:
-                    mDisplay->setFont(u8g2_font_6x10_tf);
+                    mDisplay->setFont(u8g2_font_6x10_tr);
                     break;
                 case 3:
                     mDisplay->setFont(u8g2_font_4x6_tr);

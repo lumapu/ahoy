@@ -1,0 +1,117 @@
+date/time         : 2023-08-16, 18:26:15, 482ms
+computer name     : ADAM
+user name         : Mandi
+registered owner  : Mandi
+operating system  : Windows NT New x64 build 9200
+system language   : German
+system up time    : 5 days 11 hours
+program up time   : 53 seconds
+processors        : 4x Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+physical memory   : 2590/8076 MB (free/total)
+free disk space   : (C:) 8,68 GB
+display mode      : 1920x1080, 32 bit
+process id        : $2594
+allocated memory  : 89,69 MB
+executable        : Fony.exe
+exec. date/time   : 2013-07-26 14:53
+version           : 1.4.4.0
+compiled with     : Delphi 2010
+madExcept version : 3.0l
+Fony.exe.mad      : $00027f1c, $5ec042fa, $52ce3375
+callstack crc     : $995e12b8, $c17583ff, $c17583ff
+count             : 3
+exception number  : 1
+exception class   : EStringListError
+exception message : List index out of bounds (22851).
+
+main thread ($47fc):
+0048fd79 +01d Fony.exe     segment%32  public%3422
+00699a7c +190 Fony.exe     segment%226 public%14304
+004983d3 +00f Fony.exe     segment%32  public%3750
+00527ae5 +031 Fony.exe     segment%66  public%6729
+00528830 +050 Fony.exe     segment%66  public%6787
+00498297 +013 Fony.exe     segment%32  public%3739
+0056db61 +085 Fony.exe     segment%83  public%8192
+00580ea9 +015 Fony.exe     segment%85  public%8649
+0056da66 +0b2 Fony.exe     segment%83  public%8190
+00498a80 +014 Fony.exe     segment%32  public%3772
+771d5bfb +00b user32.dll               DispatchMessageW
+0053b85d +11d Fony.exe     segment%67  public%7204
+0053b8a2 +00a Fony.exe     segment%67  public%7206
+0053bbcd +0c9 Fony.exe     segment%67  public%7211
+006a9d16 +136 Fony.exe     segment%349 public%14518
+754100c7 +017 KERNEL32.DLL             BaseThreadInitThunk
+
+thread $15f8:
+76288e83 +93 KERNELBASE.dll  WaitForSingleObjectEx
+76288c62 +92 KERNELBASE.dll  GetOverlappedResult
+754100c7 +17 KERNEL32.DLL    BaseThreadInitThunk
+
+thread $2fc0:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $3d8:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $49fc:
+76292fed +fd KERNELBASE.dll            WaitForMultipleObjectsEx
+0045f435 +0d Fony.exe       segment%23 public%2294
+0045f49f +37 Fony.exe       segment%23 public%2295
+754100c7 +17 KERNEL32.DLL              BaseThreadInitThunk
+>> created by main thread ($47fc) at:
+76670ef1 +00 combase.dll
+
+thread $3628:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2ad8:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $130c:
+0045f435 +0d Fony.exe     segment%23 public%2294
+0045f49f +37 Fony.exe     segment%23 public%2295
+754100c7 +17 KERNEL32.DLL            BaseThreadInitThunk
+>> created by main thread ($47fc) at:
+76670ef1 +00 combase.dll
+
+thread $2ef8:
+771dc517 +47 user32.dll              MsgWaitForMultipleObjectsEx
+0045f435 +0d Fony.exe     segment%23 public%2294
+0045f49f +37 Fony.exe     segment%23 public%2295
+754100c7 +17 KERNEL32.DLL            BaseThreadInitThunk
+>> created by thread $2fc0 at:
+7647c623 +00 shcore.dll
+
+thread $2888:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $342c:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $313c:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2cb4:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $940:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $2824:
+762b28cd +3d KERNELBASE.dll  ConnectNamedPipe
+754100c7 +17 KERNEL32.DLL    BaseThreadInitThunk
+
+thread $1f7c:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $f90:
+754100c7 +17 KERNEL32.DLL  BaseThreadInitThunk
+
+thread $588:
+76292fed +fd KERNELBASE.dll            WaitForMultipleObjectsEx
+0045f435 +0d Fony.exe       segment%23 public%2294
+0045f49f +37 Fony.exe       segment%23 public%2295
+754100c7 +17 KERNEL32.DLL              BaseThreadInitThunk
+>> created by thread $130c at:
+76670ef1 +00 combase.dll
+

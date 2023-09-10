@@ -1,0 +1,187 @@
+﻿Latest changes:
+-----------------------------------------------------------------------------
+1.4.7 (2013-07-26)
+
+ * Fixed pasting glyph images from clipboard (glyphs were stretched).
+ * Added setting to change the default contents of the font preview box.
+ * Added button to the font preview box to revert to the default contents.
+ * The text contents of the font preview box is now remembered.
+-----------------------------------------------------------------------------
+1.4.6 (2012-12-02)
+
+ * Fixed Amiga bitmap font import.
+-----------------------------------------------------------------------------
+1.4.5 (2012-01-31)
+
+ * TTF Import now sports a progress bar, improved baseline detection and
+   improved import speed.
+-----------------------------------------------------------------------------
+1.4.4 (2012-01-27)
+
+ * Fixed BDF export, which was broken due to compiler upgrade.
+ * Updated version resource.
+-----------------------------------------------------------------------------
+1.4.3 (2011-11-18)
+
+ * Fixed a bug introduced in 1.4.1.0a where font file handling did not work
+   correctly in some locales, rendering Fony unusable.
+ * Corrected tabbing order in confirmation dialogs.
+-----------------------------------------------------------------------------
+1.4.2 (2011-09-27)
+
+ * Font Properties shows the point size of the font.
+ * Got rid of "undo storage not initialized" errors.
+ * Updated Russian and Finnish translations. (Thanks aleks)
+ * GUI maintenance, fixed web URLs to point to the new site at hukka.ncn.fi.
+-----------------------------------------------------------------------------
+1.4.1.0b (2010-04-13)
+
+ * Fixed the drawing tools broken in previous release.
+ * Small UI fixes.
+ * Quick fix for language translations.
+
+ WARNINGS:
+ * Undo/redo might have some bugs left.
+ * There may be some unknown bugs introduced due to compiler upgrade.
+-----------------------------------------------------------------------------
+1.4.1.0a (2010-04-11)
+
+ * Multi-level undo/redo.
+ * Fixed binary data export.
+ * Small performance/overall improvements.
+ * Internal changes.
+ * Upgraded to Delphi 2010.
+-----------------------------------------------------------------------------
+test 2009-11-05
+
+ * Raw binary data export.
+ * Fixed Bitmap Font Writer import, which had mysteriously ceased working
+   at some point, plus added ability to import 'invalid' BFW fonts.
+ * Possibly some tweaks and fixes, I'm not sure.
+-----------------------------------------------------------------------------
+1.4.0.2 (2009-05-29)
+
+ BUG FIXES:
+ * Pasting a small glyph into a larger one works properly now.
+ * Fony won't modify glyph sizes when pasting if the font is monospaced now.
+ * "Reset glyph" didn't reset the value in the glyph width edit box.
+ * Fixed wrapping in font preview box.
+-----------------------------------------------------------------------------
+1.4.0.1 (2009-05-17)
+
+ IMPROVEMENTS:
+ * Back to a more sensible version scheme.
+ * Preview window settings are now saved.
+ * Japanese and Russian translations updated.
+
+ BUG FIXES:
+ * Arrow keys in font preview memo would also browse glyphs.
+-----------------------------------------------------------------------------
+1.4.0 beta (2009-05-07)
+
+ IMPROVEMENTS:
+ * User interface revamp - now most things are dockable toolbars.
+   (Customizable, too - see View->Customize Toolbars.)
+ * Glyph selector has a context menu now.
+
+ BUG FIXES:
+ * "Open Installed Font" didn't display FNT files.
+ * Some Unicode strings were not being displayed properly in status bar.
+ * Saving to Windows' Fonts folder didn't install the font properly.
+ * "View->Square Pixels" setting wasn't saved.
+ * "Left mouse toggles pixel" was broken with previous update.
+-----------------------------------------------------------------------------
+1.4.0 alpha:
+
+2009-04-26:
+ * Finally found and fixed the tiny (and stupid) but fatal bug which caused
+   Fony to calculate invalid offsets for the FON header, causing havoc with
+   large font files.
+ * BDF Export dialog with the option to export glyphs without trimming off
+   padding from glyph edges, to get around faulty bounding box calculations
+   of some programs.
+ * BDF Import asks whether to preserve or crop glyphs with invalid width.
+ * Exporting a bitmap in Bitmap Font Writer format ignored range settings.
+ * Importing a TTF font made buttons in confirmation dialogs use said font.
+ * "Install font" should now install font permanently (on XP and below).
+ * Glyph ranges can now also be selected with the middle mouse button.
+ * Made the brush alpha-blended for a nicer look.
+ * Small improvements, nicer easter egg(?)
+
+2009-02-13:
+ * Made it possible to select a range of glyphs by depressing Shift while
+   clicking on the glyph list bar. Effects such as Invert, Mirror, Boldify
+   now apply to the range of glyphs selected, if applicable. If no range is
+   selected, they apply to either the current glyph or the whole font,
+   depending on whether Shift is pressed.
+   Works with copy/paste too, but not much error checking yet.
+
+2009-01-13:
+ * test/Fony.exe: Opening the Properties dialog for a font with multiple
+   VarFileInfo (or any other) blocks no longer results in a crash.
+
+2009-01-05:
+ * test/Fony.exe: Improvements to BDF importing
+
+2008-10-22:
+ * Line tool now too supports larger than 1 pixel brushes.
+ * Custom mouse cursors for the editor window. Hope they don't suck too much?
+ * "Boldify font" could set font width wrong on monospaced fonts.
+ * There was no way to convert a monospaced font to a variable pitch one
+   without accepting the "Crop Width" dialog.
+ * Fixed a graphical glitch with the brush after resizing glyph/font.
+ * Added links to Fony website and forum on the Help menu.
+
+2008-10-18:
+ * Finally implemented brushes bigger than 1px! (Not for the Line tool, yet.)
+ * Brush follows mouse. (Will be made optional later.)
+ * Custom bitmap importer: you can now import by either text color or
+   background color (anything in chosen color is text vs. anything in
+   chosen color is background).
+ * Fixed behaviour of Escape button in question/confirmation dialogs (it
+   triggered Yes/OK instead of Cancel).
+
+2008-10-17:
+ * "Boldify font" feature (remember to set font properties after using it)
+ * Further improved custom bitmap importer: pan the image by holding down
+   the middle mouse button; right-click to pick text color; displays glyph
+   bounds; made the dialog resizable and non-modal so you can modify the
+   glyphs while working; selection height was off by one pixel; zooming
+   centers in on selection; bounds checking.
+
+2008-10-16:
+ * Custom bitmap import; grab glyphs from any image with some text written in
+   a fixed-width font. (Create or load a fixed-width font before importing
+   and set its size to the size of the font in the image. Should be simple to
+   understand. Threshold is for use when all pixels of the text are not the
+   same exact color; good for JPEGs and such. Arrow keys fine tune position.)
+
+2008-05-27:
+ * View menu is now functional.
+ * Fixed tab order in some dialogs.
+
+2008-05-23:
+ * Oops, changes to Module name and Description strings were ignored.
+-----------------------------------------------------------------------------
+Changes since 1.3.6: (2008-05-22)
+
+ ADDITIONS:
+ * Preliminary support for Version resources in FON.
+ * Install/uninstall font.
+ * Proper font cropping (Edit -> Crop Width).
+ * Drag'n'drop support.
+ * "Use old method to save Win3.x FNT files" for possibly(?) better
+   compatibility. (Win2.x format is always saved using this method.)
+
+ IMPROVEMENTS:
+ * Hugely improved FNT/FON output; Windows 9x and Softy shouldn't choke on
+   Fony-generated fonts anymore.
+ * Moved glyph selector from editor window to main window.
+ * Uses proper dialog font on Windows 9x.
+ * Other user interface and cosmetics enhancements.
+
+ BUG FIXES:
+ * Only first font resource was saved in FON.
+ * After a "Save As" to FNT, subsequent saves still saved as FON.
+ * Font charset combobox always defaulted to "Other:".
+--------------------------------------------------------------------------EOF

@@ -1,0 +1,16 @@
+Display_Mono_64x48:
+	u8g2_font_fur11_tr
+	u8g2_font_6x10_tf
+	u8g2_font_4x6_tr
+
+Display_Mono_128x32:
+	u8g2_font_9x15_tr
+	u8g2_font_tom_thumb_4x6_tr
+
+Display_Mono_84x48:
+	u8g2_font_5x8_symbols_ahoy
+	u8g2_font_logisoso16_tr
+
+Display_Mono_128x64:
+	u8g2_font_ncenB08_symbols8_ahoy
+	u8g2_font_ncenB10_symbols10_ahoy

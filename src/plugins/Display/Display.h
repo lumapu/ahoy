@@ -66,7 +66,7 @@ class Display {
         if (mMono != NULL)
             mMono->loop(mCfg->contrast);
 
-        if (mNewPayload || (((++mLoopCnt) % 30) == 0)) {
+        if (mNewPayload || (((++mLoopCnt) % 10) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
             DataScreen();
@@ -85,7 +85,8 @@ class Display {
         float totalYieldDay = 0;
         float totalYieldTotal = 0;
 
-        uint8_t isprod = 0;
+        uint8_t nrprod = 0;
+        uint8_t nrsleep = 0;
 
         Inverter<> *iv;
         record_t<> *rec;
@@ -96,7 +97,9 @@ class Display {
                 continue;
 
             if (iv->isProducing())
-                isprod++;
+                nrprod++;
+            else
+                nrsleep++;
 
             totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
             totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
@@ -104,13 +107,16 @@ class Display {
         }
 
         // prepare display data
-        mDisplayData.isProducing = isprod;
+        mDisplayData.nrProducing = nrprod;
+        mDisplayData.nrSleeping = nrsleep;
         mDisplayData.totalPower = totalPower;
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
         mDisplayData.RadioSymbol = mHmRadio->isChipConnected();
-        mDisplayData.wifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
-        mDisplayData.WiFiSymbol = (WiFi.status() == WL_CONNECTED);
+        mDisplayData.WifiSymbol = (WiFi.status() == WL_CONNECTED);
+        mDisplayData.MQTTSymbol = mApp->getMqttIsConnected();
+        mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? 0 : SCHAR_MIN;  // Workaround as NRF24 has no RSSI. Could be approximated by transmisson error heuristic in the future
+        mDisplayData.WifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
         mDisplayData.ipAddress = WiFi.localIP();
         time_t utc= mApp->getTimestamp();
         if (year(utc) > 2020)
@@ -123,7 +129,7 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-            mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, isprod);
+            mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
 

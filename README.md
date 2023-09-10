@@ -22,6 +22,28 @@ This work is licensed under a
 
 This repository offers hardware and software solutions for communicating with Hoymiles inverters via radio. With our system, you can easily obtain real-time values such as power, current, and daily energy. Additionally, you can set parameters like the power limit of your inverter to achieve zero export. You can access these functionalities through our user-friendly web interface, MQTT, or JSON. Whether you're monitoring your solar panel system's performance or fine-tuning its settings, our solutions make it easy to achieve your goals.
 
+This fork aims to improve the display layouts of several low-res displays, starting with the Nokia5110.
+
+Current status of progress:
+- improved layout with additional fixed headline for day of week, date and time, and centered text (already merged in lumapu >=0.7.34)
+- improved 5x8 pixel font (some glyphes like dot and zero were deformed) and enhanced by ahoy specific symbols
+- added sun and moon symbols with values that show number of producing and sleeping inverters (working)
+- added calender and sigma symbols for YieldDay and YieldTotal
+- added symbol for WiFi and MQTT that indicates WiFi and MQTT connection status (working)
+- added RSSI bar for WiFi (working)
+- added symbol für NRF24 that indicates if radio board is connected (working)
+- added RSSI bar for NRF24 (basically working but currently only fed by inverter status due to missing RSSI value of NRF24. This should be improved in the future by using transition package heuristics)
+
+![alt text](https://github.com/You69Man/ahoy/blob/feature/fancy_nokia/pics/PXL_20230824_204200660.jpg?raw=true)
+
+
+There is also already a working implementation for OLED 128x64, with a bit of a higher font and symbol resolution.
+The reason why this is not published at the moment is that OLEDs tend to quickly burn-in. Moving the screen content is no option for this layout because the layout is very well optimized and so pixels would quickly move off-screen. The only option would be to limit the on-time of the display by a means to activate it, e.g. a button or a sensor. This however would require a free GPIO pin, which are already rare on EPS8266... Other Ideas welcome!
+
+![alt text](https://github.com/You69Man/ahoy/blob/feature/fancy_nokia/pics/PXL_20230901_061927908.jpg?raw=true)
+
+
+
 Table of approaches:
 
 | Board  | MI | HM | HMS/HMT | comment | HowTo start |
