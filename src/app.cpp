@@ -462,12 +462,15 @@ void app::tickSend(void) {
 
         int8_t maxLoop = MAX_NUM_INVERTERS;
         Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
-        do {
+        while(maxLoop > 0) {
             do {
                 mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
                 iv = mSys.getInverterByPos(mSendLastIvId);
             } while ((NULL == iv) && ((maxLoop--) > 0));
-        } while((!iv->config->enabled) && (maxLoop > 0));
+            if(NULL != iv)
+                if(iv->config->enabled)
+                    break;
+        }
 
         if (NULL != iv) {
             if (iv->config->enabled) {
