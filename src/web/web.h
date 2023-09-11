@@ -800,16 +800,31 @@ class Web {
                                             // This is the correct field to report
                                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
                                             // Declare metric only once
-                                            if (!metricDeclared) {
+                                            if (channel != 0 && !metricDeclared) {
                                                 snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
                                                 metrics += type;
                                                 metricDeclared = true;
                                             }
                                             // report value
                                             if (0 == channel) {
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                                                char total[7];
+                                                total[0] = 0;
+                                                if (metricDeclared) {
+                                                    // A declaration and value for channels has been delivered. So declare and deliver a _total metric
+                                                    strncpy(total,"_total",sizeof(total));
+                                                }
+                                                snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                metrics += type;
+                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                                                // Use a fallback channel name (ch0, ch1, ...)if non is given by user
+                                                char chName[MAX_NAME_LENGTH];
+                                                if (iv->config->chName[channel-1][0] != 0) {
+                                                    strncpy(chName, iv->config->chName[channel-1], sizeof(chName));
+                                                } else {
+                                                    snprintf(chName,sizeof(chName),"ch%1d",channel);
+                                                }
+                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
                                             snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;
