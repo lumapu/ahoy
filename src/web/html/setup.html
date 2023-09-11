@@ -35,10 +35,10 @@
 
                         <p class="des">Radio (NRF24L01+)</p>
                         <div id="rf24"></div>
-
+                        <!--IF_ESP32-->
                         <p class="des">Radio (CMT2300A)</p>
                         <div id="cmt"><div class="col-12">(ESP32 only)</div></div>
-
+                        <!--ENDIF_ESP32-->
                         <p class="des">Serial Console</p>
                         <div class="row mb-3">
                             <div class="col-8 col-sm-3">print inverter data</div>
@@ -366,6 +366,8 @@
                 [15, "D8 (GPIO15)"],
                 [16, "D0 (GPIO16 - no IRQ!)"]
             ];
+
+            /*IF_ESP32*/
             var esp32pins = [
                 [255, "off / default"],
                 [0,  "GPIO0"],
@@ -443,6 +445,7 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            /*ENDIF_ESP32*/
             var led_high_active = [
                 [0, "low active"],
                 [1, "high active"],
@@ -796,6 +799,7 @@
                 );
             }
 
+            /*IF_ESP32*/
             function parseCmtRadio(obj, type, system) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
@@ -819,6 +823,7 @@
                     );
                 }
             }
+            /*ENDIF_ESP32*/
 
             function parseSerial(obj) {
                 for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"]])
@@ -833,8 +838,9 @@
                 var e = document.getElementById("dispPins");
                 //KEEP this order !!!
                 var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
-                if("ESP32" == type)
-                    pins.push(['busy', 'disp_bsy']);
+                /*IF_ESP32*/
+                pins.push(['busy', 'disp_bsy']);
+                /*ENDIF_ESP32*/
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
@@ -848,8 +854,9 @@
 
                 // keep display types grouped
                 var opts = [[0, "None"], [2, "SH1106 1.3\" 128X64"], [5, "SSD1306 0.66\" 64X48 (Wemos OLED Shield)"], [4, "SSD1306 0.91\" 128X32"], [1, "SSD1306 0.96\" 128X64"], [6, "SSD1309 2.42\" 128X64"], [3, "Nokia5110"]];
-                if("ESP32" == type)
-                    opts.push([10, "ePaper"]);
+                /*IF_ESP32*/
+                opts.push([10, "ePaper"]);
+                /*ENDIF_ESP32*/
                 var dispType = sel("disp_typ", opts, obj["disp_typ"]);
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
@@ -862,10 +869,10 @@
                 });
 
                 opts = [[0, "0&deg;"], [2, "180&deg;"]];
-                if("ESP32" == type) {
+                /*IF_ESP32*/
                     opts.push([1, "90&deg;"]);
                     opts.push([3, "270&deg;"]);
-                }
+                /*ENDIF_ESP32*/
                 document.getElementById("dispRot").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Rotation"),
@@ -916,8 +923,9 @@
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
                     parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
-                    if(root["generic"]["esp_type"] == "ESP32")
-                        parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
+                    /*IF_ESP32*/
+                    parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
+                    /*ENDIF_ESP32*/
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
                     getAjax("/api/inverter/list", parseIv);

@@ -239,6 +239,9 @@ class RestApi {
             getGeneric(request, obj);
 
             getRadioNrf(obj.createNestedObject(F("radio")));
+            #if defined(ESP32)
+            getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
+            #endif
             getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
@@ -490,19 +493,25 @@ class RestApi {
             obj[F("led_high_active")] = mConfig->led.led_high_active;
         }
 
+        #if defined(ESP32)
         void getRadioCmt(JsonObject obj) {
-            obj[F("csb")]  = mConfig->cmt.pinCsb;
-            obj[F("fcsb")] = mConfig->cmt.pinFcsb;
-            obj[F("gpio3")]  = mConfig->cmt.pinIrq;
-            obj[F("en")]   = (bool) mConfig->cmt.enabled;
+            obj[F("csb")]   = mConfig->cmt.pinCsb;
+            obj[F("fcsb")]  = mConfig->cmt.pinFcsb;
+            obj[F("gpio3")] = mConfig->cmt.pinIrq;
+            obj[F("en")]    = (bool) mConfig->cmt.enabled;
         }
+
+        void getRadioCmtInfo(JsonObject obj) {
+            obj[F("en")] = (bool) mConfig->cmt.enabled;
+        }
+        #endif
 
         void getRadioNrf(JsonObject obj) {
             obj[F("power_level")] = mConfig->nrf.amplifierPower;
             obj[F("isconnected")] = mRadio->isChipConnected();
-            obj[F("DataRate")] = mRadio->getDataRate();
-            obj[F("isPVariant")] = mRadio->isPVariant();
-            obj[F("en")]         = (bool) mConfig->nrf.enabled;
+            //obj[F("DataRate")]    = mRadio->getDataRate();
+            //obj[F("isPVariant")]  = mRadio->isPVariant();
+            obj[F("en")]          = (bool) mConfig->nrf.enabled;
         }
 
         void getSerial(JsonObject obj) {
@@ -593,7 +602,9 @@ class RestApi {
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));
+            #if defined(ESP32)
             getRadioCmt(obj.createNestedObject(F("radioCmt")));
+            #endif
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));

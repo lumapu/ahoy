@@ -9,9 +9,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include "appInterface.h"
 #include "config/settings.h"
 #include "defines.h"
+#include "appInterface.h"
 #include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
@@ -75,10 +75,16 @@ class app : public IApp, public ah::Scheduler {
         void handleIntr(void) {
             mNrfRadio.handleIntr();
         }
+        const HmRadio<>& getNrfRadioObj(void) const {
+            return mNrfRadio;
+        }
 
         #ifdef ESP32
         void handleHmsIntr(void) {
             mCmtRadio.handleIntr();
+        }
+        const CmtRadioType& getCmtRadioObj(void) const {
+            return mCmtRadio;
         }
         #endif
 

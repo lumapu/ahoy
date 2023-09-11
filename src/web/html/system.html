@@ -8,10 +8,7 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <pre id="stat"></pre>
                 <div id="info" class="col-sm-12 col-md-6 mt-3"></div>
-                <div id="radio" class="col-sm-12 col-md-6 mt-3"></div>
-                <div id="sun" class="col-sm-12 col-md-6 mt-3"></div>
                 <div id="html" class="mt-3 mb-3"></div>
             </div>
         </div>
@@ -49,8 +46,8 @@
                 }
             }
 
-            function badge(success, text) {
-                return ml("span", {class: "badge badge-" + ((success) ? "success" : "error")}, text);
+            function badge(success, text, second="error") {
+                return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
             }
 
             function headline(text) {
@@ -68,19 +65,23 @@
 
             function parseRadio(obj, stat) {
                 const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
-                const datarate = ["1 MBps", "2 MBps", "250 kbps"];
 
-                document.getElementById("radio").append(
+                if(obj.en)
+                    lines = [
+                        tr("NRF24L01", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected")),
+                        tr("Power Level", pa[obj.power_level])
+                    ];
+                else
+                    lines = tr("NRF24L01", badge(false, "not enabled"));
+
+                document.getElementById("info").append(
                     headline("NRF Radio"),
-                    ml("table", {class: "table"}, [
-                        ml("tbody", {}, [
-                            tr("NRF24L01", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected")),
-                            tr("Power Level", pa[obj.power_level])
-                        ])
-                    ]),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    ),
 
                     headline("Statistics"),
-                    ml("table", {class: "table"}, [
+                    ml("table", {class: "table"},
                         ml("tbody", {}, [
                             tr("TX count", stat.tx_cnt),
                             tr("RX success", stat.rx_success),
@@ -89,24 +90,41 @@
                             tr("RX fragments", stat.frame_cnt),
                             tr("TX retransmits", stat.retransmits)
                         ])
-                    ])
+                    )
                 );
             }
 
-            function parseIndex(obj) {
-                if(obj["ts_sunrise"] > 0) {
-                    var h = div(["head", "p-2"]);
-                    var r = div(["row"]);
-                    r.appendChild(div(["col", "a-c"], "Sun"));
-                    h.appendChild(r);
+            /*IF_ESP32*/
+            function parseCmt(obj) {
+                if(obj.en)
+                    lines = [
+                        tr("CMT2300A", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected"))
+                    ];
+                else
+                    lines = tr("CMT2300A", badge(false, "not enabled"));
 
-                    document.getElementById("sun").append (
-                        h,
-                        genTabRow("Sunrise", new Date(obj["ts_sunrise"] * 1000).toLocaleString('de-DE')),
-                        genTabRow("Sunset", new Date(obj["ts_sunset"] * 1000).toLocaleString('de-DE')),
-                        genTabRow("Communication start", new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
-                        genTabRow("Communication stop", new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE')),
-                        genTabRow("Night Communication", ((obj["disNightComm"]) ? "disabled" : "enabled"))
+                document.getElementById("info").append(
+                    headline("CMT Radio"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+            /*ENDIF_ESP32*/
+
+            function parseIndex(obj) {
+                if(obj.ts_sunrise > 0) {
+                    document.getElementById("info").append(
+                        headline("Sun"),
+                        ml("table", {class: "table"},
+                            ml("tbody", {}, [
+                                tr("Sunrise", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
+                                tr("Sunset", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
+                                tr("Communication start", new Date((obj.ts_sunrise - obj.ts_offset) * 1000).toLocaleString('de-DE')),
+                                tr("Communication stop", new Date((obj.ts_sunset + obj.ts_offset) * 1000).toLocaleString('de-DE')),
+                                tr("Night behaviour", badge(obj.disNightComm, ((obj.disNightComm) ? "not" : "") + " communicating", "warning"))
+                            ])
+                        )
                     );
                 }
             }
@@ -124,6 +142,9 @@
                     else {
                         parseSysInfo(obj["system"]);
                         parseRadio(obj["system"]["radio"], obj["system"]["statistics"]);
+                        /*IF_ESP32*/
+                        parseCmt(obj["system"]["radioCmt"]);
+                        /*ENDIF_ESP32*/
                         getAjax('/api/index', parseIndex);
                     }
                     document.getElementById("html").innerHTML = obj["html"];

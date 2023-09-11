@@ -4,6 +4,8 @@
 * merge PR: symbolic icons for mono displays, PR #1136
 * merge MI code restructuring PR #1145
 * merge Prometheus PR #1148
+* add option to strip webUI for ESP8266 (reduce code size, add ESP32 special features; `IF_ESP32` directives)
+* started to get CMT info into `system` - not finished
 
 ## 0.7.48 - 2023-09-10
 * fix SSD1309 2.42" display pinout
