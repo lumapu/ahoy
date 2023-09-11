@@ -405,6 +405,7 @@ class MiPayload {
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(cmd);
                             }
+                            mStat->rxSuccess++;
                             mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                             mPayload[iv->id].txCmd = cmd;
                         }
