@@ -149,6 +149,7 @@ class Inverter {
         uint16_t      alarmCode;         // last Alarm
         uint32_t      alarmStart;
         uint32_t      alarmEnd;
+        uint8_t       alarmDataReqPending;  // alarmData request issued and wait for answer
         int8_t        mTxChanQuality[RF_CHANNELS]; // qualities of send channels
         uint8_t       mBestTxChanIndex;     // current send chan index
         uint8_t       mLastBestTxChanIndex; // last send chan index
@@ -204,10 +205,12 @@ class Inverter {
         uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
                 if (ivGen != IV_MI) {
-                    if (getFwVersion()) {
-                        enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
-                    } else {
+                    if (!getFwVersion()) {
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
+                    } else if (alarmDataReqPending) {
+                        enqueCommand<InfoCommand>(AlarmData);  // alarm not answered
+                    } else {
+                        enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                     }
                 } else if (ivGen == IV_MI){
                     if (getFwVersion() == 0)
@@ -330,6 +333,9 @@ class Inverter {
 
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
+                            if (alarmDataReqPending < UINT8_MAX) {
+                                alarmDataReqPending++;
+                            }
                             enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
@@ -526,6 +532,10 @@ class Inverter {
 
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
+
+            if (alarmDataReqPending) {
+                alarmDataReqPending--;
+            }
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
                 return 0;
 
