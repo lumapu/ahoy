@@ -92,8 +92,6 @@ class ZeroExport {
         String getData()
         {
             String payload = http.getString();
-            DPRINTLN(DBG_INFO, payload);
-
             int x = payload.indexOf("{", 0);
             return payload.substring(x, payload.length());
         }
