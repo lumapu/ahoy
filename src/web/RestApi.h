@@ -465,6 +465,7 @@ class RestApi {
             obj[F("interval")]   = String(mConfig->mqtt.interval);
         }
 
+        #if defined(ESP32)
         void getzeroExport(JsonObject obj) {
             obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
             obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
@@ -483,6 +484,7 @@ class RestApi {
                 phases[F("total_returned")] = mConfig->plugin.zexport.PHASE[i].total_returned;
             }
         }
+        #endif
 
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
@@ -609,7 +611,6 @@ class RestApi {
             getSysInfo(request, obj.createNestedObject(F("system")));
             //getInverterList(obj.createNestedObject(F("inverter")));
             getMqtt(obj.createNestedObject(F("mqtt")));
-            getzeroExport(obj.createNestedObject(F("zeroExport")));
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));
@@ -618,6 +619,10 @@ class RestApi {
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));
+
+            #if defined(ESP32)
+            getzeroExport(obj.createNestedObject(F("zeroExport")));
+            #endif
         }
 
         #if !defined(ETHERNET)

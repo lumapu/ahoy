@@ -495,7 +495,10 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
+
+    #if defined(ESP32)
     zeroexport();
+    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -622,11 +625,13 @@ void app::updateLed(void) {
     }
 }
 //-----------------------------------------------------------------------------
+#if defined(ESP32)
 void app::zeroexport() {
     if (!mConfig->plugin.zexport.enabled) return;
 
     DynamicJsonDocument doc(512);
     JsonObject object = doc.to<JsonObject>();
+
 
     object["path"] = "ctrl";
     object["id"] = 0;
@@ -639,3 +644,4 @@ void app::zeroexport() {
 
     mApi.ctrlRequest(object);
 }
+#endif

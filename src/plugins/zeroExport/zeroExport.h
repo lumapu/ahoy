@@ -1,7 +1,9 @@
+#if defined(ESP32)
+
 #ifndef __ZEROEXPORT__
 #define __ZEROEXPORT__
 
-#include <ESP8266HTTPClient.h>
+#include <HTTPClient.h>
 #include <string.h>
 #include "AsyncJson.h"
 
@@ -52,68 +54,48 @@ class ZeroExport {
     }
 
     private:
-        WiFiClient client;
-        int status = WL_IDLE_STATUS;
-        const uint16_t httpPort = 80;
-        const String url = "/emeter/";
-        char msgBuffer[256] = {'\0'};
-
-        const String serverIp = "192.168.5.30";
-        static char msg[50];
+        HTTPClient http;
+        //char msgBuffer[256] = {'\0'};
 
         void loop() { }
         void zero() {
             sendReq(0);
             sendReq(1);
             sendReq(2);
+        }
 
+        void sendReq(int index)
+        {
+            http.begin(String(mCfg->monitor_ip), 80, "/emeter/" + String(index));
+
+            int httpResponseCode = http.GET();
+            if (httpResponseCode > 0)
+            {
+                DynamicJsonDocument json(128);
+                deserializeJson(json, getData());
+                mCfg->PHASE[index].power          = json[F("power")];
+                mCfg->PHASE[index].pf             = json[F("pf")];
+                mCfg->PHASE[index].current        = json[F("current")];
+                mCfg->PHASE[index].voltage        = json[F("voltage")];
+                mCfg->PHASE[index].is_valid       = json[F("is_valid")];
+                mCfg->PHASE[index].total          = json[F("total")];
+                mCfg->PHASE[index].total_returned = json[F("total_returned")];
+            }
+            else
+            {
+                DPRINT(DBG_INFO, "Error code: ");
+                DPRINTLN(DBG_INFO, String(httpResponseCode));
+            }
 
         }
 
-        // TODO: change int to u_short
-        void sendReq(int index) {
-            if (!client.connect(serverIp, httpPort)) {
-                delay(1000);
-                DPRINTLN(DBG_INFO, F("connection failed"));
-            }
+        String getData()
+        {
+            String payload = http.getString();
+            DPRINTLN(DBG_INFO, payload);
 
-            strcpy ( msgBuffer, "GET ");
-            strcat ( msgBuffer, url.c_str());
-
-            char str[10];
-            sprintf(str, "%d", index);
-
-            strcat ( msgBuffer, str);
-            strcat ( msgBuffer, "\r\nHTTP/1.1\r\n\r\n" );
-            client.print(msgBuffer);
-
-            DynamicJsonDocument json(128);
-            String raw = getData();
-            deserializeJson(json, raw);
-
-            //DPRINTLN(DBG_INFO, raw);
-
-            mCfg->PHASE[index].power          = json[F("power")];
-            mCfg->PHASE[index].pf             = json[F("pf")];
-            mCfg->PHASE[index].current        = json[F("current")];
-            mCfg->PHASE[index].voltage        = json[F("voltage")];
-            mCfg->PHASE[index].is_valid       = json[F("is_valid")];
-            mCfg->PHASE[index].total          = json[F("total")];
-            mCfg->PHASE[index].total_returned = json[F("total_returned")];
-        }
-
-        String getData() {
-            while (client.connected()) {
-                //TODO: what if available is not true? It will stuck here then...
-                while (client.available())
-                {
-                    String raw = client.readString();
-                    int x = raw.indexOf("{", 0);
-                    client.stop();
-                    return raw.substring(x, raw.length());
-                }
-            }
-            return F("error");
+            int x = payload.indexOf("{", 0);
+            return payload.substring(x, payload.length());
         }
 
         // private member variables
@@ -128,3 +110,5 @@ class ZeroExport {
 };
 
 #endif /*__ZEROEXPORT__*/
+
+#endif /* #if defined(ESP32) */

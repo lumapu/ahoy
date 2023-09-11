@@ -283,7 +283,10 @@ class app : public IApp, public ah::Scheduler {
 
         void setupLed();
         void updateLed();
+
+        #if defined(ESP32)
         void zeroexport();
+        #endif
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));

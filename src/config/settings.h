@@ -134,6 +134,8 @@ typedef struct {
     uint16_t interval;
 } cfgMqtt_t;
 
+/* Zero Export section */
+#if defined(ESP32)
 typedef struct {
     float power;
     float pf;
@@ -143,13 +145,12 @@ typedef struct {
     uint16_t total;
     uint16_t total_returned;
 } cfgShellyEM3_t;
-
 typedef struct {
     char monitor_ip[ZEXPORT_ADDR_LEN];
     bool enabled;
     cfgShellyEM3_t PHASE[3];
 } cfgzeroExport_t;
-
+#endif
 
 typedef struct {
     bool enabled;
@@ -190,7 +191,9 @@ typedef struct {
 
 typedef struct {
     display_t display;
+    #if defined(ESP32)
     cfgzeroExport_t zexport;
+    #endif
 } plugins_t;
 
 typedef struct {
@@ -293,12 +296,12 @@ class settings {
                     if(root.containsKey(F("nrf"))) jsonNrf(root[F("nrf")]);
                     #if defined(ESP32)
                     if(root.containsKey(F("cmt"))) jsonCmt(root[F("cmt")]);
+                    if(root.containsKey(F("zeroExport"))) jsonzeroExport(root[F("zeroExport")]);
                     #endif
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
                     if(root.containsKey(F("serial"))) jsonSerial(root[F("serial")]);
                     if(root.containsKey(F("mqtt"))) jsonMqtt(root[F("mqtt")]);
-                    if(root.containsKey(F("zeroExport"))) jsonzeroExport(root[F("zeroExport")]);
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
                     if(root.containsKey(F("plugin"))) jsonPlugin(root[F("plugin")]);
                     if(root.containsKey(F("inst"))) jsonInst(root[F("inst")]);
@@ -321,6 +324,7 @@ class settings {
             jsonNrf(root.createNestedObject(F("nrf")), true);
             #if defined(ESP32)
             jsonCmt(root.createNestedObject(F("cmt")), true);
+            jsonzeroExport(root.createNestedObject(F("zeroExport")), true);
             #endif
             jsonNtp(root.createNestedObject(F("ntp")), true);
             jsonSun(root.createNestedObject(F("sun")), true);
@@ -329,7 +333,7 @@ class settings {
             jsonLed(root.createNestedObject(F("led")), true);
             jsonPlugin(root.createNestedObject(F("plugin")), true);
             jsonInst(root.createNestedObject(F("inst")), true);
-            jsonzeroExport(root.createNestedObject(F("zeroExport")), true);
+
 
             DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
@@ -446,8 +450,10 @@ class settings {
             mCfg.mqtt.interval = 0; // off
 
             // Zero-Export
+            #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
+            #endif
 
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
@@ -630,6 +636,7 @@ class settings {
             }
         }
 
+        #if defined(ESP32)
         void jsonzeroExport(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
@@ -639,7 +646,7 @@ class settings {
                     for (size_t i = 0; i < sizeof(mCfg.plugin.zexport.PHASE); i++)
                     {
                         char str[10];
-                        sprintf(str, "phase_%d", i);
+                        sprintf(str, "phase_%d", i + 1);
                         obj[str][F("power")] = mCfg.plugin.zexport.PHASE[i].power;
                         obj[str][F("pf")] = mCfg.plugin.zexport.PHASE[i].pf;
                         obj[str][F("current")] = mCfg.plugin.zexport.PHASE[i].current;
@@ -655,6 +662,7 @@ class settings {
                 getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
             }
         }
+        #endif
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {

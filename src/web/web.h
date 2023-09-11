@@ -604,6 +604,7 @@ class Web {
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // zero-export
+            #if defined(ESP32)
             mConfig->plugin.zexport.enabled = (request->arg("en_zeroexport") == "on");
             if (request->arg("monitor_ipAddr") != "") {
                 String addr = request->arg("monitor_ipAddr");
@@ -611,6 +612,7 @@ class Web {
                 addr.toCharArray(mConfig->plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
             } else
                 mConfig->plugin.zexport.monitor_ip[0] = '\0';
+            #endif
 
             // serial console
             if (request->arg("serIntvl") != "") {

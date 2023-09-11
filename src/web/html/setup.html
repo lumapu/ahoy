@@ -316,8 +316,8 @@
                     </div>
 
                     <!-- Zero Export -->
-                    <button type="button" class="s_collapsible">Zero Export</button>
-                    <div class="s_content">
+                    <button type="button" class="s_collapsible" id="zeroExport_button">Zero Export</button>
+                    <div class="s_content" id="zeroExport">
                     <fieldset class="mb-4">
                         <legend class="des">Zero Export</legend>
                         <div id="zeroType"></div>
@@ -330,10 +330,12 @@
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Shelly EM3 IP: </div>
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
+                            <div class="col-12 col-sm-3 my-2">Prio Inverter</div>
+                            <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select></div>
                         </div>
-                        <p name="phase_0">L1: n/a</p>
-                        <p name="phase_1">L2: n/a</p>
-                        <p name="phase_2">L3: n/a</p>
+                        <p name="phase_1">L1: n/a</p>
+                        <p name="phase_2">L2: n/a</p>
+                        <p name="phase_3">L3: n/a</p>
                     </fieldset>
                     </div>
 
@@ -936,15 +938,47 @@
                 document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
             }
 
-            function parsezeroExport(obj) {
+            function parsezeroExport(obj, type, ) {
+                if ("ESP8266" == type) {
+                    var e = document.getElementById("zeroExport");
+                    e.remove();
+
+                    var e = document.getElementById("zeroExport_button");
+                    e.textContent += " (only for ESP32 available)";
+                    e.disabled = true;
+                    element.classList.add("disabled");
+
+                    return;
+                }
+
+                getAjax("/api/inverter/list", parseZeroIv);
+
                 for(var i of [["monitor_ipAddr", "monitor_ipAddr"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 
                 document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
-                document.getElementsByName("phase_0")[0].innerHTML = "L1: " + obj["phase_0"]["power"].toFixed(2) + "W";
-                document.getElementsByName("phase_1")[0].innerHTML = "L2: " + obj["phase_1"]["power"].toFixed(2) + "W";
-                document.getElementsByName("phase_2")[0].innerHTML = "L3: " + obj["phase_2"]["power"].toFixed(2) + "W";
+
+                for (let i = 0; i < 3; i++) document.getElementsByName("phase_" + (i + 1))[0].innerHTML = "L" + (i + 1) + ": " + obj["phase_" + i]["power"].toFixed(2) + "W";
+            }
+
+            function parseZeroIv(root)
+            {
+                for(var i = 0; i < root.inverter.length; i++)
+                    root.inverter[i];
+
+                select = document.getElementById('Inv_ID');
+                parseInt(select.value)
+
+                if(null == root) return;
+                root = root.inverter;
+                for(var i = 0; i < root.length; i++) {
+                    inv = root[i];
+                    var opt = document.createElement('option');
+                    opt.value = inv.id;
+                    opt.innerHTML = inv.name;
+                    select.appendChild(opt);
+                }
             }
 
             function parse(root) {
@@ -959,9 +993,10 @@
                     parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
                     if(root["generic"]["esp_type"] == "ESP32")
                         parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
+                        parsezeroExport(root["zeroExport"], root["system"]["esp_type"]);
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
-                    parsezeroExport(root["zeroExport"]);
+
                     getAjax("/api/inverter/list", parseIv);
                 }
             }
