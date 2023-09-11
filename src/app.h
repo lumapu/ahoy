@@ -55,7 +55,8 @@ typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
 #include "plugins/Display/Display.h"
-typedef Display<HmSystemType> DisplayType;
+#include "plugins/Display/Display_data.h"
+typedef Display<HmSystemType, HmRadio<>> DisplayType;
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -362,6 +363,7 @@ class app : public IApp, public ah::Scheduler {
 
         // plugins
         DisplayType mDisplay;
+        DisplayData mDispData;
 };
 
 #endif /*__APP_H__*/
