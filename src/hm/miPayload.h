@@ -585,12 +585,13 @@ class MiPayload {
 
             if(!*complete) {
                 //we got some delayed status msgs?!?
-                if (txCmd == 0x09 || txCmd == 0x11)
+                if ((txCmd == 0x09) || (txCmd == 0x11)) {
                     if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0]) {
                       miComplete(iv);
                       return true;
                     }
                     return false;
+                }
 
                 DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX));
                 if (txCmd >= 0x36 && txCmd <= 0x39) {

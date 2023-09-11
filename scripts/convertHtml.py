@@ -147,9 +147,7 @@ def convert2Header(inFile, version):
     f.close()
 
 # delete all files in the 'h' dir
-wd = 'h'
-if os.getcwd()[-4:] != "html":
-    wd = "web/html/" + wd
+wd = 'web/html/h'
 
 if os.path.exists(wd):
     for f in os.listdir(wd):
@@ -160,8 +158,7 @@ if os.path.exists(wd):
         os.remove(os.path.join(wd, f))
 
 # grab all files with following extensions
-if os.getcwd()[-4:] != "html":
-    os.chdir('./web/html')
+os.chdir('./web/html')
 types = ('*.html', '*.css', '*.js', '*.ico') # the tuple of file types
 files_grabbed = []
 for files in types:
