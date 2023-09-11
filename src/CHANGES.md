@@ -2,6 +2,7 @@
 
 ## 0.7.49 - 2023-09-11
 * merge PR: symbolic icons for mono displays, PR #1136
+* merge mi code restructuring PR #1145
 
 ## 0.7.48 - 2023-09-10
 * fix SSD1309 2.42" display pinout
