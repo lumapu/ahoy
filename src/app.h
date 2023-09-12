@@ -45,11 +45,11 @@ typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
 #ifdef ESP32
-typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
+typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
 #endif
 typedef Web<HmSystemType> WebType;
-typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
+typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
@@ -75,16 +75,20 @@ class app : public IApp, public ah::Scheduler {
         void handleIntr(void) {
             mNrfRadio.handleIntr();
         }
-        const HmRadio<>& getNrfRadioObj(void) const {
-            return mNrfRadio;
+        void* getRadioObj(bool nrf) {
+            if(nrf)
+                return (void*)&mNrfRadio;
+            else {
+                #ifdef ESP32
+                return (void*)&mCmtRadio;
+                #else
+                return NULL;
+                #endif
+            }
         }
-
         #ifdef ESP32
         void handleHmsIntr(void) {
             mCmtRadio.handleIntr();
-        }
-        const CmtRadioType& getCmtRadioObj(void) const {
-            return mCmtRadio;
         }
         #endif
 

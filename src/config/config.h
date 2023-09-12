@@ -74,15 +74,21 @@
         #define DEF_NRF_IRQ_PIN         16
     #endif
     #ifndef DEF_NRF_MISO_PIN
-        #define DEF_NRF_MISO_PIN        19
+        #define DEF_NRF_MISO_PIN        12
     #endif
     #ifndef DEF_NRF_MOSI_PIN
-        #define DEF_NRF_MOSI_PIN        23
+        #define DEF_NRF_MOSI_PIN        13
     #endif
     #ifndef DEF_NRF_SCLK_PIN
-        #define DEF_NRF_SCLK_PIN        18
+        #define DEF_NRF_SCLK_PIN        14
     #endif
 
+    #ifndef DEF_CMT_SCLK
+        #define DEF_CMT_SCLK            18
+    #endif
+    #ifndef DEF_CMT_SDIO
+        #define DEF_CMT_SDIO            23
+    #endif
     #ifndef DEF_CMT_CSB
         #define DEF_CMT_CSB             27
     #endif

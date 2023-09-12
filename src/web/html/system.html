@@ -63,19 +63,29 @@
                 ]);
             }
 
-            function parseRadio(obj, stat) {
+            function parseRadio(obj) {
                 const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
+                const dr = ["1 M", "2 M", "250 k"]
 
-                if(obj.en)
+                if(obj.radioNrf.en)
                     lines = [
-                        tr("NRF24L01", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected")),
-                        tr("Power Level", pa[obj.power_level])
+                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
+                        tr("NRF24 Power Level", pa[obj.radioNrf.power_level]),
+                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
                     ];
                 else
-                    lines = tr("NRF24L01", badge(false, "not enabled"));
+                    lines = [tr("NRF24L01", badge(false, "not enabled"))];
 
+                /*IF_ESP32*/
+                if(obj.radioCmt.en)
+                    lines.push(tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected")));
+                else
+                    lines.push(tr("CMT2300A", badge(false, "not enabled")));
+                /*ENDIF_ESP32*/
+
+                var stat = obj.statistics;
                 document.getElementById("info").append(
-                    headline("NRF Radio"),
+                    headline("Radio"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
                     ),
@@ -94,23 +104,24 @@
                 );
             }
 
-            /*IF_ESP32*/
-            function parseCmt(obj) {
-                if(obj.en)
+            function parseMqtt(obj) {
+                if(obj.enabled) {
                     lines = [
-                        tr("CMT2300A", badge(obj.isconnected, ((obj.isconnected) ? "" : "not ") + "connected"))
+                        tr("connected", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
+                        tr("#TX", obj.tx_cnt),
+                        tr("#RX", obj.rx_cnt)
                     ];
-                else
-                    lines = tr("CMT2300A", badge(false, "not enabled"));
+
+                } else
+                    lines = tr("enabled", badge(false, "false"));
 
                 document.getElementById("info").append(
-                    headline("CMT Radio"),
+                    headline("MqTT"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
                     )
                 );
             }
-            /*ENDIF_ESP32*/
 
             function parseIndex(obj) {
                 if(obj.ts_sunrise > 0) {
@@ -140,11 +151,9 @@
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     }
                     else {
+                        parseRadio(obj.system);
+                        parseMqtt(obj.system.mqtt);
                         parseSysInfo(obj["system"]);
-                        parseRadio(obj["system"]["radio"], obj["system"]["statistics"]);
-                        /*IF_ESP32*/
-                        parseCmt(obj["system"]["radioCmt"]);
-                        /*ENDIF_ESP32*/
                         getAjax('/api/index', parseIndex);
                     }
                     document.getElementById("html").innerHTML = obj["html"];

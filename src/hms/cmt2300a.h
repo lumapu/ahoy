@@ -184,8 +184,8 @@ class Cmt2300a {
     public:
         Cmt2300a() {}
 
-        void setup(uint8_t pinCsb, uint8_t pinFcsb) {
-            mSpi.setup(pinCsb, pinFcsb);
+        void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb) {
+            mSpi.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
             init();
         }
 
@@ -315,6 +315,8 @@ class Cmt2300a {
 
             mSpi.writeReg(CMT2300A_CUS_MODE_STA, 0x52);
             mSpi.writeReg(0x62, 0x20);
+            if(mSpi.readReg(0x62) != 0x20)
+                return false; // not connected!
 
             for(uint8_t i = 0; i < 0x60; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);

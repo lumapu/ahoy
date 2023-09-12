@@ -11,14 +11,6 @@
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
 
-#if CONFIG_IDF_TARGET_ESP32S3
-#define CLK_PIN     6
-#define MOSI_PIN    5
-#else
-#define CLK_PIN     18
-#define MOSI_PIN    23
-#endif
-
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
 #define SPI_PARAM_LOCK() \
@@ -31,19 +23,18 @@
 // it is simply the first externally usable hardware SPI master controller
 #define SPI_CMT SPI2_HOST
 
-template<uint8_t CSB_PIN=5, uint8_t FCSB_PIN=4> //, uint8_t GPIO3_PIN=15>
 class esp32_3wSpi {
     public:
         esp32_3wSpi() {
             mInitialized = false;
         }
 
-        void setup(uint8_t pinCsb = CSB_PIN, uint8_t pinFcsb = FCSB_PIN) { //, uint8_t pinGpio3 = GPIO3_PIN) {
+        void setup(uint8_t pinSclk = DEF_CMT_SCLK, uint8_t pinSdio = DEF_CMT_SDIO, uint8_t pinCsb = DEF_CMT_CSB, uint8_t pinFcsb = DEF_CMT_FCSB) {
             paramLock = xSemaphoreCreateMutex();
             spi_bus_config_t buscfg = {
-                .mosi_io_num = MOSI_PIN,
+                .mosi_io_num = pinSdio,
                 .miso_io_num = -1, // single wire MOSI/MISO
-                .sclk_io_num = CLK_PIN,
+                .sclk_io_num = pinSclk,
                 .quadwp_io_num = -1,
                 .quadhd_io_num = -1,
                 .max_transfer_sz = 32,
@@ -83,7 +74,7 @@ class esp32_3wSpi {
             };
             ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg2, &spi_fifo));
 
-            esp_rom_gpio_connect_out_signal(MOSI_PIN, spi_periph_signal[SPI_CMT].spid_out, true, false);
+            esp_rom_gpio_connect_out_signal(pinSdio, spi_periph_signal[SPI_CMT].spid_out, true, false);
             delay(100);
 
             //pinMode(pinGpio3, INPUT);
@@ -162,13 +153,13 @@ class esp32_3wSpi {
                 .rx_buffer = &rx_data
             };
 
-        SPI_PARAM_LOCK();
+            SPI_PARAM_LOCK();
             for(uint8_t i = 0; i < len; i++) {
                 ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
                 delayMicroseconds(4); // > 4 us
                 buf[i] = rx_data;
             }
-        SPI_PARAM_UNLOCK();
+            SPI_PARAM_UNLOCK();
         }
 
     private:

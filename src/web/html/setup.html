@@ -376,26 +376,26 @@
                 [3,  "RX (GPIO3)"],
                 [4,  "GPIO4"],
                 [5,  "GPIO5"],
-                [12, "GPIO12"],
-                [13, "GPIO13"],
-                [14, "GPIO14"],
+                [12, "GPIO12 (HSPI MISO)"],
+                [13, "GPIO13 (HSPI MOSI)"],
+                [14, "GPIO14 (HSPI SCLK)"],
                 [15, "GPIO15"],
                 [16, "GPIO16"],
                 [17, "GPIO17"],
-                [18, "GPIO18"],
-                [19, "GPIO19"],
+                [18, "GPIO18 (VSPI SCLK)"],
+                [19, "GPIO19 (VSPI MISO)"],
                 [21, "GPIO21 (SDA)"],
                 [22, "GPIO22 (SCL)"],
-                [23, "GPIO23"],
+                [23, "GPIO23 (VSPI MOSI)"],
                 [25, "GPIO25"],
                 [26, "GPIO26"],
                 [27, "GPIO27"],
                 [32, "GPIO32"],
                 [33, "GPIO33"],
-                [34, "GPIO34"],
-                [35, "GPIO35"],
-                [36, "VP (GPIO36)"],
-                [39, "VN (GPIO39)"]
+                [34, "GPIO34 (in only)"],
+                [35, "GPIO35 (in only)"],
+                [36, "VP (GPIO36, in only)"],
+                [39, "VN (GPIO39, in only)"]
             ];
             var esp32s3pins = [
                 [255, "off / default"],
@@ -811,13 +811,13 @@
                         ml("div", {class: "col-4 col-sm-9"}, en)
                     ])
                 );
-                pins = [['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['gpio3', 'pinGpio3']];
+                pins = [['sclk', 'pinCmtSclk'], ['sdio', 'pinSdio'], ['csb', 'pinCsb'], ['fcsb', 'pinFcsb'], ['gpio3', 'pinGpio3']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
+                                sel(p[1], ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
                             )
                         ])
                     );

@@ -68,6 +68,7 @@ class IApp {
         virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
         //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
 
+        virtual void* getRadioObj(bool nrf) = 0;
         #if defined(ESP32)
         //virtual const CmtRadioType& getCmtRadioObj(void) const = 0;
         #endif

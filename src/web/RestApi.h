@@ -31,7 +31,7 @@ const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_Y
 const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
 const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
-template<class HMSYSTEM, class HMRADIO>
+template<class HMSYSTEM>
 class RestApi {
     public:
         RestApi() {
@@ -42,12 +42,15 @@ class RestApi {
             nr = 0;
         }
 
-        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, AsyncWebServer *srv, settings_t *config) {
-            mApp     = app;
-            mSrv     = srv;
-            mSys     = sys;
-            mRadio   = radio;
-            mConfig  = config;
+        void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
+            mApp      = app;
+            mSrv      = srv;
+            mSys      = sys;
+            mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
+            #if defined(ESP32)
+            mRadioCmt = (CmtRadio<esp32_3wSpi>*)mApp->getRadioObj(false);
+            #endif
+            mConfig   = config;
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
@@ -238,10 +241,11 @@ class RestApi {
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(request, obj);
 
-            getRadioNrf(obj.createNestedObject(F("radio")));
+            getRadioNrf(obj.createNestedObject(F("radioNrf")));
             #if defined(ESP32)
             getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
             #endif
+            getMqttInfo(obj.createNestedObject(F("mqtt")));
             getStatistics(obj.createNestedObject(F("statistics")));
 
         #if defined(ESP32)
@@ -313,8 +317,8 @@ class RestApi {
             obj[F("rx_fail")]        = stat->rxFail;
             obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
             obj[F("frame_cnt")]      = stat->frmCnt;
-            obj[F("tx_cnt")]         = mRadio->mSendCnt;
-            obj[F("retransmits")]    = mRadio->mRetransmits;
+            obj[F("tx_cnt")]         = mRadioNrf->mSendCnt;
+            obj[F("retransmits")]    = mRadioNrf->mRetransmits;
         }
 
         void getInverterList(JsonObject obj) {
@@ -495,6 +499,8 @@ class RestApi {
 
         #if defined(ESP32)
         void getRadioCmt(JsonObject obj) {
+            obj[F("sclk")]  = mConfig->cmt.pinSclk;
+            obj[F("sdio")]  = mConfig->cmt.pinSdio;
             obj[F("csb")]   = mConfig->cmt.pinCsb;
             obj[F("fcsb")]  = mConfig->cmt.pinFcsb;
             obj[F("gpio3")] = mConfig->cmt.pinIrq;
@@ -503,15 +509,16 @@ class RestApi {
 
         void getRadioCmtInfo(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->cmt.enabled;
+            obj[F("isconnected")] = mRadioCmt->isConnected();
         }
         #endif
 
         void getRadioNrf(JsonObject obj) {
-            obj[F("power_level")] = mConfig->nrf.amplifierPower;
-            obj[F("isconnected")] = mRadio->isChipConnected();
-            //obj[F("DataRate")]    = mRadio->getDataRate();
-            //obj[F("isPVariant")]  = mRadio->isPVariant();
             obj[F("en")]          = (bool) mConfig->nrf.enabled;
+            obj[F("isconnected")] = mRadioNrf->isChipConnected();
+            obj[F("power_level")] = mConfig->nrf.amplifierPower;
+            obj[F("dataRate")]    = mRadioNrf->getDataRate();
+            //obj[F("isPVariant")]  = mRadioNrf->isPVariant();
         }
 
         void getSerial(JsonObject obj) {
@@ -543,6 +550,14 @@ class RestApi {
             obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
         }
 
+        void getMqttInfo(JsonObject obj) {
+            obj[F("enabled")]   = (mConfig->mqtt.broker[0] != '\0');
+            obj[F("connected")] = mApp->getMqttIsConnected();
+            obj[F("tx_cnt")]    = mApp->getMqttTxCnt();
+            obj[F("rx_cnt")]    = mApp->getMqttRxCnt();
+            obj[F("interval")]  = mConfig->mqtt.interval;
+        }
+
         void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("ts_now")]       = mApp->getTimestamp();
@@ -569,9 +584,9 @@ class RestApi {
             }
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mRadio->isChipConnected() && mConfig->nrf.enabled)
+            if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            else if(!mRadio->isPVariant() && mConfig->nrf.enabled)
+            else if(!mRadioNrf->isPVariant() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
@@ -579,19 +594,6 @@ class RestApi {
                 warn.add(F("reboot your ESP to apply all your configuration changes"));
             if(0 == mApp->getTimestamp())
                 warn.add(F("time not set. No communication to inverter possible"));
-
-
-            /*if(0 == mSys->getNumInverters())
-                warn.add(F("no inverter configured"));*/
-
-            if((!mApp->getMqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
-                warn.add(F("MQTT is not connected"));
-
-            JsonArray info = obj.createNestedArray(F("infos"));
-            if(mApp->getMqttIsConnected())
-                info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent, ") + String(mApp->getMqttRxCnt()) + F(" packets received"));
-            if(mConfig->mqtt.interval > 0)
-                info.add(F("MQTT publishes in a fixed interval of ") + String(mConfig->mqtt.interval) + F(" seconds"));
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
@@ -729,7 +731,10 @@ class RestApi {
 
         IApp *mApp;
         HMSYSTEM *mSys;
-        HMRADIO *mRadio;
+        HmRadio<> *mRadioNrf;
+        #if defined(ESP32)
+        CmtRadio<esp32_3wSpi> *mRadioCmt;
+        #endif
         AsyncWebServer *mSrv;
         settings_t *mConfig;
 

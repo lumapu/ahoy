@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.7.50 - 2023-09-12
+* moved MqTT info to `system`
+* added CMT info for ESP32 devices
+* improved CMT settings, now `SCLK` and `SDIO` are configurable #1046, #1150
+* changed `Power-Limit` in live-view to `Active Power Control`
+* increase length of update file selector #1132
+
 ## 0.7.49 - 2023-09-11
 * merge PR: symbolic icons for mono displays, PR #1136
 * merge MI code restructuring PR #1145

@@ -38,7 +38,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -555,9 +555,11 @@ class Web {
                     case 6:  mConfig->led.led0 = pin; break;
                     case 7:  mConfig->led.led1 = pin; break;
                     case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->cmt.pinCsb   = pin; break;
-                    case 10: mConfig->cmt.pinFcsb  = pin; break;
-                    case 11: mConfig->cmt.pinIrq   = pin; break;
+                    case 9:  mConfig->cmt.pinSclk  = pin; break;
+                    case 10: mConfig->cmt.pinSdio  = pin; break;
+                    case 11: mConfig->cmt.pinCsb   = pin; break;
+                    case 12: mConfig->cmt.pinFcsb  = pin; break;
+                    case 13: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
