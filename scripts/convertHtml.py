@@ -6,6 +6,7 @@ import shutil
 from datetime import date
 from pathlib import Path
 import subprocess
+Import("env")
 
 
 def get_git_sha():
@@ -60,13 +61,41 @@ def htmlParts(file, header, nav, footer, version):
     link = '<a target="_blank" href="https://github.com/lumapu/ahoy/commits/' + get_git_sha() + '">GIT SHA: ' + get_git_sha() + ' :: ' + version + '</a>'
     p = p.replace("{#VERSION}", version)
     p = p.replace("{#VERSION_GIT}", link)
+
+    # remove if - endif ESP32
+    p = checkIf(p)
+
     f = open("tmp/" + file, "w")
     f.write(p);
     f.close();
     return p
 
+def checkIf(data):
+    if (env['PIOENV'][0:5] == "esp32") or env['PIOENV'][0:4] == "open":
+        data = data.replace("<!--IF_ESP32-->", "")
+        data = data.replace("<!--ENDIF_ESP32-->", "")
+        data = data.replace("/*IF_ESP32*/", "")
+        data = data.replace("/*ENDIF_ESP32*/", "")
+    else:
+        while 1:
+            start = data.find("<!--IF_ESP32-->")
+            end = data.find("<!--ENDIF_ESP32-->")+18
+            if -1 == start:
+                break
+            else:
+                data = data[0:start] + data[end:]
+        while 1:
+            start = data.find("/*IF_ESP32*/")
+            end = data.find("/*ENDIF_ESP32*/")+15
+            if -1 == start:
+                break
+            else:
+                data = data[0:start] + data[end:]
+
+    return data
+
 def convert2Header(inFile, version):
-    fileType = inFile.split(".")[1]
+    fileType      = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
     inFileVarName = inFile.replace(".", "_")
@@ -118,9 +147,7 @@ def convert2Header(inFile, version):
     f.close()
 
 # delete all files in the 'h' dir
-wd = 'h'
-if os.getcwd()[-4:] != "html":
-    wd = "web/html/" + wd
+wd = 'web/html/h'
 
 if os.path.exists(wd):
     for f in os.listdir(wd):
@@ -131,8 +158,7 @@ if os.path.exists(wd):
         os.remove(os.path.join(wd, f))
 
 # grab all files with following extensions
-if os.getcwd()[-4:] != "html":
-    os.chdir('./web/html')
+os.chdir('./web/html')
 types = ('*.html', '*.css', '*.js', '*.ico') # the tuple of file types
 files_grabbed = []
 for files in types:

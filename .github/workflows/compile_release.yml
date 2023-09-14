@@ -46,10 +46,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade platformio
 
-    - name: Convert HTML files
-      working-directory: src/web/html
-      run: python convert.py
-
     - name: Run PlatformIO
       run: pio run -d src --environment esp8266 --environment esp8266-prometheus --environment esp8285 --environment esp32-wroom32 --environment esp32-wroom32-prometheus --environment esp32-wroom32-ethernet --environment esp32-s2-mini --environment opendtufusion
 

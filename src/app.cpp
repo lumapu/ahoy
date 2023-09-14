@@ -42,7 +42,7 @@ void app::setup() {
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.setup(mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
         mCmtRadio.enableDebug();
     }
     #endif
@@ -111,11 +111,11 @@ void app::setup() {
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mApi.setup(this, &mSys, &mNrfRadio, mWeb.getWebSrvPtr(), mConfig);
+    mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     if (mConfig->plugin.display.type != 0)
-        mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, mVersion);
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mTimestamp);
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 

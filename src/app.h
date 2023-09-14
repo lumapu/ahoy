@@ -9,9 +9,9 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-#include "appInterface.h"
 #include "config/settings.h"
 #include "defines.h"
+#include "appInterface.h"
 #include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
@@ -45,20 +45,22 @@ typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
 #ifdef ESP32
-typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
+typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
 #endif
 typedef Web<HmSystemType> WebType;
-typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
+typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
 #include "plugins/Display/Display.h"
-#include "plugins/zeroExport/zeroExport.h"
+#include "plugins/Display/Display_data.h"
+typedef Display<HmSystemType, HmRadio<>> DisplayType;
 
-typedef Display<HmSystemType> DisplayType;
+#include "plugins/zeroExport/zeroExport.h"
 typedef ZeroExport<HmSystemType> ZeroExportType;
+
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -77,7 +79,17 @@ class app : public IApp, public ah::Scheduler {
         void handleIntr(void) {
             mNrfRadio.handleIntr();
         }
-
+        void* getRadioObj(bool nrf) {
+            if(nrf)
+                return (void*)&mNrfRadio;
+            else {
+                #ifdef ESP32
+                return (void*)&mCmtRadio;
+                #else
+                return NULL;
+                #endif
+            }
+        }
         #ifdef ESP32
         void handleHmsIntr(void) {
             mCmtRadio.handleIntr();
@@ -369,6 +381,8 @@ class app : public IApp, public ah::Scheduler {
 
         // plugins
         DisplayType mDisplay;
+        DisplayData mDispData;
+
         ZeroExportType mzExport;
 };
 

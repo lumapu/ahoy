@@ -1,5 +1,19 @@
 # Development Changes
 
+## 0.7.50 - 2023-09-12
+* moved MqTT info to `system`
+* added CMT info for ESP32 devices
+* improved CMT settings, now `SCLK` and `SDIO` are configurable #1046, #1150
+* changed `Power-Limit` in live-view to `Active Power Control`
+* increase length of update file selector #1132
+
+## 0.7.49 - 2023-09-11
+* merge PR: symbolic icons for mono displays, PR #1136
+* merge MI code restructuring PR #1145
+* merge Prometheus PR #1148
+* add option to strip webUI for ESP8266 (reduce code size, add ESP32 special features; `IF_ESP32` directives)
+* started to get CMT info into `system` - not finished
+
 ## 0.7.48 - 2023-09-10
 * fix SSD1309 2.42" display pinout
 * improved setup page: save and delete of inverters

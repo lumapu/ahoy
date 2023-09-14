@@ -29,8 +29,8 @@ class CmtRadio {
             mCmtAvail = false;
         }
 
-        void setup(uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
-            mCmt.setup(pinCsb, pinFcsb);
+        void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+            mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
             reset(genDtuSn);
         }
 
@@ -64,7 +64,7 @@ class CmtRadio {
             mSerialDebug = true;
         }
 
-        bool cmtIsAvail() {
+        bool isConnected() {
             return mCmtAvail;
         }
 
@@ -151,8 +151,7 @@ class CmtRadio {
             if(!mCmt.reset()) {
                 mCmtAvail = false;
                 DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
-            }
-            else {
+            } else {
                 mCmtAvail = true;
                 mCmt.goRx();
             }

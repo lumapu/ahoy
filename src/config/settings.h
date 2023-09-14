@@ -94,6 +94,8 @@ typedef struct {
 
 typedef struct {
     bool enabled;
+    uint8_t pinSclk;
+    uint8_t pinSdio;
     uint8_t pinCsb;
     uint8_t pinFcsb;
     uint8_t pinIrq;
@@ -419,10 +421,14 @@ class settings {
             mCfg.nrf.enabled           = true;
 
             #if defined(ESP32)
+            mCfg.cmt.pinSclk           = DEF_CMT_SCLK;
+            mCfg.cmt.pinSdio           = DEF_CMT_SDIO;
             mCfg.cmt.pinCsb            = DEF_CMT_CSB;
             mCfg.cmt.pinFcsb           = DEF_CMT_FCSB;
             mCfg.cmt.pinIrq            = DEF_CMT_IRQ;
             #else
+            mCfg.cmt.pinSclk           = DEF_PIN_OFF;
+            mCfg.cmt.pinSdio           = DEF_PIN_OFF;
             mCfg.cmt.pinCsb            = DEF_PIN_OFF;
             mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
             mCfg.cmt.pinIrq            = DEF_PIN_OFF;

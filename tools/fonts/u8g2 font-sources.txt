@@ -1,0 +1,11 @@
+Useful sources to edit u8g2 fonts:
+
+bdf font files for u8g2 font library:
+https://github.com/olikraus/u8g2/tree/master/tools/font/bdf
+
+Tool to edit bdf files:
+https://github.com/olikraus/u8g2/tree/master/tools/font/fony
+
+Tool to convert bdf font files to u8g2 source code:
+https://github.com/olikraus/u8g2/tree/master/tools/font/bdfconv
+

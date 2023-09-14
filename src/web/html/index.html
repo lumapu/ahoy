@@ -19,7 +19,6 @@
                     <div id="warn_info"></div>
                 </p>
 
-                <div class="hr"></div>
                 <div id="note">
                     <h3>Support this project:</h3>
                     <ul>
@@ -157,13 +156,10 @@
                 document.getElementById("iv").replaceChildren(p);
             }
 
-            function parseWarnInfo(warn, success) {
+            function parseWarn(warn) {
                 var p = div(["none"]);
                 for(var w of warn) {
                     p.append(svg(iconWarn, 30, 30, "icon icon-warn"), span(w), br());
-                }
-                for(var i of success) {
-                    p.append(svg(iconSuccess, 30, 30, "icon icon-success"), span(i), br());
                 }
 
                 if(commInfo.length > 0)
@@ -197,7 +193,7 @@
                     parseGeneric(obj["generic"]);
                     parseSys(obj);
                     parseIv(obj["inverter"]);
-                    parseWarnInfo(obj["warnings"], obj["infos"]);
+                    parseWarn(obj["warnings"]);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;

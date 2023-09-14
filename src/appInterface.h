@@ -14,6 +14,11 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
+//#include "hms/hmsRadio.h"
+#if defined(ESP32)
+//typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
+#endif
+
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
 class IApp {
@@ -62,6 +67,11 @@ class IApp {
 
         virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
         //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
+
+        virtual void* getRadioObj(bool nrf) = 0;
+        #if defined(ESP32)
+        //virtual const CmtRadioType& getCmtRadioObj(void) const = 0;
+        #endif
 };
 
 #endif /*__IAPP_H__*/
