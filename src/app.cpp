@@ -11,10 +11,7 @@
 
 
 //-----------------------------------------------------------------------------
-app::app()
-    : ah::Scheduler {},
-      mInnerLoopCb {nullptr} {
-}
+app::app() : ah::Scheduler {} {}
 
 
 //-----------------------------------------------------------------------------
@@ -54,14 +51,6 @@ void app::setup() {
         DBGPRINTLN(F("done..."));
         DSERIAL.flush();
     #endif // ETHERNET
-
-    #if !defined(ETHERNET)
-        #if defined(AP_ONLY)
-            mInnerLoopCb = std::bind(&app::loopStandard, this);
-        #else
-            mInnerLoopCb = std::bind(&app::loopWifi, this);
-        #endif
-    #endif /* !defined(ETHERNET) */
 
     #if !defined(ETHERNET)
         mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
@@ -128,14 +117,6 @@ void app::setup() {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    if (mInnerLoopCb)
-        mInnerLoopCb();
-    #if !defined(ETHERNET)
-    #endif
-}
-
-//-----------------------------------------------------------------------------
-void app::loopStandard(void) {
     ah::Scheduler::loop();
 
     if (mNrfRadio.loop() && mConfig->nrf.enabled) {
@@ -198,47 +179,29 @@ void app::loopStandard(void) {
     mHmsPayload.loop();
     #endif
 
-    if (mMqttEnabled)
+    if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
 }
-
-#if !defined(ETHERNET)
-//-----------------------------------------------------------------------------
-void app::loopWifi(void) {
-    ah::Scheduler::loop();
-    yield();
-}
-#endif /* !defined(ETHERNET) */
 
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
     DPRINTLN(DBG_DEBUG, F("onNetwork"));
-    ah::Scheduler::resetTicker();
-    regularTickers();  // reinstall regular tickers
-    if (gotIp) {
-        every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
-        #if defined(ESP32)
-        if(mConfig->cmt.enabled)
-            everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
-        #endif
-        mMqttReconnect = true;
-        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-        #if !defined(ETHERNET)
-        if (WIFI_AP == WiFi.getMode()) {
-            mMqttEnabled = false;
-        }
-        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-        #endif /* !defined(ETHERNET) */
-        mInnerLoopCb = [this]() { this->loopStandard(); };
-    } else {
-        #if defined(ETHERNET)
-                mInnerLoopCb = nullptr;
-        #else /* defined(ETHERNET) */
-                mInnerLoopCb = [this]() { this->loopWifi(); };
-                everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-        #endif /* defined(ETHERNET) */
+    mNetworkConnected = gotIp;
+    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    #if defined(ESP32)
+    if(mConfig->cmt.enabled)
+        everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
+    #endif
+    mMqttReconnect = true;
+    mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
+    //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    tickNtpUpdate();
+    #if !defined(ETHERNET)
+    if (WIFI_AP == WiFi.getMode()) {
+        mMqttEnabled = false;
     }
+    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+    #endif /* !defined(ETHERNET) */
 }
 
 //-----------------------------------------------------------------------------
@@ -559,6 +522,8 @@ void app::resetSystem(void) {
     mIVCommunicationOn = true;
     mSavePending = false;
     mSaveReboot = false;
+
+    mNetworkConnected = false;
 
     memset(&mStat, 0, sizeof(statistics_t));
 }

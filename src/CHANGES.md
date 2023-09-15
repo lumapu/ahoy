@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.7.51 - 2023-09-16
+* fix CMT configureable pins #1150
+* fix default CMT pins for opendtufusion
+* beautified `system`
+* changed main loops, fix resets #1125, #1135
+
 ## 0.7.50 - 2023-09-12
 * moved MqTT info to `system`
 * added CMT info for ESP32 devices

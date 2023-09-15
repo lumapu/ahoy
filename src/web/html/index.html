@@ -115,7 +115,7 @@
                 }
             }
 
-            function parseIv(obj) {
+            function parseIv(obj, ts) {
                 var p = div(["none"]);
                 for(var i of obj) {
                     var icon = iconSuccess;
@@ -125,7 +125,7 @@
                         icon = iconWarn;
                         cl = "icon-warn";
                         avail = "disabled";
-                    } else if(false == i["is_avail"]) {
+                    } else if((false == i["is_avail"]) || (0 == ts)) {
                         icon = iconInfo;
                         cl = "icon-info";
                         avail = "not yet available";
@@ -192,7 +192,7 @@
                         parseNav(obj["generic"]);
                     parseGeneric(obj["generic"]);
                     parseSys(obj);
-                    parseIv(obj["inverter"]);
+                    parseIv(obj["inverter"], obj.ts_now);
                     parseWarn(obj["warnings"]);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);

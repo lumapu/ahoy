@@ -20,30 +20,24 @@
                 parseRssi(obj);
             }
 
-            function genTabRow(key, value) {
-                var r = div(["row", "p-1"]);
-                r.appendChild(div(["col"], key));
-                r.appendChild(div(["col"], value));
-                return r;
-            }
-
             function parseSysInfo(obj) {
                 const data = ["sdk", "cpu_freq", "chip_revision",
                     "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "ts_uptime",
                     "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
                     "max_free_blk", "version", "core_version", "reboot_reason"];
 
-                var main = document.getElementById("info");
-                var h = div(["head", "p-2"]);
-                var r = div(["row"]);
-                r.appendChild(div(["col", "a-c"], "System Information"));
-                h.appendChild(r);
-                main.appendChild(h);
-
+                lines = [];
                 for (const [key, value] of Object.entries(obj)) {
                     if(!data.includes(key) || (typeof value == 'undefined')) continue;
-                    main.appendChild(genTabRow(key, value));
+                    lines.push(tr(key.replace('_', ' '), value));
                 }
+
+                document.getElementById("info").append(
+                    headline("System Information"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
             }
 
             function badge(success, text, second="error") {
@@ -58,7 +52,7 @@
                 if(typeof val2 == "number")
                     val2 = String(val2);
                 return ml("tr", {}, [
-                    ml("th", {}, val1),
+                    ml("th", {style: "width: 50%"}, val1),
                     ml("td", {}, val2)
                 ]);
             }

@@ -66,9 +66,6 @@ class app : public IApp, public ah::Scheduler {
         void setup(void);
         void loop(void);
         void loopStandard(void);
-#if !defined(ETHERNET)
-        void loopWifi(void);
-#endif /* !defined(ETHERNET) */
         void onNetwork(bool gotIp);
         void regularTickers(void);
 
@@ -272,8 +269,6 @@ class app : public IApp, public ah::Scheduler {
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
 
-        typedef std::function<void()> innerLoopCb;
-
         void resetSystem(void);
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
@@ -325,8 +320,6 @@ class app : public IApp, public ah::Scheduler {
         void tickZeroValues(void);
         void tickMidnight(void);
 
-        innerLoopCb mInnerLoopCb;
-
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
 
@@ -359,6 +352,8 @@ class app : public IApp, public ah::Scheduler {
 
         uint8_t mSendLastIvId;
         bool mSendFirst;
+
+        bool mNetworkConnected;
 
         statistics_t mStat;
 
