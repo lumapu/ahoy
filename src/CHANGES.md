@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.7.54 - 2023-09-16
+* added active power control in `W` to live view #201, #673
+* updated docu, active power control related #706
+* added current AC-Power to `index` page and removed version #763
+* improved statistic data, moved to entire struct
+* removed `/api/statistics` endpoint from REST-API
+
 ## 0.7.53 - 2023-09-16
 * fix ePaper / display night behaviour #1151
 * fix ESP8266 compile error

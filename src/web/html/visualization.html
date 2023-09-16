@@ -98,6 +98,14 @@
                 var t = span("&nbsp;&deg;C");
                 var clh  = (0 == obj.status) ? "iv-h-dis" : "iv-h";
                 var clbg = (0 == obj.status) ? "iv-bg-dis" : "iv-bg";
+                var pwrLimit = "n/a";
+
+                if(65535 != obj.power_limit_read) {
+                    pwrLimit = obj.power_limit_read + "&nbsp;%";
+                    if(0 != obj.max_pwr)
+                        pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100) + "W";
+                }
+
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -105,7 +113,7 @@
                                 ml("div", {class: "col mx-2 mx-md-1"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/version/" + obj.id, parseIvVersion);
                                 }}, obj.name)),
-                                ml("div", {class: "col a-c"}, "Active Power Control: " + ((obj.power_limit_read == 65535) ? "n/a" : (obj.power_limit_read + "&nbsp;%"))),
+                                ml("div", {class: "col a-c"}, "Active Power Control: " + pwrLimit),
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("Alarms: " + obj.alarm_cnt))),

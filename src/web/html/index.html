@@ -134,15 +134,16 @@
                     } else {
                         avail = "available and is ";
                         if(false == i["is_producing"])
-                            avail += "not ";
-                        else
+                            avail += "not producing";
+                        else {
                             icon = iconSuccessFull;
-                        avail += "producing";
+                            avail += "producing " + i.cur_pwr + "W";
+                        }
                     }
 
                     p.append(
                         svg(icon, 30, 30, "icon " + cl),
-                        span("Inverter #" + i["id"] + ": " + i["name"] + " (v" + i["version"] + ") is " + avail),
+                        span("Inverter #" + i["id"] + ": " + i["name"] + " is " + avail),
                         br()
                     );
 

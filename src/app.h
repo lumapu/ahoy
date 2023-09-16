@@ -129,8 +129,12 @@ class app : public IApp, public ah::Scheduler {
             return mSaveReboot;
         }
 
-        statistics_t *getStatistics() {
-            return &mStat;
+        statistics_t *getNrfStatistics() {
+            return &mNrfStat;
+        }
+
+        statistics_t *getCmtStatistics() {
+            return &mCmtStat;
         }
 
         #if !defined(ETHERNET)
@@ -206,11 +210,6 @@ class app : public IApp, public ah::Scheduler {
 
         bool getProtection(AsyncWebServerRequest *request) {
             return mWeb.isProtected(request);
-        }
-
-        void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
-            *sendCnt = mNrfRadio.mSendCnt;
-            *retransmits = mNrfRadio.mRetransmits;
         }
 
         bool getNrfEnabled(void) {
@@ -355,7 +354,8 @@ class app : public IApp, public ah::Scheduler {
 
         bool mNetworkConnected;
 
-        statistics_t mStat;
+        statistics_t mNrfStat;
+        statistics_t mCmtStat;
 
         // mqtt
         PubMqttType mMqtt;

@@ -34,12 +34,12 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+        mNrfRadio.setup(&mNrfStat, mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
         mNrfRadio.enableDebug();
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.setup(&mCmtStat, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
         mCmtRadio.enableDebug();
     }
     #endif
@@ -62,17 +62,17 @@ void app::setup() {
     mSys.setup(&mTimestamp);
     mSys.addInverters(&mConfig->inst);
     if (mConfig->nrf.enabled) {
-        mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mPayload.enableSerialDebug(mConfig->serial.debug);
         mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
-        mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mMiPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     #if defined(ESP32)
-        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
+        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mCmtStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
         mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     #endif
@@ -133,7 +133,7 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mStat.frmCnt++;
+            mNrfStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
@@ -160,7 +160,7 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(&p->data[1], p->data[0]);
             }
-            mStat.frmCnt++;
+            mCmtStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->data[2]);
             if(NULL != iv) {
@@ -525,7 +525,8 @@ void app::resetSystem(void) {
 
     mNetworkConnected = false;
 
-    memset(&mStat, 0, sizeof(statistics_t));
+    memset(&mNrfStat, 0, sizeof(statistics_t));
+    memset(&mCmtStat, 0, sizeof(statistics_t));
 }
 
 //-----------------------------------------------------------------------------

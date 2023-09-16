@@ -35,7 +35,8 @@ class IApp {
         #endif /* defined(ETHERNET) */
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
-        virtual statistics_t *getStatistics() = 0;
+        virtual statistics_t *getNrfStatistics() = 0;
+        virtual statistics_t *getCmtStatistics() = 0;
 
         #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;
@@ -65,13 +66,8 @@ class IApp {
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
-        virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
-        //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
-
         virtual void* getRadioObj(bool nrf) = 0;
-        #if defined(ESP32)
-        //virtual const CmtRadioType& getCmtRadioObj(void) const = 0;
-        #endif
+
 };
 
 #endif /*__IAPP_H__*/
