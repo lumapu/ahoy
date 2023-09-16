@@ -537,6 +537,7 @@ class settings {
             }
         }
 
+        #if defined(ESP32)
         void jsonCmt(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("csb")]  = mCfg.cmt.pinCsb;
@@ -558,6 +559,7 @@ class settings {
                     mCfg.cmt.pinSdio = DEF_CMT_SDIO;
             }
         }
+        #endif
 
         void jsonNtp(JsonObject obj, bool set = false) {
             if(set) {

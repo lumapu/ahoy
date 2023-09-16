@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.53 - 2023-09-16
+* fix ePaper / display night behaviour #1151
+* fix ESP8266 compile error
+
 ## 0.7.52 - 2023-09-16
 * fix CMT configureable pins #1150, #1159
 * update MqTT lib to version `1.4.5`

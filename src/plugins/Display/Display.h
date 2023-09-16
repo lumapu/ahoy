@@ -90,6 +90,7 @@ class Display {
 
         Inverter<> *iv;
         record_t<> *rec;
+        bool allOff = true;
         for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
             iv = mSys->getInverterByPos(i);
             rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -104,12 +105,17 @@ class Display {
             totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
             totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
             totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
+
+            if(allOff) {
+                if(iv->status != InverterStatus::OFF)
+                    allOff = false;
+            }
         }
 
         // prepare display data
         mDisplayData.nrProducing = nrprod;
         mDisplayData.nrSleeping = nrsleep;
-        mDisplayData.totalPower = totalPower;
+        mDisplayData.totalPower = (allOff) ? 0.0 : totalPower; // if all inverters are off, total power can't be greater than 0
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
         mDisplayData.RadioSymbol = mHmRadio->isChipConnected();
