@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.52 - 2023-09-16
+* fix CMT configureable pins #1150, #1159
+* update MqTT lib to version `1.4.5`
+
 ## 0.7.51 - 2023-09-16
 * fix CMT configureable pins #1150
 * fix default CMT pins for opendtufusion

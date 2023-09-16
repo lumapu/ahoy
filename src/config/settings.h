@@ -542,12 +542,20 @@ class settings {
                 obj[F("csb")]  = mCfg.cmt.pinCsb;
                 obj[F("fcsb")] = mCfg.cmt.pinFcsb;
                 obj[F("irq")]  = mCfg.cmt.pinIrq;
+                obj[F("dio")]  = mCfg.cmt.pinSdio;
+                obj[F("clk")]  = mCfg.cmt.pinSclk;
                 obj[F("en")]   = (bool) mCfg.cmt.enabled;
             } else {
                 mCfg.cmt.pinCsb  = obj[F("csb")];
                 mCfg.cmt.pinFcsb = obj[F("fcsb")];
                 mCfg.cmt.pinIrq  = obj[F("irq")];
+                mCfg.cmt.pinSdio = obj[F("dio")];
+                mCfg.cmt.pinSclk = obj[F("clk")];
                 mCfg.cmt.enabled = (bool) obj[F("en")];
+                if(0 == mCfg.cmt.pinSclk)
+                    mCfg.cmt.pinSclk = DEF_CMT_SCLK;
+                if(0 == mCfg.cmt.pinSdio)
+                    mCfg.cmt.pinSdio = DEF_CMT_SDIO;
             }
         }
 
