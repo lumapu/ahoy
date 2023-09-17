@@ -3,6 +3,7 @@
 ## 0.7.56 - 2023-09-17
 * only request alarms which were not received before #1113
 * added flag if alarm was requested but not received and re-request it #1105
+* merge PR #1163
 
 ## 0.7.55 - 2023-09-17
 * fix prometheus builds
