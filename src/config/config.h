@@ -208,13 +208,6 @@
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
 
-// Offset for midnight Ticker
-// relative to UTC
-//   may be negative for later in the next day or positive for earlier in previous day
-//   may contain variable like mCalculatedTimezoneOffset
-// must be in parentheses
-#define MIDNIGHTTICKER_OFFSET (-1)
-
 #if __has_include("config_override.h")
     #include "config_override.h"
 #endif
