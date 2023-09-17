@@ -31,10 +31,6 @@
 #undef DEF_SCLK_PIN
 #define DEF_SCLK_PIN 36
 
-// Offset for midnight Ticker Example: 1 second before midnight (local time)
-#undef MIDNIGHTTICKER_OFFSET
-#define MIDNIGHTTICKER_OFFSET (mCalculatedTimezoneOffset + 1)
-
 // To enable the endpoint for prometheus to scrape data from at /metrics
 // #define ENABLE_PROMETHEUS_EP
 
