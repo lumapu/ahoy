@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.7.55 - 2023-09-17
+* fix prometheus builds
+* fix ESP32 default pinout #1159
+* added `opendtufusion-dev` because of anoying `-DARDUINO_USB_CDC_ON_BOOT=1` flag
+* fix display of current power on `index`
+* fix OTA, was damaged by version `0.7.51`, need to use webinstaller (from `0.7.51` to `0.7.54`)
+
 ## 0.7.54 - 2023-09-16
 * added active power control in `W` to live view #201, #673
 * updated docu, active power control related #706

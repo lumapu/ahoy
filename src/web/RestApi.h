@@ -585,7 +585,7 @@ class RestApi {
                     invObj[F("enabled")]         = (bool)iv->config->enabled;
                     invObj[F("id")]              = i;
                     invObj[F("name")]            = String(iv->config->name);
-                    invObj[F("cur_pwr")]         = iv->getPosByChFld(CH0, FLD_PAC, rec);
+                    invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
                     invObj[F("is_avail")]        = iv->isAvailable();
                     invObj[F("is_producing")]    = iv->isProducing();
                     invObj[F("ts_last_success")] = iv->getLastTs(rec);

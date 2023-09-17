@@ -146,9 +146,6 @@ class app : public IApp, public ah::Scheduler {
             return mWifi.getAvailNetworks(obj);
         }
 
-        void setOnUpdate() {
-            onNetwork(false);
-        }
         #endif /* !defined(ETHERNET) */
 
         void setRebootFlag() {

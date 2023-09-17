@@ -30,9 +30,6 @@ class IApp {
         virtual bool getSavePending() = 0;
         virtual bool getLastSaveSucceed() = 0;
         virtual bool getShouldReboot() = 0;
-        #if !defined(ETHERNET)
-        virtual void setOnUpdate() = 0;
-        #endif /* defined(ETHERNET) */
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
         virtual statistics_t *getNrfStatistics() = 0;
