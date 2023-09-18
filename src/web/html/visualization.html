@@ -113,7 +113,8 @@
                                 ml("div", {class: "col mx-2 mx-md-1"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/version/" + obj.id, parseIvVersion);
                                 }}, obj.name)),
-                                ml("div", {class: "col a-c"}, "Active Power Control: " + pwrLimit),
+                                ml("div", {class: "col a-c d-none d-sm-block"}, "Active Power Control: " + pwrLimit),
+                                ml("div", {class: "col a-c d-block d-sm-none"}, "APC: " + pwrLimit),
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("Alarms: " + obj.alarm_cnt))),

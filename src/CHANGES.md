@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.7.57 - 2023-09-18
+* fix Alarms are always in queue (since 0.7.56)
+* fix display active power control to long for small devices #1165
+
 ## 0.7.56 - 2023-09-17
 * only request alarms which were not received before #1113
 * added flag if alarm was requested but not received and re-request it #1105

@@ -151,8 +151,7 @@ class Inverter {
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
-        uint8_t       alarmLastId;       // lastId which was received
-        bool          alarmReqPending;   // alarmData request issued and wait for answer
+        uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // HMS and HMT inverters only
 
 
@@ -210,7 +209,7 @@ class Inverter {
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
                     else if (getHwVersion() == 0)
                         enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
-                    else if(alarmReqPending)
+                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
                         enqueCommand<InfoCommand>(AlarmData);  // alarm not answered
                     enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                 } else if (ivGen == IV_MI){
@@ -342,7 +341,6 @@ class Inverter {
 
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
-                            alarmReqPending = true;
                             enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
@@ -626,7 +624,6 @@ class Inverter {
             DPRINTLN(DBG_DEBUG, "Alarm #" + String(pyld[startOff+1]) + " '" + String(getAlarmStr(pyld[startOff+1])) + "' start: " + ah::getTimeStr(start) + ", end: " + ah::getTimeStr(endTime));
             addAlarm(pyld[startOff+1], start, endTime);
 
-            alarmReqPending = false;
             alarmCnt++;
             alarmLastId = alarmMesIndex;
 
