@@ -11,10 +11,7 @@
 
 
 //-----------------------------------------------------------------------------
-app::app()
-    : ah::Scheduler {},
-      mInnerLoopCb {nullptr} {
-}
+app::app() : ah::Scheduler {} {}
 
 
 //-----------------------------------------------------------------------------
@@ -37,12 +34,12 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+        mNrfRadio.setup(&mNrfStat, mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
         mNrfRadio.enableDebug();
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.setup(&mCmtStat, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
         mCmtRadio.enableDebug();
     }
     #endif
@@ -56,14 +53,6 @@ void app::setup() {
     #endif // ETHERNET
 
     #if !defined(ETHERNET)
-        #if defined(AP_ONLY)
-            mInnerLoopCb = std::bind(&app::loopStandard, this);
-        #else
-            mInnerLoopCb = std::bind(&app::loopWifi, this);
-        #endif
-    #endif /* !defined(ETHERNET) */
-
-    #if !defined(ETHERNET)
         mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
         #if !defined(AP_ONLY)
             everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
@@ -73,17 +62,17 @@ void app::setup() {
     mSys.setup(&mTimestamp);
     mSys.addInverters(&mConfig->inst);
     if (mConfig->nrf.enabled) {
-        mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mPayload.enableSerialDebug(mConfig->serial.debug);
         mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
-        mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mMiPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
 
     #if defined(ESP32)
-        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mStat, 5, &mTimestamp);
+        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mCmtStat, 5, &mTimestamp);
         mHmsPayload.enableSerialDebug(mConfig->serial.debug);
         mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     #endif
@@ -133,14 +122,6 @@ void app::setup() {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    if (mInnerLoopCb)
-        mInnerLoopCb();
-    #if !defined(ETHERNET)
-    #endif
-}
-
-//-----------------------------------------------------------------------------
-void app::loopStandard(void) {
     ah::Scheduler::loop();
 
     if (mNrfRadio.loop() && mConfig->nrf.enabled) {
@@ -157,7 +138,7 @@ void app::loopStandard(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mStat.frmCnt++;
+            mNrfStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
@@ -184,7 +165,7 @@ void app::loopStandard(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(&p->data[1], p->data[0]);
             }
-            mStat.frmCnt++;
+            mCmtStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->data[2]);
             if(NULL != iv) {
@@ -203,47 +184,29 @@ void app::loopStandard(void) {
     mHmsPayload.loop();
     #endif
 
-    if (mMqttEnabled)
+    if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
 }
-
-#if !defined(ETHERNET)
-//-----------------------------------------------------------------------------
-void app::loopWifi(void) {
-    ah::Scheduler::loop();
-    yield();
-}
-#endif /* !defined(ETHERNET) */
 
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
     DPRINTLN(DBG_DEBUG, F("onNetwork"));
-    ah::Scheduler::resetTicker();
-    regularTickers();  // reinstall regular tickers
-    if (gotIp) {
-        every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
-        #if defined(ESP32)
-        if(mConfig->cmt.enabled)
-            everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
-        #endif
-        mMqttReconnect = true;
-        mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-        once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-        #if !defined(ETHERNET)
-        if (WIFI_AP == WiFi.getMode()) {
-            mMqttEnabled = false;
-        }
-        everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-        #endif /* !defined(ETHERNET) */
-        mInnerLoopCb = [this]() { this->loopStandard(); };
-    } else {
-        #if defined(ETHERNET)
-                mInnerLoopCb = nullptr;
-        #else /* defined(ETHERNET) */
-                mInnerLoopCb = [this]() { this->loopWifi(); };
-                everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-        #endif /* defined(ETHERNET) */
+    mNetworkConnected = gotIp;
+    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    #if defined(ESP32)
+    if(mConfig->cmt.enabled)
+        everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
+    #endif
+    mMqttReconnect = true;
+    mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
+    //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    tickNtpUpdate();
+    #if !defined(ETHERNET)
+    if (WIFI_AP == WiFi.getMode()) {
+        mMqttEnabled = false;
     }
+    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
+    #endif /* !defined(ETHERNET) */
 }
 
 //-----------------------------------------------------------------------------
@@ -573,7 +536,10 @@ void app::resetSystem(void) {
     mSavePending = false;
     mSaveReboot = false;
 
-    memset(&mStat, 0, sizeof(statistics_t));
+    mNetworkConnected = false;
+
+    memset(&mNrfStat, 0, sizeof(statistics_t));
+    memset(&mCmtStat, 0, sizeof(statistics_t));
 }
 
 //-----------------------------------------------------------------------------

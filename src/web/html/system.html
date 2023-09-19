@@ -20,30 +20,24 @@
                 parseRssi(obj);
             }
 
-            function genTabRow(key, value) {
-                var r = div(["row", "p-1"]);
-                r.appendChild(div(["col"], key));
-                r.appendChild(div(["col"], value));
-                return r;
-            }
-
             function parseSysInfo(obj) {
                 const data = ["sdk", "cpu_freq", "chip_revision",
                     "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "ts_uptime",
                     "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
                     "max_free_blk", "version", "core_version", "reboot_reason"];
 
-                var main = document.getElementById("info");
-                var h = div(["head", "p-2"]);
-                var r = div(["row"]);
-                r.appendChild(div(["col", "a-c"], "System Information"));
-                h.appendChild(r);
-                main.appendChild(h);
-
+                lines = [];
                 for (const [key, value] of Object.entries(obj)) {
                     if(!data.includes(key) || (typeof value == 'undefined')) continue;
-                    main.appendChild(genTabRow(key, value));
+                    lines.push(tr(key.replace('_', ' '), value));
                 }
+
+                document.getElementById("info").append(
+                    headline("System Information"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
             }
 
             function badge(success, text, second="error") {
@@ -58,50 +52,57 @@
                 if(typeof val2 == "number")
                     val2 = String(val2);
                 return ml("tr", {}, [
-                    ml("th", {}, val1),
+                    ml("th", {style: "width: 50%"}, val1),
                     ml("td", {}, val2)
                 ]);
+            }
+
+            function parseStat(stat) {
+                return [
+                    tr("TX count", stat.tx_cnt),
+                    tr("RX success", stat.rx_success),
+                    tr("RX fail", stat.rx_fail),
+                    tr("RX no answer", stat.rx_fail_answer),
+                    tr("RX fragments", stat.frame_cnt),
+                    tr("TX retransmits", stat.retransmits)
+                ];
             }
 
             function parseRadio(obj) {
                 const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
                 const dr = ["1 M", "2 M", "250 k"]
 
-                if(obj.radioNrf.en)
+                if(obj.radioNrf.en) {
                     lines = [
                         tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
                         tr("NRF24 Power Level", pa[obj.radioNrf.power_level]),
                         tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
                     ];
-                else
+                    Array.prototype.push.apply(lines, parseStat(obj.statistics[0]));
+                } else
                     lines = [tr("NRF24L01", badge(false, "not enabled"))];
 
-                /*IF_ESP32*/
-                if(obj.radioCmt.en)
-                    lines.push(tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected")));
-                else
-                    lines.push(tr("CMT2300A", badge(false, "not enabled")));
-                /*ENDIF_ESP32*/
-
-                var stat = obj.statistics;
                 document.getElementById("info").append(
-                    headline("Radio"),
+                    headline("Radio NRF"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
-                    ),
-
-                    headline("Statistics"),
-                    ml("table", {class: "table"},
-                        ml("tbody", {}, [
-                            tr("TX count", stat.tx_cnt),
-                            tr("RX success", stat.rx_success),
-                            tr("RX fail", stat.rx_fail),
-                            tr("RX no answer", stat.rx_fail_answer),
-                            tr("RX fragments", stat.frame_cnt),
-                            tr("TX retransmits", stat.retransmits)
-                        ])
                     )
                 );
+
+                /*IF_ESP32*/
+                if(obj.radioCmt.en) {
+                    cmt = [tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected"))];
+                    Array.prototype.push.apply(cmt, parseStat(obj.statistics[1]));
+                } else
+                    cmt = [tr("CMT2300A", badge(false, "not enabled"))];
+
+                document.getElementById("info").append(
+                    headline("Radio CMT"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, cmt)
+                    )
+                );
+                /*ENDIF_ESP32*/
             }
 
             function parseMqtt(obj) {

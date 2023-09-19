@@ -29,8 +29,9 @@ class CmtRadio {
             mCmtAvail = false;
         }
 
-        void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+        void setup(statistics_t *stat, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
             mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
+            mStat = stat;
             reset(genDtuSn);
         }
 
@@ -103,10 +104,10 @@ class CmtRadio {
             initPacket(ivId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            /*if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
+            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }*/
+            }
             sendPacket(24, isRetransmit);
         }
 
@@ -135,13 +136,11 @@ class CmtRadio {
             }
 
             if(isRetransmit)
-                mRetransmits++;
+                mStat->retransmits++;
             else
-                mSendCnt++;
+                mStat->txCnt++;
         }
 
-        uint32_t mSendCnt;
-        uint32_t mRetransmits;
         std::queue<hmsPacket_t> mBufCtrl;
 
     private:
@@ -156,8 +155,6 @@ class CmtRadio {
                 mCmt.goRx();
             }
 
-            mSendCnt        = 0;
-            mRetransmits    = 0;
             mSerialDebug    = false;
             mIrqRcvd        = false;
             mRqstGetRx      = false;
@@ -217,6 +214,7 @@ class CmtRadio {
         bool mIrqRcvd;
         bool mRqstGetRx;
         bool mCmtAvail;
+        statistics_t *mStat;
 };
 
 #endif /*__HMS_RADIO_H__*/

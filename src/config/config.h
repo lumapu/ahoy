@@ -74,20 +74,20 @@
         #define DEF_NRF_IRQ_PIN         16
     #endif
     #ifndef DEF_NRF_MISO_PIN
-        #define DEF_NRF_MISO_PIN        12
+        #define DEF_NRF_MISO_PIN        19
     #endif
     #ifndef DEF_NRF_MOSI_PIN
-        #define DEF_NRF_MOSI_PIN        13
+        #define DEF_NRF_MOSI_PIN        23
     #endif
     #ifndef DEF_NRF_SCLK_PIN
-        #define DEF_NRF_SCLK_PIN        14
+        #define DEF_NRF_SCLK_PIN        18
     #endif
 
     #ifndef DEF_CMT_SCLK
-        #define DEF_CMT_SCLK            18
+        #define DEF_CMT_SCLK            12
     #endif
     #ifndef DEF_CMT_SDIO
-        #define DEF_CMT_SDIO            23
+        #define DEF_CMT_SDIO            14
     #endif
     #ifndef DEF_CMT_CSB
         #define DEF_CMT_CSB             27
@@ -210,13 +210,6 @@
 
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
-
-// Offset for midnight Ticker
-// relative to UTC
-//   may be negative for later in the next day or positive for earlier in previous day
-//   may contain variable like mCalculatedTimezoneOffset
-// must be in parentheses
-#define MIDNIGHTTICKER_OFFSET (-1)
 
 #if __has_include("config_override.h")
     #include "config_override.h"

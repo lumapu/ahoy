@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       7
-#define VERSION_PATCH       50
+#define VERSION_PATCH       57
 
 //-------------------------------------
 typedef struct {
@@ -100,6 +100,8 @@ typedef struct {
     uint32_t rxFailNoAnser;
     uint32_t rxSuccess;
     uint32_t frmCnt;
+    uint32_t txCnt;
+    uint32_t retransmits;
 } statistics_t;
 
 #endif /*__DEFINES_H__*/

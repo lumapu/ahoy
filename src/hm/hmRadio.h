@@ -53,17 +53,15 @@ class HmRadio {
             mTxChIdx    = 2; // Start TX with 40
             mRxChIdx    = 0; // Start RX with 03
 
-            mSendCnt        = 0;
-            mRetransmits    = 0;
-
             mSerialDebug    = false;
             mIrqRcvd        = false;
         }
         ~HmRadio() {}
 
-        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(statistics_t *stat, uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
+            mStat = stat;
 
             uint32_t dtuSn = 0x87654321;
             uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
@@ -218,10 +216,10 @@ class HmRadio {
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
-            /*if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
+            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }*/
+            }
             sendPacket(invId, 24, isRetransmit);
         }
 
@@ -241,10 +239,6 @@ class HmRadio {
         }
 
         std::queue<packet_t> mBufCtrl;
-
-        uint32_t mSendCnt;
-        uint32_t mRetransmits;
-
         bool mSerialDebug;
 
     private:
@@ -293,7 +287,7 @@ class HmRadio {
 
         void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
-            //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mSendCnt));
+            //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mStat->txCnt));
 
             // append crc's
             if (appendCrc16 && (len > 10)) {
@@ -325,9 +319,9 @@ class HmRadio {
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
             if(isRetransmit)
-                mRetransmits++;
+                mStat->retransmits++;
             else
-                mSendCnt++;
+                mStat->txCnt++;
         }
 
         volatile bool mIrqRcvd;
@@ -340,6 +334,7 @@ class HmRadio {
         SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+        statistics_t *mStat;
 };
 
 #endif /*__RADIO_H__*/

@@ -148,10 +148,6 @@ class Web {
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            #if !defined(ETHERNET)
-            mApp->setOnUpdate();
-            #endif /* !defined(ETHERNET) */
-
             if (!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
                 #ifndef ESP32
@@ -543,7 +539,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 12; i++) {
+            for (uint8_t i = 0; i < 14; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -730,16 +726,13 @@ class Web {
                         metrics += String(type) + String(topic);
 
                         // NRF Statistics
-                        stat = mApp->getStatistics();
-                        uint32_t nrfSendCnt;
-                        uint32_t nrfRetransmits;
-                        mApp->getNrfRadioCounters(&nrfSendCnt, &nrfRetransmits);
+                        stat = mApp->getNrfStatistics();
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         nrfSendCnt);
-                        metrics += radioStatistic(F("retrans_cnt"),    nrfRetransmits);
+                        metrics += radioStatistic(F("tx_cnt"),         stat->txCnt);
+                        metrics += radioStatistic(F("retrans_cnt"),    stat->retransmits);
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Next is Inverter information

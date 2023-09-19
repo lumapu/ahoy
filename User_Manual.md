@@ -124,6 +124,8 @@ The AhoyDTU subscribes on following topics:
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
+**NOTE:** Some users reported that a limit below 20W results in 0W output of the inverter. To reenable the inverter a reboot command was need to be sent, because a new limit with 100% didn't work.
+
 
 ### Inverter restart
 ```mqtt

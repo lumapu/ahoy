@@ -1,5 +1,42 @@
 # Development Changes
 
+## 0.7.57 - 2023-09-18
+* fix Alarms are always in queue (since 0.7.56)
+* fix display active power control to long for small devices #1165
+
+## 0.7.56 - 2023-09-17
+* only request alarms which were not received before #1113
+* added flag if alarm was requested but not received and re-request it #1105
+* merge PR #1163
+
+## 0.7.55 - 2023-09-17
+* fix prometheus builds
+* fix ESP32 default pinout #1159
+* added `opendtufusion-dev` because of anoying `-DARDUINO_USB_CDC_ON_BOOT=1` flag
+* fix display of current power on `index`
+* fix OTA, was damaged by version `0.7.51`, need to use webinstaller (from `0.7.51` to `0.7.54`)
+
+## 0.7.54 - 2023-09-16
+* added active power control in `W` to live view #201, #673
+* updated docu, active power control related #706
+* added current AC-Power to `index` page and removed version #763
+* improved statistic data, moved to entire struct
+* removed `/api/statistics` endpoint from REST-API
+
+## 0.7.53 - 2023-09-16
+* fix ePaper / display night behaviour #1151
+* fix ESP8266 compile error
+
+## 0.7.52 - 2023-09-16
+* fix CMT configureable pins #1150, #1159
+* update MqTT lib to version `1.4.5`
+
+## 0.7.51 - 2023-09-16
+* fix CMT configureable pins #1150
+* fix default CMT pins for opendtufusion
+* beautified `system`
+* changed main loops, fix resets #1125, #1135
+
 ## 0.7.50 - 2023-09-12
 * moved MqTT info to `system`
 * added CMT info for ESP32 devices

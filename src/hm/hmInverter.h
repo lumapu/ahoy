@@ -145,13 +145,13 @@ class Inverter {
         record_t<REC_TYP> recordHwInfo;    // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        //String        lastAlarmMsg;
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
+        uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // HMS and HMT inverters only
 
 
@@ -173,6 +173,7 @@ class Inverter {
             status             = InverterStatus::OFF;
             alarmNxtWrPos      = 0;
             alarmCnt           = 0;
+            alarmLastId        = 0;
             rssi               = -127;
         }
 
@@ -208,6 +209,8 @@ class Inverter {
                         enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
                     else if (getHwVersion() == 0)
                         enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
+                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                        enqueCommand<InfoCommand>(AlarmData);  // alarm not answered
                     enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                 } else if (ivGen == IV_MI){
                     if (getFwVersion() == 0) {
@@ -598,6 +601,7 @@ class Inverter {
             lastAlarm.fill({0, 0, 0});
             alarmNxtWrPos = 0;
             alarmCnt = 0;
+            alarmLastId = 0;
         }
 
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
@@ -621,6 +625,7 @@ class Inverter {
             addAlarm(pyld[startOff+1], start, endTime);
 
             alarmCnt++;
+            alarmLastId = alarmMesIndex;
 
             return pyld[startOff+1];
         }

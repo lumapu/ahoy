@@ -266,6 +266,9 @@ p {
 .a-r { text-align: right; }
 .a-c { text-align: center; }
 
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+
 .row > * {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
@@ -304,6 +307,9 @@ p {
     .fs-sm-6 { font-size: 1.5rem; }
     .fs-sm-7 { font-size: 1.25rem; }
     .fs-sm-8 { font-size: 1rem; }
+
+    .d-sm-block { display: block !important;}
+    .d-sm-none { display: none !important; }
 }
 
 /* md */

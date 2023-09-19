@@ -70,9 +70,6 @@ class app : public IApp, public ah::Scheduler {
         void setup(void);
         void loop(void);
         void loopStandard(void);
-#if !defined(ETHERNET)
-        void loopWifi(void);
-#endif /* !defined(ETHERNET) */
         void onNetwork(bool gotIp);
         void regularTickers(void);
 
@@ -136,8 +133,12 @@ class app : public IApp, public ah::Scheduler {
             return mSaveReboot;
         }
 
-        statistics_t *getStatistics() {
-            return &mStat;
+        statistics_t *getNrfStatistics() {
+            return &mNrfStat;
+        }
+
+        statistics_t *getCmtStatistics() {
+            return &mCmtStat;
         }
 
         #if !defined(ETHERNET)
@@ -149,9 +150,6 @@ class app : public IApp, public ah::Scheduler {
             return mWifi.getAvailNetworks(obj);
         }
 
-        void setOnUpdate() {
-            onNetwork(false);
-        }
         #endif /* !defined(ETHERNET) */
 
         void setRebootFlag() {
@@ -215,11 +213,6 @@ class app : public IApp, public ah::Scheduler {
             return mWeb.isProtected(request);
         }
 
-        void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
-            *sendCnt = mNrfRadio.mSendCnt;
-            *retransmits = mNrfRadio.mRetransmits;
-        }
-
         bool getNrfEnabled(void) {
             return mConfig->nrf.enabled;
         }
@@ -276,8 +269,6 @@ class app : public IApp, public ah::Scheduler {
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
 
-        typedef std::function<void()> innerLoopCb;
-
         void resetSystem(void);
         void zeroIvValues(bool checkAvail = false, bool skipYieldDay = true);
 
@@ -333,8 +324,6 @@ class app : public IApp, public ah::Scheduler {
         void tickZeroValues(void);
         void tickMidnight(void);
 
-        innerLoopCb mInnerLoopCb;
-
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
 
@@ -368,7 +357,10 @@ class app : public IApp, public ah::Scheduler {
         uint8_t mSendLastIvId;
         bool mSendFirst;
 
-        statistics_t mStat;
+        bool mNetworkConnected;
+
+        statistics_t mNrfStat;
+        statistics_t mCmtStat;
 
         // mqtt
         PubMqttType mMqtt;
