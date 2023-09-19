@@ -328,7 +328,7 @@
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Shelly EM3 IP: </div>
+                            <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
                             <div class="col-12 col-sm-3 my-2">Prio Inverter</div>
                             <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select></div>
@@ -998,11 +998,11 @@
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
                     parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
-                    
+
                     /*IF_ESP32*/
                     parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     /*ENDIF_ESP32*/
-                  
+
                     if(root["generic"]["esp_type"] == "ESP32")
                         parsezeroExport(root["zeroExport"], root["system"]["esp_type"]);
 
