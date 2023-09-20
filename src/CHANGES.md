@@ -7,6 +7,7 @@
 * add re-request if inverter is known to be online and first try fails
 * add alarm reporting to MI (might need review!)
 * rebuild MI limiting code closer to DTUSimMI example
+* round APC in `W` to an integer #1171
 
 ## 0.7.58
 * fix ESP8266 save settings issue #1166

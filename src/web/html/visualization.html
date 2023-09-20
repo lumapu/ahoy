@@ -103,7 +103,7 @@
                 if(65535 != obj.power_limit_read) {
                     pwrLimit = obj.power_limit_read + "&nbsp;%";
                     if(0 != obj.max_pwr)
-                        pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100) + "W";
+                        pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "W";
                 }
 
                 return ml("div", {class: "row mt-2"},
