@@ -202,7 +202,7 @@ class Inverter {
             }
         }
 
-        uint8_t getQueuedCmd() {
+uint8_t getQueuedCmd() {
             if (_commandQueue.empty()) {
                 if (ivGen != IV_MI) {
                     if (getFwVersion() == 0)
@@ -217,13 +217,11 @@ class Inverter {
                         enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version
                     } else {
                         record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
                             enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version for missing HW part nr, delivered by frame 1
-                    }
-                    if (type == INV_TYPE_4CH) {
-                        enqueCommand<InfoCommand>(0x36);
-                    } else {
-                        enqueCommand<InfoCommand>(0x09);
+                        } else {
+                            enqueCommand<InfoCommand>( type == INV_TYPE_4CH ? 0x36 : 0x09 );
+                        }
                     }
                 }
 
@@ -523,10 +521,7 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hms1chAssignment;
                             rec->pyldLen = HMS1CH_PAYLOAD_LEN;
-                        }  /*else if(IV_MI == ivGen) {
-                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hm1chAssignment;
-                        }*/
+                        }
                         channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {

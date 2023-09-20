@@ -103,7 +103,7 @@ class PubMqttIvData {
             mPos = 0;
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
-                if(mIv->getLastTs(rec) != mIvLastPublish[mIv->id]) {
+                if(mIv->getLastTs(rec) != mIvLastPublish[mIv->id] && mIv->getLastTs(rec) != 0 ) { //workaround for startup. Suspect, mCmd might cause to much messages....
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
                     snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
                     mPublish(mSubTopic, mVal, true, QOS_0);

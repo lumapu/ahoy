@@ -307,6 +307,7 @@ const devInfo_t devInfo[] = {
     { 0x101010,  300 },
     { 0x101020,  350 },
     { 0x101030,  400 },
+    { 0x101040,  400 }, // https://github.com/lumapu/ahoy/issues/1111#issuecomment-1726515824
     { 0x101110,  600 }, // [TSOL800(DE) ..20, HWv=2.66], [HM-600 ..20, HWv=2.66]
     { 0x101120,  700 },
     { 0x101130,  800 },

@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.5.59
+* reduce last_success MQTT messages (#1124)
+* add re-request if inverter is known to be online and first try fails
+* add alarm reporting to MI (might need review!)
+* rebuild MI limiting code closer to DTUSimMI example
+
 ## 0.5.58
 * fix ESP8266 save settings issue #1166
 
