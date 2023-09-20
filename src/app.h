@@ -106,7 +106,6 @@ class app : public IApp, public ah::Scheduler {
             mSavePending = true;
             mSaveReboot = reboot;
             if(reboot) {
-                onNetwork(false);
                 ah::Scheduler::resetTicker();
             }
             once(std::bind(&app::tickSave, this), 3, "save");
@@ -293,7 +292,6 @@ class app : public IApp, public ah::Scheduler {
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
-            onNetwork(false);
             ah::Scheduler::resetTicker();
             WiFi.disconnect();
             delay(200);
