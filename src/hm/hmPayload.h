@@ -301,9 +301,9 @@ class HmPayload {
                         if (mSerialDebug) {
                             DPRINT_IVID(DBG_INFO, iv->id);
                             DBGPRINT(F("procPyld: cmd:  0x"));
-                            DHEX(mPayload[iv->id].txCmd);
-                            DBGPRINT(F("; procPyld: txid: 0x"));
-	                        DBGHEXLN(mPayload[iv->id].txId);
+                            DBGHEXLN(mPayload[iv->id].txCmd);
+                            //DPRINT(DBG_DEBUG, F("procPyld: txid: 0x"));
+                            //DBGHEXLN(mPayload[iv->id].txId);
                             DPRINT(DBG_DEBUG, F("procPyld: max:  "));
                             DPRINTLN(DBG_DEBUG, String(mPayload[iv->id].maxPackId));
                         }
