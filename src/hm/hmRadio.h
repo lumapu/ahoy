@@ -32,7 +32,7 @@ class HmRadio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             if(mSerialDebug) {
-            DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
+                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
                 DBGPRINT(String(CE_PIN));
                 DBGPRINT(F(", CS_PIN: "));
                 DBGPRINT(String(CS_PIN));
@@ -131,7 +131,7 @@ class HmRadio {
             mNrf24.flush_tx();                              // empty TX FIFO
 
             // start listening
-                        mNrf24.setChannel(mRfChLst[mRxChIdx]);
+            mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
             uint32_t startMicros = micros();
