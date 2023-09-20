@@ -1,6 +1,9 @@
 # Development Changes
 
-## 0.5.58
+## 0.7.59 - 2023-09-20
+
+
+## 0.7.58 - 2023-09-19
 * fix ESP8266 save settings issue #1166
 
 ## 0.7.57 - 2023-09-18
