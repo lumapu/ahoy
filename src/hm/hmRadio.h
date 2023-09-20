@@ -100,6 +100,7 @@ class HmRadio {
             mNrf24.startListening();
             mNrf24.setDataRate(RF24_250KBPS);
             mNrf24.setAutoAck(true);
+            mNrf24.enableDynamicAck();
             mNrf24.enableDynamicPayloads();
             mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.setAddressWidth(5);
@@ -168,7 +169,7 @@ class HmRadio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true) {
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -194,10 +195,21 @@ class HmRadio {
                         mTxBuf[10] = 0x55;
                         break;
                     case ActivePowerContr:
-                        cnt++;
                         mTxBuf[9] = 0x5a;
                         mTxBuf[10] = 0x5a;
-                        mTxBuf[11] = data[0]; // power limit
+                        //Testing only! Original NRF24_DTUMIesp.ino code #L612-L613:
+                        //UsrData[0]=0x5A;UsrData[1]=0x5A;UsrData[2]=100;//0x0a;// 10% limit
+                        //UsrData[3]=((Limit*10) >> 8) & 0xFF;   UsrData[4]= (Limit*10)  & 0xFF;   //WR needs 1 dec= zB 100.1 W
+                        if (is4chMI) {
+                            mTxBuf[cnt++] = 100; //10% limit, seems to be necessary to send sth. at all, but for MI-1500 this has no effect
+                            //works (if ever!) only for absulute power limits!
+                            mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
+                            mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
+                        } else {
+                            mTxBuf[cnt++] = data[0]*10; // power limit
+                        }
+
+
                         break;
                     default:
                         return;
@@ -242,7 +254,7 @@ class HmRadio {
         bool mSerialDebug;
 
     private:
-        bool getReceived(void) {
+            bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
 

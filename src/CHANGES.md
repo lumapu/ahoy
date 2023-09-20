@@ -1,9 +1,14 @@
 # Development Changes
 
 ## 0.7.59 - 2023-09-20
+* add another HM-600 hardware serial number #1169
+* merge PR #1170
+* reduce last_success MQTT messages (#1124)
+* add re-request if inverter is known to be online and first try fails
+* add alarm reporting to MI (might need review!)
+* rebuild MI limiting code closer to DTUSimMI example
 
-
-## 0.7.58 - 2023-09-19
+## 0.7.58
 * fix ESP8266 save settings issue #1166
 
 ## 0.7.57 - 2023-09-18
