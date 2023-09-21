@@ -1,7 +1,7 @@
 # Development Changes
 
 ## 0.7.59 - 2023-09-20
-* add another HM-600 hardware serial number #1169
+* re-add another HM-400 hardware serial number accidentally removed with `0.7.45` (#1169)
 * merge PR #1170
 * reduce last_success MQTT messages (#1124)
 * add re-request if inverter is known to be online and first try fails
