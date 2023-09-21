@@ -157,6 +157,7 @@ class HmPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
+                iv->mDtuTxCnt++;
                 mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
@@ -167,6 +168,7 @@ class HmPayload {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("prepareDevInformCmd 0x"));
                 DBGHEXLN(cmd);
+                iv->mDtuTxCnt++;
                 mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
@@ -174,6 +176,7 @@ class HmPayload {
         }
 
         void add(Inverter<> *iv, packet_t *p) {
+            iv->mDtuRxCnt++;
             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                 mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
@@ -272,6 +275,7 @@ class HmPayload {
                                 } else if(iv->devControlCmd == ActivePowerContr) {
                                     DPRINT_IVID(DBG_INFO, iv->id);
                                     DPRINTLN(DBG_INFO, F("retransmit power limit"));
+                                    iv->mDtuTxCnt++;
                                     mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
                                         iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, true);
                                 } else {
@@ -285,6 +289,7 @@ class HmPayload {
                                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
 
+                                            iv->mDtuTxCnt++;
                                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                                 iv->getNextTxChanIndex(), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         }
@@ -295,6 +300,7 @@ class HmPayload {
                                                 DBGPRINT(F("Frame "));
                                                 DBGPRINT(String(i + 1));
                                                 DBGPRINTLN(F(" missing: Request Retransmit"));
+                                                iv->mDtuTxCnt++;
                                                 mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
                                                     iv->getNextTxChanIndex (), TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
@@ -316,6 +322,7 @@ class HmPayload {
                             DPRINT_IVID(DBG_INFO, iv->id);
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
+                            iv->mDtuTxCnt++;
                             mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                 iv->getNextTxChanIndex (), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         } else if (false == mPayload[iv->id].gotFragment) {
@@ -358,7 +365,16 @@ class HmPayload {
 #endif
 
                         if (NULL == rec) {
-                            DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                            if(GetLossRate == mPayload[iv->id].txCmd) {
+                                if ((mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES)) &&
+                                    iv->parseGetLossRate (payload, payloadLen)) {
+                                    mStat->rxSuccess++;
+                                } else {
+                                    mStat->rxFail++;
+                                }
+                            } else {
+                                DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                            }
                         } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
                             if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
                                 mStat->rxSuccess++;

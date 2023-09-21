@@ -12,6 +12,8 @@
 #include "../config/config.h"
 #include "SPI.h"
 
+// #define AHOY_RADIO_TX_PENDING_LOOP
+
 #define SPI_SPEED           1000000
 
 #define TX_REQ_INFO         0x15
@@ -21,7 +23,7 @@
 
 #define RX_ANSWER_TMO       400
 #define RX_WAIT_SFR_TMO     40
-#define RX_WAIT_SAFETY_MRGN 20
+#define RX_WAIT_SAFETY_MRGN 10
 
 #define RX_CHAN_TMO         5110
 #define RX_CHAN_MHCH1_TMO   10220
@@ -165,8 +167,18 @@ class HmRadio {
         }
 
         bool loop(void) {
+#ifdef AHOY_RADIO_TX_PENDING_LOOP
+            if (!mTxPending) {
+                return false;
+            }
+            mTxPending = false;
+            while (!mIrqRcvd) {
+                yield();
+            }
+#else
             if (!mIrqRcvd)
                 return false; // nothing to do
+#endif
             mIrqRcvd = false;
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
@@ -183,7 +195,6 @@ class HmRadio {
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
-
                             return true;
                         }
                     }
@@ -259,8 +270,9 @@ class HmRadio {
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
             }
             prepareReceive (invType, txChan,
-                // could be optimized for other inverter types as well
-                ((cmd == RealTimeRunData_Debug) && (invType == INV_TYPE_HMCH1)) ? 2 : 10);
+                // could be optimized for other HM inverter types as well
+                ((cmd == RealTimeRunData_Debug) && (invType == INV_TYPE_HMCH1)) ? 2 :
+                ((invType == INV_TYPE_HMCH1) && ((cmd == InverterDevInform_All) || (cmd == SystemConfigPara) || (GetLossRate))) ? 1 : 10);
             initPacket(invId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
@@ -314,8 +326,7 @@ class HmRadio {
             if (invType == INV_TYPE_HMCH1) {
                 mRxChannels = (uint8_t *)(rf24RxHMCh1[txChan]);
                 mMaxRxChannels = RX_HMCH1_MAX_CHANNELS;
-                mRxAnswerTmo = rxFrameCnt * RX_WAIT_SFR_TMO;  // typical inverter answer has 2 packets
-                mRxAnswerTmo += RX_WAIT_SAFETY_MRGN;
+                mRxAnswerTmo = rxFrameCnt * (RX_WAIT_SFR_TMO + RX_WAIT_SAFETY_MRGN); // current formula for hm inverters
                 if (mRxAnswerTmo > RX_ANSWER_TMO) {
                     mRxAnswerTmo = RX_ANSWER_TMO;
                 }
@@ -409,6 +420,9 @@ class HmRadio {
             mNrf24.stopListening();
             mNrf24.setChannel(rf24ChLst[mTxChIdx]);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
+#ifdef AHOY_RADIO_TX_PENDING_LOOP
+            mTxPending = true;
+#endif
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
             if(isRetransmit)
@@ -429,6 +443,9 @@ class HmRadio {
         uint8_t mMaxRxChannels;     // actual size of mRxChannels; depends on inverter and previous tx channel
         uint32_t mRxAnswerTmo;       // max wait time in millis for answers of inverter
         uint32_t mRxChanTmo;         // max wait time in micros for a rx channel
+#ifdef AHOY_RADIO_TX_PENDING_LOOP
+        bool mTxPending;            // send has been started: wait in loop to setup receive without break
+#endif
 };
 
 #endif /*__RADIO_H__*/

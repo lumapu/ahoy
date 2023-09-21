@@ -31,6 +31,8 @@
 // mark current test chan as 1st use during this test period
 #define RF_TX_TEST_CHAN_1ST_USE       0xff
 
+#define AHOY_GET_LOSS_INTERVAL        10
+
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.
@@ -146,6 +148,10 @@ class Inverter {
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         uint32_t      pac_sum;           // average calc for chart: sum of ac power values for cur interval
         uint16_t      pac_cnt;           // average calc for chart: number of ac power values for cur interval
+        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
+        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
+        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
+        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
         uint16_t      alarmCode;         // last Alarm
         uint32_t      alarmStart;
         uint32_t      alarmEnd;
@@ -157,6 +163,7 @@ class Inverter {
         uint8_t       mTestPeriodSendCnt;   // increment of current test period
         uint8_t       mTestPeriodFailCnt;   // no of fails during current test period
         uint8_t       mSaveOldTestChanQuality;  // original quality of current TestTxChanIndex
+        uint8_t       mGetLossInterval;     // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
 
         Inverter() {
             ivGen              = IV_HM;
@@ -210,6 +217,12 @@ class Inverter {
                     } else if (alarmDataReqPending) {
                         enqueCommand<InfoCommand>(AlarmData);  // alarm not answered
                     } else {
+                        if ((mIvRxCnt || mIvTxCnt) && (mGetLossInterval < AHOY_GET_LOSS_INTERVAL)) { // initially mIvRxCnt = mIvTxCnt = 0
+                            mGetLossInterval++;
+                        } else {
+                            mGetLossInterval = 1; // 1: RealTimeRunData_Debug will always be enqueued
+                            enqueCommand<InfoCommand>(GetLossRate);
+                        }
                         enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
                     }
                 } else if (ivGen == IV_MI){
@@ -533,7 +546,7 @@ class Inverter {
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len, uint32_t *start, uint32_t *endTime) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
 
-            if (alarmDataReqPending) {
+            if (!id && alarmDataReqPending) {  // evaluate if 1st of seq only
                 alarmDataReqPending--;
             }
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
@@ -556,6 +569,27 @@ class Inverter {
 
             DPRINTLN(DBG_INFO, "Alarm " + String(pyld[startOff+3]) + ", #" + String(alarmCode) + " '" + String(getAlarmStr(alarmCode)) + "' start: " + ah::getTimeStr(alarmStart) + ", end: " + ah::getTimeStr(alarmEnd));
             return alarmCode;
+        }
+
+        bool parseGetLossRate(uint8_t pyld[], uint8_t len) {
+            if (len == HMGETLOSSRATE_PAYLOAD_LEN) {
+                uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
+                uint16_t txCnt = (pyld[2] << 8) + pyld[3];
+
+                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                    DPRINT_IVID(DBG_INFO, id);
+                    DBGPRINTLN("Inv loss: " + String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
+                        String (mDtuTxCnt) + ", DTU loss: " +
+                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
+                        String (txCnt - mIvTxCnt));
+                }
+                mIvRxCnt = rxCnt;
+                mIvTxCnt = txCnt;
+                mDtuRxCnt = 0;  // start new interval
+                mDtuTxCnt = 0;  // start new interval
+                return true;
+            }
+            return false;
         }
 
         String getAlarmStr(uint16_t alarmCode) {
