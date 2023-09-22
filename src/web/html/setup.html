@@ -1002,9 +1002,7 @@
                     /*IF_ESP32*/
                     parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     /*ENDIF_ESP32*/
-
-                    if(root["generic"]["esp_type"] == "ESP32")
-                        parsezeroExport(root["zeroExport"], root["system"]["esp_type"]);
+                    parsezeroExport(root["zeroExport"], root["system"]["esp_type"]);
 
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
