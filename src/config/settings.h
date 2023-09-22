@@ -150,6 +150,8 @@ typedef struct {
 typedef struct {
     char monitor_ip[ZEXPORT_ADDR_LEN];
     bool enabled;
+    float power_avg;
+    uint8_t count_avg;
     cfgShellyEM3_t PHASE[3];
 } cfgzeroExport_t;
 #endif
@@ -657,6 +659,8 @@ class settings {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
                 obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
+                obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
+                obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
 
                     if(!mCfg.plugin.zexport.PHASE) return;
                     for (size_t i = 0; i < sizeof(mCfg.plugin.zexport.PHASE); i++)

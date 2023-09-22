@@ -485,6 +485,8 @@ class RestApi {
         void getzeroExport(JsonObject obj) {
             obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
             obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
+            obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
+            obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;
             for (size_t i = 0; i < 3; i++)
             {
                 char str[10];

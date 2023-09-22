@@ -604,6 +604,9 @@ class Web {
             // zero-export
             #if defined(ESP32)
             mConfig->plugin.zexport.enabled = (request->arg("en_zeroexport") == "on");
+            mConfig->plugin.zexport.count_avg = request->arg("count_avg").toInt();
+            mConfig->plugin.zexport.power_avg = request->arg("power_avg").toFloat();
+
             if (request->arg("monitor_ipAddr") != "") {
                 String addr = request->arg("monitor_ipAddr");
                 addr.trim();

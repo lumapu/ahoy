@@ -32,30 +32,27 @@ class ZeroExport {
         }
     }
 
+    // Sums up the power values ​​of all phases and returns them.
+    // If the value is negative, all power values ​​from the inverter are taken into account
     double sum()
     {
-        double val = mCfg->PHASE[0].power + mCfg->PHASE[1].power + mCfg->PHASE[2].power;
-        if (val > 0) {
-            return val;
-        } else {
-            float totalPower = 0;
-            Inverter<> *iv;
-            record_t<> *rec;
-            for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
-                iv = mSys->getInverterByPos(i);
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                if (iv == NULL)
-                    continue;
-                totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
-            }
-
-            return totalPower - val;
+        float ivPower = 0;
+        Inverter<> *iv;
+        record_t<> *rec;
+        for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+            iv = mSys->getInverterByPos(i);
+            rec = iv->getRecordStruct(RealTimeRunData_Debug);
+            if (iv == NULL)
+                continue;
+            ivPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
         }
+
+        double em3_power = mCfg->PHASE[0].power + mCfg->PHASE[1].power + mCfg->PHASE[2].power;
+        return ((unsigned)(em3_power - mCfg->power_avg) >= mCfg->power_avg) ?  ivPower + em3_power : ivPower - em3_power;
     }
 
     private:
         HTTPClient http;
-        //char msgBuffer[256] = {'\0'};
 
         void loop() { }
         void zero() {
@@ -73,13 +70,13 @@ class ZeroExport {
             {
                 DynamicJsonDocument json(128);
                 deserializeJson(json, getData());
-                mCfg->PHASE[index].power          = json[F("power")];
-                mCfg->PHASE[index].pf             = json[F("pf")];
-                mCfg->PHASE[index].current        = json[F("current")];
-                mCfg->PHASE[index].voltage        = json[F("voltage")];
-                mCfg->PHASE[index].is_valid       = json[F("is_valid")];
-                mCfg->PHASE[index].total          = json[F("total")];
-                mCfg->PHASE[index].total_returned = json[F("total_returned")];
+                mCfg->PHASE[index].power          = (float)json[F("power")];
+                mCfg->PHASE[index].pf             = (float)json[F("pf")];
+                mCfg->PHASE[index].current        = (float)json[F("current")];
+                mCfg->PHASE[index].voltage        = (float)json[F("voltage")];
+                mCfg->PHASE[index].is_valid       = (bool)json[F("is_valid")];
+                mCfg->PHASE[index].total          = (int)json[F("total")];
+                mCfg->PHASE[index].total_returned = (int)json[F("total_returned")];
             }
             else
             {
