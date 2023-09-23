@@ -461,6 +461,8 @@ class settings {
             #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
+            mCfg.plugin.zexport.count_avg = 10;
+            mCfg.plugin.zexport.power_avg = 10;
             #endif
 
             mCfg.inst.rstYieldMidNight = false;
