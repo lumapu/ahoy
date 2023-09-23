@@ -74,9 +74,6 @@ class ZeroExport {
                 mCfg->PHASE[index].pf             = (float)json[F("pf")];
                 mCfg->PHASE[index].current        = (float)json[F("current")];
                 mCfg->PHASE[index].voltage        = (float)json[F("voltage")];
-                mCfg->PHASE[index].is_valid       = (bool)json[F("is_valid")];
-                mCfg->PHASE[index].total          = (int)json[F("total")];
-                mCfg->PHASE[index].total_returned = (int)json[F("total_returned")];
             }
             else
             {

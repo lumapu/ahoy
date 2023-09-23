@@ -497,9 +497,6 @@ class RestApi {
                 phases[F("pf")] = mConfig->plugin.zexport.PHASE[i].pf;
                 phases[F("current")] = mConfig->plugin.zexport.PHASE[i].current;
                 phases[F("voltage")] = mConfig->plugin.zexport.PHASE[i].voltage;
-                phases[F("is_valid")] = mConfig->plugin.zexport.PHASE[i].is_valid;
-                phases[F("total")] = mConfig->plugin.zexport.PHASE[i].total;
-                phases[F("total_returned")] = mConfig->plugin.zexport.PHASE[i].total_returned;
             }
         }
         #endif

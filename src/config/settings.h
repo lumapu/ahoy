@@ -143,9 +143,6 @@ typedef struct {
     float pf;
     float current;
     float voltage;
-    bool is_valid;
-    uint16_t total;
-    uint16_t total_returned;
 } cfgShellyEM3_t;
 typedef struct {
     char monitor_ip[ZEXPORT_ADDR_LEN];
@@ -673,9 +670,6 @@ class settings {
                         obj[str][F("pf")] = mCfg.plugin.zexport.PHASE[i].pf;
                         obj[str][F("current")] = mCfg.plugin.zexport.PHASE[i].current;
                         obj[str][F("voltage")] = mCfg.plugin.zexport.PHASE[i].voltage;
-                        obj[str][F("is_valid")] = mCfg.plugin.zexport.PHASE[i].is_valid;
-                        obj[str][F("total")] = mCfg.plugin.zexport.PHASE[i].total;
-                        obj[str][F("total_returned")] = mCfg.plugin.zexport.PHASE[i].total_returned;
                     }
             }
             else

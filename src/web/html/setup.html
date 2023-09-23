@@ -960,6 +960,7 @@
                     return;
                 }
 
+                document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
                 getAjax("/api/inverter/list", parseZeroIv);
 
                 for(var i of [["monitor_ipAddr", "monitor_ipAddr"], ["power_avg", "power_avg"], ["count_avg", "count_avg"]])
