@@ -335,9 +335,7 @@
                             <div class="col-12 col-sm-3 my-2">Refresh rate (sec.)<input type="number" name="count_avg" min="0" max="255"></div>
                             <div class="col-12 col-sm-3 my-2">Power tolerances (Watt)<input type="number" name="power_avg" min="0" max="255"></div>
                         </div>
-                        <p name="phase_1">L1: n/a</p>
-                        <p name="phase_2">L2: n/a</p>
-                        <p name="phase_3">L3: n/a</p>
+                        <p name="total_power">Total: n/a</p>
                     </fieldset>
                     </div>
 
@@ -967,7 +965,8 @@
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 
-                for (let i = 0; i < 3; i++) document.getElementsByName("phase_" + (i + 1))[0].innerHTML = "L" + (i + 1) + ": " + obj["phase_" + i]["power"].toFixed(2) + "W";
+                document.getElementsByName("total_power")[0].innerHTML = obj["total_power"].toFixed(2) + "W";
+                document.getElementById("Inv_ID").selectedIndex = obj["Iv"];
             }
 
             function parseZeroIv(root)

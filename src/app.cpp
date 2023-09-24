@@ -594,19 +594,20 @@ void app::updateLed(void) {
 #if defined(ESP32)
 void app::zeroexport() {
     if (!mConfig->plugin.zexport.enabled) return;
+    if (!mConfig->plugin.zexport.rdytoSend) return;
 
     DynamicJsonDocument doc(512);
     JsonObject object = doc.to<JsonObject>();
 
 
     object["path"] = "ctrl";
-    object["id"] = 0;
-    object["val"] = round(mzExport.sum());
+    object["id"] = mConfig->plugin.zexport.Iv;
+    object["val"] = round(mzExport.getPowertoSetnewValue());
     object["cmd"] = "limit_nonpersistent_absolute";
 
-    /*String data;
+    String data;
     serializeJsonPretty(object, data);
-    DPRINTLN(DBG_INFO, data);*/
+    DPRINTLN(DBG_INFO, data);
 
     mApi.ctrlRequest(object);
 }

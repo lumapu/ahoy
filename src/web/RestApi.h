@@ -486,18 +486,10 @@ class RestApi {
             obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
             obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
             obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
+            obj[F("Iv")] = (uint8_t)mConfig->plugin.zexport.Iv;
             obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;
-            for (size_t i = 0; i < 3; i++)
-            {
-                char str[10];
-                sprintf(str, "phase_%d", i);
-
-                JsonObject phases = obj.createNestedObject(str);
-                phases[F("power")] = mConfig->plugin.zexport.PHASE[i].power;
-                phases[F("pf")] = mConfig->plugin.zexport.PHASE[i].pf;
-                phases[F("current")] = mConfig->plugin.zexport.PHASE[i].current;
-                phases[F("voltage")] = mConfig->plugin.zexport.PHASE[i].voltage;
-            }
+            obj[F("total_power")] = (double)mConfig->plugin.zexport.total_power;
+            //obj[F("device")] = (uint8_t)mCfg.plugin.zexport.device;
         }
         #endif
 

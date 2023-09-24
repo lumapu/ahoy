@@ -139,17 +139,14 @@ typedef struct {
 /* Zero Export section */
 #if defined(ESP32)
 typedef struct {
-    float power;
-    float pf;
-    float current;
-    float voltage;
-} cfgShellyEM3_t;
-typedef struct {
     char monitor_ip[ZEXPORT_ADDR_LEN];
+    uint8_t device;     // save the monitor device (1 - Shelly; 2 - Hichi;)
+    uint8_t Iv;         // saves the inverter that is used for regulation
     bool enabled;
+    bool rdytoSend;     // indicate to send new value
     float power_avg;
     uint8_t count_avg;
-    cfgShellyEM3_t PHASE[3];
+    double total_power;
 } cfgzeroExport_t;
 #endif
 
@@ -458,8 +455,11 @@ class settings {
             #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
+            mCfg.plugin.zexport.rdytoSend = false;
             mCfg.plugin.zexport.count_avg = 10;
             mCfg.plugin.zexport.power_avg = 10;
+            mCfg.plugin.zexport.device = 0;
+            mCfg.plugin.zexport.Iv = 0;
             #endif
 
             mCfg.inst.rstYieldMidNight = false;
@@ -658,24 +658,19 @@ class settings {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
                 obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
+                obj[F("Iv")] = mCfg.plugin.zexport.Iv;
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
-
-                    if(!mCfg.plugin.zexport.PHASE) return;
-                    for (size_t i = 0; i < sizeof(mCfg.plugin.zexport.PHASE); i++)
-                    {
-                        char str[10];
-                        sprintf(str, "phase_%d", i + 1);
-                        obj[str][F("power")] = mCfg.plugin.zexport.PHASE[i].power;
-                        obj[str][F("pf")] = mCfg.plugin.zexport.PHASE[i].pf;
-                        obj[str][F("current")] = mCfg.plugin.zexport.PHASE[i].current;
-                        obj[str][F("voltage")] = mCfg.plugin.zexport.PHASE[i].voltage;
-                    }
+                obj[F("total_power")] = mCfg.plugin.zexport.total_power;
             }
             else
             {
                 getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
                 getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
+                getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
+                getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
+                getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);
+                getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
             }
         }
         #endif
