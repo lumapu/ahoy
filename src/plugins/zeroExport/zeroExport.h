@@ -80,22 +80,39 @@ class ZeroExport {
             {
                 DynamicJsonDocument json(2048);
                 DeserializationError err = deserializeJson(json, http.getString());
-                mCfg->total_power = (double)json[F("total_power")];
 
                 // Parse succeeded?
                 if (err) {
                     DPRINTLN(DBG_INFO, (F("Shelly() returned: ")));
                     DPRINTLN(DBG_INFO, String(err.f_str()));
-                    return 0;
+                    return 2;
                 }
 
+                mCfg->total_power = (double)json[F("total_power")];
                 return 1;
             }
-            return 0;
+            return 2;
         }
 
         int Hichi()
         {
+            http.begin(String(mCfg->monitor_ip), 80, "/cm?cmnd=status%208");
+            int httpResponseCode = http.GET();
+            if (httpResponseCode > 0)
+            {
+                DynamicJsonDocument json(2048);
+                DeserializationError err = deserializeJson(json, http.getString());
+
+                // Parse succeeded?
+                if (err) {
+                    DPRINTLN(DBG_INFO, (F("Hichi() returned: ")));
+                    DPRINTLN(DBG_INFO, String(err.f_str()));
+                    return 0;
+                }
+
+                mCfg->total_power = (double)json["StatusSNS"]["ENERGY"]["Power"];
+                return 2;
+            }
             return 0;
         }
 

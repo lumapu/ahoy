@@ -965,7 +965,7 @@
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 
-                document.getElementsByName("total_power")[0].innerHTML = obj["total_power"].toFixed(2) + "W";
+                document.getElementsByName("total_power")[0].innerHTML = "Total: " + obj["total_power"].toFixed(2) + "W";
                 document.getElementById("Inv_ID").selectedIndex = obj["Iv"];
             }
 
