@@ -632,7 +632,7 @@
                     })
                 });
 
-                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 16, ["text"], null, "text", "[\\-\\+A-Za-z0-9.\\/#$%&=_]+", "Invalid input")));
+                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 15, ["text"], null, "text", "[\\-\\+A-Za-z0-9.\\/#$%&=_]+", "Invalid input")));
 
                 for(var j of [
                     ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
