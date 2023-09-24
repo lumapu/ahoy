@@ -9,17 +9,12 @@
 class DisplayMono128X64 : public DisplayMono {
     public:
         DisplayMono128X64() : DisplayMono() {
-            mEnPowerSave = true;
-            mEnScreenSaver = true;
-            mLuminance = 60;
             mExtra = 0;
-            mDispY = 0;
-            mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
         }
 
-        void config(bool enPowerSave, bool enScreenSaver, uint8_t lum) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
             mEnPowerSave = enPowerSave;
-            mEnScreenSaver = enScreenSaver;
+            mScreenSaver = screenSaver;
             mLuminance = lum;
         }
 
@@ -45,41 +40,29 @@ class DisplayMono128X64 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void loop(uint8_t lum) {
-            if (mEnPowerSave) {
-                if (mTimeout != 0)
-                    mTimeout--;
-            }
-
-            if(mLuminance != lum) {
-                mLuminance = lum;
-                mDisplay->setContrast(mLuminance);
-            }
-        }
-
         void disp(void) {
             uint8_t pos, sun_pos, moon_pos;
 
-            // Test
-            /*
-            mDisplayData->isSleeping = 1;
-            mDisplayData->isProducing = 0;
-            mDisplayData->totalPower = 10000;
-            mDisplayData->totalYieldDay = 4998;
-            mDisplayData->totalYieldTotal = 5321;
-            */
-
             mDisplay->clearBuffer();
 
-            
+            // Layout-Test
+            /*
+            mDisplayData->nrSleeping = 10;
+            mDisplayData->nrProducing = 10;
+            mDisplayData->totalPower = 99990;
+            mDisplayData->totalYieldDay = 8888;
+            mDisplayData->totalYieldTotal = 9999;
+            mDisplay->drawPixel(0, 0);
+            mDisplay->drawPixel(mDispWidth-1, 0);
+            mDisplay->drawPixel(0, mDispHeight-1);
+            mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
+            */
+
             // set Contrast of the Display to raise the lifetime
             mDisplay->setContrast(mLuminance);
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
-                mTimeout = DISP_DEFAULT_TIMEOUT;
-                mDisplay->setPowerSave(false);
-
                 if (mDisplayData->totalPower > 999)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000));
                 else
@@ -87,9 +70,6 @@ class DisplayMono128X64 : public DisplayMono {
                 printText(mFmtText, l_TotalPower, 0xff);
             } else {
                 printText("offline", l_TotalPower, 0xff);
-                // check if it's time to enter power saving mode
-                if (mTimeout == 0)
-                    mDisplay->setPowerSave(mEnPowerSave);
             }
 
             // print Date and time
@@ -119,9 +99,9 @@ class DisplayMono128X64 : public DisplayMono {
                 }
                 else {
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%2d", mDisplayData->nrProducing);
-                    sun_pos = mDisplay->getStrWidth(mFmtText);
+                    sun_pos = mDisplay->getStrWidth(mFmtText) + 1;
                     snprintf(mFmtText+2, DISP_FMT_TEXT_LEN, "   %2d", mDisplayData->nrSleeping);
-                    moon_pos = mDisplay->getStrWidth(mFmtText);
+                    moon_pos = mDisplay->getStrWidth(mFmtText) + 1;
                     snprintf(mFmtText+7, DISP_FMT_TEXT_LEN, " ");
                 }
                 printText(mFmtText, l_Status, 0xff);
@@ -129,56 +109,47 @@ class DisplayMono128X64 : public DisplayMono {
                 pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
                 mDisplay->setFont(u8g2_font_ncenB08_symbols8_ahoy);
                 if (sun_pos!=-1)
-                    mDisplay->drawStr(pos+sun_pos, mLineYOffsets[l_Status], "G");        // sun
+                    mDisplay->drawStr(pos + sun_pos + pixelshift(), mLineYOffsets[l_Status], "G");     // sun
                 if (moon_pos!=-1)
-                    mDisplay->drawStr(pos+moon_pos, mLineYOffsets[l_Status], "H");    // moon
+                    mDisplay->drawStr(pos + moon_pos + pixelshift(), mLineYOffsets[l_Status], "H");    // moon
             }
 
             // print yields
+            mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
+            mDisplay->drawStr(15 + pixelshift(), mLineYOffsets[l_YieldDay],   "I");    // day
+            mDisplay->drawStr(15 + pixelshift(), mLineYOffsets[l_YieldTotal], "D");    // total
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.0f Wh", mDisplayData->totalYieldDay);
             printText(mFmtText, l_YieldDay, 25);
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.1f kWh", mDisplayData->totalYieldTotal);
             printText(mFmtText, l_YieldTotal, 25);
-            mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
-            mDisplay->drawStr(11, mLineYOffsets[l_YieldDay],   "I");    // day
-            mDisplay->drawStr(11, mLineYOffsets[l_YieldTotal], "D");    // total
 
-            // draw dynamic RSSI bars
-            int rssi_bar_height = 9;
-            for (int i=0; i<4;i++) {
-                int radio_rssi_threshold = -60 - i*10;
-                int wifi_rssi_threshold = -60 - i*10;
-                if (mDisplayData->RadioRSSI > radio_rssi_threshold)
-                    mDisplay->drawBox(0,              8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
-                if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
-                    mDisplay->drawBox(mDispWidth-4+i, 8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+            if (mScreenSaver != 1 ) {  // not practical for pixel shift screensaver
+                // draw dynamic RSSI bars
+                int rssi_bar_height = 9;
+                for (int i=0; i<4;i++) {
+                    int radio_rssi_threshold = -60 - i*10;
+                    int wifi_rssi_threshold = -60 - i*10;
+                    if (mDisplayData->RadioRSSI > radio_rssi_threshold)
+                        mDisplay->drawBox(0,              8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+                    if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
+                        mDisplay->drawBox(mDispWidth-4+i, 8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+                }
+                // draw dynamic antenna and WiFi symbols
+                mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
+                char sym[]=" ";
+                sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
+                mDisplay->drawStr(0, mLineYOffsets[l_RSSI], sym);
+
+                if (mDisplayData->MQTTSymbol)
+                    sym[0] = 'J'; // MQTT
+                else
+                    sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
+                mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym), mLineYOffsets[l_RSSI], sym);
+                mDisplay->sendBuffer();
             }
 
-            // draw dynamic antenna and WiFi symbols
-            mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
-            char sym[]=" ";
-            sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
-            mDisplay->drawStr(0, mLineYOffsets[l_RSSI], sym);
-
-            if (mDisplayData->MQTTSymbol)
-                sym[0] = 'J'; // MQTT
-            else
-                sym[0] = mDisplayData->WifiSymbol?'B':'F';                  // Wifi
-            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym), mLineYOffsets[l_RSSI], sym);
             mDisplay->sendBuffer();
 
-            mExtra++;
-
-            /* // just for test
-            mDisplay->drawPixel(0, 0);
-            mDisplay->drawPixel(mDispWidth-1, 0);
-            mDisplay->drawPixel(0, mDispHeight-1);
-            mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
-            */
-
-            mDisplay->sendBuffer();
-
-            mDispY = 0;
             mExtra++;
         }
 
@@ -218,6 +189,11 @@ class DisplayMono128X64 : public DisplayMono {
             } while(l_MAX_LINES>i);
         }
 
+        inline int8_t pixelshift(void) {
+            int8_t range = 11;  // number of pixels to shift from left to right (centered)
+            return(mScreenSaver == 1 ? (mExtra % range - range/2) : 0);
+        }
+
         inline void setLineFont(uint8_t line) {
             if ((line == l_TotalPower) ||
                 (line == l_Ahoy))
@@ -232,12 +208,12 @@ class DisplayMono128X64 : public DisplayMono {
 
         void printText(const char *text, uint8_t line, uint8_t col=0) {
             uint8_t dispX;
-
             setLineFont(line);
             if (0xff == col)
                 dispX = (mDispWidth - mDisplay->getStrWidth(text)) / 2;  // center text
             else
                 dispX = col;
+            dispX += pixelshift();
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
 };

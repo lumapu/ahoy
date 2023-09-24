@@ -18,15 +18,48 @@
 #endif
 #include "../../utils/helper.h"
 #include "Display_data.h"
+#include "../../utils/dbg.h"
 
 class DisplayMono {
    public:
       DisplayMono() {};
 
       virtual void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) = 0;
-      virtual void config(bool enPowerSave, bool enScreenSaver, uint8_t lum) = 0;
-      virtual void loop(uint8_t lum) = 0;
+      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) = 0;
       virtual void disp(void) = 0;
+
+      // Common loop function, manages display on/off functions for powersave and screensaver with motionsensor
+      // can be overridden by subclasses
+      virtual void loop(uint8_t lum, bool motion) {
+
+         bool dispConditions = (!mEnPowerSave || (mDisplayData->nrProducing > 0)) &&
+                               ((mScreenSaver != 2) || motion); // screensaver 2 .. motionsensor
+
+         if (mDisplayActive) {
+            if (!dispConditions) {
+                if ((millis() - mStarttime) > DISP_DEFAULT_TIMEOUT * 1000ul) { // switch display off after timeout
+                    mDisplayActive = false;
+                    mDisplay->setPowerSave(true);
+                    DBGPRINTLN("**** Display off ****");
+                }
+            }
+            else
+                mStarttime = millis();   // keep display on
+         }
+         else {
+            if (dispConditions) {
+                mDisplayActive = true;  // switch display on
+                mStarttime = millis();
+                mDisplay->setPowerSave(false);
+                DBGPRINTLN("**** Display on ****");
+            }
+         }
+
+         if(mLuminance != lum) {
+            mLuminance = lum;
+            mDisplay->setContrast(mLuminance);
+         }
+      }
 
    protected:
       U8G2* mDisplay;
@@ -36,17 +69,17 @@ class DisplayMono {
       uint16_t mDispWidth;
       uint16_t mDispHeight;
 
-      bool mEnPowerSave, mEnScreenSaver;
+      bool mEnPowerSave;
+      uint8_t mScreenSaver = 1;  // 0 .. off; 1 .. pixelShift; 2 .. motionsensor
       uint8_t mLuminance;
 
       uint8_t mLoopCnt;
       uint8_t mLineXOffsets[5] = {};
       uint8_t mLineYOffsets[5] = {};
 
-      uint16_t mDispY;
-
       uint8_t mExtra;
-      uint16_t mTimeout;
+      uint32_t mStarttime = millis();
+      bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
 
       // Common initialization function to be called by subclasses
@@ -55,6 +88,7 @@ class DisplayMono {
          mType = type;
          mDisplayData = displayData;
          mDisplay->begin();
+         mDisplay->setPowerSave(false);  // always start with display on
          mDisplay->setContrast(mLuminance);
          mDisplay->clearBuffer();
          mDispWidth = mDisplay->getDisplayWidth();

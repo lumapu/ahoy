@@ -565,7 +565,7 @@ class Web {
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
-            mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
+            mConfig->plugin.display.screenSaver = request->arg("disp_screensaver").toInt();
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
             mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
@@ -575,6 +575,7 @@ class Web {
             mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
             mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.pirPin     = request->arg("pir_pin").toInt();
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 

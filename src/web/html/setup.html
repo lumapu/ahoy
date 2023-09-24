@@ -278,16 +278,14 @@
                             <div class="col-8 col-sm-3">Turn off while inverters are offline</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Enable Screensaver (pixel shifting, OLED only)</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pxshift"/></div>
-                        </div>
+                        <div id="screenSaver"></div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Luminance</div>
                             <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
                         </div>
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
+                        <div id="pirPin"></div>
                     </fieldset>
                     </div>
 
@@ -946,17 +944,17 @@
             }
 
             function parseDisplay(obj, type, system) {
-                for(var i of ["disp_pwr", "disp_pxshift"])
+                for(var i of ["disp_pwr"])
                     document.getElementsByName(i)[0].checked = obj[i];
 
-                var e = document.getElementById("dispPins");
+                var dpins_elem = document.getElementById("dispPins");
                 //KEEP this order !!!
                 var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
                 /*IF_ESP32*/
                 pins.push(['busy', 'disp_bsy']);
                 /*ENDIF_ESP32*/
                 for(p of pins) {
-                    e.append(
+                    dpins_elem.append(
                         ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
@@ -965,23 +963,18 @@
                         ])
                     );
                 }
-
                 // keep display types grouped
                 var opts = [[0, "None"], [2, "SH1106 1.3\" 128X64"], [5, "SSD1306 0.66\" 64X48 (Wemos OLED Shield)"], [4, "SSD1306 0.91\" 128X32"], [1, "SSD1306 0.96\" 128X64"], [6, "SSD1309 2.42\" 128X64"], [3, "Nokia5110"]];
                 /*IF_ESP32*/
                 opts.push([10, "ePaper"]);
                 /*ENDIF_ESP32*/
-                var dispType = sel("disp_typ", opts, obj["disp_typ"]);
+                var dtype_sel = sel("disp_typ", opts, obj["disp_typ"]);
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
-                        ml("div", {class: "col-12 col-sm-9"}, dispType)
+                        ml("div", {class: "col-12 col-sm-9"}, dtype_sel)
                     ])
                 );
-                dispType.addEventListener('change', (e) => {
-                    hideDispPins(pins, parseInt(e.target.value))
-                });
-
                 opts = [[0, "0&deg;"], [2, "180&deg;"]];
                 /*IF_ESP32*/
                     opts.push([1, "90&deg;"]);
@@ -994,7 +987,35 @@
                     ])
                 );
 
+                var opts1 = [[0, "off"], [1, "pixel shift"], [2, "motion sensor"]];
+                var screensaver_sel = sel("disp_screensaver", opts1, obj["disp_screensaver"]);
+                screensaver_sel.id = 'disp_screensaver';
+                document.getElementById("screenSaver").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Screensaver (OLED only)"),
+                        ml("div", {class: "col-12 col-sm-9"}, screensaver_sel)
+                    ])
+                );
+
+                var esp8266pirpins = [[255, "off / default"],
+                                      [17,  "A0"]];
+                document.getElementById("pirPin").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "PIR sensor"),
+                        ml("div", {class: "col-12 col-sm-9"}, sel("pir_pin", ("ESP8266" == type) ? esp8266pirpins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj["pir_pin"]))
+                    ])
+                );
+
                 document.getElementsByName("disp_cont")[0].value = obj["disp_cont"];
+
+                dtype_sel.addEventListener('change', function(e) {
+                    hideDispPins(pins, parseInt(e.target.value))
+                });
+
+                document.getElementById("disp_screensaver").addEventListener('change', function(e) {
+                    hideDispPins(pins, parseInt(dtype_sel.value))
+                });
+
                 hideDispPins(pins, obj.disp_typ);
             }
 
@@ -1020,6 +1041,15 @@
                     else {
                         cl.add("hide");
                     }
+                }
+
+                var screenSaver = document.getElementById("disp_screensaver").value;
+
+                if (2==screenSaver) {  // show pir pin only for motion screensaver
+                    setHide("pirPin", false);
+                }
+                else {                 // no pir pin for all others
+                    setHide("pirPin", true);
                 }
             }
 

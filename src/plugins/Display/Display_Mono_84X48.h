@@ -10,17 +10,12 @@
 class DisplayMono84X48 : public DisplayMono {
     public:
         DisplayMono84X48() : DisplayMono() {
-            mEnPowerSave = true;
-            mEnScreenSaver = true;
-            mLuminance = 140;
             mExtra = 0;
-            mDispY = 0;
-            mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
         }
 
-        void config(bool enPowerSave, bool enScreenSaver, uint8_t lum) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
             mEnPowerSave = enPowerSave;
-            mEnScreenSaver = enScreenSaver;
+            mScreenSaver = screenSaver;
             mLuminance = lum;
         }
 
@@ -32,18 +27,6 @@ class DisplayMono84X48 : public DisplayMono {
             printText("ahoydtu.de", l_Website, 0xff);
             printText(mDisplayData->version, l_Version, 0xff);
             mDisplay->sendBuffer();
-        }
-
-        void loop(uint8_t lum) {
-            if (mEnPowerSave) {
-                if (mTimeout != 0)
-                    mTimeout--;
-            }
-
-            if(mLuminance != lum) {
-                mLuminance = lum;
-                mDisplay->setContrast(mLuminance);
-            }
         }
 
         void disp(void) {
@@ -65,9 +48,6 @@ class DisplayMono84X48 : public DisplayMono {
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
-                mTimeout = DISP_DEFAULT_TIMEOUT;
-                mDisplay->setPowerSave(false);
-
                 if (mDisplayData->totalPower > 9999)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2fkW", (mDisplayData->totalPower / 1000)); // forgo spacing between value and SI unit in favor of second position after decimal point
                 else if (mDisplayData->totalPower > 999)
@@ -78,9 +58,6 @@ class DisplayMono84X48 : public DisplayMono {
                 printText(mFmtText, l_TotalPower, 0xff);
             } else {
                 printText("offline", l_TotalPower, 0xff);
-                // check if it's time to enter power saving mode
-                if (mTimeout == 0)
-                    mDisplay->setPowerSave(mEnPowerSave);
             }
 
             // print Date and time

@@ -53,9 +53,20 @@ class Display {
             default: mMono = NULL; break;
         }
         if(mMono) {
-            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);
+            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, &mDisplayData);
         }
+
+        // setup PIR pin for motion sensor
+#ifdef ESP32
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF))
+            pinMode(mCfg->pirPin, INPUT);
+#endif
+#ifdef ESP8266
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF) && (mCfg->pirPin != A0))
+            pinMode(mCfg->pirPin, INPUT);
+#endif
+
     }
 
     void payloadEventListener(uint8_t cmd) {
@@ -64,19 +75,19 @@ class Display {
 
     void tickerSecond() {
         if (mMono != NULL)
-            mMono->loop(mCfg->contrast);
+            mMono->loop(mCfg->contrast, motionSensorActive());
 
         if (mNewPayload || (((++mLoopCnt) % 5) == 0)) {
+            DataScreen();
             mNewPayload = false;
             mLoopCnt = 0;
-            DataScreen();
         }
         #if defined(ESP32)
             mEpaper.tickerSecond();
         #endif
     }
 
-   private:
+    private:
     void DataScreen() {
         if (mCfg->type == 0)
             return;
@@ -156,6 +167,21 @@ class Display {
             mRefreshCycle = 0;
         }
 #endif
+    }
+
+    bool motionSensorActive() {
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF)) {
+#if defined(ESP8266)
+            if (mCfg->pirPin == A0)
+                return((analogRead(A0) >= 512));
+            else
+                return(digitalRead(mCfg->pirPin));
+#elif defined(ESP32)
+            return(digitalRead(mCfg->pirPin));
+#endif
+        }
+        else
+            return(false);
     }
 
     // approximate RSSI in dB by invQuality levels from heuristic function (very unscientific but better than nothing :-) )
