@@ -478,7 +478,7 @@ class MiPayload {
             if ( statusMi != mPayload[iv->id].sts[stschan] ) { //sth.'s changed?
                 iv->alarmCnt = 1; // minimum...
                 if (iv->type != INV_TYPE_1CH && ( statusMi != 3 //sth is or was wrong!
-                                                || mPayload[iv->id].sts[stschan] && statusMi == 3 && mPayload[iv->id].sts[stschan] != 3)
+                                                || ( mPayload[iv->id].sts[stschan] && statusMi == 3 && mPayload[iv->id].sts[stschan] != 3) )
                    ) {
                     iv->lastAlarm[stschan] = alarm_t(prntsts, mPayload[iv->id].ts,mPayload[iv->id].ts);
                     iv->alarmCnt = iv->type == INV_TYPE_2CH ? 3 : 5;
