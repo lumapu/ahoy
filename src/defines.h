@@ -86,6 +86,8 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 #define NTP_ADDR_LEN            32 // DNS Name
 
 #define ZEXPORT_ADDR_LEN        64 // Zero-Export Address
+#define HICHI_NAME_ADDR_LEN     64 // HICHI-Name Address
+
 
 #define MQTT_ADDR_LEN           64 // DNS Name
 #define MQTT_CLIENTID_LEN       22 // number of chars is limited to 23 up to v3.1 of MQTT

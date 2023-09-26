@@ -486,6 +486,7 @@ class RestApi {
             obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
             obj[F("two_percent")] = (bool) mConfig->plugin.zexport.two_percent;
             obj[F("monitor_ipAddr")] = String(mConfig->plugin.zexport.monitor_ip);
+            obj[F("HICHI_PowerName")] = String(mConfig->plugin.zexport.HICHI_PowerName);
             obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
             obj[F("Iv")] = (uint8_t)mConfig->plugin.zexport.Iv;
             obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;

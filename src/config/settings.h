@@ -146,7 +146,7 @@ typedef struct {
     float power_avg;
     uint8_t count_avg;
     double total_power;
-
+    char HICHI_PowerName[HICHI_NAME_ADDR_LEN];
     unsigned long lastTime; // tic toc
 
     bool two_percent;   // ask if not go lower then 2%
@@ -457,6 +457,7 @@ class settings {
             // Zero-Export
             #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.HICHI_PowerName, HICHI_NAME_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
             mCfg.plugin.zexport.count_avg = 10;
             mCfg.plugin.zexport.lastTime =  millis();   // do not change!
@@ -663,6 +664,7 @@ class settings {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
                 obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
+                obj[F("HICHI_PowerName")] = mCfg.plugin.zexport.HICHI_PowerName;
                 obj[F("Iv")] = mCfg.plugin.zexport.Iv;
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
@@ -675,6 +677,7 @@ class settings {
                 getVal<bool>(obj, F("two_percent"), &mCfg.plugin.zexport.two_percent);
 
                 getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
+                getChar(obj, F("HICHI_PowerName"), mCfg.plugin.zexport.HICHI_PowerName, HICHI_NAME_ADDR_LEN);
 
                 getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
                 getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);

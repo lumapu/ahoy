@@ -616,6 +616,13 @@ class Web {
                 addr.toCharArray(mConfig->plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
             } else
                 mConfig->plugin.zexport.monitor_ip[0] = '\0';
+
+            if (request->arg("HICHI_PowerName") != "") {
+                String addr = request->arg("HICHI_PowerName");
+                addr.trim();
+                addr.toCharArray(mConfig->plugin.zexport.HICHI_PowerName, ZEXPORT_ADDR_LEN);
+            } else
+                mConfig->plugin.zexport.HICHI_PowerName[0] = '\0';
             #endif
 
             // serial console

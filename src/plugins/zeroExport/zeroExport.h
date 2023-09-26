@@ -54,8 +54,8 @@ class ZeroExport {
             switch (mCfg->device) {
                 case 0:
                 case 1:
-                    mCfg->device = Shelly();
-                    break;
+                    //mCfg->device = Shelly();
+                    //break;
                 case 2:
                     mCfg->device = Hichi();
                     break;
@@ -70,7 +70,7 @@ class ZeroExport {
             http.begin(String(mCfg->monitor_ip), 80, "/status");
 
             int httpResponseCode = http.GET();
-            if (httpResponseCode > 0)
+            if (httpResponseCode > 0 && httpResponseCode < 400)
             {
                 DynamicJsonDocument json(2048);
                 DeserializationError err = deserializeJson(json, http.getString());
@@ -85,28 +85,56 @@ class ZeroExport {
                 mCfg->total_power = (double)json[F("total_power")];
                 return 1;
             }
+            if (httpResponseCode >= 400)
+            {
+                DPRINTLN(DBG_INFO, "Shelly(): Error " + String(httpResponseCode));
+            }
             return 2;
         }
 
         int Hichi()
         {
             http.begin(String(mCfg->monitor_ip), 80, "/cm?cmnd=status%208");
+            String hName = String(mCfg->HICHI_PowerName);
+
             int httpResponseCode = http.GET();
-            if (httpResponseCode > 0)
+            if (httpResponseCode > 0 && httpResponseCode < 400)
             {
                 DynamicJsonDocument json(2048);
                 DeserializationError err = deserializeJson(json, http.getString());
 
                 // Parse succeeded?
                 if (err) {
-                    DPRINTLN(DBG_INFO, (F("Hichi() returned: ")));
+                    DPRINT(DBG_INFO, (F("Hichi() returned: ")));
                     DPRINTLN(DBG_INFO, String(err.f_str()));
                     return 0;
                 }
 
-                mCfg->total_power = (double)json["StatusSNS"]["ENERGY"]["Power"];
+                int count = 0;
+                for (uint8_t i = 0; i < strlen(hName.c_str()); i++)
+                    if (hName[i] == ']') count++;
+
+                for (uint8_t i = 0; i < count; i++)
+                {
+                    uint8_t l_index = hName.indexOf(']') - 1;
+                    json = json[hName.substring(1, l_index)];
+
+
+                    String output;
+                    serializeJson(json, output);
+                    DPRINTLN(DBG_INFO, output);
+                    hName = hName.substring(l_index);
+                }
+
+                DPRINTLN(DBG_INFO, String(json[0]));
+                mCfg->total_power = (double)json[0];
                 return 2;
             }
+            if (httpResponseCode >= 400)
+            {
+                DPRINTLN(DBG_INFO, "HICHI(): Error " + String(httpResponseCode));
+            }
+
             return 0;
         }
 
