@@ -450,6 +450,10 @@ void app::tickSend(void) {
                 }
                 #endif
             }
+
+            #if defined(ESP32)
+            if(mConfig->nrf.enabled || mConfig->cmt.enabled) zeroexport();
+            #endif
         }
     } else {
         if (mConfig->serial.debug)
@@ -458,10 +462,6 @@ void app::tickSend(void) {
     yield();
 
     updateLed();
-
-    #if defined(ESP32)
-    zeroexport();
-    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -593,22 +593,29 @@ void app::updateLed(void) {
 //-----------------------------------------------------------------------------
 #if defined(ESP32)
 void app::zeroexport() {
-    if (!mConfig->plugin.zexport.enabled) return;
-    if (!mConfig->plugin.zexport.rdytoSend) return;
+    if (!mConfig->plugin.zexport.enabled &&
+        !mConfig->plugin.zexport.rdytoSend) return;   // check if plugin is enabled && indicate to send new value
+
+    Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
 
     DynamicJsonDocument doc(512);
     JsonObject object = doc.to<JsonObject>();
 
+    double nValue = round(mzExport.getPowertoSetnewValue());
+    double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
+    if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal)) {
+        object["val"] = twoPerVal;
+    } else {
+        object["val"] = nValue;
+    }
 
-    object["path"] = "ctrl";
     object["id"] = mConfig->plugin.zexport.Iv;
-    object["val"] = round(mzExport.getPowertoSetnewValue());
+    object["path"] = "ctrl";
     object["cmd"] = "limit_nonpersistent_absolute";
 
     String data;
     serializeJsonPretty(object, data);
     DPRINTLN(DBG_INFO, data);
-
     mApi.ctrlRequest(object);
 }
 #endif

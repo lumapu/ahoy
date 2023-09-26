@@ -332,6 +332,12 @@
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
                             <div class="col-12 col-sm-3 my-2">Prio Inverter</div>
                             <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select></div>
+
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">2% protection: </div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="two_percent"/></div>
+                            </div>
+
                             <div class="col-12 col-sm-3 my-2">Refresh rate (sec.)<input type="number" name="count_avg" min="0" max="255"></div>
                             <div class="col-12 col-sm-3 my-2">Power tolerances (Watt)<input type="number" name="power_avg" min="0" max="255"></div>
                         </div>
@@ -959,6 +965,8 @@
                 }
 
                 document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
+                document.getElementsByName("two_percent")[0].checked = obj["two_percent"];
+
                 getAjax("/api/inverter/list", parseZeroIv);
 
                 for(var i of [["monitor_ipAddr", "monitor_ipAddr"], ["power_avg", "power_avg"], ["count_avg", "count_avg"]])

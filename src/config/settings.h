@@ -147,6 +147,8 @@ typedef struct {
     float power_avg;
     uint8_t count_avg;
     double total_power;
+
+    bool two_percent;   // ask if not go lower then 2%
 } cfgzeroExport_t;
 #endif
 
@@ -460,6 +462,7 @@ class settings {
             mCfg.plugin.zexport.power_avg = 10;
             mCfg.plugin.zexport.device = 0;
             mCfg.plugin.zexport.Iv = 0;
+            mCfg.plugin.zexport.two_percent = true;
             #endif
 
             mCfg.inst.rstYieldMidNight = false;
@@ -662,14 +665,20 @@ class settings {
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
                 obj[F("total_power")] = mCfg.plugin.zexport.total_power;
+                obj[F("two_percent")] = mCfg.plugin.zexport.two_percent;
             }
             else
             {
                 getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
+                getVal<bool>(obj, F("two_percent"), &mCfg.plugin.zexport.two_percent);
+
                 getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
+
                 getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
-                getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
                 getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);
+
+                getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
+
                 getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
             }
         }
