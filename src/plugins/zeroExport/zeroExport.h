@@ -20,15 +20,11 @@ class ZeroExport {
         mConfig  = config;
     }
 
-    void payloadEventListener(uint8_t cmd) {
-        mCfg->rdytoSend = false;
-    }
-
     void tickerSecond() {
-        if (!mCfg->rdytoSend || ((++mLoopCnt % mCfg->count_avg) == 0)) {
-            mCfg->rdytoSend = true;
-            mLoopCnt = 0;
-            zero();
+        //DPRINTLN(DBG_INFO, (F("tickerSecond()")));
+        if (millis() - mCfg->lastTime < mCfg->count_avg * 1000UL) {
+            zero(); // just refresh when it is needed. To get cpu load low.
+            //DPRINTLN(DBG_INFO, (F("zero()")));
         }
     }
 
@@ -52,8 +48,6 @@ class ZeroExport {
 
     private:
         HTTPClient http;
-
-        void loop() { }
 
         // TODO: Need to improve here. 2048 for a JSON Obj is to big!?
         void zero() {
@@ -117,7 +111,6 @@ class ZeroExport {
         }
 
         // private member variables
-        uint8_t mLoopCnt;
         const char *mVersion;
         cfgzeroExport_t *mCfg;
 

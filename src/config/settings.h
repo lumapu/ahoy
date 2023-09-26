@@ -143,10 +143,11 @@ typedef struct {
     uint8_t device;     // save the monitor device (1 - Shelly; 2 - Hichi;)
     uint8_t Iv;         // saves the inverter that is used for regulation
     bool enabled;
-    bool rdytoSend;     // indicate to send new value
     float power_avg;
     uint8_t count_avg;
     double total_power;
+
+    unsigned long lastTime; // tic toc
 
     bool two_percent;   // ask if not go lower then 2%
 } cfgzeroExport_t;
@@ -457,8 +458,9 @@ class settings {
             #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
-            mCfg.plugin.zexport.rdytoSend = false;
             mCfg.plugin.zexport.count_avg = 10;
+            mCfg.plugin.zexport.lastTime =  millis();   // do not change!
+
             mCfg.plugin.zexport.power_avg = 10;
             mCfg.plugin.zexport.device = 0;
             mCfg.plugin.zexport.Iv = 0;

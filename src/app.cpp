@@ -593,29 +593,33 @@ void app::updateLed(void) {
 //-----------------------------------------------------------------------------
 #if defined(ESP32)
 void app::zeroexport() {
-    if (!mConfig->plugin.zexport.enabled &&
-        !mConfig->plugin.zexport.rdytoSend) return;   // check if plugin is enabled && indicate to send new value
+    if (!mConfig->plugin.zexport.enabled) return;   // check if plugin is enabled && indicate to send new value
 
-    Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
+    if (millis() - mConfig->plugin.zexport.lastTime < mConfig->plugin.zexport.count_avg  * 1000UL)
+    {
+        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
 
-    DynamicJsonDocument doc(512);
-    JsonObject object = doc.to<JsonObject>();
+        DynamicJsonDocument doc(512);
+        JsonObject object = doc.to<JsonObject>();
 
-    double nValue = round(mzExport.getPowertoSetnewValue());
-    double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
-    if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal)) {
-        object["val"] = twoPerVal;
-    } else {
-        object["val"] = nValue;
+        double nValue = round(mzExport.getPowertoSetnewValue());
+        double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
+        if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal)) {
+            object["val"] = twoPerVal;
+        } else {
+            object["val"] = nValue;
+        }
+
+        object["id"] = mConfig->plugin.zexport.Iv;
+        object["path"] = "ctrl";
+        object["cmd"] = "limit_nonpersistent_absolute";
+
+        String data;
+        serializeJsonPretty(object, data);
+        DPRINTLN(DBG_INFO, data);
+        mApi.ctrlRequest(object);
     }
 
-    object["id"] = mConfig->plugin.zexport.Iv;
-    object["path"] = "ctrl";
-    object["cmd"] = "limit_nonpersistent_absolute";
-
-    String data;
-    serializeJsonPretty(object, data);
-    DPRINTLN(DBG_INFO, data);
-    mApi.ctrlRequest(object);
+    mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
 }
 #endif
