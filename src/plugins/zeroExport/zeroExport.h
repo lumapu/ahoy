@@ -54,8 +54,8 @@ class ZeroExport {
             switch (mCfg->device) {
                 case 0:
                 case 1:
-                    //mCfg->device = Shelly();
-                    //break;
+                    mCfg->device = Shelly();
+                    break;
                 case 2:
                     mCfg->device = Hichi();
                     break;
