@@ -187,6 +187,8 @@ void app::loop(void) {
 void app::onNetwork(bool gotIp) {
     DPRINTLN(DBG_DEBUG, F("onNetwork"));
     mNetworkConnected = gotIp;
+    ah::Scheduler::resetTicker();
+    regularTickers(); //reinstall regular tickers
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
     #if defined(ESP32)
     if(mConfig->cmt.enabled)
