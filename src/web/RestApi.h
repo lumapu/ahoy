@@ -424,6 +424,7 @@ class RestApi {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
             obj[F("iv_id")]   = id;
+            obj[F("iv_name")] = String(iv->config->name);
             obj[F("cnt")]     = iv->alarmCnt;
             obj[F("last_id")] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
 
