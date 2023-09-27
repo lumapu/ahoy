@@ -1,7 +1,7 @@
 # Development Changes
 
 ## 0.7.59 - 2023-09-20
-* add another HM-600 hardware serial number #1169
+* re-add another HM-400 hardware serial number accidentally removed with `0.7.45` (#1169)
 * merge PR #1170
 * reduce last_success MQTT messages (#1124)
 * add re-request if inverter is known to be online and first try fails
@@ -24,7 +24,7 @@
 ## 0.7.55 - 2023-09-17
 * fix prometheus builds
 * fix ESP32 default pinout #1159
-* added `opendtufusion-dev` because of anoying `-DARDUINO_USB_CDC_ON_BOOT=1` flag
+* added `opendtufusion-dev` because of annoying `-DARDUINO_USB_CDC_ON_BOOT=1` flag
 * fix display of current power on `index`
 * fix OTA, was damaged by version `0.7.51`, need to use webinstaller (from `0.7.51` to `0.7.54`)
 
@@ -40,11 +40,11 @@
 * fix ESP8266 compile error
 
 ## 0.7.52 - 2023-09-16
-* fix CMT configureable pins #1150, #1159
+* fix CMT configurable pins #1150, #1159
 * update MqTT lib to version `1.4.5`
 
 ## 0.7.51 - 2023-09-16
-* fix CMT configureable pins #1150
+* fix CMT configurable pins #1150
 * fix default CMT pins for opendtufusion
 * beautified `system`
 * changed main loops, fix resets #1125, #1135
@@ -107,7 +107,7 @@
 * fix opendtufusion LED (were mixed)
 * fix `last_success` transmitted to often #1124
 * added ESP32-S3-mini to github actions
-* added old Changlog Entries, to have full log of changes
+* added old Changelog Entries, to have full log of changes
 
 ## 0.7.41 - 2023-08-26
 * merge PR #1117 code spelling fixes #1112
@@ -143,7 +143,7 @@
 * added `AC` and `DC` to `/live` #1098
 * changed `ESP8266` default NRF24 pin assignments (`D3` = `CE` and `D4` = `IRQ`)
 * fixed background of modal window for bright color
-* fix MI chrashes
+* fix MI crashes
 * fix some lost debug messages
 * merged PR #1095, MI fixes for 0.7.x versions
 * fix scheduled reboot #1097
@@ -169,7 +169,7 @@
 * merge maximum power (AC and DC) from PR #1080
 
 ## 0.7.30 - 2023-08-10
-* attempt to improve speed / repsonse times (Schwuppdizitaet) #1075
+* attempt to improve speed / response times (Schwuppdizitaet) #1075
 
 ## 0.7.29 - 2023-08-09
 * MqTT alarm data was never sent, fixed
@@ -208,7 +208,7 @@
 * attempt to fix homeassistant auto discovery #1066
 
 ## 0.7.21 - 2023-07-30
-* fix MqTT YieldDay Total goes to 0 serveral times #1016
+* fix MqTT YieldDay Total goes to 0 several times #1016
 
 ## 0.7.20 - 2023-07-28
 * merge PR #1048 version and hash in API, fixes #1045
@@ -240,7 +240,7 @@
 ## 0.7.14 - 2023-07-23
 * fix Contrast for Nokia Display #1041
 * attempt to fix #1016 by improving inverter status
-* added option to adjust effiency for yield (day/total) #1028
+* added option to adjust efficiency for yield (day/total) #1028
 
 ## 0.7.13 - 2023-07-19
 * merged display PR #1027
@@ -257,7 +257,7 @@
 
 ## 0.7.9 - 2023-07-08
 * added 'improve' functions to set wifi password directly with ESP web tools #1014
-* fixed MqTT publish while appling power limit #1013
+* fixed MqTT publish while applying power limit #1013
 * slightly improved HMT live view (Voltage & Current)
 
 ## 0.7.8 - 2023-07-05
@@ -269,7 +269,7 @@
 
 ## 0.7.7 - 2023-07-03
 * attempt to fix MqTT `YieldDay` in `TotalValues` #927
-* attempt to fix MqTT `YieldDay` and `YieldTotal` even if inverters are not completly available #929
+* attempt to fix MqTT `YieldDay` and `YieldTotal` even if inverters are not completely available #929
 * fix wrong message 'NRF not connected' if it is disabled #1007
 
 ## 0.7.6 - 2023-06-17
@@ -336,7 +336,7 @@
 
 ## 0.6.7 - 2023-04-13
 * merge PR #883, improved store of settings and javascript, thx @tastendruecker123
-* support `.` and `,` as floating point seperator in setup #881
+* support `.` and `,` as floating point separator in setup #881
 
 ## 0.6.6 - 2023-04-12
 * increased distance for `import` button in mobile view #879
@@ -344,7 +344,7 @@
 
 ## 0.6.5 - 2023-04-11
 * fix #845 MqTT subscription for `ctrl/power/[IV-ID]` was missing
-* merge PR #876, check JSON settings during read for existance
+* merge PR #876, check JSON settings during read for existence
 * **NOTE:** incompatible change: renamed `led_high_active` to `act_high`, maybe setting must be changed after update
 * merge PR #861 do not send channel metric if channel is disabled
 
@@ -363,7 +363,7 @@
 * fix login screen on small displays
 
 ## 0.6.1 - 2023-04-01
-* merge LED fix - LED1 shows MqTT state, LED configureable active high/low #839
+* merge LED fix - LED1 shows MqTT state, LED configurable active high/low #839
 * only publish new inverter data #826
 * potential fix of WiFi hostname during boot up #752
 
@@ -381,7 +381,7 @@
 * ePaper: centered text thx @knickohr
 
 ## 0.5.108
-* merge: PR SPI pins configureable (ESP32) #807, #806 (requires manual set of MISO=19, MOSI=23, SCLK=18 in GUI for existing installs)
+* merge: PR SPI pins configurable (ESP32) #807, #806 (requires manual set of MISO=19, MOSI=23, SCLK=18 in GUI for existing installs)
 * merge: PR MI serial outputs #809
 * fix: no MQTT `total` sensor for autodiscover if only one inverter was found #805
 * fix: MQTT `total` renamed to `device_name` + `_TOTOL` for better visibility #805
@@ -464,7 +464,7 @@
 * fix MQTT retained flags for totals (P_AC, P_DC) #726, #721
 
 ## 0.5.95
-* merged #742 MI Improvments
+* merged #742 MI Improvements
 * merged #736 remove obsolete JSON Endpoint
 
 ## 0.5.94
@@ -498,7 +498,7 @@
 
 ## 0.5.89
 * reduced heap fragmentation (removed `strtok` completely) #644, #645, #682
-* added part of mac address to MQTT client ID to seperate multiple ESPs in same network
+* added part of mac address to MQTT client ID to separate multiple ESPs in same network
 * added dictionary for MQTT to reduce heap-fragmentation
 * removed `last Alarm` from Live view, because it showed always the same alarm - will change in future
 
@@ -576,15 +576,15 @@
 
 ## 0.5.75
 * fix wakeup issue, once wifi was lost during night the communication didn't start in the morning
-* reenabled FlashStringHelper because of lacking RAM
+* re-enabled FlashStringHelper because of lacking RAM
 * complete rewrite of monochrome display class, thx to @dAjaY85 -> displays are now configurable in setup
 * fix power limit not possible #607
 
 ## 0.5.74
 * improved payload handling (retransmit all fragments on CRC error)
-* improved `isAvailable`, checkes all record structs, inverter becomes available more early because version is check first
+* improved `isAvailable`, checks all record structs, inverter becomes available more early because version is check first
 * fix tickers were not set if NTP is not available
-* disabled annoying `FlashStringHelper` it gives randomly Expeptions during development, feels more stable since then
+* disabled annoying `FlashStringHelper` it gives randomly Exceptions during development, feels more stable since then
 * moved erase button to the bottom in settings, not nice but more functional
 * split `tx_count` to `tx_cnt` and `retransmits` in `system.html`
 * fix mqtt retransmit IP address #602
@@ -629,7 +629,7 @@
 
 ## 0.5.68
 * repaired receive payload
-* Powerlimit is transfered immediately to inverter
+* Powerlimit is transferred immediately to inverter
 
 ## 0.5.67
 * changed calculation of start / stop communication to 1 min after last comm. stop #515
@@ -659,7 +659,7 @@
 * fix MQTT `status` update
 * removed MQTT `available_text` (can be deducted from `available`)
 * enhanced MQTT documentation in `User_Manual.md`
-* remvoed `tickSunset` and `tickSunrise` from MQTT. It's not needed any more because of minute wise check of status (`processIvStatus`)
+* removed `tickSunset` and `tickSunrise` from MQTT. It's not needed any more because of minute wise check of status (`processIvStatus`)
 * changed MQTT topic `status` to nummeric value, check documentation in `User_Manual.md`
 * fix regular expression of `setup.html` for inverter name and channel name
 
@@ -712,7 +712,7 @@
 ## 0.5.53
 * Mono-Display: show values in offline mode #498
 * improved WiFi class #483
-* added communication enable / disable (to test mutliple DTUs with the same inverter)
+* added communication enable / disable (to test multiple DTUs with the same inverter)
 * fix factory reset #495
 
 ## 0.5.52
@@ -729,7 +729,7 @@
 * refactored get NTP time, @beegee3 #483
 * generate `bin.gz` only for 1M device ESP8285
 * fix calcSunrise was not called every day
-* incresed number of allowed characters for MQTT user, broker and password, @DanielR92
+* increased number of allowed characters for MQTT user, broker and password, @DanielR92
 * added NRF24 info to Systeminfo, @DanielR92
 * added timezone for monochrome displays, @gh-fx2
 * added support for second inverter for monochrome displays, @gh-fx2
@@ -770,7 +770,7 @@
 ## 0.5.44
 * marked some MQTT messages as retained
 * moved global functions to global location (no duplicates)
-* changed index.html inverval to static 10 seconds
+* changed index.html interval to static 10 seconds
 * fix static IP
 * fix NTP with static IP
 * print MQTT info only if MQTT was configured
