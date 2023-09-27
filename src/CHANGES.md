@@ -1,5 +1,13 @@
 # Development Changes
 
+## 0.7.60 - 2023-09-27
+* fixed typos in changelog #1172
+* fixed MqTT manual clientId storage #1174
+* fixed inverter name length in setup #1181
+* added inverter name to the header of alarm list #1181
+* improved code to avoid warning during compilation #1182
+* fix scheduler #1188, #1179
+
 ## 0.7.59 - 2023-09-20
 * re-add another HM-400 hardware serial number accidentally removed with `0.7.45` (#1169)
 * merge PR #1170
