@@ -597,7 +597,7 @@ void app::updateLed(void) {
 void app::zeroexport() {
     if (!mConfig->plugin.zexport.enabled) return;   // check if plugin is enabled && indicate to send new value
 
-    if (millis() - mConfig->plugin.zexport.lastTime < mConfig->plugin.zexport.count_avg  * 1000UL)
+    if (millis() - mConfig->plugin.zexport.lastTime > mConfig->plugin.zexport.count_avg  * 1000UL)
     {
         Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
 
@@ -606,12 +606,14 @@ void app::zeroexport() {
 
         double nValue = round(mzExport.getPowertoSetnewValue());
         double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
-        if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal)) {
-            object["val"] = twoPerVal;
-        } else {
-            object["val"] = nValue;
-        }
 
+        if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal))
+            nValue = twoPerVal;
+
+        if(mConfig->plugin.zexport.max_power <= nValue)
+            nValue = mConfig->plugin.zexport.max_power;
+
+        object["val"] = nValue;
         object["id"] = mConfig->plugin.zexport.Iv;
         object["path"] = "ctrl";
         object["cmd"] = "limit_nonpersistent_absolute";

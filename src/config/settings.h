@@ -147,7 +147,7 @@ typedef struct {
     uint8_t count_avg;
     double total_power;
     unsigned long lastTime; // tic toc
-
+    double max_power;
     bool two_percent;   // ask if not go lower then 2%
 } cfgzeroExport_t;
 #endif
@@ -463,6 +463,7 @@ class settings {
 
             mCfg.plugin.zexport.power_avg = 10;
             mCfg.plugin.zexport.Iv = 0;
+            mCfg.plugin.zexport.max_power = 600;        // Max 600W to stay safe
             mCfg.plugin.zexport.two_percent = true;
             #endif
 
@@ -668,8 +669,9 @@ class settings {
                 obj[F("Iv")] = mCfg.plugin.zexport.Iv;
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
+                obj[F("max_power")] = mCfg.plugin.zexport.max_power;
                 obj[F("total_power")] = mCfg.plugin.zexport.total_power;
-                obj[F("two_percent")] = mCfg.plugin.zexport.two_percent;
+                obj[F("two_percent")] = (bool)mCfg.plugin.zexport.two_percent;
             }
             else
             {
@@ -681,6 +683,7 @@ class settings {
 
                 getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
                 getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);
+                getVal<double>(obj, F("max_power"), &mCfg.plugin.zexport.max_power);
 
                 getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
 

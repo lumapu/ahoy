@@ -489,6 +489,7 @@ class RestApi {
             obj[F("monitor_url")] = String(mConfig->plugin.zexport.monitor_url);
             obj[F("json_path")] = String(mConfig->plugin.zexport.json_path);
             obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
+            obj[F("max_power")] = (double)mConfig->plugin.zexport.max_power;
             obj[F("Iv")] = (uint8_t)mConfig->plugin.zexport.Iv;
             obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;
             obj[F("total_power")] = (double)mConfig->plugin.zexport.total_power;

@@ -342,6 +342,9 @@
                             <div class="col-8 col-sm-3">2% protection: </div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="two_percent"/></div>
                             <br>
+                            <div class="col-8 col-sm-3">Max Power: </div>
+                            <div class="col-4 col-sm-9"><input type="number" name="max_power" min="8" ></div>
+                            <br>
                             <div class="col-12 col-sm-3 my-2">Refresh rate (sec.)<input type="number" name="count_avg" min="0" max="255"></div>
                             <div class="col-12 col-sm-3 my-2">Power tolerances (Watt)<input type="number" name="power_avg" min="0" max="255"></div>
                         </div>
@@ -973,7 +976,7 @@
 
                 getAjax("/api/inverter/list", parseZeroIv);
 
-                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"]])
+                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 

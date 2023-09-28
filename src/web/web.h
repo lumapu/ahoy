@@ -607,6 +607,7 @@ class Web {
             mConfig->plugin.zexport.two_percent = (request->arg("two_percent") == "on");
             mConfig->plugin.zexport.Iv = request->arg("Iv").toInt();
             mConfig->plugin.zexport.count_avg = request->arg("count_avg").toInt();
+            mConfig->plugin.zexport.max_power = request->arg("max_power").toDouble();
             mConfig->plugin.zexport.power_avg = request->arg("power_avg").toFloat();
             mConfig->plugin.zexport.total_power = request->arg("total_power").toDouble();
 
