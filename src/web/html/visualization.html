@@ -244,7 +244,7 @@
                 var offs = new Date().getTimezoneOffset() * -60;
                 html.push(
                     ml("div", {class: "row"}, [
-                        ml("div", {class: "col"}, ml("strong", {}, "String")),
+                        ml("div", {class: "col"}, ml("strong", {}, "Event")),
                         ml("div", {class: "col"}, ml("strong", {}, "ID")),
                         ml("div", {class: "col"}, ml("strong", {}, "Start")),
                         ml("div", {class: "col"}, ml("strong", {}, "End"))
@@ -263,7 +263,7 @@
                         );
                     }
                 }
-                modal("Alarms of inverter #" + obj.iv_id, ml("div", {}, html));
+                modal("Alarms of inverter " + obj.iv_name, ml("div", {}, html));
             }
 
             function parseIvVersion(obj) {

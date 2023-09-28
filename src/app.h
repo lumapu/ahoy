@@ -69,7 +69,6 @@ class app : public IApp, public ah::Scheduler {
 
         void setup(void);
         void loop(void);
-        void loopStandard(void);
         void onNetwork(bool gotIp);
         void regularTickers(void);
 
