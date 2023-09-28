@@ -88,7 +88,7 @@ class CommandAbstract {
         };
         virtual ~CommandAbstract() {};
 
-        const uint8_t getCmd() {
+        uint8_t getCmd() const {
             return _Cmd;
         }
 
