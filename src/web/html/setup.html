@@ -329,14 +329,18 @@
 
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
-                            <div class="col-12 col-sm-9"><input type="text" name="monitor_ipAddr" maxlength="15"></div>
+                            <div class="col-12 col-sm-9"><input type="text" name="monitor_url" maxlength="100">A JSON-Format is required to work properly.<br>
+                                HICHI:  http://IP_Address/cm?cmnd=status%208<br>
+                                Shelly: http://IP_Address/status</div>
+
                             <div class="col-12 col-sm-3 my-2">Prio Inverter</div>
-                            <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select></div>
+                            <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select>Which Inverter should be regulated.</div>
+
+                            <div class="col-12 col-sm-3 my-2">JSON Path: </div>
+                            <div class="col-12 col-sm-9"><input type="text" name="json_path" maxlength="100">Only for HICHI needed!</div>
+
                             <div class="col-8 col-sm-3">2% protection: </div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="two_percent"/></div>
-                            <br>
-                            <div class="col-12 col-sm-3 my-2">HICHI PowerName:</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="HICHI_PowerName" maxlength="64">(E.g. [StatusSNS][Home][Power])</div>
                             <br>
                             <div class="col-12 col-sm-3 my-2">Refresh rate (sec.)<input type="number" name="count_avg" min="0" max="255"></div>
                             <div class="col-12 col-sm-3 my-2">Power tolerances (Watt)<input type="number" name="power_avg" min="0" max="255"></div>
@@ -969,7 +973,7 @@
 
                 getAjax("/api/inverter/list", parseZeroIv);
 
-                for(var i of [["monitor_ipAddr", "monitor_ipAddr"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["HICHI_PowerName", "HICHI_PowerName"]])
+                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 

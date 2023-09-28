@@ -139,14 +139,13 @@ typedef struct {
 /* Zero Export section */
 #if defined(ESP32)
 typedef struct {
-    char monitor_ip[ZEXPORT_ADDR_LEN];
-    uint8_t device;     // save the monitor device (1 - Shelly; 2 - Hichi;)
+    char monitor_url[ZEXPORT_ADDR_LEN];
+    char json_path[ZEXPORT_ADDR_LEN];
     uint8_t Iv;         // saves the inverter that is used for regulation
     bool enabled;
     float power_avg;
     uint8_t count_avg;
     double total_power;
-    char HICHI_PowerName[HICHI_NAME_ADDR_LEN];
     unsigned long lastTime; // tic toc
 
     bool two_percent;   // ask if not go lower then 2%
@@ -456,14 +455,13 @@ class settings {
 
             // Zero-Export
             #if defined(ESP32)
-            snprintf(mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
-            snprintf(mCfg.plugin.zexport.HICHI_PowerName, HICHI_NAME_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
             mCfg.plugin.zexport.count_avg = 10;
             mCfg.plugin.zexport.lastTime =  millis();   // do not change!
 
             mCfg.plugin.zexport.power_avg = 10;
-            mCfg.plugin.zexport.device = 0;
             mCfg.plugin.zexport.Iv = 0;
             mCfg.plugin.zexport.two_percent = true;
             #endif
@@ -663,8 +661,8 @@ class settings {
         void jsonzeroExport(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
-                obj[F("monitor_ipAddr")] = mCfg.plugin.zexport.monitor_ip;
-                obj[F("HICHI_PowerName")] = mCfg.plugin.zexport.HICHI_PowerName;
+                obj[F("monitor_url")] = mCfg.plugin.zexport.monitor_url;
+                obj[F("json_path")] = mCfg.plugin.zexport.json_path;
                 obj[F("Iv")] = mCfg.plugin.zexport.Iv;
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
@@ -676,8 +674,8 @@ class settings {
                 getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
                 getVal<bool>(obj, F("two_percent"), &mCfg.plugin.zexport.two_percent);
 
-                getChar(obj, F("monitor_ipAddr"), mCfg.plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
-                getChar(obj, F("HICHI_PowerName"), mCfg.plugin.zexport.HICHI_PowerName, HICHI_NAME_ADDR_LEN);
+                getChar(obj, F("monitor_url"), mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
+                getChar(obj, F("json_path"), mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
 
                 getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
                 getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);

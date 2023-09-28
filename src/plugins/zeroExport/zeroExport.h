@@ -12,7 +12,6 @@ template <class HMSYSTEM>
 class ZeroExport {
    public:
     ZeroExport() { }
-    float mililine;
 
     void setup(cfgzeroExport_t *cfg, HMSYSTEM *sys, settings_t *config) {
         mCfg     = cfg;
@@ -24,7 +23,6 @@ class ZeroExport {
         //DPRINTLN(DBG_INFO, (F("tickerSecond()")));
         if (millis() - mCfg->lastTime < mCfg->count_avg * 1000UL) {
             zero(); // just refresh when it is needed. To get cpu load low.
-            //DPRINTLN(DBG_INFO, (F("zero()")));
         }
     }
 
@@ -47,104 +45,63 @@ class ZeroExport {
     }
 
     private:
-        HTTPClient http;
+        HTTPClient httpClient;
 
         // TODO: Need to improve here. 2048 for a JSON Obj is to big!?
-        void zero() {
-            switch (mCfg->device) {
-                case 0:
-                case 1:
-                    mCfg->device = Shelly();
-                    break;
-                case 2:
-                    mCfg->device = Hichi();
-                    break;
-                default:
-                    // Statement(s)
-                    break; // Wird nicht benötigt, wenn Statement(s) vorhanden sind
-            }
-        }
-
-        int Shelly()
+        bool zero()
         {
-            http.begin(String(mCfg->monitor_ip), 80, "/status");
+            if (!httpClient.begin(mCfg->monitor_url)) {
+                DPRINTLN(DBG_INFO, "httpClient.begin failed");
+                httpClient.end();
+                return false;
+            }
 
-            int httpResponseCode = http.GET();
-            if (httpResponseCode > 0 && httpResponseCode < 400)
+            httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            httpClient.setUserAgent("Ahoy-Agent");
+            httpClient.setConnectTimeout(1000);
+            httpClient.setTimeout(1000);
+            httpClient.addHeader("Content-Type", "application/json");
+            httpClient.addHeader("Accept", "application/json");
+
+            int httpCode = httpClient.GET();
+            if (httpCode == HTTP_CODE_OK)
             {
+                String responseBody = httpClient.getString();
                 DynamicJsonDocument json(2048);
-                DeserializationError err = deserializeJson(json, http.getString());
+                DeserializationError err = deserializeJson(json, responseBody);
 
                 // Parse succeeded?
                 if (err) {
-                    DPRINTLN(DBG_INFO, (F("Shelly() returned: ")));
+                    DPRINTLN(DBG_INFO, (F("ZeroExport() JSON error returned: ")));
                     DPRINTLN(DBG_INFO, String(err.f_str()));
-                    return 2;
                 }
 
-                mCfg->total_power = (double)json[F("total_power")];
-                return 1;
-            }
-            if (httpResponseCode >= 400)
-            {
-                DPRINTLN(DBG_INFO, "Shelly(): Error " + String(httpResponseCode));
-            }
-            return 2;
-        }
+                // check if it HICHI
+                if(json.containsKey(F("StatusSNS")) ) {
+                    int index = responseBody.indexOf(String(mCfg->json_path));  // find first match position
+                    responseBody = responseBody.substring(index);               // cut it and store it in value
+                    index = responseBody.indexOf(",");                          // find the first seperation - Bingo!?
 
-        int Hichi()
-        {
-            http.begin(String(mCfg->monitor_ip), 80, "/cm?cmnd=status%208");
-            String hName = String(mCfg->HICHI_PowerName);
-
-            int httpResponseCode = http.GET();
-            if (httpResponseCode > 0 && httpResponseCode < 400)
-            {
-                DynamicJsonDocument json(2048);
-                DeserializationError err = deserializeJson(json, http.getString());
-
-                // Parse succeeded?
-                if (err) {
-                    DPRINT(DBG_INFO, (F("Hichi() returned: ")));
-                    DPRINTLN(DBG_INFO, String(err.f_str()));
-                    return 0;
+                    mCfg->total_power = responseBody.substring(0, index - 1).toDouble();
+                } else if(json.containsKey(F("emeters"))) {
+                    mCfg->total_power = (double)json[F("total_power")];
+                } else {
+                     DPRINTLN(DBG_INFO, (F("ZeroExport() json error: cant find value in this query: ") + responseBody));
+                     return false;
                 }
-
-                int count = 0;
-                for (uint8_t i = 0; i < strlen(hName.c_str()); i++)
-                    if (hName[i] == ']') count++;
-
-                for (uint8_t i = 0; i < count; i++)
-                {
-                    uint8_t l_index = hName.indexOf(']') - 1;
-                    json = json[hName.substring(1, l_index)];
-
-
-                    String output;
-                    serializeJson(json, output);
-                    DPRINTLN(DBG_INFO, output);
-                    hName = hName.substring(l_index);
-                }
-
-                DPRINTLN(DBG_INFO, String(json[0]));
-                mCfg->total_power = (double)json[0];
-                return 2;
             }
-            if (httpResponseCode >= 400)
+            else
             {
-                DPRINTLN(DBG_INFO, "HICHI(): Error " + String(httpResponseCode));
+                DPRINTLN(DBG_INFO, F("ZeroExport(): Error ") + String(httpCode));
+                return false;
             }
-
-            return 0;
+            return true;
         }
 
         // private member variables
-        const char *mVersion;
         cfgzeroExport_t *mCfg;
-
         settings_t *mConfig;
         HMSYSTEM *mSys;
-        uint16_t mRefreshCycle;
 };
 
 #endif /*__ZEROEXPORT__*/

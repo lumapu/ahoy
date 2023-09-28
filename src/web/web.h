@@ -610,19 +610,18 @@ class Web {
             mConfig->plugin.zexport.power_avg = request->arg("power_avg").toFloat();
             mConfig->plugin.zexport.total_power = request->arg("total_power").toDouble();
 
-            if (request->arg("monitor_ipAddr") != "") {
-                String addr = request->arg("monitor_ipAddr");
+            if (request->arg("monitor_url") != "") {
+                String addr = request->arg("monitor_url");
                 addr.trim();
-                addr.toCharArray(mConfig->plugin.zexport.monitor_ip, ZEXPORT_ADDR_LEN);
+                addr.toCharArray(mConfig->plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
             } else
-                mConfig->plugin.zexport.monitor_ip[0] = '\0';
-
-            if (request->arg("HICHI_PowerName") != "") {
-                String addr = request->arg("HICHI_PowerName");
+                mConfig->plugin.zexport.monitor_url[0] = '\0';
+            if (request->arg("json_path") != "") {
+                String addr = request->arg("json_path");
                 addr.trim();
-                addr.toCharArray(mConfig->plugin.zexport.HICHI_PowerName, ZEXPORT_ADDR_LEN);
+                addr.toCharArray(mConfig->plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
             } else
-                mConfig->plugin.zexport.HICHI_PowerName[0] = '\0';
+                mConfig->plugin.zexport.json_path[0] = '\0';
             #endif
 
             // serial console
