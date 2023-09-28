@@ -148,7 +148,7 @@
     #define PVERBLN(str)
 #endif
 
-#define DPRINT(level, str) ({\
+#define DPRINT(level, str) do {\
     switch(level) {\
         case DBG_ERROR: PERR(str);  break; \
         case DBG_WARN:  PWARN(str); break; \
@@ -156,13 +156,13 @@
         case DBG_DEBUG: PDBG(str);  break; \
         default:        PVERB(str); break; \
     }\
-})
+} while (0)
 
-#define DPRINT_IVID(level, id) ({\
+#define DPRINT_IVID(level, id) do {\
     DPRINT(level, F("(#")); DBGPRINT(String(id)); DBGPRINT(F(") "));\
-})
+} while (0)
 
-#define DPRINTLN(level, str) ({\
+#define DPRINTLN(level, str) do {\
     switch(level) {\
         case DBG_ERROR: PERRLN(str);  break; \
         case DBG_WARN:  PWARNLN(str); break; \
@@ -170,7 +170,7 @@
         case DBG_DEBUG: PDBGLN(str);  break; \
         default:        PVERBLN(str); break; \
     }\
-})
+} while (0)
 
 
 /*class ahoyLog {
