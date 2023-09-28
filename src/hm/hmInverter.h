@@ -142,7 +142,7 @@ class Inverter {
         uint8_t       channels;          // number of PV channels (1-4)
         record_t<REC_TYP> recordMeas;    // structure for measured values
         record_t<REC_TYP> recordInfo;    // structure for info values
-        record_t<REC_TYP> recordHwInfo;    // structure for simple (hardware) info values
+        record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
@@ -152,7 +152,7 @@ class Inverter {
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
-        int8_t        rssi;              // HMS and HMT inverters only
+        int8_t        rssi;              // accurate for HMS and HMT inverters only
 
 
         static uint32_t *timestamp;      // system timestamp

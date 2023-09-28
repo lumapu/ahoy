@@ -169,7 +169,7 @@ class HmRadio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
+        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -185,6 +185,7 @@ class HmRadio {
                 }
             } else { //MI 2nd gen. specific
                 switch (cmd) {
+                    case Restart:
                     case TurnOn:
                         //mTxBuf[0] = 0x50;
                         mTxBuf[9] = 0x55;
@@ -195,21 +196,54 @@ class HmRadio {
                         mTxBuf[10] = 0x55;
                         break;
                     case ActivePowerContr:
-                        mTxBuf[9] = 0x5a;
-                        mTxBuf[10] = 0x5a;
-                        //Testing only! Original NRF24_DTUMIesp.ino code #L612-L613:
-                        //UsrData[0]=0x5A;UsrData[1]=0x5A;UsrData[2]=100;//0x0a;// 10% limit
-                        //UsrData[3]=((Limit*10) >> 8) & 0xFF;   UsrData[4]= (Limit*10)  & 0xFF;   //WR needs 1 dec= zB 100.1 W
-                        if (is4chMI) {
-                            mTxBuf[cnt++] = 100; //10% limit, seems to be necessary to send sth. at all, but for MI-1500 this has no effect
-                            //works (if ever!) only for absulute power limits!
-                            mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                            mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
-                        } else {
-                            mTxBuf[cnt++] = data[0]*10; // power limit
+                        if (data[1]<256) { // non persistent
+                            mTxBuf[9] = 0x5a;
+                            mTxBuf[10] = 0x5a;
+                            //Testing only! Original NRF24_DTUMIesp.ino code #L612-L613:
+                            //UsrData[0]=0x5A;UsrData[1]=0x5A;UsrData[2]=100;//0x0a;// 10% limit
+                            //UsrData[3]=((Limit*10) >> 8) & 0xFF;   UsrData[4]= (Limit*10)  & 0xFF;   //WR needs 1 dec= zB 100.1 W
+                            if (!data[1]) {   //     AbsolutNonPersistent
+                                mTxBuf[++cnt] = 100; //10% limit, seems to be necessary to send sth. at all, but for MI-1500 this has no effect
+                                //works (if ever!) only for absulute power limits!
+                                mTxBuf[++cnt] = ((data[0] * 10) >> 8) & 0xff; // power limit in W
+                                mTxBuf[++cnt] = ((data[0] * 10)     ) & 0xff; // power limit in W
+                            } else if (powerMax) {       //relative, but 4ch-MI (if ever) only accepts absolute values
+                                mTxBuf[++cnt] = data[0]; // simple power limit in %, might be necessary to multiply by 10?
+                                mTxBuf[++cnt] = ((data[0] * 10 * powerMax) >> 8) & 0xff; // power limit
+                                mTxBuf[++cnt] = ((data[0] * 10 * powerMax)     ) & 0xff; // power limit
+                            } else {   // might work for 1/2ch MI (if ever)
+                                mTxBuf[++cnt] = data[0]; // simple power limit in %, might be necessary to multiply by 10?
+                            }
+                        } else {       // persistent power limit needs to be translated in DRED command (?)
+                            /* DRED instruction
+                            Order	 Function
+                            0x55AA	 Boot without DRM restrictions
+                            0xA5A5	 DRM0 shutdown
+                            0x5A5A	 DRM5 power limit 0%
+                            0xAA55	 DRM6 power limit 50%
+                            0x5A55	 DRM8 unlimited power operation
+                            */
+                            mTxBuf[0] = 0x50;
+
+                            if (data[1] == 256UL) {   //     AbsolutPersistent
+                                if (data[0] == 0 && !powerMax) {
+                                    mTxBuf[9]  = 0xa5;
+                                    mTxBuf[10] = 0xa5;
+                                } else if (data[0] == 0 || !powerMax || data[0] < powerMax/4 ) {
+                                    mTxBuf[9]  = 0x5a;
+                                    mTxBuf[10] = 0x5a;
+                                } else if (data[0] <=  powerMax/4*3) {
+                                    mTxBuf[9]  = 0xaa;
+                                    mTxBuf[10] = 0x55;
+                                } else if (data[0] <=  powerMax) {
+                                    mTxBuf[9]  = 0x5a;
+                                    mTxBuf[10] = 0x55;
+                                } else if (data[0] > powerMax*2) {
+                                    mTxBuf[9]  = 0x55;
+                                    mTxBuf[10] = 0xaa;
+                                }
+                            }
                         }
-
-
                         break;
                     default:
                         return;
@@ -254,7 +288,7 @@ class HmRadio {
         bool mSerialDebug;
 
     private:
-            bool getReceived(void) {
+        bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
 
