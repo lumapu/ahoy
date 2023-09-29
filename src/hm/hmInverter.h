@@ -17,6 +17,7 @@
 #include <queue>
 #include "../config/settings.h"
 
+#include "radio.h"
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.
@@ -152,7 +153,8 @@ class Inverter {
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
-        int8_t        rssi;              // HMS and HMT inverters only
+        int8_t        rssi;              // RSSI
+        Radio         *radio;            // pointer to associated radio class
 
 
         static uint32_t *timestamp;      // system timestamp

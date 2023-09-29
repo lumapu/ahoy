@@ -59,8 +59,11 @@ void app::setup() {
         #endif
     #endif /* defined(ETHERNET) */
 
-    mSys.setup(&mTimestamp);
-    mSys.addInverters(&mConfig->inst);
+    mSys.setup(&mTimestamp, &mConfig->inst);
+    Inverter<> *iv;
+    for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+        mSys.addInverter(i);
+    }
     if (mConfig->nrf.enabled) {
         mPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mPayload.enableSerialDebug(mConfig->serial.debug);
