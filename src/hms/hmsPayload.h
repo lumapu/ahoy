@@ -151,12 +151,12 @@ class HmsPayload {
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
                 iv->powerLimitAck = false;
-                mRadio->sendControlPacket(&iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
+                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
                 //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
             } else if(((rec->ts + HMS_TIMEOUT_SEC) < *mTimestamp) && (mIvCmd56Cnt[iv->id] < 3)) {
-                mRadio->switchFrequency(&iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                mRadio->switchFrequency(iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
                 mIvCmd56Cnt[iv->id]++;
             } else {
                 if(++mIvCmd56Cnt[iv->id] == 10)
@@ -167,7 +167,7 @@ class HmsPayload {
                     DBGPRINT(F("prepareDevInformCmd 0x"));
                     DBGHEXLN(cmd);
                 }
-                mRadio->prepareDevInformCmd(&iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
+                mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
                 mPayload[iv->id].txCmd = cmd;
             }
         }
@@ -261,7 +261,7 @@ class HmsPayload {
                                 } else if(iv->devControlCmd == ActivePowerContr) {
                                     DPRINT_IVID(DBG_INFO, iv->id);
                                     DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                    mRadio->sendControlPacket(&iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
+                                    mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
                                 } else {
                                     if(false == mPayload[iv->id].gotFragment) {
                                         DPRINT_IVID(DBG_WARN, iv->id);
@@ -272,7 +272,7 @@ class HmsPayload {
                                             DBGPRINTLN(F("nothing received: complete retransmit"));
                                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
-                                            mRadio->prepareDevInformCmd(&iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                                            mRadio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         }
                                     } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
@@ -305,7 +305,7 @@ class HmsPayload {
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(mPayload[iv->id].txCmd);
                             }
-                            mRadio->prepareDevInformCmd(&iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmLastId, true);
+                            mRadio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmLastId, true);
                         }
                     } else {  // payload complete
                         if (mSerialDebug) {
@@ -386,7 +386,7 @@ class HmsPayload {
                                     DBGHEXLN(cmd);
                                 }
                                 mStat->rxSuccess++;
-                                mRadio->prepareDevInformCmd(&iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
+                                mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
                                 mPayload[iv->id].txCmd = cmd;
                                 */
                                 mHighPrioIv = iv;
@@ -434,7 +434,7 @@ class HmsPayload {
             for (uint8_t i = 0; i < mPayload[iv->id].maxPackId; i++) {
                 if (mPayload[iv->id].len[i] > 0) {
                     if (i == (mPayload[iv->id].maxPackId - 1)) {
-                        crc = ah::crc16(mPayload[iv->id].data[i], mPayload[iv->id].len[i] - 1, crc);
+                        crc = ah::crc16(mPayload[iv->id].data[i], mPayload[iv->id].len[i] - 2, crc);
                         crcRcv = (mPayload[iv->id].data[i][mPayload[iv->id].len[i] - 2] << 8) | (mPayload[iv->id].data[i][mPayload[iv->id].len[i] - 1]);
                     } else
                         crc = ah::crc16(mPayload[iv->id].data[i], mPayload[iv->id].len[i], crc);

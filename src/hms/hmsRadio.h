@@ -64,7 +64,7 @@ class CmtRadio {
             return mCmtAvail;
         }
 
-        void sendControlPacket(const uint64_t *ivId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(uint64_t ivId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(ivId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -82,7 +82,7 @@ class CmtRadio {
             sendPacket(cnt, isRetransmit);
         }
 
-        bool switchFrequency(const uint64_t *ivId, uint32_t fromkHz, uint32_t tokHz) {
+        bool switchFrequency(uint64_t ivId, uint32_t fromkHz, uint32_t tokHz) {
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
 
@@ -95,7 +95,7 @@ class CmtRadio {
             return true;
         }
 
-        void prepareDevInformCmd(const uint64_t *ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+        void prepareDevInformCmd(uint64_t ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             initPacket(ivId, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
@@ -107,7 +107,7 @@ class CmtRadio {
         }
 
         void sendCmdPacket(uint64_t ivId, uint8_t mid, uint8_t pid, bool isRetransmit) {
-            initPacket(&ivId, mid, pid);
+            initPacket(ivId, mid, pid);
             sendPacket(10, isRetransmit);
         }
 
@@ -160,7 +160,7 @@ class CmtRadio {
             mRqstGetRx      = false;
         }
 
-        inline void sendSwitchChCmd(const uint64_t *ivId, uint8_t ch) {
+        inline void sendSwitchChCmd(uint64_t ivId, uint8_t ch) {
             /** ch:
              * 0x00: 860.00 MHz
              * 0x01: 860.25 MHz
@@ -179,9 +179,9 @@ class CmtRadio {
             mRqstGetRx = true;
         }
 
-        void initPacket(const uint64_t *ivId, uint8_t mid, uint8_t pid) {
+        void initPacket(uint64_t ivId, uint8_t mid, uint8_t pid) {
             mTxBuf[0] = mid;
-            CP_U32_BigEndian(&mTxBuf[1], (*ivId) >> 8);
+            CP_U32_BigEndian(&mTxBuf[1], ivId >> 8);
             CP_U32_LittleEndian(&mTxBuf[5], mDtuSn);
             mTxBuf[9] = pid;
             memset(&mTxBuf[10], 0x00, 17);
