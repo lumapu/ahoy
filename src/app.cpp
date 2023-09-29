@@ -69,7 +69,7 @@ void app::setup() {
         });
     }
     if (mConfig->nrf.enabled) {
-        mPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mPayload.setup(this, &mSys, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mPayload.enableSerialDebug(mConfig->serial.debug);
         mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -77,12 +77,6 @@ void app::setup() {
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
-
-    #if defined(ESP32)
-        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mCmtStat, 5, &mTimestamp);
-        mHmsPayload.enableSerialDebug(mConfig->serial.debug);
-        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    #endif
 
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
@@ -97,9 +91,6 @@ void app::setup() {
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
         mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        #if defined(ESP32)
-            mHmsPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        #endif
     }
     #endif
     setupLed();
@@ -172,19 +163,16 @@ void app::loop(void) {
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if(NULL != iv) {
                 if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.add(iv, p);
+                    mPayload.add(iv, p);
             }
             mCmtRadio.mBufCtrl.pop();
             yield();
         }
-        mHmsPayload.process(false); //true
+        mPayload.process(false); //true
     }
     #endif
     mPayload.loop();
     mMiPayload.loop();
-    #if defined(ESP32)
-    mHmsPayload.loop();
-    #endif
 
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
@@ -438,17 +426,11 @@ void app::tickSend(void) {
         if (NULL != iv) {
             if (iv->config->enabled) {
                 if(mConfig->nrf.enabled) {
-                    if (iv->ivGen == IV_HM)
-                        mPayload.ivSend(iv);
-                    else if(iv->ivGen == IV_MI)
+                    if(iv->ivGen == IV_MI)
                         mMiPayload.ivSend(iv);
+                    else
+                        mPayload.ivSend(iv);
                 }
-                #if defined(ESP32)
-                if(mConfig->cmt.enabled) {
-                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                        mHmsPayload.ivSend(iv);
-                }
-                #endif
             }
         }
     } else {

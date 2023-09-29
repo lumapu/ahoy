@@ -16,7 +16,6 @@
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
 #include "hms/hmsRadio.h"
-#include "hms/hmsPayload.h"
 #include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "publisher/pubMqtt.h"
@@ -42,11 +41,10 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
+typedef HmPayload<HmSystemType> PayloadType;
 typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
 #ifdef ESP32
 typedef CmtRadio<esp32_3wSpi> CmtRadioType;
-typedef HmsPayload<HmSystemType, CmtRadioType> HmsPayloadType;
 #endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
@@ -180,14 +178,10 @@ class app : public IApp, public ah::Scheduler {
 
         void ivSendHighPrio(Inverter<> *iv) {
             if(mIVCommunicationOn) { // only send commands if communication is enabled
-                if (iv->ivGen == IV_HM)
-                    mPayload.ivSendHighPrio(iv);
-                else if (iv->ivGen == IV_MI)
+                if (iv->ivGen == IV_MI)
                     mMiPayload.ivSendHighPrio(iv);
-                #if defined(ESP32)
-                else if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.ivSendHighPrio(iv);
-                #endif
+                else
+                    mPayload.ivSendHighPrio(iv);
             }
         }
 
@@ -334,7 +328,6 @@ class app : public IApp, public ah::Scheduler {
         #endif
         #ifdef ESP32
         CmtRadioType mCmtRadio;
-        HmsPayloadType mHmsPayload;
         #endif
 
         char mVersion[12];
