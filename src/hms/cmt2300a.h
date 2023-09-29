@@ -239,7 +239,7 @@ class Cmt2300a {
             return CMT_SUCCESS;
         }
 
-        uint8_t getRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
+        uint8_t getRx(uint8_t buf[], uint8_t *rxLen, uint8_t maxlen, int8_t *rssi) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
@@ -250,7 +250,7 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return CMT_ERR_SWITCH_STATE;
 
-            mSpi.readFifo(buf, len);
+            mSpi.readFifo(buf, rxLen, maxlen);
             *rssi = mSpi.readReg(CMT2300A_CUS_RSSI_DBM) - 128;
 
             if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))

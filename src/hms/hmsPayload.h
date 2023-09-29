@@ -172,18 +172,19 @@ class HmsPayload {
             }
         }
 
-        void add(Inverter<> *iv, hmsPacket_t *p) {
-            if (p->data[1] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                mPayload[iv->id].txId = p->data[1];
+        void add(Inverter<> *iv, packet_t *p) {
+            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+                mPayload[iv->id].txId = p->packet[0];
                 DPRINTLN(DBG_DEBUG, F("Response from info request received"));
-                uint8_t *pid = &p->data[10];
+                uint8_t *pid = &p->packet[9];
                 if (*pid == 0x00) {
                     DPRINTLN(DBG_DEBUG, F("fragment number zero received and ignored"));
                 } else {
-                    DPRINTLN(DBG_DEBUG, "PID: 0x" + String(*pid, HEX));
+                    DPRINT(DBG_DEBUG, F("PID: 0x"));
+                    DPRINTLN(DBG_DEBUG, String(*pid, HEX));
                     if ((*pid & 0x7F) < MAX_PAYLOAD_ENTRIES) {
-                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->data[11], p->data[0] - 11);
-                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->data[0] -11;
+                        memcpy(mPayload[iv->id].data[(*pid & 0x7F) - 1], &p->packet[10], p->len - 11);
+                        mPayload[iv->id].len[(*pid & 0x7F) - 1] = p->len - 11;
                         mPayload[iv->id].gotFragment = true;
                         mPayload[iv->id].rssi[(*pid & 0x7F) - 1] = p->rssi;
                     }
@@ -197,15 +198,15 @@ class HmsPayload {
                         }
                     }
                 }
-            } else if (p->data[1] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
+            } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                 DPRINTLN(DBG_DEBUG, F("Response from devcontrol request received"));
 
-                mPayload[iv->id].txId = p->data[1];
+                mPayload[iv->id].txId = p->packet[0];
                 iv->clearDevControlRequest();
 
-                if ((p->data[13] == ActivePowerContr) && (p->data[14] == 0x00)) {
+                if ((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00)) {
                     bool ok = true;
-                    if((p->data[11] == 0x00) && (p->data[12] == 0x00)) {
+                    if((p->packet[10] == 0x00) && (p->packet[11] == 0x00)) {
                         mApp->setMqttPowerLimitAck(iv);
                         iv->powerLimitAck = true;
                     } else

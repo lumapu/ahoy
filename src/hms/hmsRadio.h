@@ -9,11 +9,6 @@
 #include "../utils/dbg.h"
 #include "cmt2300a.h"
 
-typedef struct {
-    int8_t rssi;
-    uint8_t data[28];
-} hmsPacket_t;
-
 #define U32_B3(val) ((uint8_t)((val >> 24) & 0xff))
 #define U32_B2(val) ((uint8_t)((val >> 16) & 0xff))
 #define U32_B1(val) ((uint8_t)((val >>  8) & 0xff))
@@ -146,7 +141,7 @@ class CmtRadio {
                 mStat->txCnt++;
         }
 
-        std::queue<hmsPacket_t> mBufCtrl;
+        std::queue<packet_t> mBufCtrl;
 
     private:
         inline void reset(bool genDtuSn) {
@@ -206,8 +201,8 @@ class CmtRadio {
         }
 
         inline void getRx(void) {
-            hmsPacket_t p;
-            uint8_t status = mCmt.getRx(p.data, 28, &p.rssi);
+            packet_t p;
+            uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
         }

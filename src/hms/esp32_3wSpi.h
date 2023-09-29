@@ -141,7 +141,7 @@ class esp32_3wSpi {
             SPI_PARAM_UNLOCK();
         }
 
-        void readFifo(uint8_t buf[], uint8_t len) {
+        void readFifo(uint8_t buf[], uint8_t *len, uint8_t maxlen) {
             if(!mInitialized)
                 return;
             uint8_t rx_data;
@@ -154,10 +154,13 @@ class esp32_3wSpi {
             };
 
             SPI_PARAM_LOCK();
-            for(uint8_t i = 0; i < len; i++) {
+            for(uint8_t i = 0; i < maxlen; i++) {
                 ESP_ERROR_CHECK(spi_device_polling_transmit(spi_fifo, &t));
                 delayMicroseconds(4); // > 4 us
-                buf[i] = rx_data;
+                if(0 == i)
+                    *len = rx_data;
+                else
+                    buf[i-1] = rx_data;
             }
             SPI_PARAM_UNLOCK();
         }

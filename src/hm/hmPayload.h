@@ -33,12 +33,12 @@ typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 
-template<class HMSYSTEM, class HMRADIO>
+template<class HMSYSTEM, class RADIO>
 class HmPayload {
     public:
         HmPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, RADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
             mRadio      = radio;
@@ -460,7 +460,7 @@ class HmPayload {
 
         IApp *mApp;
         HMSYSTEM *mSys;
-        HMRADIO *mRadio;
+        RADIO *mRadio;
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;

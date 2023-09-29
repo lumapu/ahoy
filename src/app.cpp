@@ -151,18 +151,18 @@ void app::loop(void) {
     #if defined(ESP32)
     if (mCmtRadio.loop() && mConfig->cmt.enabled) {
         while (!mCmtRadio.mBufCtrl.empty()) {
-            hmsPacket_t *p = &mCmtRadio.mBufCtrl.front();
+            packet_t *p = &mCmtRadio.mBufCtrl.front();
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
-                DBGPRINT(String(p->data[0]));
+                DBGPRINT(String(p->len));
                 DBGPRINT(F(", "));
                 DBGPRINT(String(p->rssi));
                 DBGPRINT(F("dBm | "));
-                ah::dumpBuf(&p->data[1], p->data[0]);
+                ah::dumpBuf(p->packet, p->len);
             }
             mCmtStat.frmCnt++;
 
-            Inverter<> *iv = mSys.findInverter(&p->data[2]);
+            Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if(NULL != iv) {
                 if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                     mHmsPayload.add(iv, p);
