@@ -82,7 +82,7 @@ class ZeroExport {
                     responseBody = responseBody.substring(index);               // cut it and store it in value
                     index = responseBody.indexOf(",");                          // find the first seperation - Bingo!?
 
-                    mCfg->total_power = responseBody.substring(0, index - 1).toDouble();
+                    mCfg->total_power = responseBody.substring(responseBody.indexOf(":"), index).toDouble();
                 } else if(json.containsKey(F("emeters"))) {
                     mCfg->total_power = (double)json[F("total_power")];
                 } else {

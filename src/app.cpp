@@ -595,7 +595,11 @@ void app::updateLed(void) {
 //-----------------------------------------------------------------------------
 #if defined(ESP32)
 void app::zeroexport() {
-    if (!mConfig->plugin.zexport.enabled) return;   // check if plugin is enabled && indicate to send new value
+    if (!mConfig->plugin.zexport.enabled ||
+    !mSys.getInverterByPos(mConfig->plugin.zexport.Iv)->isProducing()) {   // check if plugin is enabled && indicate to send new value
+        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+        return;
+    }
 
     if (millis() - mConfig->plugin.zexport.lastTime > mConfig->plugin.zexport.count_avg  * 1000UL)
     {
@@ -612,6 +616,11 @@ void app::zeroexport() {
 
         if(mConfig->plugin.zexport.max_power <= nValue)
             nValue = mConfig->plugin.zexport.max_power;
+
+        if(iv->actPowerLimit == nValue) {
+            mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+            return; // if PowerLimit same as befor, then skip
+        }
 
         object["val"] = nValue;
         object["id"] = mConfig->plugin.zexport.Iv;
