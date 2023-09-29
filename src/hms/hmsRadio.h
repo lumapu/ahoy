@@ -111,6 +111,11 @@ class CmtRadio {
             sendPacket(24, isRetransmit);
         }
 
+        void sendCmdPacket(uint64_t ivId, uint8_t mid, uint8_t pid, bool isRetransmit) {
+            initPacket(&ivId, mid, pid);
+            sendPacket(10, isRetransmit);
+        }
+
         void sendPacket(uint8_t len, bool isRetransmit) {
             if (len > 14) {
                 uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);

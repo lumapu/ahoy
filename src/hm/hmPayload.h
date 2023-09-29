@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_PAYLOAD_H__
@@ -15,7 +15,6 @@
 typedef struct {
     uint8_t txCmd;
     uint8_t txId;
-    uint8_t invId;
     uint32_t ts;
     uint8_t data[MAX_PAYLOAD_ENTRIES][MAX_RF_PAYLOAD_SIZE];
     int8_t rssi[MAX_PAYLOAD_ENTRIES];
