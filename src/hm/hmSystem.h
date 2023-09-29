@@ -20,7 +20,7 @@ class HmSystem {
             mNumInv = 0;
         }
 
-        void addInverter(uint8_t id) {
+        void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:addInverter"));
             if(MAX_INVERTER <= mNumInv) {
                 DPRINT(DBG_WARN, F("max number of inverters reached!"));
@@ -89,6 +89,8 @@ class HmSystem {
 
             if((iv->config->serial.b[5] == 0x10) && ((iv->config->serial.b[4] & 0x03) == 0x01))
                 DPRINTLN(DBG_WARN, F("MI Inverter are not fully supported now!!!"));
+
+            cb(iv);
         }
 
         INVERTERTYPE *findInverter(uint8_t buf[]) {
