@@ -50,18 +50,18 @@ class ZeroExport {
         // TODO: Need to improve here. 2048 for a JSON Obj is to big!?
         bool zero()
         {
-            if (!httpClient.begin(mCfg->monitor_url)) {
-                DPRINTLN(DBG_INFO, "httpClient.begin failed");
-                httpClient.end();
-                return false;
-            }
-
             httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
             httpClient.setUserAgent("Ahoy-Agent");
             httpClient.setConnectTimeout(1000);
             httpClient.setTimeout(1000);
             httpClient.addHeader("Content-Type", "application/json");
             httpClient.addHeader("Accept", "application/json");
+
+            if (!httpClient.begin(mCfg->monitor_url)) {
+                DPRINTLN(DBG_INFO, "httpClient.begin failed");
+                httpClient.end();
+                return false;
+            }
 
             int httpCode = httpClient.GET();
             if (httpCode == HTTP_CODE_OK)
@@ -95,6 +95,7 @@ class ZeroExport {
                 DPRINTLN(DBG_INFO, F("ZeroExport(): Error ") + String(httpCode));
                 return false;
             }
+            httpClient.end();
             return true;
         }
 

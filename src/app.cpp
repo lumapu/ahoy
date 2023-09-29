@@ -622,8 +622,8 @@ void app::zeroexport() {
         serializeJsonPretty(object, data);
         DPRINTLN(DBG_INFO, data);
         mApi.ctrlRequest(object);
-    }
 
-    mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+    }
 }
 #endif
