@@ -12,6 +12,8 @@
 #include "hmRadio.h"
 #include <Arduino.h>
 
+#define HMS_TIMEOUT_SEC  30
+
 typedef struct {
     uint8_t txCmd;
     uint8_t txId;

@@ -8,14 +8,10 @@
 
 #include "../utils/dbg.h"
 #include "cmt2300a.h"
-
-#define U32_B3(val) ((uint8_t)((val >> 24) & 0xff))
-#define U32_B2(val) ((uint8_t)((val >> 16) & 0xff))
-#define U32_B1(val) ((uint8_t)((val >>  8) & 0xff))
-#define U32_B0(val) ((uint8_t)((val      ) & 0xff))
+#include "../hm/radio.h"
 
 template<class SPI, uint32_t DTU_SN = 0x81001765>
-class CmtRadio {
+class CmtRadio : public Radio {
     typedef SPI SpiType;
     typedef Cmt2300a<SpiType> CmtType;
     public:
@@ -64,7 +60,7 @@ class CmtRadio {
             return mCmtAvail;
         }
 
-        void sendControlPacket(uint64_t ivId, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(uint64_t ivId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(ivId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -106,7 +102,7 @@ class CmtRadio {
             sendPacket(24, isRetransmit);
         }
 
-        void sendCmdPacket(uint64_t ivId, uint8_t mid, uint8_t pid, bool isRetransmit) {
+        void sendCmdPacket(uint64_t ivId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
             initPacket(ivId, mid, pid);
             sendPacket(10, isRetransmit);
         }

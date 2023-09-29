@@ -3,23 +3,19 @@
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
-#ifndef __RADIO_H__
-#define __RADIO_H__
+#ifndef __HM_RADIO_H__
+#define __HM_RADIO_H__
 
 #include "../utils/dbg.h"
 #include <RF24.h>
 #include "../utils/crc.h"
 #include "../config/config.h"
 #include "SPI.h"
+#include "radio.h"
 
 #define SPI_SPEED           1000000
 
 #define RF_CHANNELS         5
-
-#define TX_REQ_INFO         0x15
-#define TX_REQ_DEVCONTROL   0x51
-#define ALL_FRAMES          0x80
-#define SINGLE_FRAME        0x81
 
 const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 
@@ -28,7 +24,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 // HM Radio class
 //-----------------------------------------------------------------------------
 template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN>
-class HmRadio {
+class HmRadio : public Radio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
             if(mSerialDebug) {
@@ -349,4 +345,4 @@ class HmRadio {
         statistics_t *mStat;
 };
 
-#endif /*__RADIO_H__*/
+#endif /*__HM_RADIO_H__*/

@@ -11,7 +11,7 @@
 #include "../config/config.h"
 #include <Arduino.h>
 
-#define HMS_TIMEOUT_SEC  30 // 30s * 1000
+#define HMS_TIMEOUT_SEC  30
 
 typedef struct {
     uint8_t txCmd;
@@ -103,9 +103,6 @@ class HmsPayload {
         }
 
         void ivSend(Inverter<> *iv, bool highPrio = false) {
-            if ((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) // only process HMS inverters
-                return;
-
             if(!highPrio) {
                 if (mPayload[iv->id].requested) {
                     if (!mPayload[iv->id].complete)
@@ -235,9 +232,6 @@ class HmsPayload {
             for (uint8_t id = 0; id < mSys->getNumInverters(); id++) {
                 Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL == iv)
-                    continue; // skip to next inverter
-
-                if ((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) // only process HMS inverters
                     continue; // skip to next inverter
 
                 if ((mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) && (0 != mPayload[iv->id].txId)) {
