@@ -64,8 +64,10 @@ void app::setup() {
         mSys.addInverter(i, [this](Inverter<> *iv) {
             if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
                 iv->radio = &mNrfRadio;
+            #if defined(ESP32)
             else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 iv->radio = &mCmtRadio;
+            #endif
         });
     }
     if (mConfig->nrf.enabled) {
@@ -116,6 +118,7 @@ void app::setup() {
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     ah::Scheduler::loop();
+    bool processPayload = false;
 
     if (mNrfRadio.loop() && mConfig->nrf.enabled) {
         while (!mNrfRadio.mBufCtrl.empty()) {
@@ -142,7 +145,7 @@ void app::loop(void) {
             mNrfRadio.mBufCtrl.pop();
             yield();
         }
-        mPayload.process(true);
+        processPayload = true;
         mMiPayload.process(true);
     }
     #if defined(ESP32)
@@ -167,9 +170,13 @@ void app::loop(void) {
             mCmtRadio.mBufCtrl.pop();
             yield();
         }
-        mPayload.process(false); //true
+        processPayload = true;
     }
     #endif
+
+    if(processPayload)
+        mPayload.process(true);
+
     mPayload.loop();
     mMiPayload.loop();
 

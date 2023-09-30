@@ -143,7 +143,7 @@ class Inverter {
         uint8_t       channels;          // number of PV channels (1-4)
         record_t<REC_TYP> recordMeas;    // structure for measured values
         record_t<REC_TYP> recordInfo;    // structure for info values
-        record_t<REC_TYP> recordHwInfo;    // structure for simple (hardware) info values
+        record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
         bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
@@ -169,7 +169,6 @@ class Inverter {
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
             initialized        = false;
-            //lastAlarmMsg       = "nothing";
             alarmMesIndex      = 0;
             isConnected        = false;
             status             = InverterStatus::OFF;
@@ -364,9 +363,6 @@ class Inverter {
                 }
                 else if (rec->assign == AlarmDataAssignment) {
                     DPRINTLN(DBG_DEBUG, "add alarm");
-                    //if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
-                    //    lastAlarmMsg = getAlarmStr(rec->record[pos]);
-                    //}
                 }
                 else
                     DPRINTLN(DBG_WARN, F("add with unknown assignment"));
@@ -499,8 +495,8 @@ class Inverter {
         record_t<> *getRecordStruct(uint8_t cmd) {
             switch (cmd) {
                 case RealTimeRunData_Debug:    return &recordMeas;   // 11 = 0x0b
-                case InverterDevInform_Simple: return &recordHwInfo;   //  0 = 0x00
-                case InverterDevInform_All:    return &recordInfo; //  1 = 0x01
+                case InverterDevInform_Simple: return &recordHwInfo; //  0 = 0x00
+                case InverterDevInform_All:    return &recordInfo;   //  1 = 0x01
                 case SystemConfigPara:         return &recordConfig; //  5 = 0x05
                 case AlarmData:                return &recordAlarm;  // 17 = 0x11
                 default:                       break;
