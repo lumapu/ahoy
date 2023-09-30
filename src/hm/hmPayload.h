@@ -43,10 +43,9 @@ class HmPayload {
     public:
         HmPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
-            mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -115,11 +114,11 @@ class HmPayload {
                         if (mSerialDebug)
                             DPRINT_IVID(DBG_INFO, iv->id);
                         if (MAX_PAYLOAD_ENTRIES == mPayload[iv->id].maxPackId) {
-                            mStat->rxFailNoAnser++; // got nothing
+                            iv->radioStatistics.rxFailNoAnser++; // got nothing
                             if (mSerialDebug)
                                 DBGPRINTLN(F("enqueued cmd failed/timeout"));
                         } else {
-                            mStat->rxFail++; // got fragments but not complete response
+                            iv->radioStatistics.rxFail++; // got fragments but not complete response
                             if (mSerialDebug) {
                                 DBGPRINT(F("no complete Payload received! (retransmits: "));
                                 DBGPRINT(String(mPayload[iv->id].retransmits));
@@ -150,7 +149,7 @@ class HmPayload {
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
                 iv->powerLimitAck = false;
-                iv->radio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false);
+                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
                 //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
@@ -159,7 +158,7 @@ class HmPayload {
                 if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen)) {
                     record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                     if(((rec->ts + HMS_TIMEOUT_SEC) < *mTimestamp) && (mIvCmd56Cnt[iv->id] < 3)) {
-                        iv->radio->switchFrequency(iv->radioId.u64, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                        iv->radio->switchFrequency(iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
                         mIvCmd56Cnt[iv->id]++;
                         return;
                     } else if(++mIvCmd56Cnt[iv->id] == 10)
@@ -172,7 +171,7 @@ class HmPayload {
                     DBGPRINT(F("prepareDevInformCmd 0x"));
                     DBGHEXLN(cmd);
                 }
-                iv->radio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
+                iv->radio->prepareDevInformCmd(iv, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
                 mPayload[iv->id].txCmd = cmd;
             }
         }
@@ -263,7 +262,7 @@ class HmPayload {
                                 } else if(iv->devControlCmd == ActivePowerContr) {
                                     DPRINT_IVID(DBG_INFO, iv->id);
                                     DPRINTLN(DBG_INFO, F("retransmit power limit"));
-                                    iv->radio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true);
+                                    iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, true);
                                 } else {
                                     if(false == mPayload[iv->id].gotFragment) {
                                         DPRINT_IVID(DBG_WARN, iv->id);
@@ -274,7 +273,7 @@ class HmPayload {
                                             DBGPRINTLN(F("nothing received: complete retransmit"));
                                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
-                                            iv->radio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
+                                            iv->radio->prepareDevInformCmd(iv, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         }
                                     } else {
                                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId - 1); i++) {
@@ -285,7 +284,7 @@ class HmPayload {
                                                     DBGPRINT(String(i + 1));
                                                     DBGPRINTLN(F(" missing: Request Retransmit"));
                                                 }
-                                                iv->radio->sendCmdPacket(iv->radioId.u64, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                                                iv->radio->sendCmdPacket(iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
                                             }
                                             yield();
@@ -307,7 +306,7 @@ class HmPayload {
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(mPayload[iv->id].txCmd);
                             }
-                            iv->radio->prepareDevInformCmd(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmLastId, true);
+                            iv->radio->prepareDevInformCmd(iv, mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmLastId, true);
                         }
                     } else {  // payload complete
                         if (mSerialDebug) {
@@ -357,7 +356,7 @@ class HmPayload {
                             DPRINTLN(DBG_ERROR, F("record is NULL!"));
                         } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
                             if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
-                                mStat->rxSuccess++;
+                                iv->radioStatistics.rxSuccess++;
 
                             rec->ts = mPayload[iv->id].ts;
                             for (uint8_t i = 0; i < rec->length; i++) {
@@ -387,8 +386,8 @@ class HmPayload {
                                     DBGPRINT(F("prepareDevInformCmd 0x"));
                                     DBGHEXLN(cmd);
                                 }
-                                mStat->rxSuccess++;
-                                iv->radio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
+                                iv->radioStatistics.rxSuccess++;
+                                iv->radio->prepareDevInformCmd(iv, cmd, mPayload[iv->id].ts, iv->alarmLastId, false);
                                 mPayload[iv->id].txCmd = cmd;
                                 */
                                 mHighPrioIv = iv;
@@ -400,7 +399,7 @@ class HmPayload {
                                 DBGPRINT(String(rec->pyldLen));
                                 DBGPRINTLN(F(" bytes"));
                             }
-                            mStat->rxFail++;
+                            iv->radioStatistics.rxFail++;
                         }
 
                         iv->setQueuedCmdFinished();
@@ -473,7 +472,6 @@ class HmPayload {
 
         IApp *mApp;
         HMSYSTEM *mSys;
-        statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;
         invPayload_t mPayload[MAX_NUM_INVERTERS];

@@ -54,10 +54,9 @@ class HmRadio : public Radio {
         }
         ~HmRadio() {}
 
-        void setup(statistics_t *stat, uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
-            mStat = stat;
 
             uint32_t dtuSn = 0x87654321;
             uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
@@ -165,10 +164,10 @@ class HmRadio : public Radio {
             mSerialDebug = true;
         }
 
-        void sendControlPacket(uint64_t invId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
-            initPacket(invId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
+            initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
             if (isNoMI) {
                 mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
@@ -212,15 +211,15 @@ class HmRadio : public Radio {
                 }
                 cnt++;
             }
-            sendPacket(invId, cnt, isRetransmit, isNoMI);
+            sendPacket(iv, cnt, isRetransmit, isNoMI);
         }
 
-        void prepareDevInformCmd(uint64_t invId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             if(mSerialDebug) {
                 DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
             }
-            initPacket(invId, reqfld, ALL_FRAMES);
+            initPacket(iv->radioId.u64, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd; // cid
             mTxBuf[11] = 0x00;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
@@ -228,12 +227,12 @@ class HmRadio : public Radio {
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(invId, 24, isRetransmit);
+            sendPacket(iv, 24, isRetransmit);
         }
 
-        void sendCmdPacket(uint64_t invId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
-            initPacket(invId, mid, pid);
-            sendPacket(invId, 10, isRetransmit, appendCrc16);
+        void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
+            initPacket(iv->radioId.u64, mid, pid);
+            sendPacket(iv, 10, isRetransmit, appendCrc16);
         }
 
         uint8_t getDataRate(void) {
@@ -293,9 +292,9 @@ class HmRadio : public Radio {
             mTxBuf[9]  = pid;
         }
 
-        void sendPacket(uint64_t invId, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
-            //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(mStat->txCnt));
+            //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(iv->radioStatistics.txCnt));
 
             // append crc's
             if (appendCrc16 && (len > 10)) {
@@ -323,13 +322,13 @@ class HmRadio : public Radio {
 
             mNrf24.stopListening();
             mNrf24.setChannel(mRfChLst[mTxChIdx]);
-            mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&invId));
+            mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
 
             if(isRetransmit)
-                mStat->retransmits++;
+                iv->radioStatistics.retransmits++;
             else
-                mStat->txCnt++;
+                iv->radioStatistics.txCnt++;
         }
 
         volatile bool mIrqRcvd;
@@ -342,7 +341,6 @@ class HmRadio : public Radio {
         SPIClass* mSpi;
         RF24 mNrf24;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
-        statistics_t *mStat;
 };
 
 #endif /*__HM_RADIO_H__*/

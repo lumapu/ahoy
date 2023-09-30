@@ -42,7 +42,7 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef HmPayload<HmSystemType> PayloadType;
-typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
+typedef MiPayload<HmSystemType> MiPayloadType;
 #ifdef ESP32
 typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 #endif

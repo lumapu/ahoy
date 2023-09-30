@@ -25,10 +25,6 @@
  * automatically. Their result does not differ from original read values.
  */
 
-// forward declaration of class
-template <class REC_TYP=float>
-class Inverter;
-
 
 // prototypes
 template<class T=float>
@@ -155,6 +151,7 @@ class Inverter {
         uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // RSSI
         Radio         *radio;            // pointer to associated radio class
+        statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
 
 
         static uint32_t *timestamp;      // system timestamp

@@ -20,9 +20,8 @@ class CmtRadio : public Radio {
             mCmtAvail = false;
         }
 
-        void setup(statistics_t *stat, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+        void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
             mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
-            mStat = stat;
             reset(genDtuSn);
         }
 
@@ -60,10 +59,10 @@ class CmtRadio : public Radio {
             return mCmtAvail;
         }
 
-        void sendControlPacket(uint64_t ivId, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
-            initPacket(ivId, TX_REQ_DEVCONTROL, SINGLE_FRAME);
+            initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
 
             mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
@@ -75,10 +74,10 @@ class CmtRadio : public Radio {
                 mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
             }
 
-            sendPacket(cnt, isRetransmit);
+            sendPacket(iv, cnt, isRetransmit);
         }
 
-        bool switchFrequency(uint64_t ivId, uint32_t fromkHz, uint32_t tokHz) {
+        bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) {
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
 
@@ -86,28 +85,28 @@ class CmtRadio : public Radio {
                 return false;
 
             mCmt.switchChannel(fromCh);
-            sendSwitchChCmd(ivId, toCh);
+            sendSwitchChCmd(iv, toCh);
             mCmt.switchChannel(toCh);
             return true;
         }
 
-        void prepareDevInformCmd(uint64_t ivId, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
-            initPacket(ivId, reqfld, ALL_FRAMES);
+        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+            initPacket(iv->radioId.u64, reqfld, ALL_FRAMES);
             mTxBuf[10] = cmd;
             CP_U32_LittleEndian(&mTxBuf[12], ts);
             if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
                 mTxBuf[18] = (alarmMesId >> 8) & 0xff;
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
-            sendPacket(24, isRetransmit);
+            sendPacket(iv, 24, isRetransmit);
         }
 
-        void sendCmdPacket(uint64_t ivId, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
-            initPacket(ivId, mid, pid);
-            sendPacket(10, isRetransmit);
+        void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
+            initPacket(iv->radioId.u64, mid, pid);
+            sendPacket(iv, 10, isRetransmit);
         }
 
-        void sendPacket(uint8_t len, bool isRetransmit) {
+        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit) {
             if (len > 14) {
                 uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
                 mTxBuf[len++] = (crc >> 8) & 0xff;
@@ -132,9 +131,9 @@ class CmtRadio : public Radio {
             }
 
             if(isRetransmit)
-                mStat->retransmits++;
+                iv->radioStatistics.retransmits++;
             else
-                mStat->txCnt++;
+                iv->radioStatistics.txCnt++;
         }
 
         std::queue<packet_t> mBufCtrl;
@@ -156,7 +155,7 @@ class CmtRadio : public Radio {
             mRqstGetRx      = false;
         }
 
-        inline void sendSwitchChCmd(uint64_t ivId, uint8_t ch) {
+        inline void sendSwitchChCmd(Inverter<> *iv, uint8_t ch) {
             /** ch:
              * 0x00: 860.00 MHz
              * 0x01: 860.25 MHz
@@ -166,12 +165,12 @@ class CmtRadio : public Radio {
              * ...
              * 0x28: 870.00 MHz
              * */
-            initPacket(ivId, 0x56, 0x02);
+            initPacket(iv->radioId.u64, 0x56, 0x02);
             mTxBuf[10] = 0x15;
             mTxBuf[11] = 0x21;
             mTxBuf[12] = ch;
             mTxBuf[13] = 0x14;
-            sendPacket(14, false);
+            sendPacket(iv, 14, false);
             mRqstGetRx = true;
         }
 
@@ -210,7 +209,6 @@ class CmtRadio : public Radio {
         bool mIrqRcvd;
         bool mRqstGetRx;
         bool mCmtAvail;
-        statistics_t *mStat;
 };
 
 #endif /*__HMS_RADIO_H__*/

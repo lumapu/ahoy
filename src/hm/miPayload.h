@@ -5,8 +5,6 @@
 
 #ifndef __MI_PAYLOAD_H__
 #define __MI_PAYLOAD_H__
-
-//#include "hmInverter.h"
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 #include "../config/config.h"
@@ -35,16 +33,14 @@ typedef struct {
 typedef std::function<void(uint8_t, Inverter<> *)> miPayloadListenerType;
 
 
-template<class HMSYSTEM, class HMRADIO>
+template<class HMSYSTEM>
 class MiPayload {
     public:
         MiPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
-            mRadio      = radio;
-            mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -89,11 +85,11 @@ class MiPayload {
                         if (mSerialDebug)
                             DPRINT_IVID(DBG_INFO, iv->id);
                         if (!mPayload[iv->id].gotFragment) {
-                            mStat->rxFailNoAnser++; // got nothing
+                            iv->radioStatistics.rxFailNoAnser++; // got nothing
                             if (mSerialDebug)
                                 DBGPRINTLN(F("enqueued cmd failed/timeout"));
                         } else {
-                            mStat->rxFail++;        // got "fragments" (part of the required messages)
+                            iv->radioStatistics.rxFail++;        // got "fragments" (part of the required messages)
                                                     // but no complete set of responses
                             if (mSerialDebug) {
                                 DBGPRINT(F("no complete Payload received! (retransmits: "));
@@ -127,7 +123,7 @@ class MiPayload {
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
                 iv->powerLimitAck = false;
-                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, false, false, iv->type == INV_TYPE_4CH);
+                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, false, false, iv->type == INV_TYPE_4CH);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 mPayload[iv->id].limitrequested = true;
 
@@ -153,7 +149,7 @@ class MiPayload {
                     DBGPRINT(F("prepareDevInformCmd 0x"));
                     DBGHEXLN(cmd);
                 }
-                mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd2, false, false);
+                iv->radio->sendCmdPacket(iv, cmd, cmd2, false, false);
 
                 mPayload[iv->id].txCmd = cmd;
                 if (iv->type == INV_TYPE_1CH || iv->type == INV_TYPE_2CH) {
@@ -262,7 +258,7 @@ class MiPayload {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
                 } else if ((rec->pyldLen == payloadLen) || (0 == rec->pyldLen)) {
                     if (mPayload[iv->id].txId == (TX_REQ_INFO + ALL_FRAMES))
-                        mStat->rxSuccess++;
+                        iv->radioStatistics.rxSuccess++;
 
                     rec->ts = mPayload[iv->id].ts;
                     for (uint8_t i = 0; i < rec->length; i++) {
@@ -284,7 +280,7 @@ class MiPayload {
                     }
                 } else {
                     DPRINTLN(DBG_ERROR, F("plausibility check failed, expected ") + String(rec->pyldLen) + F(" bytes"));
-                    mStat->rxFail++;
+                    iv->radioStatistics.rxFail++;
                 }
 
                 iv->setQueuedCmdFinished();
@@ -330,7 +326,7 @@ class MiPayload {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINT_IVID(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("retransmit power limit"));
-                                mRadio->sendControlPacket(iv->radioId.u64, iv->devControlCmd, iv->powerLimit, true, false);
+                                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, true, false);
                             } else {
                                 uint8_t cmd = mPayload[iv->id].txCmd;
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -343,10 +339,10 @@ class MiPayload {
                                         DPRINT_IVID(DBG_INFO, iv->id);
                                         DBGPRINTLN(F("retransmit on failed first request"));
                                         mPayload[iv->id].rxTmo = true;
-                                        mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        iv->radio->sendCmdPacket(iv, cmd, cmd, true, false);
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mRadio->sendCmdPacket(iv->radioId.u64, 0x0f, 0x00, true, false);
+                                        iv->radio->sendCmdPacket(iv, 0x0f, 0x00, true, false);
                                         mPayload[id].multi_parts = 0;
                                     } else {
                                         bool change = false;
@@ -384,7 +380,7 @@ class MiPayload {
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
                                         mPayload[id].multi_parts = 0;
-                                        mRadio->sendCmdPacket(iv->radioId.u64, cmd, cmd, true, false);
+                                        iv->radio->sendCmdPacket(iv, cmd, cmd, true, false);
                                         yield();
                                     }
                                 } else {
@@ -404,7 +400,7 @@ class MiPayload {
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(mPayload[iv->id].txCmd);
                             }
-                            mRadio->sendCmdPacket(iv->radioId.u64, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
+                            iv->radio->sendCmdPacket(iv, mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         } else {
                             mPayload[iv->id].rxTmo = true;
                         }
@@ -420,9 +416,9 @@ class MiPayload {
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(cmd);
                             }
-                            mStat->rxSuccess++;
-                            //mRadio->prepareDevInformCmd(iv->radioId.u64, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
-                            mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getType(),
+                            iv->radioStatistics.rxSuccess++;
+                            //iv->radio->prepareDevInformCmd(iv, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
+                            iv->radio->prepareDevInformCmd(iv, iv->getType(),
                                 iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                             mPayload[iv->id].txCmd = cmd; */
                             if (mHighPrioIv == NULL)
@@ -600,7 +596,7 @@ class MiPayload {
             iv->isProducing();
 
             iv->setQueuedCmdFinished();
-            mStat->rxSuccess++;
+            iv->radioStatistics.rxSuccess++;
             yield();
             notify(RealTimeRunData_Debug, iv);
         }
@@ -756,7 +752,7 @@ const byteAssign_t InfoAssignment[] = {
                 mPayload[iv->id].complete = true;
                 mPayload[iv->id].rxTmo    = true;
                 mPayload[iv->id].requested= false;
-                mStat->rxSuccess++;
+                iv->radioStatistics.rxSuccess++;
             }
         }
 
@@ -789,8 +785,6 @@ const byteAssign_t InfoAssignment[] = {
 
         IApp *mApp;
         HMSYSTEM *mSys;
-        HMRADIO *mRadio;
-        statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;
         miPayload_t mPayload[MAX_NUM_INVERTERS];
