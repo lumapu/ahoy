@@ -172,6 +172,15 @@ function getAjax(url, ptr, method="GET", json=null) {
  * CREATE DOM FUNCTIONS
  */
 
+function tr(val1, val2) {
+    if(typeof val2 == "number")
+        val2 = String(val2);
+    return ml("tr", {}, [
+        ml("th", {style: "width: 50%"}, val1),
+        ml("td", {}, val2)
+    ]);
+}
+
 function des(val) {
     e = document.createElement('p');
     e.classList.add("subdes");

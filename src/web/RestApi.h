@@ -107,6 +107,8 @@ class RestApi {
                     getIvAlarms(root, request->url().substring(20).toInt());
                 else if(path.substring(0, 17) == "inverter/version/")
                     getIvVersion(root, request->url().substring(22).toInt());
+                else if(path.substring(0, 17) == "inverter/radiostat/")
+                    getIvStatistis(root, request->url().substring(24).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -245,7 +247,6 @@ class RestApi {
             getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
             #endif
             getMqttInfo(obj.createNestedObject(F("mqtt")));
-            getStatistics(obj.createNestedArray(F("statistics")));
 
         #if defined(ESP32)
             obj[F("chip_revision")] = ESP.getChipRevision();
@@ -310,23 +311,18 @@ class RestApi {
             obj[F("html")] = F("reboot. Autoreload after 10 seconds");
         }
 
-        void getStatistics(JsonArray arr) {
-            statistics_t *stat;
-            #if defined(ESP32)
-            for(uint8_t i = 0; i < 2; i++) {
-                stat = (0 == i) ? mApp->getNrfStatistics() : mApp->getCmtStatistics();
-            #else
-            {
-                stat = mApp->getNrfStatistics();
-            #endif
-                JsonObject obj = arr.createNestedObject();
-                obj[F("rx_success")]     = stat->rxSuccess;
-                obj[F("rx_fail")]        = stat->rxFail;
-                obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
-                obj[F("frame_cnt")]      = stat->frmCnt;
-                obj[F("tx_cnt")]         = stat->txCnt;
-                obj[F("retransmits")]    = stat->retransmits;
+        void getIvStatistis(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
             }
+            obj[F("rx_success")]     = iv->radioStatistics.rxSuccess;
+            obj[F("rx_fail")]        = iv->radioStatistics.rxFail;
+            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnser;
+            obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
+            obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
+            obj[F("retransmits")]    = iv->radioStatistics.retransmits;
         }
 
         void getInverterList(JsonObject obj) {
