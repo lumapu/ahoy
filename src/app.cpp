@@ -191,10 +191,6 @@ void app::onNetwork(bool gotIp) {
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
-    #if defined(ESP32)
-    if(mConfig->cmt.enabled)
-        everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
-    #endif
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");

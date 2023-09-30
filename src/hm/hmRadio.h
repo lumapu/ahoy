@@ -6,10 +6,7 @@
 #ifndef __HM_RADIO_H__
 #define __HM_RADIO_H__
 
-#include "../utils/dbg.h"
 #include <RF24.h>
-#include "../utils/crc.h"
-#include "../config/config.h"
 #include "SPI.h"
 #include "radio.h"
 
@@ -137,16 +134,9 @@ class HmRadio : public Radio {
             return true;
         }
 
-        void handleIntr(void) {
-            mIrqRcvd = true;
-        }
-
         bool isChipConnected(void) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:isChipConnected"));
             return mNrf24.isChipConnected();
-        }
-        void enableDebug() {
-            mSerialDebug = true;
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
@@ -199,27 +189,6 @@ class HmRadio : public Radio {
             sendPacket(iv, cnt, isRetransmit, isNoMI);
         }
 
-        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
-            if(mSerialDebug) {
-                DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
-                DPRINTLN(DBG_DEBUG,String(cmd, HEX));
-            }
-            initPacket(iv->radioId.u64, reqfld, ALL_FRAMES);
-            mTxBuf[10] = cmd; // cid
-            mTxBuf[11] = 0x00;
-            CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
-                mTxBuf[18] = (alarmMesId >> 8) & 0xff;
-                mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }
-            sendPacket(iv, 24, isRetransmit);
-        }
-
-        void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
-            initPacket(iv->radioId.u64, mid, pid);
-            sendPacket(iv, 10, isRetransmit, appendCrc16);
-        }
-
         uint8_t getDataRate(void) {
             if(!mNrf24.isChipConnected())
                 return 3; // unknown
@@ -231,7 +200,6 @@ class HmRadio : public Radio {
         }
 
         std::queue<packet_t> mBufCtrl;
-        bool mSerialDebug;
 
     private:
             bool getReceived(void) {
@@ -264,19 +232,7 @@ class HmRadio : public Radio {
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
-            //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(iv->radioStatistics.txCnt));
-
-            // append crc's
-            if (appendCrc16 && (len > 10)) {
-                // crc control data
-                uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
-                mTxBuf[len++] = (crc >> 8) & 0xff;
-                mTxBuf[len++] = (crc     ) & 0xff;
-            }
-            // crc over all
-            mTxBuf[len] = ah::crc8(mTxBuf, len);
-            len++;
+            updateCrcs(len, appendCrc16);
 
             // set TX and RX channels
             mTxChIdx = (mTxChIdx + 1) % RF_CHANNELS;
@@ -302,7 +258,9 @@ class HmRadio : public Radio {
                 iv->radioStatistics.txCnt++;
         }
 
-        volatile bool mIrqRcvd;
+        uint64_t getIvId(Inverter<> *iv) {
+            return iv->radioId.u64;
+        }
 
         uint8_t mRfChLst[RF_CHANNELS];
         uint8_t mTxChIdx;

@@ -6,7 +6,6 @@
 #ifndef __HMS_RADIO_H__
 #define __HMS_RADIO_H__
 
-#include "../utils/dbg.h"
 #include "cmt2300a.h"
 #include "../hm/radio.h"
 
@@ -44,17 +43,6 @@ class CmtRadio : public Radio {
                 return false;
         }
 
-        void tickSecond() {
-        }
-
-        void handleIntr(void) {
-            mIrqRcvd = true;
-        }
-
-        void enableDebug() {
-            mSerialDebug = true;
-        }
-
         bool isConnected() {
             return mCmtAvail;
         }
@@ -90,30 +78,11 @@ class CmtRadio : public Radio {
             return true;
         }
 
-        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
-            initPacket(iv->radioId.u64, reqfld, ALL_FRAMES);
-            mTxBuf[10] = cmd;
-            CP_U32_LittleEndian(&mTxBuf[12], ts);
-            if (cmd == AlarmData ) { //cmd == RealTimeRunData_Debug ||
-                mTxBuf[18] = (alarmMesId >> 8) & 0xff;
-                mTxBuf[19] = (alarmMesId     ) & 0xff;
-            }
-            sendPacket(iv, 24, isRetransmit);
-        }
+        std::queue<packet_t> mBufCtrl;
 
-        void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
-            initPacket(iv->radioId.u64, mid, pid);
-            sendPacket(iv, 10, isRetransmit);
-        }
-
-        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit) {
-            if (len > 14) {
-                uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
-                mTxBuf[len++] = (crc >> 8) & 0xff;
-                mTxBuf[len++] = (crc     ) & 0xff;
-            }
-            mTxBuf[len] = ah::crc8(mTxBuf, len);
-            len++;
+    private:
+        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+            updateCrcs(len, appendCrc16);
 
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));
@@ -136,9 +105,10 @@ class CmtRadio : public Radio {
                 iv->radioStatistics.txCnt++;
         }
 
-        std::queue<packet_t> mBufCtrl;
+        uint64_t getIvId(Inverter<> *iv) {
+            return iv->radioId.u64;
+        }
 
-    private:
         inline void reset(bool genDtuSn) {
             if(genDtuSn)
                 generateDtuSn();
@@ -182,8 +152,6 @@ class CmtRadio : public Radio {
         }
 
         CmtType mCmt;
-        bool mSerialDebug;
-        bool mIrqRcvd;
         bool mRqstGetRx;
         bool mCmtAvail;
 };
