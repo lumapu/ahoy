@@ -23,7 +23,7 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN>
+template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN, uint32_t DTU_SN = 0x81001765>
 class HmRadio : public Radio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
@@ -36,6 +36,7 @@ class HmRadio : public Radio {
                 DBGPRINT(String(SPI_SPEED));
                 DBGPRINTLN(F(")"));
             }
+            mDtuSn = DTU_SN;
 
             // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
             // Channel List      2403, 2423, 2440, 2461, 2475MHz
@@ -58,23 +59,7 @@ class HmRadio : public Radio {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
 
-            uint32_t dtuSn = 0x87654321;
-            uint32_t chipID = 0; // will be filled with last 3 bytes of MAC
-            #ifdef ESP32
-            uint64_t MAC = ESP.getEfuseMac();
-            chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
-            #else
-            chipID = ESP.getChipId();
-            #endif
-            if(chipID) {
-                dtuSn = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
-                for(int i = 0; i < 7; i++) {
-                    dtuSn |= (chipID % 10) << (i * 4);
-                    chipID /= 10;
-                }
-            }
-            // change the byte order of the DTU serial number and append the required 0x01 at the end
-            DTU_RADIO_ID = ((uint64_t)(((dtuSn >> 24) & 0xFF) | ((dtuSn >> 8) & 0xFF00) | ((dtuSn << 8) & 0xFF0000) | ((dtuSn << 24) & 0xFF000000)) << 8) | 0x01;
+            generateDtuSn();
 
             #ifdef ESP32
                 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
@@ -99,7 +84,7 @@ class HmRadio : public Radio {
             mNrf24.enableDynamicPayloads();
             mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.setAddressWidth(5);
-            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
+            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&mDtuSn));
 
             // enable all receiving interrupts
             mNrf24.maskIRQ(false, false, false);
@@ -112,7 +97,7 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
                 mNrf24.printPrettyDetails();
                 DPRINT(DBG_INFO, F("DTU_SN: 0x"));
-                DBGPRINTLN(String(DTU_RADIO_ID, HEX));
+                DBGPRINTLN(String(mDtuSn, HEX));
             } else
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
@@ -278,20 +263,6 @@ class HmRadio : public Radio {
             return isLastPackage;
         }
 
-        void initPacket(uint64_t invId, uint8_t mid, uint8_t pid) {
-            if(mSerialDebug) {
-                DPRINT(DBG_VERBOSE, F("initPacket, mid: "));
-                DPRINT(DBG_VERBOSE, String(mid, HEX));
-                DPRINT(DBG_VERBOSE,F(" pid: "));
-                DPRINTLN(DBG_VERBOSE,String(pid, HEX));
-            }
-            memset(mTxBuf, 0, MAX_RF_PAYLOAD_SIZE);
-            mTxBuf[0] = mid; // message id
-            CP_U32_BigEndian(&mTxBuf[1], (invId  >> 8));
-            CP_U32_BigEndian(&mTxBuf[5], (DTU_RADIO_ID >> 8));
-            mTxBuf[9]  = pid;
-        }
-
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:sendPacket"));
             //DPRINTLN(DBG_VERBOSE, "sent packet: #" + String(iv->radioStatistics.txCnt));
@@ -332,7 +303,6 @@ class HmRadio : public Radio {
         }
 
         volatile bool mIrqRcvd;
-        uint64_t DTU_RADIO_ID;
 
         uint8_t mRfChLst[RF_CHANNELS];
         uint8_t mTxChIdx;
@@ -340,7 +310,6 @@ class HmRadio : public Radio {
 
         SPIClass* mSpi;
         RF24 mNrf24;
-        uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 };
 
 #endif /*__HM_RADIO_H__*/

@@ -174,27 +174,6 @@ class CmtRadio : public Radio {
             mRqstGetRx = true;
         }
 
-        void initPacket(uint64_t ivId, uint8_t mid, uint8_t pid) {
-            mTxBuf[0] = mid;
-            CP_U32_BigEndian(&mTxBuf[1], ivId >> 8);
-            CP_U32_LittleEndian(&mTxBuf[5], mDtuSn);
-            mTxBuf[9] = pid;
-            memset(&mTxBuf[10], 0x00, 17);
-        }
-
-        inline void generateDtuSn(void) {
-            uint32_t chipID = 0;
-            #ifdef ESP32
-            uint64_t MAC = ESP.getEfuseMac();
-            chipID = ((MAC >> 8) & 0xFF0000) | ((MAC >> 24) & 0xFF00) | ((MAC >> 40) & 0xFF);
-            #endif
-            mDtuSn = 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
-            for(int i = 0; i < 7; i++) {
-                mDtuSn |= (chipID % 10) << (i * 4);
-                chipID /= 10;
-            }
-        }
-
         inline void getRx(void) {
             packet_t p;
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
@@ -203,8 +182,6 @@ class CmtRadio : public Radio {
         }
 
         CmtType mCmt;
-        uint32_t mDtuSn;
-        uint8_t mTxBuf[27];
         bool mSerialDebug;
         bool mIrqRcvd;
         bool mRqstGetRx;
