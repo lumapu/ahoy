@@ -183,8 +183,8 @@ class Web {
             mUploadFp.write(data, len);
             if (final) {
                 mUploadFp.close();
-                char pwd[PWD_LEN];
                 #if !defined(ETHERNET)
+                char pwd[PWD_LEN];
                 strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
                 #endif
                 if (!mApp->readSettings("/tmp.json")) {
