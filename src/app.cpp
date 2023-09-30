@@ -120,7 +120,6 @@ void app::loop(void) {
     if (mNrfRadio.loop() && mConfig->nrf.enabled) {
         while (!mNrfRadio.mBufCtrl.empty()) {
             packet_t *p = &mNrfRadio.mBufCtrl.front();
-
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->len));
@@ -135,10 +134,10 @@ void app::loop(void) {
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
-                if (IV_HM == iv->ivGen)
-                    mPayload.add(iv, p);
-                else
+                if (IV_MI == iv->ivGen)
                     mMiPayload.add(iv, p);
+                else
+                    mPayload.add(iv, p);
             }
             mNrfRadio.mBufCtrl.pop();
             yield();

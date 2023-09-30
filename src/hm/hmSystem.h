@@ -69,10 +69,13 @@ class HmSystem {
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
                 return;
-            }
+            } else
+                iv->ivGen = IV_UNKNOWN;
 
             iv->init();
             mNumInv ++;
+            if(IV_UNKNOWN == iv->ivGen)
+                return; // serial is 0
 
             DPRINT(DBG_INFO, "added inverter ");
             if(iv->config->serial.b[5] == 0x11) {
