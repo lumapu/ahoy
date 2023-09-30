@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.61 - 2023-10-01
+* merged `hmPayload` and `hmsPayload` into single class
+* merged generic radio functions into new parent class `radio.h`
+* moved radio statistics into the inverter - each inverter has now seperate statistics which can be accessed by click on the footer in `/live`
+
 ## 0.7.60 - 2023-09-27
 * fixed typos in changelog #1172
 * fixed MqTT manual clientId storage #1174
