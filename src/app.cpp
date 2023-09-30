@@ -70,11 +70,11 @@ void app::setup() {
             #endif
         });
     }
-    if (mConfig->nrf.enabled) {
-        mPayload.setup(this, &mSys, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-        mPayload.enableSerialDebug(mConfig->serial.debug);
-        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
 
+    mPayload.setup(this, &mSys, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.enableSerialDebug(mConfig->serial.debug);
+    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    if (mConfig->nrf.enabled) {
         mMiPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
@@ -431,12 +431,10 @@ void app::tickSend(void) {
 
         if (NULL != iv) {
             if (iv->config->enabled) {
-                if(mConfig->nrf.enabled) {
-                    if(iv->ivGen == IV_MI)
-                        mMiPayload.ivSend(iv);
-                    else
-                        mPayload.ivSend(iv);
-                }
+                if((iv->ivGen == IV_MI) && mConfig->nrf.enabled)
+                    mMiPayload.ivSend(iv);
+                else
+                    mPayload.ivSend(iv);
             }
         }
     } else {
