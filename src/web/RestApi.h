@@ -107,7 +107,7 @@ class RestApi {
                     getIvAlarms(root, request->url().substring(20).toInt());
                 else if(path.substring(0, 17) == "inverter/version/")
                     getIvVersion(root, request->url().substring(22).toInt());
-                else if(path.substring(0, 17) == "inverter/radiostat/")
+                else if(path.substring(0, 19) == "inverter/radiostat/")
                     getIvStatistis(root, request->url().substring(24).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
@@ -317,6 +317,7 @@ class RestApi {
                 obj[F("error")] = F("inverter not found!");
                 return;
             }
+            obj[F("name")]           = String(iv->config->name);
             obj[F("rx_success")]     = iv->radioStatistics.rxSuccess;
             obj[F("rx_fail")]        = iv->radioStatistics.rxFail;
             obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnser;

@@ -177,20 +177,20 @@
                 ]);
             }
 
-            function tsInfo(ts, gen, rssi) {
+            function tsInfo(obj) {
                 var ageInfo = "Last received data requested at: ";
-                if(ts > 0) {
-                    var date = new Date(ts * 1000);
+                if(obj.ts_last_success > 0) {
+                    var date = new Date(obj.ts_last_success * 1000);
                     ageInfo += toIsoDateStr(date);
                 }
                 else
                     ageInfo += "nothing received";
 
-                if(rssi > -127) {
-                    if(gen < 2)
-                        ageInfo += " (RSSI: " + ((rssi == -64) ? ">=" : "<") + " -64dBm)";
+                if(obj.rssi > -127) {
+                    if(obj.generation < 2)
+                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? ">=" : "<") + " -64dBm)";
                     else
-                        ageInfo += " (RSSI: " + rssi + "dBm)";
+                        ageInfo += " (RSSI: " + obj.rssi + "dBm)";
                 }
 
                 return ml("div", {class: "mb-5"}, [
@@ -220,7 +220,7 @@
                     ml("div", {}, [
                         ivHead(obj),
                         ml("div", {class: "row mb-2"}, chn),
-                        tsInfo(obj.ts_last_success, obj.generation, obj.rssi)
+                        tsInfo(obj)
                     ])
                 );
 
@@ -302,7 +302,7 @@
                         tr("TX retransmits", obj.retransmits)
                     ])
                 ]);
-                modal("Info for inverter " + obj.name, ml("div", {}, html));
+                modal("Radio statistics for inverter " + obj.name, ml("div", {}, html));
             }
 
             function parse(obj) {

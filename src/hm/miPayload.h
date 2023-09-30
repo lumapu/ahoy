@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2023 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __MI_PAYLOAD_H__
@@ -49,7 +49,7 @@ class MiPayload {
             }
             mSerialDebug  = false;
             mHighPrioIv   = NULL;
-            mCbMiPayload  = NULL;
+            mCbPayload  = NULL;
         }
 
         void enableSerialDebug(bool enable) {
@@ -57,7 +57,7 @@ class MiPayload {
         }
 
         void addPayloadListener(miPayloadListenerType cb) {
-            mCbMiPayload = cb;
+            mCbPayload = cb;
         }
 
         void addAlarmListener(alarmListenerType cb) {
@@ -108,7 +108,7 @@ class MiPayload {
             mPayload[iv->id].requested = true;
 
             yield();
-            if (mSerialDebug){
+            if (mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("Requesting Inv SN "));
                 DBGPRINTLN(String(iv->config->serial.u64, HEX));
@@ -434,8 +434,8 @@ class MiPayload {
 
     private:
         void notify(uint8_t val, Inverter<> *iv) {
-            if(NULL != mCbMiPayload)
-                (mCbMiPayload)(val, iv);
+            if(NULL != mCbPayload)
+                (mCbPayload)(val, iv);
         }
 
         void miStsDecode(Inverter<> *iv, packet_t *p, uint8_t stschan = CH1) {
@@ -506,14 +506,11 @@ class MiPayload {
             }
             /*if(AlarmData == mPayload[iv->id].txCmd) {
                                 uint8_t i = 0;
-                                uint16_t code;
-                                uint32_t start, end;
                                 while(1) {
-                                    code = iv->parseAlarmLog(i++, payload, payloadLen, &start, &end);
-                                    if(0 == code)
+                                    if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
                                         break;
                                     if (NULL != mCbAlarm)
-                                        (mCbAlarm)(code, start, end);
+                                        (mCbAlarm)(iv);
                                     yield();
                                 }
                             }*/
@@ -789,10 +786,10 @@ const byteAssign_t InfoAssignment[] = {
         uint32_t *mTimestamp;
         miPayload_t mPayload[MAX_NUM_INVERTERS];
         bool mSerialDebug;
-
         Inverter<> *mHighPrioIv;
+
         alarmListenerType mCbAlarm;
-        payloadListenerType mCbMiPayload;
+        payloadListenerType mCbPayload;
 };
 
 #endif /*__MI_PAYLOAD_H__*/

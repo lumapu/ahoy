@@ -72,7 +72,7 @@ class HmPayload {
 
         void loop() {
             if (NULL != mHighPrioIv) {
-                ivSend(mHighPrioIv, true);
+                ivSend(mHighPrioIv, true); // for e.g. devcontrol commands
                 mHighPrioIv = NULL;
             }
         }
@@ -144,7 +144,7 @@ class HmPayload {
                 if (mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINT(F("Devcontrol request 0x"));
-                    DBGPRINT(String(iv->devControlCmd, HEX));
+                    DHEX(iv->devControlCmd);
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
@@ -301,7 +301,8 @@ class HmPayload {
                             mPayload[iv->id].retransmits++;
                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                             if (mSerialDebug) {
-                                DPRINTLN(DBG_WARN, F("CRC Error: Request Complete Retransmit"));
+                                DPRINT_IVID(DBG_WARN, iv->id);
+                                DBGPRINTLN(F("CRC Error: Request Complete Retransmit"));
                                 DPRINT_IVID(DBG_INFO, iv->id);
                                 DBGPRINT(F("prepareDevInformCmd 0x"));
                                 DBGHEXLN(mPayload[iv->id].txCmd);
