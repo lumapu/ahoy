@@ -20,21 +20,21 @@ static Timezone gTimezone(CEST, CET);
 
 #define CHECK_MASK(a,b) ((a & b) == b)
 
-#define CP_U32_LittleEndian(buf, v) ({ \
+#define CP_U32_LittleEndian(buf, v) do { \
     uint8_t *b = buf; \
     b[0] = ((v >> 24) & 0xff); \
     b[1] = ((v >> 16) & 0xff); \
     b[2] = ((v >>  8) & 0xff); \
     b[3] = ((v      ) & 0xff); \
-})
+} while (0)
 
-#define CP_U32_BigEndian(buf, v) ({ \
+#define CP_U32_BigEndian(buf, v) do { \
     uint8_t *b = buf; \
     b[3] = ((v >> 24) & 0xff); \
     b[2] = ((v >> 16) & 0xff); \
     b[1] = ((v >>  8) & 0xff); \
     b[0] = ((v      ) & 0xff); \
-})
+} while (0)
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr);
