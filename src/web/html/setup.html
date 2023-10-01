@@ -683,7 +683,7 @@
                 if(!obj["pwd_set"])
                     e.value = "";
                 var d = document.getElementById("prot_mask");
-                var a = ["Index", "Live", "Serial / Console", "Settings", "Update", "System"];
+                var a = ["Index", "Live", "Webserial", "Settings", "Update", "System"];
                 var el = [];
                 for(var i = 0; i < 6; i++) {
                     var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));

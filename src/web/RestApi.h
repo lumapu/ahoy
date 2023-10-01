@@ -105,6 +105,8 @@ class RestApi {
                     getIvVersion(root, request->url().substring(22).toInt());
                 else if(path.substring(0, 19) == "inverter/radiostat/")
                     getIvStatistis(root, request->url().substring(24).toInt());
+                else if(path.substring(0, 16) == "inverter/pwrack/")
+                    getIvPowerLimitAck(root, request->url().substring(21).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -276,7 +278,7 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
+            obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">AhoyFactory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
         }
 
         void getHtmlLogout(AsyncWebServerRequest *request, JsonObject obj) {
@@ -320,6 +322,15 @@ class RestApi {
             obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
             obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
             obj[F("retransmits")]    = iv->radioStatistics.retransmits;
+        }
+
+        void getIvPowerLimitAck(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+            obj["ack"] = (bool)iv->powerLimitAck;
         }
 
         void getInverterList(JsonObject obj) {
@@ -389,10 +400,10 @@ class RestApi {
                     ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                 }
             } else  {
-            for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
-                pos = (iv->getPosByChFld(CH0, acList[fld], rec));
-                ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-            }
+                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                    ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                }
             }
 
             // DC
@@ -652,6 +663,7 @@ class RestApi {
                 jsonOut[F("error")] = F("inverter index invalid: ") + jsonIn[F("id")].as<String>();
                 return false;
             }
+            jsonOut[F("id")] = jsonIn[F("id")];
 
             if(F("power") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);
