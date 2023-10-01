@@ -334,9 +334,6 @@ class app : public IApp, public ah::Scheduler {
 
         bool mNetworkConnected;
 
-        statistics_t mNrfStat;
-        statistics_t mCmtStat;
-
         // mqtt
         PubMqttType mMqtt;
         bool mMqttReconnect;

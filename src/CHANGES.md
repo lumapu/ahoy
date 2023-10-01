@@ -2,6 +2,7 @@
 
 ## 0.7.62 - 2023-10-01
 * fix communication to inverters #1198
+* add timeout before payload is tried to process (necessary for HMS/HMT)
 
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class

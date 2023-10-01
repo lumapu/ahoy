@@ -133,10 +133,10 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mNrfStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
+                iv->radioStatistics.frmCnt++;
                 if (IV_MI == iv->ivGen)
                     mMiPayload.add(iv, p);
                 else
@@ -160,10 +160,10 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mCmtStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if(NULL != iv) {
+                iv->radioStatistics.frmCnt++;
                 if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                     mPayload.add(iv, p);
             }
@@ -515,9 +515,6 @@ void app::resetSystem(void) {
     mSaveReboot = false;
 
     mNetworkConnected = false;
-
-    memset(&mNrfStat, 0, sizeof(statistics_t));
-    memset(&mCmtStat, 0, sizeof(statistics_t));
 }
 
 //-----------------------------------------------------------------------------
