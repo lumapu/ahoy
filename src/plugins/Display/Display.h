@@ -135,7 +135,7 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-            mEpaper.loop(totalPower, totalYieldDay, totalYieldTotal, nrprod);
+            mEpaper.loop(((allOff) ? 0.0 : totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
 

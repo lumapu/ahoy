@@ -48,26 +48,6 @@
                 return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
             }
 
-            function tr(val1, val2) {
-                if(typeof val2 == "number")
-                    val2 = String(val2);
-                return ml("tr", {}, [
-                    ml("th", {style: "width: 50%"}, val1),
-                    ml("td", {}, val2)
-                ]);
-            }
-
-            function parseStat(stat) {
-                return [
-                    tr("TX count", stat.tx_cnt),
-                    tr("RX success", stat.rx_success),
-                    tr("RX fail", stat.rx_fail),
-                    tr("RX no answer", stat.rx_fail_answer),
-                    tr("RX fragments", stat.frame_cnt),
-                    tr("TX retransmits", stat.retransmits)
-                ];
-            }
-
             function parseRadio(obj) {
                 const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
                 const dr = ["1 M", "2 M", "250 k"]
@@ -78,7 +58,6 @@
                         tr("NRF24 Power Level", pa[obj.radioNrf.power_level]),
                         tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
                     ];
-                    Array.prototype.push.apply(lines, parseStat(obj.statistics[0]));
                 } else
                     lines = [tr("NRF24L01", badge(false, "not enabled"))];
 
@@ -92,7 +71,6 @@
                 /*IF_ESP32*/
                 if(obj.radioCmt.en) {
                     cmt = [tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected"))];
-                    Array.prototype.push.apply(cmt, parseStat(obj.statistics[1]));
                 } else
                     cmt = [tr("CMT2300A", badge(false, "not enabled"))];
 

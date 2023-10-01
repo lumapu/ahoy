@@ -34,12 +34,12 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(&mNrfStat, mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+        mNrfRadio.setup(mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
         mNrfRadio.enableDebug();
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(&mCmtStat, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.setup(mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
         mCmtRadio.enableDebug();
     }
     #endif
@@ -59,23 +59,26 @@ void app::setup() {
         #endif
     #endif /* defined(ETHERNET) */
 
-    mSys.setup(&mTimestamp);
-    mSys.addInverters(&mConfig->inst);
-    if (mConfig->nrf.enabled) {
-        mPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
-        mPayload.enableSerialDebug(mConfig->serial.debug);
-        mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    mSys.setup(&mTimestamp, &mConfig->inst);
+    for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+        mSys.addInverter(i, [this](Inverter<> *iv) {
+            if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
+                iv->radio = &mNrfRadio;
+            #if defined(ESP32)
+            else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
+                iv->radio = &mCmtRadio;
+            #endif
+        });
+    }
 
-        mMiPayload.setup(this, &mSys, &mNrfRadio, &mNrfStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.setup(this, &mSys, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.enableSerialDebug(mConfig->serial.debug);
+    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    if (mConfig->nrf.enabled) {
+        mMiPayload.setup(this, &mSys, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }
-
-    #if defined(ESP32)
-        mHmsPayload.setup(this, &mSys, &mCmtRadio, &mCmtStat, 5, &mTimestamp);
-        mHmsPayload.enableSerialDebug(mConfig->serial.debug);
-        mHmsPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    #endif
 
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
@@ -90,9 +93,6 @@ void app::setup() {
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
         mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        #if defined(ESP32)
-            mHmsPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        #endif
     }
     #endif
     setupLed();
@@ -123,11 +123,11 @@ void app::setup() {
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     ah::Scheduler::loop();
+    bool processPayload = false;
 
     if (mNrfRadio.loop() && mConfig->nrf.enabled) {
         while (!mNrfRadio.mBufCtrl.empty()) {
             packet_t *p = &mNrfRadio.mBufCtrl.front();
-
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
                 DBGPRINT(String(p->len));
@@ -142,47 +142,48 @@ void app::loop(void) {
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
-                if (IV_HM == iv->ivGen)
-                    mPayload.add(iv, p);
-                else
+                if (IV_MI == iv->ivGen)
                     mMiPayload.add(iv, p);
+                else
+                    mPayload.add(iv, p);
             }
             mNrfRadio.mBufCtrl.pop();
             yield();
         }
-        mPayload.process(true);
+        processPayload = true;
         mMiPayload.process(true);
     }
     #if defined(ESP32)
     if (mCmtRadio.loop() && mConfig->cmt.enabled) {
         while (!mCmtRadio.mBufCtrl.empty()) {
-            hmsPacket_t *p = &mCmtRadio.mBufCtrl.front();
+            packet_t *p = &mCmtRadio.mBufCtrl.front();
             if (mConfig->serial.debug) {
                 DPRINT(DBG_INFO, F("RX "));
-                DBGPRINT(String(p->data[0]));
+                DBGPRINT(String(p->len));
                 DBGPRINT(F(", "));
                 DBGPRINT(String(p->rssi));
                 DBGPRINT(F("dBm | "));
-                ah::dumpBuf(&p->data[1], p->data[0]);
+                ah::dumpBuf(p->packet, p->len);
             }
             mCmtStat.frmCnt++;
 
-            Inverter<> *iv = mSys.findInverter(&p->data[2]);
+            Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if(NULL != iv) {
                 if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mHmsPayload.add(iv, p);
+                    mPayload.add(iv, p);
             }
             mCmtRadio.mBufCtrl.pop();
             yield();
         }
-        mHmsPayload.process(false); //true
+        processPayload = true;
     }
     #endif
+
+    if(processPayload)
+        mPayload.process(true);
+
     mPayload.loop();
     mMiPayload.loop();
-    #if defined(ESP32)
-    mHmsPayload.loop();
-    #endif
 
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
@@ -195,10 +196,6 @@ void app::onNetwork(bool gotIp) {
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
-    #if defined(ESP32)
-    if(mConfig->cmt.enabled)
-        everySec(std::bind(&CmtRadioType::tickSecond, &mCmtRadio), "tsCmt");
-    #endif
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -439,18 +436,10 @@ void app::tickSend(void) {
 
         if (NULL != iv) {
             if (iv->config->enabled) {
-                if(mConfig->nrf.enabled) {
-                    if (iv->ivGen == IV_HM)
-                        mPayload.ivSend(iv);
-                    else if(iv->ivGen == IV_MI)
-                        mMiPayload.ivSend(iv);
-                }
-                #if defined(ESP32)
-                if(mConfig->cmt.enabled) {
-                    if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                        mHmsPayload.ivSend(iv);
-                }
-                #endif
+                if((iv->ivGen == IV_MI) && mConfig->nrf.enabled)
+                    mMiPayload.ivSend(iv);
+                else
+                    mPayload.ivSend(iv);
             }
 
             #if defined(ESP32)

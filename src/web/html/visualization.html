@@ -178,20 +178,20 @@
                 ]);
             }
 
-            function tsInfo(ts, gen, rssi) {
+            function tsInfo(obj) {
                 var ageInfo = "Last received data requested at: ";
-                if(ts > 0) {
-                    var date = new Date(ts * 1000);
+                if(obj.ts_last_success > 0) {
+                    var date = new Date(obj.ts_last_success * 1000);
                     ageInfo += toIsoDateStr(date);
                 }
                 else
                     ageInfo += "nothing received";
 
-                if(rssi > -127) {
-                    if(gen < 2)
-                        ageInfo += " (RSSI: " + ((rssi == -64) ? ">=" : "<") + " -64dBm)";
+                if(obj.rssi > -127) {
+                    if(obj.generation < 2)
+                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? ">=" : "<") + " -64dBm)";
                     else
-                        ageInfo += " (RSSI: " + rssi + "dBm)";
+                        ageInfo += " (RSSI: " + obj.rssi + "dBm)";
                 }
 
                 return ml("div", {class: "mb-5"}, [
@@ -199,7 +199,9 @@
                         ml("div", {class: "col"}, "")
                     ),
                     ml("div", {class: "row p-2 ts-bg mx-2"},
-                        ml("div", {class: "col mx-2"}, ageInfo)
+                        ml("div", { class: "pointer col mx-2", onclick: function() {
+                            getAjax("/api/inverter/radiostat/" + obj.id, parseIvRadioStats);
+                        }}, ageInfo)
                     )
                 ]);
             }
@@ -219,7 +221,7 @@
                     ml("div", {}, [
                         ivHead(obj),
                         ml("div", {class: "row mb-2"}, chn),
-                        tsInfo(obj.ts_last_success, obj.generation, obj.rssi)
+                        tsInfo(obj)
                     ])
                 );
 
@@ -280,29 +282,28 @@
 
                 var html = ml("table", {class: "table"}, [
                     ml("tbody", {}, [
-                        ml("tr", {}, [
-                            ml("th", {}, "Model"),
-                            ml("td", {}, model)
-                        ]),
-                        ml("tr", {}, [
-                            ml("th", {}, "Firmware Version / Build"),
-                            ml("td", {}, String(obj.fw_ver) + " (build: " + String(obj.fw_date) + " " + String(obj.fw_time) + ")")
-                        ]),
-                        ml("tr", {}, [
-                            ml("th", {}, "Hardware Version / Build"),
-                            ml("td", {}, (obj.hw_ver/100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")")
-                        ]),
-                        ml("tr", {}, [
-                            ml("th", {}, "Hardware Number"),
-                            ml("td", {}, obj.part_num.toString(16))
-                        ]),
-                        ml("tr", {}, [
-                            ml("th", {}, "Bootloader Version"),
-                            ml("td", {}, (obj.boot_ver/100).toFixed(2))
-                        ])
+                        tr("Model", model),
+                        tr("Firmware Version / Build", String(obj.fw_ver) + " (build: " + String(obj.fw_date) + " " + String(obj.fw_time) + ")"),
+                        tr("Hardware Version / Build", (obj.hw_ver/100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")"),
+                        tr("Hardware Number", obj.part_num.toString(16)),
+                        tr("Bootloader Version", (obj.boot_ver/100).toFixed(2))
                     ])
                 ]);
                 modal("Info for inverter " + obj.name, ml("div", {}, html));
+            }
+
+            function parseIvRadioStats(obj) {
+                var html = ml("table", {class: "table"}, [
+                    ml("tbody", {}, [
+                        tr("TX count", obj.tx_cnt),
+                        tr("RX success", obj.rx_success),
+                        tr("RX fail", obj.rx_fail),
+                        tr("RX no answer", obj.rx_fail_answer),
+                        tr("RX fragments", obj.frame_cnt),
+                        tr("TX retransmits", obj.retransmits)
+                    ])
+                ]);
+                modal("Radio statistics for inverter " + obj.name, ml("div", {}, html));
             }
 
             function parse(obj) {
