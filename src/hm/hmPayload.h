@@ -248,8 +248,10 @@ class HmPayload {
                     continue; // skip to next inverter
                 }
 
-                if((mPayload[iv->id].sendMillis + 500) > millis())
-                    return; // to fast, wait until packets are received!
+                if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen)) {
+                    if((mPayload[iv->id].sendMillis + 500) > millis())
+                        return; // to fast, wait until packets are received!
+                }
 
                 if (!mPayload[iv->id].complete) {
                     bool crcPass, pyldComplete, fastNext;

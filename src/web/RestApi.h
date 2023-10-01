@@ -36,10 +36,9 @@ class RestApi {
     public:
         RestApi() {
             mTimezoneOffset = 0;
-            mHeapFree = 0;
-            mHeapFreeBlk = 0;
-            mHeapFrag = 0;
-            nr = 0;
+            mHeapFree       = 0;
+            mHeapFreeBlk    = 0;
+            mHeapFrag       = 0;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
@@ -63,9 +62,6 @@ class RestApi {
         }
 
         void ctrlRequest(JsonObject obj) {
-            /*char out[128];
-            serializeJson(obj, out, 128);
-            DPRINTLN(DBG_INFO, "RestApi: " + String(out));*/
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
@@ -726,7 +722,6 @@ class RestApi {
         uint32_t mTimezoneOffset;
         uint32_t mHeapFree, mHeapFreeBlk;
         uint8_t mHeapFrag;
-        uint16_t nr;
 };
 
 #endif /*__WEB_API_H__*/

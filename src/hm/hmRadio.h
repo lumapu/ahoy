@@ -202,7 +202,7 @@ class HmRadio : public Radio {
         std::queue<packet_t> mBufCtrl;
 
     private:
-            bool getReceived(void) {
+        bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
 
@@ -219,10 +219,10 @@ class HmRadio : public Radio {
                     if (p.packet[0] != 0x00) {
                         mBufCtrl.push(p);
                         if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
-                                isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                            isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
                         else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
-                                isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
-                            else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
+                            isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
+                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
                             isLastPackage = true;                       // response from dev control command
                     }
                 }
