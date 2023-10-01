@@ -143,9 +143,9 @@ void app::loop(void) {
                     mPayload.add(iv, p);
             }
             mNrfRadio.mBufCtrl.pop();
+            processPayload = true;
             yield();
         }
-        processPayload = true;
         mMiPayload.process(true);
     }
     #if defined(ESP32)
@@ -168,9 +168,9 @@ void app::loop(void) {
                     mPayload.add(iv, p);
             }
             mCmtRadio.mBufCtrl.pop();
+            processPayload = true;
             yield();
         }
-        processPayload = true;
     }
     #endif
 

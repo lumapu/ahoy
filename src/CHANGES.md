@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.63 - 2023-10-01
+* fix NRF24 communication #1200
+
 ## 0.7.62 - 2023-10-01
 * fix communication to inverters #1198
 * add timeout before payload is tried to process (necessary for HMS/HMT)

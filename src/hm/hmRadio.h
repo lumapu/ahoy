@@ -57,6 +57,7 @@ class HmRadio : public Radio {
             pinMode(irq, INPUT_PULLUP);
 
             generateDtuSn();
+            DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
                 #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
@@ -81,7 +82,7 @@ class HmRadio : public Radio {
             mNrf24.enableDynamicPayloads();
             mNrf24.setCRCLength(RF24_CRC_16);
             mNrf24.setAddressWidth(5);
-            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&mDtuSn));
+            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
 
             // enable all receiving interrupts
             mNrf24.maskIRQ(false, false, false);
@@ -202,7 +203,7 @@ class HmRadio : public Radio {
         std::queue<packet_t> mBufCtrl;
 
     private:
-        bool getReceived(void) {
+        inline bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
 
@@ -262,6 +263,7 @@ class HmRadio : public Radio {
             return iv->radioId.u64;
         }
 
+        uint64_t DTU_RADIO_ID;
         uint8_t mRfChLst[RF_CHANNELS];
         uint8_t mTxChIdx;
         uint8_t mRxChIdx;

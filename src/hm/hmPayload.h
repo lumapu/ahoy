@@ -249,7 +249,7 @@ class HmPayload {
                 }
 
                 if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen)) {
-                    if((mPayload[iv->id].sendMillis + 500) > millis())
+                    if((mPayload[iv->id].sendMillis + 400) > millis())
                         return; // to fast, wait until packets are received!
                 }
 
