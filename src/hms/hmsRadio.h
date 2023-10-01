@@ -82,7 +82,7 @@ class CmtRadio : public Radio {
 
     private:
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            updateCrcs(len, appendCrc16);
+            updateCrcs(&len, appendCrc16);
 
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));

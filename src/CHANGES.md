@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.7.62 - 2023-10-01
+* fix communication to inverters #1198
+
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`

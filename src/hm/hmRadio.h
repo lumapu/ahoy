@@ -232,7 +232,7 @@ class HmRadio : public Radio {
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            updateCrcs(len, appendCrc16);
+            updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
             mTxChIdx = (mTxChIdx + 1) % RF_CHANNELS;

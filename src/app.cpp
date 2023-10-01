@@ -394,9 +394,9 @@ void app::tickSend(void) {
     if(mConfig->nrf.enabled) {
         if(!mNrfRadio.isChipConnected()) {
             DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
-            return;
         }
     }
+
     if (mIVCommunicationOn) {
         if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
