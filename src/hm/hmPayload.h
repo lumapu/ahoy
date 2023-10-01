@@ -449,7 +449,7 @@ class HmPayload {
                 return false;
 
             //requests to cause the next request to be executed immediately
-            if (mPayload[iv->id].gotFragment && ((mPayload[iv->id].txCmd < 11) || (mPayload[iv->id].txCmd > 18))) {
+            if (mPayload[iv->id].gotFragment && ((mPayload[iv->id].txCmd < RealTimeRunData_Debug) || (mPayload[iv->id].txCmd >= AlarmData))) {
                 *fastNext = true;
             }
 
