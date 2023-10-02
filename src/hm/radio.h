@@ -21,7 +21,7 @@ class Inverter;
 // abstract radio interface
 class Radio {
     public:
-        virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) = 0;
+        virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
 
         void handleIntr(void) {
@@ -64,17 +64,17 @@ class Radio {
             memset(&mTxBuf[10], 0x00, (MAX_RF_PAYLOAD_SIZE-10));
         }
 
-        void updateCrcs(uint8_t len, bool appendCrc16=true) {
+        void updateCrcs(uint8_t *len, bool appendCrc16=true) {
             // append crc's
-            if (appendCrc16 && (len > 10)) {
+            if (appendCrc16 && (*len > 10)) {
                 // crc control data
-                uint16_t crc = ah::crc16(&mTxBuf[10], len - 10);
-                mTxBuf[len++] = (crc >> 8) & 0xff;
-                mTxBuf[len++] = (crc     ) & 0xff;
+                uint16_t crc = ah::crc16(&mTxBuf[10], *len - 10);
+                mTxBuf[(*len)++] = (crc >> 8) & 0xff;
+                mTxBuf[(*len)++] = (crc     ) & 0xff;
             }
             // crc over all
-            mTxBuf[len] = ah::crc8(mTxBuf, len);
-            len++;
+            mTxBuf[*len] = ah::crc8(mTxBuf, *len);
+            (*len)++;
         }
 
         void generateDtuSn(void) {

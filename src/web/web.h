@@ -739,13 +739,14 @@ class Web {
                         metrics += String(type) + String(topic);
 
                         // NRF Statistics
-                        stat = mApp->getNrfStatistics();
+                        // @TODO 2023-10-01: the statistic data is now available per inverter
+                        /*stat = mApp->getNrfStatistics();
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
                         metrics += radioStatistic(F("tx_cnt"),         stat->txCnt);
-                        metrics += radioStatistic(F("retrans_cnt"),    stat->retransmits);
+                        metrics += radioStatistic(F("retrans_cnt"),    stat->retransmits);*/
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Next is Inverter information

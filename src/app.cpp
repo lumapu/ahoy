@@ -138,19 +138,19 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mNrfStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if (NULL != iv) {
+                iv->radioStatistics.frmCnt++;
                 if (IV_MI == iv->ivGen)
                     mMiPayload.add(iv, p);
                 else
                     mPayload.add(iv, p);
             }
             mNrfRadio.mBufCtrl.pop();
+            processPayload = true;
             yield();
         }
-        processPayload = true;
         mMiPayload.process(true);
     }
     #if defined(ESP32)
@@ -165,17 +165,17 @@ void app::loop(void) {
                 DBGPRINT(F("dBm | "));
                 ah::dumpBuf(p->packet, p->len);
             }
-            mCmtStat.frmCnt++;
 
             Inverter<> *iv = mSys.findInverter(&p->packet[1]);
             if(NULL != iv) {
+                iv->radioStatistics.frmCnt++;
                 if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
                     mPayload.add(iv, p);
             }
             mCmtRadio.mBufCtrl.pop();
+            processPayload = true;
             yield();
         }
-        processPayload = true;
     }
     #endif
 
@@ -403,9 +403,9 @@ void app::tickSend(void) {
     if(mConfig->nrf.enabled) {
         if(!mNrfRadio.isChipConnected()) {
             DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
-            return;
         }
     }
+
     if (mIVCommunicationOn) {
         if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
@@ -528,9 +528,6 @@ void app::resetSystem(void) {
     mSaveReboot = false;
 
     mNetworkConnected = false;
-
-    memset(&mNrfStat, 0, sizeof(statistics_t));
-    memset(&mCmtStat, 0, sizeof(statistics_t));
 }
 
 //-----------------------------------------------------------------------------

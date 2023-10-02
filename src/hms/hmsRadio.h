@@ -47,7 +47,7 @@ class CmtRadio : public Radio {
             return mCmtAvail;
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, bool is4chMI = false) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -82,7 +82,7 @@ class CmtRadio : public Radio {
 
     private:
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            updateCrcs(len, appendCrc16);
+            updateCrcs(&len, appendCrc16);
 
             if(mSerialDebug) {
                 DPRINT(DBG_INFO, F("TX "));

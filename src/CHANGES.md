@@ -1,5 +1,18 @@
 # Development Changes
 
+## 0.7.65 - 2023-10-02
+* MI control command review #1197
+
+## 0.7.64 - 2023-10-02
+* moved active power control to modal in `live` view (per inverter) by click on current APC state
+
+## 0.7.63 - 2023-10-01
+* fix NRF24 communication #1200
+
+## 0.7.62 - 2023-10-01
+* fix communication to inverters #1198
+* add timeout before payload is tried to process (necessary for HMS/HMT)
+
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`

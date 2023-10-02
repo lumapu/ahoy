@@ -32,8 +32,6 @@ class IApp {
         virtual bool getShouldReboot() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
-        virtual statistics_t *getNrfStatistics() = 0;
-        virtual statistics_t *getCmtStatistics() = 0;
 
         #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;

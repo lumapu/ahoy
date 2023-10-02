@@ -173,6 +173,7 @@ class Inverter {
             alarmCnt           = 0;
             alarmLastId        = 0;
             rssi               = -127;
+            memset(&radioStatistics, 0, sizeof(statistics_t));
         }
 
         ~Inverter() {

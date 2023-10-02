@@ -84,6 +84,7 @@ class app : public IApp, public ah::Scheduler {
                 #endif
             }
         }
+
         #ifdef ESP32
         void handleHmsIntr(void) {
             mCmtRadio.handleIntr();
@@ -127,14 +128,6 @@ class app : public IApp, public ah::Scheduler {
 
         bool getShouldReboot() {
             return mSaveReboot;
-        }
-
-        statistics_t *getNrfStatistics() {
-            return &mNrfStat;
-        }
-
-        statistics_t *getCmtStatistics() {
-            return &mCmtStat;
         }
 
         #if !defined(ETHERNET)
@@ -348,9 +341,6 @@ class app : public IApp, public ah::Scheduler {
         bool mSendFirst;
 
         bool mNetworkConnected;
-
-        statistics_t mNrfStat;
-        statistics_t mCmtStat;
 
         // mqtt
         PubMqttType mMqtt;

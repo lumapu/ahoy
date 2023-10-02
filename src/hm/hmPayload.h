@@ -31,6 +31,7 @@ typedef struct {
     bool requested;
     bool gotFragment;
     bool rxTmo;
+    uint32_t sendMillis;
 } invPayload_t;
 
 
@@ -247,6 +248,11 @@ class HmPayload {
                     continue; // skip to next inverter
                 }
 
+                if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen)) {
+                    if((mPayload[iv->id].sendMillis + 400) > millis())
+                        return; // to fast, wait until packets are received!
+                }
+
                 if (!mPayload[iv->id].complete) {
                     bool crcPass, pyldComplete, fastNext;
 
@@ -449,7 +455,7 @@ class HmPayload {
                 return false;
 
             //requests to cause the next request to be executed immediately
-            if (mPayload[iv->id].gotFragment && ((mPayload[iv->id].txCmd < 11) || (mPayload[iv->id].txCmd > 18))) {
+            if (mPayload[iv->id].gotFragment && ((mPayload[iv->id].txCmd < RealTimeRunData_Debug) || (mPayload[iv->id].txCmd >= AlarmData))) {
                 *fastNext = true;
             }
 
@@ -469,6 +475,7 @@ class HmPayload {
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
             mPayload[id].rxTmo       = setTxTmo; // design: don't start with complete retransmit
+            mPayload[id].sendMillis  = millis();
         }
 
         IApp *mApp;

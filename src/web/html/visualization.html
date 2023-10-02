@@ -21,6 +21,7 @@
             var mIvHtml = [];
             var mNum = 0;
             var total = Array(5).fill(0);
+            var tPwrAck;
 
             function parseGeneric(obj) {
                 if(true == exeOnce){
@@ -114,8 +115,10 @@
                                 ml("div", {class: "col mx-2 mx-md-1"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/version/" + obj.id, parseIvVersion);
                                 }}, obj.name)),
-                                ml("div", {class: "col a-c d-none d-sm-block"}, "Active Power Control: " + pwrLimit),
-                                ml("div", {class: "col a-c d-block d-sm-none"}, "APC: " + pwrLimit),
+                                ml("div", {class: "col a-c", onclick: function() {limitModal(obj)}}, [
+                                    ml("span", {class: "d-none d-sm-block pointer"}, "Active Power Control: " + pwrLimit),
+                                    ml("span", {class: "d-block d-sm-none pointer"}, "APC: " + pwrLimit)
+                                ]),
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("Alarms: " + obj.alarm_cnt))),
@@ -304,6 +307,102 @@
                     ])
                 ]);
                 modal("Radio statistics for inverter " + obj.name, ml("div", {}, html));
+            }
+
+            function limitModal(obj) {
+                var opt = [["pct", "%"], ["watt", "W"]];
+                var html = ml("div", {}, [
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Limit Value"),
+                        ml("div", {class: "col-8 col-sm-5"}, ml("input", {name: "limit", type: "number"}, "")),
+                        ml("div", {class: "col-4 col-sm-2"}, sel("type", opt, "pct"))
+                    ]),
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8 col-sm-5"}, "Keep limit over inverter restart"),
+                        ml("div", {class: "col-4 col-sm-7"}, ml("input", {type: "checkbox", name: "keep"}))
+                    ]),
+                    ml("div", {class: "row my-3"},
+                        ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "Apply", class: "btn", onclick: function() {
+                            applyLimit(obj.id);
+                        }}, null))
+                    ),
+                    ml("div", {class: "row my-4"}, [
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Control"),
+                        ml("div", {class: "col col-sm-7 a-r"}, [
+                            ml("input", {type: "button", value: "restart", class: "btn", onclick: function() {
+                                applyCtrl(obj.id, "restart");
+                            }}, null),
+                            ml("input", {type: "button", value: "turn off", class: "btn mx-1", onclick: function() {
+                                applyCtrl(obj.id, "power", 0);
+                            }}, null),
+                            ml("input", {type: "button", value: "turn on", class: "btn", onclick: function() {
+                                applyCtrl(obj.id, "power", 1);
+                            }}, null)
+                        ])
+                    ]),
+                    ml("div", {class: "row mt-1"}, [
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Result"),
+                        ml("div", {class: "col-sm-7 my-2"}, ml("span", {name: "pwrres"}, "-"))
+                    ])
+                ]);
+                modal("Active Power Control for inverter " + obj.name, html);
+            }
+
+            function applyLimit(id) {
+                var cmd = "limit_";
+                if(!document.getElementsByName("keep")[0].checked)
+                    cmd += "non";
+                cmd += "persistent_";
+                if(document.getElementsByName("type")[0].value == "pct")
+                    cmd += "relative";
+                else
+                    cmd += "absolute";
+
+                var val = document.getElementsByName("limit")[0].value;
+                if(isNaN(val))
+                    val = 100;
+
+                var obj = new Object();
+                obj.id = id;
+                obj.cmd = cmd;
+                obj.val = val;
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+            }
+
+            function applyCtrl(id, cmd, val=0) {
+                var obj = new Object();
+                obj.id  = id;
+                obj.cmd = cmd;
+                obj.val = val;
+                getAjax("/api/ctrl", ctrlCb2, "POST", JSON.stringify(obj));
+            }
+
+            function ctrlCb(obj) {
+                var e = document.getElementsByName("pwrres")[0];
+                if(obj.success) {
+                    e.innerHTML = "received command, waiting for inverter acknowledge ...";
+                    tPwrAck = window.setInterval("getAjax('/api/inverter/pwrack/" + obj.id + "', updatePwrAck)", 1000);
+                }
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function ctrlCb2(obj) {
+                var e = document.getElementsByName("pwrres")[0];
+                if(obj.success)
+                    e.innerHTML = "command received";
+                else
+                    e.innerHTML = "Error: " + obj["error"];
+            }
+
+            function updatePwrAck(obj) {
+                if(!obj.ack)
+                    return;
+                var e = document.getElementsByName("pwrres")[0];
+                clearInterval(tPwrAck);
+                if(null == e)
+                    return;
+                e.innerHTML = "inverter acknowledged active power control command";
             }
 
             function parse(obj) {
