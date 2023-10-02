@@ -10,20 +10,26 @@
 #include "../config/config.h"
 #include <Arduino.h>
 
+#define MI_REQ_CH1 0x09
+#define MI_REQ_CH2 0x11
+#define MI_REQ_4CH 0x36
+
 typedef struct {
     uint32_t ts;
     bool requested;
     bool limitrequested;
     uint8_t txCmd;
     uint8_t len[MAX_PAYLOAD_ENTRIES];
+    int8_t rssi[4];
     bool complete;
     bool dataAB[3];
     bool stsAB[3];
-    uint16_t sts[6];
+    uint16_t sts[5];
     uint8_t txId;
     uint8_t invId;
     uint8_t retransmits;
     bool gotFragment;
+    bool gotGPF;
     uint8_t rtrRes; // for limiting resets
     uint8_t multi_parts;  // for quality
     bool rxTmo;
@@ -45,7 +51,8 @@ class MiPayload {
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 reset(i, false, true);
-                mPayload[i].limitrequested = true;
+                mPayload[i].limitrequested = false;
+                mPayload[i].gotGPF = false;
             }
             mSerialDebug  = false;
             mHighPrioIv   = NULL;
@@ -120,10 +127,12 @@ class MiPayload {
                     DBGPRINT(F("Devcontrol request 0x"));
                     DHEX(iv->devControlCmd);
                     DBGPRINT(F(" power limit "));
-                    DBGPRINTLN(String(iv->powerLimit[0]));
+                    DBGPRINT(String(iv->powerLimit[0]));
+                    DBGPRINT(F(" with PowerLimitControl "));
+                    DBGPRINTLN(String(iv->powerLimit[1]));
                 }
                 iv->powerLimitAck = false;
-                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, false, false, iv->type == INV_TYPE_4CH);
+                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, false, false, (iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 mPayload[iv->id].limitrequested = true;
 
@@ -132,21 +141,22 @@ class MiPayload {
                 uint8_t cmd = iv->getQueuedCmd();
                 uint8_t cmd2 = cmd;
                 if ( cmd == SystemConfigPara ) { //0x05 for HM-types
-                    if (!mPayload[iv->id].limitrequested) { // only do once at startup
+                    if (!mPayload[iv->id].gotGPF) {
                         iv->setQueuedCmdFinished();
                         cmd = iv->getQueuedCmd();
-                    } else {
-                        mPayload[iv->id].limitrequested = false;
                     }
                 }
 
-                if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
-                    cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    cmd  = 0x0f;                              // for MI, these seem to make part of polling the device software and hardware version number command
+                if (cmd == 0x01) {    //0x1 for HM-types
+                    cmd2 = 0x00;
+                    cmd  = 0x0f;      // for MI, these seem to make part of polling the device software and hardware version number command
+                } else if (cmd == SystemConfigPara ) { // 0x05 for HM-types
+                    cmd2 = 0x00;
+                    cmd  = 0x10;      // legacy GPF request
                 }
                 if (mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, iv->id);
-                    DBGPRINT(F("prepareDevInformCmd 0x"));
+                    DBGPRINT(F("legacy cmd 0x"));
                     DBGHEXLN(cmd);
                 }
                 iv->radio->sendCmdPacket(iv, cmd, cmd2, false, false);
@@ -167,29 +177,32 @@ class MiPayload {
 
         void add(Inverter<> *iv, packet_t *p) {
             //DPRINTLN(DBG_INFO, F("MI got data [0]=") + String(p->packet[0], HEX));
-            if (p->packet[0] == (0x08 + ALL_FRAMES)) { // 0x88; MI status response to 0x09
+            if (p->packet[0] == (0x88)) { // 0x88 is MI status response to 0x09
                 miStsDecode(iv, p);
             }
 
-            else if (p->packet[0] == (0x11 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
+            else if (p->packet[0] == (MI_REQ_CH2 + SINGLE_FRAME)) { // 0x92; MI status response to 0x11
                 miStsDecode(iv, p, CH2);
-            }
 
-            else if ( p->packet[0] == 0x09 + ALL_FRAMES ||
-                        p->packet[0] == 0x11 + ALL_FRAMES ||
-                        ( p->packet[0] >= (0x36 + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME)
+            } else if ( p->packet[0] == MI_REQ_CH1 + ALL_FRAMES ||
+                        p->packet[0] == MI_REQ_CH2 + ALL_FRAMES ||
+                        ( p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES) && p->packet[0] < (0x39 + SINGLE_FRAME)
                           && mPayload[iv->id].txCmd != 0x0f) ) { // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(iv,p);
-            }
 
-            else if (p->packet[0] == ( 0x0f + ALL_FRAMES)) {
+            } else if (p->packet[0] == ( 0x0f + ALL_FRAMES)) {
                 // MI response from get hardware information request
                 miHwDecode(iv, p);
                 mPayload[iv->id].txId = p->packet[0];
 
+            } else if (p->packet[0] == ( 0x10 + ALL_FRAMES)) {
+                // MI response from get Grid Profile information request
+                miGPFDecode(iv, p);
+                mPayload[iv->id].txId = p->packet[0];
+
             } else if ( p->packet[0] == (TX_REQ_INFO + ALL_FRAMES) // response from get information command
-                     || (p->packet[0] == 0xB6 && mPayload[iv->id].txCmd != 0x36)) {                   // strange short response from MI-1500 3rd gen; might be misleading!
+                     || (p->packet[0] == 0xB6 && mPayload[iv->id].txCmd != MI_REQ_4CH)) {                   // strange short response from MI-1500 3rd gen; might be misleading!
                 // atm, we just do nothing else than print out what we got...
                 // for decoding see xls- Data collection instructions - #147ff
                 //mPayload[iv->id].txId = p->packet[0];
@@ -207,9 +220,12 @@ class MiPayload {
                 }
             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES )       // response from dev control command
                     || p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES -1)) {  // response from DRED instruction
-                DPRINT_IVID(DBG_DEBUG, iv->id);
-                DBGPRINTLN(F("Response from devcontrol request received"));
-
+#if DEBUG_LEVEL >= DBG_DEBUG
+                if (mSerialDebug) {
+                    DPRINT_IVID(DBG_DEBUG, iv->id);
+                    DBGPRINTLN(F("Response from devcontrol request received"));
+                }
+#endif
                 mPayload[iv->id].txId = p->packet[0];
                 iv->clearDevControlRequest();
 
@@ -224,7 +240,8 @@ class MiPayload {
                         DBGPRINTLN(String(iv->powerLimit[1]));
                     }
                     iv->clearCmdQueue();
-                    iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
+                    //does not work for MI
+                    //iv->enqueCommand<InfoCommand>(SystemConfigPara); // read back power limit
                 }
                 iv->devControlCmd = Init;
             } else {  // some other response; copied from hmPayload:process; might not be correct to do that here!!!
@@ -298,14 +315,15 @@ class MiPayload {
 
                 if ( !mPayload[iv->id].complete &&
                     (mPayload[iv->id].txId != (TX_REQ_INFO + ALL_FRAMES)) &&
-                    (mPayload[iv->id].txId <  (0x36 + ALL_FRAMES)) &&
+                    (mPayload[iv->id].txId <  (MI_REQ_4CH + ALL_FRAMES)) &&
                     (mPayload[iv->id].txId >  (0x39 + ALL_FRAMES)) &&
-                    (mPayload[iv->id].txId != (0x09 + ALL_FRAMES)) &&
-                    (mPayload[iv->id].txId != (0x11 + ALL_FRAMES)) &&
+                    (mPayload[iv->id].txId != (MI_REQ_CH1 + ALL_FRAMES)) &&
+                    (mPayload[iv->id].txId != (MI_REQ_CH2 + ALL_FRAMES)) &&
                     (mPayload[iv->id].txId != (0x88)) &&
                     (mPayload[iv->id].txId != (0x92)) &&
-                    (mPayload[iv->id].txId != 0 &&
-                    mPayload[iv->id].txCmd != 0x0f)) {
+                    (mPayload[iv->id].txId != 0) &&
+                    mPayload[iv->id].txCmd != 0x0f &&
+                    !iv->getDevControlRequest()) {
                     // no processing needed if txId is not one of 0x95, 0x88, 0x89, 0x91, 0x92 or response to 0x36ff
                     mPayload[iv->id].complete = true;
                     mPayload[iv->id].rxTmo = true;
@@ -326,7 +344,7 @@ class MiPayload {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINT_IVID(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("retransmit power limit"));
-                                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, true, false);
+                                iv->radio->sendControlPacket(iv, iv->devControlCmd, iv->powerLimit, true, false, (iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
                             } else {
                                 uint8_t cmd = mPayload[iv->id].txCmd;
                                 if (mPayload[iv->id].retransmits < mMaxRetrans) {
@@ -335,6 +353,7 @@ class MiPayload {
                                         DPRINT_IVID(DBG_INFO, iv->id);
                                         DBGPRINTLN(F("nothing received"));
                                         mPayload[iv->id].retransmits = mMaxRetrans;
+                                        mPayload[iv->id].requested = false; //close failed request
                                     } else if( !mPayload[iv->id].gotFragment && !mPayload[iv->id].rxTmo ) {
                                         DPRINT_IVID(DBG_INFO, iv->id);
                                         DBGPRINTLN(F("retransmit on failed first request"));
@@ -346,24 +365,24 @@ class MiPayload {
                                         mPayload[id].multi_parts = 0;
                                     } else {
                                         bool change = false;
-                                        if ( cmd >= 0x36 && cmd < 0x39 ) { // MI-1500 Data command
-                                            if (cmd > 0x36 && mPayload[iv->id].retransmits==1) // first request for the upper channels
+                                        if ( cmd >= MI_REQ_4CH && cmd < 0x39 ) { // MI-1500 Data command
+                                            if (cmd > MI_REQ_4CH && mPayload[iv->id].retransmits==1) // first request for the upper channels
                                                 change = true;
-                                        } else if ( cmd == 0x09 ) {//MI single or dual channel device
+                                        } else if ( cmd == MI_REQ_CH1 ) {//MI single or dual channel device
                                             if ( mPayload[iv->id].dataAB[CH1] && iv->type == INV_TYPE_2CH  ) {
                                                 if (!mPayload[iv->id].stsAB[CH1] && mPayload[iv->id].retransmits<2) {}
                                                     //first try to get missing sts for first channel a second time
                                                 else if (!mPayload[iv->id].stsAB[CH2] || !mPayload[iv->id].dataAB[CH2] ) {
-                                                    cmd = 0x11;
+                                                    cmd = MI_REQ_CH2;
                                                     change = true;
                                                     if (mPayload[iv->id].rtrRes < 3) //only get back to first channel twice
                                                         mPayload[iv->id].retransmits = 0; //reset counter
                                                 }
                                             }
-                                        } else if ( cmd == 0x11) {
+                                        } else if ( cmd == MI_REQ_CH2) {
                                             if ( mPayload[iv->id].dataAB[CH2] ) { // data + status ch2 are there?
                                                 if (mPayload[iv->id].stsAB[CH2] && (!mPayload[iv->id].stsAB[CH1] || !mPayload[iv->id].dataAB[CH1])) {
-                                                    cmd = 0x09;
+                                                    cmd = MI_REQ_CH1;
                                                     change = true;
                                                 }
                                             }
@@ -408,19 +427,6 @@ class MiPayload {
                         if (!fastNext) {
                             mPayload[iv->id].rxTmo = true;
                         } else {
-                            /*iv->setQueuedCmdFinished();
-                            uint8_t cmd = iv->getQueuedCmd();
-                            if (mSerialDebug) {
-                                DPRINT_IVID(DBG_INFO, iv->id);
-                                DBGPRINT(F("fast mode "));
-                                DBGPRINT(F("prepareDevInformCmd 0x"));
-                                DBGHEXLN(cmd);
-                            }
-                            iv->radioStatistics.rxSuccess++;
-                            //iv->radio->prepareDevInformCmd(iv, cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
-                            iv->radio->prepareDevInformCmd(iv, iv->getType(),
-                                iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
-                            mPayload[iv->id].txCmd = cmd; */
                             if (mHighPrioIv == NULL)
                                 mHighPrioIv = iv;
                         }
@@ -471,17 +477,29 @@ class MiPayload {
             }
 
             uint16_t prntsts = statusMi == 3 ? 1 : statusMi;
+            bool stsok = true;
             if ( statusMi != mPayload[iv->id].sts[stschan] ) { //sth.'s changed?
                 iv->alarmCnt = 1; // minimum...
-                if ((iv->type != INV_TYPE_1CH) && ((statusMi != 3) //sth is or was wrong!
-                                                || ((mPayload[iv->id].sts[stschan] && statusMi == 3) && (mPayload[iv->id].sts[stschan] != 3)))
+                //sth is or was wrong?
+                if ( (iv->type != INV_TYPE_1CH) && ( (statusMi != 3)
+                                                || ((mPayload[iv->id].sts[stschan]) && (statusMi == 3) && (mPayload[iv->id].sts[stschan] != 3)))
                    ) {
-                    iv->lastAlarm[stschan] = alarm_t(prntsts, mPayload[iv->id].ts,mPayload[iv->id].ts);
+                    iv->lastAlarm[stschan] = alarm_t(prntsts, mPayload[iv->id].ts,0);
                     iv->alarmCnt = iv->type == INV_TYPE_2CH ? 3 : 5;
-                    iv->alarmLastId = iv->alarmMesIndex;
                 }
 
+                iv->alarmLastId = prntsts; //iv->alarmMesIndex;
+
                 mPayload[iv->id].sts[stschan] = statusMi;
+                stsok = false;
+                if (iv->alarmCnt > 1) { //more than one channel
+                    for (uint8_t ch = 0; ch < (iv->alarmCnt); ++ch) { //start with 1
+                        if (mPayload[iv->id].sts[ch] == 3) {
+                            stsok = true;
+                            break;
+                        }
+                    }
+                }
                 if (mSerialDebug) {
                     DPRINT(DBG_WARN, F("New state on CH"));
                     DBGPRINT(String(stschan)); DBGPRINT(F(" ("));
@@ -490,9 +508,9 @@ class MiPayload {
                 }
             }
 
-            if ( !mPayload[iv->id].sts[0] || prntsts < mPayload[iv->id].sts[0] ) {
-                mPayload[iv->id].sts[0] = prntsts;
+            if (!stsok) {
                 iv->setValue(iv->getPosByChFld(0, FLD_EVT, rec), rec, prntsts);
+                iv->lastAlarm[0] = alarm_t(prntsts, mPayload[iv->id].ts, 0);
             }
 
             if (iv->alarmMesIndex < rec->record[iv->getPosByChFld(0, FLD_EVT, rec)]) {
@@ -502,18 +520,7 @@ class MiPayload {
                     DBGPRINT(F("alarm ID incremented to "));
                     DBGPRINTLN(String(iv->alarmMesIndex));
                 }
-                iv->lastAlarm[0] = alarm_t(prntsts, mPayload[iv->id].ts, mPayload[iv->id].ts);
             }
-            /*if(AlarmData == mPayload[iv->id].txCmd) {
-                                uint8_t i = 0;
-                                while(1) {
-                                    if(0 == iv->parseAlarmLog(i++, payload, payloadLen))
-                                        break;
-                                    if (NULL != mCbAlarm)
-                                        (mCbAlarm)(iv);
-                                    yield();
-                                }
-                            }*/
         }
 
         void miDataDecode(Inverter<> *iv, packet_t *p) {
@@ -522,8 +529,8 @@ class MiPayload {
             mPayload[iv->id].gotFragment = true;
             mPayload[iv->id].multi_parts += 4;
 
-            uint8_t datachan = ( p->packet[0] == 0x89 || p->packet[0] == (0x36 + ALL_FRAMES) ) ? CH1 :
-                           ( p->packet[0] == 0x91 || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
+            uint8_t datachan = ( p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES) || p->packet[0] == (MI_REQ_4CH + ALL_FRAMES) ) ? CH1 :
+                           ( p->packet[0] == (MI_REQ_CH2 + ALL_FRAMES) || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
                            p->packet[0] == (0x38 + ALL_FRAMES) ? CH3 :
                            CH4;
             // count in RF_communication_protocol.xlsx is with offset = -1
@@ -540,6 +547,7 @@ class MiPayload {
             yield();
             iv->setValue(iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[21] << 8) + p->packet[22])/10);
             iv->setValue(iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(iv, datachan)));
+            mPayload[iv->id].rssi[(datachan-1)] = p->rssi;
 
             if ( datachan < 3 ) {
                 mPayload[iv->id].dataAB[datachan] = true;
@@ -548,7 +556,7 @@ class MiPayload {
                 mPayload[iv->id].dataAB[CH0] = true;
             }
 
-            if (p->packet[0] >= (0x36 + ALL_FRAMES) ) {
+            if (p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES) ) {
                 /*For MI1500:
                 if (MI1500) {
                   STAT = (uint8_t)(p->packet[25] );
@@ -572,8 +580,10 @@ class MiPayload {
             if ( mPayload[iv->id].complete )
                 return; //if we got second message as well in repreated attempt
             mPayload[iv->id].complete = true;
-            DPRINT_IVID(DBG_INFO, iv->id);
-            DBGPRINTLN(F("got all msgs"));
+            if (mSerialDebug) {
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINTLN(F("got all msgs"));
+            }
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
 
@@ -587,6 +597,14 @@ class MiPayload {
             }
             ac_pow = (int) (ac_pow*9.5);
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
+            int8_t rssi = -127;
+            for (uint8_t i = 0; i < 4; i++) {
+                // get best RSSI
+                if(mPayload[iv->id].rssi[i] > rssi)
+                    rssi = mPayload[iv->id].rssi[i];
+                yield();
+            }
+            iv->rssi = rssi;
 
             iv->doCalculations();
              // update status state-machine,
@@ -609,14 +627,14 @@ class MiPayload {
             if(!*complete) {
                 DPRINTLN(DBG_VERBOSE, F("incomlete, txCmd is 0x") + String(txCmd, HEX));
                 //we got some delayed status msgs?!?
-                if ((txCmd == 0x09) || (txCmd == 0x11)) {
+                if ((txCmd == MI_REQ_CH1) || (txCmd == MI_REQ_CH2)) {
                     if (mPayload[iv->id].stsAB[CH0] && mPayload[iv->id].dataAB[CH0]) {
                       miComplete(iv);
                       return true;
                     }
                     return false;
                 }
-                if (txCmd >= 0x36 && txCmd <= 0x39) {
+                if (txCmd >= MI_REQ_4CH && txCmd <= 0x39) {
                     return false;
                 }
                 if (txCmd == 0x0f) {  //hw info request, at least hw part nr. and version have to be there...
@@ -751,6 +769,38 @@ const byteAssign_t InfoAssignment[] = {
                 mPayload[iv->id].requested= false;
                 iv->radioStatistics.rxSuccess++;
             }
+            if (mHighPrioIv == NULL)
+                mHighPrioIv = iv;
+        }
+
+        void miGPFDecode(Inverter<> *iv, packet_t *p ) {
+            mPayload[iv->id].gotFragment = true;
+            mPayload[iv->id].gotGPF = true;
+
+            record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+            rec->ts = mPayload[iv->id].ts;
+            iv->setValue(2, rec, (uint32_t) (((p->packet[10] << 8) | p->packet[11]))); //FLD_GRID_PROFILE_CODE
+            iv->setValue(3, rec, (uint32_t) (((p->packet[12] << 8) | p->packet[13]))); //FLD_GRID_PROFILE_VERSION
+            iv->setQueuedCmdFinished();
+            iv->radioStatistics.rxSuccess++;
+
+/* according to xlsx (different start byte -1!)
+ Polling Grid-connected Protection Parameter File Command - Receipt
+ byte[10]               ST1 indicates the status of the grid-connected protection file. ST1=1 indicates the default grid-connected protection file, ST=2 indicates that the grid-connected protection file is configured and normal, ST=3 indicates that the grid-connected protection file cannot be recognized, ST=4 indicates that the grid-connected protection file is damaged
+ byte[11]	 byte[12]   CountryStd variable indicates the national standard code of the grid-connected protection file
+ byte[13]	 byte[14]   Version indicates the version of the grid-connected protection file
+ byte[15]	 byte[16]
+*/
+            if(mSerialDebug) {
+                DPRINT(DBG_INFO,F("ST1 "));
+                DBGPRINTLN(String(p->packet[9]));
+                DPRINT(DBG_INFO,F("CountryStd "));
+                DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                DPRINT(DBG_INFO,F("Version "));
+                DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+            }
+            if (mHighPrioIv == NULL)
+                mHighPrioIv = iv;
         }
 
         void reset(uint8_t id, bool setTxTmo = true, bool clrSts = false) {
@@ -770,13 +820,12 @@ const byteAssign_t InfoAssignment[] = {
             mPayload[id].txCmd       = 0;
             mPayload[id].requested   = false;
             mPayload[id].ts          = *mTimestamp;
-            mPayload[id].sts[0]      = 0;
             if (clrSts) {                    // only clear channel states at startup
+                mPayload[id].sts[0]      = 0;
                 mPayload[id].sts[CH1]    = 0;
                 mPayload[id].sts[CH2]    = 0;
                 mPayload[id].sts[CH3]    = 0;
                 mPayload[id].sts[CH4]    = 0;
-                mPayload[id].sts[5]      = 0; //remember last summarized state
             }
         }
 
