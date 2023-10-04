@@ -71,11 +71,11 @@ void app::setup() {
         });
     }
 
-    mPayload.setup(this, &mSys, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.setup(this, &mSys, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
     mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     if (mConfig->nrf.enabled) {
-        mMiPayload.setup(this, &mSys, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+        mMiPayload.setup(this, &mSys, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     }

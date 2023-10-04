@@ -82,7 +82,6 @@ typedef struct {
 typedef struct {
     bool enabled;
     uint16_t sendInterval;
-    uint8_t maxRetransPerPyld;
     uint8_t pinCs;
     uint8_t pinCe;
     uint8_t pinIrq;
@@ -385,7 +384,6 @@ class settings {
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
             mCfg.nrf.sendInterval      = SEND_INTERVAL;
-            mCfg.nrf.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
             mCfg.nrf.pinIrq            = DEF_NRF_IRQ_PIN;
@@ -502,7 +500,6 @@ class settings {
         void jsonNrf(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("intvl")]     = mCfg.nrf.sendInterval;
-                obj[F("maxRetry")]  = mCfg.nrf.maxRetransPerPyld;
                 obj[F("cs")]        = mCfg.nrf.pinCs;
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
@@ -513,7 +510,6 @@ class settings {
                 obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
-                getVal<uint8_t>(obj, F("maxRetry"), &mCfg.nrf.maxRetransPerPyld);
                 getVal<uint8_t>(obj, F("cs"), &mCfg.nrf.pinCs);
                 getVal<uint8_t>(obj, F("ce"), &mCfg.nrf.pinCe);
                 getVal<uint8_t>(obj, F("irq"), &mCfg.nrf.pinIrq);

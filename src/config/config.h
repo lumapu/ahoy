@@ -149,7 +149,7 @@
 #define SERIAL_INTERVAL         5
 
 // default send interval
-#define SEND_INTERVAL           30
+#define SEND_INTERVAL           15
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16
@@ -159,9 +159,6 @@
 
 // maximum total payload buffers (must be greater than the number of received frame fragments)
 #define MAX_PAYLOAD_ENTRIES     10
-
-// maximum requests for retransmits per payload (per inverter)
-#define DEF_MAX_RETRANS_PER_PYLD 5
 
 // number of seconds since last successful response, before inverter is marked inactive
 #define INVERTER_INACT_THRES_SEC    5*60

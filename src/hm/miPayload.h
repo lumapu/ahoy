@@ -44,10 +44,10 @@ class MiPayload {
     public:
         MiPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
-            mMaxRetrans = maxRetransmits;
+            mMaxRetrans = 5;
             mTimestamp  = timestamp;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 reset(i, false, true);

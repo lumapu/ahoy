@@ -527,8 +527,6 @@ class Web {
 
             if (request->arg("invInterval") != "")
                 mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
-            if (request->arg("invRetry") != "")
-                mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");

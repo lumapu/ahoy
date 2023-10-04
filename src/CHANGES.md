@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.7.66 - 2023-10-04
+* prepared PA-Level for CMT
+* removed settings for number of retransmits, its fixed to `5` now
+* added parentheses to have a excactly defined behaviour
+
 ## 0.7.65 - 2023-10-02
 * MI control command review #1197
 

@@ -356,7 +356,6 @@ class RestApi {
                 }
             }
             obj[F("interval")]          = String(mConfig->nrf.sendInterval);
-            obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
