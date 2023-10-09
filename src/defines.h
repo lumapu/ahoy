@@ -21,6 +21,7 @@ typedef struct {
     uint8_t len;
     int8_t rssi;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
+    //uint32_t millis;
 } packet_t;
 
 typedef enum {

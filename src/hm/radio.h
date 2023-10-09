@@ -23,6 +23,7 @@ class Radio {
     public:
         virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
+        virtual bool loop(void) = 0;
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -51,6 +52,9 @@ class Radio {
             }
             sendPacket(iv, 24, isRetransmit);
         }
+
+    public:
+        std::queue<packet_t> mBufCtrl;
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;

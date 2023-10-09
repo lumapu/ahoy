@@ -59,26 +59,29 @@ void app::setup() {
         #endif
     #endif /* defined(ETHERNET) */
 
+    mCommunication.setup(&mTimestamp);
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         mSys.addInverter(i, [this](Inverter<> *iv) {
+            // will be only called for valid inverters
             if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
                 iv->radio = &mNrfRadio;
             #if defined(ESP32)
             else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 iv->radio = &mCmtRadio;
             #endif
+            mCommunication.add(iv, 0x01, false);
         });
     }
 
-    mPayload.setup(this, &mSys, &mTimestamp);
+    /*mPayload.setup(this, &mSys, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
     mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     if (mConfig->nrf.enabled) {
         mMiPayload.setup(this, &mSys, &mTimestamp);
         mMiPayload.enableSerialDebug(mConfig->serial.debug);
         mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    }
+    }*/
 
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
@@ -91,8 +94,8 @@ void app::setup() {
     if (mMqttEnabled) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
-        mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
+        //mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
+        //mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
     #endif
     setupLed();
@@ -103,8 +106,10 @@ void app::setup() {
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
+    #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
         mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mTimestamp);
+    #endif
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
@@ -120,7 +125,9 @@ void app::loop(void) {
     ah::Scheduler::loop();
     bool processPayload = false;
 
-    if (mNrfRadio.loop() && mConfig->nrf.enabled) {
+    mCommunication.loop();
+
+    /*if (mNrfRadio.loop() && mConfig->nrf.enabled) {
         while (!mNrfRadio.mBufCtrl.empty()) {
             packet_t *p = &mNrfRadio.mBufCtrl.front();
             if (mConfig->serial.debug) {
@@ -178,7 +185,7 @@ void app::loop(void) {
         mPayload.process(true);
 
     mPayload.loop();
-    mMiPayload.loop();
+    mMiPayload.loop();*/
 
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
@@ -208,8 +215,10 @@ void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
+    #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
+    #endif
     every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
@@ -391,7 +400,7 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(mConfig->nrf.enabled) {
+    /*if(mConfig->nrf.enabled) {
         if(!mNrfRadio.isChipConnected()) {
             DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         }
@@ -437,7 +446,7 @@ void app::tickSend(void) {
         if (mConfig->serial.debug)
             DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
     }
-    yield();
+    yield();*/
 
     updateLed();
 }

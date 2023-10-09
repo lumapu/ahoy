@@ -25,6 +25,7 @@
 #include "utils/scheduler.h"
 #include "web/RestApi.h"
 #include "web/web.h"
+#include "hm/Communication.h"
 #if defined(ETHERNET)
     #include "eth/ahoyeth.h"
 #else /* defined(ETHERNET) */
@@ -52,9 +53,11 @@ typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
 
 // PLUGINS
+#if defined(PLUGIN_DISPLAY)
 #include "plugins/Display/Display.h"
 #include "plugins/Display/Display_data.h"
 typedef Display<HmSystemType, HmRadio<>> DisplayType;
+#endif
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -258,8 +261,10 @@ class app : public IApp, public ah::Scheduler {
             if (mMqttEnabled)
                 mMqtt.payloadEventListener(cmd, iv);
             #endif
+            #if defined(PLUGIN_DISPLAY)
             if(mConfig->plugin.display.type != 0)
                mDisplay.payloadEventListener(cmd);
+            #endif
            updateLed();
         }
 
@@ -302,6 +307,7 @@ class app : public IApp, public ah::Scheduler {
 
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
+        Communication mCommunication;
 
         bool mShowRebootRequest;
         bool mIVCommunicationOn;
@@ -344,8 +350,10 @@ class app : public IApp, public ah::Scheduler {
         uint32_t mSunrise, mSunset;
 
         // plugins
+        #if defined(PLUGIN_DISPLAY)
         DisplayType mDisplay;
         DisplayData mDispData;
+        #endif
 };
 
 #endif /*__APP_H__*/

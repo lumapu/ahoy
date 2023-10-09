@@ -238,8 +238,6 @@ class HmRadio : public Radio {
             return mNrf24.isPVariant();
         }
 
-        std::queue<packet_t> mBufCtrl;
-
     private:
         inline bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;

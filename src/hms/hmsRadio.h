@@ -78,8 +78,6 @@ class CmtRadio : public Radio {
             return true;
         }
 
-        std::queue<packet_t> mBufCtrl;
-
     private:
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
             updateCrcs(&len, appendCrc16);
