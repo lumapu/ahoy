@@ -70,7 +70,9 @@ void app::setup() {
             else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 iv->radio = &mCmtRadio;
             #endif
-            mCommunication.add(iv, 0x01, false);
+            mCommunication.add(iv, 0x01);
+            mCommunication.add(iv, 0x05);
+            mCommunication.add(iv, 0x0b);
         });
     }
 

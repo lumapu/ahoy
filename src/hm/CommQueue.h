@@ -15,13 +15,13 @@ class CommQueue {
     public:
         CommQueue() {}
 
-        void addImportant(Inverter<> *iv, uint8_t cmd, bool delIfFailed = true) {
+        void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
             dec(&mRdPtr);
-            mQueue[mRdPtr] = queue_s(iv, cmd, delIfFailed);
+            mQueue[mRdPtr] = queue_s(iv, cmd, delOnPop);
         }
 
-        void add(Inverter<> *iv, uint8_t cmd, bool delIfFailed = true) {
-            mQueue[mWrPtr] = queue_s(iv, cmd, delIfFailed);
+        void add(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
+            mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop);
             inc(&mWrPtr);
         }
 
@@ -30,12 +30,11 @@ class CommQueue {
             Inverter<> *iv;
             uint8_t cmd;
             uint8_t attempts;
-            bool delIfFailed;
-            bool done;
+            bool delOnPop;
             uint32_t ts;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool d) :
-                iv(i), cmd(c), attempts(5), done(false), ts(0), delIfFailed(d) {}
+                iv(i), cmd(c), attempts(5), ts(0), delOnPop(d) {}
         };
 
     protected:
@@ -52,9 +51,11 @@ class CommQueue {
             cb(true, &mQueue[mRdPtr]);
         }
 
-        void pop(void) {
-            if(!mQueue[mRdPtr].delIfFailed)
+        void pop(bool force = false) {
+            if(!mQueue[mRdPtr].delOnPop && !force) {
+                mQueue[mRdPtr].attempts = 5;
                 add(mQueue[mRdPtr]); // add to the end again
+            }
             inc(&mRdPtr);
         }
 
@@ -62,8 +63,9 @@ class CommQueue {
             mQueue[mRdPtr].ts = *ts;
         }
 
-        void setDone(void) {
-            mQueue[mRdPtr].done = true;
+        void setAttempt(void) {
+            if(mQueue[mRdPtr].attempts)
+                mQueue[mRdPtr].attempts--;
         }
 
         void inc(uint8_t *ptr) {
