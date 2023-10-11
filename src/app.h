@@ -176,8 +176,8 @@ class app : public IApp, public ah::Scheduler {
             if(mIVCommunicationOn) { // only send commands if communication is enabled
                 if (iv->ivGen == IV_MI)
                     mMiPayload.ivSendHighPrio(iv);
-                else
-                    mPayload.ivSendHighPrio(iv);
+                //else
+                //    mPayload.ivSendHighPrio(iv);
             }
         }
 
@@ -319,7 +319,7 @@ class app : public IApp, public ah::Scheduler {
         #endif /* defined(ETHERNET) */
         WebType mWeb;
         RestApiType mApi;
-        PayloadType mPayload;
+        //PayloadType mPayload;
         MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
         #if !defined(ETHERNET)

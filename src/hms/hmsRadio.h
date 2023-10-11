@@ -29,18 +29,15 @@ class CmtRadio : public Radio {
             reset(genDtuSn);
         }
 
-        bool loop() {
+        void loop() {
             mCmt.loop();
-
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return false;
+                return;
             getRx();
             if(CMT_SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
-                return true;
-            } else
-                return false;
+            }
         }
 
         bool isConnected() {
@@ -90,6 +87,7 @@ class CmtRadio : public Radio {
             }
 
             uint8_t status = mCmt.tx(mTxBuf, len);
+            mMillis = millis();
             if(CMT_SUCCESS != status) {
                 DPRINT(DBG_WARN, F("CMT TX failed, code: "));
                 DBGPRINTLN(String(status));
@@ -144,6 +142,7 @@ class CmtRadio : public Radio {
 
         inline void getRx(void) {
             packet_t p;
+            p.millis = millis() - mMillis;
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
@@ -152,6 +151,7 @@ class CmtRadio : public Radio {
         CmtType mCmt;
         bool mRqstGetRx;
         bool mCmtAvail;
+        uint32_t mMillis;
 };
 
 #endif /*__HMS_RADIO_H__*/

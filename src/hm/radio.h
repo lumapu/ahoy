@@ -23,7 +23,11 @@ class Radio {
     public:
         virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
-        virtual bool loop(void) = 0;
+        virtual void loop(void) {};
+
+        bool get() {
+            return !mBufCtrl.empty();
+        }
 
         void handleIntr(void) {
             mIrqRcvd = true;

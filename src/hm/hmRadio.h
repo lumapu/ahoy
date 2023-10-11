@@ -105,9 +105,9 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
-        bool loop(void) {
+        void loop(void) {
             if (!mIrqRcvd)
-                return false; // nothing to do
+                return; // nothing to do
             mIrqRcvd = false;
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
@@ -124,7 +124,7 @@ class HmRadio : public Radio {
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
-                            return true;
+                            return;
                         }
                     }
                     yield();
@@ -137,7 +137,7 @@ class HmRadio : public Radio {
                 yield();
             }
             // not finished but time is over
-            return true;
+            return;
         }
 
         bool isChipConnected(void) {
@@ -252,6 +252,7 @@ class HmRadio : public Radio {
                     p.ch = mRfChLst[mRxChIdx];
                     p.len = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24.testRPD() ? -64 : -75;
+                    p.millis = millis() - mMillis;
                     mNrf24.read(p.packet, p.len);
                     if (p.packet[0] != 0x00) {
                         mBufCtrl.push(p);
@@ -288,6 +289,7 @@ class HmRadio : public Radio {
             mNrf24.setChannel(mRfChLst[mTxChIdx]);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
+            mMillis = millis();
 
             if(isRetransmit)
                 iv->radioStatistics.retransmits++;
@@ -303,6 +305,7 @@ class HmRadio : public Radio {
         uint8_t mRfChLst[RF_CHANNELS];
         uint8_t mTxChIdx;
         uint8_t mRxChIdx;
+        uint32_t mMillis;
 
         SPIClass* mSpi;
         RF24 mNrf24;

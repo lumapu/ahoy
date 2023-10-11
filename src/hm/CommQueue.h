@@ -51,7 +51,7 @@ class CommQueue {
             cb(true, &mQueue[mRdPtr]);
         }
 
-        void pop(bool force = false) {
+        void cmdDone(bool force = false) {
             if(!mQueue[mRdPtr].delOnPop && !force) {
                 mQueue[mRdPtr].attempts = 5;
                 add(mQueue[mRdPtr]); // add to the end again

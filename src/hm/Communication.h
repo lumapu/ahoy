@@ -23,7 +23,7 @@ class Communication : public CommQueue<> {
 
                 switch(mState) {
                     case States::RESET:
-                        lastFound = false;
+                        mMaxFrameId = 0;
                         for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
                             mLocalBuf[i].len = 0;
                         }
@@ -33,7 +33,7 @@ class Communication : public CommQueue<> {
                     case States::START:
                         setTs(mTimestamp);
                         q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
-                        mWaitTimeout = millis() + 500;
+                        mWaitTimeout = millis() + 1500;
                         setAttempt();
                         mState = States::WAIT;
                         break;
@@ -45,20 +45,29 @@ class Communication : public CommQueue<> {
                         break;
 
                     case States::CHECK_FRAMES: {
-                        if(!q->iv->radio->loop()) {
-                            pop();
+                        if(!q->iv->radio->get()) { // radio buffer empty
+                            cmdDone();
+                            DBGPRINTLN(F("request timeout"));
                             q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-                            mState = States::RESET;
-                            break; // radio buffer empty
+                            if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
+                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                                mWaitTimeout = millis() + 2000;
+                                mState = States::GAP;
+                                break;
+                            } else {
+                                mState = States::RESET;
+                                break;
+                            }
                         }
 
                         States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
                             packet_t *p = &q->iv->radio->mBufCtrl.front();
-                            q->iv->radio->mBufCtrl.pop();
 
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DPRINT(DBG_INFO, F("RX "));
+                            DBGPRINT(String(p->millis));
+                            DBGPRINT(F("ms "));
                             DBGPRINT(String(p->len));
                             DBGPRINT(F(" CH"));
                             DBGPRINT(String(p->ch));
@@ -67,29 +76,33 @@ class Communication : public CommQueue<> {
                             DBGPRINT(F("dBm | "));
                             ah::dumpBuf(p->packet, p->len);
 
-                            if(!checkIvSerial(&p->packet[1], q->iv))
-                                continue; // inverter ID incorrect
+                            if(checkIvSerial(&p->packet[1], q->iv)) {
+                                q->iv->radioStatistics.frmCnt++;
 
-                            q->iv->radioStatistics.frmCnt++;
+                                if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+                                    parseFrame(p);
+                                    nextState = States::CHECK_PACKAGE;
+                                } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) // response from dev control command
+                                    parseDevCtrl(p);
+                            }
 
-                            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                parseFrame(p);
-                                nextState = States::CHECK_PACKAGE;
-                            } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) // response from dev control command
-                                parseDevCtrl(p);
-
+                            q->iv->radio->mBufCtrl.pop();
                             yield();
                         }
                         mState = nextState;
                         }
                         break;
 
+                    case States::GAP:
+                        if(millis() < mWaitTimeout)
+                            return;
+                        mState = States::RESET;
+                        break;
+
                     case States::CHECK_PACKAGE:
-                        if(!lastFound) {
+                        if(0 == mMaxFrameId) {
                             DPRINT_IVID(DBG_WARN, q->iv->id);
-                            DBGPRINT(F("last frame "));
-                            DBGPRINT(String(mMaxFrameId+1));
-                            DBGPRINTLN(F(" missing: Request Retransmit"));
+                            DBGPRINT(F("last frame missing: request retransmit"));
 
                             q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + mMaxFrameId + 1), true);
                             setAttempt();
@@ -103,9 +116,9 @@ class Communication : public CommQueue<> {
                                 DPRINT_IVID(DBG_WARN, q->iv->id);
                                 DBGPRINT(F("frame "));
                                 DBGPRINT(String(i + 1));
-                                DBGPRINTLN(F(" missing: Request Retransmit"));
+                                DBGPRINTLN(F(" missing: request retransmit"));
 
-                                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (ALL_FRAMES + i), true);
                                 setAttempt();
                                 mWaitTimeout = millis() + 100;
                                 mState = States::WAIT;
@@ -115,7 +128,7 @@ class Communication : public CommQueue<> {
 
                         compilePayload(q);
 
-                        pop(true); // remove done request
+                        cmdDone(true); // remove done request
                         mState = States::RESET; // everything ok, next request
                         break;
                 }
@@ -139,21 +152,22 @@ class Communication : public CommQueue<> {
 
         inline void parseFrame(packet_t *p) {
             uint8_t *frameId = &p->packet[9];
-            if(0x00 == *frameId)
+            if(0x00 == *frameId) {
+                DPRINTLN(DBG_WARN, F("invalid frameId 0x00"));
                 return; // skip current packet
+            }
             if((*frameId & 0x7f) > MAX_PAYLOAD_ENTRIES) {
-                DPRINTLN(DBG_WARN, F("local buffer to small for payload fragments!"));
+                DPRINTLN(DBG_WARN, F("local buffer to small for payload fragments"));
                 return; // local storage is to small for id
             }
 
-            if(!checkFrameCrc(p->packet, p->len))
+            if(!checkFrameCrc(p->packet, p->len)) {
+                DPRINTLN(DBG_WARN, F("frame CRC is wrong"));
                 return; // CRC8 is wrong, frame invalid
-
-            if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
-                mMaxFrameId = (*frameId & 0x7f);
-                if(*frameId > 0x81)
-                    lastFound = true;
             }
+
+            if((*frameId & ALL_FRAMES) == ALL_FRAMES)
+                mMaxFrameId = (*frameId & 0x7f);
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];
             memcpy(f->buf, &p->packet[10], p->len-11);
@@ -182,7 +196,7 @@ class Communication : public CommQueue<> {
                 if(q->attempts == 0) {
                     DBGPRINTLN(F("-> Fail"));
                     q->iv->radioStatistics.rxFail++; // got fragments but not complete response
-                    pop();
+                    cmdDone();
                 } else
                     DBGPRINTLN(F("-> complete retransmit"));
                 mState = States::RESET;
@@ -220,7 +234,7 @@ class Communication : public CommQueue<> {
 
     private:
         enum class States : uint8_t {
-            RESET, START, WAIT, CHECK_FRAMES, CHECK_PACKAGE
+            RESET, START, WAIT, CHECK_FRAMES, CHECK_PACKAGE, GAP
         };
 
         typedef struct {
@@ -234,7 +248,6 @@ class Communication : public CommQueue<> {
         uint32_t *mTimestamp;
         uint32_t mWaitTimeout;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
-        bool lastFound;
         uint8_t mMaxFrameId;
         uint8_t mPayload[150];
 };

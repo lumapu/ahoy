@@ -70,9 +70,6 @@ void app::setup() {
             else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 iv->radio = &mCmtRadio;
             #endif
-            mCommunication.add(iv, 0x01);
-            mCommunication.add(iv, 0x05);
-            mCommunication.add(iv, 0x0b);
         });
     }
 
@@ -127,6 +124,10 @@ void app::loop(void) {
     ah::Scheduler::loop();
     bool processPayload = false;
 
+    mNrfRadio.loop();
+    #if defined(ESP32)
+    mCmtRadio.loop();
+    #endif
     mCommunication.loop();
 
     /*if (mNrfRadio.loop() && mConfig->nrf.enabled) {
@@ -199,7 +200,8 @@ void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
-    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    //every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    once(std::bind(&app::tickSend, this), 20, "tSend");
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -290,7 +292,7 @@ void app::tickNtpUpdate(void) {
         // immediately start communicating
         if (isOK && mSendFirst) {
             mSendFirst = false;
-            once(std::bind(&app::tickSend, this), 2, "senOn");
+            //once(std::bind(&app::tickSend, this), 2, "senOn");
         }
 
         mMqttReconnect = false;
@@ -402,6 +404,17 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
+    DPRINTLN(DBG_INFO, "tickSend");
+
+    for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+        Inverter<> *iv = mSys.getInverterByPos(i);
+        if(NULL != iv) {
+            mCommunication.add(iv, 0x01);
+            mCommunication.add(iv, 0x05);
+            mCommunication.add(iv, 0x0b, false);
+        };
+    }
+
     /*if(mConfig->nrf.enabled) {
         if(!mNrfRadio.isChipConnected()) {
             DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
@@ -448,9 +461,9 @@ void app::tickSend(void) {
         if (mConfig->serial.debug)
             DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
     }
-    yield();*/
+    yield();
 
-    updateLed();
+    updateLed();*/
 }
 
 //-----------------------------------------------------------------------------
