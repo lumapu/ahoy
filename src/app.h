@@ -12,12 +12,11 @@
 #include "config/settings.h"
 #include "defines.h"
 #include "appInterface.h"
-#include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
 #include "hms/hmsRadio.h"
-#include "hm/hmPayload.h"
-#include "hm/miPayload.h"
+//#include "hm/hmPayload.h"
+//#include "hm/miPayload.h"
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 #include "utils/crc.h"
@@ -42,8 +41,8 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef HmPayload<HmSystemType> PayloadType;
-typedef MiPayload<HmSystemType> MiPayloadType;
+//typedef HmPayload<HmSystemType> PayloadType;
+//typedef MiPayload<HmSystemType> MiPayloadType;
 #ifdef ESP32
 typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 #endif
@@ -174,8 +173,8 @@ class app : public IApp, public ah::Scheduler {
 
         void ivSendHighPrio(Inverter<> *iv) {
             if(mIVCommunicationOn) { // only send commands if communication is enabled
-                if (iv->ivGen == IV_MI)
-                    mMiPayload.ivSendHighPrio(iv);
+                //if (iv->ivGen == IV_MI)
+                //    mMiPayload.ivSendHighPrio(iv);
                 //else
                 //    mPayload.ivSendHighPrio(iv);
             }
@@ -320,7 +319,7 @@ class app : public IApp, public ah::Scheduler {
         WebType mWeb;
         RestApiType mApi;
         //PayloadType mPayload;
-        MiPayloadType mMiPayload;
+        //MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
         #if !defined(ETHERNET)
         //Improv mImprov;

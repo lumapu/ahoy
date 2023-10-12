@@ -60,6 +60,7 @@ void app::setup() {
     #endif /* defined(ETHERNET) */
 
     mCommunication.setup(&mTimestamp);
+    mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         mSys.addInverter(i, [this](Inverter<> *iv) {
@@ -93,6 +94,7 @@ void app::setup() {
     if (mMqttEnabled) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
+        mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
         //mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
         //mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
@@ -122,7 +124,7 @@ void app::setup() {
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     ah::Scheduler::loop();
-    bool processPayload = false;
+    //bool processPayload = false;
 
     mNrfRadio.loop();
     #if defined(ESP32)
@@ -403,8 +405,6 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    DPRINTLN(DBG_INFO, "tickSend");
-
     if(!mIVCommunicationOn) {
         DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
         return;
@@ -413,8 +413,11 @@ void app::tickSend(void) {
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL != iv) {
-            iv->tickSend([this, iv](uint8_t cmd) {
-                mCommunication.add(iv, cmd);
+            iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
+                if(isDevControl)
+                    mCommunication.addImportant(iv, cmd);
+                else
+                    mCommunication.add(iv, cmd);
             });
         };
     }

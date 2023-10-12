@@ -77,6 +77,15 @@ enum {CH0 = 0, CH1, CH2, CH3, CH4, CH5, CH6};
 
 enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
 
+#define WORK_FREQ_KHZ       865000 // desired work frequency between DTU and
+                                   // inverter in kHz
+#define HOY_BASE_FREQ_KHZ   860000 // in kHz
+#define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
+#define HOY_BOOT_FREQ_KHZ   868000 // Hoymiles boot/init frequency after power up inverter
+#define FREQ_STEP_KHZ       250    // channel step size in kHz
+#define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
+#define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
+
 
 typedef struct {
     uint8_t    fieldId; // field id

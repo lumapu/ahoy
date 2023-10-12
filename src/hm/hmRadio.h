@@ -118,8 +118,8 @@ class HmRadio : public Radio {
             mNrf24.startListening();
 
             uint32_t startMicros = micros();
-            uint32_t loopMillis = millis();
-            while (millis()-loopMillis < 400) {
+            uint32_t loopMillis = millis() + 400;
+            while (millis() < loopMillis) {
                 while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
@@ -277,7 +277,8 @@ class HmRadio : public Radio {
             mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
 
             if(mSerialDebug) {
-                DPRINT(DBG_INFO, F("TX "));
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
@@ -290,11 +291,6 @@ class HmRadio : public Radio {
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
-
-            if(isRetransmit)
-                iv->radioStatistics.retransmits++;
-            else
-                iv->radioStatistics.txCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

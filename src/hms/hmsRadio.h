@@ -80,7 +80,8 @@ class CmtRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             if(mSerialDebug) {
-                DPRINT(DBG_INFO, F("TX "));
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINT(F("TX "));
                 DBGPRINT(String(mCmt.getFreqKhz()/1000.0f));
                 DBGPRINT(F("Mhz | "));
                 ah::dumpBuf(mTxBuf, len);
@@ -94,11 +95,6 @@ class CmtRadio : public Radio {
                 if(CMT_ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
-
-            if(isRetransmit)
-                iv->radioStatistics.retransmits++;
-            else
-                iv->radioStatistics.txCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

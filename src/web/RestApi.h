@@ -683,7 +683,7 @@ class RestApi {
             }
             else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
-                iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
+                //iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
             }
             else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";

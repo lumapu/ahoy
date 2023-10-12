@@ -8,15 +8,6 @@
 
 #include "esp32_3wSpi.h"
 
-#define WORK_FREQ_KHZ       865000 // desired work frequency between DTU and
-                                   // inverter in kHz
-#define HOY_BASE_FREQ_KHZ   860000 // in kHz
-#define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
-#define HOY_BOOT_FREQ_KHZ   868000 // Hoymiles boot/init frequency after power up inverter
-#define FREQ_STEP_KHZ       250    // channel step size in kHz
-#define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
-#define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
-
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
 #define CMT2300A_MASK_CFG_RETAIN        0x10

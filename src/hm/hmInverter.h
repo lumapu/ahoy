@@ -181,18 +181,23 @@ class Inverter {
             // TODO: cleanup
         }
 
-        void tickSend(std::function<void(uint8_t cmd)> cb) {
-            if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                cb(AlarmData);                // get last alarms
+        void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
+            if(mDevControlRequest) {
+                cb(devControlCmd, true);
+                mDevControlRequest = false;
+            } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                cb(AlarmData, false);                // get last alarms
             else if(0 == getFwVersion())
-                cb(InverterDevInform_All);    // get firmware version
+                cb(InverterDevInform_All, false);    // get firmware version
             else if(0 == getHwVersion())
-                cb(InverterDevInform_Simple); // get hardware version
+                cb(InverterDevInform_Simple, false); // get hardware version
+            else if(actPowerLimit == 0xffff)
+                cb(SystemConfigPara, false);         // power limit info
             else
-                cb(RealTimeRunData_Debug);    // get live data
+                cb(RealTimeRunData_Debug, false);    // get live data
         }
 
-        template <typename T>
+        /*template <typename T>
         void enqueCommand(uint8_t cmd) {
            _commandQueue.push(std::make_shared<T>(cmd));
            DPRINT_IVID(DBG_INFO, id);
@@ -240,7 +245,7 @@ class Inverter {
                     enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }
             return _commandQueue.front().get()->getCmd();
-        }
+        }*/
 
 
         void init(void) {
@@ -305,10 +310,6 @@ class Inverter {
             mDevControlRequest = false;
         }
 
-        inline bool getDevControlRequest() {
-            return mDevControlRequest;
-        }
-
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:addValue"));
             if(NULL != rec) {
@@ -350,7 +351,7 @@ class Inverter {
 
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
-                            enqueCommand<InfoCommand>(AlarmData);
+                            //enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
                 }
@@ -727,7 +728,7 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
-        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
+        //std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
         bool          mDevControlRequest; // true if change needed
 };
 

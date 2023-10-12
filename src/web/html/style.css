@@ -24,6 +24,11 @@ input[type=file] {
     width: 100%;
 }
 
+textarea {
+    color: var(--fg);
+    background-color: var(--bg);
+}
+
 #live span {
     color: var(--fg2);
 }
