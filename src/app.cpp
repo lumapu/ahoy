@@ -200,8 +200,7 @@ void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
-    //every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
-    once(std::bind(&app::tickSend, this), 20, "tSend");
+    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -406,12 +405,17 @@ void app::tickMidnight(void) {
 void app::tickSend(void) {
     DPRINTLN(DBG_INFO, "tickSend");
 
+    if(!mIVCommunicationOn) {
+        DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
+        return;
+    }
+
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL != iv) {
-            mCommunication.add(iv, 0x01);
-            mCommunication.add(iv, 0x05);
-            mCommunication.add(iv, 0x0b, false);
+            iv->tickSend([this, iv](uint8_t cmd) {
+                mCommunication.add(iv, cmd);
+            });
         };
     }
 

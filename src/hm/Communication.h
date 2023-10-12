@@ -16,6 +16,11 @@ class Communication : public CommQueue<> {
             mTimestamp = timestamp;
         }
 
+        void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
+            mState = States::RESET; // cancel current operation
+            CommQueue::addImportant(iv, cmd, delOnPop);
+        }
+
         void loop() {
             get([this](bool valid, const queue_s *q) {
                 if(!valid)
@@ -23,6 +28,8 @@ class Communication : public CommQueue<> {
 
                 switch(mState) {
                     case States::RESET:
+                        if(millis() < mWaitTimeout)
+                            return;
                         mMaxFrameId = 0;
                         for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
                             mLocalBuf[i].len = 0;
@@ -32,8 +39,13 @@ class Communication : public CommQueue<> {
 
                     case States::START:
                         setTs(mTimestamp);
-                        q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
-                        mWaitTimeout = millis() + 1500;
+                        if(q->isDevControl) {
+                            if(ActivePowerContr == q->cmd)
+                                q->iv->powerLimitAck = false;
+                            q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
+                        } else
+                            q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
+                        mWaitTimeout = millis() + 500;
                         setAttempt();
                         mState = States::WAIT;
                         break;
@@ -51,13 +63,10 @@ class Communication : public CommQueue<> {
                             q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                             if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
-                                mWaitTimeout = millis() + 2000;
-                                mState = States::GAP;
-                                break;
-                            } else {
-                                mState = States::RESET;
-                                break;
+                                mWaitTimeout = millis() + 1000;
                             }
+                            mState = States::RESET;
+                            break;
                         }
 
                         States nextState = States::RESET;
@@ -83,7 +92,7 @@ class Communication : public CommQueue<> {
                                     parseFrame(p);
                                     nextState = States::CHECK_PACKAGE;
                                 } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) // response from dev control command
-                                    parseDevCtrl(p);
+                                    parseDevCtrl(p, q);
                             }
 
                             q->iv->radio->mBufCtrl.pop();
@@ -91,12 +100,6 @@ class Communication : public CommQueue<> {
                         }
                         mState = nextState;
                         }
-                        break;
-
-                    case States::GAP:
-                        if(millis() < mWaitTimeout)
-                            return;
-                        mState = States::RESET;
                         break;
 
                     case States::CHECK_PACKAGE:
@@ -175,8 +178,22 @@ class Communication : public CommQueue<> {
             f->rssi = p->rssi;
         }
 
-        inline void parseDevCtrl(packet_t *p) {
-            //if((p->packet[12] == ActivePowerContr) && (p->packet[13] == 0x00))
+        inline void parseDevCtrl(packet_t *p, const queue_s *q) {
+            if((p->packet[12] != ActivePowerContr) || (p->packet[13] != 0x00))
+                return;
+            bool accepted = true;
+            if((p->packet[10] == 0x00) && (p->packet[11] == 0x00))
+                q->iv->powerLimitAck = true;
+            else
+                accepted = false;
+
+            DPRINT_IVID(DBG_INFO, q->iv->id);
+            DBGPRINT(F(" has "));
+            if(!accepted) DBGPRINT(F("not "));
+            DBGPRINT(F("accepted power limit set point "));
+            DBGPRINT(String(q->iv->powerLimit[0]));
+            DBGPRINT(F(" with PowerLimitControl "));
+            DBGPRINTLN(String(q->iv->powerLimit[1]));
         }
 
         inline void compilePayload(const queue_s *q) {
@@ -234,7 +251,7 @@ class Communication : public CommQueue<> {
 
     private:
         enum class States : uint8_t {
-            RESET, START, WAIT, CHECK_FRAMES, CHECK_PACKAGE, GAP
+            RESET, START, WAIT, CHECK_FRAMES, CHECK_PACKAGE
         };
 
         typedef struct {
@@ -246,7 +263,7 @@ class Communication : public CommQueue<> {
     private:
         States mState = States::RESET;
         uint32_t *mTimestamp;
-        uint32_t mWaitTimeout;
+        uint32_t mWaitTimeout = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
         uint8_t mMaxFrameId;
         uint8_t mPayload[150];

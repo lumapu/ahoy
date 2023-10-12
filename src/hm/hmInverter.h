@@ -15,6 +15,7 @@
 #include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
+#include <functional>
 #include "../config/settings.h"
 
 #include "radio.h"
@@ -178,6 +179,17 @@ class Inverter {
 
         ~Inverter() {
             // TODO: cleanup
+        }
+
+        void tickSend(std::function<void(uint8_t cmd)> cb) {
+            if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                cb(AlarmData);                // get last alarms
+            else if(0 == getFwVersion())
+                cb(InverterDevInform_All);    // get firmware version
+            else if(0 == getHwVersion())
+                cb(InverterDevInform_Simple); // get hardware version
+            else
+                cb(RealTimeRunData_Debug);    // get live data
         }
 
         template <typename T>

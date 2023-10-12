@@ -17,11 +17,11 @@ class CommQueue {
 
         void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
             dec(&mRdPtr);
-            mQueue[mRdPtr] = queue_s(iv, cmd, delOnPop);
+            mQueue[mRdPtr] = queue_s(iv, cmd, delOnPop, true);
         }
 
         void add(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
-            mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop);
+            mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop, false);
             inc(&mWrPtr);
         }
 
@@ -31,10 +31,11 @@ class CommQueue {
             uint8_t cmd;
             uint8_t attempts;
             bool delOnPop;
+            bool isDevControl;
             uint32_t ts;
             queue_s() {}
-            queue_s(Inverter<> *i, uint8_t c, bool d) :
-                iv(i), cmd(c), attempts(5), ts(0), delOnPop(d) {}
+            queue_s(Inverter<> *i, uint8_t c, bool d, bool dev) :
+                iv(i), cmd(c), attempts(5), ts(0), delOnPop(d), isDevControl(dev) {}
         };
 
     protected:
