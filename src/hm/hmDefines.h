@@ -346,4 +346,8 @@ const devInfo_t devInfo[] = {
     { 0x103331, 2250 }
 };
 
+#define MI_REQ_CH1 0x09
+#define MI_REQ_CH2 0x11
+#define MI_REQ_4CH 0x36
+
 #endif /*__HM_DEFINES_H__*/

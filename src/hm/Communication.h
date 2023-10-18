@@ -50,12 +50,32 @@ class Communication : public CommQueue<> {
 
                     case States::START:
                         setTs(mTimestamp);
-                        if(q->isDevControl) {
-                            if(ActivePowerContr == q->cmd)
-                                q->iv->powerLimitAck = false;
-                            q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
-                        } else
-                            q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
+                        if (q->iv->ivGen != IV_MI) {
+                            if(q->isDevControl) {
+                                    if(ActivePowerContr == q->cmd)
+                                        q->iv->powerLimitAck = false;
+                                    q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
+                                } else
+                                    q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
+                        } else { // IV_MI
+                            if(q->isDevControl) {
+                                    if(ActivePowerContr == q->cmd)
+                                        q->iv->powerLimitAck = false;
+                                    q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false, false, (q->iv->powerLimit[1] == RelativNonPersistent) ? 0 : q->iv->getMaxPower());
+                                } else {
+                                    //uint8_t cmd = q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1;
+                                    //q->iv->radio->sendCmdPacket(q->iv, cmd, cmd, false, false);
+                                    q->iv->radio->sendCmdPacket(q->iv, q->cmd, q->cmd, false, false);
+                                    //if (q->iv->radio->mSerialDebug) {
+                                        DPRINT_IVID(DBG_INFO, q->iv->id);
+                                        DBGPRINT(F("legacy cmd 0x"));
+                                        DBGHEXLN(q->cmd);
+                                    //}
+                                    //mPayload[q->iv->id]. = cmd;
+                                }
+
+                        }
+
                         q->iv->radioStatistics.txCnt++;
                         mWaitTimeout = millis() + 500;
                         setAttempt();
@@ -71,7 +91,8 @@ class Communication : public CommQueue<> {
                     case States::CHECK_FRAMES: {
                         if(!q->iv->radio->get()) { // radio buffer empty
                             cmdDone();
-                            DPRINT(DBG_INFO, F("request timeout: "));
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(millis() - mWaitTimeout + 500));
                             DBGPRINTLN(F("ms"));
 
@@ -93,7 +114,7 @@ class Communication : public CommQueue<> {
                             DBGPRINT(String(p->millis));
                             DBGPRINT(F("ms "));
                             DBGPRINT(String(p->len));
-                            if(IV_HM == q->iv->ivGen) {
+                            if((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen)) {
                                 DBGPRINT(F(" CH"));
                                 DBGPRINT(String(p->ch));
                             }
