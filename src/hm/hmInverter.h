@@ -617,9 +617,9 @@ class Inverter {
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
             uint32_t start, endTime;
 
-            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
-                startTimeOffset = 12 * 60 * 60;
-            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+            // check if is AM or PM
+            startTimeOffset = ((wCode >> 13) & 0x01) * 12 * 60 * 60;
+            if (((wCode >> 12) & 0x03) != 0)
                 endTimeOffset = 12 * 60 * 60;
 
             start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;

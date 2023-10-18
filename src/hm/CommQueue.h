@@ -44,6 +44,13 @@ class CommQueue {
             inc(&mWrPtr);
         }
 
+        void add(const queue_s *q, bool rstAttempts = false) {
+            mQueue[mWrPtr] = *q;
+            if(rstAttempts)
+                mQueue[mWrPtr].attempts = 5;
+            inc(&mWrPtr);
+        }
+
         void get(std::function<void(bool valid, const queue_s *q)> cb) {
             if(mRdPtr == mWrPtr) {
                 cb(false, &mQueue[mRdPtr]); // empty

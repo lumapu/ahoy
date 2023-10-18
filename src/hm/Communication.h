@@ -112,7 +112,8 @@ class Communication : public CommQueue<> {
                                     parseDevCtrl(p, q);
                                     cmdDone(true); // remove done request
                                 }
-                            }
+                            } else
+                                DPRINTLN(DBG_WARN, F("Inverter serial does not match"));
 
                             q->iv->radio->mBufCtrl.pop();
                             yield();
@@ -126,7 +127,7 @@ class Communication : public CommQueue<> {
                             setAttempt();
 
                             DPRINT_IVID(DBG_WARN, q->iv->id);
-                            DBGPRINT(F("last frame missing: request retransmit ("));
+                            DBGPRINT(F("frame missing: request retransmit ("));
                             DBGPRINT(String(q->attempts));
                             DBGPRINTLN(F(" attempts left)"));
 
@@ -136,11 +137,17 @@ class Communication : public CommQueue<> {
                                     break;
                             }
 
-                            q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (ALL_FRAMES + i), true);
-                            q->iv->radioStatistics.retransmits++;
-                            mWaitTimeout = millis() + 500;
-                            mState = States::WAIT;
-                            break;
+                            if(q->attempts) {
+                                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (ALL_FRAMES + i), true);
+                                q->iv->radioStatistics.retransmits++;
+                                mWaitTimeout = millis() + 500;
+                                mState = States::WAIT;
+                            } else {
+                                add(q, true);
+                                cmdDone(q);
+                                mState = States::RESET;
+                            }
+                            return;
                         }
 
                         for(uint8_t i = 0; i < mMaxFrameId; i++) {
@@ -154,10 +161,16 @@ class Communication : public CommQueue<> {
                                 DBGPRINT(String(q->attempts));
                                 DBGPRINTLN(F(" attempts left)"));
 
-                                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (ALL_FRAMES + i), true);
-                                q->iv->radioStatistics.retransmits++;
-                                mWaitTimeout = millis() + 500;
-                                mState = States::WAIT;
+                                if(q->attempts) {
+                                    q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (ALL_FRAMES + i), true);
+                                    q->iv->radioStatistics.retransmits++;
+                                    mWaitTimeout = millis() + 500;
+                                    mState = States::WAIT;
+                                } else {
+                                    add(q, true);
+                                    cmdDone(q);
+                                    mState = States::RESET;
+                                }
                                 return;
                             }
                         }

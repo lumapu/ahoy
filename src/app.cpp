@@ -413,13 +413,15 @@ void app::tickSend(void) {
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL != iv) {
-            iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
-                if(isDevControl)
-                    mCommunication.addImportant(iv, cmd);
-                else
-                    mCommunication.add(iv, cmd);
-            });
-        };
+            if(iv->config->enabled) {
+                iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
+                    if(isDevControl)
+                        mCommunication.addImportant(iv, cmd);
+                    else
+                        mCommunication.add(iv, cmd);
+                });
+            }
+        }
     }
 
     /*if(mConfig->nrf.enabled) {
@@ -468,9 +470,9 @@ void app::tickSend(void) {
         if (mConfig->serial.debug)
             DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
     }
-    yield();
+    yield();*/
 
-    updateLed();*/
+    updateLed();
 }
 
 //-----------------------------------------------------------------------------
