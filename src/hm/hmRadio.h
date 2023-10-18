@@ -146,7 +146,8 @@ class HmRadio : public Radio {
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
-            DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
+            DPRINT_IVID(DBG_INFO,iv->id);
+            DBGPRINT(F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;

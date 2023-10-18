@@ -202,7 +202,8 @@ class Inverter {
                     mDevControlRequest = false;
                 }
                 else if(0 == getFwVersion())
-                    cb(InverterDevInform_All, false);    // get firmware version
+                    cb(MI_REQ_CH1, false);    // get firmware version
+                    //cb(InverterDevInform_All, false);    // get firmware version
                 else {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
