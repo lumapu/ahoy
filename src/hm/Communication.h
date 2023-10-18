@@ -71,7 +71,8 @@ class Communication : public CommQueue<> {
                     case States::CHECK_FRAMES: {
                         if(!q->iv->radio->get()) { // radio buffer empty
                             cmdDone();
-                            DPRINT(DBG_INFO, F("request timeout: "));
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(millis() - mWaitTimeout + 500));
                             DBGPRINTLN(F("ms"));
 
@@ -90,11 +91,15 @@ class Communication : public CommQueue<> {
 
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("RX "));
+                            if(p->millis < 100)
+                                DBGPRINT(F("0"));
                             DBGPRINT(String(p->millis));
                             DBGPRINT(F("ms "));
                             DBGPRINT(String(p->len));
-                            if(IV_HM == q->iv->ivGen) {
+                            if((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen)) {
                                 DBGPRINT(F(" CH"));
+                                if(3 == p->ch)
+                                    DBGPRINT(F("0"));
                                 DBGPRINT(String(p->ch));
                             }
                             DBGPRINT(F(", "));
@@ -111,6 +116,8 @@ class Communication : public CommQueue<> {
                                 } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                     parseDevCtrl(p, q);
                                     cmdDone(true); // remove done request
+                                } else if(IV_MI == q->iv->ivGen) {
+                                    parseMiFrame(p, q);
                                 }
                             } else
                                 DPRINTLN(DBG_WARN, F("Inverter serial does not match"));
@@ -225,6 +232,74 @@ class Communication : public CommQueue<> {
             memcpy(f->buf, &p->packet[10], p->len-11);
             f->len  = p->len - 11;
             f->rssi = p->rssi;
+        }
+
+        inline void parseMiFrame(packet_t *p, const queue_s *q) {
+            if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
+                || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
+                || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))
+                    && (p->packet[0] < (0x39 + SINGLE_FRAME))
+                    && (q->cmd != 0x0f))) {
+                // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
+                //mPayload[iv->id].txId = p->packet[0];
+                miDataDecode(p, q);
+
+            }
+        }
+
+        inline void miDataDecode(packet_t *p, const queue_s *q) {
+            record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the parser
+            //rec->ts = mPayload[iv->id].ts;
+            //mPayload[iv->id].gotFragment = true;
+            //mPayload[iv->id].multi_parts += 4;
+
+            uint8_t datachan = ( p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES) || p->packet[0] == (MI_REQ_4CH + ALL_FRAMES) ) ? CH1 :
+                           ( p->packet[0] == (MI_REQ_CH2 + ALL_FRAMES) || p->packet[0] == (0x37 + ALL_FRAMES) ) ? CH2 :
+                           p->packet[0] == (0x38 + ALL_FRAMES) ? CH3 :
+                           CH4;
+            // count in RF_communication_protocol.xlsx is with offset = -1
+            q->iv->setValue(q->iv->getPosByChFld(datachan, FLD_UDC, rec), rec, (float)((p->packet[9] << 8) + p->packet[10])/10);
+
+            q->iv->setValue(q->iv->getPosByChFld(datachan, FLD_IDC, rec), rec, (float)((p->packet[11] << 8) + p->packet[12])/10);
+
+            q->iv->setValue(q->iv->getPosByChFld(0, FLD_UAC, rec), rec, (float)((p->packet[13] << 8) + p->packet[14])/10);
+
+            q->iv->setValue(q->iv->getPosByChFld(0, FLD_F, rec), rec, (float) ((p->packet[15] << 8) + p->packet[16])/100);
+            q->iv->setValue(q->iv->getPosByChFld(datachan, FLD_PDC, rec), rec, (float)((p->packet[17] << 8) + p->packet[18])/10);
+
+            q->iv->setValue(q->iv->getPosByChFld(datachan, FLD_YD, rec), rec, (float)((p->packet[19] << 8) + p->packet[20])/1);
+
+            q->iv->setValue(q->iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[21] << 8) + p->packet[22])/10);
+            q->iv->setValue(q->iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(q->iv, datachan)));
+            //mPayload[q->iv->id].rssi[(datachan-1)] = p->rssi;
+
+            /*if ( datachan < 3 ) {
+                mPayload[q->iv->id].dataAB[datachan] = true;
+            }
+            if ( !mPayload[iv->id].dataAB[CH0] && mPayload[iv->id].dataAB[CH1] && mPayload[iv->id].dataAB[CH2] ) {
+                mPayload[iv->id].dataAB[CH0] = true;
+            }*/
+
+            if (p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES) ) {
+                /*For MI1500:
+                if (MI1500) {
+                  STAT = (uint8_t)(p->packet[25] );
+                  FCNT = (uint8_t)(p->packet[26]);
+                  FCODE = (uint8_t)(p->packet[27]);
+                }*/
+                //miStsConsolidate(iv, datachan, rec, p->packet[23], p->packet[24]);
+
+                if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
+                    addImportant(q->iv, (q->cmd + 1));
+                    //mPayload[iv->id].txCmd++;
+                    //mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
+                    //mPayload[iv->id].complete = false;
+                } else {
+                    //miComplete(iv);
+                }
+            } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && q->iv->type == INV_TYPE_2CH ) {
+                addImportant(q->iv, MI_REQ_CH2);
+            }
         }
 
         inline void parseDevCtrl(packet_t *p, const queue_s *q) {

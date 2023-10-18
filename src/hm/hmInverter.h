@@ -182,19 +182,35 @@ class Inverter {
         }
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
-            if(mDevControlRequest) {
-                cb(devControlCmd, true);
-                mDevControlRequest = false;
-            } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                cb(AlarmData, false);                // get last alarms
-            else if(0 == getFwVersion())
-                cb(InverterDevInform_All, false);    // get firmware version
-            else if(0 == getHwVersion())
-                cb(InverterDevInform_Simple, false); // get hardware version
-            else if(actPowerLimit == 0xffff)
-                cb(SystemConfigPara, false);         // power limit info
-            else
-                cb(RealTimeRunData_Debug, false);    // get live data
+            if (IV_MI != ivGen) {
+                if(mDevControlRequest) {
+                    cb(devControlCmd, true);
+                    mDevControlRequest = false;
+                } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                    cb(AlarmData, false);                // get last alarms
+                else if(0 == getFwVersion())
+                    cb(InverterDevInform_All, false);    // get firmware version
+                else if(0 == getHwVersion())
+                    cb(InverterDevInform_Simple, false); // get hardware version
+                else if(actPowerLimit == 0xffff)
+                    cb(SystemConfigPara, false);         // power limit info
+                else
+                    cb(RealTimeRunData_Debug, false);    // get live data
+            } else {
+                if(mDevControlRequest) {
+                    cb(devControlCmd, true);
+                    mDevControlRequest = false;
+                } else if(0 == getFwVersion())
+                    cb(MI_REQ_CH1, false);    // get firmware version
+                    //cb(InverterDevInform_All, false);    // get firmware version
+                else {
+                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                        cb(InverterDevInform_All, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    else
+                        cb(type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, false);
+                }
+            }
         }
 
         /*template <typename T>
