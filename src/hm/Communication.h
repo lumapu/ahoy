@@ -465,7 +465,7 @@ const byteAssign_t InfoAssignment[] = {
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
             }
-            cmdDone(q);
+            //cmdDone(q);
         }
 
         inline void miNextRequest(uint8_t cmd, const queue_s *q) {
