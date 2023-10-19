@@ -579,10 +579,15 @@ const byteAssign_t InfoAssignment[] = {
 
             //preliminary AC calculation...
             float ac_pow = 0;
-            for(uint8_t i = 1; i <= iv->channels; i++) {
-                if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1)) {
-                    uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
-                    ac_pow += iv->getValue(pos, rec);
+            if (iv->type == INV_TYPE_1CH) {
+                if ((!iv->lastAlarm[0].code) || (iv->lastAlarm[0].code == 1))
+                    ac_pow += iv->getValue(iv->getPosByChFld(1, FLD_PDC, rec), rec);
+            } else {
+                for(uint8_t i = 1; i <= iv->channels; i++) {
+                    if ((!iv->lastAlarm[i].code) || (iv->lastAlarm[i].code == 1)) {
+                        uint8_t pos = iv->getPosByChFld(i, FLD_PDC, rec);
+                        ac_pow += iv->getValue(pos, rec);
+                    }
                 }
             }
             ac_pow = (int) (ac_pow*9.5);
