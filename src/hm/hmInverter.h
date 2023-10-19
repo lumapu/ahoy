@@ -182,7 +182,7 @@ class Inverter {
         }
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
-            if (ivGen != IV_MI) {
+            if (IV_MI != ivGen) {
                 if(mDevControlRequest) {
                     cb(devControlCmd, true);
                     mDevControlRequest = false;
@@ -197,17 +197,23 @@ class Inverter {
                 else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
+                /*if (cmd == 0x01) { //0x1 for HM-types
+                    cmd2 = 0x00;
+                    cmd  = 0x0f;                              // for MI, these seem to make part of polling the device software and hardware version number command
+                }
+                if (cmd == SystemConfigPara ) { // 0x05 for HM-types
+                    cmd2 = 0x00;
+                    cmd  = 0x10;                // legacy GPF request
+                */
                 if(mDevControlRequest) {
                     cb(devControlCmd, true);
                     mDevControlRequest = false;
-                }
-                else if(0 == getFwVersion())
-                    cb(MI_REQ_CH1, false);    // get firmware version
-                    //cb(InverterDevInform_All, false);    // get firmware version
+                } else if(0 == getFwVersion())
+                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
                 else {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
-                        cb(InverterDevInform_All, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
                     else
                         cb(type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, false);
                 }
@@ -634,9 +640,9 @@ class Inverter {
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
             uint32_t start, endTime;
 
-            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
-                startTimeOffset = 12 * 60 * 60;
-            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+            // check if is AM or PM
+            startTimeOffset = ((wCode >> 13) & 0x01) * 12 * 60 * 60;
+            if (((wCode >> 12) & 0x03) != 0)
                 endTimeOffset = 12 * 60 * 60;
 
             start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;

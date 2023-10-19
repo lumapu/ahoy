@@ -117,24 +117,24 @@ class HmRadio : public Radio {
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
-            uint32_t startMicros = micros();
+            uint32_t startMicros = micros() + 5110;
             uint32_t loopMillis = millis() + 400;
             while (millis() < loopMillis) {
-                while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
+                while (micros() < startMicros) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
-                        if (getReceived()) {        // everything received
+
+                        if (getReceived())         // everything received
                             return;
-                        }
+
                     }
                     yield();
                 }
                 // switch to next RX channel
-                startMicros = micros();
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                yield();
+                startMicros = micros() + 5000;
             }
             // not finished but time is over
             return;
@@ -145,13 +145,13 @@ class HmRadio : public Radio {
             return mNrf24.isChipConnected();
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
-            DPRINT_IVID(DBG_INFO,iv->id);
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+            DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
-            if (isNoMI) {
+            if (IV_MI != iv->ivGen) {
                 mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
                 mTxBuf[cnt++] = 0x00;
                 if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
@@ -161,6 +161,7 @@ class HmRadio : public Radio {
                     mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
                 }
             } else { //MI 2nd gen. specific
+                uint16_t powerMax = ((iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
                 switch (cmd) {
                     case Restart:
                     case TurnOn:
@@ -226,7 +227,7 @@ class HmRadio : public Radio {
                 }
                 cnt++;
             }
-            sendPacket(iv, cnt, isRetransmit, isNoMI);
+            sendPacket(iv, cnt, isRetransmit, (IV_MI != iv->ivGen));
         }
 
         uint8_t getDataRate(void) {
@@ -296,6 +297,10 @@ class HmRadio : public Radio {
 
         uint64_t getIvId(Inverter<> *iv) {
             return iv->radioId.u64;
+        }
+
+        uint8_t getIvGen(Inverter<> *iv) {
+            return iv->ivGen;
         }
 
         uint64_t DTU_RADIO_ID;

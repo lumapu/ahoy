@@ -36,7 +36,7 @@ typedef struct {
 } miPayload_t;
 
 
-//typedef std::function<void(uint8_t, Inverter<> *)> miPayloadListenerType;
+typedef std::function<void(uint8_t, Inverter<> *)> miPayloadListenerType;
 
 
 template<class HMSYSTEM>

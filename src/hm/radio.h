@@ -21,7 +21,7 @@ class Inverter;
 // abstract radio interface
 class Radio {
     public:
-        virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) = 0;
+        virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual void loop(void) {};
 
@@ -42,7 +42,15 @@ class Radio {
             sendPacket(iv, 10, isRetransmit, appendCrc16);
         }
 
-        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) {
+        void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
+            if(IV_MI == getIvGen(iv)) {
+                DPRINT_IVID(DBG_INFO, getIvId(iv));
+                DBGPRINT(F("legacy cmd 0x"));
+                DBGHEXLN(cmd);
+                sendCmdPacket(iv, cmd, cmd, false, false);
+                return;
+            }
+
             if(mSerialDebug) {
                 DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
@@ -63,6 +71,7 @@ class Radio {
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;
         virtual uint64_t getIvId(Inverter<> *iv) = 0;
+        virtual uint8_t getIvGen(Inverter<> *iv) = 0;
 
         void initPacket(uint64_t ivId, uint8_t mid, uint8_t pid) {
             mTxBuf[0] = mid;
