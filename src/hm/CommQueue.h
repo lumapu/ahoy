@@ -30,9 +30,9 @@ class CommQueue {
             Inverter<> *iv;
             uint8_t cmd;
             uint8_t attempts;
+            uint32_t ts;
             bool delOnPop;
             bool isDevControl;
-            uint32_t ts;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool d, bool dev) :
                 iv(i), cmd(c), attempts(5), ts(0), delOnPop(d), isDevControl(dev) {}

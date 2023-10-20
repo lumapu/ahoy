@@ -201,14 +201,13 @@ class Inverter {
                     cb(devControlCmd, true);
                     mDevControlRequest = false;
                 } else if(0 == getFwVersion())
-                    cb(MI_REQ_CH1, false);    // get firmware version
-                    //cb(InverterDevInform_All, false);    // get firmware version
+                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
                 else {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
-                        cb(InverterDevInform_All, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
                     else
-                        cb(type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, false);
+                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
             }
         }
