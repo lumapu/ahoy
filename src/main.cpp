@@ -5,7 +5,6 @@
 
 #include "utils/dbg.h"
 #include "app.h"
-#include "config/config.h"
 
 
 app myApp;

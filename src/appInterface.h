@@ -51,8 +51,9 @@ class IApp {
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 #endif
-
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
+
+        virtual void getNrfRadioCounters (uint32_t *sendCnt, uint32_t *retransmits) = 0;
 };
 
 #endif /*__IAPP_H__*/

@@ -7,8 +7,6 @@
 #define __HM_SYSTEM_H__
 
 #include "hmInverter.h"
-#include "hmRadio.h"
-#include "../config/settings.h"
 
 #define AC_POWER_PATH AHOY_HIST_PATH "/ac_power"
 #define AC_FORMAT_FILE_NAME "%02u_%02u_%04u.bin"
@@ -16,19 +14,11 @@
 template <uint8_t MAX_INVERTER=3, class INVERTERTYPE=Inverter<float>>
 class HmSystem {
     public:
-        HmRadio<> Radio;
-
         HmSystem() {}
 
-        void setup() {
-            mNumInv = 0;
-            Radio.setup();
-        }
-
-        void setup(uint32_t *timestamp, uint8_t ampPwr, uint8_t irqPin, uint8_t cePin, uint8_t csPin, uint8_t sclkPin, uint8_t mosiPin, uint8_t misoPin) {
+        void setup(uint32_t *timestamp) {
             mTimestamp = timestamp;
             mNumInv = 0;
-            Radio.setup(ampPwr, irqPin, cePin, csPin, sclkPin, mosiPin, misoPin);
         }
 
         void addInverters(cfgInst_t *config) {
@@ -129,10 +119,6 @@ class HmSystem {
             return MAX_NUM_INVERTERS;
         }
 
-        void enableDebug() {
-            Radio.enableDebug();
-        }
-
         //-----------------------------------------------------------------------------
         void cleanup_history ()
         {
@@ -155,6 +141,10 @@ class HmSystem {
 #endif
                 char cur_file_name[sizeof (AC_FORMAT_FILE_NAME)];
 
+                if (mAcPowerFile) {
+                    mAcPowerFile.close ();
+                    mAcPowerFile = (File)NULL;
+                }
                 time_today = gTimezone.toLocal (time_today);
                 snprintf (cur_file_name, sizeof (cur_file_name), AC_FORMAT_FILE_NAME,
                     day(time_today), month(time_today), year(time_today));
@@ -176,7 +166,7 @@ class HmSystem {
 
                             file.close ();
                             if (path) {
-                                DPRINTLN (DBG_INFO, "Remove file " + String (name) +
+                                DPRINTLN (DBG_INFO, "Remove file " + String (fullName) +
                                     ", Size: " + String (ac_power_dir.size()));
                                 LittleFS.remove (path);
                                 free (path);
@@ -191,7 +181,7 @@ class HmSystem {
                 ac_power_dir = LittleFS.openDir (AC_POWER_PATH);
                 while (ac_power_dir.next()) {
                     if (ac_power_dir.fileName() != cur_file_name) {
-                        DPRINTLN (DBG_INFO, "Remove file " + ac_power_dir.fileName() +
+                        DPRINTLN (DBG_INFO, "Remove file " AC_POWER_PATH "/" + ac_power_dir.fileName() +
                             ", Size: " + String (ac_power_dir.fileSize()));
                         LittleFS.remove (AC_POWER_PATH "/" + ac_power_dir.fileName());
                     }
@@ -298,24 +288,23 @@ class HmSystem {
                         /* calc sum of all inverter averages for last interval */
                         /* and cleanup all counts and sums */
                         uint16_t pac_average = get_pac_average(true);
-                        File file;
                         char file_name[sizeof (AC_POWER_PATH) + sizeof (AC_FORMAT_FILE_NAME)];
 
                         snprintf (file_name, sizeof (file_name), AC_POWER_PATH "/" AC_FORMAT_FILE_NAME,
                             day (time_today), month (time_today), year (time_today));
                         // append last average
-                        if ((file = LittleFS.open (file_name, "a"))) {
+                        if (mAcPowerFile || (mAcPowerFile = LittleFS.open (file_name, "a"))) {
                             unsigned char buf[4];
                             buf[0] = cur_pac_index & 0xff;
                             buf[1] = cur_pac_index >> 8;
                             buf[2] = pac_average & 0xff;
                             buf[3] = pac_average >> 8;
-                            if (file.write (buf, sizeof (buf)) != sizeof (buf)) {
+                            if (mAcPowerFile.write (buf, sizeof (buf)) != sizeof (buf)) {
                                 DPRINTLN (DBG_WARN, "handle_pac, failed_to_write");
                             } else {
                                 DPRINTLN (DBG_DEBUG, "handle_pac, write to " + String(file_name));
+                                mAcPowerFile.flush ();
                             }
-                            file.close ();
                         } else {
                             DPRINTLN (DBG_WARN, "handle_pac, failed to open");
                         }
@@ -339,6 +328,7 @@ class HmSystem {
         uint8_t mNumInv;
         uint32_t *mTimestamp;
         uint16_t cur_pac_index;
+        File mAcPowerFile;
 
 };
 

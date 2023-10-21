@@ -38,14 +38,15 @@ typedef struct {
 typedef std::function<void(uint8_t)> miPayloadListenerType;
 
 
-template<class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class MiPayload {
     public:
         MiPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
+            mRadio      = radio;
             mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
@@ -126,7 +127,7 @@ class MiPayload {
                     DBGPRINT(F(" power limit "));
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
+                mRadio->sendControlPacket(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, false, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 mPayload[iv->id].limitrequested = true;
@@ -151,11 +152,11 @@ class MiPayload {
                 if (cmd == 0x01 || cmd == SystemConfigPara ) { //0x1 and 0x05 for HM-types
                     cmd  = 0x0f;                              // for MI, these seem to make part of the  Polling the device software and hardware version number command
                     cmd2 = cmd == SystemConfigPara ? 0x01 : 0x00;  //perhaps we can only try to get second frame?
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                    mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                         iv->getNextTxChanIndex(), cmd, cmd2, false, false);
                 } else {
-                    //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(), iv->getNextTxChanIndex(), cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
-                    mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                    //mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getType(), iv->getNextTxChanIndex(), cmd2, mPayload[iv->id].ts, iv->alarmMesIndex, false, cmd);
+                    mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                         iv->getNextTxChanIndex(), cmd, cmd2, false, false);
                 };
 
@@ -360,7 +361,7 @@ const byteAssign_t InfoAssignment[] = {
                     DPRINT(DBG_INFO, F("Payload ("));
                     DBGPRINT(String(payloadLen));
                     DBGPRINT("): ");
-                    mSys->Radio.dumpBuf(payload, payloadLen);
+                    mRadio->dumpBuf(payload, payloadLen);
                 }
 
                 if (NULL == rec) {
@@ -454,7 +455,7 @@ const byteAssign_t InfoAssignment[] = {
                             } else if(iv->devControlCmd == ActivePowerContr) {
                                 DPRINT_IVID(DBG_INFO, iv->id);
                                 DBGPRINTLN(F("retransmit power limit"));
-                                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
+                                mRadio->sendControlPacket(iv->radioId.u64, iv->getType(),
                                     iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, true, false);
                             } else {
                                 uint8_t cmd = mPayload[iv->id].txCmd;
@@ -466,7 +467,7 @@ const byteAssign_t InfoAssignment[] = {
                                         mPayload[iv->id].retransmits = mMaxRetrans;
                                     } else if ( cmd == 0x0f ) {
                                         //hard/firmware request
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                                        mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                                             iv->getNextTxChanIndex(), 0x0f, 0x00, true, false);
                                         //iv->setQueuedCmdFinished();
                                         //cmd = iv->getQueuedCmd();
@@ -504,7 +505,7 @@ const byteAssign_t InfoAssignment[] = {
                                         }
                                         DBGPRINT(F(" 0x"));
                                         DBGHEXLN(cmd);
-                                        mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                                        mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                                             iv->getNextTxChanIndex(), cmd, cmd, true, false);
                                         //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType, iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, true, cmd);
                                         yield();
@@ -523,7 +524,7 @@ const byteAssign_t InfoAssignment[] = {
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
                             //mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(), iv->getNextTxChanIndex(), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
-                            mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                            mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                                 iv->getNextTxChanIndex(), mPayload[iv->id].txCmd, mPayload[iv->id].txCmd, false, false);
                         }
                     }
@@ -858,6 +859,7 @@ const byteAssign_t InfoAssignment[] = {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;

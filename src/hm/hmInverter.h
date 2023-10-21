@@ -787,6 +787,7 @@ class Inverter {
         {
             // design: every day a new start
             alarmCode = 0;
+            alarmMesIndex = 0;
             recordMeas.ts = 0;
             recordInfo.ts = 0;
             recordConfig.ts = 0;

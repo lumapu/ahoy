@@ -8,14 +8,13 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <RF24.h>
-#include <RF24_config.h>
 
 #include "appInterface.h"
 #include "config/settings.h"
 #include "defines.h"
-#include "hm/hmPayload.h"
 #include "hm/hmSystem.h"
+#include "hm/hmRadio.h"
+#include "hm/hmPayload.h"
 #include "hm/miPayload.h"
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
@@ -33,10 +32,10 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-typedef HmPayload<HmSystemType> PayloadType;
-typedef MiPayload<HmSystemType> MiPayloadType;
+typedef HmPayload<HmSystemType, HmRadio<>> PayloadType;
+typedef MiPayload<HmSystemType, HmRadio<>> MiPayloadType;
 typedef Web<HmSystemType> WebType;
-typedef RestApi<HmSystemType> RestApiType;
+typedef RestApi<HmSystemType, HmRadio<>> RestApiType;
 #ifdef AHOY_MQTT_SUPPORT
 typedef PubMqtt<HmSystemType> PubMqttType;
 #endif
@@ -59,7 +58,7 @@ class app : public IApp, public ah::Scheduler {
         void regularTickers(void);
 
         void handleIntr(void) {
-            mSys.Radio.handleIntr();
+            mNrfRadio.handleIntr();
         }
 
         uint32_t getUptime() {
@@ -171,6 +170,11 @@ class app : public IApp, public ah::Scheduler {
             return mWeb.isProtected(request);
         }
 
+        void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) {
+            *sendCnt = mNrfRadio.mSendCnt;
+            *retransmits = mNrfRadio.mRetransmits;
+        }
+
         uint8_t getIrqPin(void) {
             return mConfig->nrf.pinIrq;
         }
@@ -207,6 +211,7 @@ class app : public IApp, public ah::Scheduler {
         void show_history (String path);
 
         HmSystemType mSys;
+        HmRadio<> mNrfRadio;
 
     private:
         typedef std::function<void()> innerLoopCb;

@@ -44,8 +44,9 @@ void app::setup() {
     else
         DBGPRINTLN(F("false"));
 
-    mSys.enableDebug();
-    mSys.setup(&mTimestamp, mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+    mSys.setup(&mTimestamp);
+    mNrfRadio.setup (mConfig->nrf.amplifierPower, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+    mNrfRadio.enableDebug();
 
 #if defined(AP_ONLY)
     mInnerLoopCb = std::bind(&app::loopStandard, this);
@@ -60,11 +61,11 @@ void app::setup() {
 
     mSys.addInverters(&mConfig->inst);
 
-    mPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mPayload.enableSerialDebug(mConfig->serial.debug);
     mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
-    mMiPayload.setup(this, &mSys, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
+    mMiPayload.setup(this, &mSys, &mNrfRadio, &mStat, mConfig->nrf.maxRetransPerPyld, &mTimestamp);
     mMiPayload.enableSerialDebug(mConfig->serial.debug);
     mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1));
 
@@ -73,7 +74,7 @@ void app::setup() {
     // DBGPRINTLN(String(ESP.getHeapFragmentation()));
     // DBGPRINTLN(String(ESP.getMaxFreeBlockSize()));
 
-    if (!mSys.Radio.isChipConnected())
+    if (!mNrfRadio.isChipConnected())
         DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
 
     // when WiFi is in client mode, then enable mqtt broker
@@ -91,7 +92,7 @@ void app::setup() {
     mWeb.setup(this, &mSys, mConfig);
     mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
 
-    mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
+    mApi.setup(this, &mSys, &mNrfRadio, mWeb.getWebSrvPtr(), mConfig);
 
     // Plugins
     if (mConfig->plugin.display.type != 0)
@@ -118,20 +119,19 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::loopStandard(void) {
-    ah::Scheduler::loop();
+    if (!mNrfRadio.isTxPending ()) {
+        ah::Scheduler::loop();
+    }
 
-    if (mSys.Radio.loop()) {
-        while (!mSys.Radio.mBufCtrl.empty()) {
-            packet_t *p = &mSys.Radio.mBufCtrl.front();
+    if (mNrfRadio.loop()) {
+        while (!mNrfRadio.mBufCtrl.empty()) {
+            packet_t *p = &mNrfRadio.mBufCtrl.front();
 
             if (mConfig->serial.debug) {
 #ifdef undef
-                DPRINT(DBG_INFO, F("RX "));
-                DBGPRINT(String(p->len));
-                DBGPRINT(F("B Ch"));
-                DBGPRINT(String(p->ch));
-                DBGPRINT(F(" | "));
-                mSys.Radio.dumpBuf(p->packet, p->len);
+                DPRINT(DBG_INFO, "RX (Ch " + String (p->ch) + "), " +
+                    String (p->len) + " Bytes, ");
+                mNrfRadio.dumpBuf(p->packet, p->len);
 #else
                 DPRINTLN(DBG_INFO, "RX (Ch " + String (p->ch) + "), " +
                     String (p->len) + " Bytes");
@@ -147,7 +147,7 @@ void app::loopStandard(void) {
                 else
                     mMiPayload.add(iv, p);
             }
-            mSys.Radio.mBufCtrl.pop();
+            mNrfRadio.mBufCtrl.pop();
             yield();
         }
         mPayload.process(true);
@@ -157,16 +157,77 @@ void app::loopStandard(void) {
     mMiPayload.loop();
 
 #ifdef AHOY_MQTT_SUPPORT
-    if (mMqttEnabled) {
+    if (!mNrfRadio.isTxPending () && mMqttEnabled) {
         mMqtt.loop();
     }
 #endif
 
 #ifdef AHOY_SML_OBIS_SUPPORT
-    if (mConfig->sml_obis.ir_connected) {
+    if (!mNrfRadio.isTxPending () && mConfig->sml_obis.ir_connected) {
         sml_loop ();
     }
 #endif
+
+#ifdef undef
+#define LITTLEFS_TEST_FILE_SIZE 1024 + 64 + 12
+    // testing!!!
+    uint32_t cur_uptime;
+    static uint32_t last_uptime;
+    static size_t test_size;
+    static File test_file_1, test_file_2;
+
+    if (((cur_uptime = getUptime()) > 30) && (last_uptime != cur_uptime) && (test_size < (LITTLEFS_TEST_FILE_SIZE))) {
+        FSInfo info;
+        uint32_t start_millis;
+
+        if (!last_uptime) {
+            if ((test_file_1 = LittleFS.open ("/hist/test_1.bin", "r"))) {
+                DPRINTLN (DBG_INFO, "Old File 1, size " + String (test_file_1.size()));
+                test_file_1.close();
+                test_file_1 = (File)NULL;
+            }
+            if ((test_file_2 = LittleFS.open ("/hist/test_2.bin", "r"))) {
+                DPRINTLN (DBG_INFO, "Old File 2, size " + String (test_file_2.size()));
+                test_file_2.close();
+                test_file_2 = (File)NULL;
+            }
+            LittleFS.remove ("/hist/test_1.bin");
+            LittleFS.remove ("/hist/test_2.bin");
+            //test_file_1 = LittleFS.open ("/hist/test_1.bin", "a");
+            //test_file_2 = LittleFS.open ("/hist/test_2.bin", "a");
+        }
+
+#ifdef undef
+        last_uptime = cur_uptime;
+
+        start_millis = millis();
+        if (test_file_1) {
+            test_file_1.write ("ABCD");
+            test_size = test_file_1.size ();
+            test_file_1.flush ();
+        }
+        if (test_file_2) {
+            test_file_2.write ("EFGH");
+            test_file_2.flush ();
+        }
+        LittleFS.info (info);
+        DPRINTLN (DBG_INFO, "FS Info, total " + String (info.totalBytes) +
+            ", used " + String (info.usedBytes) +
+            ", size " + String (test_size) +
+            ", time " + String (millis() - start_millis));
+#endif
+    } else if (test_size >= LITTLEFS_TEST_FILE_SIZE) {
+        if (test_file_1) {
+            test_file_1.close ();
+            test_file_1 = (File)NULL;
+        }
+        if (test_file_2) {
+            test_file_2.close ();
+            test_file_2 = (File)NULL;
+        }
+    }
+#endif
+
 }
 
 //-----------------------------------------------------------------------------
@@ -386,15 +447,15 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if (!mSys.Radio.isChipConnected()) {
+    if (!mNrfRadio.isChipConnected()) {
         DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
         return;
     }
     if (mIVCommunicationOn && mTimestamp) {
-        if (!mSys.Radio.mBufCtrl.empty()) {
+        if (!mNrfRadio.mBufCtrl.empty()) {
             if (mConfig->serial.debug) {
                 DPRINT(DBG_DEBUG, F("recbuf not empty! #"));
-                DBGPRINTLN(String(mSys.Radio.mBufCtrl.size()));
+                DBGPRINTLN(String(mNrfRadio.mBufCtrl.size()));
             }
         }
 
@@ -533,7 +594,7 @@ void app::show_history (String path)
             } else {
                 DPRINTLN (DBG_INFO, "file " + String((char *)file.name()) +
                     ", Size: " + String (file.size()));
-                check_hist_file (file); // closes file
+                // check_hist_file (file); // closes file
             }
         }
         dir.close();
@@ -545,7 +606,7 @@ void app::show_history (String path)
         } else {
             DPRINTLN (DBG_INFO, "file " + dir.fileName() +
                 ", Size: " + String (dir.fileSize()));
-            check_hist_file (dir.openFile ("r"));
+            // check_hist_file (dir.openFile ("r"));
         }
     }
 #endif

@@ -105,6 +105,7 @@ static uint32_t *obis_timestamp;
 static int obis_yield_in_all_scale, obis_yield_out_all_scale;
 static uint64_t obis_yield_in_all_value, obis_yield_out_all_value;
 static bool sml_trace_obis = false;
+static File mGridPowerFile;
 static IApp *mApp;
 
 const unsigned char version_seq[] = { SML_VERSION1_CHAR, SML_VERSION1_CHAR, SML_VERSION1_CHAR, SML_VERSION1_CHAR };
@@ -316,6 +317,10 @@ void sml_cleanup_history ()
 #endif
         char cur_file_name[sizeof (SML_OBIS_FORMAT_FILE_NAME)];
 
+        if (mGridPowerFile) {
+            mGridPowerFile.close();
+            mGridPowerFile = (File)NULL;
+        }
         time_today = gTimezone.toLocal (time_today);
         snprintf (cur_file_name, sizeof (cur_file_name), SML_OBIS_FORMAT_FILE_NAME,
             day(time_today), month (time_today), year (time_today));
@@ -352,7 +357,7 @@ void sml_cleanup_history ()
 
         while (grid_power_dir.next()) {
             if (grid_power_dir.fileName() != cur_file_name) {
-                DPRINTLN (DBG_INFO, "Remove file " + grid_power_dir.fileName() +
+                DPRINTLN (DBG_INFO, "Remove file " SML_OBIS_GRID_POWER_PATH "/" + grid_power_dir.fileName() +
                     ", Size: " + String (grid_power_dir.fileSize()));
                 LittleFS.remove (SML_OBIS_GRID_POWER_PATH "/" + grid_power_dir.fileName());
             }
@@ -586,24 +591,23 @@ void sml_handle_obis_pac (int16_t pac)
             /* calc average for last interval */
             if (obis_cur_pac_cnt) {
                 int16_t pac_average = sml_get_obis_pac_average();
-                File file;
                 char file_name[sizeof (SML_OBIS_GRID_POWER_PATH) + sizeof (SML_OBIS_FORMAT_FILE_NAME)];
 
                 snprintf (file_name, sizeof (file_name), SML_OBIS_GRID_POWER_PATH "/" SML_OBIS_FORMAT_FILE_NAME,
                     day(time_today), month(time_today), year(time_today));
                 // append last average
-                if ((file = LittleFS.open (file_name, "a"))) {
+                if (mGridPowerFile || (mGridPowerFile = LittleFS.open (file_name, "a"))) {
                     unsigned char buf[4];
                     buf[0] = obis_cur_pac_index & 0xff;
                     buf[1] = obis_cur_pac_index >> 8;
                     buf[2] = pac_average & 0xff;
                     buf[3] = pac_average >> 8;
-                    if (file.write (buf, sizeof (buf)) != sizeof (buf)) {
+                    if (mGridPowerFile.write (buf, sizeof (buf)) != sizeof (buf)) {
                         DPRINTLN (DBG_WARN, "sml_handle_obis_pac, failed_to_write");
                     } else {
                         DPRINTLN (DBG_DEBUG, "sml_handle_obis_pac, write to " + String(file_name));
+                        mGridPowerFile.flush();
                     }
-                    file.close ();
                 } else {
                     DPRINTLN (DBG_WARN, "sml_handle_obis_pac, failed to open");
                 }

@@ -575,7 +575,7 @@ class Web {
                 mConfig->serial.debug = (request->arg("serDbg") == "on");
                 mConfig->serial.showIv = (request->arg("serEn") == "on");
                 // Needed to log TX buffers to serial console
-                mSys->Radio.mSerialDebug = mConfig->serial.debug;
+                //mSys->Radio.mSerialDebug = mConfig->serial.debug;
             }
 
 #ifdef AHOY_SML_OBIS_SUPPORT
@@ -676,11 +676,14 @@ class Web {
 
                         // NRF Statistics
                         stat = mApp->getStatistics();
+                        uint32_t nrfSendCnt, nrfRetransmits;
+                        mApp->nrfGetRadioCounters (nrfSendCnt, nrfRetransmits);
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         mSys->Radio.mSendCnt);
+                        metrics += radioStatistic(F("tx_cnt"),         *nrfSendCnt);
+                        metrics += radioStatistic(F("tx_retransmits"), *nrfRetransmits);
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Start Inverter loop

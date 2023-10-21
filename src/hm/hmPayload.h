@@ -33,14 +33,15 @@ typedef std::function<void(uint8_t)> payloadListenerType;
 typedef std::function<void(uint16_t alarmCode, uint32_t start, uint32_t end)> alarmListenerType;
 
 
-template<class HMSYSTEM>
+template<class HMSYSTEM, class HMRADIO>
 class HmPayload {
     public:
         HmPayload() {}
 
-        void setup(IApp *app, HMSYSTEM *sys, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
+        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, statistics_t *stat, uint8_t maxRetransmits, uint32_t *timestamp) {
             mApp        = app;
             mSys        = sys;
+            mRadio      = radio;
             mStat       = stat;
             mMaxRetrans = maxRetransmits;
             mTimestamp  = timestamp;
@@ -158,7 +159,7 @@ class HmPayload {
                     DBGPRINTLN(String(iv->powerLimit[0]));
                 }
                 iv->mDtuTxCnt++;
-                mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
+                mRadio->sendControlPacket(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, false);
                 mPayload[iv->id].txCmd = iv->devControlCmd;
                 //iv->clearCmdQueue();
@@ -169,7 +170,7 @@ class HmPayload {
                 DBGPRINT(F("prepareDevInformCmd 0x"));
                 DBGHEXLN(cmd);
                 iv->mDtuTxCnt++;
-                mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
+                mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                     iv->getNextTxChanIndex(), cmd, mPayload[iv->id].ts, iv->alarmMesIndex, false);
                 mPayload[iv->id].txCmd = cmd;
             }
@@ -255,7 +256,7 @@ class HmPayload {
                     crcPass = build(iv->id, &pyldComplete, &Fragments);
 
                     // evaluate quality of send channel with rcv params
-                    if (retransmit && mPayload[iv->id].requested && (mPayload[iv->id].retransmits < mMaxRetrans)) {
+                    if (retransmit && mPayload[iv->id].requested && (mPayload[iv->id].retransmits <= mMaxRetrans)) {
                         iv->evalTxChanQuality (crcPass, mPayload[iv->id].retransmits,
                             Fragments, mPayload[iv->id].lastFragments);
                         DPRINT_IVID(DBG_INFO, iv->id);
@@ -271,26 +272,26 @@ class HmPayload {
                                 if (iv->devControlCmd == Restart || iv->devControlCmd == CleanState_LockAndAlarm) {
                                     // This is required to prevent retransmissions without answer.
                                     DPRINTLN(DBG_INFO, F("Prevent retransmit on Restart / CleanState_LockAndAlarm..."));
-                                    mPayload[iv->id].retransmits = mMaxRetrans;
+                                    mPayload[iv->id].retransmits = mMaxRetrans + 1;
                                 } else if(iv->devControlCmd == ActivePowerContr) {
                                     DPRINT_IVID(DBG_INFO, iv->id);
                                     DPRINTLN(DBG_INFO, F("retransmit power limit"));
                                     iv->mDtuTxCnt++;
-                                    mSys->Radio.sendControlPacket(iv->radioId.u64, iv->getType(),
+                                    mRadio->sendControlPacket(iv->radioId.u64, iv->getType(),
                                         iv->getNextTxChanIndex(), iv->devControlCmd, iv->powerLimit, true);
                                 } else {
                                     if(false == mPayload[iv->id].gotFragment) {
                                         DPRINT_IVID(DBG_WARN, iv->id);
                                         if (mPayload[iv->id].rxTmo) {
                                             DBGPRINTLN(F("nothing received"));
-                                            mPayload[iv->id].retransmits = mMaxRetrans;
+                                            mPayload[iv->id].retransmits = mMaxRetrans + 1;
                                         } else {
                                             DBGPRINTLN(F("nothing received: complete retransmit"));
                                             mPayload[iv->id].txCmd = iv->getQueuedCmd();
                                             DPRINTLN(DBG_INFO, F("(#") + String(iv->id) + F(") prepareDevInformCmd 0x") + String(mPayload[iv->id].txCmd, HEX));
 
                                             iv->mDtuTxCnt++;
-                                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
+                                            mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                                 iv->getNextTxChanIndex(), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                                         }
                                     } else {
@@ -301,7 +302,7 @@ class HmPayload {
                                                 DBGPRINT(String(i + 1));
                                                 DBGPRINTLN(F(" missing: Request Retransmit"));
                                                 iv->mDtuTxCnt++;
-                                                mSys->Radio.sendCmdPacket(iv->radioId.u64, iv->getType(),
+                                                mRadio->sendCmdPacket(iv->radioId.u64, iv->getType(),
                                                     iv->getNextTxChanIndex (), TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                                 break;  // only request retransmit one frame per loop
                                             }
@@ -323,7 +324,7 @@ class HmPayload {
                             DBGPRINT(F("prepareDevInformCmd 0x"));
                             DBGHEXLN(mPayload[iv->id].txCmd);
                             iv->mDtuTxCnt++;
-                            mSys->Radio.prepareDevInformCmd(iv->radioId.u64, iv->getType(),
+                            mRadio->prepareDevInformCmd(iv->radioId.u64, iv->getType(),
                                 iv->getNextTxChanIndex (), mPayload[iv->id].txCmd, mPayload[iv->id].ts, iv->alarmMesIndex, true);
                         } else if (false == mPayload[iv->id].gotFragment) {
                             // only if there is no sign of life
@@ -485,6 +486,7 @@ class HmPayload {
 
         IApp *mApp;
         HMSYSTEM *mSys;
+        HMRADIO *mRadio;
         statistics_t *mStat;
         uint8_t mMaxRetrans;
         uint32_t *mTimestamp;

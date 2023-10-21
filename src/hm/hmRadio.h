@@ -12,7 +12,7 @@
 #include "../config/config.h"
 #include "SPI.h"
 
-// #define AHOY_RADIO_TX_PENDING_LOOP
+#define AHOY_RADIO_TX_PENDING_LOOP
 
 #define SPI_SPEED           1000000
 
@@ -312,6 +312,14 @@ class HmRadio {
 
         bool isPVariant(void) {
             return mNrf24.isPVariant();
+        }
+
+        bool isTxPending (void) {
+#ifdef AHOY_RADIO_TX_PENDING_LOOP
+            return mTxPending;
+#else
+            return false;
+#endif
         }
 
         std::queue<packet_t> mBufCtrl;
