@@ -12,7 +12,8 @@
 
 #define MI_TIMEOUT      250
 #define DEFAULT_TIMEOUT 500
-#define MAX_BUFFER      200 //was: 150 (hardcoded)
+#define SINGLEFR_TIMEOUT 60
+#define MAX_BUFFER      250 //was: 150 (hardcoded)
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
@@ -134,7 +135,8 @@ class Communication : public CommQueue<> {
                             yield();
                         }
                         if(0 == q->attempts) {
-                            cmdDone(q);
+                            //cmdDone(q);
+                            cmdDone(true);
                             mState = States::RESET;
                         } else
                             mState = nextState;
@@ -161,11 +163,12 @@ class Communication : public CommQueue<> {
                             if(q->attempts) {
                                 q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                 q->iv->radioStatistics.retransmits++;
-                                mWaitTimeout = millis() + timeout;
+                                mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
                                 mState = States::WAIT;
                             } else {
                                 add(q, true);
-                                cmdDone(q);
+                                //cmdDone(q);
+                                cmdDone(true);
                                 mState = States::RESET;
                             }
                             return;
@@ -185,11 +188,12 @@ class Communication : public CommQueue<> {
                                 if(q->attempts) {
                                     q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                     q->iv->radioStatistics.retransmits++;
-                                    mWaitTimeout = millis() + timeout;
+                                    mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout;
                                     mState = States::WAIT;
                                 } else {
                                     add(q, true);
-                                    cmdDone(q);
+                                    //cmdDone(q);
+                                    cmdDone(true);
                                     mState = States::RESET;
                                 }
                                 return;
@@ -486,7 +490,7 @@ class Communication : public CommQueue<> {
                 multi_parts++;
             }
             if(multi_parts > 5) {
-                cmdDone(q);
+                cmdDone(true);
                 mState = States::RESET;
                 q->iv->radioStatistics.rxSuccess++;
             }
@@ -558,7 +562,6 @@ class Communication : public CommQueue<> {
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
             }
-            //cmdDone(q);
         }
 
         inline void miNextRequest(uint8_t cmd, const queue_s *q) {
@@ -578,7 +581,7 @@ class Communication : public CommQueue<> {
                 mState = States::WAIT;
             } else {
                 add(q, true);
-                cmdDone(q);
+                cmdDone();
                 mState = States::RESET;
             }
         }
@@ -607,17 +610,23 @@ class Communication : public CommQueue<> {
             bool stsok = true;
             if ( prntsts != rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)] ) { //sth.'s changed?
                 q->iv->alarmCnt = 1; // minimum...
+                stsok = false;
                 //sth is or was wrong?
                 if ( (q->iv->type != INV_TYPE_1CH) && ( (statusMi != 3)
                                                 || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
                    ) {
+                    q->iv->lastAlarm[stschan+q->iv->type==INV_TYPE_2CH ? 2: 4] = alarm_t(q->iv->lastAlarm[stschan].code, q->iv->lastAlarm[stschan].start,q->ts);
                     q->iv->lastAlarm[stschan] = alarm_t(prntsts, q->ts,0);
                     q->iv->alarmCnt = q->iv->type == INV_TYPE_2CH ? 3 : 5;
-                }
+                } else if ( (q->iv->type == INV_TYPE_1CH) && ( (statusMi != 3)
+                                                || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
+                   ) {
+                    q->iv->lastAlarm[stschan] = alarm_t(q->iv->lastAlarm[0].code, q->iv->lastAlarm[0].start,q->ts);
+                } else if (q->iv->type == INV_TYPE_1CH)
+                    stsok = true;
 
                 q->iv->alarmLastId = prntsts; //iv->alarmMesIndex;
 
-                stsok = false;
                 if (q->iv->alarmCnt > 1) { //more than one channel
                     for (uint8_t ch = 0; ch < (q->iv->alarmCnt); ++ch) { //start with 1
                         if (q->iv->lastAlarm[ch].code == 1) {
@@ -679,7 +688,9 @@ class Communication : public CommQueue<> {
 
             iv->doCalculations();
             // update status state-machine,
-            iv->isProducing();
+            if (ac_pow)
+                iv->isProducing();
+            cmdDone(true);
         }
 
     private:
