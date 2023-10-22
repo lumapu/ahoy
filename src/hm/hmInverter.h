@@ -197,14 +197,6 @@ class Inverter {
                 else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
-                /*if (cmd == 0x01) { //0x1 for HM-types
-                    cmd2 = 0x00;
-                    cmd  = 0x0f;                              // for MI, these seem to make part of polling the device software and hardware version number command
-                }
-                if (cmd == SystemConfigPara ) { // 0x05 for HM-types
-                    cmd2 = 0x00;
-                    cmd  = 0x10;                // legacy GPF request
-                */
                 if(mDevControlRequest) {
                     cb(devControlCmd, true);
                     mDevControlRequest = false;
@@ -215,7 +207,7 @@ class Inverter {
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
                         cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
                     else
-                        cb(type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, false);
+                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
             }
         }
