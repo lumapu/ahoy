@@ -541,10 +541,10 @@ class Communication : public CommQueue<> {
                   FCNT = (uint8_t)(p->packet[26]);
                   FCODE = (uint8_t)(p->packet[27]);
                 }*/
-                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
+                miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    addImportant(q->iv, (q->cmd + 1));
+                    //addImportant(q->iv, (q->cmd + 1));
                     //mPayload[iv->id].txCmd++;
                     //mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
                     //mPayload[iv->id].complete = false;
@@ -553,7 +553,7 @@ class Communication : public CommQueue<> {
                     miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
-                addImportant(q->iv, MI_REQ_CH2);
+                //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
@@ -573,6 +573,8 @@ class Communication : public CommQueue<> {
                 q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
                 q->iv->radioStatistics.retransmits++;
                 mWaitTimeout = millis() + MI_TIMEOUT;
+                //chgCmd(Inverter<> *iv, uint8_t cmd, bool delOnPop = true)
+                chgCmd(cmd);
                 mState = States::WAIT;
             } else {
                 add(q, true);
