@@ -416,6 +416,7 @@ class Communication : public CommQueue<> {
             { FLD_BOOTLOADER_VER,       UNIT_NONE,   CH0,  8, 2, 1 }
             };
             */
+
             if ( p->packet[9] == 0x00 ) {//first frame
                 //FLD_FW_VERSION
                 for (uint8_t i = 0; i < 5; i++) {
