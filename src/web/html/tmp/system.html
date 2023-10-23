@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+    <head>
+        <title>System</title>
+        <link rel="stylesheet" type="text/css" href="style.css?v=0.8.0001"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<script type="text/javascript" src="api.js?v=0.8.0001"></script>
+<link rel="stylesheet" type="text/css" href="colors.css?v=0.8.0001"/>
+<meta name="robots" content="noindex, nofollow" />
+    </head>
+    <body>
+        <div class="topnav">
+    <a href="/?v=0.8.0001" class="title">AhoyDTU</a>
+    <a href="javascript:void(0);" class="icon" onclick="topnav()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </a>
+    <div id="topnav" class="mobile">
+        <a id="nav3" class="hide" href="/live?v=0.8.0001">Live</a>
+        <a id="nav4" class="hide" href="/serial?v=0.8.0001">Webserial</a>
+        <a id="nav5" class="hide" href="/setup?v=0.8.0001">Settings</a>
+        <span class="seperator"></span>
+        <a id="nav6" class="hide" href="/update?v=0.8.0001">Update</a>
+        <a id="nav7" class="hide" href="/system?v=0.8.0001">System</a>
+        <span class="seperator"></span>
+        <a id="nav8" href="/api" target="_blank">REST API</a>
+        <a id="nav9" href="https://ahoydtu.de" target="_blank">Documentation</a>
+        <a id="nav10" href="/about?v=0.8.0001">About</a>
+        <span class="seperator"></span>
+        <a id="nav0" class="hide" href="/login">Login</a>
+        <a id="nav1" class="hide" href="/logout">Logout</a>
+    </div>
+    <div id="wifiicon" class="info"></div>
+</div>
+        <div id="wrapper">
+            <div id="content">
+                <div id="info" class="col-sm-12 col-md-6 mt-3"></div>
+                <div id="html" class="mt-3 mb-3"></div>
+            </div>
+        </div>
+        <div id="footer">
+        <div class="left">
+        <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
+        <ul>
+            <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+            <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+        </ul>
+    </div>
+    <div class="right">
+        <ul>
+            <li><a target="_blank" href="https://github.com/lumapu/ahoy/commits/bf77275">GIT SHA: bf77275 :: 0.8.0001</a></li>
+            <li id="esp_type"></li>
+            <li><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed" target="_blank" >CC BY-NC-SA 4.0</a></li>
+        </ul>
+    </div>
+</div>
+        <script type="text/javascript">
+            function parseGeneric(obj) {
+                parseNav(obj);
+                parseESP(obj);
+                parseRssi(obj);
+            }
+
+            function parseSysInfo(obj) {
+                const data = ["sdk", "cpu_freq", "chip_revision",
+                    "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "ts_uptime",
+                    "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
+                    "max_free_blk", "version", "core_version", "reboot_reason"];
+
+                lines = [];
+                for (const [key, value] of Object.entries(obj)) {
+                    if(!data.includes(key) || (typeof value == 'undefined')) continue;
+                    lines.push(tr(key.replace('_', ' '), value));
+                }
+
+                document.getElementById("info").append(
+                    headline("System Information"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+
+            function badge(success, text, second="error") {
+                return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
+            }
+
+            function headline(text) {
+                return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
+            }
+
+            function parseRadio(obj) {
+                const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
+                const dr = ["1 M", "2 M", "250 k"]
+
+                if(obj.radioNrf.en) {
+                    lines = [
+                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
+                        tr("NRF24 Power Level", pa[obj.radioNrf.power_level]),
+                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
+                    ];
+                } else
+                    lines = [tr("NRF24L01", badge(false, "not enabled"))];
+
+                document.getElementById("info").append(
+                    headline("Radio NRF"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+
+                
+                if(obj.radioCmt.en) {
+                    cmt = [tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected"))];
+                } else
+                    cmt = [tr("CMT2300A", badge(false, "not enabled"))];
+
+                document.getElementById("info").append(
+                    headline("Radio CMT"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, cmt)
+                    )
+                );
+                
+            }
+
+            function parseMqtt(obj) {
+                if(obj.enabled) {
+                    lines = [
+                        tr("connected", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
+                        tr("#TX", obj.tx_cnt),
+                        tr("#RX", obj.rx_cnt)
+                    ];
+
+                } else
+                    lines = tr("enabled", badge(false, "false"));
+
+                document.getElementById("info").append(
+                    headline("MqTT"),
+                    ml("table", {class: "table"},
+                        ml("tbody", {}, lines)
+                    )
+                );
+            }
+
+            function parseIndex(obj) {
+                if(obj.ts_sunrise > 0) {
+                    document.getElementById("info").append(
+                        headline("Sun"),
+                        ml("table", {class: "table"},
+                            ml("tbody", {}, [
+                                tr("Sunrise", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
+                                tr("Sunset", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
+                                tr("Communication start", new Date((obj.ts_sunrise - obj.ts_offset) * 1000).toLocaleString('de-DE')),
+                                tr("Communication stop", new Date((obj.ts_sunset + obj.ts_offset) * 1000).toLocaleString('de-DE')),
+                                tr("Night behaviour", badge(obj.disNightComm, ((obj.disNightComm) ? "not" : "") + " communicating", "warning"))
+                            ])
+                        )
+                    );
+                }
+            }
+
+            function parse(obj) {
+                if(null != obj) {
+                    parseGeneric(obj["generic"]);
+
+                    if(null != obj["refresh"]) {
+                        var meta = document.createElement('meta');
+                        meta.httpEquiv = "refresh"
+                        meta.content = obj["refresh"] + "; URL=" + obj["refresh_url"];
+                        document.getElementsByTagName('head')[0].appendChild(meta);
+                    }
+                    else {
+                        parseRadio(obj.system);
+                        parseMqtt(obj.system.mqtt);
+                        parseSysInfo(obj["system"]);
+                        getAjax('/api/index', parseIndex);
+                    }
+                    document.getElementById("html").innerHTML = obj["html"];
+                }
+            }
+
+            getAjax("/api/html" + window.location.pathname, parse);
+        </script>
+    </body>
+</html>

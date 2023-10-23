@@ -182,11 +182,12 @@ class Inverter {
         }
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
-            if (IV_MI != ivGen) {
-                if(mDevControlRequest) {
-                    cb(devControlCmd, true);
-                    mDevControlRequest = false;
-                } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+            if(mDevControlRequest) {
+                cb(devControlCmd, true);
+                mDevControlRequest = false;
+            }
+            else if (IV_MI != ivGen) {
+                if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
                     cb(AlarmData, false);                // get last alarms
                 else if(0 == getFwVersion())
                     cb(InverterDevInform_All, false);    // get firmware version
@@ -197,10 +198,7 @@ class Inverter {
                 else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
-                if(mDevControlRequest) {
-                    cb(devControlCmd, true);
-                    mDevControlRequest = false;
-                } else if(0 == getFwVersion())
+                if(0 == getFwVersion())
                     cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
                 else {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
