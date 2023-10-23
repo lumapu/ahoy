@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Serial Console</title>
+        <link rel="stylesheet" type="text/css" href="style.css?v=0.8.0001"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<script type="text/javascript" src="api.js?v=0.8.0001"></script>
+<link rel="stylesheet" type="text/css" href="colors.css?v=0.8.0001"/>
+<meta name="robots" content="noindex, nofollow" />
+    </head>
+    <body>
+        <div class="topnav">
+    <a href="/?v=0.8.0001" class="title">AhoyDTU</a>
+    <a href="javascript:void(0);" class="icon" onclick="topnav()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </a>
+    <div id="topnav" class="mobile">
+        <a id="nav3" class="hide" href="/live?v=0.8.0001">Live</a>
+        <a id="nav4" class="hide" href="/serial?v=0.8.0001">Webserial</a>
+        <a id="nav5" class="hide" href="/setup?v=0.8.0001">Settings</a>
+        <span class="seperator"></span>
+        <a id="nav6" class="hide" href="/update?v=0.8.0001">Update</a>
+        <a id="nav7" class="hide" href="/system?v=0.8.0001">System</a>
+        <span class="seperator"></span>
+        <a id="nav8" href="/api" target="_blank">REST API</a>
+        <a id="nav9" href="https://ahoydtu.de" target="_blank">Documentation</a>
+        <a id="nav10" href="/about?v=0.8.0001">About</a>
+        <span class="seperator"></span>
+        <a id="nav0" class="hide" href="/login">Login</a>
+        <a id="nav1" class="hide" href="/logout">Logout</a>
+    </div>
+    <div id="wifiicon" class="info"></div>
+</div>
+        <div id="wrapper">
+            <div id="content" style="max-width: 100% !important;">
+                <div class="row">
+                    <textarea id="serial" class="mt-3" cols="80" rows="40" readonly></textarea>
+                </div>
+                <div class="row my-3">
+                    <div class="col-3">console active: <span class="dot" id="active"></span></div>
+                    <div class="col-3 col-sm-4 my-3">Uptime: <span id="uptime"></span></div>
+                    <div class="col-6 col-sm-4 a-r">
+                        <input type="button" value="clear" class="btn" id="clear"/>
+                        <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+        <div class="left">
+        <a href="https://ahoydtu.de" target="_blank">AhoyDTU &copy 2023</a>
+        <ul>
+            <li><a href="https://discord.gg/WzhxEY62mB" target="_blank">Discord</a></li>
+            <li><a href="https://github.com/lumapu/ahoy" target="_blank">Github</a></li>
+        </ul>
+    </div>
+    <div class="right">
+        <ul>
+            <li><a target="_blank" href="https://github.com/lumapu/ahoy/commits/bf77275">GIT SHA: bf77275 :: 0.8.0001</a></li>
+            <li id="esp_type"></li>
+            <li><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed" target="_blank" >CC BY-NC-SA 4.0</a></li>
+        </ul>
+    </div>
+</div>
+        <script type="text/javascript">
+            var mAutoScroll = true;
+            var con = document.getElementById("serial");
+            var exeOnce = true;
+
+            function parseGeneric(obj) {
+                var up = obj["ts_uptime"];
+                var days = parseInt(up / 86400) % 365;
+                var hrs  = parseInt(up / 3600) % 24;
+                var min  = parseInt(up / 60) % 60;
+                var sec  = up % 60;
+                document.getElementById("uptime").innerHTML = days + " Days, "
+                    + ("0"+hrs).substr(-2) + ":"
+                    + ("0"+min).substr(-2) + ":"
+                    + ("0"+sec).substr(-2);
+
+                parseRssi(obj);
+                if(true == exeOnce) {
+                    parseNav(obj);
+                    parseESP(obj);
+                    window.setInterval("getAjax('/api/generic', parseGeneric)", 5000);
+                    exeOnce = false;
+                    setTimeOffset();
+                }
+            }
+
+            function setTimeOffset() {
+                // set time offset for serial console
+                var obj = new Object();
+                obj.cmd = "serial_utc_offset";
+                obj.val = new Date().getTimezoneOffset() * -60;
+                getAjax("/api/setup", null, "POST", JSON.stringify(obj));
+            }
+
+            document.getElementById("clear").addEventListener("click", function() {
+                con.value = "";
+            });
+            document.getElementById("scroll").addEventListener("click", function() {
+                mAutoScroll = !mAutoScroll;
+                this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
+            });
+
+            if (!!window.EventSource) {
+                var source = new EventSource('/events');
+                source.addEventListener('open', function(e) {
+                    document.getElementById("active").style.backgroundColor = "#0c0";
+                }, false);
+
+                source.addEventListener('error', function(e) {
+                    if (e.target.readyState != EventSource.OPEN) {
+                        document.getElementById("active").style.backgroundColor = "#f00";
+                    }
+                }, false);
+
+                source.addEventListener('serial', function(e) {
+                    con.value += e.data.replace(/\<rn\>/g, '\r\n');
+                    if(mAutoScroll)
+                        con.scrollTop = con.scrollHeight;
+                }, false);
+            }
+
+            getAjax("/api/generic", parseGeneric);
+        </script>
+    </body>
+</html>

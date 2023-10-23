@@ -10,8 +10,10 @@
 #include <Arduino.h>
 #include "../utils/crc.h"
 
-#define MI_TIMEOUT      500
+#define MI_TIMEOUT      250
 #define DEFAULT_TIMEOUT 500
+#define SINGLEFR_TIMEOUT 60
+#define MAX_BUFFER      250 //was: 150 (hardcoded)
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
@@ -133,7 +135,8 @@ class Communication : public CommQueue<> {
                             yield();
                         }
                         if(0 == q->attempts) {
-                            cmdDone(q);
+                            //cmdDone(q);
+                            cmdDone(true);
                             mState = States::RESET;
                         } else
                             mState = nextState;
@@ -160,11 +163,12 @@ class Communication : public CommQueue<> {
                             if(q->attempts) {
                                 q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                 q->iv->radioStatistics.retransmits++;
-                                mWaitTimeout = millis() + timeout;
+                                mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
                                 mState = States::WAIT;
                             } else {
                                 add(q, true);
-                                cmdDone(q);
+                                //cmdDone(q);
+                                cmdDone(true);
                                 mState = States::RESET;
                             }
                             return;
@@ -184,11 +188,12 @@ class Communication : public CommQueue<> {
                                 if(q->attempts) {
                                     q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                                     q->iv->radioStatistics.retransmits++;
-                                    mWaitTimeout = millis() + timeout;
+                                    mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout;
                                     mState = States::WAIT;
                                 } else {
                                     add(q, true);
-                                    cmdDone(q);
+                                    //cmdDone(q);
+                                    cmdDone(true);
                                     mState = States::RESET;
                                 }
                                 return;
@@ -252,7 +257,7 @@ class Communication : public CommQueue<> {
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
                 || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))
                     && (p->packet[0] < (0x39 + SINGLE_FRAME))
-                    && (q->cmd != 0x0f))) {
+                    )) {    //&& (p->packet[0] != (0x0f + ALL_FRAMES)))) {
                 // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 //mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(p, q);
@@ -312,12 +317,12 @@ class Communication : public CommQueue<> {
             DBGPRINT(F("procPyld: cmd:  0x"));
             DBGHEXLN(q->cmd);*/
 
-            memset(mPayload, 0, 150);
+            memset(mPayload, 0, MAX_BUFFER);
             int8_t rssi = -127;
             uint8_t len = 0;
 
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
-                if(mLocalBuf[i].len + len > 150) {
+                if(mLocalBuf[i].len + len > MAX_BUFFER) {
                     DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
                     return;
                 }
@@ -376,6 +381,7 @@ class Communication : public CommQueue<> {
             record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
             rec->ts = q->ts;
             //mPayload[iv->id].gotFragment = true;
+            uint8_t multi_parts = 0;
 
             /*
             Polling the device software and hardware version number command
@@ -410,6 +416,96 @@ class Communication : public CommQueue<> {
             { FLD_BOOTLOADER_VER,       UNIT_NONE,   CH0,  8, 2, 1 }
             };
             */
+
+            if ( p->packet[9] == 0x00 ) {//first frame
+                //FLD_FW_VERSION
+                for (uint8_t i = 0; i < 5; i++) {
+                    q->iv->setValue(i, rec, (float) ((p->packet[(12+2*i)] << 8) + p->packet[(13+2*i)])/1);
+                }
+                q->iv->isConnected = true;
+                //if(mSerialDebug) {
+                    DPRINT_IVID(DBG_INFO, q->iv->id);
+                    DPRINT(DBG_INFO,F("HW_VER is "));
+                    DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
+                //}
+                record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+                rec->ts = q->ts;
+                q->iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25])/1);
+                //mPayload[iv->id].multi_parts +=4;
+                multi_parts +=4;
+            } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                if ( p->packet[9] == 0x01 ) {
+                    DBGPRINTLN(F("got 2nd frame (hw info)"));
+                    /* according to xlsx (different start byte -1!)
+                    byte[11] to	 byte[14] HW_PN
+                    byte[15]	 byte[16] HW_FB_TLmValue
+                    byte[17]	 byte[18] HW_FB_ReSPRT
+                    byte[19]	 byte[20] HW_GridSamp_ResValule
+                    byte[21]	 byte[22] HW_ECapValue
+                    byte[23] to	 byte[26] Matching_APPFW_PN*/
+                    DPRINT(DBG_INFO,F("HW_PartNo "));
+                    DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
+                    record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+                    rec->ts = q->ts;
+                    q->iv->setValue(0, rec, (uint32_t) ((((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13])/1);
+
+                    //if(mSerialDebug) {
+                        DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
+                        DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                        DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
+                        DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
+                        DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
+                        DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
+                        DPRINT(DBG_INFO,F("HW_ECapValue "));
+                        DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
+                        DPRINT(DBG_INFO,F("Matching_APPFW_PN "));
+                        DBGPRINTLN(String((uint32_t) (((p->packet[22] << 8) | p->packet[23]) << 8 | p->packet[24]) << 8 | p->packet[25]));
+                    //}
+                    //notify(InverterDevInform_Simple, iv);
+                    //mPayload[iv->id].multi_parts +=2;
+                    multi_parts +=2;
+                    //notify(InverterDevInform_All, iv);
+                } else {
+                    DBGPRINTLN(F("3rd gen. inverter!"));
+                }
+
+            } else if ( p->packet[9] == 0x12 ) {//3rd frame
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                DBGPRINTLN(F("got 3rd frame (hw info)"));
+                /* according to xlsx (different start byte -1!)
+                    byte[11]	 byte[12] APPFW_MINVER
+                    byte[13]	 byte[14] HWInfoAddr
+                    byte[15]	 byte[16] PNInfoCRC_gusv
+                    byte[15]	 byte[16] PNInfoCRC_gusv (this really is double mentionned in xlsx...)
+                */
+                //if(mSerialDebug) {
+                    DPRINT(DBG_INFO,F("APPFW_MINVER "));
+                    DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                    DPRINT(DBG_INFO,F("HWInfoAddr "));
+                    DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+                    DPRINT(DBG_INFO,F("PNInfoCRC_gusv "));
+                    DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
+                //}
+                //mPayload[iv->id].multi_parts++;
+                multi_parts++;
+            }
+            if(multi_parts > 5) {
+                cmdDone(true);
+                mState = States::RESET;
+                q->iv->radioStatistics.rxSuccess++;
+            }
+
+            /*if (mPayload[iv->id].multi_parts > 5) {
+                iv->setQueuedCmdFinished();
+                mPayload[iv->id].complete = true;
+                mPayload[iv->id].rxTmo    = true;
+                mPayload[iv->id].requested= false;
+                iv->radioStatistics.rxSuccess++;
+            }
+            if (mHighPrioIv == NULL)
+                mHighPrioIv = iv;
+                */
         }
 
         inline void miDataDecode(packet_t *p, const queue_s *q) {
@@ -450,10 +546,10 @@ class Communication : public CommQueue<> {
                   FCNT = (uint8_t)(p->packet[26]);
                   FCODE = (uint8_t)(p->packet[27]);
                 }*/
-                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
+                miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    addImportant(q->iv, (q->cmd + 1));
+                    //addImportant(q->iv, (q->cmd + 1));
                     //mPayload[iv->id].txCmd++;
                     //mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
                     //mPayload[iv->id].complete = false;
@@ -462,12 +558,11 @@ class Communication : public CommQueue<> {
                     miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
-                addImportant(q->iv, MI_REQ_CH2);
+                //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
             }
-            //cmdDone(q);
         }
 
         inline void miNextRequest(uint8_t cmd, const queue_s *q) {
@@ -482,10 +577,12 @@ class Communication : public CommQueue<> {
                 q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
                 q->iv->radioStatistics.retransmits++;
                 mWaitTimeout = millis() + MI_TIMEOUT;
+                //chgCmd(Inverter<> *iv, uint8_t cmd, bool delOnPop = true)
+                chgCmd(cmd);
                 mState = States::WAIT;
             } else {
                 add(q, true);
-                cmdDone(q);
+                cmdDone();
                 mState = States::RESET;
             }
         }
@@ -514,17 +611,23 @@ class Communication : public CommQueue<> {
             bool stsok = true;
             if ( prntsts != rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)] ) { //sth.'s changed?
                 q->iv->alarmCnt = 1; // minimum...
+                stsok = false;
                 //sth is or was wrong?
                 if ( (q->iv->type != INV_TYPE_1CH) && ( (statusMi != 3)
                                                 || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
                    ) {
+                    q->iv->lastAlarm[stschan+q->iv->type==INV_TYPE_2CH ? 2: 4] = alarm_t(q->iv->lastAlarm[stschan].code, q->iv->lastAlarm[stschan].start,q->ts);
                     q->iv->lastAlarm[stschan] = alarm_t(prntsts, q->ts,0);
                     q->iv->alarmCnt = q->iv->type == INV_TYPE_2CH ? 3 : 5;
-                }
+                } else if ( (q->iv->type == INV_TYPE_1CH) && ( (statusMi != 3)
+                                                || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
+                   ) {
+                    q->iv->lastAlarm[stschan] = alarm_t(q->iv->lastAlarm[0].code, q->iv->lastAlarm[0].start,q->ts);
+                } else if (q->iv->type == INV_TYPE_1CH)
+                    stsok = true;
 
                 q->iv->alarmLastId = prntsts; //iv->alarmMesIndex;
 
-                stsok = false;
                 if (q->iv->alarmCnt > 1) { //more than one channel
                     for (uint8_t ch = 0; ch < (q->iv->alarmCnt); ++ch) { //start with 1
                         if (q->iv->lastAlarm[ch].code == 1) {
@@ -586,7 +689,9 @@ class Communication : public CommQueue<> {
 
             iv->doCalculations();
             // update status state-machine,
-            iv->isProducing();
+            if (ac_pow)
+                iv->isProducing();
+            cmdDone(true);
         }
 
     private:
@@ -606,7 +711,7 @@ class Communication : public CommQueue<> {
         uint32_t mWaitTimeout = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
         uint8_t mMaxFrameId;
-        uint8_t mPayload[150];
+        uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
         alarmListenerType mCbAlarm = NULL;
 };

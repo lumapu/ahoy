@@ -330,15 +330,15 @@ class HmPayload {
                         mPayload[iv->id].requested = false;
                         mPayload[iv->id].rxTmo = false;
 
-                        uint8_t payload[150];
+                        uint8_t payload[MAX_BUFFER];
                         uint8_t payloadLen = 0;
 
-                        memset(payload, 0, 150);
+                        memset(payload, 0, MAX_BUFFER);
 
                         int8_t rssi = -127;
 
                         for (uint8_t i = 0; i < (mPayload[iv->id].maxPackId); i++) {
-                            if((mPayload[iv->id].len[i] + payloadLen) > 150) {
+                            if((mPayload[iv->id].len[i] + payloadLen) > MAX_BUFFER) {
                                 DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
                                 break;
                             }
