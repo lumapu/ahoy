@@ -185,8 +185,7 @@ class Inverter {
             if(mDevControlRequest) {
                 cb(devControlCmd, true);
                 mDevControlRequest = false;
-            }
-            else if (IV_MI != ivGen) {
+            } else if (IV_MI != ivGen) {
                 if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
                     cb(AlarmData, false);                // get last alarms
                 else if(0 == getFwVersion())

@@ -41,7 +41,7 @@ class CommQueue {
             uint32_t ts;
             bool delOnPop;
             bool isDevControl;
-            bool firstTry;
+            //bool firstTry;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool d, bool dev) :
                 iv(i), cmd(c), attempts(5), ts(0), delOnPop(d), isDevControl(dev) {}
@@ -89,12 +89,12 @@ class CommQueue {
             inc(&mRdPtr);
         }
 
-        bool isFirstTry(void) {
+        /*bool isFirstTry(void) {
             if(!mQueue[mRdPtr].firstTry)
                 return false;
             mQueue[mRdPtr].firstTry = false;
             return true;
-        }
+        }*/
 
         void setTs(uint32_t *ts) {
             mQueue[mRdPtr].ts = *ts;

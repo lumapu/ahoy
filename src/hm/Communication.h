@@ -13,7 +13,7 @@
 #define MI_TIMEOUT      250
 #define DEFAULT_TIMEOUT 500
 #define SINGLEFR_TIMEOUT 60
-#define MAX_BUFFER      250 //was: 150 (hardcoded)
+#define MAX_BUFFER      250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
