@@ -205,8 +205,8 @@ void app::onNetwork(bool gotIp) {
     every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
-    //once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-    tickNtpUpdate();
+    once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
+    //tickNtpUpdate();
     #if !defined(ETHERNET)
     if (WIFI_AP == WiFi.getMode()) {
         mMqttEnabled = false;

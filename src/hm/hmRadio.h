@@ -9,6 +9,7 @@
 #include <RF24.h>
 #include "SPI.h"
 #include "radio.h"
+#include "heuristic.h"
 
 #define SPI_SPEED           1000000
 
@@ -76,6 +77,9 @@ class HmRadio : public Radio {
                 mSpi = new SPIClass();
                 mSpi->begin();
             #endif
+
+            mHeu.setup();
+
             mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
@@ -114,6 +118,8 @@ class HmRadio : public Radio {
             mNrf24.flush_tx();                              // empty TX FIFO
 
             // start listening
+            //mNrf24.setChannel(23);
+            //mRxChIdx = 0;
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
@@ -124,8 +130,11 @@ class HmRadio : public Radio {
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
-                        if (getReceived())         // everything received
+                        if (getReceived()) {      // everything received
+                            mHeu.setGotAll();
                             return;
+                        } else
+                            mHeu.setGotFragment();
 
                     }
                     yield();
@@ -134,9 +143,15 @@ class HmRadio : public Radio {
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                startMicros = micros() + 5000;
+                startMicros = micros() + 5110;
             }
             // not finished but time is over
+            if(++mRxChIdx >= RF_CHANNELS)
+                mRxChIdx = 0;
+            if(mBufCtrl.empty())
+                mHeu.setGotNothing();
+
+            mHeu.printStatus();
             return;
         }
 
@@ -275,21 +290,20 @@ class HmRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = (mTxChIdx + 1) % RF_CHANNELS;
-            mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+            mTxChIdx = mHeu.getTxCh();
 
             if(mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
-                DBGPRINT(String(mRfChLst[mTxChIdx]));
+                DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
                 ah::dumpBuf(mTxBuf, len);
             }
 
             mNrf24.stopListening();
-            mNrf24.setChannel(mRfChLst[mTxChIdx]);
+            mNrf24.setChannel(mTxChIdx);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
@@ -311,6 +325,7 @@ class HmRadio : public Radio {
 
         SPIClass* mSpi;
         RF24 mNrf24;
+        Heuristic mHeu;
 };
 
 #endif /*__HM_RADIO_H__*/
