@@ -9,7 +9,6 @@
 #include <RF24.h>
 #include "SPI.h"
 #include "radio.h"
-#include "heuristic.h"
 
 #define SPI_SPEED           1000000
 
@@ -41,18 +40,6 @@ class HmRadio : public Radio {
             }
             mDtuSn = DTU_SN;
 
-            // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
-            // Channel List      2403, 2423, 2440, 2461, 2475MHz
-            mRfChLst[0] = 03;
-            mRfChLst[1] = 23;
-            mRfChLst[2] = 40;
-            mRfChLst[3] = 61;
-            mRfChLst[4] = 75;
-
-            // default channels
-            mTxChIdx    = 2; // Start TX with 40
-            mRxChIdx    = 0; // Start RX with 03
-
             mSerialDebug    = false;
             mIrqRcvd        = false;
         }
@@ -77,8 +64,6 @@ class HmRadio : public Radio {
                 mSpi = new SPIClass();
                 mSpi->begin();
             #endif
-
-            mHeu.setup();
 
             mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
@@ -123,6 +108,9 @@ class HmRadio : public Radio {
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
+            if(NULL == mLastIv) // prevent reading on NULL object!
+                return;
+
             uint32_t startMicros = micros() + 5110;
             uint32_t loopMillis = millis() + 400;
             while (millis() < loopMillis) {
@@ -130,12 +118,9 @@ class HmRadio : public Radio {
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
-                        if (getReceived()) {      // everything received
-                            mHeu.setGotAll();
+                        if (getReceived()) { // everything received
                             return;
-                        } else
-                            mHeu.setGotFragment();
-
+                        }
                     }
                     yield();
                 }
@@ -148,10 +133,7 @@ class HmRadio : public Radio {
             // not finished but time is over
             if(++mRxChIdx >= RF_CHANNELS)
                 mRxChIdx = 0;
-            if(mBufCtrl.empty())
-                mHeu.setGotNothing();
 
-            mHeu.printStatus();
             return;
         }
 
@@ -290,7 +272,7 @@ class HmRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = mHeu.getTxCh();
+            mTxChIdx = mRfChLst[iv->txRfChId];
 
             if(mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
@@ -307,6 +289,8 @@ class HmRadio : public Radio {
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
+
+            mLastIv = iv;
         }
 
         uint64_t getIvId(Inverter<> *iv) {
@@ -318,14 +302,14 @@ class HmRadio : public Radio {
         }
 
         uint64_t DTU_RADIO_ID;
-        uint8_t mRfChLst[RF_CHANNELS];
-        uint8_t mTxChIdx;
-        uint8_t mRxChIdx;
+        uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
+        uint8_t mTxChIdx = 0;
+        uint8_t mRxChIdx = 0;
         uint32_t mMillis;
 
         SPIClass* mSpi;
         RF24 mNrf24;
-        Heuristic mHeu;
+        Inverter<> *mLastIv = NULL;
 };
 
 #endif /*__HM_RADIO_H__*/

@@ -74,15 +74,6 @@ void app::setup() {
         });
     }
 
-    /*mPayload.setup(this, &mSys, &mTimestamp);
-    mPayload.enableSerialDebug(mConfig->serial.debug);
-    mPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    if (mConfig->nrf.enabled) {
-        mMiPayload.setup(this, &mSys, &mTimestamp);
-        mMiPayload.enableSerialDebug(mConfig->serial.debug);
-        mMiPayload.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    }*/
-
     if(mConfig->nrf.enabled) {
         if (!mNrfRadio.isChipConnected())
             DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -95,8 +86,6 @@ void app::setup() {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        //mPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
-        //mMiPayload.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
     #endif
     setupLed();
@@ -124,73 +113,12 @@ void app::setup() {
 //-----------------------------------------------------------------------------
 void app::loop(void) {
     ah::Scheduler::loop();
-    //bool processPayload = false;
 
     mNrfRadio.loop();
     #if defined(ESP32)
     mCmtRadio.loop();
     #endif
     mCommunication.loop();
-
-    /*if (mNrfRadio.loop() && mConfig->nrf.enabled) {
-        while (!mNrfRadio.mBufCtrl.empty()) {
-            packet_t *p = &mNrfRadio.mBufCtrl.front();
-            if (mConfig->serial.debug) {
-                DPRINT(DBG_INFO, F("RX "));
-                DBGPRINT(String(p->len));
-                DBGPRINT(F(" CH"));
-                DBGPRINT(String(p->ch));
-                DBGPRINT(F(", "));
-                DBGPRINT(String(p->rssi));
-                DBGPRINT(F("dBm | "));
-                ah::dumpBuf(p->packet, p->len);
-            }
-
-            Inverter<> *iv = mSys.findInverter(&p->packet[1]);
-            if (NULL != iv) {
-                iv->radioStatistics.frmCnt++;
-                if (IV_MI == iv->ivGen)
-                    mMiPayload.add(iv, p);
-                else
-                    mPayload.add(iv, p);
-            }
-            mNrfRadio.mBufCtrl.pop();
-            processPayload = true;
-            yield();
-        }
-        mMiPayload.process(true);
-    }
-    #if defined(ESP32)
-    if (mCmtRadio.loop() && mConfig->cmt.enabled) {
-        while (!mCmtRadio.mBufCtrl.empty()) {
-            packet_t *p = &mCmtRadio.mBufCtrl.front();
-            if (mConfig->serial.debug) {
-                DPRINT(DBG_INFO, F("RX "));
-                DBGPRINT(String(p->len));
-                DBGPRINT(F(", "));
-                DBGPRINT(String(p->rssi));
-                DBGPRINT(F("dBm | "));
-                ah::dumpBuf(p->packet, p->len);
-            }
-
-            Inverter<> *iv = mSys.findInverter(&p->packet[1]);
-            if(NULL != iv) {
-                iv->radioStatistics.frmCnt++;
-                if((iv->ivGen == IV_HMS) || (iv->ivGen == IV_HMT))
-                    mPayload.add(iv, p);
-            }
-            mCmtRadio.mBufCtrl.pop();
-            processPayload = true;
-            yield();
-        }
-    }
-    #endif
-
-    if(processPayload)
-        mPayload.process(true);
-
-    mPayload.loop();
-    mMiPayload.loop();*/
 
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
@@ -293,7 +221,7 @@ void app::tickNtpUpdate(void) {
         // immediately start communicating
         if (isOK && mSendFirst) {
             mSendFirst = false;
-            //once(std::bind(&app::tickSend, this), 2, "senOn");
+            once(std::bind(&app::tickSend, this), 1, "senOn");
         }
 
         mMqttReconnect = false;
@@ -423,54 +351,6 @@ void app::tickSend(void) {
             }
         }
     }
-
-    /*if(mConfig->nrf.enabled) {
-        if(!mNrfRadio.isChipConnected()) {
-            DPRINTLN(DBG_WARN, F("NRF24 not connected!"));
-        }
-    }
-
-    if (mIVCommunicationOn) {
-        if (!mNrfRadio.mBufCtrl.empty()) {
-            if (mConfig->serial.debug) {
-                DPRINT(DBG_DEBUG, F("recbuf not empty! #"));
-                DBGPRINTLN(String(mNrfRadio.mBufCtrl.size()));
-            }
-        }
-        #if defined(ESP32)
-        if (!mCmtRadio.mBufCtrl.empty()) {
-            if (mConfig->serial.debug) {
-                DPRINT(DBG_INFO, F("recbuf not empty! #"));
-                DBGPRINTLN(String(mCmtRadio.mBufCtrl.size()));
-            }
-        }
-        #endif
-
-        int8_t maxLoop = MAX_NUM_INVERTERS;
-        Inverter<> *iv = mSys.getInverterByPos(mSendLastIvId);
-        while(maxLoop > 0) {
-            do {
-                mSendLastIvId = ((MAX_NUM_INVERTERS - 1) == mSendLastIvId) ? 0 : mSendLastIvId + 1;
-                iv = mSys.getInverterByPos(mSendLastIvId);
-            } while ((NULL == iv) && ((maxLoop--) > 0));
-            if(NULL != iv)
-                if(iv->config->enabled)
-                    break;
-        }
-
-        if (NULL != iv) {
-            if (iv->config->enabled) {
-                if((iv->ivGen == IV_MI) && mConfig->nrf.enabled)
-                    mMiPayload.ivSend(iv);
-                else
-                    mPayload.ivSend(iv);
-            }
-        }
-    } else {
-        if (mConfig->serial.debug)
-            DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
-    }
-    yield();*/
 
     updateLed();
 }

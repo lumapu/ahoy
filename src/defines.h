@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       0
+#define VERSION_PATCH       1
 
 //-------------------------------------
 typedef struct {
@@ -93,6 +93,8 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 #define MQTT_TOPIC_LEN          65
 
 #define MQTT_MAX_PACKET_SIZE    384
+
+#define PLUGIN_DISPLAY
 
 typedef struct {
     uint32_t rxFail;

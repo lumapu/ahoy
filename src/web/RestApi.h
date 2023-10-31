@@ -680,12 +680,10 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
-            }
-            else if(F("dev") == jsonIn[F("cmd")]) {
+            } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
-                //iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
-            }
-            else {
+                iv->setDevCommand(jsonIn[F("val")].as<int>());
+            } else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
                 return false;
             }
@@ -693,8 +691,7 @@ class RestApi {
             if(!accepted) {
                 jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
                 return false;
-            } else
-                mApp->ivSendHighPrio(iv);
+            }
 
             return true;
         }

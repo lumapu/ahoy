@@ -22,10 +22,6 @@ class CommQueue {
 
         void add(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
             mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop, false);
-            /*mQueue[mRdPtr].firstTry = false;
-            if((IV_HM == mQueue[mRdPtr].iv->ivGen) || (IV_MI == mQueue[mRdPtr].iv->ivGen)) {
-                mQueue[mRdPtr].firstTry = ((mQueue[mRdPtr].iv->isAvailable()) || (millis() < 120000));
-            }*/
             inc(&mWrPtr);
         }
 
@@ -41,7 +37,6 @@ class CommQueue {
             uint32_t ts;
             bool delOnPop;
             bool isDevControl;
-            //bool firstTry;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool d, bool dev) :
                 iv(i), cmd(c), attempts(5), ts(0), delOnPop(d), isDevControl(dev) {}
@@ -50,10 +45,6 @@ class CommQueue {
     protected:
         void add(queue_s q) {
             mQueue[mWrPtr] = q;
-            /*mQueue[mRdPtr].firstTry = false;
-            if((IV_HM == mQueue[mRdPtr].iv->ivGen) || (IV_MI == mQueue[mRdPtr].iv->ivGen)) {
-                mQueue[mRdPtr].firstTry = ((mQueue[mRdPtr].iv->isAvailable()) || (millis() < 120000));
-            }*/
             inc(&mWrPtr);
         }
 
@@ -61,10 +52,6 @@ class CommQueue {
             mQueue[mWrPtr] = *q;
             if(rstAttempts)
                 mQueue[mWrPtr].attempts = 5;
-            /*mQueue[mRdPtr].firstTry = false;
-            if((IV_HM == mQueue[mRdPtr].iv->ivGen) || (IV_MI == mQueue[mRdPtr].iv->ivGen)) {
-                mQueue[mRdPtr].firstTry = ((mQueue[mRdPtr].iv->isAvailable()) || (millis() < 120000));
-            }*/
             inc(&mWrPtr);
         }
 
@@ -88,13 +75,6 @@ class CommQueue {
             }
             inc(&mRdPtr);
         }
-
-        /*bool isFirstTry(void) {
-            if(!mQueue[mRdPtr].firstTry)
-                return false;
-            mQueue[mRdPtr].firstTry = false;
-            return true;
-        }*/
 
         void setTs(uint32_t *ts) {
             mQueue[mRdPtr].ts = *ts;

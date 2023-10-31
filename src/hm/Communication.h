@@ -9,6 +9,7 @@
 #include "CommQueue.h"
 #include <Arduino.h>
 #include "../utils/crc.h"
+#include "heuristic.h"
 
 #define MI_TIMEOUT      250
 #define DEFAULT_TIMEOUT 500
@@ -52,6 +53,9 @@ class Communication : public CommQueue<> {
                         for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
                             mLocalBuf[i].len = 0;
                         }
+
+                        mHeu.printStatus(q->iv);
+                        mHeu.getTxCh(q->iv);
                         mState = States::START;
                         break;
 
@@ -84,6 +88,7 @@ class Communication : public CommQueue<> {
                             DBGPRINTLN(F("ms"));
 
                             q->iv->radioStatistics.rxFailNoAnser++; // got nothing
+                            mHeu.setGotNothing(q->iv);
                             if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
                                 mWaitTimeout = millis() + 1000;
@@ -135,7 +140,8 @@ class Communication : public CommQueue<> {
                             yield();
                         }
                         if(0 == q->attempts) {
-                            //cmdDone(q);
+                            mHeu.setGotFragment(q->iv);
+                            q->iv->radioStatistics.rxFail++; // got no complete payload
                             cmdDone(true);
                             mState = States::RESET;
                         } else
@@ -160,17 +166,7 @@ class Communication : public CommQueue<> {
                                 i++;
                             }
 
-                            if(q->attempts) {
-                                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
-                                q->iv->radioStatistics.retransmits++;
-                                mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
-                                mState = States::WAIT;
-                            } else {
-                                add(q, true);
-                                //cmdDone(q);
-                                cmdDone(true);
-                                mState = States::RESET;
-                            }
+                            sendRetransmit(q, i);
                             return;
                         }
 
@@ -185,21 +181,12 @@ class Communication : public CommQueue<> {
                                 DBGPRINT(String(q->attempts));
                                 DBGPRINTLN(F(" attempts left)"));
 
-                                if(q->attempts) {
-                                    q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
-                                    q->iv->radioStatistics.retransmits++;
-                                    mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout;
-                                    mState = States::WAIT;
-                                } else {
-                                    add(q, true);
-                                    //cmdDone(q);
-                                    cmdDone(true);
-                                    mState = States::RESET;
-                                }
+                                sendRetransmit(q, i);
                                 return;
                             }
                         }
 
+                        mHeu.setGotAll(q->iv);
                         compilePayload(q);
 
                         if(NULL != mCbPayload)
@@ -373,6 +360,21 @@ class Communication : public CommQueue<> {
                         (mCbAlarm)(q->iv);
                     yield();
                 }
+            }
+        }
+
+        void sendRetransmit(const queue_s *q, uint8_t i) {
+            if(q->attempts) {
+                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+                q->iv->radioStatistics.retransmits++;
+                mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
+                mState = States::WAIT;
+            } else {
+                mHeu.setGotFragment(q->iv);
+                q->iv->radioStatistics.rxFail++; // got no complete payload
+                add(q, true);
+                cmdDone(true);
+                mState = States::RESET;
             }
         }
 
@@ -714,6 +716,7 @@ class Communication : public CommQueue<> {
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
         alarmListenerType mCbAlarm = NULL;
+        Heuristic mHeu;
 };
 
 #endif /*__COMMUNICATION_H__*/

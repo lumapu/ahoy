@@ -53,8 +53,6 @@ class IApp {
         virtual void setMqttDiscoveryFlag() = 0;
         virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
 
-        virtual void ivSendHighPrio(Inverter<> *iv) = 0;
-
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;

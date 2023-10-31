@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.8.1 - 2023-10-31
+* added tx channel heuristics (per inverter)
+* fix statistics counter
+
+## 0.8.0 - 2023-10-??
+* switched to new communication scheme
+
 ## 0.7.66 - 2023-10-04
 * prepared PA-Level for CMT
 * removed settings for number of retransmits, its fixed to `5` now
