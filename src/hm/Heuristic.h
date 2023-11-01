@@ -27,7 +27,7 @@ class Heuristic {
                     id = i;
                 }
             }
-            if(bestQuality > -6)
+            if(bestQuality == -6)
                 iv->txRfChId = (iv->txRfChId + 1) % RF_MAX_CHANNEL_ID; // next channel
             else
                 iv->txRfChId = id; // best quality channel
