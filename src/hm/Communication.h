@@ -9,7 +9,7 @@
 #include "CommQueue.h"
 #include <Arduino.h>
 #include "../utils/crc.h"
-#include "heuristic.h"
+#include "Heuristic.h"
 
 #define MI_TIMEOUT      250
 #define DEFAULT_TIMEOUT 500
