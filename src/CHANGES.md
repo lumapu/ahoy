@@ -1,6 +1,6 @@
 # Development Changes
 
-## 0.8.1 - 2023-10-31
+## 0.8.1 - 2023-11-05
 * added tx channel heuristics (per inverter)
 * fix statistics counter
 
