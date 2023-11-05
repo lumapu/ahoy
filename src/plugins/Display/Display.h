@@ -91,11 +91,13 @@ class Display {
         Inverter<> *iv;
         record_t<> *rec;
         bool allOff = true;
-        for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+        uint8_t nInv = mSys->getNumInverters();
+        for (uint8_t i = 0; i < nInv; i++) {
             iv = mSys->getInverterByPos(i);
-            rec = iv->getRecordStruct(RealTimeRunData_Debug);
             if (iv == NULL)
                 continue;
+
+            rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
             if (iv->isProducing())
                 nrprod++;
