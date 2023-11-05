@@ -56,6 +56,7 @@ class Communication : public CommQueue<> {
 
                         mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
+                        mGotFragment = false;
                         mState = States::START;
                         break;
 
@@ -87,16 +88,20 @@ class Communication : public CommQueue<> {
                             DBGPRINT(String(millis() - mWaitTimeout + timeout));
                             DBGPRINTLN(F("ms"));
 
-                            q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-                            mHeu.setGotNothing(q->iv);
-                            if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
-                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
-                                mWaitTimeout = millis() + 1000;
-                            }
+                            if(!mGotFragment) {
+                                q->iv->radioStatistics.rxFailNoAnser++; // got nothing
+                                mHeu.setGotNothing(q->iv);
+                                if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
+                                    q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                                    mWaitTimeout = millis() + 1000;
+                                }
+                            } else
+                                q->iv->radioStatistics.rxFail++;
                             mState = States::RESET;
                             break;
                         }
 
+                        mGotFragment = true;
                         States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
                             packet_t *p = &q->iv->radio->mBufCtrl.front();
@@ -132,6 +137,7 @@ class Communication : public CommQueue<> {
                                     parseMiFrame(p, q);
                                 }
                             } else {
+                                q->iv->radioStatistics.rxFail++; // got no complete payload
                                 DPRINTLN(DBG_WARN, F("Inverter serial does not match"));
                                 mWaitTimeout = millis() + timeout;
                             }
@@ -712,6 +718,7 @@ class Communication : public CommQueue<> {
         uint32_t *mTimestamp;
         uint32_t mWaitTimeout = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
+        bool mGotFragment = false;
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
