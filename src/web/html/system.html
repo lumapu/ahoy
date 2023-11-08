@@ -40,10 +40,6 @@
                 );
             }
 
-            function badge(success, text, second="error") {
-                return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
-            }
-
             function headline(text) {
                 return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
             }

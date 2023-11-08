@@ -140,14 +140,7 @@
                     <fieldset class="mb-4">
                     <legend class="des">Inverter</legend>
                         <div id="inverter"></div>
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"></div>
-                            <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"><p class="subdes">Note</p></div>
-                            <div class="col-12 col-sm-9"><p>A 'max module power' value of '0' disables the channel in 'live' view</p></div>
-                        </div>
+
                         <div class="row mb-2">
                             <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
                             <div class="col-12 col-sm-9"></div>
@@ -451,8 +444,6 @@
                 [1, "high active"],
             ];
 
-            const re = /1[0,1,3][2,4,6,8][1,2,4].*/;
-
             window.onload = function() {
                 for(it of document.getElementsByClassName("s_collapsible")) {
                     it.addEventListener("click", function() {
@@ -470,10 +461,6 @@
                     }
                 });
             }
-
-            document.getElementById("btnAdd").addEventListener("click", function() {
-                ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":6,"ch_max_pwr":[0,0,0,0,0,0],"ch_name":["","","","","",""],"ch_yield_cor":[0,0,0,0,0,0]}'));
-            });
 
             function apiCbWifi(obj) {
                 var e = document.getElementById("networks");
@@ -573,98 +560,6 @@
                 return null;
             }
 
-            function ivHtml(obj) {
-                var id = getFreeId();
-                if(null == id) {
-                    setHide("btnAdd", true);
-                    return;
-                }
-
-                var iv = ml("div", {id: "inv" + id}, null);
-                document.getElementById("inverter").appendChild(iv);
-                iv.appendChild(des("Inverter " + id));
-                id = "inv" + id;
-
-                var addr = ml("input", {name: id + "Addr", class: "text", type: "number", max: 138999999999, value: obj["serial"]}, null);
-
-                iv.append(
-                    mlCb(id + "Enable", "Communication Enable", obj["enabled"]),
-                    mlE("Serial Number (12 digits)*", addr)
-                );
-
-                ['keyup', 'change'].forEach(function(evt) {
-                    addr.addEventListener(evt, (e) => {
-                        var serial = addr.value.substring(0,4);
-                        var max = 0;
-                        for(var i=0;i<6;i++) {
-                            setHide(id+"ModPwr"+i, true);
-                            setHide(id+"ModName"+i, true);
-                            setHide(id+"YieldCor"+i, true);
-                        }
-                        setHide("row"+id+"ModPwr", true);
-                        setHide("row"+id+"ModName", true);
-                        setHide("row"+id+"YieldCor", true);
-
-                        if(serial.charAt(0) == 1) {
-                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1) || (serial.charAt(1) == 3)) {
-                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2) || (serial.charAt(3) == 4)) {
-                                    switch(serial.charAt(2)) {
-                                        default:
-                                        case "2": max = 1; break;
-                                        case "4": max = 2; break;
-                                        case "6": max = 4; break;
-                                        case "8": max = 6; break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if(max != 0) {
-                            for(var i=0;i<max;i++) {
-                                setHide(id+"ModPwr"+i, false);
-                                setHide(id+"ModName"+i, false);
-                                setHide(id+"YieldCor"+i, false);
-                            }
-                            setHide("row"+id+"ModPwr", false);
-                            setHide("row"+id+"ModName", false);
-                            setHide("row"+id+"YieldCor", false);
-                        }
-                    })
-                });
-
-                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 15, ["text"], null, "text", "[\\-\\+A-Za-z0-9.\\/#$%&=_]+", "Invalid input")));
-
-                for(var j of [
-                    ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
-                    ["ModName", "ch_name", "Module Name", 15, null],
-                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[\\-0-9\.]+"]]) {
-
-                    var cl = (re.test(obj["serial"])) ? "" : " hide";
-
-                    i = 0;
-                    arrIn = [];
-                    for(it of obj[j[1]]) {
-                        arrIn.push(ml("div", {class: "col-3 "},
-                            inp(id + j[0] + i, it, j[3], [], id + j[0] + i, "text", j[4], "Invalid input")
-                        ));
-                        i++;
-                    }
-
-                    iv.append(
-                        ml("div", {class: "row mb-2 mb-sm-3" + cl, id: "row" + id + j[0]}, [
-                            ml("div", {class: "col-12 col-sm-3 my-2"}, j[2]),
-                            ml("div", {class: "col-12 col-sm-9"},
-                                ml("div", {class: "row"}, arrIn)
-                            )
-                        ])
-                    );
-                }
-
-                var del = ml("input", {class: "btn btnDel", type: "button", id: id+"del", value: "X"}, null);
-                del.addEventListener("click", delIv);
-                iv.append(mlE("Delete", del));
-            }
-
             function ivGlob(obj) {
                 for(var i of [["invInterval", "interval"], ["invRetry", "retries"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
@@ -709,9 +604,175 @@
 
             function parseIv(obj) {
                 maxInv = obj["max_num_inverters"];
-                for(var i = 0; i < obj.inverter.length; i++)
-                    ivHtml(obj.inverter[i]);
+                var lines = [];
+                lines.push(ml("tr", {}, [
+                    ml("th", {style: "width: 10%; text-align: center;"}, ""),
+                    ml("th", {}, "Name"),
+                    ml("th", {}, "Serial"),
+                    ml("th", {style: "width: 10%; text-align: center;"}, "Edit"),
+                    ml("th", {style: "width: 10%; text-align: center;"}, "Delete")
+                ]));
+
+                for(let i = 0; i < obj.inverter.length; i++) {
+                    lines.push(ml("tr", {}, [
+                        ml("td", {}, badge(obj.inverter[i].enabled, (obj.inverter[i].enabled) ? "enabled" : "disabled")),
+                        ml("td", {}, obj.inverter[i].name),
+                        ml("td", {}, String(obj.inverter[i].serial)),
+                        ml("td", {style: "text-align: center;", onclick: function() {ivModal(obj.inverter[i]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
+                        ml("td", {style: "text-align: center; ", onclick: function() {ivDel(obj.inverter[i]);}}, svg(iconDel, 25, 25, "icon icon-fg pointer"))
+                    ]));
+                }
+
+                var add = new Object();
+                add.id = obj.inverter.length;
+                add.name = "";
+                add.enabled = true;
+                add.ch_max_pwr = [];
+                add.ch_name = [];
+                add.ch_yield_cor = [];
+
+                var e = document.getElementById("inverter");
+                e.innerHTML = ""; // remove all childs
+                e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
+                e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "add Inverter", class: "btn", onclick: function() { ivModal(add); }}, null))));
+
                 ivGlob(obj);
+            }
+
+            function ivModal(obj) {
+                var lines = [];
+                lines.push(ml("tr", {}, [
+                    ml("th", {style: "width: 10%;"}, "Input"),
+                    ml("th", {}, "Max Module Power [Wp]"),
+                    ml("th", {}, "Name (optional)"),
+                    ml("th", {}, "Yield Correction [kWh] (optional)")
+                ]));
+                for(let i = 0; i < 6; i++) {
+                    lines.push(ml("tr", {id: "ch"+i}, [
+                        ml("td", {}, String(i+1)),
+                        ml("td", {}, ml("input", {name: "ch_p"+i, class: "text", type: "number", max: 999, value: obj.ch_max_pwr[i]}, null)),
+                        ml("td", {}, ml("input", {name: "ch_n"+i, class: "text", type: "text", maxlength: 15, value: (undefined === obj.ch_name[i]) ? "" : obj.ch_name[i]}, null)),
+                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i]}, null))
+                    ]));
+                }
+                var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
+                if(obj.enabled)
+                    cbEn.checked = true;
+                var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
+                var html = ml("div", {}, [
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-4"}, "Serial"),
+                        ml("div", {class: "col-8"}, ser)
+                    ]),
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-4"}, "Name"),
+                        ml("div", {class: "col-8"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
+                    ]),
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-4"}, "Enable"),
+                        ml("div", {class: "col-8"}, cbEn)
+                    ]),
+                    ml("div", {class: "row mb-3"},
+                        ml("table", {class: "table"},
+                            ml("tbody", {}, lines)
+                        )
+                    ),
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8", id: "res"}, ""),
+                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "save", class: "btn", onclick: function() { ivSave(); }}, null))
+                    ])
+                ]);
+
+                ['keyup', 'change'].forEach(function(evt) {
+                    ser.addEventListener(evt, (e) => {
+                        var serial = ser.value.substring(0,4);
+                        var max = 1;
+                        for(var i = 0; i < 6; i++) {
+                            setHide("ch"+i, true);
+                        }
+
+                        if(serial.charAt(0) == 1) {
+                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1) || (serial.charAt(1) == 3)) {
+                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2) || (serial.charAt(3) == 4)) {
+                                    switch(serial.charAt(2)) {
+                                        default:
+                                        case "2": max = 1; break;
+                                        case "4": max = 2; break;
+                                        case "6": max = 4; break;
+                                        case "8": max = 6; break;
+                                    }
+                                }
+                            }
+                        }
+                        for(var i = 0; i < max; i++) {
+                            setHide("ch"+i, false);
+                        }
+                    })
+                });
+
+                modal("Edit inverter", html);
+                ser.dispatchEvent(new Event('change'));
+
+                function ivSave() {
+                    var o = new Object();
+                    o.cmd  = "save_iv";
+                    o.id   = obj.id;
+                    o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
+                    o.name = document.getElementsByName("name")[0].value;
+                    o.en   = document.getElementsByName("enable")[0].checked;
+                    o.ch = [];
+                    for(let i = 0; i < 6; i++) {
+                        var q = new Object();
+                        q.pwr  = document.getElementsByName("ch_p"+i)[0].value;
+                        q.name = document.getElementsByName("ch_n"+i)[0].value;
+                        q.yld  = document.getElementsByName("yld_c"+i)[0].value;
+                        o.ch.push(q);
+                    }
+                    getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function cb(obj) {
+                    var e = document.getElementById("res");
+                    if(!obj.success)
+                        e.innerHTML = "error while saving";
+                    else {
+                        modalClose();
+                        getAjax("/api/inverter/list", parseIv);
+                    }
+                }
+            }
+
+            function ivDel(obj) {
+                var html = ml("div", {class: "row"}, [
+                    ml("div", {class: "col-9"}, "do you realy want to delete inverter " + obj.name + "?"),
+                    ml("div", {class: "col-3 a-r"}, ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "yes", class: "btn", onclick: function() { del(); }}, null)))
+                ]);
+                modal("Delete inverter " + obj.name, html);
+
+                function del() {
+                    var o = new Object();
+                    o.cmd  = "save_iv";
+                    o.id   = obj.id;
+                    o.ser  = 0;
+                    o.name = "";
+                    o.en   = false;
+                    o.ch = [];
+                    for(let i = 0; i < 6; i++) {
+                        var q = new Object();
+                        q.pwr  = 0;
+                        q.name = "";
+                        q.yld  = 0;
+                        o.ch.push(q);
+                    }
+                    getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function cb(obj) {
+                    if(obj.success) {
+                        modalClose();
+                        getAjax("/api/inverter/list", parseIv);
+                    }
+                }
             }
 
             function parseMqtt(obj) {

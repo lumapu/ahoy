@@ -94,8 +94,8 @@ svg.icon {
     fill: var(--success);
 }
 
-.wifi {
-    fill: var(--fg2);
+.icon-fg {
+    fill: var(--fg);
 }
 
 .title {
@@ -708,7 +708,7 @@ div.hr {
     width: 100%;
     background-color: var(--modal-bg);
     background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.2);
+    border: 1px solid var(--fg);
     flex-direction: column;
 }
 

@@ -118,7 +118,6 @@ class Inverter {
         record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
@@ -142,7 +141,6 @@ class Inverter {
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
-            initialized        = false;
             alarmMesIndex      = 0;
             isConnected        = false;
             status             = InverterStatus::OFF;
@@ -193,7 +191,6 @@ class Inverter {
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
-            initialized = true;
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {

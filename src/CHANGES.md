@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.2 - 2023-11-08
+* beautified inverter settings in `setup` (preperation for future, settings become more inverter dependent)
+
 ## 0.8.1 - 2023-11-05
 * added tx channel heuristics (per inverter)
 * fix statistics counter

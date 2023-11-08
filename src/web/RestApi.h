@@ -124,7 +124,7 @@ class RestApi {
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
-            DynamicJsonDocument json(200);
+            DynamicJsonDocument json(800);
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
 
@@ -708,8 +708,35 @@ class RestApi {
                 mApp->setTimestamp(0); // 0: update ntp flag
             else if(F("serial_utc_offset") == jsonIn[F("cmd")])
                 mTimezoneOffset = jsonIn[F("val")];
-            else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
+            else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
+            else if(F("save_iv") == jsonIn[F("cmd")]) {
+                Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
+                iv->config->enabled = jsonIn[F("en")];
+                iv->config->serial.u64 = jsonIn[F("ser")];
+                snprintf(iv->config->name, MAX_NAME_LENGTH, "%s", jsonIn[F("name")].as<const char*>());
+
+                for(uint8_t i = 0; i < 6; i++) {
+                    iv->config->chMaxPwr[i] = jsonIn[F("ch")][i][F("pwr")];
+                    iv->config->yieldCor[i] = jsonIn[F("ch")][i][F("yld")];
+                    snprintf(iv->config->chName[i], MAX_NAME_LENGTH, "%s", jsonIn[F("ch")][i][F("name")].as<const char*>());
+                }
+
+                switch(iv->config->serial.b[4]) {
+                    case 0x24:
+                    case 0x22:
+                    case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
+
+                    case 0x44:
+                    case 0x42:
+                    case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
+
+                    case 0x64:
+                    case 0x62:
+                    case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
+                    default:  break;
+                }
+                mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
