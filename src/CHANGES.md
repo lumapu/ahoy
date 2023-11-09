@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.3 - 2023-11-09
+* fix yield day reset during day #848
+* add total AC Max Power to WebUI
+* fix opendtufusion build (GxEPD patch)
+
 ## 0.8.2 - 2023-11-08
 * beautified inverter settings in `setup` (preperation for future, settings become more inverter dependent)
 

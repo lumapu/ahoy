@@ -150,6 +150,9 @@ class Inverter {
             rssi               = -127;
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(txRfQuality, -6, 5);
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
         }
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
@@ -266,7 +269,12 @@ class Inverter {
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
                             rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            float actYD = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            uint8_t idx = rec->assign[pos].ch - 1;
+                            if (mLastYD[idx] > actYD)
+                                mOffYD[idx] += mLastYD[idx];
+                            mLastYD[idx] = actYD;
+                            rec->record[pos] = mOffYD[idx] + actYD;
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
@@ -540,6 +548,9 @@ class Inverter {
             alarmNxtWrPos = 0;
             alarmCnt = 0;
             alarmLastId = 0;
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
         }
 
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
@@ -662,7 +673,9 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
-        bool          mDevControlRequest; // true if change needed
+    private:
+        float mOffYD[6], mLastYD[6];
+        bool mDevControlRequest; // true if change needed
 };
 
 template <class REC_TYP>

@@ -14,7 +14,7 @@ index 1588444..592869b 100644
  {
    _initial_write = true;
    _initial_refresh = true;
-@@ -67,27 +67,30 @@ void GxEPD2_EPD::init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset
+@@ -71,27 +71,30 @@ void GxEPD2_EPD::init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset
    {
      pinMode(_busy, INPUT);
    }
@@ -58,7 +58,7 @@ index 1588444..592869b 100644
  }
  
  void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void* busy_callback_parameter)
-@@ -96,12 +99,6 @@ void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void*
+@@ -100,12 +103,6 @@ void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void*
    _busy_callback_parameter = busy_callback_parameter;
  }
  
@@ -71,7 +71,7 @@ index 1588444..592869b 100644
  void GxEPD2_EPD::_reset()
  {
    if (_rst >= 0)
-@@ -168,115 +165,201 @@ void GxEPD2_EPD::_waitWhileBusy(const char* comment, uint16_t busy_time)
+@@ -174,115 +169,201 @@ void GxEPD2_EPD::_waitWhileBusy(const char* comment, uint16_t busy_time)
  
  void GxEPD2_EPD::_writeCommand(uint8_t c)
  {
@@ -334,7 +334,7 @@ index ef2318f..50aa961 100644
    protected:
      void _reset();
      void _waitWhileBusy(const char* comment = 0, uint16_t busy_time = 5000);
-@@ -111,16 +115,21 @@ class GxEPD2_EPD
+@@ -111,9 +115,14 @@ class GxEPD2_EPD
      void _startTransfer();
      void _transfer(uint8_t value);
      void _endTransfer();
@@ -351,8 +351,7 @@ index ef2318f..50aa961 100644
      bool _diag_enabled, _pulldown_rst_mode;
 -    SPIClass* _pSPIx;
      SPISettings _spi_settings;
-     bool _initial_write, _initial_refresh;
-     bool _power_is_on, _using_partial_mode, _hibernating;
+@@ -123,5 +124,5 @@ class GxEPD2_EPD
      uint16_t _reset_duration;
 -    void (*_busy_callback)(const void*); 
 +    void (*_busy_callback)(const void*);
