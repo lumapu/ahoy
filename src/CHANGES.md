@@ -4,6 +4,7 @@
 * fix yield day reset during day #848
 * add total AC Max Power to WebUI
 * fix opendtufusion build (GxEPD patch)
+* fix null ptr PR #1222
 
 ## 0.8.2 - 2023-11-08
 * beautified inverter settings in `setup` (preperation for future, settings become more inverter dependent)
