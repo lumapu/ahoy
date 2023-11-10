@@ -516,25 +516,17 @@ class PubMqtt {
 
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/cnt", iv->config->name);
                 snprintf(mVal, 40, "%d", iv->alarmCnt);
-                publish(mSubTopic, mVal, true);
+                publish(mSubTopic, mVal, false);
 
                 for(uint8_t j = 0; j < 10; j++) {
                     if(0 != iv->lastAlarm[j].code) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/code", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].code);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/str", iv->config->name, j);
-                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code).c_str());
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start + lastMidnight);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/end", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end + lastMidnight);
-                        publish(mSubTopic, mVal, true);
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d", iv->config->name, j);
+                        snprintf(mVal, 100, "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
+                            iv->lastAlarm[j].code,
+                            iv->getAlarmStr(iv->lastAlarm[j].code).c_str(),
+                            iv->lastAlarm[j].start + lastMidnight,
+                            iv->lastAlarm[j].end + lastMidnight);
+                        publish(mSubTopic, mVal, false);
                         yield();
                     }
                 }
@@ -613,7 +605,7 @@ class PubMqtt {
         // global buffer for mqtt topic. Used when publishing mqtt messages.
         char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[40];
+        char mVal[100];
         discovery_t mDiscovery;
 };
 
