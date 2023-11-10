@@ -48,8 +48,8 @@ class Heuristic {
         }
 
         void printStatus(Inverter<> *iv) {
-            DPRINT(DBG_INFO, F("Status:"));
-            DBGPRINT(F(" |"));
+            DPRINT_IVID(DBG_INFO, iv->id);
+            DBGPRINT(F("CH qualities:"));
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
                 DBGPRINT(F(" "));
                 DBGPRINT(String(iv->txRfQuality[i]));

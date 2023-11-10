@@ -57,6 +57,7 @@ class Communication : public CommQueue<> {
                         mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
                         mGotFragment = false;
+                        mFirstTry = mFirstTry ? false : ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()); //) || (millis() < 120000));}
                         mState = States::START;
                         break;
 
@@ -88,7 +89,7 @@ class Communication : public CommQueue<> {
                             DBGPRINT(String(millis() - mWaitTimeout + timeout));
                             DBGPRINTLN(F("ms"));
 
-                            if(!mGotFragment) {
+                            if(!mGotFragment && !mFirstTry) {
                                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                                 mHeu.setGotNothing(q->iv);
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
@@ -102,6 +103,7 @@ class Communication : public CommQueue<> {
                         }
 
                         mGotFragment = true;
+                        mFirstTry = false; // for correct reset
                         States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
                             packet_t *p = &q->iv->radio->mBufCtrl.front();
@@ -260,6 +262,7 @@ class Communication : public CommQueue<> {
                 record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
                 rec->ts = q->ts;
                 miStsConsolidate(q, ((p->packet[0] == 0x88) ? 1 : 2), rec, p->packet[10], p->packet[12], p->packet[9], p->packet[11]);
+                mHeu.setGotFragment(q->iv);
             }
         }
 
@@ -502,6 +505,9 @@ class Communication : public CommQueue<> {
                 cmdDone(true);
                 mState = States::RESET;
                 q->iv->radioStatistics.rxSuccess++;
+                mHeu.setGotAll(q->iv);
+            } else {
+                mHeu.setGotFragment(q->iv);
             }
 
             /*if (mPayload[iv->id].multi_parts > 5) {
@@ -562,12 +568,14 @@ class Communication : public CommQueue<> {
                     //mPayload[iv->id].retransmits = 0; // reserve retransmissions for each response
                     //mPayload[iv->id].complete = false;
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
+                    mHeu.setGotFragment(q->iv);
                 } else {
                     miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
+                mHeu.setGotFragment(q->iv);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
             }
@@ -699,7 +707,12 @@ class Communication : public CommQueue<> {
             // update status state-machine,
             if (ac_pow)
                 iv->isProducing();
+            mHeu.setGotAll(iv);
             cmdDone(true);
+            if(NULL != mCbPayload)
+                (mCbPayload)(RealTimeRunData_Debug, iv);
+
+            mState = States::RESET; // everything ok, next request
         }
 
     private:
@@ -719,6 +732,7 @@ class Communication : public CommQueue<> {
         uint32_t mWaitTimeout = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
         bool mGotFragment = false;
+        bool mFirstTry = false;
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
