@@ -519,8 +519,6 @@ class Web {
                 }
             }
 
-            // nrf24 amplifier power
-            mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
 
             // cmt

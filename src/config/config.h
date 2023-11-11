@@ -132,9 +132,6 @@
     #define LED_HIGH_ACTIVE         false
 #endif
 
-// default NRF24 power, possible values (0 - 3)
-#define DEF_AMPLIFIERPOWER      1
-
 // number of packets hold in buffer
 #define PACKET_BUFFER_SIZE      30
 

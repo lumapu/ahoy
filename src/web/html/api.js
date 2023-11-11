@@ -192,6 +192,34 @@ function badge(success, text, second="error") {
     return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
 }
 
+function tabChange(id) {
+    var els = document.getElementsByClassName("nav-link");
+    [].forEach.call(els, function(e) {
+        if(e.id != id)
+            e.classList.remove('active');
+        else
+            e.classList.add('active');
+    });
+
+    els = document.getElementsByClassName("tab-content");
+    [].forEach.call(els, function(e) {
+        if(e.id == ("div"+id.substring(3)))
+            e.classList.remove('hide');
+        else
+            e.classList.add('hide');
+    });
+}
+
+function tabs(items) {
+    var li = [];
+    var cl = " active";
+    for(it of items) {
+        li.push(ml("li", {class: "nav-item"},ml("a", {id: "tab"+it, class: "nav-link" + cl, href: "#", onclick: function(){tabChange(this.id)}}, it)))
+        cl = "";
+    }
+    return ml("ul", {class: "nav nav-tabs mb-4"}, li);
+}
+
 function des(val) {
     e = document.createElement('p');
     e.classList.add("subdes");
@@ -223,13 +251,11 @@ function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, t
 }
 
 function sel(name, options, selId) {
-    e = document.createElement('select');
-    e.name = name;
+    var o = [];
     for(it of options) {
-        o = opt(it[0], it[1], (it[0] == selId));
-        e.appendChild(o);
+        o.push(opt(it[0], it[1], (it[0] == selId)));
     }
-    return e;
+    return ml("select", {name: name}, o);
 }
 
 function selDelAllOpt(sel) {
@@ -240,9 +266,7 @@ function selDelAllOpt(sel) {
 }
 
 function opt(val, html, sel=false) {
-    o = document.createElement('option');
-    o.value = val;
-    o.innerHTML = html;
+    var o = ml("option", {value: val}, html);
     if(sel)
         o.selected = true;
     return o;
@@ -301,7 +325,7 @@ function svg(data=null, w=24, h=24, cl=null, tooltip=null) {
 function modal(title, body) {
     if(null == document.getElementById("modal")) {
         document.getElementById("wrapper").append(
-            ml("div", {id: "modal-wrapper", class: "modal", onclick: modalClose}),
+            ml("div", {id: "modal-wrapper", onclick: modalClose}),
             ml("div", {id: "modal", class: "modal"},
                 ml("div", {class: "modal-content"}, [
                         ml("div", {class: "modal-header"}, [

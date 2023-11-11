@@ -92,7 +92,7 @@ class Communication : public CommQueue<> {
                                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                                 mHeu.setGotNothing(q->iv);
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
-                                    q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, WORK_FREQ_KHZ);
+                                    q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTimeout = millis() + 1000;
                                 }
                             } else

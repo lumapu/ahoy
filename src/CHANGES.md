@@ -3,6 +3,8 @@
 ## 0.8.4 - 2023-11-10
 * changed MqTT alarm topic, removed retained flag #1212
 * reduce last_success MQTT messages (#1124)
+* introduced tabs in WebGUI (inverter settings)
+* added inverter-wise power level and frequency
 
 ## 0.8.3 - 2023-11-09
 * fix yield day reset during day #848
