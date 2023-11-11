@@ -346,7 +346,14 @@ class RestApi {
                     obj2[F("name")]     = String(iv->config->name);
                     obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
                     obj2[F("channels")] = iv->channels;
-                    obj2[F("version")]  = String(iv->getFwVersion());
+                    obj2[F("freq")]     = iv->config->frequency;
+                    if(0xff == iv->config->powerLevel) {
+                        if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
+                            obj2[F("pa")] = 30; // 20dBm
+                        else
+                            obj2[F("pa")] = 1; // low
+                    } else
+                        obj2[F("pa")] = iv->config->powerLevel;
 
                     for(uint8_t j = 0; j < iv->channels; j ++) {
                         obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
@@ -529,7 +536,6 @@ class RestApi {
         void getRadioNrf(JsonObject obj) {
             obj[F("en")]          = (bool) mConfig->nrf.enabled;
             obj[F("isconnected")] = mRadioNrf->isChipConnected();
-            obj[F("power_level")] = mConfig->nrf.amplifierPower;
             obj[F("dataRate")]    = mRadioNrf->getDataRate();
             //obj[F("isPVariant")]  = mRadioNrf->isPVariant();
         }
@@ -736,6 +742,8 @@ class RestApi {
                     case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
                     default:  break;
                 }
+                iv->config->frequency = jsonIn[F("freq")];
+                iv->config->powerLevel = jsonIn[F("pa")];
                 mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("unknown cmd");

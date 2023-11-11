@@ -422,6 +422,10 @@ class Cmt2300a {
                 return HOY_BASE_FREQ_KHZ + (mCurCh * FREQ_STEP_KHZ);
         }
 
+        uint8_t getCurrentChannel(void) {
+            return mCurCh;
+        }
+
         void setPaLevel(int8_t level) {
             if(level < -10)
                 level = -10;

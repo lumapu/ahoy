@@ -30,6 +30,8 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
+#define CONFIG_VERSION      1
+
 
 #define PROT_MASK_INDEX     0x0001
 #define PROT_MASK_LIVE      0x0002
@@ -88,7 +90,6 @@ typedef struct {
     uint8_t pinMiso;
     uint8_t pinMosi;
     uint8_t pinSclk;
-    uint8_t amplifierPower;
 } cfgNrf24_t;
 
 typedef struct {
@@ -142,6 +143,8 @@ typedef struct {
     uint16_t chMaxPwr[6];
     double yieldCor[6];  // YieldTotal correction value
     char chName[6][MAX_NAME_LENGTH];
+    uint8_t frequency;
+    uint8_t powerLevel;
 } cfgIv_t;
 
 typedef struct {
@@ -188,6 +191,7 @@ typedef struct {
     cfgInst_t   inst;
     plugins_t   plugin;
     bool        valid;
+    uint16_t    configVersion;
 } settings_t;
 
 class settings {
@@ -284,6 +288,7 @@ class settings {
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
                     if(root.containsKey(F("plugin"))) jsonPlugin(root[F("plugin")]);
                     if(root.containsKey(F("inst"))) jsonInst(root[F("inst")]);
+                    getConfigVersion(root.as<JsonObject>());
                 }
                 else {
                     Serial.println(F("failed to parse json, using default config"));
@@ -299,6 +304,7 @@ class settings {
 
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
+            json[F("version")] = CONFIG_VERSION;
             jsonNetwork(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
             #if defined(ESP32)
@@ -391,7 +397,6 @@ class settings {
             mCfg.nrf.pinMosi           = DEF_NRF_MOSI_PIN;
             mCfg.nrf.pinSclk           = DEF_NRF_SCLK_PIN;
 
-            mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
             mCfg.nrf.enabled           = true;
 
             #if defined(ESP32)
@@ -436,6 +441,11 @@ class settings {
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 0.955f;
 
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
+                mCfg.inst.iv[i].frequency  = 0x12; // 863MHz (minimum allowed frequency)
+            }
+
             mCfg.led.led0 = DEF_LED0;
             mCfg.led.led1 = DEF_LED1;
             mCfg.led.led_high_active = LED_HIGH_ACTIVE;
@@ -446,13 +456,30 @@ class settings {
             mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.pxShift = true;
             mCfg.plugin.display.rot = 0;
-            mCfg.plugin.display.disp_data  = DEF_PIN_OFF;  // SDA
-            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
+            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
             mCfg.plugin.display.disp_cs    = DEF_PIN_OFF;
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
-       }
+        }
+
+        void loadAddedDefaults() {
+            if(0 == mCfg.configVersion) {
+                for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                    mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
+                    mCfg.inst.iv[i].frequency  = 0x12; // 863MHz (minimum allowed frequency)
+                }
+            }
+        }
+
+        void getConfigVersion(JsonObject obj) {
+            getVal<uint16_t>(obj, F("version"), &mCfg.configVersion);
+            DPRINT(DBG_INFO, F("Config Version: "));
+            DBGPRINTLN(String(mCfg.configVersion));
+            if(CONFIG_VERSION != mCfg.configVersion)
+                loadAddedDefaults();
+        }
 
         void jsonNetwork(JsonObject obj, bool set = false) {
             if(set) {
@@ -506,7 +533,6 @@ class settings {
                 obj[F("sclk")]      = mCfg.nrf.pinSclk;
                 obj[F("mosi")]      = mCfg.nrf.pinMosi;
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
-                obj[F("pwr")]       = mCfg.nrf.amplifierPower;
                 obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
@@ -516,7 +542,6 @@ class settings {
                 getVal<uint8_t>(obj, F("sclk"), &mCfg.nrf.pinSclk);
                 getVal<uint8_t>(obj, F("mosi"), &mCfg.nrf.pinMosi);
                 getVal<uint8_t>(obj, F("miso"), &mCfg.nrf.pinMiso);
-                getVal<uint8_t>(obj, F("pwr"), &mCfg.nrf.amplifierPower);
                 #if !defined(ESP32)
                 mCfg.nrf.enabled = true; // ESP8266, read always as enabled
                 #else
@@ -707,6 +732,8 @@ class settings {
                 obj[F("en")]   = (bool)cfg->enabled;
                 obj[F("name")] = cfg->name;
                 obj[F("sn")]   = cfg->serial.u64;
+                obj[F("freq")] = cfg->frequency;
+                obj[F("pa")]   = cfg->powerLevel;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -716,6 +743,8 @@ class settings {
                 getVal<bool>(obj, F("en"), &cfg->enabled);
                 getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
+                getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
+                getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();

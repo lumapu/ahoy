@@ -129,6 +129,7 @@ class Inverter {
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
         int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
         uint8_t       txRfChId;          // RF TX channel id
+        uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -194,6 +195,7 @@ class Inverter {
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
+            curCmtFreq = this->config->frequency; // update to frequency read from settings
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {

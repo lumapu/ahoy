@@ -45,7 +45,7 @@ class HmRadio : public Radio {
         }
         ~HmRadio() {}
 
-        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
 
@@ -81,9 +81,7 @@ class HmRadio : public Radio {
             // enable all receiving interrupts
             mNrf24.maskIRQ(false, false, false);
 
-            DPRINT(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_"));
-            DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[ampPwr]));
-            mNrf24.setPALevel(ampPwr & 0x03);
+            mNrf24.setPALevel(1); // low is default
 
             if(mNrf24.isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
@@ -269,6 +267,7 @@ class HmRadio : public Radio {
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+            mNrf24.setPALevel(iv->config->powerLevel & 0x03);
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
