@@ -57,11 +57,21 @@ class Communication : public CommQueue<> {
                         mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
                         mGotFragment = false;
+                        if(NULL == q->iv->radio)
+                            cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
                         break;
 
                     case States::START:
                         setTs(mTimestamp);
+                        if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
+                            // frequency was changed during runtime
+                            if(q->iv->curCmtFreq != q->iv->config->frequency) {
+                                if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
+                                    q->iv->curCmtFreq = q->iv->config->frequency;
+                            }
+                        }
+
                         if(q->isDevControl) {
                             if(ActivePowerContr == q->cmd)
                                 q->iv->powerLimitAck = false;

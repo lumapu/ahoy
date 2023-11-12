@@ -465,10 +465,10 @@ class settings {
         }
 
         void loadAddedDefaults() {
-            if(0 == mCfg.configVersion) {
+            if(0 < mCfg.configVersion) {
                 for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                     mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
-                    mCfg.inst.iv[i].frequency  = 0x12; // 863MHz (minimum allowed frequency)
+                    mCfg.inst.iv[i].frequency  = 0x0; // 860MHz (backward compatibility)
                 }
             }
         }

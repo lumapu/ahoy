@@ -1,5 +1,13 @@
 # Development Changes
 
+## 0.8.5 - 2023-11-12
+* fixed endless loop while switching CMT frequency
+* removed obsolete "retries" field from settings #1224
+* fixed crash while defining new invertes #1224
+* fixed default frequency settings
+* added default input power to `400` while adding new inverters
+* fixed color of wifi RSSI icon #1224
+
 ## 0.8.4 - 2023-11-10
 * changed MqTT alarm topic, removed retained flag #1212
 * reduce last_success MQTT messages (#1124)

@@ -728,20 +728,7 @@ class RestApi {
                     snprintf(iv->config->chName[i], MAX_NAME_LENGTH, "%s", jsonIn[F("ch")][i][F("name")].as<const char*>());
                 }
 
-                switch(iv->config->serial.b[4]) {
-                    case 0x24:
-                    case 0x22:
-                    case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
-
-                    case 0x44:
-                    case 0x42:
-                    case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
-
-                    case 0x64:
-                    case 0x62:
-                    case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
-                    default:  break;
-                }
+                mApp->initInverter(jsonIn[F("id")]);
                 iv->config->frequency = jsonIn[F("freq")];
                 iv->config->powerLevel = jsonIn[F("pa")];
                 mApp->saveSettings(false); // without reboot

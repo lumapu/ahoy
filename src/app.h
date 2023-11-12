@@ -104,6 +104,17 @@ class app : public IApp, public ah::Scheduler {
             return true;
         }
 
+        void initInverter(uint8_t id) {
+            mSys.addInverter(id, [this](Inverter<> *iv) {
+                if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
+                    iv->radio = &mNrfRadio;
+                #if defined(ESP32)
+                else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
+                    iv->radio = &mCmtRadio;
+                #endif
+            });
+        }
+
         bool readSettings(const char *path) {
             return mSettings.readSettings(path);
         }

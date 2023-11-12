@@ -63,15 +63,7 @@ void app::setup() {
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-        mSys.addInverter(i, [this](Inverter<> *iv) {
-            // will be only called for valid inverters
-            if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
-                iv->radio = &mNrfRadio;
-            #if defined(ESP32)
-            else if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
-                iv->radio = &mCmtRadio;
-            #endif
-        });
+        initInverter(i);
     }
 
     if(mConfig->nrf.enabled) {

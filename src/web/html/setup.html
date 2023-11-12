@@ -150,10 +150,6 @@
                             <div class="col-12 col-sm-9"><input type="number" name="invInterval" title="Invalid input"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Max retries per Payload</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="invRetry"/></div>
-                        </div>
-                        <div class="row mb-3">
                             <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
                         </div>
@@ -578,7 +574,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["invRetry", "retries"], ["yldEff", "yldEff"]])
+                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -644,14 +640,17 @@
                 add.id = obj.inverter.length;
                 add.name = "";
                 add.enabled = true;
-                add.ch_max_pwr = [];
+                add.ch_max_pwr = [400,400,400,400,400,400];
                 add.ch_name = [];
                 add.ch_yield_cor = [];
+                add.freq = 12;
+                add.pa = 30;
 
                 var e = document.getElementById("inverter");
                 e.innerHTML = ""; // remove all childs
                 e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
-                e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "add Inverter", class: "btn", onclick: function() { ivModal(add); }}, null))));
+                if(obj.max_num_inverters > obj.inverter.length)
+                    e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "add Inverter", class: "btn", onclick: function() { ivModal(add); }}, null))));
 
                 ivGlob(obj);
             }

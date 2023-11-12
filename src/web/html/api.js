@@ -126,7 +126,7 @@ function parseRssi(obj) {
         icon = iconWifi1;
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
-    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg", obj["wifi_rssi"]));
+    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj["wifi_rssi"]));
 }
 
 function toIsoDateStr(d) {

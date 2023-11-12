@@ -69,7 +69,6 @@ class CmtRadio : public Radio {
             return switchFrequencyCh(iv, fromCh, toCh);
         }
 
-    private:
         bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) {
             if((0xff == fromCh) || (0xff == toCh))
                 return false;
@@ -80,16 +79,12 @@ class CmtRadio : public Radio {
             return true;
         }
 
+    private:
+
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            // frequency was changed during runtime
-            if(iv->curCmtFreq != iv->config->frequency) {
-                if(switchFrequencyCh(iv, iv->curCmtFreq, iv->config->frequency))
-                    iv->curCmtFreq = iv->config->frequency;
-            } else {
-                // inverters have maybe different settings regarding frequency
-                if(mCmt.getCurrentChannel() != iv->config->frequency)
-                    mCmt.switchChannel(iv->config->frequency);
-            }
+            // inverters have maybe different settings regarding frequency
+            if(mCmt.getCurrentChannel() != iv->config->frequency)
+                mCmt.switchChannel(iv->config->frequency);
 
             updateCrcs(&len, appendCrc16);
 

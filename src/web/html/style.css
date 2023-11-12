@@ -98,6 +98,10 @@ svg.icon {
     fill: var(--fg);
 }
 
+.icon-fg2 {
+    fill: var(--fg2);
+}
+
 .title {
     background-color: var(--primary);
     color: #fff !important;
@@ -817,7 +821,8 @@ ul {
 }
 
 .nav-tabs .nav-link.active {
-    border-color: var(--fg) var(--fg) var(--bg);
+    border-color: var(--primary) var(--fg) var(--bg);
+    border-top-width: 4px;
 }
 
 .nav-link:hover, .nav-link:visited {
