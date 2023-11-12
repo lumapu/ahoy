@@ -66,7 +66,7 @@ class Display {
         if (mMono != NULL)
             mMono->loop(mCfg->contrast);
 
-        if (mNewPayload || (((++mLoopCnt) % 10) == 0)) {
+        if (mNewPayload || (((++mLoopCnt) % 5) == 0)) {
             mNewPayload = false;
             mLoopCnt = 0;
             DataScreen();
