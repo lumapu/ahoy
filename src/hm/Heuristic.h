@@ -19,6 +19,13 @@ class Heuristic {
             if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 return 0; // not used for these inverter types
 
+            mCycle++; // intended to overflow from time to time
+            if(mTestEn) {
+                iv->txRfChId = mCycle % RF_MAX_CHANNEL_ID;
+                DPRINTLN(DBG_INFO, F("heuristic test mode"));
+                return id2Ch(iv->txRfChId);
+            }
+
             uint8_t id = 0;
             int8_t bestQuality = -6;
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
@@ -37,14 +44,20 @@ class Heuristic {
 
         void setGotAll(Inverter<> *iv) {
             updateQuality(iv, 2); // GOOD
+            mTestEn = false;
         }
 
         void setGotFragment(Inverter<> *iv) {
             updateQuality(iv, 1); // OK
+            mTestEn = false;
         }
 
         void setGotNothing(Inverter<> *iv) {
-            updateQuality(iv, -2); // BAD
+            if(!mTestEn) {
+                updateQuality(iv, -2); // BAD
+                mTestEn = true;
+                iv->txRfChId = (iv->txRfChId + 1) % RF_MAX_CHANNEL_ID;
+            }
         }
 
         void printStatus(Inverter<> *iv) {
@@ -54,7 +67,18 @@ class Heuristic {
                 DBGPRINT(F(" "));
                 DBGPRINT(String(iv->txRfQuality[i]));
             }
-            DBGPRINTLN("");
+            DBGPRINT(F(" | t: "));
+            DBGPRINT(String(iv->radioStatistics.txCnt));
+            DBGPRINT(F(", s: "));
+            DBGPRINT(String(iv->radioStatistics.rxSuccess));
+            DBGPRINT(F(", f: "));
+            DBGPRINT(String(iv->radioStatistics.rxFail));
+            DBGPRINT(F(", n: "));
+            DBGPRINTLN(String(iv->radioStatistics.rxFailNoAnser));
+        }
+
+        bool getTestModeEnabled(void) {
+            return mTestEn;
         }
 
     private:
@@ -65,17 +89,6 @@ class Heuristic {
             else if(iv->txRfQuality[iv->txRfChId] < RF_MIN_QUALTIY)
                 iv->txRfQuality[iv->txRfChId] = RF_MIN_QUALTIY;
         }
-
-        /*uint8_t ch2Id(uint8_t ch) {
-            switch(ch) {
-                case 3:  return 0;
-                case 23: return 1;
-                case 40: return 2;
-                case 61: return 3;
-                case 75: return 4;
-            }
-            return 0; // standard
-        }*/
 
         inline uint8_t id2Ch(uint8_t id) {
             switch(id) {
@@ -90,6 +103,8 @@ class Heuristic {
 
     private:
         uint8_t mChList[5] = {03, 23, 40, 61, 75};
+        bool mTestEn = false;
+        uint8_t mCycle = 0;
 };
 
 

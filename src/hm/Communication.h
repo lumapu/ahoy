@@ -44,6 +44,7 @@ class Communication : public CommQueue<> {
                     return; // empty
 
                 uint16_t timeout = q->iv->ivGen != IV_MI ? DEFAULT_TIMEOUT : MI_TIMEOUT;
+                bool testMode = false;
 
                 switch(mState) {
                     case States::RESET:
@@ -56,6 +57,7 @@ class Communication : public CommQueue<> {
 
                         mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
+                        testMode = mHeu.getTestModeEnabled();
                         mGotFragment = false;
                         mFirstTry = mFirstTry ? false : ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()); //) || (millis() < 120000));}
                         if(NULL == q->iv->radio)
@@ -79,7 +81,8 @@ class Communication : public CommQueue<> {
                             q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
                         } else
                             q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
-                        q->iv->radioStatistics.txCnt++;
+                        if(!testMode)
+                            q->iv->radioStatistics.txCnt++;
                         mWaitTimeout = millis() + timeout;
                         setAttempt();
                         mState = States::WAIT;
@@ -100,14 +103,17 @@ class Communication : public CommQueue<> {
                             DBGPRINTLN(F("ms"));
 
                             if(!mGotFragment && !mFirstTry) {
-                                q->iv->radioStatistics.rxFailNoAnser++; // got nothing
+                                if(!testMode)
+                                    q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                                 mHeu.setGotNothing(q->iv);
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTimeout = millis() + 1000;
                                 }
-                            } else
-                                q->iv->radioStatistics.rxFail++;
+                            } else {
+                                if(!testMode)
+                                    q->iv->radioStatistics.rxFail++;
+                            }
                             mState = States::RESET;
                             break;
                         }
@@ -137,7 +143,8 @@ class Communication : public CommQueue<> {
                             ah::dumpBuf(p->packet, p->len);
 
                             if(checkIvSerial(&p->packet[1], q->iv)) {
-                                q->iv->radioStatistics.frmCnt++;
+                                if(!testMode)
+                                    q->iv->radioStatistics.frmCnt++;
 
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                     parseFrame(p);
@@ -149,7 +156,8 @@ class Communication : public CommQueue<> {
                                     parseMiFrame(p, q);
                                 }
                             } else {
-                                q->iv->radioStatistics.rxFail++; // got no complete payload
+                                if(!testMode)
+                                    q->iv->radioStatistics.rxFail++; // got no complete payload
                                 DPRINTLN(DBG_WARN, F("Inverter serial does not match"));
                                 mWaitTimeout = millis() + timeout;
                             }
@@ -158,8 +166,9 @@ class Communication : public CommQueue<> {
                             yield();
                         }
                         if(0 == q->attempts) {
+                            if(!testMode)
+                                q->iv->radioStatistics.rxFail++; // got no complete payload
                             mHeu.setGotFragment(q->iv);
-                            q->iv->radioStatistics.rxFail++; // got no complete payload
                             cmdDone(true);
                             mState = States::RESET;
                         } else
@@ -205,7 +214,7 @@ class Communication : public CommQueue<> {
                         }
 
                         mHeu.setGotAll(q->iv);
-                        compilePayload(q);
+                        compilePayload(q, testMode);
 
                         if(NULL != mCbPayload)
                             (mCbPayload)(q->cmd, q->iv);
@@ -295,7 +304,7 @@ class Communication : public CommQueue<> {
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value
         }
 
-        inline void compilePayload(const queue_s *q) {
+        inline void compilePayload(const queue_s *q, bool testMode) {
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(i == (mMaxFrameId - 1)) {
@@ -311,7 +320,8 @@ class Communication : public CommQueue<> {
                 DBGPRINT(F("CRC Error "));
                 if(q->attempts == 0) {
                     DBGPRINTLN(F("-> Fail"));
-                    q->iv->radioStatistics.rxFail++; // got fragments but not complete response
+                    if(!testMode)
+                        q->iv->radioStatistics.rxFail++; // got fragments but not complete response
                     cmdDone();
                 } else
                     DBGPRINTLN(F("-> complete retransmit"));
@@ -356,11 +366,13 @@ class Communication : public CommQueue<> {
                 DPRINT(DBG_ERROR, F("plausibility check failed, expected "));
                 DBGPRINT(String(rec->pyldLen));
                 DBGPRINTLN(F(" bytes"));
-                q->iv->radioStatistics.rxFail++;
+                if(!testMode)
+                    q->iv->radioStatistics.rxFail++;
                 return;
             }
 
-            q->iv->radioStatistics.rxSuccess++;
+            if(!testMode)
+                q->iv->radioStatistics.rxSuccess++;
 
             rec->ts = q->ts;
             for (uint8_t i = 0; i < rec->length; i++) {

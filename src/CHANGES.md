@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.6 - 2023-11-12
+* merged PR #1225
+* improved heuristics (prevent update of statitistic during testing)
+
 ## 0.8.5 - 2023-11-12
 * fixed endless loop while switching CMT frequency
 * removed obsolete "retries" field from settings #1224

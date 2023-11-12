@@ -188,6 +188,19 @@ function tr(val1, val2) {
     ]);
 }
 
+function tr2(cols) {
+    var t = [];
+    for(val of cols) {
+        if(typeof val == "number")
+            val = String(val);
+        if(t.length == 0)
+            t.push(ml("th", {}, val));
+        else
+            t.push(ml("td", {}, val));
+    }
+    return ml("tr", {}, t);
+}
+
 function badge(success, text, second="error") {
     return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
 }
