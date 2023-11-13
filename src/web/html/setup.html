@@ -140,38 +140,33 @@
                     <fieldset class="mb-4">
                     <legend class="des">Inverter</legend>
                         <div id="inverter"></div>
-
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
-                            <div class="col-12 col-sm-9"></div>
+                        <div class="row mb-3">
+                            <div class="col-8 my-2">Interval [s]</div>
+                            <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="invInterval" title="Invalid input"/></div>
+                            <div class="col-8 mb-2">Reset values and YieldDay at midnight</div>
+                            <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
+                            <div class="col-8 mb-2">Reset values when inverter polling pauses at sunset</div>
+                            <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling pauses at sunset</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstComStop"/></div>
+                            <div class="col-8">Reset values when inverter status is 'not available'</div>
+                            <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Reset values when inverter status is 'not available'</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
+                            <div class="col-8">Reset 'max' values at midnight</div>
+                            <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Reset 'max' values at midnight</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMaxMid"/></div>
+                            <div class="col-8">Start without time sync (useful in AP-Only-Mode)</div>
+                            <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Start without time sync (useful in AP-Only-Mode)</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="strtWthtTm"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Yield Efficiency (should be between 0.95 and 0.96)</div>
-                            <div class="col-4 col-sm-9"><input type="number" name="yldEff" step="any"/></div>
+                            <div class="col-8">Yield Efficiency (should be between 0.95 and 0.96)</div>
+                            <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -222,10 +217,6 @@
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
                             <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Pause polling inverters during night</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="sunDisNightCom"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -434,6 +425,7 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            /*ENDIF_ESP32*/
             var nrfPa = [
                 [0, "MIN (recommended)"],
                 [1, "LOW"],
@@ -442,6 +434,8 @@
             ];
             var esp32cmtPa = [];
             var esp32cmtFreq = [];
+
+            /*IF_ESP32*/
             var freqFmt = new Intl.NumberFormat('en-US', {
                 minimumIntegerDigits: 3,
                 minimumFractionDigits: 2
@@ -645,6 +639,7 @@
                 add.ch_yield_cor = [];
                 add.freq = 12;
                 add.pa = 30;
+                add.add2total = true;
 
                 var e = document.getElementById("inverter");
                 e.innerHTML = ""; // remove all childs
@@ -674,23 +669,27 @@
                 }
 
                 var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
-                if(obj.enabled)
-                    cbEn.checked = true;
+                var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
+                var cbAddTotal = ml("input", {name: "add2total", type: "checkbox"}, null);
+                cbEn.checked = (obj.enabled);
+                cbDisNightCom.checked = (obj.disnightcom);
+                cbAddTotal.checked = (obj.add2total);
+
                 var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
                 var html = ml("div", {}, [
-                    tabs(["General", "Inputs", "Radio"]),
+                    tabs(["General", "Inputs", "Radio", "Advanced"]),
                     ml("div", {id: "divGeneral", class: "tab-content"}, [
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-4"}, "Enable"),
-                            ml("div", {class: "col-8"}, cbEn)
+                            ml("div", {class: "col-2"}, "Enable"),
+                            ml("div", {class: "col-10"}, cbEn)
                         ]),
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-4 mt-2"}, "Serial"),
-                            ml("div", {class: "col-8"}, ser)
+                            ml("div", {class: "col-2 mt-2"}, "Serial"),
+                            ml("div", {class: "col-10"}, ser)
                         ]),
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-4 mt-2"}, "Name"),
-                            ml("div", {class: "col-8"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
+                            ml("div", {class: "col-2 mt-2"}, "Name"),
+                            ml("div", {class: "col-10"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
                         ])
                     ]),
                     ml("div", {id: "divInputs", class: "tab-content hide"}, [
@@ -704,20 +703,30 @@
                         ml("input", {type: "hidden", name: "isnrf"}, null),
                         ml("div", {id: "setcmt"}, [
                             ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-4 mt-2"}, "Frequency"),
-                                ml("div", {class: "col-8"}, sel("freq", esp32cmtFreq, obj.freq))
+                                ml("div", {class: "col-3 mt-2"}, "Frequency"),
+                                ml("div", {class: "col-9"}, sel("freq", esp32cmtFreq, obj.freq))
                             ]),
                             ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-4 mt-2"}, "Power Level"),
-                                ml("div", {class: "col-8"}, sel("cmtpa", esp32cmtPa, obj.pa))
+                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
+                                ml("div", {class: "col-9"}, sel("cmtpa", esp32cmtPa, obj.pa))
                             ]),
                         ]),
                         ml("div", {id: "setnrf"},
                             ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-4 mt-2"}, "Power Level"),
-                                ml("div", {class: "col-8"}, sel("nrfpa", nrfPa, obj.pa))
+                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
+                                ml("div", {class: "col-9"}, sel("nrfpa", nrfPa, obj.pa))
                             ]),
                         ),
+                    ]),
+                    ml("div", {id: "divAdvanced", class: "tab-content hide"}, [
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-10"}, "Pause communication during night (lat. and lon. need to be set)"),
+                            ml("div", {class: "col-2"}, cbDisNightCom)
+                        ]),
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-10"}, "Include inverter to sum of total (should be checked by default)"),
+                            ml("div", {class: "col-2"}, cbAddTotal)
+                        ])
                     ]),
                     ml("div", {class: "row mt-5"}, [
                         ml("div", {class: "col-8", id: "res"}, ""),
@@ -758,7 +767,7 @@
                     })
                 });
 
-                modal("Edit inverter", html);
+                modal("Edit inverter " + obj.name, html);
                 ser.dispatchEvent(new Event('change'));
 
                 function ivSave() {
@@ -781,6 +790,8 @@
                     else
                         o.pa   = document.getElementsByName("cmtpa")[0].value;
                     o.freq = document.getElementsByName("freq")[0].value;
+                    o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
+                    o.add2total = document.getElementsByName("add2total")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
 
@@ -841,7 +852,6 @@
             function parseSun(obj) {
                 document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
-                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
                 const sel = document.getElementsByName("sunOffs")[0];
                 for(var i = 0; i <= 60; i++) {
                     sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));

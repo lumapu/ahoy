@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      1
+#define CONFIG_VERSION      2
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -110,7 +110,6 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    bool disNightCom;  // disable night communication
     uint16_t offsetSec;
 } cfgSun_t;
 
@@ -145,6 +144,8 @@ typedef struct {
     char chName[6][MAX_NAME_LENGTH];
     uint8_t frequency;
     uint8_t powerLevel;
+    bool disNightCom;  // disable night communication
+    bool add2Total; // add values to total values - useful if one inverter is on battery to turn off
 } cfgIv_t;
 
 typedef struct {
@@ -420,7 +421,6 @@ class settings {
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
-            mCfg.sun.disNightCom = false;
             mCfg.sun.offsetSec   = 0;
 
             mCfg.serial.interval = SERIAL_INTERVAL;
@@ -442,8 +442,10 @@ class settings {
             mCfg.inst.yieldEffiency    = 0.955f;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
-                mCfg.inst.iv[i].frequency  = 0x12; // 863MHz (minimum allowed frequency)
+                mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
+                mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
+                mCfg.inst.iv[i].disNightCom = false;
+                mCfg.inst.iv[i].add2Total   = true;
             }
 
             mCfg.led.led0 = DEF_LED0;
@@ -465,10 +467,14 @@ class settings {
         }
 
         void loadAddedDefaults() {
-            if(0 < mCfg.configVersion) {
-                for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                if(mCfg.configVersion < 1) {
                     mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
                     mCfg.inst.iv[i].frequency  = 0x0; // 860MHz (backward compatibility)
+                }
+                if(mCfg.configVersion < 2) {
+                    mCfg.inst.iv[i].disNightCom = false;
+                    mCfg.inst.iv[i].add2Total   = true;
                 }
             }
         }
@@ -601,12 +607,10 @@ class settings {
             if(set) {
                 obj[F("lat")]  = mCfg.sun.lat;
                 obj[F("lon")]  = mCfg.sun.lon;
-                obj[F("dis")]  = mCfg.sun.disNightCom;
                 obj[F("offs")] = mCfg.sun.offsetSec;
             } else {
                 getVal<float>(obj, F("lat"), &mCfg.sun.lat);
                 getVal<float>(obj, F("lon"), &mCfg.sun.lon);
-                getVal<bool>(obj, F("dis"), &mCfg.sun.disNightCom);
                 getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSec);
             }
         }
@@ -734,6 +738,8 @@ class settings {
                 obj[F("sn")]   = cfg->serial.u64;
                 obj[F("freq")] = cfg->frequency;
                 obj[F("pa")]   = cfg->powerLevel;
+                obj[F("dis")]  = cfg->disNightCom;
+                obj[F("add")]  = cfg->add2Total;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -745,6 +751,8 @@ class settings {
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
                 getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
                 getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
+                getVal<bool>(obj, F("dis"), &cfg->disNightCom);
+                getVal<bool>(obj, F("add"), &cfg->add2Total);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();

@@ -307,7 +307,6 @@ class app : public IApp, public ah::Scheduler {
         Communication mCommunication;
 
         bool mShowRebootRequest;
-        bool mIVCommunicationOn;
 
         #if defined(ETHERNET)
         ahoyeth mEth;

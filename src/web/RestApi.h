@@ -339,27 +339,30 @@ class RestApi {
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    JsonObject obj2 = invArr.createNestedObject();
-                    obj2[F("enabled")]  = (bool)iv->config->enabled;
-                    obj2[F("id")]       = i;
-                    obj2[F("name")]     = String(iv->config->name);
-                    obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
-                    obj2[F("channels")] = iv->channels;
-                    obj2[F("freq")]     = iv->config->frequency;
-                    if(0xff == iv->config->powerLevel) {
-                        if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
-                            obj2[F("pa")] = 30; // 20dBm
-                        else
-                            obj2[F("pa")] = 1; // low
-                    } else
-                        obj2[F("pa")] = iv->config->powerLevel;
+                if(NULL == iv)
+                    continue;
 
-                    for(uint8_t j = 0; j < iv->channels; j ++) {
-                        obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
-                        obj2[F("ch_name")][j]      = iv->config->chName[j];
-                        obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
-                    }
+                JsonObject obj2 = invArr.createNestedObject();
+                obj2[F("enabled")]  = (bool)iv->config->enabled;
+                obj2[F("id")]       = i;
+                obj2[F("name")]     = String(iv->config->name);
+                obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
+                obj2[F("channels")] = iv->channels;
+                obj2[F("freq")]     = iv->config->frequency;
+                obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
+                obj2[F("add2total")] = (bool)iv->config->add2Total;
+                if(0xff == iv->config->powerLevel) {
+                    if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
+                        obj2[F("pa")] = 30; // 20dBm
+                    else
+                        obj2[F("pa")] = 1; // low
+                } else
+                    obj2[F("pa")] = iv->config->powerLevel;
+
+                for(uint8_t j = 0; j < iv->channels; j ++) {
+                    obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
+                    obj2[F("ch_name")][j]      = iv->config->chName[j];
+                    obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                 }
             }
             obj[F("interval")]          = String(mConfig->nrf.sendInterval);
@@ -501,7 +504,6 @@ class RestApi {
         void getSun(JsonObject obj) {
             obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
             obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
-            obj[F("disnightcom")] = mConfig->sun.disNightCom;
             obj[F("offs")] = mConfig->sun.offsetSec;
         }
 
@@ -583,24 +585,28 @@ class RestApi {
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
             obj[F("ts_offset")]    = mConfig->sun.offsetSec;
-            obj[F("disNightComm")] = mConfig->sun.disNightCom;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;
+            bool disNightCom = false;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    JsonObject invObj = inv.createNestedObject();
-                    invObj[F("enabled")]         = (bool)iv->config->enabled;
-                    invObj[F("id")]              = i;
-                    invObj[F("name")]            = String(iv->config->name);
-                    invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
-                    invObj[F("is_avail")]        = iv->isAvailable();
-                    invObj[F("is_producing")]    = iv->isProducing();
-                    invObj[F("ts_last_success")] = iv->getLastTs(rec);
-                }
+                if(NULL == iv)
+                    continue;
+
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                JsonObject invObj = inv.createNestedObject();
+                invObj[F("enabled")]         = (bool)iv->config->enabled;
+                invObj[F("id")]              = i;
+                invObj[F("name")]            = String(iv->config->name);
+                invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
+                invObj[F("is_avail")]        = iv->isAvailable();
+                invObj[F("is_producing")]    = iv->isProducing();
+                invObj[F("ts_last_success")] = iv->getLastTs(rec);
+                if(iv->config->disNightCom)
+                    disNightCom = true;
             }
+            obj[F("disNightComm")] = disNightCom;
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
             if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
@@ -729,8 +735,10 @@ class RestApi {
                 }
 
                 mApp->initInverter(jsonIn[F("id")]);
-                iv->config->frequency = jsonIn[F("freq")];
-                iv->config->powerLevel = jsonIn[F("pa")];
+                iv->config->frequency   = jsonIn[F("freq")];
+                iv->config->powerLevel  = jsonIn[F("pa")];
+                iv->config->disNightCom = jsonIn[F("disnightcom")];
+                iv->config->add2Total   = jsonIn[F("add2total")];
                 mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("unknown cmd");

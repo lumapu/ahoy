@@ -4,9 +4,7 @@
 //-----------------------------------------------------------------------------
 
 #include <ArduinoJson.h>
-
 #include "app.h"
-
 #include "utils/sun.h"
 
 
@@ -239,41 +237,48 @@ void app::tickCalcSunrise(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickIVCommunication(void) {
-    mIVCommunicationOn = !mConfig->sun.disNightCom; // if sun.disNightCom is false, communication is always on
-    if (!mIVCommunicationOn) {  // inverter communication only during the day
-        uint32_t nxtTrig;
-        if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
-            nxtTrig = mSunrise - mConfig->sun.offsetSec;
-        } else {
-            if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
-                nxtTrig = 0;
-            } else { // current time lies within communication start/stop time, set next trigger to communication stop
-                mIVCommunicationOn = true;
-                nxtTrig = mSunset + mConfig->sun.offsetSec;
+    bool restartTick = false;
+    bool zeroValues = false;
+    uint32_t nxtTrig = 0;
+
+    Inverter<> *iv;
+    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
+        iv = mSys.getInverterByPos(i);
+        if(NULL == iv)
+            continue;
+
+        iv->commEnabled = !iv->config->disNightCom; // if sun.disNightCom is false, communication is always on
+        if (!iv->commEnabled) {  // inverter communication only during the day
+            if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
+                nxtTrig = mSunrise - mConfig->sun.offsetSec;
+            } else {
+                if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
+                    nxtTrig = 0;
+                } else { // current time lies within communication start/stop time, set next trigger to communication stop
+                    iv->commEnabled = true;
+                    nxtTrig = mSunset + mConfig->sun.offsetSec;
+                }
             }
+            if (nxtTrig != 0)
+                restartTick = true;
         }
-        if (nxtTrig != 0)
-            onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
+
+        if ((!iv->commEnabled) && (mConfig->inst.rstValsCommStop))
+            zeroValues = true;
     }
-    tickComm();
+
+    if(restartTick) // at least one inverter
+        onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
+
+    if (zeroValues) // at least one inverter
+        once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
 }
 
 //-----------------------------------------------------------------------------
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
-    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec, mConfig->sun.disNightCom))
+    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec))
         once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
-}
-
-//-----------------------------------------------------------------------------
-void app::tickComm(void) {
-    if ((!mIVCommunicationOn) && (mConfig->inst.rstValsCommStop))
-        once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
-
-    if (mMqttEnabled) {
-        if (!mMqtt.tickerComm(!mIVCommunicationOn))
-            once(std::bind(&app::tickComm, this), 5, "mqCom");  // MQTT not connected, retry after 5s
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -325,22 +330,24 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
-    if(!mIVCommunicationOn) {
-        DPRINTLN(DBG_WARN, F("Time not set or it is night time, therefore no communication to the inverter!"));
-        return;
-    }
-
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
-        if(NULL != iv) {
-            if(iv->config->enabled) {
-                iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
-                    if(isDevControl)
-                        mCommunication.addImportant(iv, cmd);
-                    else
-                        mCommunication.add(iv, cmd);
-                });
+        if(NULL == iv)
+            continue;
+
+        if(iv->config->enabled) {
+            if(!iv->commEnabled) {
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINTLN(F("no communication to the inverter (night time)"));
+                continue;
             }
+
+            iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
+                if(isDevControl)
+                    mCommunication.addImportant(iv, cmd);
+                else
+                    mCommunication.add(iv, cmd);
+            });
         }
     }
 
@@ -357,6 +364,8 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
         if (NULL == iv)
             continue;  // skip to next inverter
         if (!iv->config->enabled)
+            continue;  // skip to next inverter
+        if (iv->commEnabled)
             continue;  // skip to next inverter
 
         if (checkAvail) {
@@ -415,7 +424,6 @@ void app::resetSystem(void) {
 
     mSendLastIvId = 0;
     mShowRebootRequest = false;
-    mIVCommunicationOn = true;
     mSavePending = false;
     mSaveReboot = false;
 

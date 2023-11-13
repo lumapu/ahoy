@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.7 - 2023-11-13
+* fix ESP8266 inverter settings #1226
+* send radio statistics via MqTT #1227
+* made night communication inverter depended
+* added option to prevent adding values of inverter to total values (MqTT only) #1199
+
 ## 0.8.6 - 2023-11-12
 * merged PR #1225
 * improved heuristics (prevent update of statitistic during testing)

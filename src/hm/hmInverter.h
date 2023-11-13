@@ -130,6 +130,7 @@ class Inverter {
         int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
         uint8_t       txRfChId;          // RF TX channel id
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
+        bool          commEnabled;       // 'pause night communication' sets this field to false
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -150,6 +151,7 @@ class Inverter {
             alarmLastId        = 0;
             rssi               = -127;
             radio              = NULL;
+            commEnabled        = true;
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(txRfQuality, -6, 5);
 

@@ -134,7 +134,7 @@ class PubMqtt {
             #endif
         }
 
-        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs) {
             if (!mClient.connected())
                 return false;
 
@@ -142,7 +142,16 @@ class PubMqtt {
             publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
             publish(subtopics[MQTT_COMM_START], String(sunrise - offs).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offs).c_str(), true);
-            publish(subtopics[MQTT_DIS_NIGHT_COMM], ((disNightCom) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL == iv)
+                    continue;
+
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/dis_night_comm", iv->config->name);
+                publish(mSubTopic, ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            }
 
             return true;
         }
