@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.8 - 2023-11-16
+* fix ESP8266 save inverter #1232
+
 ## 0.8.7 - 2023-11-13
 * fix ESP8266 inverter settings #1226
 * send radio statistics via MqTT #1227

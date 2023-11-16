@@ -124,12 +124,26 @@ class RestApi {
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
-            DynamicJsonDocument json(800);
+
+            if(0 == index) {
+                if(NULL != mTmpBuf)
+                    delete[] mTmpBuf;
+                mTmpBuf = new uint8_t[total+1];
+                mTmpSize = total;
+            }
+            if(mTmpSize >= (len + index))
+                memcpy(&mTmpBuf[index], data, len);
+
+            if((len + index) != total)
+                return; // not last frame - nothing to do
+
+            DynamicJsonDocument json(1000);
+
+            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            JsonObject obj = json.as<JsonObject>();
+
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-
-            DeserializationError err = deserializeJson(json, (const char *)data, len);
-            JsonObject obj = json.as<JsonObject>();
             root[F("success")] = (err) ? false : true;
             if(!err) {
                 String path = request->url().substring(5);
@@ -141,18 +155,20 @@ class RestApi {
                     root[F("success")] = false;
                     root[F("error")]   = "Path not found: " + path;
                 }
-            }
-            else {
+            } else {
                 switch (err.code()) {
                     case DeserializationError::Ok: break;
-                    case DeserializationError::InvalidInput: root[F("error")] = F("Invalid input");          break;
-                    case DeserializationError::NoMemory:     root[F("error")] = F("Not enough memory");      break;
-                    default:                                 root[F("error")] = F("Deserialization failed"); break;
+                    case DeserializationError::IncompleteInput: root[F("error")] = F("Incomplete input");       break;
+                    case DeserializationError::InvalidInput:    root[F("error")] = F("Invalid input");          break;
+                    case DeserializationError::NoMemory:        root[F("error")] = F("Not enough memory");      break;
+                    default:                                    root[F("error")] = F("Deserialization failed"); break;
                 }
             }
 
             response->setLength();
             request->send(response);
+            delete[] mTmpBuf;
+            mTmpBuf = NULL;
         }
 
         void getNotFound(JsonObject obj, String url) {
@@ -760,6 +776,8 @@ class RestApi {
         uint32_t mTimezoneOffset;
         uint32_t mHeapFree, mHeapFreeBlk;
         uint8_t mHeapFrag;
+        uint8_t *mTmpBuf = NULL;
+        uint32_t mTmpSize;
 };
 
 #endif /*__WEB_API_H__*/

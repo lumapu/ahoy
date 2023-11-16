@@ -798,7 +798,7 @@
                 function cb(obj) {
                     var e = document.getElementById("res");
                     if(!obj.success)
-                        e.innerHTML = "error while saving";
+                        e.innerHTML = "error: " + obj.error;
                     else {
                         modalClose();
                         getAjax("/api/inverter/list", parseIv);
