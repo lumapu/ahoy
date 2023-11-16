@@ -257,12 +257,14 @@ class HmRadio : public Radio {
                             isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
                         else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
                             isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
-                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore fragment number zero and MI status messages //#0 was p.packet[0] != 0x00 &&
+                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
                             isLastPackage = true;                       // response from dev control command
                     }
                 }
                 yield();
             }
+            if(isLastPackage)
+                mLastIv->mGotLastMsg = true;
             return isLastPackage;
         }
 
@@ -280,7 +282,7 @@ class HmRadio : public Radio {
                 DBGPRINT(" CH");
                 DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
-                ah::dumpBuf(mTxBuf, len);
+                ah::dumpBuf(mTxBuf, len, 1, 4, "#"+String(iv->id));
             }
 
             mNrf24.stopListening();
@@ -304,6 +306,7 @@ class HmRadio : public Radio {
         uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
         uint8_t mTxChIdx = 0;
         uint8_t mRxChIdx = 0;
+        bool    mGotLastMsg = false;
         uint32_t mMillis;
 
         SPIClass* mSpi;

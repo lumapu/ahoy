@@ -45,7 +45,7 @@ namespace ah {
     String getDateTimeStrFile(time_t t);
     String getTimeStr(time_t t);
     uint64_t Serial2u64(const char *val);
-    void dumpBuf(uint8_t buf[], uint8_t len);
+    void dumpBuf(uint8_t buf[], uint8_t len, uint8_t firstRepl = 0, uint8_t lastRepl = 0, String repl = "");
 }
 
 #endif /*__HELPER_H__*/
