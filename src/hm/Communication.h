@@ -14,7 +14,7 @@
 #define MI_TIMEOUT      250      // timeout for MI type requests
 #define FRSTMSG_TIMEOUT 150      // how long to wait for first msg to be received
 #define DEFAULT_TIMEOUT 500      // timeout for regular requests
-#define SINGLEFR_TIMEOUT 60      // timeout for single frame requests
+#define SINGLEFR_TIMEOUT 65      // timeout for single frame requests
 #define MAX_BUFFER      250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
@@ -44,8 +44,8 @@ class Communication : public CommQueue<> {
                 if(!valid)
                     return; // empty
 
-                uint16_t timeout     = q->iv->ivGen != IV_MI ? (mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT : MI_TIMEOUT;
-                uint16_t timeout_min = q->iv->ivGen != IV_MI ? mGotFragment ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT : MI_TIMEOUT;
+                uint16_t timeout     = q->iv->ivGen != IV_MI ? (q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT : MI_TIMEOUT;
+                uint16_t timeout_min = q->iv->ivGen != IV_MI ? q->iv->mGotFragment ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT : MI_TIMEOUT;
                 bool testMode = false;
 
                 switch(mState) {
@@ -61,7 +61,7 @@ class Communication : public CommQueue<> {
                             mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
                         testMode = mHeu.getTestModeEnabled();
-                        mGotFragment = false;
+                        q->iv->mGotFragment = false;
                         q->iv->mGotLastMsg = false;
                         mFirstTry = mFirstTry ? false : ( ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()) || (millis() < 120000) );
                         if(NULL == q->iv->radio)
@@ -95,13 +95,10 @@ class Communication : public CommQueue<> {
 
                     case States::WAIT:
                         if(millis() > mWaitTimeout_min) {
-                            if(!mGotFragment) { // nothing received yet?
-                                if(q->iv->radio->get()) {    // radio received sth.?
-                                    mGotFragment = true;
-                                    if(q->iv->mGotLastMsg) {
+                            if(!q->iv->mGotFragment) { // nothing received yet?
+                                if(q->iv->mGotLastMsg) {
                                         //mState = States::CHECK_FRAMES;
                                         mWaitTimeout = mWaitTimeout_min;
-                                    }
                                 }
                             } else if(mFirstTry) {
                                 DPRINT_IVID(DBG_INFO, q->iv->id);
@@ -127,7 +124,7 @@ class Communication : public CommQueue<> {
                             DBGPRINT(String(millis() - mWaitTimeout + timeout));
                             DBGPRINTLN(F("ms"));
 
-                            if(!mGotFragment) { // && !mFirstTry) {
+                            if(!q->iv->mGotFragment) {
                                 if(!testMode)
                                     q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                                 mHeu.setGotNothing(q->iv);
@@ -143,7 +140,6 @@ class Communication : public CommQueue<> {
                             break;
                         }
 
-                        mGotFragment = true;
                         mFirstTry = false; // for correct reset
                         States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
@@ -207,9 +203,10 @@ class Communication : public CommQueue<> {
                         if(0 == mMaxFrameId) {
                             uint8_t i = 0;
                             while(i < MAX_PAYLOAD_ENTRIES) {
-                                if(mLocalBuf[i].len == 0)
+                                if(mLocalBuf[i].len == 0) {
                                     framnr = i+1;
                                     break;
+                                }
                                 i++;
                             }
                         }
@@ -280,9 +277,8 @@ class Communication : public CommQueue<> {
                 return; // CRC8 is wrong, frame invalid
             }
 
-            if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
+            if((*frameId & ALL_FRAMES) == ALL_FRAMES)
                 mMaxFrameId = (*frameId & 0x7f);
-            }
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];
             memcpy(f->buf, &p->packet[10], p->len-11);
@@ -773,7 +769,7 @@ class Communication : public CommQueue<> {
         uint32_t mWaitTimeout     = 0;
         uint32_t mWaitTimeout_min = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
-        bool mGotFragment = false;
+        //bool mGotFragment = false;
         bool mFirstTry = false;
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];

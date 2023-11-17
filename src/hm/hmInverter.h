@@ -126,6 +126,8 @@ class Inverter {
         uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // RSSI
         uint8_t       miMultiParts;      // helper info for MI multiframe msgs
+        uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
+        bool          mGotFragment;      // shows if inverter has sent at least one fragment
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
