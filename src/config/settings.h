@@ -149,6 +149,7 @@ typedef struct {
     unsigned long lastTime; // tic toc
     double max_power;
     bool two_percent;   // ask if not go lower then 2%
+    char tibber_pw[ZEXPORT_ADDR_LEN];   // needed for tibber QWGH-ED12
 } cfgzeroExport_t;
 #endif
 
@@ -456,6 +457,7 @@ class settings {
             // Zero-Export
             #if defined(ESP32)
             snprintf(mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             snprintf(mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
             mCfg.plugin.zexport.enabled = false;
             mCfg.plugin.zexport.count_avg = 10;

@@ -43,7 +43,7 @@ class ZeroExport {
 
         return ((unsigned)(mCfg->total_power - mCfg->power_avg) >= mCfg->power_avg) ?  ivPower + mCfg->total_power : ivPower - mCfg->total_power;
     }
-
+    //C2T2-B91B
     private:
         HTTPClient httpClient;
 
@@ -61,6 +61,10 @@ class ZeroExport {
                 DPRINTLN(DBG_INFO, "httpClient.begin failed");
                 httpClient.end();
                 return false;
+            }
+
+            if(String(mCfg->monitor_url).endsWith("data.json?node_id=1")){
+                httpClient.setAuthorization("admin", mCfg->tibber_pw);
             }
 
             int httpCode = httpClient.GET();
@@ -85,6 +89,8 @@ class ZeroExport {
                     mCfg->total_power = responseBody.substring(responseBody.indexOf(":"), index).toDouble();
                 } else if(json.containsKey(F("emeters"))) {
                     mCfg->total_power = (double)json[F("total_power")];
+                } else if(String(mCfg->monitor_url).endsWith("data.json?node_id=1") ) {
+                    tibber_parse();
                 } else {
                      DPRINTLN(DBG_INFO, (F("ZeroExport() json error: cant find value in this query: ") + responseBody));
                      return false;
@@ -97,6 +103,11 @@ class ZeroExport {
             }
             httpClient.end();
             return true;
+        }
+
+        void tibber_parse()
+        {
+
         }
 
         // private member variables
