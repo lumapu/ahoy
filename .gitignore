@@ -13,3 +13,5 @@ src/web/html/tmp/*
 *.suo
 *.ipch
 src/output.map
+
+/.venv

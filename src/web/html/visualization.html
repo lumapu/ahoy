@@ -20,7 +20,7 @@
             var units, ivEn;
             var mIvHtml = [];
             var mNum = 0;
-            var total = Array(5).fill(0);
+            var total = Array(6).fill(0);
             var tPwrAck;
 
             function parseGeneric(obj) {
@@ -62,7 +62,7 @@
             }
 
             function totals() {
-                for(var i = 0; i < 5; i++) {
+                for(var i = 0; i < 6; i++) {
                     total[i] = Math.round(total[i] * 100) / 100;
                 }
 
@@ -81,8 +81,9 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row"}, [
-                                numMid(total[3], "W", "DC Power"),
-                                numMid(total[4], "var", "Reactive Power")
+                                numMid(total[3], "W", "Max Power"),
+                                numMid(total[4], "W", "DC Power"),
+                                numMid(total[5], "var", "Reactive Power")
                             ])
                         ])
                     ])
@@ -91,8 +92,9 @@
             function ivHead(obj) {
                 if(0 != obj.status) { // only add totals if inverter is online
                     total[0] += obj.ch[0][2]; // P_AC
-                    total[3] += obj.ch[0][8]; // P_DC
-                    total[4] += obj.ch[0][10]; // Q_AC
+                    total[3] += obj.ch[0][11]; // MAX P_AC
+                    total[4] += obj.ch[0][8]; // P_DC
+                    total[5] += obj.ch[0][10]; // Q_AC
                 }
                 total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
@@ -295,15 +297,17 @@
                 modal("Info for inverter " + obj.name, ml("div", {}, html));
             }
 
+
+
             function parseIvRadioStats(obj) {
                 var html = ml("table", {class: "table"}, [
                     ml("tbody", {}, [
-                        tr("TX count", obj.tx_cnt),
-                        tr("RX success", obj.rx_success),
-                        tr("RX fail", obj.rx_fail),
-                        tr("RX no answer", obj.rx_fail_answer),
-                        tr("RX fragments", obj.frame_cnt),
-                        tr("TX retransmits", obj.retransmits)
+                        tr2(["TX count", obj.tx_cnt, ""]),
+                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "%"]),
+                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "%"]),
+                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "%"]),
+                        tr2(["RX fragments", obj.frame_cnt, ""]),
+                        tr2(["TX retransmits", obj.retransmits, ""])
                     ])
                 ]);
                 modal("Radio statistics for inverter " + obj.name, ml("div", {}, html));

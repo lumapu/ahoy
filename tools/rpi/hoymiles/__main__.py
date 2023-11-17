@@ -103,10 +103,11 @@ class SunsetHandler:
     def sun_status2mqtt(self, dtu_ser, dtu_name):
         if not mqtt_client or not self.suntimes:
             return
-        local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
-        local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
-        local_zone = self.suntimes.setlocal(datetime.now()).tzinfo._key
+
         if self.suntimes:
+            local_sunrise = self.suntimes.riselocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+            local_sunset = self.suntimes.setlocal(datetime.now()).strftime("%d.%m.%YT%H:%M")
+            local_zone = self.suntimes.setlocal(datetime.now()).tzinfo.key
             mqtt_client.info2mqtt({'topic' : f'{dtu_name}/{dtu_ser}'}, \
                          {'dis_night_comm' : 'True', \
                            'local_sunrise' : local_sunrise, \
@@ -235,14 +236,14 @@ def poll_inverter(inverter, dtu_ser, do_init, retries):
             if isinstance(result, hoymiles.decoders.StatusResponse):
 
                 data = result.__dict__()
-                if 'event_count' in data:
+                if data is not None and 'event_count' in data:
                     if event_message_index[inv_str] < data['event_count']:
                         event_message_index[inv_str] = data['event_count']
                         command_queue[inv_str].append(hoymiles.compose_send_time_payload(InfoCommands.AlarmData, alarm_id=event_message_index[inv_str]))
 
                 if mqtt_client:
                    mqtt_client.store_status(result, topic=inverter.get('mqtt', {}).get('topic', None))
-                    
+
                 if influx_client:
                    influx_client.store_status(result)
 
@@ -409,7 +410,7 @@ if __name__ == '__main__':
                     str(g_inverter_ser),
                     g_inverter.get('mqtt', {}).get('topic', f'hoymiles/{g_inverter_ser}') + '/command'
                     )
-            mqtt_client.subscribe(topic_item[1])
+            mqtt_client.client.subscribe(topic_item[1])
             mqtt_command_topic_subs.append(topic_item)
 
     # start main-loop

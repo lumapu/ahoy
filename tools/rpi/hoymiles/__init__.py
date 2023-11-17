@@ -344,6 +344,9 @@ class HoymilesNRF:
 
         if not radio.begin():
             raise RuntimeError('Can\'t open radio')
+        
+        if not radio.isChipConnected():
+            logging.warning("could not connect to NRF24 radio")
 
         self.txpower = radio_config.get('txpower', 'max')
 
@@ -411,7 +414,7 @@ class HoymilesNRF:
         self.radio.startListening()
 
         fragments = []
-
+        received_sth=False
         # Receive: Loop
         t_end = time.monotonic_ns()+timeout
         while time.monotonic_ns() < t_end:
@@ -431,7 +434,7 @@ class HoymilesNRF:
                         ch_rx=self.rx_channel, ch_tx=self.tx_channel,
                         time_rx=datetime.now()
                         )
-
+                received_sth=True
                 yield fragment
 
             else:
@@ -447,7 +450,11 @@ class HoymilesNRF:
                     self.radio.setChannel(self.rx_channel)
                     self.radio.startListening()
 
-            time.sleep(0.004)
+            time.sleep(0.005)
+        
+        if not received_sth:
+            raise TimeoutError
+        
 
     def next_rx_channel(self):
         """

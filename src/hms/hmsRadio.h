@@ -29,25 +29,22 @@ class CmtRadio : public Radio {
             reset(genDtuSn);
         }
 
-        bool loop() {
+        void loop() {
             mCmt.loop();
-
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return false;
+                return;
             getRx();
             if(CMT_SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
-                return true;
-            } else
-                return false;
+            }
         }
 
         bool isConnected() {
             return mCmtAvail;
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -69,6 +66,10 @@ class CmtRadio : public Radio {
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
 
+            return switchFrequencyCh(iv, fromCh, toCh);
+        }
+
+        bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) {
             if((0xff == fromCh) || (0xff == toCh))
                 return false;
 
@@ -78,35 +79,39 @@ class CmtRadio : public Radio {
             return true;
         }
 
-        std::queue<packet_t> mBufCtrl;
-
     private:
+
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+            // inverters have maybe different settings regarding frequency
+            if(mCmt.getCurrentChannel() != iv->config->frequency)
+                mCmt.switchChannel(iv->config->frequency);
+
             updateCrcs(&len, appendCrc16);
 
             if(mSerialDebug) {
-                DPRINT(DBG_INFO, F("TX "));
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINT(F("TX "));
                 DBGPRINT(String(mCmt.getFreqKhz()/1000.0f));
                 DBGPRINT(F("Mhz | "));
                 ah::dumpBuf(mTxBuf, len);
             }
 
             uint8_t status = mCmt.tx(mTxBuf, len);
+            mMillis = millis();
             if(CMT_SUCCESS != status) {
                 DPRINT(DBG_WARN, F("CMT TX failed, code: "));
                 DBGPRINTLN(String(status));
                 if(CMT_ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
-
-            if(isRetransmit)
-                iv->radioStatistics.retransmits++;
-            else
-                iv->radioStatistics.txCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {
             return iv->radioId.u64;
+        }
+
+        uint8_t getIvGen(Inverter<> *iv) {
+            return iv->ivGen;
         }
 
         inline void reset(bool genDtuSn) {
@@ -146,6 +151,7 @@ class CmtRadio : public Radio {
 
         inline void getRx(void) {
             packet_t p;
+            p.millis = millis() - mMillis;
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
@@ -154,6 +160,7 @@ class CmtRadio : public Radio {
         CmtType mCmt;
         bool mRqstGetRx;
         bool mCmtAvail;
+        uint32_t mMillis;
 };
 
 #endif /*__HMS_RADIO_H__*/

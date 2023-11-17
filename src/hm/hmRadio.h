@@ -40,24 +40,12 @@ class HmRadio : public Radio {
             }
             mDtuSn = DTU_SN;
 
-            // Depending on the program, the module can work on 2403, 2423, 2440, 2461 or 2475MHz.
-            // Channel List      2403, 2423, 2440, 2461, 2475MHz
-            mRfChLst[0] = 03;
-            mRfChLst[1] = 23;
-            mRfChLst[2] = 40;
-            mRfChLst[3] = 61;
-            mRfChLst[4] = 75;
-
-            // default channels
-            mTxChIdx    = 2; // Start TX with 40
-            mRxChIdx    = 0; // Start RX with 03
-
             mSerialDebug    = false;
             mIrqRcvd        = false;
         }
         ~HmRadio() {}
 
-        void setup(uint8_t ampPwr = RF24_PA_LOW, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
 
@@ -76,6 +64,7 @@ class HmRadio : public Radio {
                 mSpi = new SPIClass();
                 mSpi->begin();
             #endif
+
             mNrf24.begin(mSpi, ce, cs);
             mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
@@ -92,9 +81,7 @@ class HmRadio : public Radio {
             // enable all receiving interrupts
             mNrf24.maskIRQ(false, false, false);
 
-            DPRINT(DBG_INFO, F("RF24 Amp Pwr: RF24_PA_"));
-            DPRINTLN(DBG_INFO, String(rf24AmpPowerNames[ampPwr]));
-            mNrf24.setPALevel(ampPwr & 0x03);
+            mNrf24.setPALevel(1); // low is default
 
             if(mNrf24.isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
@@ -105,39 +92,47 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
-        bool loop(void) {
+        void loop(void) {
             if (!mIrqRcvd)
-                return false; // nothing to do
+                return; // nothing to do
             mIrqRcvd = false;
             bool tx_ok, tx_fail, rx_ready;
             mNrf24.whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
             mNrf24.flush_tx();                              // empty TX FIFO
 
             // start listening
+            //mNrf24.setChannel(23);
+            //mRxChIdx = 0;
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
-            uint32_t startMicros = micros();
-            uint32_t loopMillis = millis();
-            while (millis()-loopMillis < 400) {
-                while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
+            if(NULL == mLastIv) // prevent reading on NULL object!
+                return;
+
+            uint32_t startMicros = micros() + 5110;
+            uint32_t loopMillis = millis() + 400;
+            while (millis() < loopMillis) {
+                while (micros() < startMicros) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
-                        if (getReceived()) {        // everything received
-                            return true;
+
+                        if (getReceived()) { // everything received
+                            return;
                         }
                     }
                     yield();
                 }
                 // switch to next RX channel
-                startMicros = micros();
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                yield();
+                startMicros = micros() + 5110;
             }
             // not finished but time is over
-            return true;
+            if(++mRxChIdx >= RF_CHANNELS)
+                mRxChIdx = 0;
+
+            return;
         }
 
         bool isChipConnected(void) {
@@ -145,12 +140,13 @@ class HmRadio : public Radio {
             return mNrf24.isChipConnected();
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit, bool isNoMI = true, uint16_t powerMax = 0) {
-            DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+            DPRINT_IVID(DBG_INFO, iv->id);
+            DBGPRINT(F("sendControlPacket cmd: 0x"));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
-            if (isNoMI) {
+            if (IV_MI != iv->ivGen) {
                 mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
                 mTxBuf[cnt++] = 0x00;
                 if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
@@ -160,6 +156,7 @@ class HmRadio : public Radio {
                     mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
                 }
             } else { //MI 2nd gen. specific
+                uint16_t powerMax = ((iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
                 switch (cmd) {
                     case Restart:
                     case TurnOn:
@@ -225,7 +222,7 @@ class HmRadio : public Radio {
                 }
                 cnt++;
             }
-            sendPacket(iv, cnt, isRetransmit, isNoMI);
+            sendPacket(iv, cnt, isRetransmit, (IV_MI != iv->ivGen));
         }
 
         uint8_t getDataRate(void) {
@@ -237,8 +234,6 @@ class HmRadio : public Radio {
         bool isPVariant(void) {
             return mNrf24.isPVariant();
         }
-
-        std::queue<packet_t> mBufCtrl;
 
     private:
         inline bool getReceived(void) {
@@ -254,6 +249,7 @@ class HmRadio : public Radio {
                     p.ch = mRfChLst[mRxChIdx];
                     p.len = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24.testRPD() ? -64 : -75;
+                    p.millis = millis() - mMillis;
                     mNrf24.read(p.packet, p.len);
                     if (p.packet[0] != 0x00) {
                         mBufCtrl.push(p);
@@ -271,43 +267,48 @@ class HmRadio : public Radio {
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+            mNrf24.setPALevel(iv->config->powerLevel & 0x03);
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = (mTxChIdx + 1) % RF_CHANNELS;
-            mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+            mTxChIdx = mRfChLst[iv->txRfChId];
 
             if(mSerialDebug) {
-                DPRINT(DBG_INFO, F("TX "));
+                DPRINT_IVID(DBG_INFO, iv->id);
+                DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
-                DBGPRINT(String(mRfChLst[mTxChIdx]));
+                DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
                 ah::dumpBuf(mTxBuf, len);
             }
 
             mNrf24.stopListening();
-            mNrf24.setChannel(mRfChLst[mTxChIdx]);
+            mNrf24.setChannel(mTxChIdx);
             mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
+            mMillis = millis();
 
-            if(isRetransmit)
-                iv->radioStatistics.retransmits++;
-            else
-                iv->radioStatistics.txCnt++;
+            mLastIv = iv;
         }
 
         uint64_t getIvId(Inverter<> *iv) {
             return iv->radioId.u64;
         }
 
+        uint8_t getIvGen(Inverter<> *iv) {
+            return iv->ivGen;
+        }
+
         uint64_t DTU_RADIO_ID;
-        uint8_t mRfChLst[RF_CHANNELS];
-        uint8_t mTxChIdx;
-        uint8_t mRxChIdx;
+        uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
+        uint8_t mTxChIdx = 0;
+        uint8_t mRxChIdx = 0;
+        uint32_t mMillis;
 
         SPIClass* mSpi;
         RF24 mNrf24;
+        Inverter<> *mLastIv = NULL;
 };
 
 #endif /*__HM_RADIO_H__*/

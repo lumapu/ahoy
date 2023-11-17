@@ -31,7 +31,7 @@
                     </fieldset>
                     <fieldset class="mb-4">
                         <legend class="des">System Config</legend>
-                        <p class="des">Pinout</p>
+                        <p class="des">Status LEDs</p>
                         <div id="pinout"></div>
 
                         <p class="des">Radio (NRF24L01+)</p>
@@ -144,49 +144,33 @@
                     <fieldset class="mb-4">
                     <legend class="des">Inverter</legend>
                         <div id="inverter"></div>
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"></div>
-                            <div class="col-12 col-sm-9"><input type="button" id="btnAdd" class="btn" value="Add Inverter"/></div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"><p class="subdes">Note</p></div>
-                            <div class="col-12 col-sm-9"><p>A 'max module power' value of '0' disables the channel in 'live' view</p></div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-12 col-sm-3"><p class="subdes">General</p></div>
-                            <div class="col-12 col-sm-9"></div>
+                        <div class="row mb-3">
+                            <div class="col-8 my-2">Interval [s]</div>
+                            <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="invInterval" title="Invalid input"/></div>
+                            <div class="col-8 mb-2">Reset values and YieldDay at midnight</div>
+                            <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Max retries per Payload</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="invRetry"/></div>
+                            <div class="col-8 mb-2">Reset values when inverter polling pauses at sunset</div>
+                            <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3 mb-2">Reset values and YieldDay at midnight</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMid"/></div>
+                            <div class="col-8">Reset values when inverter status is 'not available'</div>
+                            <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3 mb-2">Reset values when inverter polling pauses at sunset</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstComStop"/></div>
+                            <div class="col-8">Reset 'max' values at midnight</div>
+                            <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Reset values when inverter status is 'not available'</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstNotAvail"/></div>
+                            <div class="col-8">Start without time sync (useful in AP-Only-Mode)</div>
+                            <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Reset 'max' values at midnight</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="invRstMaxMid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Start without time sync (useful in AP-Only-Mode)</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="strtWthtTm"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Yield Efficiency (should be between 0.95 and 0.96)</div>
-                            <div class="col-4 col-sm-9"><input type="number" name="yldEff" step="any"/></div>
+                            <div class="col-8">Yield Efficiency (should be between 0.95 and 0.96)</div>
+                            <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -239,10 +223,6 @@
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
                             <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Pause polling inverters during night</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="sunDisNightCom"/></div>
                         </div>
                     </fieldset>
                     </div>
@@ -491,12 +471,30 @@
                 [48, "GPIO48"],
             ];
             /*ENDIF_ESP32*/
+            var nrfPa = [
+                [0, "MIN (recommended)"],
+                [1, "LOW"],
+                [2, "HIGH"],
+                [3, "MAX (experimental)"]
+            ];
+            var esp32cmtPa = [];
+            var esp32cmtFreq = [];
+
+            /*IF_ESP32*/
+            var freqFmt = new Intl.NumberFormat('en-US', {
+                minimumIntegerDigits: 3,
+                minimumFractionDigits: 2
+            });
+            for(var i = 0; i < 31; i++) {
+                esp32cmtPa.push([i, String(i-10) + " dBm"]);
+                if(i < 29)
+                    esp32cmtFreq.push([i, freqFmt.format(860 + i*0.25) + " MHz"]);
+            }
+            /*ENDIF_ESP32*/
             var led_high_active = [
                 [0, "low active"],
                 [1, "high active"],
             ];
-
-            const re = /1[0,1,3][2,4,6,8][1,2,4].*/;
 
             window.onload = function() {
                 for(it of document.getElementsByClassName("s_collapsible")) {
@@ -515,10 +513,6 @@
                     }
                 });
             }
-
-            document.getElementById("btnAdd").addEventListener("click", function() {
-                ivHtml(JSON.parse('{"enabled":true,"name":"","serial":"","channels":6,"ch_max_pwr":[0,0,0,0,0,0],"ch_name":["","","","","",""],"ch_yield_cor":[0,0,0,0,0,0]}'));
-            });
 
             function apiCbWifi(obj) {
                 var e = document.getElementById("networks");
@@ -618,100 +612,8 @@
                 return null;
             }
 
-            function ivHtml(obj) {
-                var id = getFreeId();
-                if(null == id) {
-                    setHide("btnAdd", true);
-                    return;
-                }
-
-                var iv = ml("div", {id: "inv" + id}, null);
-                document.getElementById("inverter").appendChild(iv);
-                iv.appendChild(des("Inverter " + id));
-                id = "inv" + id;
-
-                var addr = ml("input", {name: id + "Addr", class: "text", type: "number", max: 138999999999, value: obj["serial"]}, null);
-
-                iv.append(
-                    mlCb(id + "Enable", "Communication Enable", obj["enabled"]),
-                    mlE("Serial Number (12 digits)*", addr)
-                );
-
-                ['keyup', 'change'].forEach(function(evt) {
-                    addr.addEventListener(evt, (e) => {
-                        var serial = addr.value.substring(0,4);
-                        var max = 0;
-                        for(var i=0;i<6;i++) {
-                            setHide(id+"ModPwr"+i, true);
-                            setHide(id+"ModName"+i, true);
-                            setHide(id+"YieldCor"+i, true);
-                        }
-                        setHide("row"+id+"ModPwr", true);
-                        setHide("row"+id+"ModName", true);
-                        setHide("row"+id+"YieldCor", true);
-
-                        if(serial.charAt(0) == 1) {
-                            if((serial.charAt(1) == 0) || (serial.charAt(1) == 1) || (serial.charAt(1) == 3)) {
-                                if((serial.charAt(3) == 1) || (serial.charAt(3) == 2) || (serial.charAt(3) == 4)) {
-                                    switch(serial.charAt(2)) {
-                                        default:
-                                        case "2": max = 1; break;
-                                        case "4": max = 2; break;
-                                        case "6": max = 4; break;
-                                        case "8": max = 6; break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if(max != 0) {
-                            for(var i=0;i<max;i++) {
-                                setHide(id+"ModPwr"+i, false);
-                                setHide(id+"ModName"+i, false);
-                                setHide(id+"YieldCor"+i, false);
-                            }
-                            setHide("row"+id+"ModPwr", false);
-                            setHide("row"+id+"ModName", false);
-                            setHide("row"+id+"YieldCor", false);
-                        }
-                    })
-                });
-
-                iv.append(mlE("Name*", inp(id + "Name", obj["name"], 15, ["text"], null, "text", "[\\-\\+A-Za-z0-9.\\/#$%&=_]+", "Invalid input")));
-
-                for(var j of [
-                    ["ModPwr", "ch_max_pwr", "Max Module Power (Wp)", 4, "[0-9]+"],
-                    ["ModName", "ch_name", "Module Name", 15, null],
-                    ["YieldCor", "ch_yield_cor", "Yield Total Correction [kWh]", 8, "[\\-0-9\.]+"]]) {
-
-                    var cl = (re.test(obj["serial"])) ? "" : " hide";
-
-                    i = 0;
-                    arrIn = [];
-                    for(it of obj[j[1]]) {
-                        arrIn.push(ml("div", {class: "col-3 "},
-                            inp(id + j[0] + i, it, j[3], [], id + j[0] + i, "text", j[4], "Invalid input")
-                        ));
-                        i++;
-                    }
-
-                    iv.append(
-                        ml("div", {class: "row mb-2 mb-sm-3" + cl, id: "row" + id + j[0]}, [
-                            ml("div", {class: "col-12 col-sm-3 my-2"}, j[2]),
-                            ml("div", {class: "col-12 col-sm-9"},
-                                ml("div", {class: "row"}, arrIn)
-                            )
-                        ])
-                    );
-                }
-
-                var del = ml("input", {class: "btn btnDel", type: "button", id: id+"del", value: "X"}, null);
-                del.addEventListener("click", delIv);
-                iv.append(mlE("Delete", del));
-            }
-
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["invRetry", "retries"], ["yldEff", "yldEff"]])
+                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -754,9 +656,232 @@
 
             function parseIv(obj) {
                 maxInv = obj["max_num_inverters"];
-                for(var i = 0; i < obj.inverter.length; i++)
-                    ivHtml(obj.inverter[i]);
+                var lines = [];
+                lines.push(ml("tr", {}, [
+                    ml("th", {style: "width: 10%; text-align: center;"}, ""),
+                    ml("th", {}, "Name"),
+                    ml("th", {}, "Serial"),
+                    ml("th", {style: "width: 10%; text-align: center;"}, "Edit"),
+                    ml("th", {style: "width: 10%; text-align: center;"}, "Delete")
+                ]));
+
+                for(let i = 0; i < obj.inverter.length; i++) {
+                    lines.push(ml("tr", {}, [
+                        ml("td", {}, badge(obj.inverter[i].enabled, (obj.inverter[i].enabled) ? "enabled" : "disabled")),
+                        ml("td", {}, obj.inverter[i].name),
+                        ml("td", {}, String(obj.inverter[i].serial)),
+                        ml("td", {style: "text-align: center;", onclick: function() {ivModal(obj.inverter[i]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
+                        ml("td", {style: "text-align: center; ", onclick: function() {ivDel(obj.inverter[i]);}}, svg(iconDel, 25, 25, "icon icon-fg pointer"))
+                    ]));
+                }
+
+                var add = new Object();
+                add.id = obj.inverter.length;
+                add.name = "";
+                add.enabled = true;
+                add.ch_max_pwr = [400,400,400,400,400,400];
+                add.ch_name = [];
+                add.ch_yield_cor = [];
+                add.freq = 12;
+                add.pa = 30;
+                add.add2total = true;
+
+                var e = document.getElementById("inverter");
+                e.innerHTML = ""; // remove all childs
+                e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
+                if(obj.max_num_inverters > obj.inverter.length)
+                    e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "add Inverter", class: "btn", onclick: function() { ivModal(add); }}, null))));
+
                 ivGlob(obj);
+            }
+
+            function ivModal(obj) {
+                var lines = [];
+                lines.push(ml("tr", {}, [
+                    ml("th", {style: "width: 10%;"}, "Input"),
+                    ml("th", {}, "Max Module Power [Wp]"),
+                    ml("th", {}, "Name (optional)"),
+                    ml("th", {}, "Yield Correction [kWh] (optional)")
+                ]));
+
+                for(let i = 0; i < 6; i++) {
+                    lines.push(ml("tr", {id: "ch"+i}, [
+                        ml("td", {}, String(i+1)),
+                        ml("td", {}, ml("input", {name: "ch_p"+i, class: "text", type: "number", max: 999, value: obj.ch_max_pwr[i]}, null)),
+                        ml("td", {}, ml("input", {name: "ch_n"+i, class: "text", type: "text", maxlength: 15, value: (undefined === obj.ch_name[i]) ? "" : obj.ch_name[i]}, null)),
+                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i]}, null))
+                    ]));
+                }
+
+                var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
+                var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
+                var cbAddTotal = ml("input", {name: "add2total", type: "checkbox"}, null);
+                cbEn.checked = (obj.enabled);
+                cbDisNightCom.checked = (obj.disnightcom);
+                cbAddTotal.checked = (obj.add2total);
+
+                var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
+                var html = ml("div", {}, [
+                    tabs(["General", "Inputs", "Radio", "Advanced"]),
+                    ml("div", {id: "divGeneral", class: "tab-content"}, [
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-2"}, "Enable"),
+                            ml("div", {class: "col-10"}, cbEn)
+                        ]),
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-2 mt-2"}, "Serial"),
+                            ml("div", {class: "col-10"}, ser)
+                        ]),
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-2 mt-2"}, "Name"),
+                            ml("div", {class: "col-10"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
+                        ])
+                    ]),
+                    ml("div", {id: "divInputs", class: "tab-content hide"}, [
+                        ml("div", {class: "row mb-3"},
+                            ml("table", {class: "table"},
+                                ml("tbody", {}, lines)
+                            )
+                        )
+                    ]),
+                    ml("div", {id: "divRadio", class: "tab-content hide"}, [
+                        ml("input", {type: "hidden", name: "isnrf"}, null),
+                        ml("div", {id: "setcmt"}, [
+                            ml("div", {class: "row mb-3"}, [
+                                ml("div", {class: "col-3 mt-2"}, "Frequency"),
+                                ml("div", {class: "col-9"}, sel("freq", esp32cmtFreq, obj.freq))
+                            ]),
+                            ml("div", {class: "row mb-3"}, [
+                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
+                                ml("div", {class: "col-9"}, sel("cmtpa", esp32cmtPa, obj.pa))
+                            ]),
+                        ]),
+                        ml("div", {id: "setnrf"},
+                            ml("div", {class: "row mb-3"}, [
+                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
+                                ml("div", {class: "col-9"}, sel("nrfpa", nrfPa, obj.pa))
+                            ]),
+                        ),
+                    ]),
+                    ml("div", {id: "divAdvanced", class: "tab-content hide"}, [
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-10"}, "Pause communication during night (lat. and lon. need to be set)"),
+                            ml("div", {class: "col-2"}, cbDisNightCom)
+                        ]),
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-10"}, "Include inverter to sum of total (should be checked by default)"),
+                            ml("div", {class: "col-2"}, cbAddTotal)
+                        ])
+                    ]),
+                    ml("div", {class: "row mt-5"}, [
+                        ml("div", {class: "col-8", id: "res"}, ""),
+                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "save", class: "btn", onclick: function() { ivSave(); }}, null))
+                    ])
+                ]);
+
+                ['keyup', 'change'].forEach(function(evt) {
+                    ser.addEventListener(evt, (e) => {
+                        var sn = parseInt(ser.value, 16);
+                        sn = Math.floor(sn / Math.pow(2, 32));
+
+                        var max = 1;
+                        switch(sn & 0x00f0) {
+                            case 0x0010: max = 1; break;
+                            case 0x0040: max = 2; break;
+                            case 0x0060: max = 4; break;
+                            case 0x0080: max = 6; break;
+                        }
+                        for(var i = 0; i < 6; i++) {
+                            setHide("ch"+i, (i >= max));
+                        }
+
+                        var nrf = true;
+                        switch(sn & 0xff00) {
+                            case 0x1000: nrf = true; break;
+                            case 0x1100:
+                                switch(sn & 0x000f) {
+                                    case 0x0004: nrf = false; break;
+                                    default:     nrf = true; break;
+                                }
+                                break;
+                            case 0x1300: nrf = false; break;
+                        }
+                        setHide("setcmt", nrf);
+                        setHide("setnrf", !nrf);
+                        document.getElementsByName("isnrf")[0].value = nrf;
+                    })
+                });
+
+                modal("Edit inverter " + obj.name, html);
+                ser.dispatchEvent(new Event('change'));
+
+                function ivSave() {
+                    var o = new Object();
+                    o.cmd  = "save_iv";
+                    o.id   = obj.id;
+                    o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
+                    o.name = document.getElementsByName("name")[0].value;
+                    o.en   = document.getElementsByName("enable")[0].checked;
+                    o.ch = [];
+                    for(let i = 0; i < 6; i++) {
+                        var q = new Object();
+                        q.pwr  = document.getElementsByName("ch_p"+i)[0].value;
+                        q.name = document.getElementsByName("ch_n"+i)[0].value;
+                        q.yld  = document.getElementsByName("yld_c"+i)[0].value;
+                        o.ch.push(q);
+                    }
+                    if("true" == document.getElementsByName("isnrf")[0].value)
+                        o.pa = document.getElementsByName("nrfpa")[0].value;
+                    else
+                        o.pa   = document.getElementsByName("cmtpa")[0].value;
+                    o.freq = document.getElementsByName("freq")[0].value;
+                    o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
+                    o.add2total = document.getElementsByName("add2total")[0].checked;
+                    getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function cb(obj) {
+                    var e = document.getElementById("res");
+                    if(!obj.success)
+                        e.innerHTML = "error: " + obj.error;
+                    else {
+                        modalClose();
+                        getAjax("/api/inverter/list", parseIv);
+                    }
+                }
+            }
+
+            function ivDel(obj) {
+                var html = ml("div", {class: "row"}, [
+                    ml("div", {class: "col-9"}, "do you realy want to delete inverter " + obj.name + "?"),
+                    ml("div", {class: "col-3 a-r"}, ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "yes", class: "btn", onclick: function() { del(); }}, null)))
+                ]);
+                modal("Delete inverter " + obj.name, html);
+
+                function del() {
+                    var o = new Object();
+                    o.cmd  = "save_iv";
+                    o.id   = obj.id;
+                    o.ser  = 0;
+                    o.name = "";
+                    o.en   = false;
+                    o.ch = [];
+                    for(let i = 0; i < 6; i++) {
+                        var q = new Object();
+                        q.pwr  = 0;
+                        q.name = "";
+                        q.yld  = 0;
+                        o.ch.push(q);
+                    }
+                    getAjax("/api/setup", cb, "POST", JSON.stringify(o));
+                }
+
+                function cb(obj) {
+                    if(obj.success) {
+                        modalClose();
+                        getAjax("/api/inverter/list", parseIv);
+                    }
+                }
             }
 
             function parseMqtt(obj) {
@@ -772,7 +897,6 @@
             function parseSun(obj) {
                 document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
-                document.getElementsByName("sunDisNightCom")[0].checked = obj["disnightcom"];
                 const sel = document.getElementsByName("sunOffs")[0];
                 for(var i = 0; i <= 60; i++) {
                     sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));
@@ -781,11 +905,11 @@
 
             function parsePinout(obj, type, system) {
                 var e = document.getElementById("pinout");
-                pins = [['led0', 'pinLed0'], ['led1', 'pinLed1']];
+                pins = [['led0', 'pinLed0', 'At least one inverter is producing'], ['led1', 'pinLed1', 'MqTT connected']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[2]),
                             ml("div", {class: "col-12 col-sm-9"},
                                 sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
                             )
@@ -829,19 +953,6 @@
                         ])
                     );
                 }
-                e.append(
-                    ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Power Level"),
-                        ml("div", {class: "col-12 col-sm-9"},
-                            sel("rf24Power", [
-                                [0, "MIN (recommended)"],
-                                [1, "LOW"],
-                                [2, "HIGH"],
-                                [3, "MAX (experimental)"]
-                            ], obj["power_level"])
-                        )
-                    ])
-                );
             }
 
             /*IF_ESP32*/

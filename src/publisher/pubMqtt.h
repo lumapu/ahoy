@@ -134,7 +134,7 @@ class PubMqtt {
             #endif
         }
 
-        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs) {
             if (!mClient.connected())
                 return false;
 
@@ -142,7 +142,16 @@ class PubMqtt {
             publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
             publish(subtopics[MQTT_COMM_START], String(sunrise - offs).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offs).c_str(), true);
-            publish(subtopics[MQTT_DIS_NIGHT_COMM], ((disNightCom) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL == iv)
+                    continue;
+
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/dis_night_comm", iv->config->name);
+                publish(mSubTopic, ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            }
 
             return true;
         }
@@ -516,25 +525,17 @@ class PubMqtt {
 
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/cnt", iv->config->name);
                 snprintf(mVal, 40, "%d", iv->alarmCnt);
-                publish(mSubTopic, mVal, true);
+                publish(mSubTopic, mVal, false);
 
                 for(uint8_t j = 0; j < 10; j++) {
                     if(0 != iv->lastAlarm[j].code) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/code", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].code);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/str", iv->config->name, j);
-                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code).c_str());
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start + lastMidnight);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/end", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end + lastMidnight);
-                        publish(mSubTopic, mVal, true);
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d", iv->config->name, j);
+                        snprintf(mVal, 100, "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
+                            iv->lastAlarm[j].code,
+                            iv->getAlarmStr(iv->lastAlarm[j].code).c_str(),
+                            iv->lastAlarm[j].start + lastMidnight,
+                            iv->lastAlarm[j].end + lastMidnight);
+                        publish(mSubTopic, mVal, false);
                         yield();
                     }
                 }
@@ -613,7 +614,7 @@ class PubMqtt {
         // global buffer for mqtt topic. Used when publishing mqtt messages.
         char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[40];
+        char mVal[100];
         discovery_t mDiscovery;
 };
 

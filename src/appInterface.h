@@ -25,6 +25,7 @@ class IApp {
     public:
         virtual ~IApp() {}
         virtual bool saveSettings(bool stopFs) = 0;
+        virtual void initInverter(uint8_t id) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
         virtual bool getSavePending() = 0;
@@ -52,8 +53,6 @@ class IApp {
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
         virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
-
-        virtual void ivSendHighPrio(Inverter<> *iv) = 0;
 
         virtual bool getMqttIsConnected() = 0;
         virtual uint32_t getMqttRxCnt() = 0;

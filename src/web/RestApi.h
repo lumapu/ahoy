@@ -124,12 +124,26 @@ class RestApi {
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
-            DynamicJsonDocument json(200);
+
+            if(0 == index) {
+                if(NULL != mTmpBuf)
+                    delete[] mTmpBuf;
+                mTmpBuf = new uint8_t[total+1];
+                mTmpSize = total;
+            }
+            if(mTmpSize >= (len + index))
+                memcpy(&mTmpBuf[index], data, len);
+
+            if((len + index) != total)
+                return; // not last frame - nothing to do
+
+            DynamicJsonDocument json(1000);
+
+            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            JsonObject obj = json.as<JsonObject>();
+
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-
-            DeserializationError err = deserializeJson(json, (const char *)data, len);
-            JsonObject obj = json.as<JsonObject>();
             root[F("success")] = (err) ? false : true;
             if(!err) {
                 String path = request->url().substring(5);
@@ -141,18 +155,20 @@ class RestApi {
                     root[F("success")] = false;
                     root[F("error")]   = "Path not found: " + path;
                 }
-            }
-            else {
+            } else {
                 switch (err.code()) {
                     case DeserializationError::Ok: break;
-                    case DeserializationError::InvalidInput: root[F("error")] = F("Invalid input");          break;
-                    case DeserializationError::NoMemory:     root[F("error")] = F("Not enough memory");      break;
-                    default:                                 root[F("error")] = F("Deserialization failed"); break;
+                    case DeserializationError::IncompleteInput: root[F("error")] = F("Incomplete input");       break;
+                    case DeserializationError::InvalidInput:    root[F("error")] = F("Invalid input");          break;
+                    case DeserializationError::NoMemory:        root[F("error")] = F("Not enough memory");      break;
+                    default:                                    root[F("error")] = F("Deserialization failed"); break;
                 }
             }
 
             response->setLength();
             request->send(response);
+            delete[] mTmpBuf;
+            mTmpBuf = NULL;
         }
 
         void getNotFound(JsonObject obj, String url) {
@@ -339,24 +355,33 @@ class RestApi {
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    JsonObject obj2 = invArr.createNestedObject();
-                    obj2[F("enabled")]  = (bool)iv->config->enabled;
-                    obj2[F("id")]       = i;
-                    obj2[F("name")]     = String(iv->config->name);
-                    obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
-                    obj2[F("channels")] = iv->channels;
-                    obj2[F("version")]  = String(iv->getFwVersion());
+                if(NULL == iv)
+                    continue;
 
-                    for(uint8_t j = 0; j < iv->channels; j ++) {
-                        obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
-                        obj2[F("ch_name")][j]      = iv->config->chName[j];
-                        obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
-                    }
+                JsonObject obj2 = invArr.createNestedObject();
+                obj2[F("enabled")]  = (bool)iv->config->enabled;
+                obj2[F("id")]       = i;
+                obj2[F("name")]     = String(iv->config->name);
+                obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
+                obj2[F("channels")] = iv->channels;
+                obj2[F("freq")]     = iv->config->frequency;
+                obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
+                obj2[F("add2total")] = (bool)iv->config->add2Total;
+                if(0xff == iv->config->powerLevel) {
+                    if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
+                        obj2[F("pa")] = 30; // 20dBm
+                    else
+                        obj2[F("pa")] = 1; // low
+                } else
+                    obj2[F("pa")] = iv->config->powerLevel;
+
+                for(uint8_t j = 0; j < iv->channels; j ++) {
+                    obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
+                    obj2[F("ch_name")][j]      = iv->config->chName[j];
+                    obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                 }
             }
             obj[F("interval")]          = String(mConfig->nrf.sendInterval);
-            obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
@@ -510,7 +535,6 @@ class RestApi {
         void getSun(JsonObject obj) {
             obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
             obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
-            obj[F("disnightcom")] = mConfig->sun.disNightCom;
             obj[F("offs")] = mConfig->sun.offsetSec;
         }
 
@@ -545,7 +569,6 @@ class RestApi {
         void getRadioNrf(JsonObject obj) {
             obj[F("en")]          = (bool) mConfig->nrf.enabled;
             obj[F("isconnected")] = mRadioNrf->isChipConnected();
-            obj[F("power_level")] = mConfig->nrf.amplifierPower;
             obj[F("dataRate")]    = mRadioNrf->getDataRate();
             //obj[F("isPVariant")]  = mRadioNrf->isPVariant();
         }
@@ -593,24 +616,28 @@ class RestApi {
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
             obj[F("ts_offset")]    = mConfig->sun.offsetSec;
-            obj[F("disNightComm")] = mConfig->sun.disNightCom;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;
+            bool disNightCom = false;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    JsonObject invObj = inv.createNestedObject();
-                    invObj[F("enabled")]         = (bool)iv->config->enabled;
-                    invObj[F("id")]              = i;
-                    invObj[F("name")]            = String(iv->config->name);
-                    invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
-                    invObj[F("is_avail")]        = iv->isAvailable();
-                    invObj[F("is_producing")]    = iv->isProducing();
-                    invObj[F("ts_last_success")] = iv->getLastTs(rec);
-                }
+                if(NULL == iv)
+                    continue;
+
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                JsonObject invObj = inv.createNestedObject();
+                invObj[F("enabled")]         = (bool)iv->config->enabled;
+                invObj[F("id")]              = i;
+                invObj[F("name")]            = String(iv->config->name);
+                invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
+                invObj[F("is_avail")]        = iv->isAvailable();
+                invObj[F("is_producing")]    = iv->isProducing();
+                invObj[F("ts_last_success")] = iv->getLastTs(rec);
+                if(iv->config->disNightCom)
+                    disNightCom = true;
             }
+            obj[F("disNightComm")] = disNightCom;
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
             if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
@@ -700,12 +727,10 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
-            }
-            else if(F("dev") == jsonIn[F("cmd")]) {
+            } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
-                iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
-            }
-            else {
+                iv->setDevCommand(jsonIn[F("val")].as<int>());
+            } else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
                 return false;
             }
@@ -713,8 +738,7 @@ class RestApi {
             if(!accepted) {
                 jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
                 return false;
-            } else
-                mApp->ivSendHighPrio(iv);
+            }
 
             return true;
         }
@@ -731,8 +755,26 @@ class RestApi {
                 mApp->setTimestamp(0); // 0: update ntp flag
             else if(F("serial_utc_offset") == jsonIn[F("cmd")])
                 mTimezoneOffset = jsonIn[F("val")];
-            else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
+            else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
+            else if(F("save_iv") == jsonIn[F("cmd")]) {
+                Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
+                iv->config->enabled = jsonIn[F("en")];
+                iv->config->serial.u64 = jsonIn[F("ser")];
+                snprintf(iv->config->name, MAX_NAME_LENGTH, "%s", jsonIn[F("name")].as<const char*>());
+
+                for(uint8_t i = 0; i < 6; i++) {
+                    iv->config->chMaxPwr[i] = jsonIn[F("ch")][i][F("pwr")];
+                    iv->config->yieldCor[i] = jsonIn[F("ch")][i][F("yld")];
+                    snprintf(iv->config->chName[i], MAX_NAME_LENGTH, "%s", jsonIn[F("ch")][i][F("name")].as<const char*>());
+                }
+
+                mApp->initInverter(jsonIn[F("id")]);
+                iv->config->frequency   = jsonIn[F("freq")];
+                iv->config->powerLevel  = jsonIn[F("pa")];
+                iv->config->disNightCom = jsonIn[F("disnightcom")];
+                iv->config->add2Total   = jsonIn[F("add2total")];
+                mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
@@ -753,6 +795,8 @@ class RestApi {
         uint32_t mTimezoneOffset;
         uint32_t mHeapFree, mHeapFreeBlk;
         uint8_t mHeapFrag;
+        uint8_t *mTmpBuf = NULL;
+        uint32_t mTmpSize;
 };
 
 #endif /*__WEB_API_H__*/

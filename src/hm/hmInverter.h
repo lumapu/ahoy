@@ -15,6 +15,7 @@
 #include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
+#include <functional>
 #include "../config/settings.h"
 
 #include "radio.h"
@@ -77,31 +78,6 @@ struct alarm_t {
     alarm_t() : code(0), start(0), end(0) {}
 };
 
-class CommandAbstract {
-    public:
-        CommandAbstract(uint8_t txType = 0, uint8_t cmd = 0) {
-            _TxType = txType;
-            _Cmd = cmd;
-        };
-        virtual ~CommandAbstract() {};
-
-        uint8_t getCmd() const {
-            return _Cmd;
-        }
-
-    protected:
-        uint8_t _TxType;
-        uint8_t _Cmd;
-};
-
-class InfoCommand : public CommandAbstract {
-    public:
-        InfoCommand(uint8_t cmd){
-            _TxType = 0x15;
-            _Cmd = cmd;
-        }
-};
-
 // list of all available functions, mapped in hmDefines.h
 template<class T=float>
 const calcFunc_t<T> calcFunctions[] = {
@@ -142,7 +118,6 @@ class Inverter {
         record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
@@ -152,7 +127,10 @@ class Inverter {
         int8_t        rssi;              // RSSI
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-
+        int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
+        uint8_t       txRfChId;          // RF TX channel id
+        uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
+        bool          commEnabled;       // 'pause night communication' sets this field to false
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -165,7 +143,6 @@ class Inverter {
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
-            initialized        = false;
             alarmMesIndex      = 0;
             isConnected        = false;
             status             = InverterStatus::OFF;
@@ -173,63 +150,45 @@ class Inverter {
             alarmCnt           = 0;
             alarmLastId        = 0;
             rssi               = -127;
+            radio              = NULL;
+            commEnabled        = true;
             memset(&radioStatistics, 0, sizeof(statistics_t));
+            memset(txRfQuality, -6, 5);
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
         }
 
-        ~Inverter() {
-            // TODO: cleanup
-        }
-
-        template <typename T>
-        void enqueCommand(uint8_t cmd) {
-           _commandQueue.push(std::make_shared<T>(cmd));
-           DPRINT_IVID(DBG_INFO, id);
-           DBGPRINT(F("enqueCommand: 0x"));
-           DBGHEXLN(cmd);
-        }
-
-        void setQueuedCmdFinished() {
-            if (!_commandQueue.empty()) {
-                _commandQueue.pop();
-            }
-        }
-
-        void clearCmdQueue() {
-            DPRINTLN(DBG_INFO, F("clearCmdQueue"));
-            while (!_commandQueue.empty()) {
-                _commandQueue.pop();
-            }
-        }
-
-        uint8_t getQueuedCmd() {
-            if (_commandQueue.empty()) {
-                if (ivGen != IV_MI) {
-                    if (getFwVersion() == 0)
-                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
-                    else if (getHwVersion() == 0)
-                        enqueCommand<InfoCommand>(InverterDevInform_Simple); // hardware version
-                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                        enqueCommand<InfoCommand>(AlarmData);  // alarm not answered
-                    enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
-                } else { // if (ivGen == IV_MI){
-                    if (getFwVersion() == 0) {
-                        enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version
-                    } else {
-                        record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
-                            enqueCommand<InfoCommand>(InverterDevInform_All); // hard- and firmware version for missing HW part nr, delivered by frame 1
-                        } else {
-                            enqueCommand<InfoCommand>( type == INV_TYPE_4CH ? 0x36 : 0x09 );
-                        }
-                    }
+        void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
+            if(mDevControlRequest) {
+                cb(devControlCmd, true);
+                mDevControlRequest = false;
+            } else if (IV_MI != ivGen) {
+                if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                    cb(AlarmData, false);                // get last alarms
+                else if(0 == getFwVersion())
+                    cb(InverterDevInform_All, false);    // get firmware version
+                else if(0 == getHwVersion())
+                    cb(InverterDevInform_Simple, false); // get hardware version
+                else if(actPowerLimit == 0xffff)
+                    cb(SystemConfigPara, false);         // power limit info
+                else if(InitDataState != devControlCmd) {
+                    cb(devControlCmd, false);            // custom command which was received by API
+                    devControlCmd = InitDataState;
+                } else
+                    cb(RealTimeRunData_Debug, false);    // get live data
+            } else {
+                if(0 == getFwVersion())
+                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
+                else {
+                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    else
+                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
-
-                if ((actPowerLimit == 0xffff) && isConnected)
-                    enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }
-            return _commandQueue.front().get()->getCmd();
         }
-
 
         void init(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:init"));
@@ -239,7 +198,7 @@ class Inverter {
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
-            initialized = true;
+            curCmtFreq = this->config->frequency; // update to frequency read from settings
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
@@ -289,12 +248,10 @@ class Inverter {
             return isConnected;
         }
 
-        void clearDevControlRequest() {
-            mDevControlRequest = false;
-        }
-
-        inline bool getDevControlRequest() {
-            return mDevControlRequest;
+        bool setDevCommand(uint8_t cmd) {
+            if(isConnected)
+                devControlCmd = cmd;
+            return isConnected;
         }
 
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
@@ -317,7 +274,12 @@ class Inverter {
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
                             rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            float actYD = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            uint8_t idx = rec->assign[pos].ch - 1;
+                            if (mLastYD[idx] > actYD)
+                                mOffYD[idx] += mLastYD[idx];
+                            mLastYD[idx] = actYD;
+                            rec->record[pos] = mOffYD[idx] + actYD;
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
@@ -334,11 +296,9 @@ class Inverter {
                     if (getPosByChFld(0, FLD_EVT, rec) == pos) {
                         if (alarmMesIndex < rec->record[pos]) {
                             alarmMesIndex = rec->record[pos];
-                            //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
 
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
-                            enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
                 }
@@ -593,6 +553,9 @@ class Inverter {
             alarmNxtWrPos = 0;
             alarmCnt = 0;
             alarmLastId = 0;
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
         }
 
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
@@ -604,9 +567,9 @@ class Inverter {
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
             uint32_t start, endTime;
 
-            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
-                startTimeOffset = 12 * 60 * 60;
-            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+            // check if is AM or PM
+            startTimeOffset = ((wCode >> 13) & 0x01) * 12 * 60 * 60;
+            if (((wCode >> 12) & 0x03) != 0)
                 endTimeOffset = 12 * 60 * 60;
 
             start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
@@ -715,8 +678,9 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
-        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
-        bool          mDevControlRequest; // true if change needed
+    private:
+        float mOffYD[6], mLastYD[6];
+        bool mDevControlRequest; // true if change needed
 };
 
 template <class REC_TYP>

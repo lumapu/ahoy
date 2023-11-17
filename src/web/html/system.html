@@ -40,22 +40,16 @@
                 );
             }
 
-            function badge(success, text, second="error") {
-                return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
-            }
-
             function headline(text) {
                 return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
             }
 
             function parseRadio(obj) {
-                const pa = ["MIN (recommended)", "LOW", "HIGH", "MAX"];
                 const dr = ["1 M", "2 M", "250 k"]
 
                 if(obj.radioNrf.en) {
                     lines = [
                         tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
-                        tr("NRF24 Power Level", pa[obj.radioNrf.power_level]),
                         tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
                     ];
                 } else

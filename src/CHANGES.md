@@ -1,5 +1,53 @@
 # Development Changes
 
+## 0.8.8 - 2023-11-16
+* fix ESP8266 save inverter #1232
+
+## 0.8.7 - 2023-11-13
+* fix ESP8266 inverter settings #1226
+* send radio statistics via MqTT #1227
+* made night communication inverter depended
+* added option to prevent adding values of inverter to total values (MqTT only) #1199
+
+## 0.8.6 - 2023-11-12
+* merged PR #1225
+* improved heuristics (prevent update of statitistic during testing)
+
+## 0.8.5 - 2023-11-12
+* fixed endless loop while switching CMT frequency
+* removed obsolete "retries" field from settings #1224
+* fixed crash while defining new invertes #1224
+* fixed default frequency settings
+* added default input power to `400` while adding new inverters
+* fixed color of wifi RSSI icon #1224
+
+## 0.8.4 - 2023-11-10
+* changed MqTT alarm topic, removed retained flag #1212
+* reduce last_success MQTT messages (#1124)
+* introduced tabs in WebGUI (inverter settings)
+* added inverter-wise power level and frequency
+
+## 0.8.3 - 2023-11-09
+* fix yield day reset during day #848
+* add total AC Max Power to WebUI
+* fix opendtufusion build (GxEPD patch)
+* fix null ptr PR #1222
+
+## 0.8.2 - 2023-11-08
+* beautified inverter settings in `setup` (preperation for future, settings become more inverter dependent)
+
+## 0.8.1 - 2023-11-05
+* added tx channel heuristics (per inverter)
+* fix statistics counter
+
+## 0.8.0 - 2023-10-??
+* switched to new communication scheme
+
+## 0.7.66 - 2023-10-04
+* prepared PA-Level for CMT
+* removed settings for number of retransmits, its fixed to `5` now
+* added parentheses to have a excactly defined behaviour
+
 ## 0.7.65 - 2023-10-02
 * MI control command review #1197
 

@@ -132,9 +132,6 @@
     #define LED_HIGH_ACTIVE         false
 #endif
 
-// default NRF24 power, possible values (0 - 3)
-#define DEF_AMPLIFIERPOWER      1
-
 // number of packets hold in buffer
 #define PACKET_BUFFER_SIZE      30
 
@@ -149,7 +146,7 @@
 #define SERIAL_INTERVAL         5
 
 // default send interval
-#define SEND_INTERVAL           30
+#define SEND_INTERVAL           15
 
 // maximum human readable inverter name length
 #define MAX_NAME_LENGTH         16
@@ -158,10 +155,7 @@
 #define MAX_RF_PAYLOAD_SIZE     32
 
 // maximum total payload buffers (must be greater than the number of received frame fragments)
-#define MAX_PAYLOAD_ENTRIES     10
-
-// maximum requests for retransmits per payload (per inverter)
-#define DEF_MAX_RETRANS_PER_PYLD 5
+#define MAX_PAYLOAD_ENTRIES     20
 
 // number of seconds since last successful response, before inverter is marked inactive
 #define INVERTER_INACT_THRES_SEC    5*60

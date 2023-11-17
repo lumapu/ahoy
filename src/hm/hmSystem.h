@@ -17,17 +17,12 @@ class HmSystem {
         void setup(uint32_t *timestamp, cfgInst_t *config) {
             mInverter[0].timestamp = timestamp;
             mInverter[0].generalConfig = config;
-            mNumInv = 0;
         }
 
         void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:addInverter"));
-            if(MAX_INVERTER <= mNumInv) {
-                DPRINT(DBG_WARN, F("max number of inverters reached!"));
-                return;
-            }
-            INVERTERTYPE *iv = &mInverter[mNumInv];
-            iv->id         = mNumInv;
+            INVERTERTYPE *iv = &mInverter[id];
+            iv->id         = id;
             iv->config     = &mInverter[0].generalConfig->iv[id];
             DPRINT(DBG_VERBOSE, "SERIAL: " + String(iv->config->serial.b[5], HEX));
             DPRINTLN(DBG_VERBOSE, " " + String(iv->config->serial.b[4], HEX));
@@ -73,7 +68,6 @@ class HmSystem {
                 iv->ivGen = IV_UNKNOWN;
 
             iv->init();
-            mNumInv ++;
             if(IV_UNKNOWN == iv->ivGen)
                 return; // serial is 0
 
@@ -99,7 +93,7 @@ class HmSystem {
         INVERTERTYPE *findInverter(uint8_t buf[]) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:findInverter"));
             INVERTERTYPE *p;
-            for(uint8_t i = 0; i < mNumInv; i++) {
+            for(uint8_t i = 0; i < MAX_INVERTER; i++) {
                 p = &mInverter[i];
                 if((p->config->serial.b[3] == buf[0])
                     && (p->config->serial.b[2] == buf[1])
@@ -114,7 +108,7 @@ class HmSystem {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
                 return NULL;
-            else if((mInverter[pos].initialized && mInverter[pos].config->serial.u64 != 0ULL) || false == check)
+            else if((mInverter[pos].config->serial.u64 != 0ULL) || (false == check))
                 return &mInverter[pos];
             else
                 return NULL;
@@ -134,7 +128,6 @@ class HmSystem {
 
     private:
         INVERTERTYPE mInverter[MAX_INVERTER];
-        uint8_t mNumInv;
 };
 
 #endif /*__HM_SYSTEM_H__*/

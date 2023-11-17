@@ -487,48 +487,8 @@ class Web {
             request->arg("ipGateway").toCharArray(buf, 20);
             ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
-            // inverter
-            Inverter<> *iv;
-            for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                iv = mSys->getInverterByPos(i, false);
-                // enable communication
-                iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
-                // address
-                request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-                if (strlen(buf) == 0)
-                    memset(buf, 0, 20);
-                iv->config->serial.u64 = ah::Serial2u64(buf);
-                switch(iv->config->serial.b[4]) {
-                    case 0x24:
-                    case 0x22:
-                    case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
-
-                    case 0x44:
-                    case 0x42:
-                    case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
-
-                    case 0x64:
-                    case 0x62:
-                    case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
-                    default:  break;
-                }
-
-                // name
-                request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
-
-                // max channel power / name
-                for (uint8_t j = 0; j < 6; j++) {
-                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toDouble();
-                    iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
-                    request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
-                }
-                iv->initialized = true;
-            }
-
             if (request->arg("invInterval") != "")
                 mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
-            if (request->arg("invRetry") != "")
-                mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
@@ -559,8 +519,6 @@ class Web {
                 }
             }
 
-            // nrf24 amplifier power
-            mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
 
             // cmt
@@ -577,12 +535,10 @@ class Web {
             if (request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
                 mConfig->sun.lat = 0.0;
                 mConfig->sun.lon = 0.0;
-                mConfig->sun.disNightCom = false;
                 mConfig->sun.offsetSec = 0;
             } else {
                 mConfig->sun.lat = request->arg("sunLat").toFloat();
                 mConfig->sun.lon = request->arg("sunLon").toFloat();
-                mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
                 mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
             }
 
