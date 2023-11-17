@@ -125,6 +125,8 @@ class Inverter {
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // RSSI
+        uint8_t       miMultiParts;      // helper info for MI multiframe msgs
+        bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
         int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
@@ -150,8 +152,11 @@ class Inverter {
             alarmCnt           = 0;
             alarmLastId        = 0;
             rssi               = -127;
+            miMultiParts       = 0;
+            mGotLastMsg        = false;
             radio              = NULL;
             commEnabled        = true;
+
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(txRfQuality, -6, 5);
 
