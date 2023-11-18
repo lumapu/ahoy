@@ -309,10 +309,8 @@ class HmRadio : public Radio {
         }
 
         inline bool checkIvSerial(uint8_t buf[], Inverter<> *iv) {
-            uint8_t tmp[4];
-            CP_U32_BigEndian(tmp, iv->radioId.u64 >> 8);
             for(uint8_t i = 0; i < 4; i++) {
-                if(tmp[i] != buf[i])
+                if(buf[3-i] != iv->radioId.b[i])
                     return false;
             }
             return true;

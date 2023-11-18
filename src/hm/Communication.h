@@ -44,8 +44,8 @@ class Communication : public CommQueue<> {
                 if(!valid)
                     return; // empty
 
-                uint16_t timeout     = q->iv->ivGen != IV_MI ? (q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT : MI_TIMEOUT;
-                uint16_t timeout_min = q->iv->ivGen != IV_MI ? q->iv->mGotFragment ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT : MI_TIMEOUT;
+                uint16_t timeout     = q->iv->ivGen != IV_MI ? ((q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT) : MI_TIMEOUT;
+                uint16_t timeout_min = q->iv->ivGen != IV_MI ? ((q->iv->mGotFragment) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT) : MI_TIMEOUT;
                 bool testMode = false;
 
                 switch(mState) {
@@ -63,7 +63,7 @@ class Communication : public CommQueue<> {
                         testMode = mHeu.getTestModeEnabled();
                         q->iv->mGotFragment = false;
                         q->iv->mGotLastMsg = false;
-                        mFirstTry = mFirstTry ? false : ( ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()) || (millis() < 120000) );
+                        mFirstTry = mFirstTry ? false : (((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()) || (millis() < 120000));
                         if(NULL == q->iv->radio)
                             cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
@@ -97,8 +97,8 @@ class Communication : public CommQueue<> {
                         if(millis() > mWaitTimeout_min) {
                             if(!q->iv->mGotFragment) { // nothing received yet?
                                 if(q->iv->mGotLastMsg) {
-                                        //mState = States::CHECK_FRAMES;
-                                        mWaitTimeout = mWaitTimeout_min;
+                                    //mState = States::CHECK_FRAMES;
+                                    mWaitTimeout = mWaitTimeout_min;
                                 }
                             } else if(mFirstTry) {
                                 DPRINT_IVID(DBG_INFO, q->iv->id);
