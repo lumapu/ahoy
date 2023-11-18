@@ -11,9 +11,10 @@
 #include "../utils/crc.h"
 #include "Heuristic.h"
 
-#define MI_TIMEOUT      250
-#define DEFAULT_TIMEOUT 500
-#define SINGLEFR_TIMEOUT 60
+#define MI_TIMEOUT      250      // timeout for MI type requests
+#define FRSTMSG_TIMEOUT 150      // how long to wait for first msg to be received
+#define DEFAULT_TIMEOUT 500      // timeout for regular requests
+#define SINGLEFR_TIMEOUT 65      // timeout for single frame requests
 #define MAX_BUFFER      250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
@@ -43,7 +44,8 @@ class Communication : public CommQueue<> {
                 if(!valid)
                     return; // empty
 
-                uint16_t timeout = q->iv->ivGen != IV_MI ? DEFAULT_TIMEOUT : MI_TIMEOUT;
+                uint16_t timeout     = q->iv->ivGen != IV_MI ? (q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT : MI_TIMEOUT;
+                uint16_t timeout_min = q->iv->ivGen != IV_MI ? q->iv->mGotFragment ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT : MI_TIMEOUT;
                 bool testMode = false;
 
                 switch(mState) {
@@ -55,11 +57,13 @@ class Communication : public CommQueue<> {
                             mLocalBuf[i].len = 0;
                         }
 
-                        mHeu.printStatus(q->iv);
+                        if(q->iv->radio->isSerialDebug())
+                            mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
                         testMode = mHeu.getTestModeEnabled();
-                        mGotFragment = false;
-                        mFirstTry = mFirstTry ? false : ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()); //) || (millis() < 120000));}
+                        q->iv->mGotFragment = false;
+                        q->iv->mGotLastMsg = false;
+                        mFirstTry = mFirstTry ? false : ( ( (IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()) || (millis() < 120000) );
                         if(NULL == q->iv->radio)
                             cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
@@ -83,12 +87,30 @@ class Communication : public CommQueue<> {
                             q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
                         if(!testMode)
                             q->iv->radioStatistics.txCnt++;
-                        mWaitTimeout = millis() + timeout;
+                        mWaitTimeout     = millis() + timeout;
+                        mWaitTimeout_min = millis() + timeout_min;
                         setAttempt();
                         mState = States::WAIT;
                         break;
 
                     case States::WAIT:
+                        if(millis() > mWaitTimeout_min) {
+                            if(!q->iv->mGotFragment) { // nothing received yet?
+                                if(q->iv->mGotLastMsg) {
+                                        //mState = States::CHECK_FRAMES;
+                                        mWaitTimeout = mWaitTimeout_min;
+                                }
+                            } else if(mFirstTry) {
+                                DPRINT_IVID(DBG_INFO, q->iv->id);
+                                DBGPRINTLN(F("second try"));
+                                mFirstTry = false;
+                                if(!testMode)
+                                    q->iv->radioStatistics.retransmits++; // got nothing
+                                mState = States::START;
+                                break;
+                            }
+
+                        }
                         if(millis() < mWaitTimeout)
                             return;
                         mState = States::CHECK_FRAMES;
@@ -102,7 +124,7 @@ class Communication : public CommQueue<> {
                             DBGPRINT(String(millis() - mWaitTimeout + timeout));
                             DBGPRINTLN(F("ms"));
 
-                            if(!mGotFragment && !mFirstTry) {
+                            if(!q->iv->mGotFragment) {
                                 if(!testMode)
                                     q->iv->radioStatistics.rxFailNoAnser++; // got nothing
                                 mHeu.setGotNothing(q->iv);
@@ -118,7 +140,6 @@ class Communication : public CommQueue<> {
                             break;
                         }
 
-                        mGotFragment = true;
                         mFirstTry = false; // for correct reset
                         States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
@@ -140,7 +161,7 @@ class Communication : public CommQueue<> {
                             DBGPRINT(F(", "));
                             DBGPRINT(String(p->rssi));
                             DBGPRINT(F("dBm | "));
-                            ah::dumpBuf(p->packet, p->len);
+                            ah::dumpBuf(p->packet, p->len, 1, 8, "#"+String(q->iv->id));
 
                             if(checkIvSerial(&p->packet[1], q->iv)) {
                                 if(!testMode)
@@ -178,39 +199,38 @@ class Communication : public CommQueue<> {
                         break;
 
                     case States::CHECK_PACKAGE:
+                        uint8_t framnr = 0;
                         if(0 == mMaxFrameId) {
+                            uint8_t i = 0;
+                            while(i < MAX_PAYLOAD_ENTRIES) {
+                                if(mLocalBuf[i].len == 0) {
+                                    framnr = i+1;
+                                    break;
+                                }
+                                i++;
+                            }
+                        }
+
+                        if(!framnr) {
+                            for(uint8_t i = 0; i < mMaxFrameId; i++) {
+                                if(mLocalBuf[i].len == 0) {
+                                    framnr = i+1;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if(framnr) {
                             setAttempt();
 
                             DPRINT_IVID(DBG_WARN, q->iv->id);
-                            DBGPRINT(F("frame missing: request retransmit ("));
+                            DBGPRINT(F("frame "));
+                            DBGPRINT(String(framnr));
+                            DBGPRINT(F(" missing: request retransmit ("));
                             DBGPRINT(String(q->attempts));
                             DBGPRINTLN(F(" attempts left)"));
-
-                            uint8_t i = 0;
-                            while(i < MAX_PAYLOAD_ENTRIES) {
-                                if(mLocalBuf[i].len == 0)
-                                    break;
-                                i++;
-                            }
-
-                            sendRetransmit(q, i);
+                            sendRetransmit(q, framnr-1);
                             return;
-                        }
-
-                        for(uint8_t i = 0; i < mMaxFrameId; i++) {
-                            if(mLocalBuf[i].len == 0) {
-                                setAttempt();
-
-                                DPRINT_IVID(DBG_WARN, q->iv->id);
-                                DBGPRINT(F("frame "));
-                                DBGPRINT(String(i + 1));
-                                DBGPRINT(F(" missing: request retransmit ("));
-                                DBGPRINT(String(q->attempts));
-                                DBGPRINTLN(F(" attempts left)"));
-
-                                sendRetransmit(q, i);
-                                return;
-                            }
                         }
 
                         mHeu.setGotAll(q->iv);
@@ -413,9 +433,6 @@ class Communication : public CommQueue<> {
         inline void miHwDecode(packet_t *p, const queue_s *q) {
             record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_All);  // choose the record structure
             rec->ts = q->ts;
-            //mPayload[iv->id].gotFragment = true;
-            uint8_t multi_parts = 0;
-
             /*
             Polling the device software and hardware version number command
             start byte  Command word     routing address                 target address              User data   check   end byte
@@ -458,14 +475,13 @@ class Communication : public CommQueue<> {
                 q->iv->isConnected = true;
                 //if(mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, q->iv->id);
-                    DPRINT(DBG_INFO,F("HW_VER is "));
+                    DBGPRINT(F("HW_VER is "));
                     DBGPRINTLN(String((p->packet[24] << 8) + p->packet[25]));
                 //}
                 record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                 rec->ts = q->ts;
                 q->iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25])/1);
-                //mPayload[iv->id].multi_parts +=4;
-                multi_parts +=4;
+                q->iv->miMultiParts +=4;
             } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                 DPRINT_IVID(DBG_INFO, q->iv->id);
                 if ( p->packet[9] == 0x01 ) {
@@ -486,19 +502,19 @@ class Communication : public CommQueue<> {
                     //if(mSerialDebug) {
                         DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
                         DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
-                        DPRINT(DBG_INFO,F("HW_FB_ReSPRT "));
+                        DBGPRINT(F("HW_FB_ReSPRT "));
                         DBGPRINTLN(String((p->packet[16] << 8) + p->packet[17]));
-                        DPRINT(DBG_INFO,F("HW_GridSamp_ResValule "));
+                        DBGPRINT(F("HW_GridSamp_ResValule "));
                         DBGPRINTLN(String((p->packet[18] << 8) + p->packet[19]));
-                        DPRINT(DBG_INFO,F("HW_ECapValue "));
+                        DBGPRINT(F("HW_ECapValue "));
                         DBGPRINTLN(String((p->packet[20] << 8) + p->packet[21]));
-                        DPRINT(DBG_INFO,F("Matching_APPFW_PN "));
+                        DBGPRINT(F("Matching_APPFW_PN "));
                         DBGPRINTLN(String((uint32_t) (((p->packet[22] << 8) | p->packet[23]) << 8 | p->packet[24]) << 8 | p->packet[25]));
                     //}
-                    //notify(InverterDevInform_Simple, iv);
-                    //mPayload[iv->id].multi_parts +=2;
-                    multi_parts +=2;
-                    //notify(InverterDevInform_All, iv);
+                    if(NULL != mCbPayload)
+                        (mCbPayload)(InverterDevInform_All, q->iv);
+                    q->iv->miMultiParts +=2;
+
                 } else {
                     DBGPRINTLN(F("3rd gen. inverter!"));
                 }
@@ -515,21 +531,24 @@ class Communication : public CommQueue<> {
                 //if(mSerialDebug) {
                     DPRINT(DBG_INFO,F("APPFW_MINVER "));
                     DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
-                    DPRINT(DBG_INFO,F("HWInfoAddr "));
+                    DBGPRINT(F("HWInfoAddr "));
                     DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
-                    DPRINT(DBG_INFO,F("PNInfoCRC_gusv "));
+                    DBGPRINT(F("PNInfoCRC_gusv "));
                     DBGPRINTLN(String((p->packet[14] << 8) + p->packet[15]));
                 //}
-                //mPayload[iv->id].multi_parts++;
-                multi_parts++;
+                if(NULL != mCbPayload)
+                    (mCbPayload)(InverterDevInform_Simple, q->iv);
+                q->iv->miMultiParts++;
             }
-            if(multi_parts > 5) {
+            if(q->iv->miMultiParts > 5) {
                 cmdDone(true);
                 mState = States::RESET;
                 q->iv->radioStatistics.rxSuccess++;
                 mHeu.setGotAll(q->iv);
+                q->iv->miMultiParts = 0;
             } else {
                 mHeu.setGotFragment(q->iv);
+                mState = States::WAIT;
             }
 
             /*if (mPayload[iv->id].multi_parts > 5) {
@@ -568,9 +587,8 @@ class Communication : public CommQueue<> {
 
             q->iv->setValue(q->iv->getPosByChFld(0, FLD_T, rec), rec, (float) ((int16_t)(p->packet[21] << 8) + p->packet[22])/10);
             q->iv->setValue(q->iv->getPosByChFld(0, FLD_IRR, rec), rec, (float) (calcIrradiation(q->iv, datachan)));
-            //mPayload[q->iv->id].rssi[(datachan-1)] = p->rssi;
 
-            if (datachan == 1) //mPayload[q->iv->id].rssi[(datachan-1)] = p->rssi;
+            if (datachan == 1)
                 q->iv->rssi = p->rssi;
             else if(q->iv->rssi > p->rssi)
                 q->iv->rssi = p->rssi;
@@ -597,6 +615,7 @@ class Communication : public CommQueue<> {
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
+                //use also miMultiParts here for better statistics?
                 mHeu.setGotFragment(q->iv);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 miComplete(q->iv);
@@ -604,25 +623,24 @@ class Communication : public CommQueue<> {
         }
 
         inline void miNextRequest(uint8_t cmd, const queue_s *q) {
-            //setAttempt();
+            incrAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
             DPRINT_IVID(DBG_WARN, q->iv->id);
             DBGPRINT(F("next request ("));
             DBGPRINT(String(q->attempts));
             DBGPRINT(F(" attempts left): 0x"));
             DBGHEXLN(cmd);
 
-            if(q->attempts) {
+            //if(q->attempts) {
                 q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
                 q->iv->radioStatistics.retransmits++;
                 mWaitTimeout = millis() + MI_TIMEOUT;
-                //chgCmd(Inverter<> *iv, uint8_t cmd, bool delOnPop = true)
                 chgCmd(cmd);
                 mState = States::WAIT;
-            } else {
+            /*} else {
                 add(q, true);
                 cmdDone();
                 mState = States::RESET;
-            }
+            }*/
         }
 
         inline void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
@@ -699,13 +717,10 @@ class Communication : public CommQueue<> {
 
 
         inline void miComplete(Inverter<> *iv) {
-            //if ( mPayload[iv->id].complete )
-            //    return; //if we got second message as well in repreated attempt
-            //mPayload[iv->id].complete = true;
-            //if (mSerialDebug) {
+            if (iv->radio->isSerialDebug()) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINTLN(F("got all data msgs"));
-            //}
+            }
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
 
@@ -751,9 +766,10 @@ class Communication : public CommQueue<> {
     private:
         States mState = States::RESET;
         uint32_t *mTimestamp;
-        uint32_t mWaitTimeout = 0;
+        uint32_t mWaitTimeout     = 0;
+        uint32_t mWaitTimeout_min = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
-        bool mGotFragment = false;
+        //bool mGotFragment = false;
         bool mFirstTry = false;
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];

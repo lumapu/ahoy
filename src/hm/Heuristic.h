@@ -62,7 +62,7 @@ class Heuristic {
 
         void printStatus(Inverter<> *iv) {
             DPRINT_IVID(DBG_INFO, iv->id);
-            DBGPRINT(F("CH qualities:"));
+            DBGPRINT(F("Radio infos:"));
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
                 DBGPRINT(F(" "));
                 DBGPRINT(String(iv->txRfQuality[i]));
@@ -74,7 +74,9 @@ class Heuristic {
             DBGPRINT(F(", f: "));
             DBGPRINT(String(iv->radioStatistics.rxFail));
             DBGPRINT(F(", n: "));
-            DBGPRINTLN(String(iv->radioStatistics.rxFailNoAnser));
+            DBGPRINT(String(iv->radioStatistics.rxFailNoAnser));
+            DBGPRINT(F(" | p: "));                                  // better debugging for helpers...
+            DBGPRINTLN(String(iv->config->powerLevel));
         }
 
         bool getTestModeEnabled(void) {

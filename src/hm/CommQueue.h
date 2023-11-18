@@ -85,6 +85,10 @@ class CommQueue {
                 mQueue[mRdPtr].attempts--;
         }
 
+        void incrAttempt(void) {
+            mQueue[mRdPtr].attempts++;
+        }
+
         void inc(uint8_t *ptr) {
             if(++(*ptr) >= N)
                 *ptr = 0;
