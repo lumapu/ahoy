@@ -565,6 +565,7 @@ class Web {
             mConfig->plugin.zexport.count_avg = request->arg("count_avg").toInt();
             mConfig->plugin.zexport.max_power = request->arg("max_power").toDouble();
             mConfig->plugin.zexport.power_avg = request->arg("power_avg").toFloat();
+            mConfig->plugin.zexport.query_device = request->arg("query_device").toInt();
             mConfig->plugin.zexport.total_power = request->arg("total_power").toDouble();
 
             if (request->arg("monitor_url") != "") {

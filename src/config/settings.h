@@ -139,6 +139,7 @@ typedef struct {
 typedef struct {
     char monitor_url[ZEXPORT_ADDR_LEN];
     char json_path[ZEXPORT_ADDR_LEN];
+    uint8_t query_device;   // 0 - Shelly, 1 - Tibber, 2 - other (rs232?)
     uint8_t Iv;         // saves the inverter that is used for regulation
     bool enabled;
     float power_avg;
@@ -464,6 +465,7 @@ class settings {
             mCfg.plugin.zexport.count_avg = 10;
             mCfg.plugin.zexport.lastTime =  millis();   // do not change!
 
+            mCfg.plugin.zexport.query_device = 0;       // Standard shelly
             mCfg.plugin.zexport.power_avg = 10;
             mCfg.plugin.zexport.Iv = 0;
             mCfg.plugin.zexport.max_power = 600;        // Max 600W to stay safe
@@ -691,6 +693,7 @@ class settings {
                 obj[F("json_path")] = mCfg.plugin.zexport.json_path;
                 obj[F("Iv")] = mCfg.plugin.zexport.Iv;
                 obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
+                obj[F("query_device")] = mCfg.plugin.zexport.query_device;
                 obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
                 obj[F("max_power")] = mCfg.plugin.zexport.max_power;
                 obj[F("total_power")] = mCfg.plugin.zexport.total_power;
@@ -709,6 +712,7 @@ class settings {
                 getVal<double>(obj, F("max_power"), &mCfg.plugin.zexport.max_power);
 
                 getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
+                getVal<float>(obj, F("query_device"), &mCfg.plugin.zexport.query_device);
 
                 getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
             }
