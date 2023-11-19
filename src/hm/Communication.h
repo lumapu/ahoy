@@ -46,8 +46,8 @@ class Communication : public CommQueue<> {
                 if(!valid)
                     return; // empty
 
-                uint16_t timeout     = (q->iv->ivGen = IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT);
-                uint16_t timeout_min = (q->iv->ivGen = IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT);
+                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT);
+                uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT);
 
                 switch(mState) {
                     case States::RESET:
@@ -624,7 +624,7 @@ class Communication : public CommQueue<> {
             }
         }
 
-        inline void miNextRequest(uint8_t cmd, const queue_s *q) {
+        void miNextRequest(uint8_t cmd, const queue_s *q) {
             incrAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
             DPRINT_IVID(DBG_WARN, q->iv->id);
             DBGPRINT(F("next request ("));
@@ -645,7 +645,7 @@ class Communication : public CommQueue<> {
             }*/
         }
 
-        inline void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
+        void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
             //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
             uint16_t statusMi = 3; // regular status for MI, change to 1 later?
             if ( uState == 2 ) {
