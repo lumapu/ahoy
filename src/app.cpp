@@ -154,7 +154,7 @@ void app::regularTickers(void) {
         everySec(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
     #endif
 
-    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
+    every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif

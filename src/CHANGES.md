@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.9 - 2023-11-19
+* merged PR #1234
+* added new alarm codes
+* removed serial interval, was not in use anymore
+
 ## 0.8.8 - 2023-11-16
 * fix ESP8266 save inverter #1232
 

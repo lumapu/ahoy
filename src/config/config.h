@@ -142,9 +142,6 @@
     #define MAX_NUM_INVERTERS   4
 #endif
 
-// default serial interval
-#define SERIAL_INTERVAL         5
-
 // default send interval
 #define SEND_INTERVAL           15
 

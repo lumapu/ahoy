@@ -49,10 +49,6 @@
                             <div class="col-8 col-sm-3">Serial Debug</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="serIntvl" title="Invalid input"/></div>
-                        </div>
                     </fieldset>
                     </div>
 
@@ -984,7 +980,6 @@
             function parseSerial(obj) {
                 for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"]])
                     document.getElementsByName(i[0])[0].checked = obj[i[1]];
-                document.getElementsByName("serIntvl")[0].value = obj["interval"];
             }
 
             function parseDisplay(obj, type, system) {

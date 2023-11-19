@@ -125,6 +125,10 @@ class Inverter {
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
         int8_t        rssi;              // RSSI
+        uint8_t       miMultiParts;      // helper info for MI multiframe msgs
+        uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
+        bool          mGotFragment;      // shows if inverter has sent at least one fragment
+        bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
         int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
@@ -150,8 +154,11 @@ class Inverter {
             alarmCnt           = 0;
             alarmLastId        = 0;
             rssi               = -127;
+            miMultiParts       = 0;
+            mGotLastMsg        = false;
             radio              = NULL;
             commEnabled        = true;
+
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(txRfQuality, -6, 5);
 
@@ -587,14 +594,40 @@ class Inverter {
         static String getAlarmStr(uint16_t alarmCode) {
             switch (alarmCode) { // breaks are intentionally missing!
                 case 1:    return String(F("Inverter start"));
-                case 2:    return String(F("DTU command failed"));
-                case 73:   return String(F("Temperature >80°C")); // https://github.com/tbnobody/OpenDTU/discussions/590#discussioncomment-6049750
+                case 2:    return String(F("Time calibration"));
+                case 3:    return String(F("EEPROM reading and writing error during operation"));
+                case 4:    return String(F("Offline"));
+                case 11:   return String(F("Grid voltage surge"));
+                case 12:   return String(F("Grid voltage sharp drop"));
+                case 13:   return String(F("Grid frequency mutation"));
+                case 14:   return String(F("Grid phase mutation"));
+                case 15:   return String(F("Grid transient fluctuation"));
+                case 36:   return String(F("INV overvoltage or overcurrent"));
+                case 46:   return String(F("FB overvoltage"));
+                case 47:   return String(F("FB overcurrent"));
+                case 48:   return String(F("FB clamp overvoltage"));
+                case 49:   return String(F("FB clamp overvoltage"));
+                case 61:   return String(F("Calibration parameter error"));
+                case 62:   return String(F("System configuration parameter error"));
+                case 63:   return String(F("Abnormal power generation data"));
+
+                case 71:   return String(F("Grid overvoltage load reduction (VW) function enable"));
+                case 72:   return String(F("Power grid over-frequency load reduction (FW) function enable"));
+                case 73:   return String(F("Over-temperature load reduction (TW) function enable"));
+
+                case 95:   return String(F("PV-1: Module in suspected shadow"));
+                case 96:   return String(F("PV-2: Module in suspected shadow"));
+                case 97:   return String(F("PV-3: Module in suspected shadow"));
+                case 98:   return String(F("PV-4: Module in suspected shadow"));
+
                 case 121:  return String(F("Over temperature protection"));
+                case 122:  return String(F("Microinverter is suspected of being stolen"));
+                case 123:  return String(F("Locked by remote control"));
                 case 124:  return String(F("Shut down by remote control"));
                 case 125:  return String(F("Grid configuration parameter error"));
-                case 126:  return String(F("Software error code 126"));
+                case 126:  return String(F("EEPROM reading and writing error"));
                 case 127:  return String(F("Firmware error"));
-                case 128:  return String(F("Software error code 128"));
+                case 128:  return String(F("Hardware configuration error"));
                 case 129:  return String(F("Abnormal bias"));
                 case 130:  return String(F("Offline"));
                 case 141:  return String(F("Grid: Grid overvoltage"));
@@ -606,7 +639,12 @@ class Inverter {
                 case 147:  return String(F("Grid: Power grid outage"));
                 case 148:  return String(F("Grid: Grid disconnection"));
                 case 149:  return String(F("Grid: Island detected"));
+
+                case 150:  return String(F("DCI exceeded"));
+
                 case 171:  return String(F("Grid: Abnormal phase difference between phase to phase"));
+                case 181:  return String(F("Abnormal insulation impedance"));
+                case 182:  return String(F("Abnormal grounding"));
                 case 205:  return String(F("MPPT-A: Input overvoltage"));
                 case 206:  return String(F("MPPT-B: Input overvoltage"));
                 case 207:  return String(F("MPPT-A: Input undervoltage"));
@@ -625,24 +663,33 @@ class Inverter {
                 case 220:  return String(F("PV-3: Input undervoltage"));
                 case 221:  return String(F("PV-4: Input overvoltage"));
                 case 222:  return String(F("PV-4: Input undervoltage"));
-                case 301:  return String(F("Hardware error code 301"));
-                case 302:  return String(F("Hardware error code 302"));
-                case 303:  return String(F("Hardware error code 303"));
-                case 304:  return String(F("Hardware error code 304"));
-                case 305:  return String(F("Hardware error code 305"));
-                case 306:  return String(F("Hardware error code 306"));
-                case 307:  return String(F("Hardware error code 307"));
-                case 308:  return String(F("Hardware error code 308"));
+
+                case 301:  return String(F("FB short circuit failure"));
+                case 302:  return String(F("FB short circuit failure"));
+                case 303:  return String(F("FB overcurrent protection failure"));
+                case 304:  return String(F("FB overcurrent protection failure"));
+                case 305:  return String(F("FB clamp circuit failure"));
+                case 306:  return String(F("FB clamp circuit failure"));
+                case 307:  return String(F("INV power device failure"));
+                case 308:  return String(F("INV overcurrent or overvoltage protection failure"));
                 case 309:  return String(F("Hardware error code 309"));
                 case 310:  return String(F("Hardware error code 310"));
                 case 311:  return String(F("Hardware error code 311"));
                 case 312:  return String(F("Hardware error code 312"));
                 case 313:  return String(F("Hardware error code 313"));
                 case 314:  return String(F("Hardware error code 314"));
-                case 5041: return String(F("Error code-04 Port 1"));
-                case 5042: return String(F("Error code-04 Port 2"));
-                case 5043: return String(F("Error code-04 Port 3"));
-                case 5044: return String(F("Error code-04 Port 4"));
+
+                case 5011: return String(F("PV-1: MOSFET overcurrent (II)"));
+                case 5012: return String(F("PV-2: MOSFET overcurrent (II)"));
+                case 5013: return String(F("PV-3: MOSFET overcurrent (II)"));
+                case 5014: return String(F("PV-4: MOSFET overcurrent (II)"));
+                case 5020: return String(F("H-bridge MOSFET overcurrent or H-bridge overvoltage"));
+
+                case 5041: return String(F("PV-1: current overcurrent (II)"));
+                case 5042: return String(F("PV-2: current overcurrent (II)"));
+                case 5043: return String(F("PV-3: current overcurrent (II)"));
+                case 5044: return String(F("PV-4: current overcurrent (II)"));
+
                 case 5051: return String(F("PV Input 1 Overvoltage/Undervoltage"));
                 case 5052: return String(F("PV Input 2 Overvoltage/Undervoltage"));
                 case 5053: return String(F("PV Input 3 Overvoltage/Undervoltage"));
@@ -652,10 +699,18 @@ class Inverter {
                 case 5080: return String(F("Grid Overvoltage/Undervoltage"));
                 case 5090: return String(F("Grid Overfrequency/Underfrequency"));
                 case 5100: return String(F("Island detected"));
+                case 5110: return String(F("GFDI"));
                 case 5120: return String(F("EEPROM reading and writing error"));
+                case 5141:
+                case 5142:
+                case 5143:
+                case 5144:
+                           return String(F("FB clamp overvoltage"));
                 case 5150: return String(F("10 min value grid overvoltage"));
+                case 5160: return String(F("Grid transient fluctuation"));
                 case 5200: return String(F("Firmware error"));
-                case 8310: return String(F("Shut down"));
+                case 8310: return String(F("Shut down by remote control"));
+                case 8320: return String(F("Locked by remote control"));
                 case 9000: return String(F("Microinverter is suspected of being stolen"));
                 default:   return String(F("Unknown"));
             }

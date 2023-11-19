@@ -86,9 +86,12 @@ namespace ah {
         return ret;
     }
 
-    void dumpBuf(uint8_t buf[], uint8_t len) {
+    void dumpBuf(uint8_t buf[], uint8_t len, uint8_t firstRepl, uint8_t lastRepl, String repl) {
         for(uint8_t i = 0; i < len; i++) {
-            DHEX(buf[i]);
+            if(i < firstRepl || i > lastRepl)
+                DHEX(buf[i]);
+            else
+                DBGPRINT(repl);
             DBGPRINT(" ");
         }
         DBGPRINTLN("");
