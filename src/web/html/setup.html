@@ -49,6 +49,10 @@
                             <div class="col-8 col-sm-3">Serial Debug</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
                         </div>
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Privacy Mode</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -982,7 +986,7 @@
             /*ENDIF_ESP32*/
 
             function parseSerial(obj) {
-                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"]])
+                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"], ["priv", "priv"]])
                     document.getElementsByName(i[0])[0].checked = obj[i[1]];
             }
 

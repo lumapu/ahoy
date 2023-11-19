@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.10 - 2023-11-19
+* fix Mi and HM inverter communication #1235
+* added privacy mode option #1211
+* changed serial debug option to work without reboot
+
 ## 0.8.9 - 2023-11-19
 * merged PR #1234
 * added new alarm codes

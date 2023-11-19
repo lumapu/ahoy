@@ -34,14 +34,6 @@ class Radio {
             mIrqRcvd = true;
         }
 
-        void enableDebug() {
-            mSerialDebug = true;
-        }
-
-        bool isSerialDebug() {
-            return mSerialDebug;
-        }
-
         void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
             initPacket(getIvId(iv), mid, pid);
             sendPacket(iv, 10, isRetransmit, appendCrc16);
@@ -55,7 +47,7 @@ class Radio {
                 return;
             }
 
-            if(mSerialDebug) {
+            if(*mSerialDebug) {
                 DPRINT(DBG_DEBUG, F("prepareDevInformCmd 0x"));
                 DPRINTLN(DBG_DEBUG,String(cmd, HEX));
             }
@@ -115,7 +107,8 @@ class Radio {
 
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;
-        bool mSerialDebug;
+        bool *mSerialDebug;
+        bool *mPrivacyMode;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 
 };
