@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.11 - 2023-11-19
+* slightly improved communication, thx @rejoe2
+
 ## 0.8.10 - 2023-11-19
 * fix Mi and HM inverter communication #1235
 * added privacy mode option #1211
