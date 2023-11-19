@@ -22,8 +22,10 @@ typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
     public:
-        void setup(uint32_t *timestamp) {
+        void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode) {
             mTimestamp = timestamp;
+            mPrivacyMode = privacyMode;
+            mSerialDebug = serialDebug;
         }
 
         void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
@@ -57,13 +59,13 @@ class Communication : public CommQueue<> {
                             mLocalBuf[i].len = 0;
                         }
 
-                        if(q->iv->radio->isSerialDebug())
+                        if(*mSerialDebug)
                             mHeu.printStatus(q->iv);
                         mHeu.getTxCh(q->iv);
                         testMode = mHeu.getTestModeEnabled();
                         q->iv->mGotFragment = false;
                         q->iv->mGotLastMsg = false;
-                        mFirstTry = mFirstTry ? false : (((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen) ) && (q->iv->isAvailable()) || (millis() < 120000));
+                        mFirstTry = mFirstTry ? false : (((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen)) && ((q->iv->isAvailable()) || (millis() < 120000)));
                         if(NULL == q->iv->radio)
                             cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
@@ -161,7 +163,10 @@ class Communication : public CommQueue<> {
                             DBGPRINT(F(", "));
                             DBGPRINT(String(p->rssi));
                             DBGPRINT(F("dBm | "));
-                            ah::dumpBuf(p->packet, p->len, 1, 8, "#"+String(q->iv->id));
+                            if(*mPrivacyMode)
+                                ah::dumpBuf(p->packet, p->len, 1, 8);
+                            else
+                                ah::dumpBuf(p->packet, p->len);
 
                             if(checkIvSerial(&p->packet[1], q->iv)) {
                                 if(!testMode)
@@ -717,7 +722,7 @@ class Communication : public CommQueue<> {
 
 
         inline void miComplete(Inverter<> *iv) {
-            if (iv->radio->isSerialDebug()) {
+            if (*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINTLN(F("got all data msgs"));
             }
@@ -766,6 +771,7 @@ class Communication : public CommQueue<> {
     private:
         States mState = States::RESET;
         uint32_t *mTimestamp;
+        bool *mPrivacyMode, *mSerialDebug;
         uint32_t mWaitTimeout     = 0;
         uint32_t mWaitTimeout_min = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;

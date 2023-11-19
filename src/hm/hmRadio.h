@@ -29,7 +29,19 @@ template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, ui
 class HmRadio : public Radio {
     public:
         HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
-            if(mSerialDebug) {
+            mDtuSn   = DTU_SN;
+            mIrqRcvd = false;
+        }
+        ~HmRadio() {}
+
+        void setup(bool *serialDebug, bool *privacyMode, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
+            pinMode(irq, INPUT_PULLUP);
+
+            mSerialDebug = serialDebug;
+            mPrivacyMode = privacyMode;
+
+            if(*mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
                 DBGPRINT(String(CE_PIN));
                 DBGPRINT(F(", CS_PIN: "));
@@ -38,16 +50,6 @@ class HmRadio : public Radio {
                 DBGPRINT(String(SPI_SPEED));
                 DBGPRINTLN(F(")"));
             }
-            mDtuSn = DTU_SN;
-
-            mSerialDebug    = false;
-            mIrqRcvd        = false;
-        }
-        ~HmRadio() {}
-
-        void setup(uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
-            pinMode(irq, INPUT_PULLUP);
 
             generateDtuSn();
             DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
@@ -252,9 +254,12 @@ class HmRadio : public Radio {
                     p.millis = millis() - mMillis;
                     mNrf24.read(p.packet, p.len);
                     if (p.packet[0] != 0x00) {
-                        if(!checkIvSerial(&p.packet[1], mLastIv)) {
-                            DPRINT(DBG_WARN, "RX other inverter: ");
-                            ah::dumpBuf(p.packet, p.len);
+                        if(!checkIvSerial(p.packet, mLastIv)) {
+                            DPRINT(DBG_WARN, "RX other inverter ");
+                            if(*mPrivacyMode)
+                                ah::dumpBuf(p.packet, p.len, 1, 4);
+                            else
+                                ah::dumpBuf(p.packet, p.len);
                             return false;
                         }
                         mLastIv->mGotFragment = true;
@@ -281,14 +286,17 @@ class HmRadio : public Radio {
             // set TX and RX channels
             mTxChIdx = mRfChLst[iv->txRfChId];
 
-            if(mSerialDebug) {
+            if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
                 DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
-                ah::dumpBuf(mTxBuf, len, 1, 4, "#"+String(iv->id));
+                if(*mPrivacyMode)
+                    ah::dumpBuf(mTxBuf, len, 1, 4);
+                else
+                    ah::dumpBuf(mTxBuf, len);
             }
 
             mNrf24.stopListening();
@@ -309,8 +317,8 @@ class HmRadio : public Radio {
         }
 
         inline bool checkIvSerial(uint8_t buf[], Inverter<> *iv) {
-            for(uint8_t i = 0; i < 4; i++) {
-                if(buf[3-i] != iv->radioId.b[i])
+            for(uint8_t i = 1; i < 5; i++) {
+                if(buf[i] != iv->radioId.b[i])
                     return false;
             }
             return true;

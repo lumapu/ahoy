@@ -116,6 +116,7 @@ typedef struct {
 typedef struct {
     bool showIv;
     bool debug;
+    bool privacyLog;
 } cfgSerial_t;
 
 typedef struct {
@@ -424,6 +425,7 @@ class settings {
 
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
+            mCfg.serial.privacyLog = true;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -617,9 +619,11 @@ class settings {
             if(set) {
                 obj[F("show")]  = mCfg.serial.showIv;
                 obj[F("debug")] = mCfg.serial.debug;
+                obj[F("prv")] = (bool) mCfg.serial.privacyLog;
             } else {
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
+                getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
             }
         }
 

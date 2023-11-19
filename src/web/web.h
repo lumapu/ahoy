@@ -559,6 +559,7 @@ class Web {
 
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
+            mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
 
             // display
@@ -634,7 +635,6 @@ class Web {
             {
                 Inverter<> *iv;
                 record_t<> *rec;
-                statistics_t *stat;
                 String promUnit, promType;
                 String metrics;
                 char type[60], topic[100], val[25];
