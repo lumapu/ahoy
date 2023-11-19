@@ -61,6 +61,10 @@ class Radio {
             sendPacket(iv, 24, isRetransmit);
         }
 
+        uint32_t getDTUSn(void) {
+            return mDtuSn;
+        }
+
     public:
         std::queue<packet_t> mBufCtrl;
 

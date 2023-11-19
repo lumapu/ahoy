@@ -548,6 +548,7 @@ class RestApi {
         void getRadioCmtInfo(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->cmt.enabled;
             obj[F("isconnected")] = mRadioCmt->isConnected();
+            obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
         }
         #endif
 
@@ -555,7 +556,7 @@ class RestApi {
             obj[F("en")]          = (bool) mConfig->nrf.enabled;
             obj[F("isconnected")] = mRadioNrf->isChipConnected();
             obj[F("dataRate")]    = mRadioNrf->getDataRate();
-            //obj[F("isPVariant")]  = mRadioNrf->isPVariant();
+            obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
         }
 
         void getSerial(JsonObject obj) {
