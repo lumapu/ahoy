@@ -558,14 +558,8 @@ class Web {
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // serial console
-            if (request->arg("serIntvl") != "") {
-                mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
-
-                mConfig->serial.debug = (request->arg("serDbg") == "on");
-                mConfig->serial.showIv = (request->arg("serEn") == "on");
-                // Needed to log TX buffers to serial console
-                // mSys->Radio.mSerialDebug = mConfig->serial.debug;
-            }
+            mConfig->serial.debug = (request->arg("serDbg") == "on");
+            mConfig->serial.showIv = (request->arg("serEn") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");

@@ -559,7 +559,6 @@ class RestApi {
         }
 
         void getSerial(JsonObject obj) {
-            obj[F("interval")]       = (uint16_t)mConfig->serial.interval;
             obj[F("show_live_data")] = mConfig->serial.showIv;
             obj[F("debug")]          = mConfig->serial.debug;
         }

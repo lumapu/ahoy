@@ -114,7 +114,6 @@ typedef struct {
 } cfgSun_t;
 
 typedef struct {
-    uint16_t interval;
     bool showIv;
     bool debug;
 } cfgSerial_t;
@@ -423,7 +422,6 @@ class settings {
             mCfg.sun.lon         = 0.0;
             mCfg.sun.offsetSec   = 0;
 
-            mCfg.serial.interval = SERIAL_INTERVAL;
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
 
@@ -617,11 +615,9 @@ class settings {
 
         void jsonSerial(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("intvl")] = mCfg.serial.interval;
                 obj[F("show")]  = mCfg.serial.showIv;
                 obj[F("debug")] = mCfg.serial.debug;
             } else {
-                getVal<uint16_t>(obj, F("intvl"), &mCfg.serial.interval);
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
             }

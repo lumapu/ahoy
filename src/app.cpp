@@ -142,7 +142,7 @@ void app::regularTickers(void) {
     if (mConfig->plugin.display.type != 0)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     #endif
-    every(std::bind(&PubSerialType::tick, &mPubSerial), mConfig->serial.interval, "uart");
+    every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
