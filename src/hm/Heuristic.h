@@ -12,6 +12,7 @@
 #define RF_MAX_CHANNEL_ID   5
 #define RF_MAX_QUALITY      4
 #define RF_MIN_QUALTIY      -6
+#define RF_NA               -99
 
 class Heuristic {
     public:
@@ -19,25 +20,29 @@ class Heuristic {
             if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 return 0; // not used for these inverter types
 
-            mCycle++; // intended to overflow from time to time
-            if(mTestEn) {
-                iv->txRfChId = mCycle % RF_MAX_CHANNEL_ID;
-                DPRINTLN(DBG_INFO, F("heuristic test mode"));
-                return id2Ch(iv->txRfChId);
-            }
-
-            uint8_t id = 0;
+            uint8_t bestId = 0;
             int8_t bestQuality = -6;
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
                 if(iv->txRfQuality[i] > bestQuality) {
                     bestQuality = iv->txRfQuality[i];
-                    id = i;
+                    bestId = i;
                 }
             }
-            if(bestQuality == -6)
-                iv->txRfChId = (iv->txRfChId + 1) % RF_MAX_CHANNEL_ID; // next channel
-            else
-                iv->txRfChId = id; // best quality channel
+
+            if(mTestEn) {
+                DPRINTLN(DBG_INFO, F("heuristic test mode"));
+                mTestIdx = (mTestIdx + 1) % RF_MAX_CHANNEL_ID;
+
+                if (mTestIdx == bestId)
+                    mTestIdx = (mTestIdx + 1) % RF_MAX_CHANNEL_ID;
+
+                // test channel get's quality of best channel (maybe temporarily, see in 'setGotNothing')
+                mStoredIdx = iv->txRfQuality[mTestIdx];
+                iv->txRfQuality[mTestIdx] = bestQuality;
+
+                iv->txRfChId = mTestIdx;
+            } else
+                iv->txRfChId = bestId;
 
             return id2Ch(iv->txRfChId);
         }
@@ -53,10 +58,15 @@ class Heuristic {
         }
 
         void setGotNothing(Inverter<> *iv) {
+            if(RF_NA != mStoredIdx) {
+                // if communication fails on first try with temporarily good level, revert it back to its original level
+                iv->txRfQuality[iv->txRfChId] = mStoredIdx;
+                mStoredIdx = RF_NA;
+            }
+
             if(!mTestEn) {
                 updateQuality(iv, -2); // BAD
                 mTestEn = true;
-                iv->txRfChId = mCycle % RF_MAX_CHANNEL_ID;
             }
         }
 
@@ -100,13 +110,14 @@ class Heuristic {
                 case 3: return 61;
                 case 4: return 75;
             }
-            return 0; // standard
+            return 3; // standard
         }
 
     private:
         uint8_t mChList[5] = {03, 23, 40, 61, 75};
         bool mTestEn = false;
-        uint8_t mCycle = 0;
+        uint8_t mTestIdx = 0;
+        int8_t mStoredIdx = RF_NA;
 };
 
 

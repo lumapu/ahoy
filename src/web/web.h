@@ -560,6 +560,7 @@ class Web {
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
+            mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
 
             // display

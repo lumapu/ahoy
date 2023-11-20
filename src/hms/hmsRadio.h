@@ -19,11 +19,12 @@ class CmtRadio : public Radio {
             mCmtAvail = false;
         }
 
-        void setup(bool *serialDebug, bool *privacyMode, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
             mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
             reset(genDtuSn);
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
+            mPrintWholeTrace = printWholeTrace;
         }
 
         void setup(bool *serialDebug, bool *privacyMode, bool genDtuSn = true) {
@@ -97,10 +98,13 @@ class CmtRadio : public Radio {
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(mCmt.getFreqKhz()/1000.0f));
                 DBGPRINT(F("Mhz | "));
-                if(*mPrivacyMode)
-                    ah::dumpBuf(mTxBuf, len, 1, 4);
-                else
-                    ah::dumpBuf(mTxBuf, len);
+                if(*mPrintWholeTrace) {
+                    if(*mPrivacyMode)
+                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                    else
+                        ah::dumpBuf(mTxBuf, len);
+                } else
+                    DBGHEXLN(mTxBuf[9]);
             }
 
             uint8_t status = mCmt.tx(mTxBuf, len);

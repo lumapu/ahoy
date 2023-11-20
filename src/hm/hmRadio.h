@@ -34,12 +34,13 @@ class HmRadio : public Radio {
         }
         ~HmRadio() {}
 
-        void setup(bool *serialDebug, bool *privacyMode, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             pinMode(irq, INPUT_PULLUP);
 
             mSerialDebug = serialDebug;
             mPrivacyMode = privacyMode;
+            mPrintWholeTrace = printWholeTrace;
 
             if(*mSerialDebug) {
                 DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
@@ -293,10 +294,13 @@ class HmRadio : public Radio {
                 DBGPRINT(" CH");
                 DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
-                if(*mPrivacyMode)
-                    ah::dumpBuf(mTxBuf, len, 1, 4);
-                else
-                    ah::dumpBuf(mTxBuf, len);
+                if(*mPrintWholeTrace) {
+                    if(*mPrivacyMode)
+                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                    else
+                        ah::dumpBuf(mTxBuf, len);
+                } else
+                    DBGHEXLN(mTxBuf[9]);
             }
 
             mNrf24.stopListening();

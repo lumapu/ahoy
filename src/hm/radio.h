@@ -111,8 +111,7 @@ class Radio {
 
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;
-        bool *mSerialDebug;
-        bool *mPrivacyMode;
+        bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 
 };

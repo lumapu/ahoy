@@ -563,6 +563,7 @@ class RestApi {
             obj[F("show_live_data")] = mConfig->serial.showIv;
             obj[F("debug")]          = mConfig->serial.debug;
             obj[F("priv")]           = mConfig->serial.privacyLog;
+            obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
         }
 
         void getStaticIp(JsonObject obj) {
