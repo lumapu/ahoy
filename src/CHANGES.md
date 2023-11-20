@@ -1,7 +1,9 @@
 # Development Changes
 
-## 0.8.11 - 2023-11-19
-* slightly improved communication, thx @rejoe2
+## 0.8.11 - 2023-11-20
+* improved communication, thx @rejoe2
+* improved heuristics, thx @rejoe2, @Oberfritze
+* added option to strip payload of frames to significant area
 
 ## 0.8.10 - 2023-11-19
 * fix Mi and HM inverter communication #1235
