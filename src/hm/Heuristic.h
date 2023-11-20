@@ -56,7 +56,7 @@ class Heuristic {
             if(!mTestEn) {
                 updateQuality(iv, -2); // BAD
                 mTestEn = true;
-                iv->txRfChId = (iv->txRfChId + 1) % RF_MAX_CHANNEL_ID;
+                iv->txRfChId = mCycle % RF_MAX_CHANNEL_ID;
             }
         }
 
