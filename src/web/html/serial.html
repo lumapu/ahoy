@@ -17,6 +17,7 @@
                     <div class="col-6 col-sm-4 a-r">
                         <input type="button" value="clear" class="btn" id="clear"/>
                         <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                        <!--<input type="button" value="copy" class="btn" id="copy"/>-->
                     </div>
                 </div>
             </div>
@@ -63,6 +64,12 @@
                 mAutoScroll = !mAutoScroll;
                 this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
             });
+            /*document.getElementById("copy").addEventListener("click", function() {
+                con.select();
+                con.setSelectionRange(0, 9999999);
+                navigator.clipboard.writeText(con.value);
+                alert("Copied to clipboard");
+            });*/
 
             if (!!window.EventSource) {
                 var source = new EventSource('/events');

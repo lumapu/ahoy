@@ -210,9 +210,9 @@ class Communication : public CommQueue<> {
                                 if(q->iv->miMultiParts < 6) {
                                     nextState = States::WAIT;
                                 } else {
-                                    if((q->cmd == 0x39)       && (q->iv->type == INV_TYPE_4CH) ||
-                                       (q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH) ||
-                                       (q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH)) {
+                                    if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
+                                        || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
+                                        || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                         miComplete(q->iv);
                                         //closeRequest(q->iv, q->iv->miMultiParts > 5);
                                     }
