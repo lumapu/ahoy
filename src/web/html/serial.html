@@ -17,7 +17,7 @@
                     <div class="col-6 col-sm-4 a-r">
                         <input type="button" value="clear" class="btn" id="clear"/>
                         <input type="button" value="autoscroll" class="btn" id="scroll"/>
-                        <!--<input type="button" value="copy" class="btn" id="copy"/>-->
+                        <input type="button" value="copy" class="btn" id="copy"/>
                     </div>
                 </div>
             </div>
@@ -64,12 +64,25 @@
                 mAutoScroll = !mAutoScroll;
                 this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
             });
-            /*document.getElementById("copy").addEventListener("click", function() {
-                con.select();
-                con.setSelectionRange(0, 9999999);
-                navigator.clipboard.writeText(con.value);
-                alert("Copied to clipboard");
-            });*/
+            document.getElementById("copy").addEventListener("click", function() {
+                if (window.clipboardData && window.clipboardData.setData) {
+                    return window.clipboardData.setData("Text", text);
+                } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+                    var ta = document.createElement("textarea");
+                    ta.textContent = con.value;
+                    ta.style.position = "fixed";  // Prevent scrolling to bottom of page in Microsoft Edge.
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+                    } catch (ex) {
+                        alert("Copy to clipboard failed" + ex);
+                    } finally {
+                        document.body.removeChild(ta);
+                        alert("Copied to clipboard");
+                    }
+                }
+            });
 
             if (!!window.EventSource) {
                 var source = new EventSource('/events');

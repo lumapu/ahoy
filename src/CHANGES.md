@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.12 - 2023-11-20
+* added button `copy to clipboard` to `/serial`
+
 ## 0.8.11 - 2023-11-20
 * improved communication, thx @rejoe2
 * improved heuristics, thx @rejoe2, @Oberfritze
