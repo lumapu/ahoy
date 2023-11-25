@@ -31,9 +31,8 @@ class DisplayMono128X32 : public DisplayMono {
         void disp(void) {
             mDisplay->clearBuffer();
 
-            // set Contrast of the Display to raise the lifetime
-            if (3 != mType)
-                mDisplay->setContrast(mLuminance);
+            // calculate current pixelshift for pixelshift screensaver
+            calcPixelShift(pixelShiftRange);
 
             if ((mDisplayData->totalPower > 0) && (mDisplayData->nrProducing > 0)) {
                 if (mDisplayData->totalPower > 999)
@@ -67,6 +66,8 @@ class DisplayMono128X32 : public DisplayMono {
         }
 
     private:
+        const uint8_t pixelShiftRange = 7;  // number of pixels to shift from left to right (centered -> must be odd!)
+
         void calcLinePositions() {
             uint8_t yOff[] = {0, 0};
             for (uint8_t i = 0; i < 4; i++) {
@@ -108,7 +109,7 @@ class DisplayMono128X32 : public DisplayMono {
         void printText(const char *text, uint8_t line) {
             setFont(line);
 
-            uint8_t dispX = mLineXOffsets[line] + ((mScreenSaver==1) ? (mExtra % 7) : 0);
+            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange / 2 + mPixelshift;
 
             if (isTwoRowLine(line)) {
                 String stringText = String(text);

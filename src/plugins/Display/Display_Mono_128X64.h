@@ -58,8 +58,8 @@ class DisplayMono128X64 : public DisplayMono {
             mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
             */
 
-            // set Contrast of the Display to raise the lifetime
-            mDisplay->setContrast(mLuminance);
+            // calculate current pixelshift for pixelshift screensaver
+            calcPixelShift(pixelShiftRange);
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
@@ -109,44 +109,48 @@ class DisplayMono128X64 : public DisplayMono {
                 pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
                 mDisplay->setFont(u8g2_font_ncenB08_symbols8_ahoy);
                 if (sun_pos!=-1)
-                    mDisplay->drawStr(pos + sun_pos + pixelshift(), mLineYOffsets[l_Status], "G");     // sun
+                    mDisplay->drawStr(pos + sun_pos + mPixelshift, mLineYOffsets[l_Status], "G");     // sun
                 if (moon_pos!=-1)
-                    mDisplay->drawStr(pos + moon_pos + pixelshift(), mLineYOffsets[l_Status], "H");    // moon
+                    mDisplay->drawStr(pos + moon_pos + mPixelshift, mLineYOffsets[l_Status], "H");    // moon
             }
 
             // print yields
             mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
-            mDisplay->drawStr(15 + pixelshift(), mLineYOffsets[l_YieldDay],   "I");    // day
-            mDisplay->drawStr(15 + pixelshift(), mLineYOffsets[l_YieldTotal], "D");    // total
+            mDisplay->drawStr(17 + mPixelshift, mLineYOffsets[l_YieldDay],   "I");    // day
+            mDisplay->drawStr(17 + mPixelshift, mLineYOffsets[l_YieldTotal], "D");    // total
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.0f Wh", mDisplayData->totalYieldDay);
             printText(mFmtText, l_YieldDay, 25);
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.1f kWh", mDisplayData->totalYieldTotal);
             printText(mFmtText, l_YieldTotal, 25);
 
-            if (mScreenSaver != 1 ) {  // not practical for pixel shift screensaver
-                // draw dynamic RSSI bars
-                int rssi_bar_height = 9;
-                for (int i=0; i<4;i++) {
-                    int radio_rssi_threshold = -60 - i*10;
-                    int wifi_rssi_threshold = -60 - i*10;
-                    if (mDisplayData->RadioRSSI > radio_rssi_threshold)
-                        mDisplay->drawBox(0,              8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
-                    if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
-                        mDisplay->drawBox(mDispWidth-4+i, 8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
-                }
-                // draw dynamic antenna and WiFi symbols
-                mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
-                char sym[]=" ";
-                sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
-                mDisplay->drawStr(0, mLineYOffsets[l_RSSI], sym);
-
-                if (mDisplayData->MQTTSymbol)
-                    sym[0] = 'J'; // MQTT
-                else
-                    sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
-                mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym), mLineYOffsets[l_RSSI], sym);
-                mDisplay->sendBuffer();
+            // draw dynamic RSSI bars
+            int xoffs;
+            if (mScreenSaver == 1) // shrink screenwidth for pixelshift screensaver
+                xoffs = pixelShiftRange/2;
+            else
+                xoffs = 0;
+            int rssi_bar_height = 9;
+            for (int i = 0; i < 4; i++) {
+                int radio_rssi_threshold = -60 - i * 10;
+                int wifi_rssi_threshold = -60 - i * 10;
+                if (mDisplayData->RadioRSSI > radio_rssi_threshold)
+                    mDisplay->drawBox(xoffs + mPixelshift, 8 + (rssi_bar_height + 1) * i, 4 - i, rssi_bar_height);
+                if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
+                    mDisplay->drawBox(mDispWidth - 4 - xoffs + mPixelshift + i, 8 + (rssi_bar_height + 1) * i, 4 - i, rssi_bar_height);
             }
+            // draw dynamic antenna and WiFi symbols
+            mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
+            char sym[]=" ";
+            sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
+            mDisplay->drawStr(xoffs + mPixelshift, mLineYOffsets[l_RSSI], sym);
+
+            if (mDisplayData->MQTTSymbol)
+                sym[0] = 'J'; // MQTT
+            else
+                sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
+            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - xoffs + mPixelshift, mLineYOffsets[l_RSSI], sym);
+            mDisplay->sendBuffer();
+
 
             mDisplay->sendBuffer();
 
@@ -171,6 +175,8 @@ class DisplayMono128X64 : public DisplayMono {
             l_MAX_LINES = 5,
         };
 
+        const uint8_t pixelShiftRange = 11;  // number of pixels to shift from left to right (centered -> must be odd!)
+
         void calcLinePositions() {
             uint8_t yOff = 0;
             uint8_t i = 0;
@@ -187,11 +193,6 @@ class DisplayMono128X64 : public DisplayMono {
                     yOff+=1;     // -> one pixels space
                 i++;
             } while(l_MAX_LINES>i);
-        }
-
-        inline int8_t pixelshift(void) {
-            int8_t range = 11;  // number of pixels to shift from left to right (centered)
-            return(mScreenSaver == 1 ? (mExtra % range - range/2) : 0);
         }
 
         inline void setLineFont(uint8_t line) {
@@ -213,7 +214,7 @@ class DisplayMono128X64 : public DisplayMono {
                 dispX = (mDispWidth - mDisplay->getStrWidth(text)) / 2;  // center text
             else
                 dispX = col;
-            dispX += pixelshift();
+            dispX += mPixelshift;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
 };

@@ -78,6 +78,7 @@ class DisplayMono {
       uint8_t mLineYOffsets[5] = {};
 
       uint8_t mExtra;
+      int8_t  mPixelshift=0;
       uint32_t mStarttime = millis();
       bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
@@ -93,6 +94,11 @@ class DisplayMono {
          mDisplay->clearBuffer();
          mDispWidth = mDisplay->getDisplayWidth();
          mDispHeight = mDisplay->getDisplayHeight();
+      }
+
+      void calcPixelShift(int range) {
+         int8_t mod = (millis() / 10000) % ((range >> 1) << 2);
+         mPixelshift = mScreenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
       }
 };
 

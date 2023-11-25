@@ -22,6 +22,7 @@ class DisplayMono64X48 : public DisplayMono {
             u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
             // Wemos OLed Shield is not defined in u8 lib -> use nearest compatible
             monoInit(new U8G2_SSD1306_64X48_ER_F_HW_I2C(rot, reset, clock, data), type, displayData);
+
             calcLinePositions();
             printText("Ahoy!", 0);
             printText("ahoydtu.de", 1);
@@ -32,8 +33,8 @@ class DisplayMono64X48 : public DisplayMono {
         void disp(void) {
             mDisplay->clearBuffer();
 
-            // set Contrast of the Display to raise the lifetime
-            mDisplay->setContrast(mLuminance);
+            // calculate current pixelshift for pixelshift screensaver
+            calcPixelShift(pixelShiftRange);
 
             if ((mDisplayData->totalPower > 0) && (mDisplayData->nrProducing > 0)) {
                 if (mDisplayData->totalPower > 999)
@@ -67,6 +68,8 @@ class DisplayMono64X48 : public DisplayMono {
         }
 
     private:
+        const uint8_t pixelShiftRange = 4;  // number of pixels to shift from left to right
+
         void calcLinePositions() {
             uint8_t yOff = 0;
             for (uint8_t i = 0; i < 4; i++) {
@@ -95,8 +98,8 @@ class DisplayMono64X48 : public DisplayMono {
         }
 
         void printText(const char *text, uint8_t line) {
-            uint8_t dispX = 0; //small display, use all we have
-            dispX += (mScreenSaver==1) ? (mExtra % 4) : 0;
+            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange/2 + mPixelshift;
+
             setFont(line);
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
