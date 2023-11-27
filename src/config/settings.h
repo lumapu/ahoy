@@ -716,7 +716,7 @@ class settings {
                 getVal<double>(obj, F("max_power"), &mCfg.plugin.zexport.max_power);
 
                 getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
-                getVal<float>(obj, F("query_device"), &mCfg.plugin.zexport.query_device);
+                getVal<uint8_t>(obj, F("query_device"), &mCfg.plugin.zexport.query_device);
 
                 getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
             }
