@@ -98,6 +98,9 @@
     #ifndef DEF_CMT_IRQ
         #define DEF_CMT_IRQ             34
     #endif
+    #ifndef DEF_MOTION_SENSOR_PIN
+        #define DEF_MOTION_SENSOR_PIN   DEF_PIN_OFF
+    #endif
 #else
     #ifndef DEF_NRF_CS_PIN
         #define DEF_NRF_CS_PIN          15
@@ -118,6 +121,9 @@
     #endif
     #ifndef DEF_NRF_SCLK_PIN
         #define DEF_NRF_SCLK_PIN        14
+    #endif
+    #ifndef DEF_MOTION_SENSOR_PIN
+        #define DEF_MOTION_SENSOR_PIN   A0
     #endif
 #endif
 #ifndef DEF_LED0

@@ -18,15 +18,48 @@
 #endif
 #include "../../utils/helper.h"
 #include "Display_data.h"
+#include "../../utils/dbg.h"
 
 class DisplayMono {
    public:
       DisplayMono() {};
 
       virtual void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) = 0;
-      virtual void config(bool enPowerSave, bool enScreenSaver, uint8_t lum) = 0;
-      virtual void loop(uint8_t lum) = 0;
+      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) = 0;
       virtual void disp(void) = 0;
+
+      // Common loop function, manages display on/off functions for powersave and screensaver with motionsensor
+      // can be overridden by subclasses
+      virtual void loop(uint8_t lum, bool motion) {
+
+         bool dispConditions = (!mEnPowerSave || (mDisplayData->nrProducing > 0)) &&
+                               ((mScreenSaver != 2) || motion); // screensaver 2 .. motionsensor
+
+         if (mDisplayActive) {
+            if (!dispConditions) {
+                if ((millis() - mStarttime) > DISP_DEFAULT_TIMEOUT * 1000ul) { // switch display off after timeout
+                    mDisplayActive = false;
+                    mDisplay->setPowerSave(true);
+                    DBGPRINTLN("**** Display off ****");
+                }
+            }
+            else
+                mStarttime = millis();   // keep display on
+         }
+         else {
+            if (dispConditions) {
+                mDisplayActive = true;  // switch display on
+                mStarttime = millis();
+                mDisplay->setPowerSave(false);
+                DBGPRINTLN("**** Display on ****");
+            }
+         }
+
+         if(mLuminance != lum) {
+            mLuminance = lum;
+            mDisplay->setContrast(mLuminance);
+         }
+      }
 
    protected:
       U8G2* mDisplay;
@@ -36,17 +69,18 @@ class DisplayMono {
       uint16_t mDispWidth;
       uint16_t mDispHeight;
 
-      bool mEnPowerSave, mEnScreenSaver;
+      bool mEnPowerSave;
+      uint8_t mScreenSaver = 1;  // 0 .. off; 1 .. pixelShift; 2 .. motionsensor
       uint8_t mLuminance;
 
       uint8_t mLoopCnt;
       uint8_t mLineXOffsets[5] = {};
       uint8_t mLineYOffsets[5] = {};
 
-      uint16_t mDispY;
-
       uint8_t mExtra;
-      uint16_t mTimeout;
+      int8_t  mPixelshift=0;
+      uint32_t mStarttime = millis();
+      bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
 
       // Common initialization function to be called by subclasses
@@ -55,10 +89,16 @@ class DisplayMono {
          mType = type;
          mDisplayData = displayData;
          mDisplay->begin();
+         mDisplay->setPowerSave(false);  // always start with display on
          mDisplay->setContrast(mLuminance);
          mDisplay->clearBuffer();
          mDispWidth = mDisplay->getDisplayWidth();
          mDispHeight = mDisplay->getDisplayHeight();
+      }
+
+      void calcPixelShift(int range) {
+         int8_t mod = (millis() / 10000) % ((range >> 1) << 2);
+         mPixelshift = mScreenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
       }
 };
 
@@ -109,7 +149,6 @@ const uint8_t u8g2_font_5x8_symbols_ahoy[1052] U8G2_FONT_SECTION("u8g2_font_5x8_
   "\206\20\210<\254\342\20]\302(L\246C\30E\0\207\15wD\334X\25\267\341\20\15\21\0\210\16w"
   "<\214\203RQ\25I\212\324a\20\211\15f\304\213)\213\244,\222\222\245\0\0\0\0";
 
-
 const uint8_t u8g2_font_ncenB08_symbols8_ahoy[173] U8G2_FONT_SECTION("u8g2_font_ncenB08_symbols8_ahoy") =
   "\13\0\3\2\4\4\1\2\5\10\11\0\0\10\0\10\0\0\0\0\0\0\224A\14\207\305\70H\321\222H"
   "k\334\6B\20\230\305\32\262\60\211\244\266\60T\243\34\326\0C\20\210\305S\243\60\312\302(\214\302("
@@ -118,12 +157,11 @@ const uint8_t u8g2_font_ncenB08_symbols8_ahoy[173] U8G2_FONT_SECTION("u8g2_font_
   "Q\4H\14w\307\215Uq\33\16\321\20\1I\21\227\305\311\222aP\245H\221\244H\212\324a\20J"
   "\5\0\275\0K\5\0\315\0\0\0\0";
 
-const uint8_t u8g2_font_ncenB10_symbols10_ahoy[207] U8G2_FONT_SECTION("u8g2_font_ncenB10_symbols10_ahoy") =
-  "\13\0\3\2\4\4\2\2\5\13\13\0\0\13\0\13\0\0\0\0\0\0\266A\15\267\212q\220\42\251\322"
+const uint8_t u8g2_font_ncenB10_symbols10_ahoy[220] U8G2_FONT_SECTION("u8g2_font_ncenB10_symbols10_ahoy") =
+  "\13\0\3\2\4\4\2\2\5\13\13\0\0\13\0\13\0\0\0\0\0\0\303A\15\267\212q\220\42\251\322"
   "\266\306\275\1B\20\230\236\65da\22Ima\250F\71\254\1C\23\272\272\251\3Q\32\366Q\212\243"
   "\70\212\243\70\311\221\0D\20\271\252\361\242F:\242#: {\36\16\1E\22\267\212\361\222\14I\242"
   "\14\332\232\216[RJ\232\12F\25\250\233\221\14I\61I\206$\252%J\250Fa\224%J\71G\30"
   "\273\312W\316r`T\262DJ\303\64L#%K\304\35\310\342,\3H\27\272\272\217\344P\16\351\210"
   "\16\354\300<\244C\70,\303 \16!\0I\24\271\252\241\34\336\1-\223\64-\323\62-\323\62\35x"
-  "\10J\5\0\232\1K\5\0\232\1\0\0\0";
-
+  "\10J\22\210\232\61Hi\64Di\64DI\226$KeiK\5\0\232\1\0\0\0";

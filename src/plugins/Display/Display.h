@@ -53,9 +53,20 @@ class Display {
             default: mMono = NULL; break;
         }
         if(mMono) {
-            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->pxShift, mCfg->contrast);
+            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, &mDisplayData);
         }
+
+        // setup PIR pin for motion sensor
+#ifdef ESP32
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF))
+            pinMode(mCfg->pirPin, INPUT);
+#endif
+#ifdef ESP8266
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF) && (mCfg->pirPin != A0))
+            pinMode(mCfg->pirPin, INPUT);
+#endif
+
     }
 
     void payloadEventListener(uint8_t cmd) {
@@ -64,19 +75,19 @@ class Display {
 
     void tickerSecond() {
         if (mMono != NULL)
-            mMono->loop(mCfg->contrast);
+            mMono->loop(mCfg->contrast, motionSensorActive());
 
-        if (mNewPayload || (((++mLoopCnt) % 10) == 0)) {
+        if (mNewPayload || (((++mLoopCnt) % 5) == 0)) {
+            DataScreen();
             mNewPayload = false;
             mLoopCnt = 0;
-            DataScreen();
         }
         #if defined(ESP32)
             mEpaper.tickerSecond();
         #endif
     }
 
-   private:
+    private:
     void DataScreen() {
         if (mCfg->type == 0)
             return;
@@ -87,6 +98,7 @@ class Display {
 
         uint8_t nrprod = 0;
         uint8_t nrsleep = 0;
+        int8_t  minQAllInv = 4;
 
         Inverter<> *iv;
         record_t<> *rec;
@@ -96,6 +108,15 @@ class Display {
             iv = mSys->getInverterByPos(i);
             if (iv == NULL)
                 continue;
+
+            int8_t maxQInv = -6;
+            for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
+                int8_t q = iv->txRfQuality[ch];
+                if (q > maxQInv)
+                    maxQInv = q;
+            }
+            if (maxQInv < minQAllInv)
+                minQAllInv = maxQInv;
 
             rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
@@ -123,7 +144,7 @@ class Display {
         mDisplayData.RadioSymbol = mHmRadio->isChipConnected();
         mDisplayData.WifiSymbol = (WiFi.status() == WL_CONNECTED);
         mDisplayData.MQTTSymbol = mApp->getMqttIsConnected();
-        mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? 0 : SCHAR_MIN;  // Workaround as NRF24 has no RSSI. Could be approximated by transmisson error heuristic in the future
+        mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? ivQuality2RadioRSSI(minQAllInv) : SCHAR_MIN; // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
         mDisplayData.WifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
         mDisplayData.ipAddress = WiFi.localIP();
         time_t utc= mApp->getTimestamp();
@@ -146,6 +167,41 @@ class Display {
             mRefreshCycle = 0;
         }
 #endif
+    }
+
+    bool motionSensorActive() {
+        if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF)) {
+#if defined(ESP8266)
+            if (mCfg->pirPin == A0)
+                return((analogRead(A0) >= 512));
+            else
+                return(digitalRead(mCfg->pirPin));
+#elif defined(ESP32)
+            return(digitalRead(mCfg->pirPin));
+#endif
+        }
+        else
+            return(false);
+    }
+
+    // approximate RSSI in dB by invQuality levels from heuristic function (very unscientific but better than nothing :-) )
+    int8_t ivQuality2RadioRSSI(int8_t invQuality) {
+        int8_t pseudoRSSIdB;
+        switch(invQuality) {
+            case  4: pseudoRSSIdB = -55; break;
+            case  3:
+            case  2:
+            case  1: pseudoRSSIdB = -65; break;
+            case  0:
+            case -1:
+            case -2: pseudoRSSIdB = -75; break;
+            case -3:
+            case -4:
+            case -5: pseudoRSSIdB = -85; break;
+            case -6:
+            default:  pseudoRSSIdB = -95; break;
+        }
+        return (pseudoRSSIdB);
     }
 
     // private member variables

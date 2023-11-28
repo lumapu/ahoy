@@ -164,7 +164,7 @@ typedef struct {
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
-    bool pxShift;
+    uint8_t screenSaver;
     uint8_t rot;
     //uint16_t wakeUp;
     //uint16_t sleepAt;
@@ -175,6 +175,7 @@ typedef struct {
     uint8_t disp_reset;
     uint8_t disp_busy;
     uint8_t disp_dc;
+    uint8_t pirPin;
 } display_t;
 
 typedef struct {
@@ -458,7 +459,7 @@ class settings {
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
-            mCfg.plugin.display.pxShift = true;
+            mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
             mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
@@ -466,6 +467,7 @@ class settings {
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
+            mCfg.plugin.display.pirPin     = DEF_MOTION_SENSOR_PIN;
         }
 
         void loadAddedDefaults() {
@@ -672,7 +674,7 @@ class settings {
                 JsonObject disp = obj.createNestedObject("disp");
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
-                disp[F("pxShift")] = (bool)mCfg.plugin.display.pxShift;
+                disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
@@ -683,11 +685,12 @@ class settings {
                 disp[F("reset")] = mCfg.plugin.display.disp_reset;
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
+                disp[F("pirPin")] = mCfg.plugin.display.pirPin;
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
-                getVal<bool>(disp, F("pxShift"), &mCfg.plugin.display.pxShift);
+                getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
@@ -698,6 +701,7 @@ class settings {
                 getVal<uint8_t>(disp, F("reset"), &mCfg.plugin.display.disp_reset);
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
+                getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
             }
         }
 
