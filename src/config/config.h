@@ -41,11 +41,21 @@
 #if defined(ETHERNET)
     #define ETH_SPI_HOST            SPI2_HOST
     #define ETH_SPI_CLOCK_MHZ       25
-    #define ETH_INT_GPIO            4
-    #define ETH_MISO_GPIO           12
-    #define ETH_MOSI_GPIO           13
-    #define ETH_SCK_GPIO            14
-    #define ETH_CS_PIN              15
+    #ifndef DEF_ETH_IRQ_PIN
+        #define DEF_ETH_IRQ_PIN     4
+    #endif
+    #ifndef DEF_ETH_MISO_PIN
+        #define DEF_ETH_MISO_PIN    12
+    #endif
+    #ifndef DEF_ETH_MOSI_PIN
+        #define DEF_ETH_MOSI_PIN    13
+    #endif
+    #ifndef DEF_ETH_SCK_PIN
+        #define DEF_ETH_SCK_PIN     14
+    #endif
+    #ifndef DEF_ETH_CS_PIN
+        #define DEF_ETH_CS_PIN      15
+    #endif
 #else /* defined(ETHERNET) */
 // time in seconds how long the station info (ssid + pwd) will be tried
 #define WIFI_TRY_CONNECT_TIME   30

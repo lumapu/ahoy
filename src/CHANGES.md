@@ -3,6 +3,7 @@
 ## 0.8.13 - 2023-11-28
 * merge PR #1239 symbolic layout for OLED 128x64 + motion senser functionality
 * fix MqTT IP addr for ETH connections PR #1240
+* added ethernet build for fusion board, not tested so far
 
 ## 0.8.12 - 2023-11-20
 * added button `copy to clipboard` to `/serial`
