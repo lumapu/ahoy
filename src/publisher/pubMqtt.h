@@ -245,7 +245,11 @@ class PubMqtt {
 
             publish(subtopics[MQTT_VERSION], mVersion, true);
             publish(subtopics[MQTT_DEVICE], mDevName, true);
+            #if defined(ETHERNET)
+            publish(subtopics[MQTT_IP_ADDR], ETH.localIP().toString().c_str(), true);
+            #else
             publish(subtopics[MQTT_IP_ADDR], WiFi.localIP().toString().c_str(), true);
+            #endif
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
