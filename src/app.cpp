@@ -59,7 +59,7 @@ void app::setup() {
         #if defined(AP_ONLY)
             mInnerLoopCb = std::bind(&app::loopStandard, this);
         #else
-            mInnerLoopCb = std::bind(&app::loopWifi, this);
+            mInnerLoopCb = std::bind(&app::loopNetwork, this);
         #endif
     #endif /* !defined(ETHERNET) */
 
@@ -200,13 +200,10 @@ void app::loopStandard(void) {
         mMqtt.loop();
 }
 
-#if !defined(ETHERNET)
-//-----------------------------------------------------------------------------
-void app::loopWifi(void) {
+void app::loopNetwork(void) {
     ah::Scheduler::loop();
     yield();
 }
-#endif /* !defined(ETHERNET) */
 
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
@@ -231,9 +228,9 @@ void app::onNetwork(bool gotIp) {
         mInnerLoopCb = [this]() { this->loopStandard(); };
     } else {
         #if defined(ETHERNET)
-                mInnerLoopCb = nullptr;
+                mInnerLoopCb = [this]() { this->loopNetwork(); };
         #else /* defined(ETHERNET) */
-                mInnerLoopCb = [this]() { this->loopWifi(); };
+                mInnerLoopCb = [this]() { this->loopNetwork(); };
                 everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
         #endif /* defined(ETHERNET) */
     }

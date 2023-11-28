@@ -367,9 +367,7 @@ class settings {
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
-            #if defined(ETHERNET)
-            memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #else /* defined(ETHERNET) */
+            #if !defined(ETHERNET)
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
             else {

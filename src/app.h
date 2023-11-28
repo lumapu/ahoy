@@ -65,9 +65,7 @@ class app : public IApp, public ah::Scheduler {
         void setup(void);
         void loop(void);
         void loopStandard(void);
-#if !defined(ETHERNET)
-        void loopWifi(void);
-#endif /* !defined(ETHERNET) */
+        void loopNetwork(void);
         void onNetwork(bool gotIp);
         void regularTickers(void);
 
