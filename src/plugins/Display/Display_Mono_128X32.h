@@ -9,17 +9,12 @@
 class DisplayMono128X32 : public DisplayMono {
     public:
         DisplayMono128X32() : DisplayMono() {
-            mEnPowerSave = true;
-            mEnScreenSaver = true;
-            mLuminance = 60;
             mExtra = 0;
-            mDispY = 0;
-            mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
         }
 
-        void config(bool enPowerSave, bool enScreenSaver, uint8_t lum) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
             mEnPowerSave = enPowerSave;
-            mEnScreenSaver = enScreenSaver;
+            mScreenSaver = screenSaver;
             mLuminance = lum;
         }
 
@@ -33,28 +28,13 @@ class DisplayMono128X32 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void loop(uint8_t lum) {
-            if (mEnPowerSave) {
-                if (mTimeout != 0)
-                    mTimeout--;
-            }
-
-            if(mLuminance != lum) {
-                mLuminance = lum;
-                mDisplay->setContrast(mLuminance);
-            }
-        }
-
         void disp(void) {
             mDisplay->clearBuffer();
 
-            // set Contrast of the Display to raise the lifetime
-            if (3 != mType)
-                mDisplay->setContrast(mLuminance);
+            // calculate current pixelshift for pixelshift screensaver
+            calcPixelShift(pixelShiftRange);
 
             if ((mDisplayData->totalPower > 0) && (mDisplayData->nrProducing > 0)) {
-                mTimeout = DISP_DEFAULT_TIMEOUT;
-                mDisplay->setPowerSave(false);
                 if (mDisplayData->totalPower > 999)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%2.2f kW", (mDisplayData->totalPower / 1000));
                 else
@@ -63,9 +43,6 @@ class DisplayMono128X32 : public DisplayMono {
                 printText(mFmtText, 0);
             } else {
                 printText("offline", 0);
-                // check if it's time to enter power saving mode
-                if (mTimeout == 0)
-                    mDisplay->setPowerSave(mEnPowerSave);
             }
 
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", mDisplayData->totalYieldDay);
@@ -85,11 +62,12 @@ class DisplayMono128X32 : public DisplayMono {
 
             mDisplay->sendBuffer();
 
-            mDispY = 0;
             mExtra++;
         }
 
     private:
+        const uint8_t pixelShiftRange = 7;  // number of pixels to shift from left to right (centered -> must be odd!)
+
         void calcLinePositions() {
             uint8_t yOff[] = {0, 0};
             for (uint8_t i = 0; i < 4; i++) {
@@ -131,7 +109,7 @@ class DisplayMono128X32 : public DisplayMono {
         void printText(const char *text, uint8_t line) {
             setFont(line);
 
-            uint8_t dispX = mLineXOffsets[line] + ((mEnScreenSaver) ? (mExtra % 7) : 0);
+            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange / 2 + mPixelshift;
 
             if (isTwoRowLine(line)) {
                 String stringText = String(text);
