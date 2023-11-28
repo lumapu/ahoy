@@ -164,6 +164,7 @@ class Communication : public CommQueue<> {
                                 if(3 == p->ch)
                                     DBGPRINT(F("0"));
                                 DBGPRINT(String(p->ch));
+                                DBGPRINT(F(" "));
                             } else {
                                 DBGPRINT(String(p->rssi));
                                 DBGPRINT(F("dBm | "));
@@ -174,7 +175,7 @@ class Communication : public CommQueue<> {
                                 else
                                     ah::dumpBuf(p->packet, p->len);
                             } else {
-                                DBGPRINT(F("frm "));
+                                DBGPRINT(F("| "));
                                 DBGHEXLN(p->packet[9]);
                             }
 
