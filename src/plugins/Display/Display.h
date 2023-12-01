@@ -34,13 +34,13 @@ class Display {
         mDisplayData.version = app->getVersion();  // version never changes, so only set once
 
         switch (mCfg->type) {
-            case 0: mMono = NULL; break;
-            case 1: // fall-through
-            case 2: mMono = new DisplayMono128X64(); break;
-            case 3: mMono = new DisplayMono84X48(); break;
-            case 4: mMono = new DisplayMono128X32(); break;
-            case 5: mMono = new DisplayMono64X48(); break;
-            case 6: mMono = new DisplayMono128X64(); break;
+            case 0: mMono = NULL; break;                    // None
+            case 1: mMono = new DisplayMono128X64(); break; // SSD1306_128X64 (0.96", 1.54")
+            case 2: mMono = new DisplayMono128X64(); break; // SH1106_128X64 (1.3")
+            case 3: mMono = new DisplayMono84X48(); break;  // PCD8544_84X48 (1.6" - Nokia 5110)
+            case 4: mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
+            case 5: mMono = new DisplayMono64X48(); break;  // SSD1306_64X48 (0.66" - Wemos OLED Shield)
+            case 6: mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
 #if defined(ESP32)
             case 10:
                 mMono = NULL;   // ePaper does not use this
