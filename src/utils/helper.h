@@ -37,11 +37,17 @@ static Timezone gTimezone(CEST, CET);
 } while (0)
 
 namespace ah {
+    enum lang {
+        LANG_GE,
+        LANG_EN,
+        LANG_FR
+    };
     void ip2Arr(uint8_t ip[], const char *ipStr);
     void ip2Char(uint8_t ip[], char *str);
     double round3(double value);
     String getDateTimeStr(time_t t);
     String getDateTimeStrShort(time_t t);
+    String getDateTimeStrShort_i18n(time_t t, enum lang);
     String getDateTimeStrFile(time_t t);
     String getTimeStr(time_t t);
     String getTimeStrMs(time_t t);

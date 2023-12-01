@@ -54,12 +54,12 @@ class DisplayMono84X48 : public DisplayMono {
 
                 printText(mFmtText, l_TotalPower, 0xff);
             } else {
-                printText("offline", l_TotalPower, 0xff);
+                printText("---", l_TotalPower, 0xff);
             }
 
             // print Date and time
             if (0 != mDisplayData->utcTs)
-                printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
+                printText(ah::getDateTimeStrShort_i18n(gTimezone.toLocal(mDisplayData->utcTs), ah::LANG_GE).c_str(), l_Time, 0xff);
 
             // alternatively:
             // print ip address

@@ -61,6 +61,64 @@ namespace ah {
         return String(str);
     }
 
+    #define dt_SHORT_STR_LEN_i18n  3 // the length of short strings
+    static char buffer[dt_SHORT_STR_LEN_i18n + 1];  // must be big enough for longest string and the terminating null
+    const char monthShortNames_ge_P[] PROGMEM = "ErrJanFebMrzAprMaiJunJulAugSepOktNovDez";
+    const char dayShortNames_ge_P[] PROGMEM = "ErrSonMonDi.Mi.Do.Fr.Sam";
+    const char monthShortNames_fr_P[] PROGMEM = "ErrJanFevMarAvrMaiJunJulAouSepOctNovDec";
+    const char dayShortNames_fr_P[] PROGMEM = "ErrDimLunMarMerJeuVenSam";
+
+    char* monthShortStr_i18n(uint8_t month, enum lang language)
+    {
+        const char *monthShortNames_P;
+
+        switch (language) {
+            case LANG_EN:
+                return(monthShortStr(month));
+            case LANG_GE:
+                monthShortNames_P =monthShortNames_ge_P;
+                break;
+            case LANG_FR:
+                monthShortNames_P =monthShortNames_fr_P;
+                break;
+        }
+        for (int i=0; i < dt_SHORT_STR_LEN_i18n; i++)
+            buffer[i] = pgm_read_byte(&(monthShortNames_P[i + month * dt_SHORT_STR_LEN_i18n]));
+        buffer[dt_SHORT_STR_LEN_i18n] = 0;
+        return buffer;
+    }
+
+    char* dayShortStr_i18n(uint8_t day, enum lang language)
+    {
+        const char *dayShortNames_P;
+
+        switch (language) {
+            case LANG_EN:
+                return(dayShortStr(day));
+            case LANG_GE:
+                dayShortNames_P = dayShortNames_ge_P;
+                break;
+            case LANG_FR:
+                dayShortNames_P = dayShortNames_fr_P;
+                break;
+        }
+        for (int i=0; i < dt_SHORT_STR_LEN_i18n; i++)
+            buffer[i] = pgm_read_byte(&(dayShortNames_P[i + day * dt_SHORT_STR_LEN_i18n]));
+        buffer[dt_SHORT_STR_LEN_i18n] = 0;
+        return buffer;
+    }
+
+    String getDateTimeStrShort_i18n(time_t t, enum lang language) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else {
+            sprintf(str, "%3s ", dayShortStr_i18n(dayOfWeek(t), language));
+            sprintf(str+4, "%2d.%3s %02d:%02d", day(t), monthShortStr_i18n(month(t), language), hour(t), minute(t));
+        }
+        return String(str);
+    }
+
     String getTimeStr(time_t t) {
         char str[9];
         if(0 == t)
