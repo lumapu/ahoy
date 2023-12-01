@@ -6,8 +6,8 @@
 struct DisplayData {
         const char *version=nullptr;
         float totalPower=0.0f;          // indicate current power (W)
-        float totalYieldDay=0.0f;       // indicate day yield (W)
-        float totalYieldTotal=0.0f;     // indicate total yield (W)
+        float totalYieldDay=0.0f;       // indicate day yield (Wh)
+        float totalYieldTotal=0.0f;     // indicate total yield (kWh)
         uint32_t utcTs=0;               // indicate absolute timestamp (utc unix time). 0 = time is not synchonized
         uint8_t nrProducing=0;          // indicate number of producing inverters
         uint8_t nrSleeping=0;           // indicate number of sleeping inverters
