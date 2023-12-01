@@ -15,16 +15,17 @@
 #include "Display_ePaper.h"
 #include "Display_data.h"
 
-template <class HMSYSTEM, class HMRADIO>
+template <class HMSYSTEM, class RADIO>
 class Display {
    public:
     Display() {
         mMono = NULL;
     }
 
-    void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, HMRADIO *radio, uint32_t *utcTs) {
+    void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, RADIO *hmradio, RADIO *hmsradio, uint32_t *utcTs) {
         mApp = app;
-        mHmRadio = radio;
+        mHmRadio  = hmradio;
+        mHmsRadio = hmsradio;
         mCfg = cfg;
         mSys = sys;
         mUtcTs = utcTs;
@@ -141,7 +142,16 @@ class Display {
         mDisplayData.totalPower = (allOff) ? 0.0 : totalPower; // if all inverters are off, total power can't be greater than 0
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
-        mDisplayData.RadioSymbol = mHmRadio->isChipConnected();
+        bool nrf_en = mApp->getNrfEnabled();
+        bool nrf_ok = nrf_en && mHmRadio->isChipConnected();
+        #if defined(ESP32)
+        bool cmt_en = mApp->getCmtEnabled();
+        bool cmt_ok = cmt_en && mHmsRadio->isChipConnected();
+        #else
+        bool cmt_en = false;
+        bool cmt_ok = false;
+        #endif
+        mDisplayData.RadioSymbol = (nrf_ok && !cmt_en) || (cmt_ok && !nrf_en) || (nrf_ok && cmt_ok);
         mDisplayData.WifiSymbol = (WiFi.status() == WL_CONNECTED);
         mDisplayData.MQTTSymbol = mApp->getMqttIsConnected();
         mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? ivQuality2RadioRSSI(minQAllInv) : SCHAR_MIN; // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
@@ -212,7 +222,8 @@ class Display {
     uint32_t *mUtcTs;
     display_t *mCfg;
     HMSYSTEM *mSys;
-    HMRADIO *mHmRadio;
+    RADIO *mHmRadio;
+    RADIO *mHmsRadio;
     uint16_t mRefreshCycle;
 
 #if defined(ESP32)
