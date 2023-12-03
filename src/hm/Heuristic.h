@@ -153,7 +153,7 @@ class Heuristic {
             DBGPRINT(F(", f: "));
             DBGPRINT(String(iv->radioStatistics.rxFail));
             DBGPRINT(F(", n: "));
-            DBGPRINT(String(iv->radioStatistics.rxFailNoAnser));
+            DBGPRINT(String(iv->radioStatistics.rxFailNoAnswer));
             DBGPRINT(F(" | p: "));                                  // better debugging for helpers...
             if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 DBGPRINTLN(String(iv->config->powerLevel-10));

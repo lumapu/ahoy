@@ -222,7 +222,7 @@ class PubMqttIvData {
                 mIv->radioStatistics.txCnt,
                 mIv->radioStatistics.rxSuccess,
                 mIv->radioStatistics.rxFail,
-                mIv->radioStatistics.rxFailNoAnser,
+                mIv->radioStatistics.rxFailNoAnswer,
                 mIv->radioStatistics.retransmits,
                 mIv->radioStatistics.ivLoss,
                 mIv->radioStatistics.ivSent,

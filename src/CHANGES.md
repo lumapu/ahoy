@@ -265,7 +265,7 @@
 
 ## 0.8.39 - 2024-01-01
 * fix MqTT dis_night_comm in the morning #1309 #1286
-* seperated offset for sunrise and sunset #1308
+* separated offset for sunrise and sunset #1308
 * powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
@@ -478,7 +478,7 @@
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`
-* moved radio statistics into the inverter - each inverter has now seperate statistics which can be accessed by click on the footer in `/live`
+* moved radio statistics into the inverter - each inverter has now separate statistics which can be accessed by click on the footer in `/live`
 * fix compiler warnings #1191
 * fix ePaper logo during night time #1151
 

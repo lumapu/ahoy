@@ -426,7 +426,7 @@ class RestApi {
             obj[F("name")]           = String(iv->config->name);
             obj[F("rx_success")]     = iv->radioStatistics.rxSuccess;
             obj[F("rx_fail")]        = iv->radioStatistics.rxFail;
-            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnser;
+            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnswer;
             obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
             obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
             obj[F("retransmits")]    = iv->radioStatistics.retransmits;

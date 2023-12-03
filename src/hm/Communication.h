@@ -622,7 +622,7 @@ class Communication : public CommQueue<> {
             else if(q->iv->mGotFragment || mCompleteRetry)
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else
-                q->iv->radioStatistics.rxFailNoAnser++; // got nothing
+                q->iv->radioStatistics.rxFailNoAnswer++; // got nothing
             mWaitTime.startTimeMonitor(1); // maybe remove, side effects unknown
 
             bool keep = false;
