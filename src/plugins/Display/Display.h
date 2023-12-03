@@ -93,9 +93,9 @@ class Display {
         if (mCfg->type == 0)
             return;
 
-        float totalPower = 0;
-        float totalYieldDay = 0;
-        float totalYieldTotal = 0;
+        float totalPower = 0.0;
+        float totalYieldDay = 0.0;
+        float totalYieldTotal = 0.0;
 
         uint8_t nrprod = 0;
         uint8_t nrsleep = 0;
@@ -110,36 +110,38 @@ class Display {
             if (iv == NULL)
                 continue;
 
-            int8_t maxQInv = -6;
-            for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
-                int8_t q = iv->txRfQuality[ch];
-                if (q > maxQInv)
-                    maxQInv = q;
-            }
-            if (maxQInv < minQAllInv)
-                minQAllInv = maxQInv;
-
-            rec = iv->getRecordStruct(RealTimeRunData_Debug);
-
-            if (iv->isProducing())
+            if (iv->isProducing())  // also updates inverter state engine
                 nrprod++;
             else
                 nrsleep++;
 
-            totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+            rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+            if (iv->isAvailable()) {  // consider only radio quality of inverters still communicating
+                int8_t maxQInv = -6;
+                for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
+                    int8_t q = iv->txRfQuality[ch];
+                    if (q > maxQInv)
+                        maxQInv = q;
+                }
+                if (maxQInv < minQAllInv)
+                    minQAllInv = maxQInv;
+
+                totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec); // add only FLD_PAC from inverters still communicating
+                allOff = false;
+            }
+
             totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
             totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
-
-            if(allOff) {
-                if(iv->status != InverterStatus::OFF)
-                    allOff = false;
-            }
         }
+
+        if (allOff)
+             minQAllInv = -6;
 
         // prepare display data
         mDisplayData.nrProducing = nrprod;
         mDisplayData.nrSleeping = nrsleep;
-        mDisplayData.totalPower = (allOff) ? 0.0 : totalPower; // if all inverters are off, total power can't be greater than 0
+        mDisplayData.totalPower = totalPower;
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
         bool nrf_en = mApp->getNrfEnabled();
@@ -154,7 +156,7 @@ class Display {
         mDisplayData.RadioSymbol = (nrf_ok && !cmt_en) || (cmt_ok && !nrf_en) || (nrf_ok && cmt_ok);
         mDisplayData.WifiSymbol = (WiFi.status() == WL_CONNECTED);
         mDisplayData.MQTTSymbol = mApp->getMqttIsConnected();
-        mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? ivQuality2RadioRSSI(minQAllInv) : SCHAR_MIN; // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
+        mDisplayData.RadioRSSI = ivQuality2RadioRSSI(minQAllInv); // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
         mDisplayData.WifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
         mDisplayData.ipAddress = WiFi.localIP();
         time_t utc= mApp->getTimestamp();
@@ -168,7 +170,7 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-            mEpaper.loop(((allOff) ? 0.0 : totalPower), totalYieldDay, totalYieldTotal, nrprod);
+            mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
 
