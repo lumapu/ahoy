@@ -11,7 +11,6 @@
 #endif
 #include "ahoyeth.h"
 
-
 //-----------------------------------------------------------------------------
 ahoyeth::ahoyeth()
 {
@@ -41,8 +40,11 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
         if(!ETH.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
+    #else
     ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
-
+    #endif
 }
 
 
@@ -155,7 +157,11 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
     case ARDUINO_EVENT_ETH_GOT_IP:
         if (!ESP32_W5500_eth_connected)
         {
+            #if defined (CONFIG_IDF_TARGET_ESP32S3)
+            AWS_LOG3(F("ETH MAC: "), mEthSpi.macAddress(), F(", IPv4: "), ETH.localIP());
+            #else
             AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
+            #endif
 
             if (ETH.fullDuplex())
             {

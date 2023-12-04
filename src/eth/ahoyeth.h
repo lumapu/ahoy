@@ -13,6 +13,7 @@
 #include <AsyncUDP.h>
 #include <DNSServer.h>
 
+#include "ethSpi.h"
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include "../config/settings.h"
@@ -45,6 +46,9 @@ class ahoyeth {
         void onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info);
 
     private:
+        #if defined(CONFIG_IDF_TARGET_ESP32S3)
+        EthSpi mEthSpi;
+        #endif
         settings_t *mConfig;
 
         uint32_t *mUtcTimestamp;
