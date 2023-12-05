@@ -54,7 +54,7 @@ class Display {
             default: mMono = NULL; break;
         }
         if(mMono) {
-            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast);
+            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast, mCfg->language);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, &mDisplayData);
         }
 

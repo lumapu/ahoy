@@ -287,6 +287,7 @@
                             <div class="col-12 col-sm-3 my-2">Luminance</div>
                             <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
                         </div>
+                        <div id="dispLanguage"></div>
                         <p class="des">Pinout</p>
                         <div id="dispPins"></div>
                         <div id="pirPin"></div>
@@ -1005,6 +1006,16 @@
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "Screensaver (OLED only)"),
                         ml("div", {class: "col-12 col-sm-9"}, screensaver_sel)
+                    ])
+                );
+
+                var opts2 = [[0, "english"], [1, "german"], [2, "french"]];
+                var language_sel = sel("disp_language", opts2, obj["disp_language"]);
+                language_sel.id = 'disp_language';
+                document.getElementById("dispLanguage").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Language"),
+                        ml("div", {class: "col-12 col-sm-9"}, language_sel)
                     ])
                 );
 

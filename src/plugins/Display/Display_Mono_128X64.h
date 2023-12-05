@@ -12,10 +12,11 @@ class DisplayMono128X64 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t lang) {
             mEnPowerSave = enPowerSave;
             mScreenSaver = screenSaver;
             mLuminance = lum;
+            mLanguage = lang;
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {
@@ -75,7 +76,7 @@ class DisplayMono128X64 : public DisplayMono {
 
             // print Date and time
             if (0 != mDisplayData->utcTs)
-                printText(ah::getDateTimeStrShort_i18n(gTimezone.toLocal(mDisplayData->utcTs), ah::LANG_GE).c_str(), l_Time, 0xff);
+                printText(ah::getDateTimeStrShort_i18n(gTimezone.toLocal(mDisplayData->utcTs), (ah::lang) mLanguage).c_str(), l_Time, 0xff);
 
             // dynamic status bar, alternatively:
             // print ip address

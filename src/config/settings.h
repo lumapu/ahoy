@@ -167,6 +167,7 @@ typedef struct {
     //uint16_t wakeUp;
     //uint16_t sleepAt;
     uint8_t contrast;
+    uint8_t language;
     uint8_t disp_data;
     uint8_t disp_clk;
     uint8_t disp_cs;
@@ -455,8 +456,9 @@ class settings {
             memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
-            mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
+            mCfg.plugin.display.contrast = 60;
+            mCfg.plugin.display.language = 0;  // 0 .. EN, 1 .. GE, 2 .. FR
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
             mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
@@ -675,10 +677,11 @@ class settings {
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
                 disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
+                disp[F("contrast")] = mCfg.plugin.display.contrast;
+                disp[F("dispLanguage")] = mCfg.plugin.display.language;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
-                disp[F("contrast")] = mCfg.plugin.display.contrast;
                 disp[F("data")] = mCfg.plugin.display.disp_data;
                 disp[F("clock")] = mCfg.plugin.display.disp_clk;
                 disp[F("cs")] = mCfg.plugin.display.disp_cs;
@@ -691,10 +694,11 @@ class settings {
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
                 getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
+                getVal<uint8_t>(disp, F("contrast"), &mCfg.plugin.display.contrast);
+                getVal<uint8_t>(disp, F("dispLanguage"), &mCfg.plugin.display.language);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
-                getVal<uint8_t>(disp, F("contrast"), &mCfg.plugin.display.contrast);
                 getVal<uint8_t>(disp, F("data"), &mCfg.plugin.display.disp_data);
                 getVal<uint8_t>(disp, F("clock"), &mCfg.plugin.display.disp_clk);
                 getVal<uint8_t>(disp, F("cs"), &mCfg.plugin.display.disp_cs);

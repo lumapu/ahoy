@@ -38,9 +38,9 @@ static Timezone gTimezone(CEST, CET);
 
 namespace ah {
     enum lang {
-        LANG_GE,
-        LANG_EN,
-        LANG_FR
+        LANG_EN=0,
+        LANG_GE=1,
+        LANG_FR=2
     };
     void ip2Arr(uint8_t ip[], const char *ipStr);
     void ip2Char(uint8_t ip[], char *str);

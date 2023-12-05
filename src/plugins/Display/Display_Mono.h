@@ -25,7 +25,7 @@ class DisplayMono {
       DisplayMono() {};
 
       virtual void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) = 0;
-      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) = 0;
+      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t lang) = 0;
       virtual void disp(void) = 0;
 
       // Common loop function, manages display on/off functions for powersave and screensaver with motionsensor
@@ -72,6 +72,7 @@ class DisplayMono {
       bool mEnPowerSave;
       uint8_t mScreenSaver = 1;  // 0 .. off; 1 .. pixelShift; 2 .. motionsensor
       uint8_t mLuminance;
+      uint8_t mLanguage;
 
       uint8_t mLoopCnt;
       uint8_t mLineXOffsets[5] = {};
