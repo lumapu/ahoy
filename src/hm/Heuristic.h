@@ -68,6 +68,8 @@ class Heuristic {
                 updateQuality(iv, -2); // BAD
                 mTestEn = true;
             }
+            else
+                mTestEn = false;
         }
 
         void printStatus(Inverter<> *iv) {
