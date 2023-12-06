@@ -9,10 +9,9 @@
 #include "cmt2300a.h"
 #include "../hm/radio.h"
 
-template<class SPI, uint32_t DTU_SN = 0x81001765>
+template<uint32_t DTU_SN = 0x81001765>
 class CmtRadio : public Radio {
-    typedef SPI SpiType;
-    typedef Cmt2300a<SpiType> CmtType;
+    typedef Cmt2300a CmtType;
     public:
         CmtRadio() {
             mDtuSn    = DTU_SN;
@@ -25,13 +24,6 @@ class CmtRadio : public Radio {
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
-        }
-
-        void setup(bool *serialDebug, bool *privacyMode, bool genDtuSn = true) {
-            mCmt.setup();
-            reset(genDtuSn);
-            mPrivacyMode = privacyMode;
-            mSerialDebug = serialDebug;
         }
 
         void loop() {

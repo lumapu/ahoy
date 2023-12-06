@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "spiPatcher.h"
+#include "../utils/SpiPatcher.h"
 
 #include <esp_rom_gpio.h>
 #include <RF24_hal.h>
@@ -18,12 +18,14 @@
 
 class nrfHal: public RF24_hal, public SpiPatcherHandle {
     public:
-        nrfHal() : mSpiPatcher(SPI2_HOST) {}
+        nrfHal() {
+            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
+        }
 
         void patch() override {
-            esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[host_device].spid_out, false, false);
-            esp_rom_gpio_connect_in_signal(mPinMiso, spi_periph_signal[host_device].spiq_in, false);
-            esp_rom_gpio_connect_out_signal(mPinClk, spi_periph_signal[host_device].spiclk_out, false, false);
+            esp_rom_gpio_connect_out_signal(mPinMosi, spi_periph_signal[mHostDevice].spid_out, false, false);
+            esp_rom_gpio_connect_in_signal(mPinMiso, spi_periph_signal[mHostDevice].spiq_in, false);
+            esp_rom_gpio_connect_out_signal(mPinClk, spi_periph_signal[mHostDevice].spiclk_out, false, false);
         }
 
         void unpatch() override {
@@ -32,40 +34,15 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
             esp_rom_gpio_connect_out_signal(mPinClk, SIG_GPIO_OUT_IDX, false, false);
         }
 
-        void init(int8_t mosi, int8_t miso, int8_t sclk, int8_t cs, int8_t en, int32_t speed = 0) {
-            DHEX(mosi);
-            DBGPRINT(" ");
-            DHEX(miso);
-            DBGPRINT(" ");
-            DHEX(sclk);
-            DBGPRINT(" ");
-            DHEX(cs);
-            DBGPRINT(" ");
-            DHEX(en);
-            DBGPRINTLN(" ");
-            delay(300);
-            mPinMosi = static_cast<>(mosi);
-            DBGPRINTLN("21");
-            delay(300);
+        void init(int8_t mosi, int8_t miso, int8_t sclk, int8_t cs, int8_t en, int32_t speed = NRF_DEFAULT_SPI_SPEED) {
+            mPinMosi = static_cast<gpio_num_t>(mosi);
             mPinMiso = static_cast<gpio_num_t>(miso);
-            DBGPRINTLN("22");
-            delay(300);
             mPinClk = static_cast<gpio_num_t>(sclk);
-            DBGPRINTLN("23");
-            delay(300);
             mPinCs = static_cast<gpio_num_t>(cs);
-            DBGPRINTLN("24");
-            delay(300);
             mPinEn = static_cast<gpio_num_t>(en);
-            DBGPRINTLN("25");
-            delay(300);
             mSpiSpeed = speed;
 
-            DBGPRINTLN("3");
-            delay(300);
-            host_device = mSpiPatcher.init();
-            DBGPRINTLN("4");
-            delay(300);
+            mHostDevice = mSpiPatcher->getDevice();
 
             gpio_reset_pin(mPinMosi);
             gpio_set_direction(mPinMosi, GPIO_MODE_OUTPUT);
@@ -95,7 +72,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
                 .pre_cb = nullptr,
                 .post_cb = nullptr
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(host_device, &devcfg, &spi));
+            ESP_ERROR_CHECK(spi_bus_add_device(mHostDevice, &devcfg, &spi));
 
             gpio_reset_pin(mPinEn);
             gpio_set_direction(mPinEn, GPIO_MODE_OUTPUT);
@@ -218,11 +195,11 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
 
     private:
         inline void request_spi() {
-            mSpiPatcher.request(this);
+            mSpiPatcher->request(this);
         }
 
         inline void release_spi() {
-            mSpiPatcher.release();
+            mSpiPatcher->release();
         }
 
     private:
@@ -233,9 +210,9 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
         gpio_num_t mPinEn = GPIO_NUM_NC;
         int32_t mSpiSpeed = NRF_DEFAULT_SPI_SPEED;
 
-        spi_host_device_t host_device;
+        spi_host_device_t mHostDevice;
         spi_device_handle_t spi;
-        SpiPatcher mSpiPatcher;
+        SpiPatcher *mSpiPatcher;
 };
 
 #endif /*__NRF_HAL_H__*/

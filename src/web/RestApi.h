@@ -47,7 +47,7 @@ class RestApi {
             mSys      = sys;
             mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
             #if defined(ESP32)
-            mRadioCmt = (CmtRadio<esp32_3wSpi>*)mApp->getRadioObj(false);
+            mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
@@ -771,7 +771,7 @@ class RestApi {
         HMSYSTEM *mSys;
         HmRadio<> *mRadioNrf;
         #if defined(ESP32)
-        CmtRadio<esp32_3wSpi> *mRadioCmt;
+        CmtRadio<> *mRadioCmt;
         #endif
         AsyncWebServer *mSrv;
         settings_t *mConfig;

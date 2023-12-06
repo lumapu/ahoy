@@ -6,7 +6,7 @@
 #ifndef __CMT2300A_H__
 #define __CMT2300A_H__
 
-#include "esp32_3wSpi.h"
+#include "cmtHal.h"
 
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
@@ -209,19 +209,12 @@ static uint8_t cmtConfig[0x60] PROGMEM {
 
 enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
 
-template<class SPI>
 class Cmt2300a {
-    typedef SPI SpiType;
     public:
         Cmt2300a() {}
 
         void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb) {
-            mSpi.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
-            init();
-        }
-
-        void setup() {
-            mSpi.setup();
+            mSpi.init(pinSdio, pinSclk, pinCsb, pinFcsb);
             init();
         }
 
@@ -483,7 +476,7 @@ class Cmt2300a {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
-        SpiType mSpi;
+        cmtHal mSpi;
         uint8_t mCnt;
         bool mTxPending;
         bool mInRxMode;

@@ -40,7 +40,6 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 #ifdef ESP32
-typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 #endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
@@ -322,7 +321,7 @@ class app : public IApp, public ah::Scheduler {
         //Improv mImprov;
         #endif
         #ifdef ESP32
-        CmtRadioType mCmtRadio;
+        CmtRadio<> mCmtRadio;
         #endif
 
         char mVersion[12];
