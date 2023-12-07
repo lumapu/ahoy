@@ -547,7 +547,7 @@ class RestApi {
 
         void getRadioCmtInfo(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->cmt.enabled;
-            obj[F("isconnected")] = mRadioCmt->isConnected();
+            obj[F("isconnected")] = mRadioCmt->isChipConnected();
             obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
         }
         #endif

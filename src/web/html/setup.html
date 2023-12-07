@@ -964,7 +964,13 @@
                     );
                 }
                 // keep display types grouped
-                var opts = [[0, "None"], [2, "SH1106 1.3\" 128X64"], [5, "SSD1306 0.66\" 64X48 (Wemos OLED Shield)"], [4, "SSD1306 0.91\" 128X32"], [1, "SSD1306 0.96\" 128X64"], [6, "SSD1309 2.42\" 128X64"], [3, "Nokia5110"]];
+                var opts = [[0, "None"],
+                            [2, "SH1106 128x64 (1.3\")"],
+                            [5, "SSD1306 64x48 (0.66\" Wemos OLED Shield)"],
+                            [4, "SSD1306 128x32 (0.91\")"],
+                            [1, "SSD1306 128x64 (0.96\", 1.54\")"],
+                            [6, "SSD1309 128X64 (2.42\")"],
+                            [3, "PCD8544 84X48 (1.6\" Nokia 5110)"]];
                 /*IF_ESP32*/
                 opts.push([10, "ePaper"]);
                 /*ENDIF_ESP32*/

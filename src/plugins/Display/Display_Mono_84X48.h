@@ -34,12 +34,11 @@ class DisplayMono84X48 : public DisplayMono {
 
             // Layout-Test
             /*
-            mDisplayData->nrSleeping = 0;
-            mDisplayData->nrProducing = 1;
-            mDisplayData->totalPower = 12345.67;
-            mDisplayData->totalYieldDay = 12345.67;
-            mDisplayData->totalYieldTotal = 1234;
-            mDisplayData->utcTs += 1000000;
+            mDisplayData->nrSleeping = 10;
+            mDisplayData->nrProducing = 10;
+            mDisplayData->totalPower = 111.91; // W
+            mDisplayData->totalYieldDay = 54321.9; // Wh
+            mDisplayData->totalYieldTotal = 654321.9; // kWh
             mDisplay->drawPixel(0, 0);
             mDisplay->drawPixel(mDispWidth-1, 0);
             mDisplay->drawPixel(0, mDispHeight-1);
@@ -48,12 +47,10 @@ class DisplayMono84X48 : public DisplayMono {
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
-                if (mDisplayData->totalPower > 9999)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2fkW", (mDisplayData->totalPower / 1000)); // forgo spacing between value and SI unit in favor of second position after decimal point
-                else if (mDisplayData->totalPower > 999)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000));
+                if (mDisplayData->totalPower > 999)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kW", (mDisplayData->totalPower / 1000));
                 else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f W", mDisplayData->totalPower);
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
 
                 printText(mFmtText, l_TotalPower, 0xff);
             } else {
@@ -75,21 +72,29 @@ class DisplayMono84X48 : public DisplayMono {
                 if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
                 else if (0 == mDisplayData->nrSleeping)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");      // sun symbol
                 else if (0 == mDisplayData->nrProducing)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");      // moon symbol
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d\x86 %d\x87", mDisplayData->nrProducing, mDisplayData->nrSleeping);
                 printText(mFmtText, l_Status, 0xff);
             }
 
             // print yields
-            printText("\x88", l_YieldDay,   11); // day symbol
-            printText("\x83", l_YieldTotal, 11); // total symbol
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.0f Wh", mDisplayData->totalYieldDay);
-            printText(mFmtText, l_YieldDay, 18);
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%7.1f kWh", mDisplayData->totalYieldTotal);
-            printText(mFmtText, l_YieldTotal, 18);
+            printText("\x88", l_YieldDay,   10);        // day symbol
+            printText("\x83", l_YieldTotal, 10);        // total symbol
+
+            if (mDisplayData->totalYieldDay > 999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kWh", mDisplayData->totalYieldDay / 1000.0);
+            else
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
+            printText(mFmtText, l_YieldDay, 0xff);
+
+            if (mDisplayData->totalYieldTotal > 999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f MWh", mDisplayData->totalYieldTotal / 1000.0);
+            else
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kWh", mDisplayData->totalYieldTotal);
+            printText(mFmtText, l_YieldTotal, 0xff);
 
             // draw dynamic Nokia RSSI bars
             int rssi_bar_height = 7;

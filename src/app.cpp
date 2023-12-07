@@ -86,7 +86,11 @@ void app::setup() {
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
-        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mTimestamp);
+        #if defined(ESP32)
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mCmtRadio, &mTimestamp);
+        #else
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, NULL, &mTimestamp);
+        #endif
     #endif
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
