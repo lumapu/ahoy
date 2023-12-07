@@ -59,8 +59,7 @@ bool ahoyeth::updateNtpTime(void) {
         return false;
 
     DPRINTLN(DBG_DEBUG, F("updateNtpTime: checking udp \"connection\"...")); Serial.flush();
-    if (!mUdp.connected())
-    {
+    if (!mUdp.connected()) {
         DPRINTLN(DBG_DEBUG, F("updateNtpTime: About to (re)connect...")); Serial.flush();
         IPAddress timeServer;
         if (!WiFi.hostByName(mConfig->ntp.addr, timeServer))
@@ -70,8 +69,7 @@ bool ahoyeth::updateNtpTime(void) {
             return false;
 
         DPRINTLN(DBG_DEBUG, F("updateNtpTime: Connected...")); Serial.flush();
-        mUdp.onPacket([this](AsyncUDPPacket packet)
-        {
+        mUdp.onPacket([this](AsyncUDPPacket packet) {
             DPRINTLN(DBG_DEBUG, F("updateNtpTime: about to handle ntp packet...")); Serial.flush();
             this->handleNTPPacket(packet);
         });

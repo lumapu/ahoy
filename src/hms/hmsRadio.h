@@ -37,7 +37,7 @@ class CmtRadio : public Radio {
             }
         }
 
-        bool isConnected() {
+        bool isChipConnected(void) {
             return mCmtAvail;
         }
 

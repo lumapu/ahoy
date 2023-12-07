@@ -15,16 +15,17 @@
 #include "Display_ePaper.h"
 #include "Display_data.h"
 
-template <class HMSYSTEM, class HMRADIO>
+template <class HMSYSTEM, class RADIO>
 class Display {
    public:
     Display() {
         mMono = NULL;
     }
 
-    void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, HMRADIO *radio, uint32_t *utcTs) {
+    void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, RADIO *hmradio, RADIO *hmsradio, uint32_t *utcTs) {
         mApp = app;
-        mHmRadio = radio;
+        mHmRadio  = hmradio;
+        mHmsRadio = hmsradio;
         mCfg = cfg;
         mSys = sys;
         mUtcTs = utcTs;
@@ -34,13 +35,13 @@ class Display {
         mDisplayData.version = app->getVersion();  // version never changes, so only set once
 
         switch (mCfg->type) {
-            case 0: mMono = NULL; break;
-            case 1: // fall-through
-            case 2: mMono = new DisplayMono128X64(); break;
-            case 3: mMono = new DisplayMono84X48(); break;
-            case 4: mMono = new DisplayMono128X32(); break;
-            case 5: mMono = new DisplayMono64X48(); break;
-            case 6: mMono = new DisplayMono128X64(); break;
+            case 0: mMono = NULL; break;                    // None
+            case 1: mMono = new DisplayMono128X64(); break; // SSD1306_128X64 (0.96", 1.54")
+            case 2: mMono = new DisplayMono128X64(); break; // SH1106_128X64 (1.3")
+            case 3: mMono = new DisplayMono84X48(); break;  // PCD8544_84X48 (1.6" - Nokia 5110)
+            case 4: mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
+            case 5: mMono = new DisplayMono64X48(); break;  // SSD1306_64X48 (0.66" - Wemos OLED Shield)
+            case 6: mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
 #if defined(ESP32)
             case 10:
                 mMono = NULL;   // ePaper does not use this
@@ -92,9 +93,9 @@ class Display {
         if (mCfg->type == 0)
             return;
 
-        float totalPower = 0;
-        float totalYieldDay = 0;
-        float totalYieldTotal = 0;
+        float totalPower = 0.0;
+        float totalYieldDay = 0.0;
+        float totalYieldTotal = 0.0;
 
         uint8_t nrprod = 0;
         uint8_t nrsleep = 0;
@@ -109,42 +110,53 @@ class Display {
             if (iv == NULL)
                 continue;
 
-            int8_t maxQInv = -6;
-            for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
-                int8_t q = iv->txRfQuality[ch];
-                if (q > maxQInv)
-                    maxQInv = q;
-            }
-            if (maxQInv < minQAllInv)
-                minQAllInv = maxQInv;
-
-            rec = iv->getRecordStruct(RealTimeRunData_Debug);
-
-            if (iv->isProducing())
+            if (iv->isProducing())  // also updates inverter state engine
                 nrprod++;
             else
                 nrsleep++;
 
-            totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+            rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+            if (iv->isAvailable()) {  // consider only radio quality of inverters still communicating
+                int8_t maxQInv = -6;
+                for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
+                    int8_t q = iv->txRfQuality[ch];
+                    if (q > maxQInv)
+                        maxQInv = q;
+                }
+                if (maxQInv < minQAllInv)
+                    minQAllInv = maxQInv;
+
+                totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec); // add only FLD_PAC from inverters still communicating
+                allOff = false;
+            }
+
             totalYieldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
             totalYieldTotal += iv->getChannelFieldValue(CH0, FLD_YT, rec);
-
-            if(allOff) {
-                if(iv->status != InverterStatus::OFF)
-                    allOff = false;
-            }
         }
+
+        if (allOff)
+             minQAllInv = -6;
 
         // prepare display data
         mDisplayData.nrProducing = nrprod;
         mDisplayData.nrSleeping = nrsleep;
-        mDisplayData.totalPower = (allOff) ? 0.0 : totalPower; // if all inverters are off, total power can't be greater than 0
+        mDisplayData.totalPower = totalPower;
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
-        mDisplayData.RadioSymbol = mHmRadio->isChipConnected();
+        bool nrf_en = mApp->getNrfEnabled();
+        bool nrf_ok = nrf_en && mHmRadio->isChipConnected();
+        #if defined(ESP32)
+        bool cmt_en = mApp->getCmtEnabled();
+        bool cmt_ok = cmt_en && mHmsRadio->isChipConnected();
+        #else
+        bool cmt_en = false;
+        bool cmt_ok = false;
+        #endif
+        mDisplayData.RadioSymbol = (nrf_ok && !cmt_en) || (cmt_ok && !nrf_en) || (nrf_ok && cmt_ok);
         mDisplayData.WifiSymbol = (WiFi.status() == WL_CONNECTED);
         mDisplayData.MQTTSymbol = mApp->getMqttIsConnected();
-        mDisplayData.RadioRSSI = (0 < mDisplayData.nrProducing) ? ivQuality2RadioRSSI(minQAllInv) : SCHAR_MIN; // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
+        mDisplayData.RadioRSSI = ivQuality2RadioRSSI(minQAllInv); // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
         mDisplayData.WifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
         mDisplayData.ipAddress = WiFi.localIP();
         time_t utc= mApp->getTimestamp();
@@ -158,7 +170,7 @@ class Display {
         }
 #if defined(ESP32)
         else if (mCfg->type == 10) {
-            mEpaper.loop(((allOff) ? 0.0 : totalPower), totalYieldDay, totalYieldTotal, nrprod);
+            mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
 
@@ -212,7 +224,8 @@ class Display {
     uint32_t *mUtcTs;
     display_t *mCfg;
     HMSYSTEM *mSys;
-    HMRADIO *mHmRadio;
+    RADIO *mHmRadio;
+    RADIO *mHmsRadio;
     uint16_t mRefreshCycle;
 
 #if defined(ESP32)
