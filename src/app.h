@@ -51,7 +51,7 @@ typedef PubSerial<HmSystemType> PubSerialType;
 #if defined(PLUGIN_DISPLAY)
 #include "plugins/Display/Display.h"
 #include "plugins/Display/Display_data.h"
-typedef Display<HmSystemType, HmRadio<>> DisplayType;
+typedef Display<HmSystemType, Radio> DisplayType;
 #endif
 
 class app : public IApp, public ah::Scheduler {
