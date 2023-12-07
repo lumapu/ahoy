@@ -201,7 +201,8 @@ void app::updateNtp(void) {
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
     #if defined(ETHERNET)
-    bool isOK = mEth.updateNtpTime();
+    bool isOK = (mTimestamp != 0);
+    mEth.updateNtpTime();
     #else
     bool isOK = mWifi.getNtpTime();
     #endif
