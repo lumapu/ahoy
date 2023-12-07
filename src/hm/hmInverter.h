@@ -391,6 +391,10 @@ class Inverter {
 
         bool isAvailable() {
             bool avail = false;
+
+            if((recordMeas.ts == 0) && (recordInfo.ts == 0) && (recordConfig.ts == 0) && (recordAlarm.ts == 0))
+                return false;
+
             if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
                 avail = true;
             if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
