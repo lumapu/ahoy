@@ -112,10 +112,10 @@ class HmRadio : public Radio {
             if(NULL == mLastIv) // prevent reading on NULL object!
                 return;
 
-            uint32_t startMicros = micros() + 5110;
-            uint32_t loopMillis = millis() + 400;
-            while (millis() < loopMillis) {
-                while (micros() < startMicros) {  // listen (4088us or?) 5110us to each channel
+            uint32_t startMicros = micros();
+            uint32_t loopMillis = millis();
+            while ((millis() - loopMillis) < 400) {
+                while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
@@ -129,7 +129,7 @@ class HmRadio : public Radio {
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                startMicros = micros() + 5110;
+                startMicros = micros();
             }
             // not finished but time is over
             if(++mRxChIdx >= RF_CHANNELS)

@@ -1,9 +1,11 @@
 # Development Changes
 
 ## 0.8.14 - 2023-12-07
-* fixed decimal points for temperature (WebUI) PR #1254
-* fixed inverter statemachine available state PR #1252
-* fixed NTPUpdate and sunrise calculation #1240 #886
+* fixed decimal points for temperature (WebUI) PR #1254 #1251
+* fixed inverter statemachine available state PR #1252 #1253
+* fixed NTP update and sunrise calculation #1240 #886
+* display improvments #1248 #1247
+* fixed overflow in `hmRadio.h` #1244
 
 ## 0.8.13 - 2023-11-28
 * merge PR #1239 symbolic layout for OLED 128x64 + motion senser functionality
