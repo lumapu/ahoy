@@ -94,7 +94,7 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
 #define MQTT_MAX_PACKET_SIZE    384
 
-//#define PLUGIN_DISPLAY
+#define PLUGIN_DISPLAY
 
 typedef struct {
     uint32_t rxFail;

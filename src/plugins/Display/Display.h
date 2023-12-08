@@ -42,7 +42,7 @@ class Display {
             case 4: mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
             case 5: mMono = new DisplayMono64X48(); break;  // SSD1306_64X48 (0.66" - Wemos OLED Shield)
             case 6: mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
-#if defined(ESP32)
+#if defined(ESP32) && !defined(ETHERNET)
             case 10:
                 mMono = NULL;   // ePaper does not use this
                 mRefreshCycle = 0;
@@ -83,7 +83,7 @@ class Display {
             mNewPayload = false;
             mLoopCnt = 0;
         }
-        #if defined(ESP32)
+        #if defined(ESP32) && !defined(ETHERNET)
             mEpaper.tickerSecond();
         #endif
     }
@@ -168,7 +168,7 @@ class Display {
         if (mMono ) {
             mMono->disp();
         }
-#if defined(ESP32)
+#if defined(ESP32) && !defined(ETHERNET)
         else if (mCfg->type == 10) {
             mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
@@ -228,7 +228,7 @@ class Display {
     RADIO *mHmsRadio;
     uint16_t mRefreshCycle;
 
-#if defined(ESP32)
+#if defined(ESP32) && !defined(ETHERNET)
     DisplayEPaper mEpaper;
 #endif
     DisplayMono *mMono;
