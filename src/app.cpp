@@ -18,7 +18,6 @@ void app::setup() {
     while (!Serial)
         yield();
 
-
     resetSystem();
 
     mSettings.setup();

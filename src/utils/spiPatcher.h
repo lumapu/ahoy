@@ -7,6 +7,8 @@
 #define __SPI_PATCHER_H__
 #pragma once
 
+#if defined(ESP32)
+
 #include "spiPatcherHandle.h"
 
 #include <driver/spi_master.h>
@@ -80,5 +82,7 @@ class SpiPatcher {
         SemaphoreHandle_t mutex;
         StaticSemaphore_t mutex_buffer;
 };
+
+#endif /*ESP32*/
 
 #endif /*__SPI_PATCHER_H__*/

@@ -14,7 +14,9 @@
 #include "appInterface.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
+#if defined(ESP32)
 #include "hms/hmsRadio.h"
+#endif
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 #include "utils/crc.h"

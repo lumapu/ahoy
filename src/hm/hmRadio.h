@@ -9,6 +9,7 @@
 #include <RF24.h>
 #include "SPI.h"
 #include "radio.h"
+#include "../config/config.h"
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "nrfHal.h"
 #endif
