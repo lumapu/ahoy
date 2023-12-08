@@ -9,7 +9,9 @@
 #include <RF24.h>
 #include "SPI.h"
 #include "radio.h"
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "nrfHal.h"
+#endif
 
 #define SPI_SPEED           1000000
 
@@ -38,8 +40,6 @@ class HmRadio : public Radio {
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
             #if defined(CONFIG_IDF_TARGET_ESP32S3)
-            DBGPRINTLN("1");
-            delay(300);
             mNrfHal->init(mosi, miso, sclk, cs, ce);
             mNrf24 = new RF24(mNrfHal);
             #else
@@ -352,7 +352,9 @@ class HmRadio : public Radio {
 
         SPIClass* mSpi;
         RF24 *mNrf24;
+        #if defined(CONFIG_IDF_TARGET_ESP32S3)
         nrfHal *mNrfHal;
+        #endif
         Inverter<> *mLastIv = NULL;
 };
 

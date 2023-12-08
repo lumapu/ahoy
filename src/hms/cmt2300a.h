@@ -6,7 +6,11 @@
 #ifndef __CMT2300A_H__
 #define __CMT2300A_H__
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
 #include "cmtHal.h"
+#else
+#include "esp32_3wSpi.h"
+#endif
 
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
@@ -476,7 +480,11 @@ class Cmt2300a {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
+        #if defined(CONFIG_IDF_TARGET_ESP32S3)
         cmtHal mSpi;
+        #else
+        esp32_3wSpi mSpi;
+        #endif
         uint8_t mCnt;
         bool mTxPending;
         bool mInRxMode;
