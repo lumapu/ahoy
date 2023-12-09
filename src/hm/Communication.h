@@ -88,7 +88,7 @@ class Communication : public CommQueue<> {
                         } else
                             q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
 
-                        if(!mHeu.getTestModeEnabled())
+                        if(!mHeu.getTestModeEnabled(q->iv))
                             q->iv->radioStatistics.txCnt++;
                         mWaitTimeout     = millis() + timeout;
                         mWaitTimeout_min = millis() + timeout_min;
@@ -115,7 +115,7 @@ class Communication : public CommQueue<> {
                                 }
                                 mFirstTry = false;
                                 mlastTO_min = timeout_min;
-                                if(!mHeu.getTestModeEnabled())
+                                if(!mHeu.getTestModeEnabled(q->iv))
                                     q->iv->radioStatistics.retransmits++; // got nothing
                                 mState = States::START;
                                 break;
@@ -180,7 +180,7 @@ class Communication : public CommQueue<> {
                             }
 
                             if(checkIvSerial(&p->packet[1], q->iv)) {
-                                if(!mHeu.getTestModeEnabled())
+                                if(!mHeu.getTestModeEnabled(q->iv))
                                     q->iv->radioStatistics.frmCnt++;
 
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
@@ -193,7 +193,7 @@ class Communication : public CommQueue<> {
                                     parseMiFrame(p, q);
                                 }
                             } else {
-                                if(!mHeu.getTestModeEnabled())
+                                if(!mHeu.getTestModeEnabled(q->iv))
                                     q->iv->radioStatistics.rxFail++; // got no complete payload
                                 DPRINTLN(DBG_WARN, F("Inverter serial does not match"));
                                 mWaitTimeout = millis() + timeout;
@@ -464,14 +464,14 @@ class Communication : public CommQueue<> {
         // ordering of lines is relevant for statistics
             if(succeeded) {
                 mHeu.setGotAll(iv);
-                if(!mHeu.getTestModeEnabled())
+                if(!mHeu.getTestModeEnabled(iv))
                     iv->radioStatistics.rxSuccess++;
             } else if(iv->mGotFragment) {
                 mHeu.setGotFragment(iv);
-                if(!mHeu.getTestModeEnabled())
+                if(!mHeu.getTestModeEnabled(iv))
                     iv->radioStatistics.rxFail++; // got no complete payload
             } else {
-                if(!mHeu.getTestModeEnabled())
+                if(!mHeu.getTestModeEnabled(iv))
                     iv->radioStatistics.rxFailNoAnser++; // got nothing
                 mHeu.setGotNothing(iv);
                 mWaitTimeout = millis() + WAIT_GAP_TIMEOUT;
@@ -682,7 +682,7 @@ class Communication : public CommQueue<> {
 
             if(q->iv->miMultiParts == 7) {
                 mHeu.setGotAll(q->iv);
-                if(!mHeu.getTestModeEnabled())
+                if(!mHeu.getTestModeEnabled(q->iv))
                     q->iv->radioStatistics.rxSuccess++;
             } else
                 mHeu.setGotFragment(q->iv);

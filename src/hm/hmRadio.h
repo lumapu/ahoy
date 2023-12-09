@@ -301,7 +301,7 @@ class HmRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = mRfChLst[iv->txRfChId];
+            mTxChIdx = mRfChLst[iv->heuristics.txRfChId];
 
             if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);

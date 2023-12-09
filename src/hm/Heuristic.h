@@ -8,11 +8,7 @@
 
 #include "../utils/dbg.h"
 #include "hmInverter.h"
-
-#define RF_MAX_CHANNEL_ID   5
-#define RF_MAX_QUALITY      4
-#define RF_MIN_QUALTIY      -6
-#define RF_NA               -99
+#include "HeuristicInv.h"
 
 class Heuristic {
     public:
@@ -23,53 +19,52 @@ class Heuristic {
             uint8_t bestId = 0;
             int8_t bestQuality = -6;
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
-                if(iv->txRfQuality[i] > bestQuality) {
-                    bestQuality = iv->txRfQuality[i];
+                if(iv->heuristics.txRfQuality[i] > bestQuality) {
+                    bestQuality = iv->heuristics.txRfQuality[i];
                     bestId = i;
                 }
             }
 
-            if(mTestEn) {
+            if(iv->heuristics.testEn) {
                 DPRINTLN(DBG_INFO, F("heuristic test mode"));
-                mTestIdx = (mTestIdx + 1) % RF_MAX_CHANNEL_ID;
+                iv->heuristics.testIdx = (iv->heuristics.testIdx + 1) % RF_MAX_CHANNEL_ID;
 
-                if (mTestIdx == bestId)
-                    mTestIdx = (mTestIdx + 1) % RF_MAX_CHANNEL_ID;
+                if (iv->heuristics.testIdx == bestId)
+                    iv->heuristics.testIdx = (iv->heuristics.testIdx + 1) % RF_MAX_CHANNEL_ID;
 
                 // test channel get's quality of best channel (maybe temporarily, see in 'setGotNothing')
-                mStoredIdx = iv->txRfQuality[mTestIdx];
-                iv->txRfQuality[mTestIdx] = bestQuality;
+                iv->heuristics.storedIdx = iv->heuristics.txRfQuality[iv->heuristics.testIdx];
+                iv->heuristics.txRfQuality[iv->heuristics.testIdx] = bestQuality;
 
-                iv->txRfChId = mTestIdx;
+                iv->heuristics.txRfChId = iv->heuristics.testIdx;
             } else
-                iv->txRfChId = bestId;
+                iv->heuristics.txRfChId = bestId;
 
-            return id2Ch(iv->txRfChId);
+            return id2Ch(iv->heuristics.txRfChId);
         }
 
         void setGotAll(Inverter<> *iv) {
             updateQuality(iv, 2); // GOOD
-            mTestEn = false;
+            iv->heuristics.testEn = false;
         }
 
         void setGotFragment(Inverter<> *iv) {
             updateQuality(iv, 1); // OK
-            mTestEn = false;
+            iv->heuristics.testEn = false;
         }
 
         void setGotNothing(Inverter<> *iv) {
-            if(RF_NA != mStoredIdx) {
+            if(RF_NA != iv->heuristics.storedIdx) {
                 // if communication fails on first try with temporarily good level, revert it back to its original level
-                iv->txRfQuality[iv->txRfChId] = mStoredIdx;
-                mStoredIdx = RF_NA;
+                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = iv->heuristics.storedIdx;
+                iv->heuristics.storedIdx = RF_NA;
             }
 
-            if(!mTestEn) {
+            if(!iv->heuristics.testEn) {
                 updateQuality(iv, -2); // BAD
-                mTestEn = true;
-            }
-            else
-                mTestEn = false;
+                iv->heuristics.testEn = true;
+            } else
+                iv->heuristics.testEn = false;
         }
 
         void printStatus(Inverter<> *iv) {
@@ -77,7 +72,7 @@ class Heuristic {
             DBGPRINT(F("Radio infos:"));
             for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
                 DBGPRINT(F(" "));
-                DBGPRINT(String(iv->txRfQuality[i]));
+                DBGPRINT(String(iv->heuristics.txRfQuality[i]));
             }
             DBGPRINT(F(" | t: "));
             DBGPRINT(String(iv->radioStatistics.txCnt));
@@ -91,17 +86,17 @@ class Heuristic {
             DBGPRINTLN(String(iv->config->powerLevel));
         }
 
-        bool getTestModeEnabled(void) {
-            return mTestEn;
+        bool getTestModeEnabled(Inverter<> *iv) {
+            return iv->heuristics.testEn;
         }
 
     private:
         void updateQuality(Inverter<> *iv, uint8_t quality) {
-            iv->txRfQuality[iv->txRfChId] += quality;
-            if(iv->txRfQuality[iv->txRfChId] > RF_MAX_QUALITY)
-                iv->txRfQuality[iv->txRfChId] = RF_MAX_QUALITY;
-            else if(iv->txRfQuality[iv->txRfChId] < RF_MIN_QUALTIY)
-                iv->txRfQuality[iv->txRfChId] = RF_MIN_QUALTIY;
+            iv->heuristics.txRfQuality[iv->heuristics.txRfChId] += quality;
+            if(iv->heuristics.txRfQuality[iv->heuristics.txRfChId] > RF_MAX_QUALITY)
+                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = RF_MAX_QUALITY;
+            else if(iv->heuristics.txRfQuality[iv->heuristics.txRfChId] < RF_MIN_QUALTIY)
+                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = RF_MIN_QUALTIY;
         }
 
         inline uint8_t id2Ch(uint8_t id) {
@@ -117,9 +112,6 @@ class Heuristic {
 
     private:
         uint8_t mChList[5] = {03, 23, 40, 61, 75};
-        bool mTestEn = false;
-        uint8_t mTestIdx = 0;
-        int8_t mStoredIdx = RF_NA;
 };
 
 

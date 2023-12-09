@@ -12,6 +12,7 @@
 #endif
 
 #include "hmDefines.h"
+#include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
@@ -131,8 +132,7 @@ class Inverter {
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-        int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
-        uint8_t       txRfChId;          // RF TX channel id
+        HeuristicInv  heuristics;
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
@@ -160,7 +160,7 @@ class Inverter {
             commEnabled        = true;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
-            memset(txRfQuality, -6, 5);
+            memset(heuristics.txRfQuality, -6, 5);
 
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);

@@ -132,8 +132,7 @@ void ahoyeth::welcome(String ip, String mode) {
 void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
 {
     AWS_LOG(F("[ETH]: Got event..."));
-    switch (event)
-    {
+    switch (event) {
 #if ( ( defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 2) ) && ( ARDUINO_ESP32_GIT_VER != 0x46d5afb1 ) )
     // For breaking core v2.0.0
     // Why so strange to define a breaking enum arduino_event_id_t in WiFiGeneric.h
@@ -153,20 +152,16 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected)
-        {
+        if (!ESP32_W5500_eth_connected) {
             #if defined (CONFIG_IDF_TARGET_ESP32S3)
             AWS_LOG3(F("ETH MAC: "), mEthSpi.macAddress(), F(", IPv4: "), ETH.localIP());
             #else
             AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
             #endif
 
-            if (ETH.fullDuplex())
-            {
-            AWS_LOG0(F("FULL_DUPLEX, "));
-            }
-            else
-            {
+            if (ETH.fullDuplex()) {
+                AWS_LOG0(F("FULL_DUPLEX, "));
+            } else {
                 AWS_LOG0(F("HALF_DUPLEX, "));
             }
 
@@ -212,16 +207,12 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
         break;
 
     case SYSTEM_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected)
-        {
+        if (!ESP32_W5500_eth_connected) {
             AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
 
-            if (ETH.fullDuplex())
-            {
+            if (ETH.fullDuplex()) {
                 AWS_LOG0(F("FULL_DUPLEX, "));
-            }
-            else
-            {
+            } else {
                 AWS_LOG0(F("HALF_DUPLEX, "));
             }
 

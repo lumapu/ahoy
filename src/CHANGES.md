@@ -5,6 +5,7 @@
 * fixed range of HMS / HMT frequencies to 863 to 870 MHz #1238
 * changed `yield effiency` per default to `1.0` #1243
 * small heuristics improvements #1258
+* added class to combine inverter heuristics fields #1258
 
 ## 0.8.14 - 2023-12-07
 * fixed decimal points for temperature (WebUI) PR #1254 #1251

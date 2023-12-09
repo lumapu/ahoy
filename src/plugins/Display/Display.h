@@ -120,7 +120,7 @@ class Display {
             if (iv->isAvailable()) {  // consider only radio quality of inverters still communicating
                 int8_t maxQInv = -6;
                 for(uint8_t ch = 0; ch < RF_MAX_CHANNEL_ID; ch++) {
-                    int8_t q = iv->txRfQuality[ch];
+                    int8_t q = iv->heuristics.txRfQuality[ch];
                     if (q > maxQInv)
                         maxQInv = q;
                 }
