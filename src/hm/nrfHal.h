@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../utils/SpiPatcher.h"
+#include "../utils/spiPatcher.h"
 
 #include <esp_rom_gpio.h>
 #include <RF24_hal.h>

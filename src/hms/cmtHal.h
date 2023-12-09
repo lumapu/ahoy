@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../utils/SpiPatcher.h"
+#include "../utils/spiPatcher.h"
 
 #include <driver/gpio.h>
 
