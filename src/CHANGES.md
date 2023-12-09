@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.15 - 2023-12-09
+* added support for opendtufusion fusion ethernet shield #886
+* fixed range of HMS / HMT frequencies to 863 to 870 MHz #1238
+* changed `yield effiency` per default to `1.0` #1243
+
 ## 0.8.14 - 2023-12-07
 * fixed decimal points for temperature (WebUI) PR #1254 #1251
 * fixed inverter statemachine available state PR #1252 #1253

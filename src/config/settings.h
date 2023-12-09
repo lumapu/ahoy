@@ -442,7 +442,7 @@ class settings {
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.yieldEffiency    = 0.955f;
+            mCfg.inst.yieldEffiency    = 1.0f;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
