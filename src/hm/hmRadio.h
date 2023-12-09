@@ -10,7 +10,7 @@
 #include "SPI.h"
 #include "radio.h"
 #include "../config/config.h"
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
 #include "nrfHal.h"
 #endif
 
@@ -40,7 +40,7 @@ class HmRadio : public Radio {
 
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
-            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
             mNrfHal.init(mosi, miso, sclk, cs, ce);
             mNrf24 = new RF24(&mNrfHal);
             #else
@@ -66,8 +66,10 @@ class HmRadio : public Radio {
             DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
-                #if !defined(CONFIG_IDF_TARGET_ESP32S3)
-                    #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2
+                #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+                    //
+                #else
+                    #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
                         mSpi = new SPIClass(HSPI);
                     #else
                         mSpi = new SPIClass(VSPI);
@@ -353,7 +355,7 @@ class HmRadio : public Radio {
 
         SPIClass* mSpi;
         RF24 *mNrf24;
-        #if defined(CONFIG_IDF_TARGET_ESP32S3)
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
         nrfHal mNrfHal;
         #endif
         Inverter<> *mLastIv = NULL;
