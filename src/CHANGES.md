@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.16 - 2023-12-09
+* fix crash if NRF is not enabled
+
 ## 0.8.15 - 2023-12-09
 * added support for opendtufusion fusion ethernet shield #886
 * fixed range of HMS / HMT frequencies to 863 to 870 MHz #1238

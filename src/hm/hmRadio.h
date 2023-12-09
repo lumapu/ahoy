@@ -35,16 +35,17 @@ class HmRadio : public Radio {
         HmRadio() {
             mDtuSn   = DTU_SN;
             mIrqRcvd = false;
+            mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
         }
         ~HmRadio() {}
 
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
+
             #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+            // replace object
             mNrfHal.init(mosi, miso, sclk, cs, ce);
-            mNrf24 = new RF24(&mNrfHal);
-            #else
-            mNrf24 = new RF24(CE_PIN, CS_PIN, SPI_SPEED);
+            mNrf24.reset(new RF24(&mNrfHal));
             #endif
             pinMode(irq, INPUT_PULLUP);
 
@@ -70,22 +71,22 @@ class HmRadio : public Radio {
                     //
                 #else
                     #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-                        mSpi = new SPIClass(HSPI);
+                        mSpi.reset(new SPIClass(HSPI));
                     #else
-                        mSpi = new SPIClass(VSPI);
+                        mSpi.reset(new SPIClass(VSPI));
                     #endif
                     mSpi->begin(sclk, miso, mosi, cs);
                 #endif
             #else
                 //the old ESP82xx cannot freely place their SPI pins
-                mSpi = new SPIClass();
+                mSpi.reset(new SPIClass());
                 mSpi->begin();
             #endif
 
             #if defined(CONFIG_IDF_TARGET_ESP32S3)
                 mNrf24->begin();
             #else
-                mNrf24->begin(mSpi, ce, cs);
+                mNrf24->begin(mSpi.get(), ce, cs);
             #endif
             mNrf24->setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
@@ -353,8 +354,8 @@ class HmRadio : public Radio {
         bool    mGotLastMsg = false;
         uint32_t mMillis;
 
-        SPIClass* mSpi;
-        RF24 *mNrf24;
+        std::unique_ptr<SPIClass> mSpi;
+        std::unique_ptr<RF24> mNrf24;
         #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
         nrfHal mNrfHal;
         #endif
