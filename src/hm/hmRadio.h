@@ -35,7 +35,11 @@ class HmRadio : public Radio {
         HmRadio() {
             mDtuSn   = DTU_SN;
             mIrqRcvd = false;
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+            mNrf24.reset(new RF24());
+            #else
             mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
+            #endif
         }
         ~HmRadio() {}
 

@@ -10,61 +10,79 @@
 #include "hmInverter.h"
 #include "HeuristicInv.h"
 
+#define RF_TEST_PERIOD_MAX_SEND_CNT     50
+#define RF_TEST_PERIOD_MAX_FAIL_CNT     5
+
+#define RF_TX_TEST_CHAN_1ST_USE         0xff
+
 class Heuristic {
     public:
         uint8_t getTxCh(Inverter<> *iv) {
             if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
                 return 0; // not used for these inverter types
 
-            uint8_t bestId = 0;
-            int8_t bestQuality = -6;
-            for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
-                if(iv->heuristics.txRfQuality[i] > bestQuality) {
-                    bestQuality = iv->heuristics.txRfQuality[i];
-                    bestId = i;
-                }
+            HeuristicInv *ih = &iv->heuristics;
+
+            // start with the next index: round robbin in case of same 'best' quality
+            uint8_t curId = (ih->txRfChId + 1) % RF_MAX_CHANNEL_ID;
+            uint8_t lastBestId = ih->txRfChId;
+            ih->txRfChId = curId;
+            curId = (curId + 1) % RF_MAX_CHANNEL_ID;
+            for(uint8_t i = 1; i < RF_MAX_CHANNEL_ID; i++) {
+                if(ih->txRfQuality[curId] > ih->txRfQuality[ih->txRfChId])
+                    ih->txRfChId = curId;
+                curId = (curId + 1) % RF_MAX_CHANNEL_ID;
             }
 
-            if(iv->heuristics.testEn) {
-                DPRINTLN(DBG_INFO, F("heuristic test mode"));
-                iv->heuristics.testIdx = (iv->heuristics.testIdx + 1) % RF_MAX_CHANNEL_ID;
+            if(ih->testPeriodSendCnt < 0xff)
+                ih->testPeriodSendCnt++;
 
-                if (iv->heuristics.testIdx == bestId)
-                    iv->heuristics.testIdx = (iv->heuristics.testIdx + 1) % RF_MAX_CHANNEL_ID;
+            if((ih->txRfChId == lastBestId) && (ih->testPeriodSendCnt >= RF_TEST_PERIOD_MAX_SEND_CNT)) {
+                if(ih->testPeriodFailCnt > RF_TEST_PERIOD_MAX_FAIL_CNT) {
+                     // try round robbin another chan and see if it works even better
+                    ih->testChId = (ih->testChId + 1) % RF_MAX_CHANNEL_ID;
+                    if(ih->testChId = ih->txRfChId)
+                        ih->testChId = (ih->testChId + 1) % RF_MAX_CHANNEL_ID;
 
-                // test channel get's quality of best channel (maybe temporarily, see in 'setGotNothing')
-                iv->heuristics.storedIdx = iv->heuristics.txRfQuality[iv->heuristics.testIdx];
-                iv->heuristics.txRfQuality[iv->heuristics.testIdx] = bestQuality;
+                    // give it a fair chance but remember old status in case of immediate fail
+                    ih->txRfChId = ih->testChId;
+                    ih->testChId = RF_TX_TEST_CHAN_1ST_USE; // mark the chan as a test and as 1st use during new test period
+                    DPRINTLN(DBG_INFO, "Test CH " + String(id2Ch(ih->txRfChId)));
+                }
 
-                iv->heuristics.txRfChId = iv->heuristics.testIdx;
-            } else
-                iv->heuristics.txRfChId = bestId;
+                // start new test period
+                ih->testPeriodSendCnt = 0;
+                ih->testPeriodFailCnt = 0;
+            } else if(ih->txRfChId != lastBestId) {
+                // start new test period
+                ih->testPeriodSendCnt = 0;
+                ih->testPeriodFailCnt = 0;
+            }
 
-            return id2Ch(iv->heuristics.txRfChId);
+            return id2Ch(ih->txRfChId);
         }
 
         void setGotAll(Inverter<> *iv) {
             updateQuality(iv, 2); // GOOD
-            iv->heuristics.testEn = false;
         }
 
         void setGotFragment(Inverter<> *iv) {
             updateQuality(iv, 1); // OK
-            iv->heuristics.testEn = false;
         }
 
         void setGotNothing(Inverter<> *iv) {
-            if(RF_NA != iv->heuristics.storedIdx) {
-                // if communication fails on first try with temporarily good level, revert it back to its original level
-                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = iv->heuristics.storedIdx;
-                iv->heuristics.storedIdx = RF_NA;
+            HeuristicInv *ih = &iv->heuristics;
+
+            if(RF_TX_TEST_CHAN_1ST_USE == ih->testChId) {
+                // immediate fail
+                ih->testChId = ih->txRfChId; // reset to best
+                return;
             }
 
-            if(!iv->heuristics.testEn) {
-                updateQuality(iv, -2); // BAD
-                iv->heuristics.testEn = true;
-            } else
-                iv->heuristics.testEn = false;
+            if(ih->testPeriodFailCnt < 0xff)
+                ih->testPeriodFailCnt++;
+
+            updateQuality(iv, -2); // BAD
         }
 
         void printStatus(Inverter<> *iv) {
@@ -86,17 +104,15 @@ class Heuristic {
             DBGPRINTLN(String(iv->config->powerLevel));
         }
 
-        bool getTestModeEnabled(Inverter<> *iv) {
-            return iv->heuristics.testEn;
-        }
-
     private:
         void updateQuality(Inverter<> *iv, uint8_t quality) {
-            iv->heuristics.txRfQuality[iv->heuristics.txRfChId] += quality;
-            if(iv->heuristics.txRfQuality[iv->heuristics.txRfChId] > RF_MAX_QUALITY)
-                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = RF_MAX_QUALITY;
-            else if(iv->heuristics.txRfQuality[iv->heuristics.txRfChId] < RF_MIN_QUALTIY)
-                iv->heuristics.txRfQuality[iv->heuristics.txRfChId] = RF_MIN_QUALTIY;
+            HeuristicInv *ih = &iv->heuristics;
+
+            ih->txRfQuality[ih->txRfChId] += quality;
+            if(ih->txRfQuality[ih->txRfChId] > RF_MAX_QUALITY)
+                ih->txRfQuality[ih->txRfChId] = RF_MAX_QUALITY;
+            else if(ih->txRfQuality[ih->txRfChId] < RF_MIN_QUALTIY)
+                ih->txRfQuality[ih->txRfChId] = RF_MIN_QUALTIY;
         }
 
         inline uint8_t id2Ch(uint8_t id) {

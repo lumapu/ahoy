@@ -2,6 +2,8 @@
 
 ## 0.8.16 - 2023-12-09
 * fix crash if NRF is not enabled
+* updated heuristic #1080 #1259
+* fix compile opendtufusion fusion ethernet
 
 ## 0.8.15 - 2023-12-09
 * added support for opendtufusion fusion ethernet shield #886

@@ -13,12 +13,17 @@
 
 class HeuristicInv {
     public:
-        int8_t  txRfQuality[5]; // heuristics tx quality (check 'Heuristics.h')
-        uint8_t txRfChId;       // RF TX channel id
+        HeuristicInv() {
+            memset(txRfQuality, -6, RF_MAX_CHANNEL_ID);
+        }
 
-        bool testEn = false;
-        uint8_t testIdx = 0;
-        int8_t storedIdx = RF_NA;
+    public:
+        int8_t  txRfQuality[RF_MAX_CHANNEL_ID]; // heuristics tx quality (check 'Heuristics.h')
+        uint8_t txRfChId = 0;                   // RF TX channel id
+
+        uint8_t testPeriodSendCnt = 0;
+        uint8_t testPeriodFailCnt = 0;
+        uint8_t testChId          = 0;
 };
 
 #endif /*__HEURISTIC_INV_H__*/
