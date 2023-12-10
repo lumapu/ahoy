@@ -41,7 +41,7 @@ class Heuristic {
                 if(ih->testPeriodFailCnt > RF_TEST_PERIOD_MAX_FAIL_CNT) {
                      // try round robbin another chan and see if it works even better
                     ih->testChId = (ih->testChId + 1) % RF_MAX_CHANNEL_ID;
-                    if(ih->testChId = ih->txRfChId)
+                    if(ih->testChId == ih->txRfChId)
                         ih->testChId = (ih->testChId + 1) % RF_MAX_CHANNEL_ID;
 
                     // give it a fair chance but remember old status in case of immediate fail

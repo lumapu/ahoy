@@ -46,11 +46,6 @@ class HmRadio : public Radio {
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
 
-            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
-            // replace object
-            mNrfHal.init(mosi, miso, sclk, cs, ce);
-            mNrf24.reset(new RF24(&mNrfHal));
-            #endif
             pinMode(irq, INPUT_PULLUP);
 
             mSerialDebug = serialDebug;
@@ -72,7 +67,8 @@ class HmRadio : public Radio {
 
             #ifdef ESP32
                 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
-                    //
+                    mNrfHal.init(mosi, miso, sclk, cs, ce);
+                    mNrf24.reset(new RF24(&mNrfHal));
                 #else
                     #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
                         mSpi.reset(new SPIClass(HSPI));
@@ -87,7 +83,7 @@ class HmRadio : public Radio {
                 mSpi->begin();
             #endif
 
-            #if defined(CONFIG_IDF_TARGET_ESP32S3)
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
                 mNrf24->begin();
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
@@ -127,8 +123,6 @@ class HmRadio : public Radio {
             mNrf24->flush_tx();                              // empty TX FIFO
 
             // start listening
-            //mNrf24->setChannel(23);
-            //mRxChIdx = 0;
             mNrf24->setChannel(mRfChLst[mRxChIdx]);
             mNrf24->startListening();
 

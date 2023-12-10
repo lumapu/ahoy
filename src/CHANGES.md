@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.17 - 2023-12-10
+* possible fix of NRF with opendtufusion (without ETH)
+* small fix in heuristics (if conditions made assignment not comparisson)
+
 ## 0.8.16 - 2023-12-09
 * fix crash if NRF is not enabled
 * updated heuristic #1080 #1259
