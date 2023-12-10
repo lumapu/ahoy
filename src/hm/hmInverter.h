@@ -129,6 +129,7 @@ class Inverter {
         uint8_t       miMultiParts;      // helper info for MI multiframe msgs
         uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
         bool          mGotFragment;      // shows if inverter has sent at least one fragment
+        uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
