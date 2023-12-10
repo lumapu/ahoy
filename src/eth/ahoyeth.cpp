@@ -10,6 +10,7 @@
   #define F(sl) (sl)
 #endif
 #include "ahoyeth.h"
+#include <ESPmDNS.h>
 
 //-----------------------------------------------------------------------------
 ahoyeth::ahoyeth()
@@ -170,6 +171,13 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
             ESP32_W5500_eth_connected = true;
             mOnNetworkCB(true);
         }
+        if (!MDNS.begin(mConfig->sys.deviceName)) {
+            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
+        } else {
+            DBGPRINT(F("[WiFi] mDNS established: "));
+            DBGPRINT(mConfig->sys.deviceName);
+            DBGPRINTLN(F(".local"));
+        }
         break;
 
     case ARDUINO_EVENT_ETH_DISCONNECTED:
@@ -220,6 +228,13 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
 
             ESP32_W5500_eth_connected = true;
             mOnNetworkCB(true);
+        }
+        if (!MDNS.begin(mConfig->sys.deviceName)) {
+            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
+        } else {
+            DBGPRINT(F("[WiFi] mDNS established: "));
+            DBGPRINT(mConfig->sys.deviceName);
+            DBGPRINTLN(F(".local"));
         }
         break;
 

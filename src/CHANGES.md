@@ -2,6 +2,7 @@
 
 ## 0.8.18 - 2023-12-10
 * copied even more from the original heuristic code #1259
+* added mDNS support #1262
 
 ## 0.8.17 - 2023-12-10
 * possible fix of NRF with opendtufusion (without ETH)

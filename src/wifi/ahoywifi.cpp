@@ -89,7 +89,9 @@ void ahoywifi::tickWifiLoop() {
             if (mGotDisconnect) {
                 mStaConn = RESET;
             }
+            #if !defined(ESP32)
             MDNS.update();
+            #endif
             return;
         case IN_AP_MODE:
             if (WiFi.softAPgetStationNum() == 0) {
