@@ -9,7 +9,12 @@
   #define F(sl) (sl)
 #endif
 #include "ahoywifi.h"
+
+#if defined(ESP32)
+#include <ESPmDNS.h>
+#else
 #include <ESP8266mDNS.h>
+#endif
 
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
