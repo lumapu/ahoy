@@ -10,6 +10,12 @@
 #endif
 #include "ahoywifi.h"
 
+#if defined(ESP32)
+#include <ESPmDNS.h>
+#else
+#include <ESP8266mDNS.h>
+#endif
+
 // NTP CONFIG
 #define NTP_PACKET_SIZE     48
 
@@ -83,6 +89,7 @@ void ahoywifi::tickWifiLoop() {
             if (mGotDisconnect) {
                 mStaConn = RESET;
             }
+            MDNS.update();
             return;
         case IN_AP_MODE:
             if (WiFi.softAPgetStationNum() == 0) {
@@ -180,6 +187,15 @@ void ahoywifi::tickWifiLoop() {
             mAppWifiCb(true);
             mGotDisconnect = false;
             mStaConn = IN_STA_MODE;
+
+            if (!MDNS.begin(mConfig->sys.deviceName)) {
+                DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
+            } else {
+                DBGPRINT(F("[WiFi] mDNS established: "));
+                DBGPRINT(mConfig->sys.deviceName);
+                DBGPRINTLN(F(".local"));
+            }
+
             break;
         case RESET:
             mGotDisconnect = false;
@@ -244,7 +260,6 @@ void ahoywifi::setupStation(void) {
     if(String(mConfig->sys.deviceName) != "")
         WiFi.hostname(mConfig->sys.deviceName);
     WiFi.mode(WIFI_AP_STA);
-
 
     DBGPRINT(F("connect to network '"));
     DBGPRINT(mConfig->sys.stationSsid);
