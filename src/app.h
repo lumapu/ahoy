@@ -211,15 +211,6 @@ class app : public IApp, public ah::Scheduler {
             return mConfig->cmt.pinIrq;
         }
 
-        String getTimeStr(uint32_t offset = 0) {
-            char str[10];
-            if(0 == mTimestamp)
-                sprintf(str, "n/a");
-            else
-                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp + offset), minute(mTimestamp + offset), second(mTimestamp + offset));
-            return String(str);
-        }
-
         uint32_t getTimezoneOffset() {
             return mApi.getTimezoneOffset();
         }

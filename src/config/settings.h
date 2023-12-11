@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      3
+#define CONFIG_VERSION      4
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -159,6 +159,7 @@ typedef struct {
     bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
+    uint16_t gapMs;
 } cfgInst_t;
 
 typedef struct {
@@ -441,6 +442,7 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
+            mCfg.inst.gapMs            = 2000;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -480,6 +482,9 @@ class settings {
                 }
                 if(mCfg.configVersion < 3) {
                     mCfg.serial.printWholeTrace = true;
+                }
+                if(mCfg.configVersion < 4) {
+                    mCfg.inst.gapMs = 2000;
                 }
             }
         }
@@ -706,12 +711,13 @@ class settings {
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
-                obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
-                obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
-                obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
+                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
+                obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
-                obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
+                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
+                obj[F("gap")]            = mCfg.inst.gapMs;
             }
             else {
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
@@ -721,6 +727,7 @@ class settings {
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
                     mCfg.inst.yieldEffiency = 1.0f;

@@ -44,7 +44,6 @@ class IApp {
         virtual uint32_t getSunrise() = 0;
         virtual uint32_t getSunset() = 0;
         virtual void setTimestamp(uint32_t newTime) = 0;
-        virtual String getTimeStr(uint32_t offset) = 0;
         virtual uint32_t getTimezoneOffset() = 0;
         virtual void getSchedulerInfo(uint8_t *max) = 0;
         virtual void getSchedulerNames() = 0;

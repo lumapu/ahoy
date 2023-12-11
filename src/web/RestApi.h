@@ -389,6 +389,7 @@ class RestApi {
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
+            obj[F("gap")]               = mConfig->inst.gapMs;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {

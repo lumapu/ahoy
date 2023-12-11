@@ -149,6 +149,10 @@
                             <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-8 my-2">Inverter Gap [ms]</div>
+                            <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-8 mb-2">Reset values and YieldDay at midnight</div>
                             <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                         </div>
@@ -571,7 +575,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
+                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"], ["invGap", "gap"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
