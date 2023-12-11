@@ -208,10 +208,11 @@ class Web {
 
             msg.replace("\r\n", "<rn>");
             if (mSerialAddTime) {
-                if ((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
+                if ((13 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                     if (mApp->getTimestamp() > 0) {
-                        strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
-                        mSerialBufFill += 9;
+                        strncpy(&mSerialBuf[mSerialBufFill], ah::getTimeStrMs(mApp->getTimestamp() + mApp->getTimezoneOffset()).c_str(), 12);
+                        mSerialBuf[mSerialBufFill+12] = ' ';
+                        mSerialBufFill += 13;
                     }
                 } else {
                     mSerialBufFill = 0;
@@ -495,6 +496,7 @@ class Web {
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout

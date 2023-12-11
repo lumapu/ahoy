@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.19 - 2023-12-11
+* added ms to serial log
+* added (debug) option to configure gap between inverter requests
+
 ## 0.8.18 - 2023-12-10
 * copied even more from the original heuristic code #1259
 * added mDNS support #1262

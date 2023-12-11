@@ -54,7 +54,7 @@ void app::setup() {
         #endif
     #endif /* defined(ETHERNET) */
 
-    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace);
+    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->inst.gapMs);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {

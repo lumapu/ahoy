@@ -15,7 +15,6 @@
 #define FRSTMSG_TIMEOUT     150 // how long to wait for first msg to be received
 #define DEFAULT_TIMEOUT     500 // timeout for regular requests
 #define SINGLEFR_TIMEOUT     65 // timeout for single frame requests
-#define WAIT_GAP_TIMEOUT    200 // timeout after no complete payload
 #define MAX_BUFFER          250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
@@ -23,11 +22,12 @@ typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
     public:
-        void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode, bool *printWholeTrace) {
+        void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint16_t *inverterGap) {
             mTimestamp = timestamp;
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
+            mInverterGap = inverterGap;
         }
 
         void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
@@ -134,7 +134,6 @@ class Communication : public CommQueue<> {
                                 DBGPRINT(String(millis() - mWaitTimeout + timeout));
                                 DBGPRINTLN(F("ms"));
                             }
-
                             if(!q->iv->mGotFragment) {
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
@@ -284,6 +283,7 @@ class Communication : public CommQueue<> {
                     DHEX(buf[0]);DHEX(buf[1]);DHEX(buf[2]);DHEX(buf[3]);
                     DBGPRINT(F(", expected: 0x"));
                     DHEX(tmp[0]);DHEX(tmp[1]);DHEX(tmp[2]);DHEX(tmp[3]);
+                    DBGPRINTLN("");
                     return false;
                 }
             }
@@ -473,8 +473,8 @@ class Communication : public CommQueue<> {
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else {
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-                mWaitTimeout = millis() + WAIT_GAP_TIMEOUT;
             }
+            mWaitTimeout = millis() + *mInverterGap;
 
             cmdDone(delCmd);
             q->iv->mGotFragment = false;
@@ -483,6 +483,7 @@ class Communication : public CommQueue<> {
             mIsResend           = false;
             mFirstTry           = false; // for correct reset
             mState              = States::RESET;
+            DBGPRINTLN("-----");
         }
 
         inline void miHwDecode(packet_t *p, const queue_s *q) {
@@ -826,6 +827,7 @@ class Communication : public CommQueue<> {
         States mState = States::RESET;
         uint32_t *mTimestamp;
         bool *mPrivacyMode, *mSerialDebug, *mPrintWholeTrace;
+        uint16_t *mInverterGap;
         uint32_t mWaitTimeout     = 0;
         uint32_t mWaitTimeout_min = 0;
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
