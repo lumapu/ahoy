@@ -377,18 +377,16 @@ class settings {
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
-            #if defined(ETHERNET)
-            memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #else /* defined(ETHERNET) */
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            #if !defined(ETHERNET)
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
                 snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
                 mCfg.sys.isHidden = false;
             }
-            #endif /* defined(ETHERNET) */
+            #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
