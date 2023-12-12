@@ -145,7 +145,7 @@ class Communication : public CommQueue<> {
                                     mWaitTimeout = millis() + 1000;
                                 }
                             }
-                            closeRequest(q, false, false);
+                            closeRequest(q, false);
                             break;
                         }
 
@@ -192,7 +192,7 @@ class Communication : public CommQueue<> {
                                     nextState = States::CHECK_PACKAGE;
                                 } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                     parseDevCtrl(p, q);
-                                    closeRequest(q, true, true);
+                                    closeRequest(q, true);
                                 } else if(IV_MI == q->iv->ivGen) {
                                     if(parseMiFrame(p, q))
                                         q->iv->curFrmCnt++;
@@ -206,10 +206,13 @@ class Communication : public CommQueue<> {
                             yield();
                         }
                         if(0 == q->attempts)
-                            closeRequest(q, false, true);
+                            closeRequest(q, false);
                         else {
-                            if(q->iv->ivGen != IV_MI)
+                            if(q->iv->ivGen != IV_MI) {
                                 mState = nextState;
+                                if(States::RESET == mState)
+                                    closeRequest(q, false);
+                            }
                             else {
                                 if(q->iv->miMultiParts < 6) {
                                     nextState = States::WAIT;
@@ -219,7 +222,7 @@ class Communication : public CommQueue<> {
                                         || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                         miComplete(q->iv);
                                     }
-                                    closeRequest(q, true, true);
+                                    closeRequest(q, true);
                                 }
 
                             }
@@ -272,7 +275,7 @@ class Communication : public CommQueue<> {
                         if(NULL != mCbPayload)
                             (mCbPayload)(q->cmd, q->iv);
 
-                        closeRequest(q, true, true);
+                        closeRequest(q, true);
                         break;
                 }
             });
@@ -384,7 +387,7 @@ class Communication : public CommQueue<> {
                     DBGPRINTLN(F("-> Fail"));
                     /*q->iv->radioStatistics.rxFail++; // got fragments but not complete response
                     cmdDone();*/
-                    closeRequest(q, false, false);
+                    closeRequest(q, false);
 
                 } else
                     DBGPRINTLN(F("-> complete retransmit"));
@@ -432,7 +435,7 @@ class Communication : public CommQueue<> {
                     DBGPRINTLN(F(" bytes"));
                 }
                 /*q->iv->radioStatistics.rxFail++;*/
-                closeRequest(q, false, false);
+                closeRequest(q, false);
 
                 return;
             }
@@ -465,12 +468,12 @@ class Communication : public CommQueue<> {
                 mState = States::WAIT;
             } else {
                 //add(q, true);
-                closeRequest(q, false, true);
+                closeRequest(q, false);
             }
         }
 
     private:
-        void closeRequest(const queue_s *q, bool crcPass, bool delCmd) {
+        void closeRequest(const queue_s *q, bool crcPass) {
             mHeu.evalTxChQuality(q->iv, crcPass, (4 - q->attempts), q->iv->curFrmCnt);
             if(crcPass)
                 q->iv->radioStatistics.rxSuccess++;

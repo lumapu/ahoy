@@ -52,16 +52,6 @@ class HmRadio : public Radio {
             mPrivacyMode = privacyMode;
             mPrintWholeTrace = printWholeTrace;
 
-            if(*mSerialDebug) {
-                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
-                DBGPRINT(String(CE_PIN));
-                DBGPRINT(F(", CS_PIN: "));
-                DBGPRINT(String(CS_PIN));
-                DBGPRINT(F(", SPI_SPEED: "));
-                DBGPRINT(String(SPI_SPEED));
-                DBGPRINTLN(F(")"));
-            }
-
             generateDtuSn();
             DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 

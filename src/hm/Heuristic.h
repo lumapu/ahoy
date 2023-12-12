@@ -120,11 +120,14 @@ class Heuristic {
         void printStatus(Inverter<> *iv) {
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("Radio infos:"));
-            for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
-                DBGPRINT(F(" "));
-                DBGPRINT(String(iv->heuristics.txRfQuality[i]));
+            if((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) {
+                for(uint8_t i = 0; i < RF_MAX_CHANNEL_ID; i++) {
+                    DBGPRINT(F(" "));
+                    DBGPRINT(String(iv->heuristics.txRfQuality[i]));
+                }
+                DBGPRINT(F(" |"));
             }
-            DBGPRINT(F(" | t: "));
+            DBGPRINT(F(" t: "));
             DBGPRINT(String(iv->radioStatistics.txCnt));
             DBGPRINT(F(", s: "));
             DBGPRINT(String(iv->radioStatistics.rxSuccess));

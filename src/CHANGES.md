@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.21 - 2023-12-12
+* fix ethernet save inverter parameters #886
+* fix ethernet OTA update #886
+* improved radio statistics, fixed heuristic output for HMS and HMT inverters
+
 ## 0.8.20 - 2023-12-12
 * improved HM communication #1259 #1249
 * fix `loadDefaults` for ethernet builds #1263

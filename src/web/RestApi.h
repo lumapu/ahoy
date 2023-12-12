@@ -50,9 +50,9 @@ class RestApi {
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
-            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
         }
@@ -72,6 +72,8 @@ class RestApi {
 
     private:
         void onApi(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, String("onApi: ") + String((uint16_t)request->method())); // 1 == Get, 3 == POST
+
             mHeapFree = ESP.getFreeHeap();
             #ifndef ESP32
             mHeapFreeBlk = ESP.getMaxFreeBlockSize();
@@ -120,6 +122,12 @@ class RestApi {
 
         void onApiPost(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, "onApiPost");
+            #if defined(ETHERNET)
+            // workaround for AsyncWebServer_ESP32_W5500, because it can't distinguish
+            // between HTTP_GET and HTTP_POST if both are registered
+            if(request->method() == HTTP_GET)
+                onApi(request);
+            #endif
         }
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
