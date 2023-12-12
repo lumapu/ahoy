@@ -67,16 +67,13 @@ typedef struct {
     bool darkMode;
     bool schedReboot;
 
-#if defined(ETHERNET)
-    // ethernet
-
-#else /* defined(ETHERNET) */
+#if !defined(ETHERNET)
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     char apPwd[PWD_LEN];
     bool isHidden;
-#endif /* defined(ETHERNET) */
+#endif /* !defined(ETHERNET) */
 
     cfgIp_t ip;
 } cfgSys_t;

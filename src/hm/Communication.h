@@ -51,6 +51,11 @@ class Communication : public CommQueue<> {
                 uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsResend) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT;
                 uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment || mIsResend)) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT;
 
+                /*if(mDebugState != mState) {
+                    DPRINT(DBG_INFO, F("State: "));
+                    DBGHEXLN((uint8_t)(mState));
+                    mDebugState = mState;
+                }*/
                 switch(mState) {
                     case States::RESET:
                         if(millis() < mWaitTimeout)
@@ -99,7 +104,7 @@ class Communication : public CommQueue<> {
                         break;
 
                     case States::WAIT:
-                        if(millis() > mWaitTimeout_min) {
+                        /*if(millis() > mWaitTimeout_min) {
                             if(mIsResend) { // we already have been through...
                                 mWaitTimeout = mWaitTimeout_min;
                             } else if(q->iv->mGotFragment) { // nothing received yet?
@@ -120,7 +125,7 @@ class Communication : public CommQueue<> {
                                 break;
                             }
 
-                        }
+                        }*/
                         if(millis() < mWaitTimeout)
                             return;
                         mState = States::CHECK_FRAMES;
@@ -200,7 +205,7 @@ class Communication : public CommQueue<> {
                             q->iv->radio->mBufCtrl.pop();
                             yield();
                         }
-                        if((0 == q->attempts) && (!q->iv->mGotFragment))
+                        if(0 == q->attempts)
                             closeRequest(q, false, true);
                         else {
                             if(q->iv->ivGen != IV_MI)
@@ -459,7 +464,7 @@ class Communication : public CommQueue<> {
                 mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
                 mState = States::WAIT;
             } else {
-                add(q, true);
+                //add(q, true);
                 closeRequest(q, false, true);
             }
         }
@@ -476,7 +481,7 @@ class Communication : public CommQueue<> {
             }
             mWaitTimeout = millis() + *mInverterGap;
 
-            cmdDone(delCmd);
+            cmdDone(q->delOnPop);
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
@@ -839,6 +844,8 @@ class Communication : public CommQueue<> {
         payloadListenerType mCbPayload = NULL;
         alarmListenerType mCbAlarm = NULL;
         Heuristic mHeu;
+
+        //States mDebugState = States::START;
 };
 
 #endif /*__COMMUNICATION_H__*/

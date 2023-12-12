@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.20 - 2023-12-12
+* improved HM communication #1259 #1249
+* fix `loadDefaults` for ethernet builds #1263
+* don't loop through radios which aren't in use #1264
+
 ## 0.8.19 - 2023-12-11
 * added ms to serial log
 * added (debug) option to configure gap between inverter requests
