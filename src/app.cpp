@@ -105,9 +105,11 @@ void app::setup() {
 void app::loop(void) {
     ah::Scheduler::loop();
 
-    mNrfRadio.loop();
+    if(mConfig->nrf.enabled)
+        mNrfRadio.loop();
     #if defined(ESP32)
-    mCmtRadio.loop();
+    if(mConfig->cmt.enabled)
+        mCmtRadio.loop();
     #endif
     mCommunication.loop();
 
