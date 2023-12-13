@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.22 - 2023-12-13
+* fix communication state-machine regarding zero export #1267
+
 ## 0.8.21 - 2023-12-12
 * fix ethernet save inverter parameters #886
 * fix ethernet OTA update #886

@@ -28,10 +28,6 @@ class Radio {
 
         virtual void loop(void) {};
 
-        bool get() {
-            return !mBufCtrl.empty();
-        }
-
         void handleIntr(void) {
             mIrqRcvd = true;
         }
