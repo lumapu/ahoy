@@ -78,10 +78,10 @@ class Heuristic {
                     if(RF_TX_TEST_CHAN_1ST_USE == ih->testChId) {
                         // switch back to original quality
                         ih->txRfQuality[ih->txRfChId] = ih->saveOldTestQuality;
-
-                        updateQuality(ih, RF_TX_CHAN_QUALITY_BAD);
-                        if(ih->testPeriodFailCnt < 0xff)
-                            ih->testPeriodFailCnt++;
+                    }
+                    updateQuality(ih, RF_TX_CHAN_QUALITY_BAD);
+                    if(ih->testPeriodFailCnt < 0xff) {
+                        ih->testPeriodFailCnt++;
                     }
                 }
             } else if(!ih->lastRxFragments && crcPass) {
