@@ -9,6 +9,7 @@
 #include <array>
 #include <functional>
 #include "hmInverter.h"
+#include "../utils/dbg.h"
 
 template <uint8_t N=100>
 class CommQueue {
@@ -27,6 +28,14 @@ class CommQueue {
 
         void chgCmd(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
             mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop, false);
+        }
+
+        uint8_t getFillState(void) {
+            return abs(mRdPtr - mWrPtr);
+        }
+
+        uint8_t getMaxFill(void) {
+            return N;
         }
 
     protected:

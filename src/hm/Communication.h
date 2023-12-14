@@ -45,8 +45,19 @@ class Communication : public CommQueue<> {
 
         void loop() {
             get([this](bool valid, const queue_s *q) {
-                if(!valid)
+                if(!valid) {
+                    if(mPrintSequenceDuration) {
+                        mPrintSequenceDuration = false;
+                        DPRINT(DBG_INFO, F("com loop duration: "));
+                        DBGPRINT(String(millis() - mLastEmptyQueueMillis));
+                        DBGPRINTLN(F("ms"));
+                        DBGPRINTLN(F("-----"));
+                    }
                     return; // empty
+                }
+                if(!mPrintSequenceDuration) // entry was added to the queue
+                    mLastEmptyQueueMillis = millis();
+                mPrintSequenceDuration = true;
 
                 uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT;
                 uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment || mIsRetransmit)) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT;
@@ -151,7 +162,6 @@ class Communication : public CommQueue<> {
                         mIsRetransmit = false;
                         mFirstTry = false; // for correct reset
 
-                        States nextState = States::RESET;
                         while(!q->iv->radio->mBufCtrl.empty()) {
                             packet_t *p = &q->iv->radio->mBufCtrl.front();
                             printRxInfo(q, p);
@@ -162,7 +172,6 @@ class Communication : public CommQueue<> {
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                     if(parseFrame(p))
                                         q->iv->curFrmCnt++;
-                                    nextState = States::CHECK_PACKAGE;
                                 } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                     if(parseDevCtrl(p, q))
                                         closeRequest(q, true);
@@ -179,16 +188,16 @@ class Communication : public CommQueue<> {
                             yield();
                         }
 
-                        if(0 == q->attempts)
+                        if(0 == q->attempts) {
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("no attempts left"));
                             closeRequest(q, false);
-                        else {
+                        } else {
                             if(q->iv->ivGen != IV_MI) {
-                                mState = nextState;
-                                if(States::RESET == nextState) // no valid package received
-                                    closeRequest(q, false);
+                                mState = States::CHECK_PACKAGE;
                             } else {
                                 if(q->iv->miMultiParts < 6) {
-                                    nextState = States::WAIT;
+                                    mState = States::WAIT;
                                 } else {
                                     if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
                                         || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
@@ -237,7 +246,7 @@ class Communication : public CommQueue<> {
                                 DBGPRINT(String(q->attempts));
                                 DBGPRINTLN(F(" attempts left)"));
                             }
-                            sendRetransmit(q, framnr-1);
+                            sendRetransmit(q, (framnr-1));
                             mIsRetransmit = true;
                             mlastTO_min = timeout_min;
                             return;
@@ -425,8 +434,11 @@ class Communication : public CommQueue<> {
             DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("Payload ("));
             DBGPRINT(String(len));
-            DBGPRINT(F("): "));
-            ah::dumpBuf(mPayload, len);
+            if(*mPrintWholeTrace) {
+                DBGPRINT(F("): "));
+                ah::dumpBuf(mPayload, len);
+            } else
+                DBGPRINTLN(F(")"));
 
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
@@ -496,7 +508,7 @@ class Communication : public CommQueue<> {
             mIsRetransmit           = false;
             mFirstTry           = false; // for correct reset
             mState              = States::RESET;
-            DBGPRINTLN("-----");
+            DBGPRINTLN(F("-----"));
         }
 
         inline void miHwDecode(packet_t *p, const queue_s *q) {
@@ -852,6 +864,8 @@ class Communication : public CommQueue<> {
         payloadListenerType mCbPayload = NULL;
         alarmListenerType mCbAlarm = NULL;
         Heuristic mHeu;
+        uint32_t mLastEmptyQueueMillis = 0;
+        bool mPrintSequenceDuration = false;
 
         //States mDebugState = States::START;
 };

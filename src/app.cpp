@@ -123,7 +123,7 @@ void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
-    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -275,7 +275,7 @@ void app::tickIVCommunication(void) {
         onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
 
     if (zeroValues) // at least one inverter
-        once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
+        once(std::bind(&app::tickZeroValues, this), mConfig->inst.sendInterval, "tZero");
 }
 
 //-----------------------------------------------------------------------------
@@ -334,6 +334,16 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
+    uint8_t fill = mCommunication.getFillState();
+    uint8_t max = mCommunication.getMaxFill();
+    if((max-MAX_NUM_INVERTERS) <= fill) {
+        DPRINT(DBG_WARN, F("send queue almost full, consider to increase interval, "));
+        DBGPRINT(String(fill));
+        DBGPRINT(F(" of "));
+        DBGPRINT(String(max));
+        DBGPRINTLN(F("entries used"));
+    }
+
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL == iv)

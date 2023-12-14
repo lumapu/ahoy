@@ -91,7 +91,11 @@ class app : public IApp, public ah::Scheduler {
         }
 
         uint32_t getTimestamp() {
-            return Scheduler::getTimestamp();
+            return Scheduler::mTimestamp;
+        }
+
+        uint64_t getTimestampMs() {
+            return ((uint64_t)Scheduler::mTimestamp * 1000) + (uint64_t)Scheduler::mTsMillis;
         }
 
         bool saveSettings(bool reboot) {

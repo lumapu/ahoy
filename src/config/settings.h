@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      4
+#define CONFIG_VERSION      5
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -80,7 +80,6 @@ typedef struct {
 
 typedef struct {
     bool enabled;
-    uint16_t sendInterval;
     uint8_t pinCs;
     uint8_t pinCe;
     uint8_t pinIrq;
@@ -150,6 +149,7 @@ typedef struct {
     bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
+    uint16_t sendInterval;
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
@@ -388,7 +388,6 @@ class settings {
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
-            mCfg.nrf.sendInterval      = SEND_INTERVAL;
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
             mCfg.nrf.pinIrq            = DEF_NRF_IRQ_PIN;
@@ -433,6 +432,7 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
+            mCfg.inst.sendInterval     = SEND_INTERVAL;
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
@@ -478,10 +478,14 @@ class settings {
                     mCfg.inst.iv[i].add2Total   = true;
                 }
                 if(mCfg.configVersion < 3) {
-                    mCfg.serial.printWholeTrace = true;
+                    mCfg.serial.printWholeTrace = false;
                 }
                 if(mCfg.configVersion < 4) {
                     mCfg.inst.gapMs = 2000;
+                }
+                if(mCfg.configVersion < 5) {
+                    mCfg.inst.sendInterval = SEND_INTERVAL;
+                    mCfg.serial.printWholeTrace = false;
                 }
             }
         }
@@ -539,7 +543,6 @@ class settings {
 
         void jsonNrf(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("intvl")]     = mCfg.nrf.sendInterval;
                 obj[F("cs")]        = mCfg.nrf.pinCs;
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
@@ -548,7 +551,6 @@ class settings {
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
                 obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
-                getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
                 getVal<uint8_t>(obj, F("cs"), &mCfg.nrf.pinCs);
                 getVal<uint8_t>(obj, F("ce"), &mCfg.nrf.pinCe);
                 getVal<uint8_t>(obj, F("irq"), &mCfg.nrf.pinIrq);
@@ -707,6 +709,7 @@ class settings {
 
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
+                obj[F("intvl")]          = mCfg.inst.sendInterval;
                 obj[F("en")] = (bool)mCfg.inst.enabled;
                 obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
@@ -717,6 +720,7 @@ class settings {
                 obj[F("gap")]            = mCfg.inst.gapMs;
             }
             else {
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);

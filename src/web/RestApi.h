@@ -389,7 +389,7 @@ class RestApi {
                     obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                 }
             }
-            obj[F("interval")]          = String(mConfig->nrf.sendInterval);
+            obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
@@ -556,16 +556,20 @@ class RestApi {
 
         void getRadioCmtInfo(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->cmt.enabled;
-            obj[F("isconnected")] = mRadioCmt->isChipConnected();
-            obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+            if(mConfig->cmt.enabled) {
+                obj[F("isconnected")] = mRadioCmt->isChipConnected();
+                obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+            }
         }
         #endif
 
         void getRadioNrf(JsonObject obj) {
-            obj[F("en")]          = (bool) mConfig->nrf.enabled;
-            obj[F("isconnected")] = mRadioNrf->isChipConnected();
-            obj[F("dataRate")]    = mRadioNrf->getDataRate();
-            obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+            obj[F("en")] = (bool) mConfig->nrf.enabled;
+            if(mConfig->nrf.enabled) {
+                obj[F("isconnected")] = mRadioNrf->isChipConnected();
+                obj[F("dataRate")]    = mRadioNrf->getDataRate();
+                obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+            }
         }
 
         void getSerial(JsonObject obj) {
@@ -639,8 +643,6 @@ class RestApi {
             JsonArray warn = obj.createNestedArray(F("warnings"));
             if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            else if(!mRadioNrf->isPVariant() && mConfig->nrf.enabled)
-                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
             if(mApp->getRebootRequestState())
@@ -674,7 +676,7 @@ class RestApi {
 
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("refresh")] = mConfig->nrf.sendInterval;
+            obj[F("refresh")] = mConfig->inst.sendInterval;
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);

@@ -210,7 +210,7 @@ class Web {
             if (mSerialAddTime) {
                 if ((13 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                     if (mApp->getTimestamp() > 0) {
-                        strncpy(&mSerialBuf[mSerialBufFill], ah::getTimeStrMs(mApp->getTimestamp() + mApp->getTimezoneOffset()).c_str(), 12);
+                        strncpy(&mSerialBuf[mSerialBufFill], ah::getTimeStrMs(mApp->getTimestampMs() + mApp->getTimezoneOffset() * 1000).c_str(), 12);
                         mSerialBuf[mSerialBufFill+12] = ' ';
                         mSerialBufFill += 13;
                     }
@@ -496,7 +496,7 @@ class Web {
             ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
             if (request->arg("invInterval") != "")
-                mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
+                mConfig->inst.sendInterval = request->arg("invInterval").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
@@ -529,8 +529,6 @@ class Web {
             }
 
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
-
-            // cmt
             mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
 
             // ntp

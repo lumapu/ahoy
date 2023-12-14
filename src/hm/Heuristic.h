@@ -54,7 +54,7 @@ class Heuristic {
                     ih->txRfQuality[ih->testChId] = ih->txRfQuality[ih->txRfChId];
                     ih->txRfChId = ih->testChId;
                     ih->testChId = RF_TX_TEST_CHAN_1ST_USE; // mark the chan as a test and as 1st use during new test period
-                    DPRINTLN(DBG_INFO, "Test CH " + String(id2Ch(ih->txRfChId)));
+                    DPRINTLN(DBG_INFO, F("Test CH ") + String(id2Ch(ih->txRfChId)));
                 }
 
                 // start new test period
@@ -72,17 +72,29 @@ class Heuristic {
         void evalTxChQuality(Inverter<> *iv, bool crcPass, uint8_t retransmits, uint8_t rxFragments) {
             HeuristicInv *ih = &iv->heuristics;
 
+            #if (DBG_DEBUG == DEBUG_LEVEL)
+            DPRINT(DBG_DEBUG, "eval ");
+            DBGPRINT(String(crcPass));
+            DBGPRINT(", ");
+            DBGPRINT(String(retransmits));
+            DBGPRINT(", ");
+            DBGPRINT(String(rxFragments));
+            DBGPRINT(", ");
+            DBGPRINTLN(String(ih->lastRxFragments));
+            #endif
+
             if(ih->lastRxFragments == rxFragments) {
-                // nothing received: send probably lost
-                if(!retransmits || isNewTxCh(ih)) {
+                if(crcPass)
+                    updateQuality(ih, RF_TX_CHAN_QUALITY_GOOD);
+                else if(!retransmits || isNewTxCh(ih)) { // nothing received: send probably lost
                     if(RF_TX_TEST_CHAN_1ST_USE == ih->testChId) {
                         // switch back to original quality
+                        DPRINTLN(DBG_INFO, F("Test failed (-2)"));
                         ih->txRfQuality[ih->txRfChId] = ih->saveOldTestQuality;
-
-                        updateQuality(ih, RF_TX_CHAN_QUALITY_BAD);
-                        if(ih->testPeriodFailCnt < 0xff)
-                            ih->testPeriodFailCnt++;
                     }
+                    updateQuality(ih, RF_TX_CHAN_QUALITY_BAD);
+                    if(ih->testPeriodFailCnt < 0xff)
+                        ih->testPeriodFailCnt++;
                 }
             } else if(!ih->lastRxFragments && crcPass) {
                 if(!retransmits || isNewTxCh(ih)) {
@@ -103,8 +115,9 @@ class Heuristic {
                     // graceful evaluation for big inverters that have to send 4 answer packets
                     updateQuality(ih, RF_TX_CHAN_QUALITY_OK);
                 } else if((rxFragments - ih->lastRxFragments) < 2) {
-                    if(RF_TX_TEST_CHAN_1ST_USE == ih->txRfChId) {
+                    if(RF_TX_TEST_CHAN_1ST_USE == ih->testChId) {
                         // switch back to original quality
+                        DPRINTLN(DBG_INFO, F("Test failed (-1)"));
                         ih->txRfQuality[ih->txRfChId] = ih->saveOldTestQuality;
                     }
                     updateQuality(ih, RF_TX_CHAN_QUALITY_LOW);

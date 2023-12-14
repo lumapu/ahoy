@@ -1,5 +1,14 @@
 # Development Changes
 
+## 0.8.23 - 2023-12-14
+* heuristics fix #1269 #1270
+* moved `sendInterval` in settings, **important:** *will be reseted to 15s after update to this version*
+* try to prevent access to radio classes if they are not activated
+* fixed millis in serial log
+* changed 'print whole trace' = `false` as default
+* added communication loop duration in [ms] to serial console
+* don't print Hex-Payload if 'print whole trace' == `false`
+
 ## 0.8.22 - 2023-12-13
 * fix communication state-machine regarding zero export #1267
 
