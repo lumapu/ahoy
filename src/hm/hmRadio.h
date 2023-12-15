@@ -104,6 +104,41 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
+        void prepareReceive(Inverter<> *iv, uint8_t cmd, bool singleframe = false) {
+            if (singleframe) {
+                iv->mRxTmoOuterLoop = 65; // SINGLEFR_TIMEOUT
+                iv->lastCmd = 0xFF;
+                return;
+            }
+
+            if ( (iv->lastCmd == cmd) || ((iv->ivGen == IV_MI) && (iv->lastCmd != 0xFF)) )
+                return; // nothing to be changed....
+
+            iv->lastCmd = cmd;
+            if (iv->ivGen != IV_MI) {
+                if (cmd == RealTimeRunData_Debug) {
+                    if (iv->type == INV_TYPE_4CH) {
+                        iv->mRxChannels = 3;
+                        iv->mRxTmoOuterLoop    = 300;
+                        iv->mRxTmoInnerLoop    = 5110;
+                    } else {
+                        iv->mRxChannels = 2;
+                        iv->mRxTmoOuterLoop    = 250;
+                        iv->mRxTmoInnerLoop    = 10220;
+                    }
+                } else { //3rd gen defaults
+                    iv->mRxChannels = 3;
+                    iv->mRxTmoOuterLoop    = 500;
+                    iv->mRxTmoInnerLoop    = 5110;
+                }
+            } else { // 2nd gen defaults
+                iv->mRxChannels = 2;
+                iv->mRxTmoOuterLoop    = 250;
+                iv->mRxTmoInnerLoop    = 5110;
+            }
+        }
+
+
         void loop(void) {
             if (!mIrqRcvd)
                 return; // nothing to do
@@ -121,8 +156,8 @@ class HmRadio : public Radio {
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            while ((millis() - loopMillis) < 400) {
-                while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
+            while ((millis() - loopMillis) < mLastIv->mRxTmoOuterLoop) {
+                while ((micros() - startMicros) < mLastIv->mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
@@ -133,9 +168,16 @@ class HmRadio : public Radio {
                     yield();
                 }
                 // switch to next RX channel
-                if(++mRxChIdx >= RF_CHANNELS)
+                 /*if(++mRxChIdx >= RF_CHANNELS)
+                    mRxChIdx = 0;*/
+
+                if(++mRxChIdx >= mLastIv->mRxChannels)
                     mRxChIdx = 0;
-                mNrf24->setChannel(mRfChLst[mRxChIdx]);
+
+                uint8_t nextRxCh = (mRxChIdx + mTxChIdx + 1) % RF_MAX_CHANNEL_ID;
+
+                //mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                mNrf24->setChannel(mRfChLst[nextRxCh]);
                 startMicros = micros();
             }
             // not finished but time is over
@@ -337,8 +379,8 @@ class HmRadio : public Radio {
 
         uint64_t DTU_RADIO_ID;
         uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
-        uint8_t mTxChIdx = 0;
-        uint8_t mRxChIdx = 0;
+        uint8_t mTxChIdx    = 0;
+        uint8_t mRxChIdx    = 0;
         bool    mGotLastMsg = false;
         uint32_t mMillis;
 

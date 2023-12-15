@@ -86,6 +86,9 @@ class Communication : public CommQueue<> {
                         if(NULL == q->iv->radio)
                             cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
+
+                        q->iv->radio->prepareReceive(q->iv, q->cmd, false);
+
                         break;
 
                     case States::START:
@@ -246,6 +249,9 @@ class Communication : public CommQueue<> {
                                 DBGPRINT(String(q->attempts));
                                 DBGPRINTLN(F(" attempts left)"));
                             }
+                            if (!mIsRetransmit)
+                                q->iv->radio->prepareReceive(q->iv, q->cmd, true);
+
                             sendRetransmit(q, (framnr-1));
                             mIsRetransmit = true;
                             mlastTO_min = timeout_min;
@@ -505,7 +511,7 @@ class Communication : public CommQueue<> {
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
-            mIsRetransmit           = false;
+            mIsRetransmit       = false;
             mFirstTry           = false; // for correct reset
             mState              = States::RESET;
             DBGPRINTLN(F("-----"));
