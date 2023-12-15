@@ -199,6 +199,7 @@ class Communication : public CommQueue<> {
                             if(q->iv->ivGen != IV_MI) {
                                 mState = States::CHECK_PACKAGE;
                             } else {
+                                bool fastNext = true;
                                 if(q->iv->miMultiParts < 6) {
                                     mState = States::WAIT;
                                 } else {
@@ -207,8 +208,16 @@ class Communication : public CommQueue<> {
                                         || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                         || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                         miComplete(q->iv);
+                                        fastNext = false;
                                     }
                                     closeRequest(q, true);
+                                    if(fastNext) {
+                                        // immediately send out regular production data request
+                                        // and reset mWaitTimeout
+                                        mWaitTimeout = mWaitTimeout - *mInverterGap;
+                                        chgCmd((q->iv->type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1);
+                                        mState = States::RESET;
+                                    }
                                 }
 
                             }
@@ -264,7 +273,20 @@ class Communication : public CommQueue<> {
                         if(NULL != mCbPayload)
                             (mCbPayload)(q->cmd, q->iv);
 
+                        bool fastNext = false;
+                        if ((q->cmd < 11) || (q->cmd > 18))
+                            fastNext = true;
+
                         closeRequest(q, true);
+
+                        if(fastNext) {
+                            // immediately send out regular production data request
+                            // and reset mWaitTimeout
+                            mWaitTimeout = mWaitTimeout - *mInverterGap;
+                            chgCmd(RealTimeRunData_Debug);
+                            mState = States::RESET;
+                        }
+
                         break;
                 }
             });
