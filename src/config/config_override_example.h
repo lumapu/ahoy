@@ -35,4 +35,13 @@
 // #define ENABLE_PROMETHEUS_EP
 
 
+// to enable the syslog logging (will disable web-serial)
+//#define ENABLE_SYSLOG
+#ifdef ENABLE_SYSLOG
+#define SYSLOG_HOST "<hostname-or-ip-address-of-syslog-server>"
+#define SYSLOG_APP  "ahoy"
+#define SYSLOG_FACILITY FAC_USER
+#define SYSLOG_PORT 514
+#endif
+
 #endif /*__CONFIG_OVERRIDE_H__*/

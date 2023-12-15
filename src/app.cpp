@@ -82,6 +82,9 @@ void app::setup() {
 
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
+    #ifdef ENABLE_SYSLOG
+    mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
+    #endif
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
