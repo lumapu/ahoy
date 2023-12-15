@@ -108,6 +108,7 @@ class HmRadio : public Radio {
             if (singleframe) {
                 iv->mRxTmoOuterLoop = 65; // SINGLEFR_TIMEOUT
                 iv->lastCmd = 0xFF;
+                //DPRINTLN(DBG_INFO, F("1 frm"));
                 return;
             }
 
@@ -121,20 +122,24 @@ class HmRadio : public Radio {
                         iv->mRxChannels = 3;
                         iv->mRxTmoOuterLoop    = 300;
                         iv->mRxTmoInnerLoop    = 5110;
+                        //DPRINTLN(DBG_INFO, F("4ch data"));
                     } else {
                         iv->mRxChannels = 2;
                         iv->mRxTmoOuterLoop    = 250;
                         iv->mRxTmoInnerLoop    = 10220;
+                        //DPRINTLN(DBG_INFO, F("1/2ch data"));
                     }
                 } else { //3rd gen defaults
                     iv->mRxChannels = 3;
                     iv->mRxTmoOuterLoop    = 500;
                     iv->mRxTmoInnerLoop    = 5110;
+                    //DPRINTLN(DBG_INFO, F("3rd gen default"));
                 }
             } else { // 2nd gen defaults
                 iv->mRxChannels = 2;
                 iv->mRxTmoOuterLoop    = 250;
                 iv->mRxTmoInnerLoop    = 5110;
+                //DPRINTLN(DBG_INFO, F("2nd gen default"));
             }
         }
 
@@ -171,10 +176,11 @@ class HmRadio : public Radio {
                  /*if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;*/
 
+                //if(++mRxChIdx >= mLastIv->mRxChannels)
                 if(++mRxChIdx >= mLastIv->mRxChannels)
                     mRxChIdx = 0;
 
-                uint8_t nextRxCh = (mRxChIdx + mTxChIdx + 1) % RF_MAX_CHANNEL_ID;
+                uint8_t nextRxCh = (mRxChIdx + mTxChIdx + 4) % RF_MAX_CHANNEL_ID; // let 3 channels in shifting out; might cause problems for tx channel 75, see Oberfritze remark to his array
 
                 //mNrf24->setChannel(mRfChLst[mRxChIdx]);
                 mNrf24->setChannel(mRfChLst[nextRxCh]);

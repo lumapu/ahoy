@@ -202,6 +202,7 @@ class Communication : public CommQueue<> {
                                 if(q->iv->miMultiParts < 6) {
                                     mState = States::WAIT;
                                 } else {
+                                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
                                     if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
                                         || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                         || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
@@ -686,19 +687,19 @@ class Communication : public CommQueue<> {
                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
+                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), 1);
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
                 } else {
                     q->iv->miMultiParts = 7; // indicate we are ready
-                    //miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
                 //use also miMultiParts here for better statistics?
                 //mHeu.setGotFragment(q->iv);
+                mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
                 q->iv->miMultiParts += 6; // indicate we are ready
-                //miComplete(q->iv);
             }
         }
 
