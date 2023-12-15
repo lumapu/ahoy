@@ -82,9 +82,9 @@ class Web {
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
 
-            mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/update",         HTTP_POST, std::bind(&Web::showUpdate,     this, std::placeholders::_1),
                                                   std::bind(&Web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+            mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
@@ -208,10 +208,11 @@ class Web {
 
             msg.replace("\r\n", "<rn>");
             if (mSerialAddTime) {
-                if ((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
+                if ((13 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                     if (mApp->getTimestamp() > 0) {
-                        strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
-                        mSerialBufFill += 9;
+                        strncpy(&mSerialBuf[mSerialBufFill], ah::getTimeStrMs(mApp->getTimestampMs() + mApp->getTimezoneOffset() * 1000).c_str(), 12);
+                        mSerialBuf[mSerialBufFill+12] = ' ';
+                        mSerialBufFill += 13;
                     }
                 } else {
                     mSerialBufFill = 0;
@@ -272,6 +273,13 @@ class Web {
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
+            #if defined(ETHERNET)
+            // workaround for AsyncWebServer_ESP32_W5500, because it can't distinguish
+            // between HTTP_GET and HTTP_POST if both are registered
+            if(request->method() == HTTP_GET)
+                onUpdate(request);
+            #endif
+
             bool reboot = (!Update.hasError());
 
             String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
@@ -488,13 +496,14 @@ class Web {
             ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
             if (request->arg("invInterval") != "")
-                mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
+                mConfig->inst.sendInterval = request->arg("invInterval").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout
@@ -520,8 +529,6 @@ class Web {
             }
 
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
-
-            // cmt
             mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
 
             // ntp
@@ -585,11 +592,12 @@ class Web {
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
+            mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
-            mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
+            mConfig->plugin.display.screenSaver = request->arg("disp_screensaver").toInt();
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
             mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
@@ -599,6 +607,7 @@ class Web {
             mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
             mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.pirPin     = request->arg("pir_pin").toInt();
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 

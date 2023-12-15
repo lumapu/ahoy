@@ -29,7 +29,7 @@ class esp32_3wSpi {
             mInitialized = false;
         }
 
-        void setup(uint8_t pinSclk = DEF_CMT_SCLK, uint8_t pinSdio = DEF_CMT_SDIO, uint8_t pinCsb = DEF_CMT_CSB, uint8_t pinFcsb = DEF_CMT_FCSB) {
+        void init(uint8_t pinSdio = DEF_CMT_SDIO, uint8_t pinSclk = DEF_CMT_SCLK, uint8_t pinCsb = DEF_CMT_CSB, uint8_t pinFcsb = DEF_CMT_FCSB) {
             paramLock = xSemaphoreCreateMutex();
             spi_bus_config_t buscfg = {
                 .mosi_io_num = pinSdio,

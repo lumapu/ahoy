@@ -1,5 +1,71 @@
 # Development Changes
 
+## 0.8.23 - 2023-12-14
+* heuristics fix #1269 #1270
+* moved `sendInterval` in settings, **important:** *will be reseted to 15s after update to this version*
+* try to prevent access to radio classes if they are not activated
+* fixed millis in serial log
+* changed 'print whole trace' = `false` as default
+* added communication loop duration in [ms] to serial console
+* don't print Hex-Payload if 'print whole trace' == `false`
+
+## 0.8.22 - 2023-12-13
+* fix communication state-machine regarding zero export #1267
+
+## 0.8.21 - 2023-12-12
+* fix ethernet save inverter parameters #886
+* fix ethernet OTA update #886
+* improved radio statistics, fixed heuristic output for HMS and HMT inverters
+
+## 0.8.20 - 2023-12-12
+* improved HM communication #1259 #1249
+* fix `loadDefaults` for ethernet builds #1263
+* don't loop through radios which aren't in use #1264
+
+## 0.8.19 - 2023-12-11
+* added ms to serial log
+* added (debug) option to configure gap between inverter requests
+
+## 0.8.18 - 2023-12-10
+* copied even more from the original heuristic code #1259
+* added mDNS support #1262
+
+## 0.8.17 - 2023-12-10
+* possible fix of NRF with opendtufusion (without ETH)
+* small fix in heuristics (if conditions made assignment not comparisson)
+
+## 0.8.16 - 2023-12-09
+* fix crash if NRF is not enabled
+* updated heuristic #1080 #1259
+* fix compile opendtufusion fusion ethernet
+
+## 0.8.15 - 2023-12-09
+* added support for opendtufusion fusion ethernet shield #886
+* fixed range of HMS / HMT frequencies to 863 to 870 MHz #1238
+* changed `yield effiency` per default to `1.0` #1243
+* small heuristics improvements #1258
+* added class to combine inverter heuristics fields #1258
+
+## 0.8.14 - 2023-12-07
+* fixed decimal points for temperature (WebUI) PR #1254 #1251
+* fixed inverter statemachine available state PR #1252 #1253
+* fixed NTP update and sunrise calculation #1240 #886
+* display improvments #1248 #1247
+* fixed overflow in `hmRadio.h` #1244
+
+## 0.8.13 - 2023-11-28
+* merge PR #1239 symbolic layout for OLED 128x64 + motion senser functionality
+* fix MqTT IP addr for ETH connections PR #1240
+* added ethernet build for fusion board, not tested so far
+
+## 0.8.12 - 2023-11-20
+* added button `copy to clipboard` to `/serial`
+
+## 0.8.11 - 2023-11-20
+* improved communication, thx @rejoe2
+* improved heuristics, thx @rejoe2, @Oberfritze
+* added option to strip payload of frames to significant area
+
 ## 0.8.10 - 2023-11-19
 * fix Mi and HM inverter communication #1235
 * added privacy mode option #1211

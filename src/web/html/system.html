@@ -50,7 +50,8 @@
                 if(obj.radioNrf.en) {
                     lines = [
                         tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
-                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps")
+                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps"),
+                        tr("DTU Radio ID", obj.radioNrf.sn)
                     ];
                 } else
                     lines = [tr("NRF24L01", badge(false, "not enabled"))];
@@ -64,7 +65,10 @@
 
                 /*IF_ESP32*/
                 if(obj.radioCmt.en) {
-                    cmt = [tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected"))];
+                    cmt = [
+                        tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected")),
+                        tr("DTU Radio ID", obj.radioCmt.sn)
+                    ];
                 } else
                     cmt = [tr("CMT2300A", badge(false, "not enabled"))];
 

@@ -47,12 +47,12 @@ class RestApi {
             mSys      = sys;
             mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
             #if defined(ESP32)
-            mRadioCmt = (CmtRadio<esp32_3wSpi>*)mApp->getRadioObj(false);
+            mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
-            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
         }
@@ -72,6 +72,8 @@ class RestApi {
 
     private:
         void onApi(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, String("onApi: ") + String((uint16_t)request->method())); // 1 == Get, 3 == POST
+
             mHeapFree = ESP.getFreeHeap();
             #ifndef ESP32
             mHeapFreeBlk = ESP.getMaxFreeBlockSize();
@@ -120,6 +122,12 @@ class RestApi {
 
         void onApiPost(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, "onApiPost");
+            #if defined(ETHERNET)
+            // workaround for AsyncWebServer_ESP32_W5500, because it can't distinguish
+            // between HTTP_GET and HTTP_POST if both are registered
+            if(request->method() == HTTP_GET)
+                onApi(request);
+            #endif
         }
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
@@ -381,7 +389,7 @@ class RestApi {
                     obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                 }
             }
-            obj[F("interval")]          = String(mConfig->nrf.sendInterval);
+            obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
@@ -389,6 +397,7 @@ class RestApi {
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
+            obj[F("gap")]               = mConfig->inst.gapMs;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -563,21 +572,27 @@ class RestApi {
 
         void getRadioCmtInfo(JsonObject obj) {
             obj[F("en")] = (bool) mConfig->cmt.enabled;
-            obj[F("isconnected")] = mRadioCmt->isConnected();
+            if(mConfig->cmt.enabled) {
+                obj[F("isconnected")] = mRadioCmt->isChipConnected();
+                obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+            }
         }
         #endif
 
         void getRadioNrf(JsonObject obj) {
-            obj[F("en")]          = (bool) mConfig->nrf.enabled;
-            obj[F("isconnected")] = mRadioNrf->isChipConnected();
-            obj[F("dataRate")]    = mRadioNrf->getDataRate();
-            //obj[F("isPVariant")]  = mRadioNrf->isPVariant();
+            obj[F("en")] = (bool) mConfig->nrf.enabled;
+            if(mConfig->nrf.enabled) {
+                obj[F("isconnected")] = mRadioNrf->isChipConnected();
+                obj[F("dataRate")]    = mRadioNrf->getDataRate();
+                obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+            }
         }
 
         void getSerial(JsonObject obj) {
             obj[F("show_live_data")] = mConfig->serial.showIv;
             obj[F("debug")]          = mConfig->serial.debug;
             obj[F("priv")]           = mConfig->serial.privacyLog;
+            obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
         }
 
         void getStaticIp(JsonObject obj) {
@@ -592,7 +607,7 @@ class RestApi {
         void getDisplay(JsonObject obj) {
             obj[F("disp_typ")]     = (uint8_t)mConfig->plugin.display.type;
             obj[F("disp_pwr")]     = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
-            obj[F("disp_pxshift")] = (bool)mConfig->plugin.display.pxShift;
+            obj[F("disp_screensaver")] = (uint8_t)mConfig->plugin.display.screenSaver;
             obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
             obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
             obj[F("disp_clk")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
@@ -601,6 +616,7 @@ class RestApi {
             obj[F("disp_dc")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
             obj[F("disp_rst")]     = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
             obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
+            obj[F("pir_pin")]      =  mConfig->plugin.display.pirPin;
         }
 
         void getMqttInfo(JsonObject obj) {
@@ -643,8 +659,6 @@ class RestApi {
             JsonArray warn = obj.createNestedArray(F("warnings"));
             if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            else if(!mRadioNrf->isPVariant() && mConfig->nrf.enabled)
-                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
             if(mApp->getRebootRequestState())
@@ -682,7 +696,7 @@ class RestApi {
 
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("refresh")] = mConfig->nrf.sendInterval;
+            obj[F("refresh")] = mConfig->inst.sendInterval;
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -788,7 +802,7 @@ class RestApi {
         HMSYSTEM *mSys;
         HmRadio<> *mRadioNrf;
         #if defined(ESP32)
-        CmtRadio<esp32_3wSpi> *mRadioCmt;
+        CmtRadio<> *mRadioCmt;
         #endif
         AsyncWebServer *mSrv;
         settings_t *mConfig;

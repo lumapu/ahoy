@@ -9,6 +9,10 @@
 #include <RF24.h>
 #include "SPI.h"
 #include "radio.h"
+#include "../config/config.h"
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+#include "nrfHal.h"
+#endif
 
 #define SPI_SPEED           1000000
 
@@ -28,66 +32,72 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN, uint32_t DTU_SN = 0x81001765>
 class HmRadio : public Radio {
     public:
-        HmRadio() : mNrf24(CE_PIN, CS_PIN, SPI_SPEED) {
+        HmRadio() {
             mDtuSn   = DTU_SN;
             mIrqRcvd = false;
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+            mNrf24.reset(new RF24());
+            #else
+            mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
+            #endif
         }
         ~HmRadio() {}
 
-        void setup(bool *serialDebug, bool *privacyMode, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
             DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
+
             pinMode(irq, INPUT_PULLUP);
 
             mSerialDebug = serialDebug;
             mPrivacyMode = privacyMode;
-
-            if(*mSerialDebug) {
-                DPRINT(DBG_VERBOSE, F("hmRadio.h : HmRadio():mNrf24(CE_PIN: "));
-                DBGPRINT(String(CE_PIN));
-                DBGPRINT(F(", CS_PIN: "));
-                DBGPRINT(String(CS_PIN));
-                DBGPRINT(F(", SPI_SPEED: "));
-                DBGPRINT(String(SPI_SPEED));
-                DBGPRINTLN(F(")"));
-            }
+            mPrintWholeTrace = printWholeTrace;
 
             generateDtuSn();
             DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
-                #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
-                    mSpi = new SPIClass(HSPI);
+                #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+                    mNrfHal.init(mosi, miso, sclk, cs, ce);
+                    mNrf24.reset(new RF24(&mNrfHal));
                 #else
-                    mSpi = new SPIClass(VSPI);
+                    #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+                        mSpi.reset(new SPIClass(HSPI));
+                    #else
+                        mSpi.reset(new SPIClass(VSPI));
+                    #endif
+                    mSpi->begin(sclk, miso, mosi, cs);
                 #endif
-                mSpi->begin(sclk, miso, mosi, cs);
             #else
                 //the old ESP82xx cannot freely place their SPI pins
-                mSpi = new SPIClass();
+                mSpi.reset(new SPIClass());
                 mSpi->begin();
             #endif
 
-            mNrf24.begin(mSpi, ce, cs);
-            mNrf24.setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+                mNrf24->begin();
+            #else
+                mNrf24->begin(mSpi.get(), ce, cs);
+            #endif
+            mNrf24->setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
 
-            mNrf24.setChannel(mRfChLst[mRxChIdx]);
-            mNrf24.startListening();
-            mNrf24.setDataRate(RF24_250KBPS);
-            mNrf24.setAutoAck(true);
-            mNrf24.enableDynamicAck();
-            mNrf24.enableDynamicPayloads();
-            mNrf24.setCRCLength(RF24_CRC_16);
-            mNrf24.setAddressWidth(5);
-            mNrf24.openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
+            mNrf24->setChannel(mRfChLst[mRxChIdx]);
+            mNrf24->startListening();
+            mNrf24->setDataRate(RF24_250KBPS);
+            mNrf24->setAutoAck(true);
+            mNrf24->enableDynamicAck();
+            mNrf24->enableDynamicPayloads();
+            mNrf24->setCRCLength(RF24_CRC_16);
+            mNrf24->setAddressWidth(5);
+            mNrf24->openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
 
             // enable all receiving interrupts
-            mNrf24.maskIRQ(false, false, false);
+            mNrf24->maskIRQ(false, false, false);
 
-            mNrf24.setPALevel(1); // low is default
+            mNrf24->setPALevel(1); // low is default
 
-            if(mNrf24.isChipConnected()) {
+            if(mNrf24->isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
-                mNrf24.printPrettyDetails();
+                mNrf24->printPrettyDetails();
                 DPRINT(DBG_INFO, F("DTU_SN: 0x"));
                 DBGPRINTLN(String(mDtuSn, HEX));
             } else
@@ -99,22 +109,20 @@ class HmRadio : public Radio {
                 return; // nothing to do
             mIrqRcvd = false;
             bool tx_ok, tx_fail, rx_ready;
-            mNrf24.whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
-            mNrf24.flush_tx();                              // empty TX FIFO
+            mNrf24->whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
+            mNrf24->flush_tx();                              // empty TX FIFO
 
             // start listening
-            //mNrf24.setChannel(23);
-            //mRxChIdx = 0;
-            mNrf24.setChannel(mRfChLst[mRxChIdx]);
-            mNrf24.startListening();
+            mNrf24->setChannel(mRfChLst[mRxChIdx]);
+            mNrf24->startListening();
 
             if(NULL == mLastIv) // prevent reading on NULL object!
                 return;
 
-            uint32_t startMicros = micros() + 5110;
-            uint32_t loopMillis = millis() + 400;
-            while (millis() < loopMillis) {
-                while (micros() < startMicros) {  // listen (4088us or?) 5110us to each channel
+            uint32_t startMicros = micros();
+            uint32_t loopMillis = millis();
+            while ((millis() - loopMillis) < 400) {
+                while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
@@ -127,8 +135,8 @@ class HmRadio : public Radio {
                 // switch to next RX channel
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
-                mNrf24.setChannel(mRfChLst[mRxChIdx]);
-                startMicros = micros() + 5110;
+                mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                startMicros = micros();
             }
             // not finished but time is over
             if(++mRxChIdx >= RF_CHANNELS)
@@ -139,7 +147,7 @@ class HmRadio : public Radio {
 
         bool isChipConnected(void) {
             //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:isChipConnected"));
-            return mNrf24.isChipConnected();
+            return mNrf24->isChipConnected();
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
@@ -228,31 +236,31 @@ class HmRadio : public Radio {
         }
 
         uint8_t getDataRate(void) {
-            if(!mNrf24.isChipConnected())
+            if(!mNrf24->isChipConnected())
                 return 3; // unknown
-            return mNrf24.getDataRate();
+            return mNrf24->getDataRate();
         }
 
         bool isPVariant(void) {
-            return mNrf24.isPVariant();
+            return mNrf24->isPVariant();
         }
 
     private:
         inline bool getReceived(void) {
             bool tx_ok, tx_fail, rx_ready;
-            mNrf24.whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
+            mNrf24->whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
 
             bool isLastPackage = false;
-            while(mNrf24.available()) {
+            while(mNrf24->available()) {
                 uint8_t len;
-                len = mNrf24.getDynamicPayloadSize(); // if payload size > 32, corrupt payload has been flushed
+                len = mNrf24->getDynamicPayloadSize(); // if payload size > 32, corrupt payload has been flushed
                 if (len > 0) {
                     packet_t p;
                     p.ch = mRfChLst[mRxChIdx];
                     p.len = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
-                    p.rssi = mNrf24.testRPD() ? -64 : -75;
+                    p.rssi = mNrf24->testRPD() ? -64 : -75;
                     p.millis = millis() - mMillis;
-                    mNrf24.read(p.packet, p.len);
+                    mNrf24->read(p.packet, p.len);
                     if (p.packet[0] != 0x00) {
                         if(!checkIvSerial(p.packet, mLastIv)) {
                             DPRINT(DBG_WARN, "RX other inverter ");
@@ -280,11 +288,11 @@ class HmRadio : public Radio {
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
-            mNrf24.setPALevel(iv->config->powerLevel & 0x03);
+            mNrf24->setPALevel(iv->config->powerLevel & 0x03);
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = mRfChLst[iv->txRfChId];
+            mTxChIdx = mRfChLst[iv->heuristics.txRfChId];
 
             if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
@@ -293,16 +301,19 @@ class HmRadio : public Radio {
                 DBGPRINT(" CH");
                 DBGPRINT(String(mTxChIdx));
                 DBGPRINT(F(" | "));
-                if(*mPrivacyMode)
-                    ah::dumpBuf(mTxBuf, len, 1, 4);
-                else
-                    ah::dumpBuf(mTxBuf, len);
+                if(*mPrintWholeTrace) {
+                    if(*mPrivacyMode)
+                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                    else
+                        ah::dumpBuf(mTxBuf, len);
+                } else
+                    DBGHEXLN(mTxBuf[9]);
             }
 
-            mNrf24.stopListening();
-            mNrf24.setChannel(mTxChIdx);
-            mNrf24.openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
-            mNrf24.startWrite(mTxBuf, len, false); // false = request ACK response
+            mNrf24->stopListening();
+            mNrf24->setChannel(mTxChIdx);
+            mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
+            mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
 
             mLastIv = iv;
@@ -331,8 +342,11 @@ class HmRadio : public Radio {
         bool    mGotLastMsg = false;
         uint32_t mMillis;
 
-        SPIClass* mSpi;
-        RF24 mNrf24;
+        std::unique_ptr<SPIClass> mSpi;
+        std::unique_ptr<RF24> mNrf24;
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+        nrfHal mNrfHal;
+        #endif
         Inverter<> *mLastIv = NULL;
 };
 

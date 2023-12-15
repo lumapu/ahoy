@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      2
+#define CONFIG_VERSION      5
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -67,23 +67,19 @@ typedef struct {
     bool darkMode;
     bool schedReboot;
 
-#if defined(ETHERNET)
-    // ethernet
-
-#else /* defined(ETHERNET) */
+#if !defined(ETHERNET)
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     char apPwd[PWD_LEN];
     bool isHidden;
-#endif /* defined(ETHERNET) */
+#endif /* !defined(ETHERNET) */
 
     cfgIp_t ip;
 } cfgSys_t;
 
 typedef struct {
     bool enabled;
-    uint16_t sendInterval;
     uint8_t pinCs;
     uint8_t pinCe;
     uint8_t pinIrq;
@@ -117,6 +113,7 @@ typedef struct {
     bool showIv;
     bool debug;
     bool privacyLog;
+    bool printWholeTrace;
 } cfgSerial_t;
 
 typedef struct {
@@ -170,18 +167,20 @@ typedef struct {
     bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
+    uint16_t sendInterval;
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
     bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
+    uint16_t gapMs;
 } cfgInst_t;
 
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
-    bool pxShift;
+    uint8_t screenSaver;
     uint8_t rot;
     //uint16_t wakeUp;
     //uint16_t sleepAt;
@@ -192,6 +191,7 @@ typedef struct {
     uint8_t disp_reset;
     uint8_t disp_busy;
     uint8_t disp_dc;
+    uint8_t pirPin;
 } display_t;
 
 typedef struct {
@@ -399,22 +399,19 @@ class settings {
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
-            #if defined(ETHERNET)
-            memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #else /* defined(ETHERNET) */
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            #if !defined(ETHERNET)
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
                 snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
                 mCfg.sys.isHidden = false;
             }
-            #endif /* defined(ETHERNET) */
+            #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
-            mCfg.nrf.sendInterval      = SEND_INTERVAL;
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
             mCfg.nrf.pinIrq            = DEF_NRF_IRQ_PIN;
@@ -450,6 +447,7 @@ class settings {
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
+            mCfg.serial.printWholeTrace = true;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -479,7 +477,8 @@ class settings {
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.yieldEffiency    = 0.955f;
+            mCfg.inst.yieldEffiency    = 1.0f;
+            mCfg.inst.gapMs            = 2000;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -496,7 +495,7 @@ class settings {
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
-            mCfg.plugin.display.pxShift = true;
+            mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
             mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
@@ -504,6 +503,7 @@ class settings {
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
+            mCfg.plugin.display.pirPin     = DEF_MOTION_SENSOR_PIN;
         }
 
         void loadAddedDefaults() {
@@ -515,6 +515,16 @@ class settings {
                 if(mCfg.configVersion < 2) {
                     mCfg.inst.iv[i].disNightCom = false;
                     mCfg.inst.iv[i].add2Total   = true;
+                }
+                if(mCfg.configVersion < 3) {
+                    mCfg.serial.printWholeTrace = false;
+                }
+                if(mCfg.configVersion < 4) {
+                    mCfg.inst.gapMs = 2000;
+                }
+                if(mCfg.configVersion < 5) {
+                    mCfg.inst.sendInterval = SEND_INTERVAL;
+                    mCfg.serial.printWholeTrace = false;
                 }
             }
         }
@@ -573,7 +583,6 @@ class settings {
 
         void jsonNrf(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("intvl")]     = mCfg.nrf.sendInterval;
                 obj[F("cs")]        = mCfg.nrf.pinCs;
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
@@ -582,7 +591,6 @@ class settings {
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
                 obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
-                getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
                 getVal<uint8_t>(obj, F("cs"), &mCfg.nrf.pinCs);
                 getVal<uint8_t>(obj, F("ce"), &mCfg.nrf.pinCe);
                 getVal<uint8_t>(obj, F("irq"), &mCfg.nrf.pinIrq);
@@ -661,10 +669,12 @@ class settings {
                 obj[F("show")]  = mCfg.serial.showIv;
                 obj[F("debug")] = mCfg.serial.debug;
                 obj[F("prv")] = (bool) mCfg.serial.privacyLog;
+                obj[F("trc")] = (bool) mCfg.serial.printWholeTrace;
             } else {
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
                 getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
+                getVal<bool>(obj, F("trc"), &mCfg.serial.printWholeTrace);
             }
         }
 
@@ -740,7 +750,7 @@ class settings {
                 JsonObject disp = obj.createNestedObject("disp");
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
-                disp[F("pxShift")] = (bool)mCfg.plugin.display.pxShift;
+                disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
@@ -751,11 +761,12 @@ class settings {
                 disp[F("reset")] = mCfg.plugin.display.disp_reset;
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
+                disp[F("pirPin")] = mCfg.plugin.display.pirPin;
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
-                getVal<bool>(disp, F("pxShift"), &mCfg.plugin.display.pxShift);
+                getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
@@ -766,20 +777,24 @@ class settings {
                 getVal<uint8_t>(disp, F("reset"), &mCfg.plugin.display.disp_reset);
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
+                getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
             }
         }
 
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
+                obj[F("intvl")]          = mCfg.inst.sendInterval;
                 obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
-                obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
-                obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
-                obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
+                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
+                obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
-                obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
+                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
+                obj[F("gap")]            = mCfg.inst.gapMs;
             }
             else {
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
@@ -787,6 +802,7 @@ class settings {
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
                     mCfg.inst.yieldEffiency = 1.0f;

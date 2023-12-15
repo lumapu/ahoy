@@ -24,11 +24,9 @@ class Radio {
         virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
-        virtual void loop(void) {};
+        virtual bool isChipConnected(void) { return false; }
 
-        bool get() {
-            return !mBufCtrl.empty();
-        }
+        virtual void loop(void) {};
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -59,6 +57,10 @@ class Radio {
                 mTxBuf[19] = (alarmMesId     ) & 0xff;
             }
             sendPacket(iv, 24, isRetransmit);
+        }
+
+        uint32_t getDTUSn(void) {
+            return mDtuSn;
         }
 
     public:
@@ -107,8 +109,7 @@ class Radio {
 
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;
-        bool *mSerialDebug;
-        bool *mPrivacyMode;
+        bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 
 };

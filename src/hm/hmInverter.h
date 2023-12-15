@@ -12,6 +12,7 @@
 #endif
 
 #include "hmDefines.h"
+#include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
@@ -128,11 +129,11 @@ class Inverter {
         uint8_t       miMultiParts;      // helper info for MI multiframe msgs
         uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
         bool          mGotFragment;      // shows if inverter has sent at least one fragment
+        uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-        int8_t        txRfQuality[5];    // heuristics tx quality (check 'Heuristics.h')
-        uint8_t       txRfChId;          // RF TX channel id
+        HeuristicInv  heuristics;
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
@@ -160,7 +161,7 @@ class Inverter {
             commEnabled        = true;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
-            memset(txRfQuality, -6, 5);
+            memset(heuristics.txRfQuality, -6, 5);
 
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
@@ -391,6 +392,10 @@ class Inverter {
 
         bool isAvailable() {
             bool avail = false;
+
+            if((recordMeas.ts == 0) && (recordInfo.ts == 0) && (recordConfig.ts == 0) && (recordAlarm.ts == 0))
+                return false;
+
             if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
                 avail = true;
             if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)

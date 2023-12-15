@@ -14,7 +14,9 @@
 #include "appInterface.h"
 #include "hm/hmSystem.h"
 #include "hm/hmRadio.h"
+#if defined(ESP32)
 #include "hms/hmsRadio.h"
+#endif
 #include "publisher/pubMqtt.h"
 #include "publisher/pubSerial.h"
 #include "utils/crc.h"
@@ -40,7 +42,6 @@
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 #ifdef ESP32
-typedef CmtRadio<esp32_3wSpi> CmtRadioType;
 #endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
@@ -51,7 +52,7 @@ typedef PubSerial<HmSystemType> PubSerialType;
 #if defined(PLUGIN_DISPLAY)
 #include "plugins/Display/Display.h"
 #include "plugins/Display/Display_data.h"
-typedef Display<HmSystemType, HmRadio<>> DisplayType;
+typedef Display<HmSystemType, Radio> DisplayType;
 #endif
 
 #if defined(PLUGIN_ZEROEXPORT)
@@ -95,7 +96,11 @@ class app : public IApp, public ah::Scheduler {
         }
 
         uint32_t getTimestamp() {
-            return Scheduler::getTimestamp();
+            return Scheduler::mTimestamp;
+        }
+
+        uint64_t getTimestampMs() {
+            return ((uint64_t)Scheduler::mTimestamp * 1000) + (uint64_t)Scheduler::mTsMillis;
         }
 
         bool saveSettings(bool reboot) {
@@ -215,15 +220,6 @@ class app : public IApp, public ah::Scheduler {
             return mConfig->cmt.pinIrq;
         }
 
-        String getTimeStr(uint32_t offset = 0) {
-            char str[10];
-            if(0 == mTimestamp)
-                sprintf(str, "n/a");
-            else
-                sprintf(str, "%02d:%02d:%02d ", hour(mTimestamp + offset), minute(mTimestamp + offset), second(mTimestamp + offset));
-            return String(str);
-        }
-
         uint32_t getTimezoneOffset() {
             return mApi.getTimezoneOffset();
         }
@@ -331,7 +327,7 @@ class app : public IApp, public ah::Scheduler {
         //Improv mImprov;
         #endif
         #ifdef ESP32
-        CmtRadioType mCmtRadio;
+        CmtRadio<> mCmtRadio;
         #endif
 
         char mVersion[12];

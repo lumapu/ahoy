@@ -18,7 +18,6 @@ void app::setup() {
     while (!Serial)
         yield();
 
-
     resetSystem();
 
     mSettings.setup();
@@ -32,11 +31,11 @@ void app::setup() {
         DBGPRINTLN(F("false"));
 
     if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
+        mNrfRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
+        mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, false);
     }
     #endif
     #ifdef ETHERNET
@@ -55,7 +54,7 @@ void app::setup() {
         #endif
     #endif /* defined(ETHERNET) */
 
-    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog);
+    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->inst.gapMs);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -86,7 +85,11 @@ void app::setup() {
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
-        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mTimestamp);
+        #if defined(ESP32)
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mCmtRadio, &mTimestamp);
+        #else
+        mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, NULL, &mTimestamp);
+        #endif
     #endif
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
@@ -107,9 +110,11 @@ void app::setup() {
 void app::loop(void) {
     ah::Scheduler::loop();
 
-    mNrfRadio.loop();
+    if(mConfig->nrf.enabled)
+        mNrfRadio.loop();
     #if defined(ESP32)
-    mCmtRadio.loop();
+    if(mConfig->cmt.enabled)
+        mCmtRadio.loop();
     #endif
     mCommunication.loop();
 
@@ -123,7 +128,7 @@ void app::onNetwork(bool gotIp) {
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
-    every(std::bind(&app::tickSend, this), mConfig->nrf.sendInterval, "tSend");
+    every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
@@ -209,7 +214,8 @@ void app::updateNtp(void) {
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
     #if defined(ETHERNET)
-    bool isOK = mEth.updateNtpTime();
+    bool isOK = (mTimestamp != 0);
+    mEth.updateNtpTime();
     #else
     bool isOK = mWifi.getNtpTime();
     #endif
@@ -281,7 +287,7 @@ void app::tickIVCommunication(void) {
         onceAt(std::bind(&app::tickIVCommunication, this), nxtTrig, "ivCom");
 
     if (zeroValues) // at least one inverter
-        once(std::bind(&app::tickZeroValues, this), mConfig->nrf.sendInterval, "tZero");
+        once(std::bind(&app::tickZeroValues, this), mConfig->inst.sendInterval, "tZero");
 }
 
 //-----------------------------------------------------------------------------
@@ -340,6 +346,16 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
+    uint8_t fill = mCommunication.getFillState();
+    uint8_t max = mCommunication.getMaxFill();
+    if((max-MAX_NUM_INVERTERS) <= fill) {
+        DPRINT(DBG_WARN, F("send queue almost full, consider to increase interval, "));
+        DBGPRINT(String(fill));
+        DBGPRINT(F(" of "));
+        DBGPRINT(String(max));
+        DBGPRINTLN(F("entries used"));
+    }
+
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL == iv)

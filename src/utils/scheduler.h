@@ -34,6 +34,7 @@ namespace ah {
             void setup(bool directStart) {
                 mUptime     = 0;
                 mTimestamp  = (directStart) ? 1 : 0;
+                mTsMillis   = 0;
                 mMax        = 0;
                 mPrevMillis = millis();
                 resetTicker();
@@ -59,8 +60,10 @@ namespace ah {
                 }
 
                 mUptime += mDiffSeconds;
-                if(0 != mTimestamp)
+                if(0 != mTimestamp) {
                     mTimestamp += mDiffSeconds;
+                    mTsMillis  = mMillis % 1000;
+                }
                 checkTicker();
 
             }
@@ -77,6 +80,7 @@ namespace ah {
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
+                mTsMillis  = millis() % 1000;
             }
 
             bool resetEveryById(uint8_t id) {
@@ -88,10 +92,6 @@ namespace ah {
 
             uint32_t getUptime(void) {
                 return mUptime;
-            }
-
-            uint32_t getTimestamp(void) {
-                return mTimestamp;
             }
 
             inline void resetTicker(void) {
@@ -118,6 +118,7 @@ namespace ah {
         protected:
             uint32_t mTimestamp;
             uint32_t mUptime;
+            uint16_t mTsMillis;
 
         private:
             inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {

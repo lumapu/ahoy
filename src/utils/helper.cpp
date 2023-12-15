@@ -70,6 +70,17 @@ namespace ah {
         return String(str);
     }
 
+    String getTimeStrMs(uint64_t t) {
+        char str[13];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else {
+            t = (t + (millis() % 1000)) / 1000;
+            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), millis() % 1000);
+        }
+        return String(str);
+    }
+
     uint64_t Serial2u64(const char *val) {
         char tmp[3];
         uint64_t ret = 0ULL;
