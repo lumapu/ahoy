@@ -118,7 +118,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
         uint8_t write(uint8_t cmd, const uint8_t* buf, uint8_t data_len, uint8_t blank_len) override {
             uint8_t data[NRF_MAX_TRANSFER_SZ];
             data[0] = cmd;
-            memset(data, 0, NRF_MAX_TRANSFER_SZ);
+            memset(&data[1], 0, (NRF_MAX_TRANSFER_SZ-1));
             std::copy(&buf[0], &buf[data_len], &data[1]);
 
             request_spi();

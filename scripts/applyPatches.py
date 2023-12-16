@@ -31,5 +31,4 @@ if env['PIOENV'][:22] != "opendtufusion-ethernet":
 
 if env['PIOENV'][:13] == "opendtufusion":
     applyPatch("GxEPD2", "../patches/GxEPD2_SW_SPI.patch")
-if env['PIOENV'][:22] == "opendtufusion-ethernet":
     applyPatch("RF24", "../patches/RF24_Hal.patch")
