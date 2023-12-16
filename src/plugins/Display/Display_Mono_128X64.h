@@ -16,7 +16,13 @@ class DisplayMono128X64 : public DisplayMono {
             mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
             mUtcTs = NULL;
             mType = 0;
-        }
+#ifdef DISPLAY_CHART
+			for (int i = 0; i < DISP_WATT_ARR_LENGTH; i++)
+				m_wattArr[i] = 0.0;
+			m_wattListIdx = 0;
+			m_wattDispIdx = 1;
+#endif
+		}
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char *version) {
 
@@ -60,6 +66,14 @@ class DisplayMono128X64 : public DisplayMono {
         }
 
         void disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+#ifdef DISPLAY_CHART
+            bool drawChart = true;  // should come from settings
+            static unsigned int dbgCnt = 0;
+
+            // We are called every 10 seconds (see Display::tickerSecond() )
+            if ((((dbgCnt++) % 6) != 0))
+                return;  // update only every minute.
+#endif
             mDisplay->clearBuffer();
 
             // set Contrast of the Display to raise the lifetime
@@ -85,6 +99,18 @@ class DisplayMono128X64 : public DisplayMono {
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", totalYieldDay);
             printText(mFmtText, 1);
 
+#ifdef DISPLAY_CHART
+			if (drawChart)
+			{
+				m_wattArr[m_wattListIdx] = totalPower;
+				drawPowerChart();
+				m_wattListIdx = (m_wattListIdx + 1) % (DISP_WATT_ARR_LENGTH);
+				m_wattDispIdx = (m_wattDispIdx + 1) % (DISP_WATT_ARR_LENGTH);
+			}
+			else
+			{
+#else
+    		{
             snprintf(mFmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", totalYieldTotal);
             printText(mFmtText, 2);
 
@@ -96,10 +122,11 @@ class DisplayMono128X64 : public DisplayMono {
                 printText(mFmtText, 3);
             } else  if (NULL != mUtcTs)
                 printText(ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str(), 3);
+#endif
+			}
+			mDisplay->sendBuffer();
 
-            mDisplay->sendBuffer();
-
-            mDispY = 0;
+			mDispY = 0;
             mExtra++;
         }
 
@@ -116,14 +143,22 @@ class DisplayMono128X64 : public DisplayMono {
         inline void setFont(uint8_t line) {
             switch (line) {
                 case 0:
-                    mDisplay->setFont(u8g2_font_ncenB14_tr);
+#ifdef DISPLAY_CHART
+					mDisplay->setFont(u8g2_font_6x12_tr);
+#else
+					mDisplay->setFont(u8g2_font_ncenB14_tr);
+#endif
                     break;
                 case 3:
                     mDisplay->setFont(u8g2_font_5x8_tr);
                     break;
                 default:
-                    mDisplay->setFont(u8g2_font_ncenB10_tr);
-                    break;
+#ifdef DISPLAY_CHART
+					mDisplay->setFont(u8g2_font_5x8_tr);
+#else
+					mDisplay->setFont(u8g2_font_ncenB10_tr);
+#endif
+					break;
             }
         }
         void printText(const char *text, uint8_t line, uint8_t dispX = 5) {
@@ -132,4 +167,46 @@ class DisplayMono128X64 : public DisplayMono {
             dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
+
+#ifdef DISPLAY_CHART
+
+		void drawPowerChart()
+		{
+			const int hight = 32; // chart hight
+
+			// Clear area
+			// mDisplay->draw_rectangle(0, 63 - hight, DISP_WATT_ARR_LENGTH, 63, OLED::SOLID, OLED::BLACK);
+			mDisplay->setDrawColor(0);
+			mDisplay->drawBox(0, 63 - hight, DISP_WATT_ARR_LENGTH, hight);
+			mDisplay->setDrawColor(1);
+
+			// Get max value for scaling
+			float maxValue = 0.0;
+			for (int i = 0; i < DISP_WATT_ARR_LENGTH; i++)
+			{
+				float fValue = m_wattArr[i];
+				if (fValue > maxValue)
+					maxValue = fValue;
+			}
+			// calc divider to fit into chart hight
+			int divider = round(maxValue / (float)hight);
+			if (divider < 1)
+				divider = 1;
+
+			// draw chart bars
+			int idx = m_wattDispIdx;
+			for (int i = 0; i < DISP_WATT_ARR_LENGTH; i++)
+			{
+				float fValue = m_wattArr[idx];
+				idx = (idx + 1) % (DISP_WATT_ARR_LENGTH);
+				int iValue = roundf(fValue);
+				iValue /= divider;
+				if (iValue > hight)
+					iValue = hight;
+				// mDisplay->draw_line(i, 63 - iValue, i, 63);
+				// mDisplay->drawVLine(i, 63 - iValue, iValue);
+				mDisplay->drawLine(i, 63 - iValue, i, 63);
+			}
+		}
+#endif
 };

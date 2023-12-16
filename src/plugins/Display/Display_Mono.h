@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+#include "config/config.h"
 #include <U8g2lib.h>
 #define DISP_DEFAULT_TIMEOUT 60  // in seconds
 #define DISP_FMT_TEXT_LEN 32
@@ -42,4 +43,13 @@ class DisplayMono {
 
       uint8_t mExtra;
       uint16_t mTimeout;
-      char mFmtText[DISP_FMT_TEXT_LEN];};
+      char mFmtText[DISP_FMT_TEXT_LEN];
+
+#ifdef DISPLAY_CHART
+#define DISP_WATT_ARR_LENGTH 128		   // Number of WATT history values
+		float m_wattArr[DISP_WATT_ARR_LENGTH + 1]; // ring buffer for watt history
+		int m_wattListIdx;						   // index for next Element to write into WattArr
+		int m_wattDispIdx;						   // index for 1st Element to display from WattArr
+		void drawPowerChart();
+#endif
+};
