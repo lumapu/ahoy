@@ -10,7 +10,7 @@
 #include "SPI.h"
 #include "radio.h"
 #include "../config/config.h"
-#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
 #include "nrfHal.h"
 #endif
 
@@ -35,8 +35,8 @@ class HmRadio : public Radio {
         HmRadio() {
             mDtuSn   = DTU_SN;
             mIrqRcvd = false;
-            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
-            mNrf24.reset(new RF24());
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+            //mNrf24.reset(new RF24());
             #else
             mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
             #endif
@@ -56,8 +56,8 @@ class HmRadio : public Radio {
             DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
-                #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
-                    mNrfHal.init(mosi, miso, sclk, cs, ce);
+                #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+                    mNrfHal.init(mosi, miso, sclk, cs, ce, SPI_SPEED);
                     mNrf24.reset(new RF24(&mNrfHal));
                 #else
                     #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
@@ -73,7 +73,7 @@ class HmRadio : public Radio {
                 mSpi->begin();
             #endif
 
-            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+            #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
                 mNrf24->begin();
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
@@ -123,14 +123,18 @@ class HmRadio : public Radio {
                         iv->mRxTmoOuterLoop    = 300;
                         iv->mRxTmoInnerLoop    = 5110;
                         //DPRINTLN(DBG_INFO, F("4ch data"));
-                    } else {
+                    } else if (iv->type == INV_TYPE_2CH) {
                         iv->mRxChannels = 2;
                         iv->mRxTmoOuterLoop    = 250;
                         iv->mRxTmoInnerLoop    = 10220;
                         //DPRINTLN(DBG_INFO, F("1/2ch data"));
+                    } else { // INV_TYPE_1CH
+                        iv->mRxChannels = 5;
+                        iv->mRxTmoOuterLoop    = 400;
+                        iv->mRxTmoInnerLoop    = 5110;
                     }
                 } else { //3rd gen defaults
-                    iv->mRxChannels = 3;
+                    iv->mRxChannels = 5;
                     iv->mRxTmoOuterLoop    = 500;
                     iv->mRxTmoInnerLoop    = 5110;
                     //DPRINTLN(DBG_INFO, F("3rd gen default"));
@@ -187,8 +191,8 @@ class HmRadio : public Radio {
                 startMicros = micros();
             }
             // not finished but time is over
-            if(++mRxChIdx >= RF_CHANNELS)
-                mRxChIdx = 0;
+            //if(++mRxChIdx >= RF_CHANNELS) // rejoe2: for testing now always start with the first (relative) rx channel
+                mRxChIdx = 1;
 
             return;
         }
@@ -392,7 +396,7 @@ class HmRadio : public Radio {
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;
-        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
         nrfHal mNrfHal;
         #endif
         Inverter<> *mLastIv = NULL;
