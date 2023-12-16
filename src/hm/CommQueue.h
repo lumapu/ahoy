@@ -31,6 +31,7 @@ class CommQueue {
         }
 
         uint8_t getFillState(void) {
+            DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
             return abs(mRdPtr - mWrPtr);
         }
 

@@ -131,6 +131,11 @@ class Inverter {
         bool          mGotFragment;      // shows if inverter has sent at least one fragment
         uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
+        uint8_t       mRxChannels;       // number of rx channels to listen to, defaults to 3;
+        uint32_t      mRxTmoOuterLoop;   // timeout for entire listening loop after sending, defaults to 400 (ms);
+        uint32_t      mRxTmoInnerLoop;   // timeout for each listening channel, defaults to 5110 (us)
+        uint8_t       lastCmd;           // holds the last sent command, defaults to 0xFF
+
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
         HeuristicInv  heuristics;
@@ -156,7 +161,11 @@ class Inverter {
             alarmLastId        = 0;
             rssi               = -127;
             miMultiParts       = 0;
+            lastCmd            = 0xFF;
             mGotLastMsg        = false;
+            mRxChannels        = 3;
+            mRxTmoOuterLoop    = 400;
+            mRxTmoInnerLoop    = 5110;
             radio              = NULL;
             commEnabled        = true;
 
