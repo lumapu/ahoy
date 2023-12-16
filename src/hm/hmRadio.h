@@ -129,7 +129,7 @@ class HmRadio : public Radio {
                         iv->mRxTmoInnerLoop    = 10220;
                         //DPRINTLN(DBG_INFO, F("1/2ch data"));
                     } else { // INV_TYPE_1CH
-                        iv->mRxChannels = 5;
+                        iv->mRxChannels = 2;
                         iv->mRxTmoOuterLoop    = 400;
                         iv->mRxTmoInnerLoop    = 5110;
                     }
