@@ -138,7 +138,7 @@ class HmRadio : public Radio {
                 startMicros = micros();
             }
             // not finished but time is over
-            mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;
+            mRxChIdx = 1;
 
             return;
         }

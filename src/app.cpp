@@ -40,11 +40,7 @@ void app::setup() {
     #endif
     #ifdef ETHERNET
         delay(1000);
-        DPRINT(DBG_INFO, F("mEth setup..."));
-        DSERIAL.flush();
         mEth.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
-        DBGPRINTLN(F("done..."));
-        DSERIAL.flush();
     #endif // ETHERNET
 
     #if !defined(ETHERNET)
@@ -149,7 +145,6 @@ void app::regularTickers(void) {
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
-    // every([this]() { mPayload.simulation();}, 15, "simul");
 }
 
 #if defined(ETHERNET)

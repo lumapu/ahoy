@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.25 - 2023-12-17
+* RX channel ID starts with fixed value #1277
+* fix static IP for Ethernet
+
 ## 0.8.24 - 2023-12-16
 * fix NRF communication for opendtufusion ethernet variant
 
