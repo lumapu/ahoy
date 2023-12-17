@@ -26,10 +26,6 @@ class CmtRadio : public Radio {
             mPrintWholeTrace = printWholeTrace;
         }
 
-        void prepareReceive(Inverter<> *iv, uint8_t cmd, bool singleframe = false) {
-            return; // only relevant for nRF type inverters
-        }
-
         void loop() {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))

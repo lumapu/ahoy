@@ -11,6 +11,8 @@
   #define F(sl) (sl)
 #endif
 
+#define MAX_GRID_LENGTH     150
+
 #include "hmDefines.h"
 #include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
@@ -131,14 +133,11 @@ class Inverter {
         bool          mGotFragment;      // shows if inverter has sent at least one fragment
         uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
-        uint8_t       mRxChannels;       // number of rx channels to listen to, defaults to 3;
-        uint32_t      mRxTmoOuterLoop;   // timeout for entire listening loop after sending, defaults to 400 (ms);
-        uint32_t      mRxTmoInnerLoop;   // timeout for each listening channel, defaults to 5110 (us)
-        uint8_t       lastCmd;           // holds the last sent command, defaults to 0xFF
-
+        uint8_t       mCmd;              // holds the command to send
+        bool          mIsSingleframeReq; // indicates this is a missing single frame request
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-        HeuristicInv  heuristics;
+        HeuristicInv  heuristics;        // heuristic information / logic
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
@@ -161,11 +160,9 @@ class Inverter {
             alarmLastId        = 0;
             rssi               = -127;
             miMultiParts       = 0;
-            lastCmd            = 0xFF;
             mGotLastMsg        = false;
-            mRxChannels        = 3;
-            mRxTmoOuterLoop    = 400;
-            mRxTmoInnerLoop    = 5110;
+            mCmd               = InitDataState;
+            mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
 
@@ -192,6 +189,8 @@ class Inverter {
                 else if(InitDataState != devControlCmd) {
                     cb(devControlCmd, false);            // custom command which was received by API
                     devControlCmd = InitDataState;
+                } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                    cb(GridOnProFilePara, false);
                 } else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
@@ -730,6 +729,21 @@ class Inverter {
             }
         }
 
+        void addGridProfile(uint8_t buf[], uint8_t length) {
+            mGridLen = (length > MAX_GRID_LENGTH) ? MAX_GRID_LENGTH : length;
+            std::copy(buf, &buf[mGridLen], mGridProfile);
+        }
+
+        String getGridProfile(void) {
+            char buf[MAX_GRID_LENGTH * 3];
+            memset(buf, 0, MAX_GRID_LENGTH);
+            for(uint8_t i = 0; i < mGridLen; i++) {
+                snprintf(&buf[i*3], 4, "%02X ", mGridProfile[i]);
+            }
+            buf[mGridLen*3] = 0;
+            return String(buf);
+        }
+
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
             lastAlarm[alarmNxtWrPos] = alarm_t(code, start, end);
@@ -750,6 +764,8 @@ class Inverter {
     private:
         float mOffYD[6], mLastYD[6];
         bool mDevControlRequest; // true if change needed
+        uint8_t mGridLen = 0;
+        uint8_t mGridProfile[MAX_GRID_LENGTH];
 };
 
 template <class REC_TYP>

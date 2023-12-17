@@ -87,7 +87,10 @@ class Communication : public CommQueue<> {
                             cmdDone(true); // can't communicate while radio is not defined!
                         mState = States::START;
 
-                        q->iv->radio->prepareReceive(q->iv, q->cmd, false);
+                        q->iv->mCmd = q->cmd;
+                        q->iv->mIsSingleframeReq = false;
+
+                        //prepareReceive(q->iv, q->cmd, false);
 
                         break;
 
@@ -212,11 +215,12 @@ class Communication : public CommQueue<> {
                                     }
                                     closeRequest(q, true);
                                     if(fastNext) {
+                                        DPRINTLN(DBG_INFO, F("we should enqueue sth immediately...."));
                                         // immediately send out regular production data request
                                         // and reset mWaitTimeout
-                                        mWaitTimeout = mWaitTimeout - *mInverterGap;
-                                        chgCmd((q->iv->type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1);
-                                        mState = States::RESET;
+                                        //mWaitTimeout = mWaitTimeout - *mInverterGap;
+                                        //chgCmd((q->iv->type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1);
+                                        //mState = States::RESET;
                                     }
                                 }
 
@@ -260,7 +264,9 @@ class Communication : public CommQueue<> {
                                 DBGPRINTLN(F(" attempts left)"));
                             }
                             if (!mIsRetransmit)
-                                q->iv->radio->prepareReceive(q->iv, q->cmd, true);
+                                q->iv->mIsSingleframeReq = true;
+
+                                //prepareReceive(q->iv, q->cmd, true);
 
                             sendRetransmit(q, (framnr-1));
                             mIsRetransmit = true;
@@ -270,23 +276,10 @@ class Communication : public CommQueue<> {
 
                         compilePayload(q);
 
-                        if(NULL != mCbPayload)
+                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd))
                             (mCbPayload)(q->cmd, q->iv);
 
-                        bool fastNext = false;
-                        if ((q->cmd < 11) || (q->cmd > 18))
-                            fastNext = true;
-
                         closeRequest(q, true);
-
-                        if(fastNext) {
-                            // immediately send out regular production data request
-                            // and reset mWaitTimeout
-                            mWaitTimeout = mWaitTimeout - *mInverterGap;
-                            chgCmd(RealTimeRunData_Debug);
-                            mState = States::RESET;
-                        }
-
                         break;
                 }
             });
@@ -318,7 +311,9 @@ class Communication : public CommQueue<> {
                 else
                     ah::dumpBuf(p->packet, p->len);
             } else {
-                DBGPRINT(F("| "));
+                DBGPRINT(F("| 0x"));
+                DHEX(p->packet[0]);
+                DBGPRINT(F(" "));
                 DBGHEXLN(p->packet[9]);
             }
         }
@@ -401,7 +396,7 @@ class Communication : public CommQueue<> {
                 accepted = false;
 
             DPRINT_IVID(DBG_INFO, q->iv->id);
-            DBGPRINT(F(" has "));
+            DBGPRINT(F("has "));
             if(!accepted) DBGPRINT(F("not "));
             DBGPRINT(F("accepted power limit set point "));
             DBGPRINT(String(q->iv->powerLimit[0]));
@@ -469,9 +464,15 @@ class Communication : public CommQueue<> {
             } else
                 DBGPRINTLN(F(")"));
 
+            if(GridOnProFilePara == q->cmd) {
+                q->iv->addGridProfile(mPayload, len);
+                return;
+            }
+
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
                 DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                closeRequest(q, false);
                 return;
             }
             if((rec->pyldLen != len) && (0 != rec->pyldLen)) {

@@ -104,50 +104,6 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
-        void prepareReceive(Inverter<> *iv, uint8_t cmd, bool singleframe = false) {
-            if (singleframe) {
-                iv->mRxTmoOuterLoop = 65; // SINGLEFR_TIMEOUT
-                iv->lastCmd = 0xFF;
-                //DPRINTLN(DBG_INFO, F("1 frm"));
-                return;
-            }
-
-            if ( (iv->lastCmd == cmd) || ((iv->ivGen == IV_MI) && (iv->lastCmd != 0xFF)) )
-                return; // nothing to be changed....
-
-            iv->lastCmd = cmd;
-            if (iv->ivGen != IV_MI) {
-                if (cmd == RealTimeRunData_Debug) {
-                    if (iv->type == INV_TYPE_4CH) {
-                        iv->mRxChannels = 3;
-                        iv->mRxTmoOuterLoop    = 300;
-                        iv->mRxTmoInnerLoop    = 5110;
-                        //DPRINTLN(DBG_INFO, F("4ch data"));
-                    } else if (iv->type == INV_TYPE_2CH) {
-                        iv->mRxChannels = 2;
-                        iv->mRxTmoOuterLoop    = 250;
-                        iv->mRxTmoInnerLoop    = 10220;
-                        //DPRINTLN(DBG_INFO, F("1/2ch data"));
-                    } else { // INV_TYPE_1CH
-                        iv->mRxChannels = 2;
-                        iv->mRxTmoOuterLoop    = 400;
-                        iv->mRxTmoInnerLoop    = 5110;
-                    }
-                } else { //3rd gen defaults
-                    iv->mRxChannels = 5;
-                    iv->mRxTmoOuterLoop    = 500;
-                    iv->mRxTmoInnerLoop    = 5110;
-                    //DPRINTLN(DBG_INFO, F("3rd gen default"));
-                }
-            } else { // 2nd gen defaults
-                iv->mRxChannels = 2;
-                iv->mRxTmoOuterLoop    = 250;
-                iv->mRxTmoInnerLoop    = 5110;
-                //DPRINTLN(DBG_INFO, F("2nd gen default"));
-            }
-        }
-
-
         void loop(void) {
             if (!mIrqRcvd)
                 return; // nothing to do
@@ -165,8 +121,9 @@ class HmRadio : public Radio {
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            while ((millis() - loopMillis) < mLastIv->mRxTmoOuterLoop) {
-                while ((micros() - startMicros) < mLastIv->mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
+            mRxChIdx = (mTxChIdx + 3) % RF_MAX_CHANNEL_ID; // start with a fixed offset
+            while ((millis() - loopMillis) < mRxTmoOuterLoop) {
+                while ((micros() - startMicros) < mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
@@ -181,7 +138,7 @@ class HmRadio : public Radio {
                     mRxChIdx = 0;*/
 
                 //if(++mRxChIdx >= mLastIv->mRxChannels)
-                if(++mRxChIdx >= mLastIv->mRxChannels)
+                if(++mRxChIdx >= mRxChannels)
                     mRxChIdx = 0;
 
                 uint8_t nextRxCh = (mRxChIdx + mTxChIdx + 4) % RF_MAX_CHANNEL_ID; // let 3 channels in shifting out; might cause problems for tx channel 75, see Oberfritze remark to his array
@@ -191,8 +148,8 @@ class HmRadio : public Radio {
                 startMicros = micros();
             }
             // not finished but time is over
-            //if(++mRxChIdx >= RF_CHANNELS) // rejoe2: for testing now always start with the first (relative) rx channel
-                mRxChIdx = 1;
+            //if(++mRxChIdx >= RF_CHANNELS)
+            //    mRxChIdx = 0;
 
             return;
         }
@@ -287,6 +244,41 @@ class HmRadio : public Radio {
             sendPacket(iv, cnt, isRetransmit, (IV_MI != iv->ivGen));
         }
 
+
+        void prepareReceive(Inverter<> *iv) {
+            if (iv->mIsSingleframeReq) {
+                mRxTmoOuterLoop = 65; // SINGLEFR_TIMEOUT
+                return;
+            }
+
+            if (iv->ivGen != IV_MI) {
+                if (iv->mCmd == RealTimeRunData_Debug) {
+                    if (iv->type == INV_TYPE_4CH) {
+                        mRxChannels = 3;
+                        mRxTmoOuterLoop    = 300;
+                        mRxTmoInnerLoop    = 5110;
+                    } else if (iv->type == INV_TYPE_2CH) {
+                        mRxChannels = 2;
+                        mRxTmoOuterLoop    = 250;
+                        mRxTmoInnerLoop    = 10220;
+                    } else { // INV_TYPE_1CH
+                        mRxChannels = 2;
+                        mRxTmoOuterLoop    = 200;
+                        mRxTmoInnerLoop    = 5110;
+                    }
+                } else { //3rd gen defaults
+                    mRxChannels = 3;
+                    mRxTmoOuterLoop    = iv->mCmd == AlarmData ? 600 : 400;
+                    mRxTmoInnerLoop    = 5110;
+                }
+            } else { // 2nd gen defaults
+                mRxChannels = 2;
+                mRxTmoOuterLoop    = 250;
+                mRxTmoInnerLoop    = 5110;
+            }
+        }
+
+
         uint8_t getDataRate(void) {
             if(!mNrf24->isChipConnected())
                 return 3; // unknown
@@ -345,6 +337,7 @@ class HmRadio : public Radio {
 
             // set TX and RX channels
             mTxChIdx = mRfChLst[iv->heuristics.txRfChId];
+            prepareReceive(iv);
 
             if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
@@ -359,6 +352,9 @@ class HmRadio : public Radio {
                     else
                         ah::dumpBuf(mTxBuf, len);
                 } else
+                    DBGPRINT(F("0x"));
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
             }
 
@@ -388,10 +384,14 @@ class HmRadio : public Radio {
         }
 
         uint64_t DTU_RADIO_ID;
-        uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
-        uint8_t mTxChIdx    = 0;
-        uint8_t mRxChIdx    = 0;
-        bool    mGotLastMsg = false;
+        uint8_t  mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
+        uint8_t  mTxChIdx    = 0;
+        uint8_t  mRxChIdx    = 0;
+        uint8_t  mRxChannels = 3;         // number of rx channels to listen to, defaults to 3;
+        uint32_t mRxTmoOuterLoop = 400;   // timeout for entire listening loop after sending, defaults to 400 (ms);
+        uint32_t mRxTmoInnerLoop = 5110;  // timeout for each listening channel, defaults to 5110 (us)
+        uint8_t  lastCmd     = 0xFF;      // holds the last sent command, defaults to 0xFF
+        bool     mGotLastMsg = false;
         uint32_t mMillis;
 
         std::unique_ptr<SPIClass> mSpi;
