@@ -16,8 +16,8 @@ class HmSystem {
         HmSystem() {}
 
         void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
-            mInverter[0].timestamp     = timestamp;
-            mInverter[0].generalConfig = config;
+            INVERTERTYPE::timestamp = timestamp;
+            INVERTERTYPE::generalConfig = config;
             //mInverter[0].app           = app;
         }
 
