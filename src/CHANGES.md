@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.26 - 2023-12-17
+* read grid profile as HEX (`live` -> click inverter name -> `show grid profile`)
+
 ## 0.8.25 - 2023-12-17
 * RX channel ID starts with fixed value #1277
 * fix static IP for Ethernet

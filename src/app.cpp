@@ -336,7 +336,7 @@ void app::tickSend(void) {
         DBGPRINT(String(fill));
         DBGPRINT(F(" of "));
         DBGPRINT(String(max));
-        DBGPRINTLN(F("entries used"));
+        DBGPRINTLN(F(" entries used"));
     }
 
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {

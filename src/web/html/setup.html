@@ -173,6 +173,10 @@
                             <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
                         </div>
                         <div class="row mb-3">
+                            <div class="col-8">Read Grid Profile</div>
+                            <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-8">Yield Efficiency (Standard 1.0)</div>
                             <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
                         </div>
@@ -580,6 +584,7 @@
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
                 document.getElementsByName("strtWthtTm")[0].checked = obj["strtWthtTm"];
+                document.getElementsByName("rdGrid")[0].checked = obj["rdGrid"];
             }
 
             function parseSys(obj) {

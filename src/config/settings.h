@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      5
+#define CONFIG_VERSION      6
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -157,6 +157,7 @@ typedef struct {
     bool startWithoutTime;
     float yieldEffiency;
     uint16_t gapMs;
+    bool readGrid;
 } cfgInst_t;
 
 typedef struct {
@@ -440,6 +441,7 @@ class settings {
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
             mCfg.inst.gapMs            = 2000;
+            mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
@@ -481,11 +483,15 @@ class settings {
                     mCfg.serial.printWholeTrace = false;
                 }
                 if(mCfg.configVersion < 4) {
-                    mCfg.inst.gapMs = 2000;
+                    mCfg.inst.gapMs = 500;
                 }
                 if(mCfg.configVersion < 5) {
                     mCfg.inst.sendInterval = SEND_INTERVAL;
                     mCfg.serial.printWholeTrace = false;
+                }
+                if(mCfg.configVersion < 6) {
+                    mCfg.inst.gapMs    = 500;
+                    mCfg.inst.readGrid = true;
                 }
             }
         }
@@ -718,6 +724,7 @@ class settings {
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
                 obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
                 obj[F("gap")]            = mCfg.inst.gapMs;
+                obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
@@ -729,6 +736,7 @@ class settings {
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
                 getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
+                getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
                     mCfg.inst.yieldEffiency = 1.0f;
