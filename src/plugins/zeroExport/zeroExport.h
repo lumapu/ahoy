@@ -7,6 +7,7 @@
 #include <string.h>
 #include "AsyncJson.h"
 
+#include "SML.h"
 template <class HMSYSTEM>
 
 class ZeroExport {
@@ -73,6 +74,8 @@ class ZeroExport {
                 String responseBody = httpClient.getString();
                 DynamicJsonDocument json(2048);
                 DeserializationError err = deserializeJson(json, responseBody);
+                sml_state sml = smlState(httpClient.getStream());
+                smlOBISManufacturer
 
                 // Parse succeeded?
                 if (err) {

@@ -581,12 +581,20 @@ class Web {
                 addr.toCharArray(mConfig->plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
             } else
                 mConfig->plugin.zexport.monitor_url[0] = '\0';
+
             if (request->arg("json_path") != "") {
                 String addr = request->arg("json_path");
                 addr.trim();
                 addr.toCharArray(mConfig->plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
             } else
                 mConfig->plugin.zexport.json_path[0] = '\0';
+
+            if (request->arg("tibber_pw") != "") {
+                String addr = request->arg("tibber_pw");
+                addr.trim();
+                addr.toCharArray(mConfig->plugin.zexport.tibber_pw, 10);
+            } else
+                mConfig->plugin.zexport.tibber_pw[0] = '\0';
             #endif
 
             // serial console

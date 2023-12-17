@@ -146,7 +146,7 @@ typedef struct {
     unsigned long lastTime; // tic toc
     double max_power;
     bool two_percent;   // ask if not go lower then 2%
-    char tibber_pw[ZEXPORT_ADDR_LEN];   // needed for tibber QWGH-ED12
+    char tibber_pw[10];   // needed for tibber QWGH-ED12
 } cfgzeroExport_t;
 #endif
 

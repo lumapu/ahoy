@@ -312,13 +312,11 @@
                             <div class="col-8 col-sm-3">Enable zero export</div>
                             <div class="col-4 col-sm-9"><input type="checkbox" name="en_zeroexport"/></div>
                             <p>Please select your favorite query interface:</p>
-                            <input type="radio" id="html" name="device" value=0>Shelly<br>
-                            <input type="radio" id="css" name="device" value=1>Tibber<br>
-                            <input type="radio" id="javascript" name="device" value=2>Volkszähler
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
+
                             <div class="col-12 col-sm-9"><input type="text" name="monitor_url" maxlength="100">A JSON-Format is required to work properly.<br>
                                 HICHI:  http://IP_Address/cm?cmnd=status%208<br>
                                 Shelly: http://IP_Address/status</div>
@@ -1135,7 +1133,7 @@
 
                 getAjax("/api/inverter/list", parseZeroIv);
 
-                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"]])
+                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"], ["tibber_pw", "tibber_pw"]])
                     if(null != obj[i[1]])
                         document.getElementsByName(i[0])[0].value = obj[i[1]];
 
