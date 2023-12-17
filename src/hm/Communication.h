@@ -254,7 +254,7 @@ class Communication : public CommQueue<> {
 
                         compilePayload(q);
 
-                        if(NULL != mCbPayload)
+                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd))
                             (mCbPayload)(q->cmd, q->iv);
 
                         closeRequest(q, true);
@@ -440,9 +440,15 @@ class Communication : public CommQueue<> {
             } else
                 DBGPRINTLN(F(")"));
 
+            if(GridOnProFilePara == q->cmd) {
+                q->iv->addGridProfile(mPayload, len);
+                return;
+            }
+
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
                 DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                closeRequest(q, false);
                 return;
             }
             if((rec->pyldLen != len) && (0 != rec->pyldLen)) {

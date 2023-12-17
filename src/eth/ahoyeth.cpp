@@ -26,12 +26,16 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     mOnNetworkCB = onNetworkCB;
     mOnTimeCB = onTimeCB;
 
-    DPRINTLN(DBG_INFO, F("[ETH]: Register for events..."));
     Serial.flush();
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
 
-    DPRINTLN(DBG_INFO, F("[ETH]: begin..."));
     Serial.flush();
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
+    #else
+    ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
+    #endif
+
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
         IPAddress mask(mConfig->sys.ip.mask);
@@ -41,11 +45,6 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
         if(!ETH.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
-    #if defined(CONFIG_IDF_TARGET_ESP32S3)
-    mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
-    #else
-    ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
-    #endif
 }
 
 
@@ -130,8 +129,7 @@ void ahoyeth::welcome(String ip, String mode) {
     DBGPRINTLN(F("--------------------------------\n"));
 }
 
-void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
-{
+void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
     AWS_LOG(F("[ETH]: Got event..."));
     switch (event) {
 #if ( ( defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 2) ) && ( ARDUINO_ESP32_GIT_VER != 0x46d5afb1 ) )

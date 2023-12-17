@@ -1,5 +1,15 @@
 # Development Changes
 
+## 0.8.26 - 2023-12-17
+* read grid profile as HEX (`live` -> click inverter name -> `show grid profile`)
+
+## 0.8.25 - 2023-12-17
+* RX channel ID starts with fixed value #1277
+* fix static IP for Ethernet
+
+## 0.8.24 - 2023-12-16
+* fix NRF communication for opendtufusion ethernet variant
+
 ## 0.8.23 - 2023-12-14
 * heuristics fix #1269 #1270
 * moved `sendInterval` in settings, **important:** *will be reseted to 15s after update to this version*

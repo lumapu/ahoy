@@ -6,7 +6,7 @@
 #ifndef __CMT2300A_H__
 #define __CMT2300A_H__
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
 #include "cmtHal.h"
 #else
 #include "esp32_3wSpi.h"
@@ -480,7 +480,7 @@ class Cmt2300a {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
-        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(ETHERNET)
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
         cmtHal mSpi;
         #else
         esp32_3wSpi mSpi;

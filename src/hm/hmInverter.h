@@ -11,6 +11,8 @@
   #define F(sl) (sl)
 #endif
 
+#define MAX_GRID_LENGTH     150
+
 #include "hmDefines.h"
 #include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
@@ -133,7 +135,7 @@ class Inverter {
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-        HeuristicInv  heuristics;
+        HeuristicInv  heuristics;        // heuristic information / logic
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
@@ -183,6 +185,8 @@ class Inverter {
                 else if(InitDataState != devControlCmd) {
                     cb(devControlCmd, false);            // custom command which was received by API
                     devControlCmd = InitDataState;
+                } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                    cb(GridOnProFilePara, false);
                 } else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
@@ -721,6 +725,21 @@ class Inverter {
             }
         }
 
+        void addGridProfile(uint8_t buf[], uint8_t length) {
+            mGridLen = (length > MAX_GRID_LENGTH) ? MAX_GRID_LENGTH : length;
+            std::copy(buf, &buf[mGridLen], mGridProfile);
+        }
+
+        String getGridProfile(void) {
+            char buf[MAX_GRID_LENGTH * 3];
+            memset(buf, 0, MAX_GRID_LENGTH);
+            for(uint8_t i = 0; i < mGridLen; i++) {
+                snprintf(&buf[i*3], 4, "%02X ", mGridProfile[i]);
+            }
+            buf[mGridLen*3] = 0;
+            return String(buf);
+        }
+
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
             lastAlarm[alarmNxtWrPos] = alarm_t(code, start, end);
@@ -741,6 +760,8 @@ class Inverter {
     private:
         float mOffYD[6], mLastYD[6];
         bool mDevControlRequest; // true if change needed
+        uint8_t mGridLen = 0;
+        uint8_t mGridProfile[MAX_GRID_LENGTH];
 };
 
 template <class REC_TYP>

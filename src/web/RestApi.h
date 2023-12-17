@@ -109,6 +109,8 @@ class RestApi {
                     getIvStatistis(root, request->url().substring(24).toInt());
                 else if(path.substring(0, 16) == "inverter/pwrack/")
                     getIvPowerLimitAck(root, request->url().substring(21).toInt());
+                else if(path.substring(0, 14) == "inverter/grid/")
+                    getGridProfile(root, request->url().substring(19).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -395,6 +397,7 @@ class RestApi {
             obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
+            obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
             obj[F("gap")]               = mConfig->inst.gapMs;
@@ -452,6 +455,16 @@ class RestApi {
             }
         }
 
+        void getGridProfile(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                return;
+            }
+
+            obj[F("name")] = String(iv->config->name);
+            obj[F("grid")] = iv->getGridProfile();
+        }
+
         void getIvAlarms(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
@@ -484,6 +497,7 @@ class RestApi {
 
             record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);
 
+            obj[F("id")]         = id;
             obj[F("name")]       = String(iv->config->name);
             obj[F("serial")]     = String(iv->config->serial.u64, HEX);
             obj[F("generation")] = iv->ivGen;

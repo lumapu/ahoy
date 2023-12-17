@@ -290,12 +290,20 @@
                         tr("Firmware Version / Build", String(obj.fw_ver) + " (build: " + String(obj.fw_date) + " " + String(obj.fw_time) + ")"),
                         tr("Hardware Version / Build", (obj.hw_ver/100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")"),
                         tr("Hardware Number", obj.part_num.toString(16)),
-                        tr("Bootloader Version", (obj.boot_ver/100).toFixed(2))
+                        tr("Bootloader Version", (obj.boot_ver/100).toFixed(2)),
+                        tr("Grid Profile", ml("input", {type: "button", value: "show", class: "btn", onclick: function() {
+                            modalClose();
+                            getAjax("/api/inverter/grid/" + obj.id, showGridProfile);
+                        }}, null))
                     ])
                 ]);
                 modal("Info for inverter " + obj.name, ml("div", {}, html));
             }
 
+            function showGridProfile(obj) {
+                var html = ml("pre", {}, obj.grid);
+                modal("Grid Profile for inverter " + obj.name, ml("div", {}, html));
+            }
 
 
             function parseIvRadioStats(obj) {
