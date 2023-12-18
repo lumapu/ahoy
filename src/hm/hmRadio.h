@@ -121,7 +121,9 @@ class HmRadio : public Radio {
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            mRxChIdx = (mTxChIdx + 3) % RF_MAX_CHANNEL_ID; // start with a fixed offset
+            mRxChIdx = mRxChannels - 2; // ensure, we start receiving with first relative channel....
+            //mRxChannels - 1; //
+            //(mTxChIdx + mRxChannels) % RF_MAX_CHANNEL_ID; // start with a fixed offset
             while ((millis() - loopMillis) < mRxTmoOuterLoop) {
                 while ((micros() - startMicros) < mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
@@ -247,7 +249,7 @@ class HmRadio : public Radio {
 
         void prepareReceive(Inverter<> *iv) {
             if (iv->mIsSingleframeReq) {
-                mRxTmoOuterLoop = 65; // SINGLEFR_TIMEOUT
+                mRxTmoOuterLoop = 60; // SINGLEFR_TIMEOUT
                 return;
             }
 
@@ -256,24 +258,24 @@ class HmRadio : public Radio {
                     if (iv->type == INV_TYPE_4CH) {
                         mRxChannels = 3;
                         mRxTmoOuterLoop    = 300;
-                        mRxTmoInnerLoop    = 5110;
+                        mRxTmoInnerLoop    = 5110; //10220; //4088; // 6132; //  //
                     } else if (iv->type == INV_TYPE_2CH) {
                         mRxChannels = 2;
-                        mRxTmoOuterLoop    = 250;
+                        mRxTmoOuterLoop    = 240;
                         mRxTmoInnerLoop    = 10220;
                     } else { // INV_TYPE_1CH
                         mRxChannels = 2;
-                        mRxTmoOuterLoop    = 200;
+                        mRxTmoOuterLoop    = 180;
                         mRxTmoInnerLoop    = 5110;
                     }
                 } else { //3rd gen defaults
                     mRxChannels = 3;
-                    mRxTmoOuterLoop    = iv->mCmd == AlarmData ? 600 : 400;
+                    mRxTmoOuterLoop    = iv->mCmd == AlarmData ? 600 : 420;
                     mRxTmoInnerLoop    = 5110;
                 }
             } else { // 2nd gen defaults
-                mRxChannels = 2;
-                mRxTmoOuterLoop    = 250;
+                mRxChannels = 3;
+                mRxTmoOuterLoop    = 240;
                 mRxTmoInnerLoop    = 5110;
             }
         }

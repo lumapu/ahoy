@@ -30,9 +30,9 @@ class Communication : public CommQueue<> {
             mInverterGap = inverterGap;
         }
 
-        void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
+        void addImportant(Inverter<> *iv, uint8_t cmd) {
             mState = States::RESET; // cancel current operation
-            CommQueue::addImportant(iv, cmd, delOnPop);
+            CommQueue::addImportant(iv, cmd);
         }
 
         void addPayloadListener(payloadListenerType cb) {
@@ -84,7 +84,7 @@ class Communication : public CommQueue<> {
                         q->iv->curFrmCnt    = 0;
                         mIsRetransmit = false;
                         if(NULL == q->iv->radio)
-                            cmdDone(true); // can't communicate while radio is not defined!
+                            cmdDone(false); // can't communicate while radio is not defined!
                         mState = States::START;
 
                         q->iv->mCmd = q->cmd;
@@ -165,7 +165,8 @@ class Communication : public CommQueue<> {
                             closeRequest(q, false);
                             break;
                         }
-                        mIsRetransmit = false;
+                        if ((IV_MI != q->iv->ivGen) || (0 == q->attempts) )
+                            mIsRetransmit = false;
                         mFirstTry = false; // for correct reset
 
                         while(!q->iv->radio->mBufCtrl.empty()) {
@@ -183,6 +184,7 @@ class Communication : public CommQueue<> {
                                         closeRequest(q, true);
                                     else
                                         closeRequest(q, false);
+                                    q->iv->radio->mBufCtrl.pop();
                                     return; // don't wait for empty buffer
                                 } else if(IV_MI == q->iv->ivGen) {
                                     if(parseMiFrame(p, q))
@@ -205,6 +207,11 @@ class Communication : public CommQueue<> {
                                 bool fastNext = true;
                                 if(q->iv->miMultiParts < 6) {
                                     mState = States::WAIT;
+                                    if((millis() > mWaitTimeout && mIsRetransmit) || !mIsRetransmit) {
+                                        miRepeatRequest(q);
+                                        return;
+                                    }
+
                                 } else {
                                     mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
                                     if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
@@ -213,14 +220,17 @@ class Communication : public CommQueue<> {
                                         miComplete(q->iv);
                                         fastNext = false;
                                     }
-                                    closeRequest(q, true);
+
                                     if(fastNext) {
-                                        DPRINTLN(DBG_INFO, F("we should enqueue sth immediately...."));
+                                        miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
+                                        //DPRINTLN(DBG_INFO, F("we should enqueue sth immediately...."));
                                         // immediately send out regular production data request
                                         // and reset mWaitTimeout
                                         //mWaitTimeout = mWaitTimeout - *mInverterGap;
                                         //chgCmd((q->iv->type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1);
                                         //mState = States::RESET;
+                                    } else {
+                                        closeRequest(q, true);
                                     }
                                 }
 
@@ -354,8 +364,11 @@ class Communication : public CommQueue<> {
                 return false; // CRC8 is wrong, frame invalid
             }
 
-            if((*frameId & ALL_FRAMES) == ALL_FRAMES)
+            if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
                 mMaxFrameId = (*frameId & 0x7f);
+                if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
+                    incrAttempt(mMaxFrameId - 6);
+            }
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];
             memcpy(f->buf, &p->packet[10], p->len-11);
@@ -526,12 +539,15 @@ class Communication : public CommQueue<> {
                 q->iv->radioStatistics.rxSuccess++;
             else if(q->iv->mGotFragment)
                 q->iv->radioStatistics.rxFail++; // got no complete payload
-            else {
+            else
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-            }
             mWaitTimeout = millis() + *mInverterGap;
 
-            cmdDone(q->delOnPop);
+            bool keep = false;
+            if(q->isDevControl)
+                keep = !crcPass;
+
+            cmdDone(keep);
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
@@ -754,6 +770,25 @@ class Communication : public CommQueue<> {
             //mState = States::WAIT;
         }
 
+        void miRepeatRequest(const queue_s *q) {
+            setAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
+            if(*mSerialDebug) {
+                DPRINT_IVID(DBG_WARN, q->iv->id);
+                DBGPRINT(F("resend request ("));
+                DBGPRINT(String(q->attempts));
+                DBGPRINT(F(" attempts left): 0x"));
+                DBGHEXLN(q->cmd);
+            }
+
+            q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
+
+            mWaitTimeout = millis() + MI_TIMEOUT;
+            mWaitTimeout_min = mWaitTimeout;
+            //mState = States::WAIT;
+            mIsRetransmit = false;
+        }
+
+
         void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
             //uint8_t status  = (p->packet[11] << 8) + p->packet[12];
             uint16_t statusMi = 3; // regular status for MI, change to 1 later?
@@ -860,7 +895,7 @@ class Communication : public CommQueue<> {
             //closeRequest(iv, iv->miMultiParts > 5);
 
             //mHeu.setGotAll(iv);
-            //cmdDone(true);
+            //cmdDone(false);
             if(NULL != mCbPayload)
                 (mCbPayload)(RealTimeRunData_Debug, iv);
 
