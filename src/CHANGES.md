@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.27 - 2023-12-18
+* fix set power limit #1276
+
 ## 0.8.26 - 2023-12-17
 * read grid profile as HEX (`live` -> click inverter name -> `show grid profile`)
 

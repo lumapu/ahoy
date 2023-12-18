@@ -30,9 +30,9 @@ class Communication : public CommQueue<> {
             mInverterGap = inverterGap;
         }
 
-        void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
+        void addImportant(Inverter<> *iv, uint8_t cmd) {
             mState = States::RESET; // cancel current operation
-            CommQueue::addImportant(iv, cmd, delOnPop);
+            CommQueue::addImportant(iv, cmd);
         }
 
         void addPayloadListener(payloadListenerType cb) {
@@ -84,7 +84,7 @@ class Communication : public CommQueue<> {
                         q->iv->curFrmCnt    = 0;
                         mIsRetransmit = false;
                         if(NULL == q->iv->radio)
-                            cmdDone(true); // can't communicate while radio is not defined!
+                            cmdDone(false); // can't communicate while radio is not defined!
                         mState = States::START;
                         break;
 
@@ -177,6 +177,7 @@ class Communication : public CommQueue<> {
                                         closeRequest(q, true);
                                     else
                                         closeRequest(q, false);
+                                    q->iv->radio->mBufCtrl.pop();
                                     return; // don't wait for empty buffer
                                 } else if(IV_MI == q->iv->ivGen) {
                                     if(parseMiFrame(p, q))
@@ -399,8 +400,6 @@ class Communication : public CommQueue<> {
                 DBGPRINT(F("CRC Error "));
                 if(q->attempts == 0) {
                     DBGPRINTLN(F("-> Fail"));
-                    /*q->iv->radioStatistics.rxFail++; // got fragments but not complete response
-                    cmdDone();*/
                     closeRequest(q, false);
 
                 } else
@@ -502,16 +501,19 @@ class Communication : public CommQueue<> {
                 q->iv->radioStatistics.rxSuccess++;
             else if(q->iv->mGotFragment)
                 q->iv->radioStatistics.rxFail++; // got no complete payload
-            else {
+            else
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-            }
             mWaitTimeout = millis() + *mInverterGap;
 
-            cmdDone(q->delOnPop);
+            bool keep = false;
+            if(q->isDevControl)
+                keep = !crcPass;
+
+            cmdDone(keep);
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
-            mIsRetransmit           = false;
+            mIsRetransmit       = false;
             mFirstTry           = false; // for correct reset
             mState              = States::RESET;
             DBGPRINTLN(F("-----"));
@@ -836,7 +838,7 @@ class Communication : public CommQueue<> {
             //closeRequest(iv, iv->miMultiParts > 5);
 
             //mHeu.setGotAll(iv);
-            //cmdDone(true);
+            //cmdDone(false);
             if(NULL != mCbPayload)
                 (mCbPayload)(RealTimeRunData_Debug, iv);
 

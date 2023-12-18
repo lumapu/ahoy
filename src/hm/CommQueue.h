@@ -16,22 +16,22 @@ class CommQueue {
     public:
         CommQueue() {}
 
-        void addImportant(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
+        void addImportant(Inverter<> *iv, uint8_t cmd) {
             dec(&mRdPtr);
-            mQueue[mRdPtr] = queue_s(iv, cmd, delOnPop, true);
+            mQueue[mRdPtr] = queue_s(iv, cmd, true);
         }
 
-        void add(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
-            mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop, false);
+        void add(Inverter<> *iv, uint8_t cmd) {
+            mQueue[mWrPtr] = queue_s(iv, cmd, false);
             inc(&mWrPtr);
         }
 
-        void chgCmd(Inverter<> *iv, uint8_t cmd, bool delOnPop = true) {
-            mQueue[mWrPtr] = queue_s(iv, cmd, delOnPop, false);
+        void chgCmd(Inverter<> *iv, uint8_t cmd) {
+            mQueue[mWrPtr] = queue_s(iv, cmd, false);
         }
 
         uint8_t getFillState(void) {
-            DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
+            //DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
             return abs(mRdPtr - mWrPtr);
         }
 
@@ -45,11 +45,10 @@ class CommQueue {
             uint8_t cmd;
             uint8_t attempts;
             uint32_t ts;
-            bool delOnPop;
             bool isDevControl;
             queue_s() {}
-            queue_s(Inverter<> *i, uint8_t c, bool d, bool dev) :
-                iv(i), cmd(c), attempts(5), ts(0), delOnPop(d), isDevControl(dev) {}
+            queue_s(Inverter<> *i, uint8_t c, bool dev) :
+                iv(i), cmd(c), attempts(5), ts(0), isDevControl(dev) {}
         };
 
     protected:
@@ -78,8 +77,8 @@ class CommQueue {
             cb(true, &mQueue[mRdPtr]);
         }
 
-        void cmdDone(bool force = false) {
-            if(!mQueue[mRdPtr].delOnPop && !force) {
+        void cmdDone(bool keep = false) {
+            if(keep) {
                 mQueue[mRdPtr].attempts = 5;
                 add(mQueue[mRdPtr]); // add to the end again
             }
