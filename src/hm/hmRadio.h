@@ -122,8 +122,11 @@ class HmRadio : public Radio {
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
             //mRxChIdx = mRxChannels - 2; // ensure, we start receiving with first relative channel....
-            if(!mLastIv->mGotFragment)
-                mRxChIdx = mLastIv->mRxChanIdx;//(mLastIv->mRxChanIdx + RF_MAX_CHANNEL_ID -1) % RF_MAX_CHANNEL_ID; // make sure, we start with last successfull channel (result will be increased in loop)
+            //if(mLastIv->mGotFragment)
+                mRxChIdx = mLastIv->mRxChanIdx - 1;   // do not bother if that get's very high, will in this case effectively be 0 before rx chan is set
+            //else
+            //    mRxChIdx--;
+                //(mLastIv->mRxChanIdx + RF_MAX_CHANNEL_ID -1) % RF_MAX_CHANNEL_ID; // make sure, we start with last successfull channel (result will be increased in loop)
             //mRxChannels - 1; //
             //(mTxChIdx + mRxChannels) % RF_MAX_CHANNEL_ID; // start with a fixed offset
             while ((millis() - loopMillis) < mRxTmoOuterLoop) {
@@ -155,8 +158,9 @@ class HmRadio : public Radio {
             // not finished but time is over
             //if(++mRxChIdx >= RF_CHANNELS)
             //    mRxChIdx = 0;
-            if(!mLastIv->mGotFragment)
-                mLastIv->mRxChanIdx = mRxChIdx;
+            //if(!mLastIv->mGotFragment)
+                mLastIv->mRxChanIdx = mLastIv->mRxChanIdx +1; // + 2;
+                //mLastIv->mRxChanIdx = ++mRxChIdx;
 
             return;
         }
