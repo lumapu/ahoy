@@ -59,7 +59,8 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : DEFAULT_TIMEOUT;
+                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT :
+                    q->cmd != AlarmData ? DEFAULT_TIMEOUT : 1.5 * DEFAULT_TIMEOUT;
                 uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment || mIsRetransmit)) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT;
 
                 /*if(mDebugState != mState) {
@@ -548,7 +549,15 @@ class Communication : public CommQueue<> {
             if(q->isDevControl)
                 keep = !crcPass;
 
-            cmdDone(keep);
+            bool fastNext = false;
+            if(crcPass && q->iv->ivGen != IV_MI && q->cmd != RealTimeRunData_Debug)
+                 fastNext = true;
+
+            cmdDone(keep, fastNext);
+            /*if (fastNext)
+                add(q->iv, RealTimeRunData_Debug);
+                */
+
             q->iv->mGotFragment = false;
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;

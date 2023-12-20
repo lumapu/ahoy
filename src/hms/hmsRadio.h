@@ -96,6 +96,10 @@ class CmtRadio : public Radio {
                     else
                         ah::dumpBuf(mTxBuf, len);
                 } else
+                    DBGPRINT(F("0x"));
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" 0x"));
+                    DHEX(mTxBuf[10]);
                     DBGHEXLN(mTxBuf[9]);
             }
 

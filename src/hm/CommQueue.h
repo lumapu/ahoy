@@ -78,11 +78,15 @@ class CommQueue {
             cb(true, &mQueue[mRdPtr]);
         }
 
-        void cmdDone(bool keep = false) {
+        void cmdDone(bool keep = false, bool fastNext = false) {
             if(keep) {
                 mQueue[mRdPtr].attempts = 5;
                 add(mQueue[mRdPtr]); // add to the end again
+            } /*else if(fastNext) {
+                mQueue[mRdPtr].attempts = 5;
+                mQueue[mRdPtr].cmd = RealTimeRunData_Debug;
             }
+            if(!fastNext)*/
             inc(&mRdPtr);
         }
 

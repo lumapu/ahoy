@@ -365,6 +365,8 @@ class HmRadio : public Radio {
                 } else
                     DBGPRINT(F("0x"));
                     DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" 0x"));
+                    DHEX(mTxBuf[10]);
                     DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
             }
