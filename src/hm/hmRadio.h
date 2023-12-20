@@ -121,7 +121,9 @@ class HmRadio : public Radio {
 
             uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
-            mRxChIdx = mRxChannels - 2; // ensure, we start receiving with first relative channel....
+            //mRxChIdx = mRxChannels - 2; // ensure, we start receiving with first relative channel....
+            if(!mLastIv->mGotFragment)
+                mRxChIdx = mLastIv->mRxChanIdx;//(mLastIv->mRxChanIdx + RF_MAX_CHANNEL_ID -1) % RF_MAX_CHANNEL_ID; // make sure, we start with last successfull channel (result will be increased in loop)
             //mRxChannels - 1; //
             //(mTxChIdx + mRxChannels) % RF_MAX_CHANNEL_ID; // start with a fixed offset
             while ((millis() - loopMillis) < mRxTmoOuterLoop) {
@@ -130,28 +132,31 @@ class HmRadio : public Radio {
                         mIrqRcvd = false;
 
                         if (getReceived()) { // everything received
+                            mLastIv->mRxChanIdx = mRxChIdx;
                             return;
                         }
                     }
                     yield();
                 }
                 // switch to next RX channel
-                 /*if(++mRxChIdx >= RF_CHANNELS)
-                    mRxChIdx = 0;*/
-
-                //if(++mRxChIdx >= mLastIv->mRxChannels)
-                if(++mRxChIdx >= mRxChannels)
+                if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
 
-                uint8_t nextRxCh = (mRxChIdx + mTxChIdx + 4) % RF_MAX_CHANNEL_ID; // let 3 channels in shifting out; might cause problems for tx channel 75, see Oberfritze remark to his array
+                //if(++mRxChIdx >= mLastIv->mRxChannels)
+                /*if(++mRxChIdx >= mRxChannels)
+                    mRxChIdx = 0;*/
 
-                //mNrf24->setChannel(mRfChLst[mRxChIdx]);
-                mNrf24->setChannel(mRfChLst[nextRxCh]);
+                //uint8_t nextRxCh = (mRxChIdx + mTxChIdx + mRxChannels-1) % RF_MAX_CHANNEL_ID; // shift rx channel relative to tx channel; might cause problems for tx channel 75, see Oberfritze remark to his array
+
+                mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                //mNrf24->setChannel(mRfChLst[nextRxCh]);
                 startMicros = micros();
             }
             // not finished but time is over
             //if(++mRxChIdx >= RF_CHANNELS)
             //    mRxChIdx = 0;
+            if(!mLastIv->mGotFragment)
+                mLastIv->mRxChanIdx = mRxChIdx;
 
             return;
         }
@@ -249,33 +254,33 @@ class HmRadio : public Radio {
 
         void prepareReceive(Inverter<> *iv) {
             if (iv->mIsSingleframeReq) {
-                mRxTmoOuterLoop = 60; // SINGLEFR_TIMEOUT
+                mRxTmoOuterLoop = 100; // SINGLEFR_TIMEOUT
                 return;
             }
 
             if (iv->ivGen != IV_MI) {
                 if (iv->mCmd == RealTimeRunData_Debug) {
                     if (iv->type == INV_TYPE_4CH) {
-                        mRxChannels = 3;
+                        mRxChannels = 2;
                         mRxTmoOuterLoop    = 300;
                         mRxTmoInnerLoop    = 5110; //10220; //4088; // 6132; //  //
                     } else if (iv->type == INV_TYPE_2CH) {
                         mRxChannels = 2;
-                        mRxTmoOuterLoop    = 240;
-                        mRxTmoInnerLoop    = 10220;
+                        mRxTmoOuterLoop    = 250;
+                        mRxTmoInnerLoop    = 5110; //10220;
                     } else { // INV_TYPE_1CH
                         mRxChannels = 2;
-                        mRxTmoOuterLoop    = 180;
+                        mRxTmoOuterLoop    = 200;
                         mRxTmoInnerLoop    = 5110;
                     }
                 } else { //3rd gen defaults
                     mRxChannels = 3;
-                    mRxTmoOuterLoop    = iv->mCmd == AlarmData ? 600 : 420;
+                    mRxTmoOuterLoop    = iv->mCmd == AlarmData ? 600 : 400;
                     mRxTmoInnerLoop    = 5110;
                 }
             } else { // 2nd gen defaults
                 mRxChannels = 3;
-                mRxTmoOuterLoop    = 240;
+                mRxTmoOuterLoop    = 250;
                 mRxTmoInnerLoop    = 5110;
             }
         }
@@ -389,7 +394,7 @@ class HmRadio : public Radio {
         uint8_t  mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
         uint8_t  mTxChIdx    = 0;
         uint8_t  mRxChIdx    = 0;
-        uint8_t  mRxChannels = 3;         // number of rx channels to listen to, defaults to 3;
+        uint8_t  mRxChannels = 5;         // number of rx channels to listen to, defaults to 3;
         uint32_t mRxTmoOuterLoop = 400;   // timeout for entire listening loop after sending, defaults to 400 (ms);
         uint32_t mRxTmoInnerLoop = 5110;  // timeout for each listening channel, defaults to 5110 (us)
         uint8_t  lastCmd     = 0xFF;      // holds the last sent command, defaults to 0xFF

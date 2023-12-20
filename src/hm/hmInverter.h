@@ -134,6 +134,7 @@ class Inverter {
         uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
         uint8_t       mCmd;              // holds the command to send
+        uint8_t       mRxChanIdx;        // holds the index of the last used rx channel
         bool          mIsSingleframeReq; // indicates this is a missing single frame request
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
@@ -162,6 +163,7 @@ class Inverter {
             miMultiParts       = 0;
             mGotLastMsg        = false;
             mCmd               = InitDataState;
+            mRxChanIdx         = 1;
             mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
