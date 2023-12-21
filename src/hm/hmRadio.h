@@ -129,19 +129,23 @@ class HmRadio : public Radio {
                 //(mLastIv->mRxChanIdx + RF_MAX_CHANNEL_ID -1) % RF_MAX_CHANNEL_ID; // make sure, we start with last successfull channel (result will be increased in loop)
             //mRxChannels - 1; //
             //(mTxChIdx + mRxChannels) % RF_MAX_CHANNEL_ID; // start with a fixed offset
+            bool switchch = true;
             while ((millis() - loopMillis) < mRxTmoOuterLoop) {
                 while ((micros() - startMicros) < mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
                         if (getReceived()) { // everything received
-                            mLastIv->mRxChanIdx = mRxChIdx;
                             return;
                         }
                     }
                     yield();
                 }
                 // switch to next RX channel
+                /*if (mLastIv->mRxChanSync) {
+                    switchch = !switchch;
+                    mRxChIdx = mLastIv->mRxChanIdx - switchch;
+                }*/
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
 
@@ -161,6 +165,7 @@ class HmRadio : public Radio {
             //if(!mLastIv->mGotFragment)
                 mLastIv->mRxChanIdx = mLastIv->mRxChanIdx +1; // + 2;
                 //mLastIv->mRxChanIdx = ++mRxChIdx;
+                mLastIv->mRxChanSync = false;
 
             return;
         }
@@ -326,6 +331,9 @@ class HmRadio : public Radio {
                             return false;
                         }
                         mLastIv->mGotFragment = true;
+                        mLastIv->mRxChanIdx   = mRxChIdx;
+                        mLastIv->mRxChanSync  = true;
+
                         mBufCtrl.push(p);
                         if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
                             isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
@@ -378,6 +386,7 @@ class HmRadio : public Radio {
             mMillis = millis();
 
             mLastIv = iv;
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

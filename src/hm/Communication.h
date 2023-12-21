@@ -176,6 +176,7 @@ class Communication : public CommQueue<> {
 
                             if(validateIvSerial(&p->packet[1], q->iv)) {
                                 q->iv->radioStatistics.frmCnt++;
+                                q->iv->mDtuRxCnt++;
                                 //q->iv->mRxChanIdx = mRxChanIdx;
 
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
@@ -486,8 +487,13 @@ class Communication : public CommQueue<> {
 
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
-                DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                closeRequest(q, false);
+                if(GetLossRate == q->cmd) {
+                    q->iv->parseGetLossRate(q->iv->id, mPayload, len);
+                    closeRequest(q, true);
+                } else {
+                    DPRINTLN(DBG_ERROR, F("record is NULL!"));
+                    closeRequest(q, false);
+                }
                 return;
             }
             if((rec->pyldLen != len) && (0 != rec->pyldLen)) {
