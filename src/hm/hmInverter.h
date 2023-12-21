@@ -175,6 +175,10 @@ class Inverter {
             mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
+            mIvRxCnt           = 0;
+            mIvTxCnt           = 0;
+            mDtuRxCnt          = 0;
+            mDtuTxCnt          = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(heuristics.txRfQuality, -6, 5);
@@ -601,18 +605,21 @@ class Inverter {
             memset(mLastYD, 0, sizeof(float) * 6);
         }
 
-        bool parseGetLossRate(uint8_t id, uint8_t pyld[], uint8_t len) {
+        //bool parseGetLossRate(uint8_t id, uint8_t pyld[], uint8_t len) {
+        bool parseGetLossRate(uint8_t pyld[], uint8_t len) {
             if (len == HMGETLOSSRATE_PAYLOAD_LEN) {
                 uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
                 uint16_t txCnt = (pyld[2] << 8) + pyld[3];
 
                 if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
                     DPRINT_IVID(DBG_INFO, id);
-                    DBGPRINTLN("Inv loss: " + String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
+                    DBGPRINTLN("Inv loss: " +
+                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
                         String (mDtuTxCnt) + ", DTU loss: " +
                         String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
                         String (txCnt - mIvTxCnt));
                 }
+
                 mIvRxCnt = rxCnt;
                 mIvTxCnt = txCnt;
                 mDtuRxCnt = 0;  // start new interval

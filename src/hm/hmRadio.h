@@ -130,10 +130,12 @@ class HmRadio : public Radio {
             //mRxChannels - 1; //
             //(mTxChIdx + mRxChannels) % RF_MAX_CHANNEL_ID; // start with a fixed offset
             bool switchch = true;
+            uint8_t looprounds = 0;
             while ((millis() - loopMillis) < mRxTmoOuterLoop) {
                 while ((micros() - startMicros) < mRxTmoInnerLoop) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
+                        mLastIv->mRxChanSync = false; //reset
 
                         if (getReceived()) { // everything received
                             return;
@@ -142,10 +144,22 @@ class HmRadio : public Radio {
                     yield();
                 }
                 // switch to next RX channel
+                bool chgchan = true;
                 /*if (mLastIv->mRxChanSync) {
-                    switchch = !switchch;
-                    mRxChIdx = mLastIv->mRxChanIdx - switchch;
+                    if (!looprounds) {
+                        mRxChIdx = mLastIv->mRxChanIdx - switchch;
+
+                    } else if (++looprounds > 9) {
+                        looprounds = 0;
+                        switchch = !switchch;
+                        mRxChIdx = mLastIv->mRxChanIdx - switchch;
+                        if(switchch)
+                            mLastIv->mRxChanSync = false; // we didn't receive st. timely on this channel
+                    } else
+                        chgchan = false;
                 }*/
+
+                if(chgchan) {
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
 
@@ -157,6 +171,7 @@ class HmRadio : public Radio {
 
                 mNrf24->setChannel(mRfChLst[mRxChIdx]);
                 //mNrf24->setChannel(mRfChLst[nextRxCh]);
+                }
                 startMicros = micros();
             }
             // not finished but time is over

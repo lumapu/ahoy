@@ -488,8 +488,10 @@ class Communication : public CommQueue<> {
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
                 if(GetLossRate == q->cmd) {
-                    q->iv->parseGetLossRate(q->iv->id, mPayload, len);
-                    closeRequest(q, true);
+                    //q->iv->parseGetLossRate(q->iv->id, mPayload, len);
+                    q->iv->parseGetLossRate(mPayload, len);
+                    //closeRequest(q, true);
+                    return;
                 } else {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
                     closeRequest(q, false);
