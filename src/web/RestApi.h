@@ -421,7 +421,7 @@ class RestApi {
             obj[F("max_pwr")]          = iv->getMaxPower();
             obj[F("ts_last_success")]  = rec->ts;
             obj[F("generation")]       = iv->ivGen;
-            obj[F("status")]           = (uint8_t)iv->status;
+            obj[F("status")]           = (uint8_t)iv->getStatus();
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
 

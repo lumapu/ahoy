@@ -676,7 +676,7 @@
                         ml("td", {}, String(i+1)),
                         ml("td", {}, ml("input", {name: "ch_p"+i, class: "text", type: "number", max: 999, value: obj.ch_max_pwr[i]}, null)),
                         ml("td", {}, ml("input", {name: "ch_n"+i, class: "text", type: "text", maxlength: 15, value: (undefined === obj.ch_name[i]) ? "" : obj.ch_name[i]}, null)),
-                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i]}, null))
+                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i], step: "0.001"}, null))
                     ]));
                 }
 

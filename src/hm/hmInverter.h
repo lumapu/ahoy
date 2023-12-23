@@ -458,6 +458,11 @@ class Inverter {
             return producing;
         }
 
+        InverterStatus getStatus(){
+            isProducing(); // recalculate status
+            return status;
+        }
+
         uint16_t getFwVersion() {
             record_t<> *rec = getRecordStruct(InverterDevInform_All);
             return getChannelFieldValue(CH0, FLD_FW_VERSION, rec);

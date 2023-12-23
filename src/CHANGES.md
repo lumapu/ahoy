@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.29 - 2023-12-23
+* fix MqTT generic topic `comm_disabled` #1265 #1286
+* potential fix of #1285 (reset yield day)
+* fix fraction of yield correction #1280
+
 ## 0.8.28 - 2023-12-23
 * fix bug heuristic
 * add version information to clipboard once 'copy' was clicked

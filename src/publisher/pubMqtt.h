@@ -153,6 +153,10 @@ class PubMqtt {
                 publish(mSubTopic, ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
             }
 
+
+            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
+            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offs)) || (*mUtcTimestamp < (sunrise - offs))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+
             return true;
         }
 
@@ -483,22 +487,22 @@ class PubMqtt {
                     continue; // skip to next inverter
 
                 // inverter status
-                iv->isProducing(); // recalculate status
-                if (InverterStatus::OFF < iv->status)
+                InverterStatus status = iv->getStatus();
+                if (InverterStatus::OFF < status)
                     anyAvail = true;
                 else // inverter is enabled but not available
                     allAvail = false;
 
-                if(mLastIvState[id] != iv->status) {
+                if(mLastIvState[id] != status) {
                     // if status changed from producing to not producing send last data immediately
                     if (InverterStatus::WAS_PRODUCING == mLastIvState[id])
                         sendData(iv, RealTimeRunData_Debug);
 
-                    mLastIvState[id] = iv->status;
+                    mLastIvState[id] = status;
                     changed = true;
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(mVal, 40, "%d", (uint8_t)iv->status);
+                    snprintf(mVal, 40, "%d", (uint8_t)status);
                     publish(mSubTopic, mVal, true);
                 }
             }
