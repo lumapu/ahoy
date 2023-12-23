@@ -152,7 +152,7 @@ typedef struct {
 } cfgIv_t;
 
 typedef struct {
-    bool enabled;
+//    bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
     uint16_t sendInterval;
@@ -755,7 +755,7 @@ class settings {
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("intvl")]          = mCfg.inst.sendInterval;
-                obj[F("en")] = (bool)mCfg.inst.enabled;
+//                obj[F("en")] = (bool)mCfg.inst.enabled;
                 obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
@@ -765,7 +765,7 @@ class settings {
             }
             else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
-                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
+//                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
