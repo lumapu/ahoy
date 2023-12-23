@@ -290,14 +290,14 @@ class HmRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = mRfChLst[iv->heuristics.txRfChId];
+            mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
-                DBGPRINT(String(mTxChIdx));
+                DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
@@ -309,7 +309,7 @@ class HmRadio : public Radio {
             }
 
             mNrf24->stopListening();
-            mNrf24->setChannel(mTxChIdx);
+            mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
