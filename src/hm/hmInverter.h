@@ -133,11 +133,19 @@ class Inverter {
         bool          mGotFragment;      // shows if inverter has sent at least one fragment
         uint8_t       curFrmCnt;         // count received frames in current loop
         bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
+        uint8_t       mCmd;              // holds the command to send
+        bool          mIsSingleframeReq; // indicates this is a missing single frame request
         Radio         *radio;            // pointer to associated radio class
         statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
         HeuristicInv  heuristics;        // heuristic information / logic
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
+
+        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
+        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
+        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
+        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
+        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debu
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -159,8 +167,14 @@ class Inverter {
             rssi               = -127;
             miMultiParts       = 0;
             mGotLastMsg        = false;
+            mCmd               = InitDataState;
+            mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
+            mIvRxCnt           = 0;
+            mIvTxCnt           = 0;
+            mDtuRxCnt          = 0;
+            mDtuTxCnt          = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(heuristics.txRfQuality, -6, 5);
@@ -174,6 +188,7 @@ class Inverter {
                 cb(devControlCmd, true);
                 mDevControlRequest = false;
             } else if (IV_MI != ivGen) {
+                mGetLossInterval++;
                 if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
                     cb(AlarmData, false);                // get last alarms
                 else if(0 == getFwVersion())
@@ -185,8 +200,12 @@ class Inverter {
                 else if(InitDataState != devControlCmd) {
                     cb(devControlCmd, false);            // custom command which was received by API
                     devControlCmd = InitDataState;
+                    mGetLossInterval = 1;
                 } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                     cb(GridOnProFilePara, false);
+                } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
+                    mGetLossInterval = 1;
+                    cb(GetLossRate, false);
                 } else
                     cb(RealTimeRunData_Debug, false);    // get live data
             } else {
@@ -572,6 +591,29 @@ class Inverter {
 
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
+        }
+
+        bool parseGetLossRate(uint8_t pyld[], uint8_t len) {
+            if (len == HMGETLOSSRATE_PAYLOAD_LEN) {
+                uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
+                uint16_t txCnt = (pyld[2] << 8) + pyld[3];
+
+                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                    DPRINT_IVID(DBG_INFO, id);
+                    DBGPRINTLN("Inv loss: " +
+                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
+                        String (mDtuTxCnt) + ", DTU loss: " +
+                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
+                        String (txCnt - mIvTxCnt));
+                }
+
+                mIvRxCnt = rxCnt;
+                mIvTxCnt = txCnt;
+                mDtuRxCnt = 0;  // start new interval
+                mDtuTxCnt = 0;  // start new interval
+                return true;
+            }
+            return false;
         }
 
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {

@@ -127,6 +127,11 @@ class PubMqttIvData {
 
         void stateSend() {
             record_t<> *rec = mIv->getRecordStruct(mCmd);
+            if(rec == NULL) {
+                if (mCmd != GetLossRate)
+                    DPRINT(DBG_WARN, "unknown record to publish!");
+                return;
+            }
             uint32_t lastTs = mIv->getLastTs(rec);
             bool pubData = (lastTs > 0);
             if (mCmd == RealTimeRunData_Debug)

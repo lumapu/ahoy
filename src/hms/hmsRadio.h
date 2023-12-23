@@ -95,8 +95,13 @@ class CmtRadio : public Radio {
                         ah::dumpBuf(mTxBuf, len, 1, 4);
                     else
                         ah::dumpBuf(mTxBuf, len);
-                } else
+                } else {
+                    DBGPRINT(F("0x"));
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" 0x"));
+                    DHEX(mTxBuf[10]);
                     DBGHEXLN(mTxBuf[9]);
+                }
             }
 
             uint8_t status = mCmt.tx(mTxBuf, len);
@@ -107,6 +112,7 @@ class CmtRadio : public Radio {
                 if(CMT_ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

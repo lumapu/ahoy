@@ -3,6 +3,8 @@
 ## 0.8.28 - 2023-12-23
 * fix bug heuristic
 * add version information to clipboard once 'copy' was clicked
+* add get loss rate @rejoe2
+* improve communication @rejoe2
 
 ## 0.8.27 - 2023-12-18
 * fix set power limit #1276

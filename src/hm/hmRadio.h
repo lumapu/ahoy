@@ -119,9 +119,11 @@ class HmRadio : public Radio {
             if(NULL == mLastIv) // prevent reading on NULL object!
                 return;
 
-            uint32_t startMicros = micros();
-            uint32_t loopMillis = millis();
-            while ((millis() - loopMillis) < 400) {
+            uint32_t startMicros      = micros();
+            uint32_t loopMillis       = millis();
+            uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) ? 400 : 600);
+
+            while ((millis() - loopMillis) < outerLoopTimeout) {
                 while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
@@ -304,8 +306,14 @@ class HmRadio : public Radio {
                         ah::dumpBuf(mTxBuf, len, 1, 4);
                     else
                         ah::dumpBuf(mTxBuf, len);
-                } else
+                } else {
+                    DBGPRINT(F("0x"));
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" 0x"));
+                    DHEX(mTxBuf[10]);
+                    DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
+                }
             }
 
             mNrf24->stopListening();
@@ -315,6 +323,7 @@ class HmRadio : public Radio {
             mMillis = millis();
 
             mLastIv = iv;
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

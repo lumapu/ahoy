@@ -94,8 +94,8 @@ class CommQueue {
                 mQueue[mRdPtr].attempts--;
         }
 
-        void incrAttempt(void) {
-            mQueue[mRdPtr].attempts++;
+        void incrAttempt(uint8_t attempts = 1) {
+            mQueue[mRdPtr].attempts += attempts;
         }
 
         void inc(uint8_t *ptr) {
