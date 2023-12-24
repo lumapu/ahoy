@@ -271,7 +271,7 @@ class Communication : public CommQueue<> {
 
                         compilePayload(q);
 
-                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd))
+                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
                             (mCbPayload)(q->cmd, q->iv);
 
                         closeRequest(q, true);
