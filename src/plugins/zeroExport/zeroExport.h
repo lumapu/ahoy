@@ -74,8 +74,6 @@ class ZeroExport {
                 String responseBody = httpClient.getString();
                 DynamicJsonDocument json(2048);
                 DeserializationError err = deserializeJson(json, responseBody);
-                sml_state sml = smlState(httpClient.getStream());
-                smlOBISManufacturer
 
                 // Parse succeeded?
                 if (err) {
