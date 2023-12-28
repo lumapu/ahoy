@@ -124,7 +124,7 @@ class HmRadio : public Radio {
             uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) && (mLastIv->mCmd != GridOnProFilePara)) ? 400 : 600;
 
             while ((millis() - loopMillis) < outerLoopTimeout) {
-                uint32_t startMicros = micros();
+                startMicros = micros();
                 while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
