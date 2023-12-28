@@ -23,7 +23,7 @@ class TimeMonitor {
          * A constructor for initializing a TimeMonitor
          * @note TimeMonitor witch default constructor is stopped
          */
-        TimeMonitor(void) {};
+        TimeMonitor(void) {}
 
         /**
          * A constructor for initializing a TimeMonitor
@@ -36,7 +36,7 @@ class TimeMonitor {
                 startTimeMonitor(timeout);
             else
                 configureTimeMonitor(timeout);
-        };
+        }
 
         /**
          * Start the TimeMonitor with new timeout configuration
@@ -118,9 +118,9 @@ class TimeMonitor {
         }
 
     private:
-        uint32_t mStartTime = 0UL;  // start time of the TimeMonitor
-        uint32_t mTimeout = 0UL;    // timeout configuration of the TimeMonitor
-        bool     mStarted = false;  // start/stop state of the TimeMonitor
+        uint32_t mStartTime = 0UL;   // start time of the TimeMonitor
+        uint32_t mTimeout   = 0UL;   // timeout configuration of the TimeMonitor
+        bool     mStarted   = false; // start/stop state of the TimeMonitor
 };
 
 #endif
