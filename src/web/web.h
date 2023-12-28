@@ -25,6 +25,7 @@
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"
 #include "html/h/favicon_ico.h"
+#include "html/h/grid_info_json.h"
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
 #include "html/h/serial_html.h"
@@ -65,6 +66,7 @@ class Web {
             mWeb.on("/colors.css",     HTTP_GET,  std::bind(&Web::onColor,        this, std::placeholders::_1));
             mWeb.on("/style.css",      HTTP_GET,  std::bind(&Web::onCss,          this, std::placeholders::_1));
             mWeb.on("/api.js",         HTTP_GET,  std::bind(&Web::onApiJs,        this, std::placeholders::_1));
+            mWeb.on("/grid_info.json", HTTP_GET,  std::bind(&Web::onGridInfoJson, this, std::placeholders::_1));
             mWeb.on("/favicon.ico",    HTTP_GET,  std::bind(&Web::onFavicon,      this, std::placeholders::_1));
             mWeb.onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
             mWeb.on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
@@ -383,6 +385,16 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onApiJs"));
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/javascript"), api_js, api_js_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v"))
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            request->send(response);
+        }
+
+        void onGridInfoJson(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, F("onGridInfoJson"));
+
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("application/json; charset=utf-8"), grid_info_json, grid_info_json_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v"))
                 response->addHeader(F("Cache-Control"), F("max-age=604800"));

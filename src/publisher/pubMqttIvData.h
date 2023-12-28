@@ -127,6 +127,11 @@ class PubMqttIvData {
 
         void stateSend() {
             record_t<> *rec = mIv->getRecordStruct(mCmd);
+            if(rec == NULL) {
+                if (mCmd != GetLossRate)
+                    DPRINT(DBG_WARN, "unknown record to publish!");
+                return;
+            }
             uint32_t lastTs = mIv->getLastTs(rec);
             bool pubData = (lastTs > 0);
             if (mCmd == RealTimeRunData_Debug)
@@ -141,7 +146,7 @@ class PubMqttIvData {
 
                         // calculate total values for RealTimeRunData_Debug
                         if (CH0 == rec->assign[mPos].ch) {
-                            if(mIv->status > InverterStatus::STARTING) {
+                            if(mIv->getStatus() > InverterStatus::STARTING) {
                                 if(mIv->config->add2Total) {
                                     mTotalFound = true;
                                     switch (rec->assign[mPos].fieldId) {

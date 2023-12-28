@@ -55,6 +55,7 @@ def readVersion(path, infile):
     os.mkdir(path + "firmware/ESP32/")
     os.mkdir(path + "firmware/ESP32-S2/")
     os.mkdir(path + "firmware/ESP32-S3/")
+    os.mkdir(path + "firmware/ESP32-C3/")
     os.mkdir(path + "firmware/ESP32-S3-ETH/")
     sha = os.getenv("SHA",default="sha")
 
@@ -94,6 +95,11 @@ def readVersion(path, infile):
     dst = path + "firmware/ESP32-S2/" + versionout
     os.rename(src, dst)
 
+    versionout = version[:-1] + "_" + sha + "_esp32c3-mini.bin"
+    src = path + ".pio/build/esp32-c3-mini/firmware.bin"
+    dst = path + "firmware/ESP32-C3/" + versionout
+    os.rename(src, dst)
+
     versionout = version[:-1] + "_" + sha + "_esp32s3.bin"
     src = path + ".pio/build/opendtufusion/firmware.bin"
     dst = path + "firmware/ESP32-S3/" + versionout
@@ -114,6 +120,13 @@ def readVersion(path, infile):
     # other ESP32-S2 bin files
     src = path + ".pio/build/esp32-s2-mini/"
     dst = path + "firmware/ESP32-S2/"
+    os.rename(src + "bootloader.bin", dst + "bootloader.bin")
+    os.rename(src + "partitions.bin", dst + "partitions.bin")
+    genOtaBin(dst)
+
+    # other ESP32-C3 bin files
+    src = path + ".pio/build/esp32-c3-mini/"
+    dst = path + "firmware/ESP32-C3/"
     os.rename(src + "bootloader.bin", dst + "bootloader.bin")
     os.rename(src + "partitions.bin", dst + "partitions.bin")
     genOtaBin(dst)

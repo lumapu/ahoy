@@ -139,6 +139,8 @@ const byteAssign_t AlarmDataAssignment[] = {
 #define HMALARMDATA_PAYLOAD_LEN  0 // 0: means check is off
 #define ALARM_LOG_ENTRY_SIZE    12
 
+#define HMGETLOSSRATE_PAYLOAD_LEN 4
+#define AHOY_GET_LOSS_INTERVAL 10
 
 //-------------------------------------
 // HM300, HM350, HM400

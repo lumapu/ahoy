@@ -98,7 +98,7 @@ class HmRadio : public Radio {
             if(mNrf24->isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
                 mNrf24->printPrettyDetails();
-                DPRINT(DBG_INFO, F("DTU_SN: 0x"));
+                DPRINT(DBG_INFO, F("DTU_SN: "));
                 DBGPRINTLN(String(mDtuSn, HEX));
             } else
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -119,9 +119,11 @@ class HmRadio : public Radio {
             if(NULL == mLastIv) // prevent reading on NULL object!
                 return;
 
-            uint32_t startMicros = micros();
-            uint32_t loopMillis = millis();
-            while ((millis() - loopMillis) < 400) {
+            uint32_t startMicros      = micros();
+            uint32_t loopMillis       = millis();
+            uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) ? 400 : 600);
+
+            while ((millis() - loopMillis) < outerLoopTimeout) {
                 while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
@@ -138,7 +140,7 @@ class HmRadio : public Radio {
                 startMicros = micros();
             }
             // not finished but time is over
-            mRxChIdx = 1;
+            mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;
 
             return;
         }
@@ -150,7 +152,7 @@ class HmRadio : public Radio {
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
             DPRINT_IVID(DBG_INFO, iv->id);
-            DBGPRINT(F("sendControlPacket cmd: 0x"));
+            DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
@@ -290,31 +292,37 @@ class HmRadio : public Radio {
             updateCrcs(&len, appendCrc16);
 
             // set TX and RX channels
-            mTxChIdx = mRfChLst[iv->heuristics.txRfChId];
+            mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
-                DBGPRINT(String(mTxChIdx));
+                DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(" | "));
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
                         ah::dumpBuf(mTxBuf, len, 1, 4);
                     else
                         ah::dumpBuf(mTxBuf, len);
-                } else
+                } else {
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" "));
+                    DHEX(mTxBuf[10]);
+                    DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
+                }
             }
 
             mNrf24->stopListening();
-            mNrf24->setChannel(mTxChIdx);
+            mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
             mMillis = millis();
 
             mLastIv = iv;
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

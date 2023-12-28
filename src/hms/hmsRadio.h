@@ -42,7 +42,7 @@ class CmtRadio : public Radio {
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
-            DPRINT(DBG_INFO, F("sendControlPacket cmd: 0x"));
+            DPRINT(DBG_INFO, F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
@@ -95,8 +95,12 @@ class CmtRadio : public Radio {
                         ah::dumpBuf(mTxBuf, len, 1, 4);
                     else
                         ah::dumpBuf(mTxBuf, len);
-                } else
+                } else {
+                    DHEX(mTxBuf[0]);
+                    DBGPRINT(F(" "));
+                    DHEX(mTxBuf[10]);
                     DBGHEXLN(mTxBuf[9]);
+                }
             }
 
             uint8_t status = mCmt.tx(mTxBuf, len);
@@ -107,6 +111,7 @@ class CmtRadio : public Radio {
                 if(CMT_ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

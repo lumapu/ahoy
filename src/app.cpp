@@ -317,7 +317,7 @@ void app::tickMidnight(void) {
             continue;  // skip to next inverter
 
         // reset alarms
-        if(InverterStatus::OFF == iv->status)
+        if(InverterStatus::OFF == iv->getStatus())
             iv->resetAlarms();
 
         // clear max values
