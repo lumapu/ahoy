@@ -464,9 +464,6 @@ class Communication : public CommQueue<> {
 
             if(GridOnProFilePara == q->cmd) {
                 q->iv->addGridProfile(mPayload, len);
-                q->iv->radioStatistics.rxSuccess++;
-                mHeu.evalTxChQuality(q->iv, true, (7 - q->attempts), q->iv->curFrmCnt);
-                //cmdDone(false);
                 return;
             }
 
@@ -474,10 +471,6 @@ class Communication : public CommQueue<> {
             if(NULL == rec) {
                 if(GetLossRate == q->cmd) {
                     q->iv->parseGetLossRate(mPayload, len);
-                    //closeRequest(q, true); //@lumapu: Activating would crash most esp's!
-                    mHeu.evalTxChQuality(q->iv, true, (9 - q->attempts), q->iv->curFrmCnt);
-                    q->iv->radioStatistics.rxSuccess++;
-                    //cmdDone(false);
                     return;
                 } else {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
