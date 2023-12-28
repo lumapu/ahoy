@@ -308,7 +308,7 @@ class Communication : public CommQueue<> {
                 else
                     ah::dumpBuf(p->packet, p->len);
             } else {
-                DBGPRINT(F("| 0x"));
+                DBGPRINT(F("| "));
                 DHEX(p->packet[0]);
                 DBGPRINT(F(" "));
                 DBGHEXLN(p->packet[9]);
@@ -466,7 +466,7 @@ class Communication : public CommQueue<> {
                 q->iv->addGridProfile(mPayload, len);
                 q->iv->radioStatistics.rxSuccess++;
                 mHeu.evalTxChQuality(q->iv, true, (7 - q->attempts), q->iv->curFrmCnt);
-                cmdDone(false);
+                //cmdDone(false);
                 return;
             }
 
@@ -477,7 +477,7 @@ class Communication : public CommQueue<> {
                     //closeRequest(q, true); //@lumapu: Activating would crash most esp's!
                     mHeu.evalTxChQuality(q->iv, true, (9 - q->attempts), q->iv->curFrmCnt);
                     q->iv->radioStatistics.rxSuccess++;
-                    cmdDone(false);
+                    //cmdDone(false);
                     return;
                 } else {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
