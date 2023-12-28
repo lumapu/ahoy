@@ -435,6 +435,31 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            var esp32c3pins = [
+                [255, "off / default"],
+                [0,  "GPIO0"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12 (PSRAM/FLASH)"],
+                [13, "GPIO13 (PSRAM/FLASH)"],
+                [14, "GPIO14 (PSRAM/FLASH)"],
+                [15, "GPIO15 (PSRAM/FLASH)"],
+                [16, "GPIO16 (PSRAM/FLASH)"],
+                [17, "GPIO17 (PSRAM/FLASH)"],
+                [18, "GPIO18 (DONT USE - USB-)"],
+                [19, "GPIO19 (DONT USE - USB+)"],
+                [20, "GPIO20 (RX)"],
+                [21, "GPIO21 (TX)"],
+            ];
             /*ENDIF_ESP32*/
             var nrfPa = [
                 [0, "MIN (recommended)"],
@@ -676,7 +701,7 @@
                         ml("td", {}, String(i+1)),
                         ml("td", {}, ml("input", {name: "ch_p"+i, class: "text", type: "number", max: 999, value: obj.ch_max_pwr[i]}, null)),
                         ml("td", {}, ml("input", {name: "ch_n"+i, class: "text", type: "text", maxlength: 15, value: (undefined === obj.ch_name[i]) ? "" : obj.ch_name[i]}, null)),
-                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i]}, null))
+                        ml("td", {}, ml("input", {name: "yld_c"+i, class: "text", type: "number", max: 999999, value: obj.ch_yield_cor[i], step: "0.001"}, null))
                     ]));
                 }
 
@@ -872,13 +897,17 @@
 
             function parsePinout(obj, type, system) {
                 var e = document.getElementById("pinout");
+                var pinList = esp32pins;
+                if("ESP8266" == type) pinList = esp8266pins;
+                else if ("ESP32-S3" == system["chip_model"]) pinList = esp32s3pins;
+                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
                 pins = [['led0', 'pinLed0', 'At least one inverter is producing'], ['led1', 'pinLed1', 'MqTT connected']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[2]),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[0]])
+                                sel(p[1], pinList, obj[p[0]])
                             )
                         ])
                     );
@@ -898,6 +927,11 @@
                 var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
                 en.checked = obj["en"];
 
+                var pinList = esp32pins;
+                if("ESP8266" == type) pinList = esp8266pins;
+                else if ("ESP32-S3" == system["chip_model"]) pinList = esp32s3pins;
+                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+
                 e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-8 col-sm-3 my-2"}, "NRF24 Enable"),
@@ -915,7 +949,7 @@
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, objPin[p[0]])
+                                sel(p[1], pinList, objPin[p[0]])
                             )
                         ])
                     );
@@ -926,6 +960,10 @@
             function parseCmtRadio(obj, type, system) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
+                var pinList = esp32pins;
+                if ("ESP32-S3" == system["chip_model"]) pinList = esp32s3pins;
+                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+
                 en.checked = obj["en"];
 
                 e.replaceChildren (
@@ -940,7 +978,7 @@
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], (("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins), obj[p[0]])
+                                sel(p[1], pinList, obj[p[0]])
                             )
                         ])
                     );
@@ -954,6 +992,11 @@
             }
 
             function parseDisplay(obj, type, system) {
+                var pinList = esp32pins;
+                if("ESP8266" == type) pinList = esp8266pirpins;
+                else if ("ESP32-S3" == system["chip_model"]) pinList = esp32s3pins;
+                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+
                 for(var i of ["disp_pwr"])
                     document.getElementsByName(i)[0].checked = obj[i];
 
@@ -968,7 +1011,7 @@
                         ml("div", {class: "row mb-3", id: "row_" + p[1]}, [
                             ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
                             ml("div", {class: "col-12 col-sm-9"},
-                                sel(p[1], ("ESP8266" == type) ? esp8266pins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj[p[1]])
+                                sel(p[1], pinList, obj[p[1]])
                             )
                         ])
                     );
@@ -1018,7 +1061,7 @@
                 document.getElementById("pirPin").append(
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-3 my-2"}, "PIR sensor"),
-                        ml("div", {class: "col-12 col-sm-9"}, sel("pir_pin", ("ESP8266" == type) ? esp8266pirpins : ("ESP32-S3" == system["chip_model"]) ? esp32s3pins : esp32pins, obj["pir_pin"]))
+                        ml("div", {class: "col-12 col-sm-9"}, sel("pir_pin", pinList, obj["pir_pin"]))
                     ])
                 );
 

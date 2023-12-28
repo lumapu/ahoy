@@ -159,7 +159,7 @@ if os.path.exists(wd):
 
 # grab all files with following extensions
 os.chdir('./web/html')
-types = ('*.html', '*.css', '*.js', '*.ico') # the tuple of file types
+types = ('*.html', '*.css', '*.js', '*.ico', '*.json') # the tuple of file types
 files_grabbed = []
 for files in types:
     files_grabbed.extend(glob.glob(files))

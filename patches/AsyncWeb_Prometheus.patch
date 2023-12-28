@@ -1,3 +1,16 @@
+diff --git a/src/AsyncWebSocket.cpp b/src/AsyncWebSocket.cpp
+index 12be5f8..cffeed7 100644
+--- a/src/AsyncWebSocket.cpp
++++ b/src/AsyncWebSocket.cpp
+@@ -737,7 +737,7 @@ void AsyncWebSocketClient::binary(const __FlashStringHelper *data, size_t len)
+ IPAddress AsyncWebSocketClient::remoteIP() const
+ {
+     if (!_client)
+-        return IPAddress(0U);
++        return IPAddress();
+ 
+     return _client->remoteIP();
+ }
 diff --git a/src/WebResponses.cpp b/src/WebResponses.cpp
 index 22a549f..e0b36b3 100644
 --- a/src/WebResponses.cpp

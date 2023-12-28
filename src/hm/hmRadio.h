@@ -98,7 +98,7 @@ class HmRadio : public Radio {
             if(mNrf24->isChipConnected()) {
                 DPRINTLN(DBG_INFO, F("Radio Config:"));
                 mNrf24->printPrettyDetails();
-                DPRINT(DBG_INFO, F("DTU_SN: 0x"));
+                DPRINT(DBG_INFO, F("DTU_SN: "));
                 DBGPRINTLN(String(mDtuSn, HEX));
             } else
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
@@ -152,7 +152,7 @@ class HmRadio : public Radio {
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
             DPRINT_IVID(DBG_INFO, iv->id);
-            DBGPRINT(F("sendControlPacket cmd: 0x"));
+            DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
             uint8_t cnt = 10;
@@ -307,9 +307,8 @@ class HmRadio : public Radio {
                     else
                         ah::dumpBuf(mTxBuf, len);
                 } else {
-                    DBGPRINT(F("0x"));
                     DHEX(mTxBuf[0]);
-                    DBGPRINT(F(" 0x"));
+                    DBGPRINT(F(" "));
                     DHEX(mTxBuf[10]);
                     DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
