@@ -59,7 +59,7 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
+                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) && q->cmd != GridOnProFilePara ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
                 uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment || mIsRetransmit)) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT;
 
                 /*if(mDebugState != mState) {
@@ -113,10 +113,35 @@ class Communication : public CommQueue<> {
                         mIsRetransmit    = false;
                         mlastTO_min      = timeout_min;
                         setAttempt();
+                        if(q->cmd == AlarmData || q->cmd == GridOnProFilePara)
+                            incrAttempt(q->cmd == AlarmData? 5 : 3);
+
                         mState = States::WAIT;
                         break;
 
                     case States::WAIT:
+                        /*if(millis() > mWaitTimeout_min) {
+                            if(mIsRetransmit) { // we already have been through...
+                                mWaitTimeout = mWaitTimeout_min;
+                            } else if(q->iv->mGotFragment) { // nothing received yet?
+                                if(q->iv->mGotLastMsg) {
+                                    //mState = States::CHECK_FRAMES;
+                                    mWaitTimeout = mWaitTimeout_min;
+                                }
+                            } else if(mFirstTry) {
+                                if(*mSerialDebug) {
+                                    DPRINT_IVID(DBG_INFO, q->iv->id);
+                                    DBGPRINT(String(millis() - mWaitTimeout_min + mlastTO_min));
+                                    DBGPRINTLN(F("ms - second try"));
+                                }
+                                mFirstTry = false;
+                                mlastTO_min = timeout_min;
+                                q->iv->radioStatistics.retransmits++; // got nothing
+                                mState = States::START;
+                                break;
+                            }
+
+                        }*/
                         if(millis() < mWaitTimeout)
                             return;
                         mState = States::CHECK_FRAMES;
@@ -283,7 +308,7 @@ class Communication : public CommQueue<> {
                 else
                     ah::dumpBuf(p->packet, p->len);
             } else {
-                DBGPRINT(F("| "));
+                DBGPRINT(F("| 0x"));
                 DHEX(p->packet[0]);
                 DBGPRINT(F(" "));
                 DBGHEXLN(p->packet[9]);
@@ -439,6 +464,9 @@ class Communication : public CommQueue<> {
 
             if(GridOnProFilePara == q->cmd) {
                 q->iv->addGridProfile(mPayload, len);
+                q->iv->radioStatistics.rxSuccess++;
+                mHeu.evalTxChQuality(q->iv, true, (7 - q->attempts), q->iv->curFrmCnt);
+                cmdDone(false);
                 return;
             }
 
@@ -447,6 +475,9 @@ class Communication : public CommQueue<> {
                 if(GetLossRate == q->cmd) {
                     q->iv->parseGetLossRate(mPayload, len);
                     //closeRequest(q, true); //@lumapu: Activating would crash most esp's!
+                    mHeu.evalTxChQuality(q->iv, true, (9 - q->attempts), q->iv->curFrmCnt);
+                    q->iv->radioStatistics.rxSuccess++;
+                    cmdDone(false);
                     return;
                 } else {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
