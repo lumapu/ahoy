@@ -323,9 +323,14 @@ class RestApi {
 
         void getHtmlSave(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj["pending"] = (bool)mApp->getSavePending();
-            obj["success"] = (bool)mApp->getLastSaveSucceed();
-            obj["reboot"] = (bool)mApp->getShouldReboot();
+            obj[F("pending")] = (bool)mApp->getSavePending();
+            obj[F("success")] = (bool)mApp->getLastSaveSucceed();
+            obj[F("reboot")] = (bool)mApp->getShouldReboot();
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
         }
 
         void getReboot(AsyncWebServerRequest *request, JsonObject obj) {

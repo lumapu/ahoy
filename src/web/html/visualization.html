@@ -295,13 +295,76 @@
                             getAjax("/api/inverter/grid/" + obj.id, showGridProfile);
                         }}, null))
                     ])
-                ]);
-                modal("Info for inverter " + obj.name, ml("div", {}, html));
+                ])
+                modal("Info for inverter " + obj.name, ml("div", {}, html))
+            }
+
+            function getGridValue(g) {
+                var val = (parseInt(g.grid.substring(g.offs*3, g.offs*3+2), 16) * 256)
+                    + parseInt(g.grid.substring(g.offs*3+3, g.offs*3+5), 16)
+                g.offs += 2
+                return val
+            }
+
+            function getGridIdentifier(g) {
+                return "0x" + getGridValue(g).toString(16).padStart(4, '0')
+            }
+
+            function getGridType(t, id) {
+                for(e of t) {
+                    if(undefined !== e[id])
+                        return e[id]
+                }
+                return null
+            }
+
+            function parseGridGroup(g) {
+                var id = getGridIdentifier(g)
+                var type = getGridType(g.info.grp_codes, id.substring(0, 4))
+                var content = []
+                content.push(ml("div", {class: "row"},
+                    ml("div", {class: "col head p-2 mt-3"},
+                        ml("div", {class: "col a-c"}, type + " (Code " + id + ")")
+                    )
+                ))
+                content.push(ml("div", {class: "row my-2"}, [
+                    ml("div", {class: "col-4"}, ml("b", {}, "Name")),
+                    ml("div", {class: "col-3"}, ml("b", {}, "Value")),
+                    ml("div", {class: "col-3"}, ml("b", {}, "Range")),
+                    ml("div", {class: "col-2"}, ml("b", {}, "Default"))
+                ]))
+                for(e of g.info.group) {
+                    if(Array.isArray(e[id])) {
+                        for(e of e[id]) {
+                            var v = String(getGridValue(g) / e.div);
+                            var vt = (v !== String(e.def)) ? "b" : "span";
+                            content.push(ml("div", {class: "row mt-2"}, [
+                                ml("div", {class: "col-4"}, e.name),
+                                ml("div", {class: "col-3"}, ml(vt, {}, v + ((undefined !== e.unit) ? " [" + e.unit + "]" : ""))),
+                                ml("div", {class: "col-3"}, (undefined !== e.min) ? (e.min + " - " + e.max) : "n/a"),
+                                ml("div", {class: "col-2"}, String(e.def))
+                            ]))
+                        }
+                    }
+                }
+
+                return ml("div", {class: "col"}, [...content])
             }
 
             function showGridProfile(obj) {
-                var html = ml("pre", {}, obj.grid);
-                modal("Grid Profile for inverter " + obj.name, ml("div", {}, html));
+                getJSON("/grid_info.json").then(data => {
+                    var glob = {offs:0, grid:obj.grid, info: data}
+                    var content = [];
+                    content.push(ml("div", {class: "row"},
+                        ml("div", {class: "col my-3"}, ml("h5", {}, getGridType(glob.info.type, getGridIdentifier(glob)) + " (Version " + getGridValue(glob).toString(16) + ")"))
+                    ))
+
+                    while((glob.offs*3) < glob.grid.length) {
+                        content.push(parseGridGroup(glob))
+                    }
+
+                    modal("Grid Profile for inverter " + obj.name, ml("div", {}, ml("div", {class: "col mb-2"}, [...content])))
+                })
             }
 
 
@@ -315,8 +378,8 @@
                         tr2(["RX fragments", obj.frame_cnt, ""]),
                         tr2(["TX retransmits", obj.retransmits, ""])
                     ])
-                ]);
-                modal("Radio statistics for inverter " + obj.name, ml("div", {}, html));
+                ])
+                modal("Radio statistics for inverter " + obj.name, ml("div", {}, html))
             }
 
             function limitModal(obj) {

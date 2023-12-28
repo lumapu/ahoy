@@ -117,28 +117,6 @@ class Communication : public CommQueue<> {
                         break;
 
                     case States::WAIT:
-                        /*if(millis() > mWaitTimeout_min) {
-                            if(mIsRetransmit) { // we already have been through...
-                                mWaitTimeout = mWaitTimeout_min;
-                            } else if(q->iv->mGotFragment) { // nothing received yet?
-                                if(q->iv->mGotLastMsg) {
-                                    //mState = States::CHECK_FRAMES;
-                                    mWaitTimeout = mWaitTimeout_min;
-                                }
-                            } else if(mFirstTry) {
-                                if(*mSerialDebug) {
-                                    DPRINT_IVID(DBG_INFO, q->iv->id);
-                                    DBGPRINT(String(millis() - mWaitTimeout_min + mlastTO_min));
-                                    DBGPRINTLN(F("ms - second try"));
-                                }
-                                mFirstTry = false;
-                                mlastTO_min = timeout_min;
-                                q->iv->radioStatistics.retransmits++; // got nothing
-                                mState = States::START;
-                                break;
-                            }
-
-                        }*/
                         if(millis() < mWaitTimeout)
                             return;
                         mState = States::CHECK_FRAMES;
@@ -187,7 +165,7 @@ class Communication : public CommQueue<> {
                                     if(parseMiFrame(p, q))
                                         q->iv->curFrmCnt++;
                                 }
-                            } //else // serial does not match
+                            } //else -> serial does not match
 
                             q->iv->radio->mBufCtrl.pop();
                             yield();
@@ -221,7 +199,6 @@ class Communication : public CommQueue<> {
                                     else
                                         closeRequest(q, true);
                                 }
-
                             }
                         }
 
@@ -271,7 +248,7 @@ class Communication : public CommQueue<> {
 
                         compilePayload(q);
 
-                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd))
+                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
                             (mCbPayload)(q->cmd, q->iv);
 
                         closeRequest(q, true);
@@ -306,7 +283,7 @@ class Communication : public CommQueue<> {
                 else
                     ah::dumpBuf(p->packet, p->len);
             } else {
-                DBGPRINT(F("| 0x"));
+                DBGPRINT(F("| "));
                 DHEX(p->packet[0]);
                 DBGPRINT(F(" "));
                 DBGHEXLN(p->packet[9]);

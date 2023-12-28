@@ -175,6 +175,14 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
 }
 
+const getJSON = async url => {
+    const re = await fetch(url);
+    if(!re.ok)
+        throw new Error(re.statusText);
+    const data = re.json();
+    return data;
+}
+
 /**
  * CREATE DOM FUNCTIONS
  */
