@@ -49,9 +49,9 @@ class DisplayMono128X64 : public DisplayMono {
             /*
             mDisplayData->nrSleeping = 10;
             mDisplayData->nrProducing = 10;
-            mDisplayData->totalPower = 54321.9; // W
-            mDisplayData->totalYieldDay = 4321.9; // Wh
-            mDisplayData->totalYieldTotal = 4321.9; // kWh
+            mDisplayData->totalPower = 15432.9; // W
+            mDisplayData->totalYieldDay = 14321.9; // Wh
+            mDisplayData->totalYieldTotal = 15432.9; // kWh
             mDisplay->drawPixel(0, 0);
             mDisplay->drawPixel(mDispWidth-1, 0);
             mDisplay->drawPixel(0, mDispHeight-1);
@@ -63,8 +63,8 @@ class DisplayMono128X64 : public DisplayMono {
 
             // print total power
             if (mDisplayData->nrProducing > 0) {
-                if (mDisplayData->totalPower > 999)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kW", (mDisplayData->totalPower / 1000.0));
+                if (mDisplayData->totalPower > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
 
@@ -120,16 +120,16 @@ class DisplayMono128X64 : public DisplayMono {
             mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldDay],   "I");    // day symbol
             mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldTotal], "D");    // total symbol
 
-            if (mDisplayData->totalYieldDay > 999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kWh", mDisplayData->totalYieldDay / 1000.0);
+            if (mDisplayData->totalYieldDay > 9999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
             else
                 snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
             printText(mFmtText, l_YieldDay, 0xff);
 
-            if (mDisplayData->totalYieldTotal > 999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f MWh", mDisplayData->totalYieldTotal / 1000.0);
+            if (mDisplayData->totalYieldTotal > 9999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
             else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.1f kWh", mDisplayData->totalYieldTotal);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
             printText(mFmtText, l_YieldTotal, 0xff);
 
             // draw dynamic RSSI bars
