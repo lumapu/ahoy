@@ -7,6 +7,7 @@
 * fix crash if `getLossRate` was read from inverter #1288 #1290
 * reduce reload time for opendtufusion ethernet variant to 5 seconds
 * added basic grid parser
+* added ESP32-C3 mini environment #1289
 
 ## 0.8.28 - 2023-12-23
 * fix bug heuristic
