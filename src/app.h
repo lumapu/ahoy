@@ -22,6 +22,7 @@
 #include "utils/crc.h"
 #include "utils/dbg.h"
 #include "utils/scheduler.h"
+#include "utils/syslog.h"
 #include "web/RestApi.h"
 #include "web/web.h"
 #include "hm/Communication.h"
@@ -311,6 +312,9 @@ class app : public IApp, public ah::Scheduler {
         #endif /* defined(ETHERNET) */
         WebType mWeb;
         RestApiType mApi;
+        #ifdef ENABLE_SYSLOG
+        DbgSyslog mDbgSyslog;
+        #endif
         //PayloadType mPayload;
         //MiPayloadType mMiPayload;
         PubSerialType mPubSerial;
