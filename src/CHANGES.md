@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.33 - 2023-12-29
+* improved communication thx @rejoe2
+
 ## 0.8.32 - 2023-12-29
 * fix `start` / `stop` / `restart` commands #1287
 * added message, if profile was not read until now #1300
