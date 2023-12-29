@@ -1,12 +1,13 @@
+
  ## Overview
 
-On this page, you'll find detailed instructions on how to wire the module of a Wemos D1 mini or ESP32 to the radio module, as well as how to flash it with the latest firmware. This information will enable you to communicate with compatible inverters.
+This page contains detailed instructions on building a module and flashing it with the latest firmware. Following these instructions will allow you to communicate with compatible inverters.
 
 You find the full [User_Manual here](User_Manual.md)
 
 ## Compatiblity
 
-The following inverters are currently supported out of the box:
+Currently, the following inverters are supported:
 
 Hoymiles Inverters
 
@@ -20,7 +21,6 @@ Hoymiles Inverters
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Overview](#overview)
 - [Compatiblity](#compatiblity)
 - [Things needed](#things-needed)
@@ -38,7 +38,6 @@ Hoymiles Inverters
       - [ESP32 GPIO settings](#esp32-gpio-settings)
 - [Flash the Firmware on your Ahoy DTU Hardware](#flash-the-firmware-on-your-ahoy-dtu-hardware)
     - [Compiling your own Version](#compiling-your-own-version)
-      - [Optional Configuration before compilation](#optional-configuration-before-compilation)
     - [Using a ready-to-flash binary using nodemcu-pyflasher](#using-a-ready-to-flash-binary-using-nodemcu-pyflasher)
 - [Connect to your Ahoy DTU](#connect-to-your-ahoy-dtu)
     - [Your Ahoy DTU is very verbose using the Serial Console](#your-ahoy-dtu-is-very-verbose-using-the-serial-console)
@@ -56,47 +55,52 @@ Solenso Inverters:
 
 ## Things needed
 
-If you're interested in building your own AhoyDTU, you'll need a few things to get started. While we've provided a list of recommended boards below, keep in mind that the maker community is constantly developing new and innovative options that we may not have covered in this readme..
+To build your own AhoyDTU, you only need a few things. Remember that the maker community is always developing new and innovative options that we may not have covered in this readme.
 
-For optimal performance, we recommend using a Wemos D1 mini or ESP32 along with a NRF24L01+ breakout board as a bare minimum. However, if you have experience working with other ESP boards, any board with at least 4MBytes of ROM may be suitable, depending on your skills.
+Start with an ESP8266 or ESP32, and combine it with an NRF24L01+ breakout board. Other ESP boards with at least 4MBytes of ROM may also be suitable.
 
-Just be sure that the NRF24L01+ module you choose includes the "+" in its name, as we rely on the 250kbps features that are only provided by the plus-variant.
+Make sure to choose an NRF24L01+ module that includes the '+' in its name. This is important because we need the 250kbps features that are only available in the plus-variant.
 
-| **Parts** | **Price** |
-| --- | --- |
-| D1 ESP8266 Mini WLAN Board Microcontroller | 4,40 Euro |
-| NRF24L01+ SMD Modul 2,4 GHz Wi-Fi Funkmodul | 3,45 Euro |
-| 100µF / 10V Capacitor Kondensator | 0,15 Euro |
-| Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
-| **Total costs** | **10,34 Euro** |
+**Attention**: The NRF24L01+ can only communicate with the MI/HM/TSUN inverter. For the HMS/HMT it is needed to use a CMT2300A!
 
-If you're interested in using our sister project OpenDTU or you want to future-proof your setup, we recommend investing in an ESP32 board that features two CPU cores. As Radio you can also use a NRF24L01+ module with an external antenna. While this option may cost a bit more, it will provide superior performance and ensure compatibility with upcoming developments.
 
 | **Parts** | **Price** |
 | --- | --- |
-| ESP32 Dev Board NodeMCU WROOM32 WiFi | 7,90 Euro |
-| NRF24L01+ PA LNA SMA mit Antenne Long | 4,50 Euro |
-| 100µF / 10V Capacitor Kondensator | 0,15 Euro |
-| Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 Euro |
-| **Total costs** | **14,89 Euro** |
+| D1 ESP8266 Mini WLAN Board Microcontroller | 4,40 €|
+| *NRF24L01+ SMD Modul 2,4 GHz Wi-Fi Funkmodul (not for HMS/HMT)* | *3,45 €*|
+| *CMT2300A 868/915MHz (E49-900M20S)* | *4,59 €* |
+| 100µF / 10V Capacitor Kondensator | 0,15 €|
+| Jumper Wire Steckbrücken Steckbrett weiblich-weiblich | 2,49 €|
+| **Total costs** | **10,34 € / 11,48 €** |
+
+To future-proof your setup and use our sister project OpenDTU, we recommend investing in an ESP32 board with two CPU cores. Additionally, you can use a NRF24L01+ module with an external antenna as a radio for superior performance and compatibility with upcoming developments.
+
+| **Parts** | **Price** |
+| --- | --- |
+| ESP32 Dev Board NodeMCU WROOM32 WiFi | 7,90 €|
+| *NRF24L01+ SMD Modul 2,4 GHz Wi-Fi Funkmodul (not for HMS/HMT)* | *3,45 €*|
+| *CMT2300A 868/915MHz (E49-900M20S)* | *4,59 €* |
+| 100µF / 10V Capacitor Kondensator | 0,15 €|
+| Jumper Wire breadboard female-female | 2,49 €|
+| **Total costs** | **13,99 € / 15,13 €** |
 
 #### There are fake NRF24L01+ Modules out there
+Beware of fake NRF24L01+ modules that use rebranded NRF24L01 chips (without the +).
+An example of this can be found in Issue #230 (https://github.com/lumapu/ahoy/issues/230).
+If you have any additional examples of fake chips, please share them with us and we will add the information here.
 
-Watch out, there are some fake NRF24L01+ Modules out there that seem to use rebranded NRF24L01 Chips (without the +).<br/>
-An example can be found in [Issue #230](https://github.com/lumapu/ahoy/issues/230).<br/>
-You are welcome to add more examples of faked chips. We will add that information here.<br/>
+#### NRF24L01+ improvements
+Users have reported improved connections and longer range through walls when using these modules.
+The "E01-ML01DP5" module is a 2.4 GHz wireless module that utilizes the nRF24L01+PA+LNA RF module and features an SMA-K antenna connector.
+**The product includes an HF cover, but please note that it does not come with an antenna.**
 
-Some users reported better connection or longer range through more walls when using the
-"E01-ML01DP5" EBYTE 2,4 GHz Wireless Modul nRF24L01 + PA + LNA RF Modul, SMA-K Antenna connector,
-which has an eye-catching HF cover. But beware: It comes without the antenna!
+To achieve the best results, stabilize the Vcc power by using a capacitor and do not exceed the 'LOW' Amplifier Power Level.
+Users have reported good connections over 10m through walls and ceilings when using the Amplifier Power Level 'MIN'.
+It's important to remember that bigger is not always better.
 
-In any case you should stabilize the Vcc power by a capacitor and don't exceed the Amplifier Power Level "LOW".
-Users reporting good connection over 10m through walls / ceilings with Amplifier Power Level "MIN".
-It is not always the bigger the better...
-
-Power levels "HIGH" and "MAX" are meant to wirings where the nRF24 is supplied by an extra 3.3 Volt regulator.
-The bultin regulator on ESP boards has only low reserves in case WiFi and nRF are sending simultaneously.
-If you operate additional interfaces like a display, the reserve is again reduced.
+If you are using the NRF24 directly on the ESP board, make sure to set the transmission power to the lowest possible level (this can be adjusted later in the web interface). Using a high transmission power can potentially cause problems.
+The ESP board's built-in controller has limited reserves in case both WiFi and nRF are transmitting simultaneously.
+If you are using additional interfaces, such as a display, the reserves will be further reduced.
 
 ## Wiring things up
 
@@ -117,15 +121,12 @@ Additional, there are 3 pins, which can be set individual:
 *These pins can be changed from the /setup URL.*
 
 #### ESP8266 wiring example on WEMOS D1
-
-This is an example wiring using a Wemos D1 mini.<br>
+This is an example wiring using a Wemos D1 mini.
 
 ##### Schematic
-
 ![Schematic](https://ahoydtu.de/img/fritzing/esp8266_nrf_sch.png)
 
 ##### Symbolic view
-
 ![Symbolic](https://ahoydtu.de/img/fritzing/esp8266_nrf.png)
 
 #### ESP8266 wiring example on 30pin Lolin NodeMCU v3
@@ -162,42 +163,34 @@ CE   D2 (GPIO4)
 IRQ  D0 (GPIO16 - no IRQ!)
 ```
 
-IMPORTANT: From development version 108/release 0.6.0 onwards, also MISO, MOSI, and SCLK
-are configurable. On new installations, their defaults are correct for most ESP32 boards.
-These pins cannot be configured for ESP82xx boards, as this chip cannot move them elsewhere.
+**IMPORTANT**: Starting from development version 108/release 0.6.0, MISO, MOSI, and SCLK are also included.
+   For most ESP32 boards, the default settings are correct on new installations.
+However, it is not possible to configure these pins for ESP82xx boards, as they cannot be moved elsewhere.
 
-If you are upgrading an existing install though, you might see that these pins are set to '0' in the web GUI. 
-Communication with the NRF module wont work. For upgrading an existing installations, set MISO=19, MOSI=23, SCLK=18 in the settings. 
-This is the correct default for most ESP32 boards. On ESP82xx, simply saving the settings without changes should suffice.
+If you are upgrading an existing installation, you may notice that the pins are set to '0' in the web GUI, which will prevent communication with the NRF module.
+To resolve this, set MISO=19, MOSI=23, SCLK=18 in the settings. 
+This is the correct default for most ESP32 boards. For ESP82xx, simply saving the settings without changes should suffice.
 Save and reboot.
 
 
 ## Flash the Firmware on your Ahoy DTU Hardware
 
-Once your Hardware is ready to run, you need to flash the Ahoy DTU Firmware to your Board.
-You can either build your own using your own configuration or use one of our pre-compiled generic builds.
+After preparing your hardware, you must flash the Ahoy DTU Firmware to your board.
+You can either create your own firmware using your configuration or use one of our pre-compiled generic builds.
+
+Are you ready to flash? Then go to next Step here.
 
 ### Flash from your browser (easy)
 
 The easiest step for you is to flash online. A browser MS Edge or Google Chrome is required.
 [Here you go](https://ahoydtu.de/web_install/)
 
-### Compiling your own Version
+### Compiling your own Version (expert)
+This information is for those who wish to configure and build their own firmware.
 
-This information suits you if you want to configure and build your own firmware.
-
-This code comes to you as a **PlatformIO** project and can be compiled using the **PlatformIO** Addon.<br/>
-Visual Studio Code, AtomIDE and other IDE's support the PlatformIO Addon.<br/>
-If you do not want to compile your own build, you can use one of our ready-to-flash binaries.
-
-##### Optional Configuration before compilation
-
-- number of supported inverters (set to 3 by default) `config.h`
-- DTU radio id `config.h` (default = 1234567801)
-- unformatted list in webbrowser `/livedata` `config.h`, `LIVEDATA_VISUALIZED`
-
-Alternativly, instead of modifying `config.h`, `config_override_example.h` can be copied to `config_override.h` and customized.
-config_override.h is excluded from version control and stays local.
+The code is provided as a PlatformIO project and can be compiled using the PlatformIO Addon.
+The PlatformIO Addon is supported by Visual Studio Code, AtomIDE, and other IDEs.
+If you do not wish to compile your own build, you can use one of our pre-compiled binaries.
 
 #### Using a ready-to-flash binary using nodemcu-pyflasher
 
@@ -217,7 +210,7 @@ This information suits you if you just want to use an easy way.
   
 Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities to update your firmware.
 
-! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!
+**! ATTENTION: If you update from a very low version to the newest, please make sure to wipe all flash data!**
 
 #### Flashing on Linux with `esptool.py` (ESP32)
 1. install [esptool.py](https://docs.espressif.com/projects/esptool/en/latest/esp32/) if you haven't already.
@@ -229,51 +222,56 @@ Once your Ahoy DTU is running, you can use the Over The Air (OTA) capabilities t
 
 ## Connect to your Ahoy DTU
 
-When everything is wired up and the firmware is flashed, it is time to connect to your Ahoy DTU.
+Once everything is wired and the firmware is flashed, it is time to connect to your Ahoy DTU.
 
 #### Your Ahoy DTU is very verbose using the Serial Console
 
- When connected to your computer, you can open a Serial Console to obtain additional information.<br/>
- This might be useful in case of any troubles that might occur as well as to simply<br/>
- obtain information about the converted values which were read out of the inverter(s).
+ Once connected to your computer, you can open a serial console to get additional information.
+ This can be useful for troubleshooting, as well as simply to get
+ information about the converted values read from the inverter(s).
 
 #### Connect to the Ahoy DTU Webinterface using your Browser
 
- After you have sucessfully flashed and powered your Ahoy DTU, you can access it via your Browser.<br/>
- If your Ahoy DTU was able to log into the configured WiFi Network, it will try to obtain an IP-Address<br/>
- from your local DHCP Server (in most cases thats your Router).<br/><br/>
- In case it could not connect to your configured Network, it will provide its own WiFi Network that you can<br/>
- connect to for furter configuration.<br/>
- The WiFi SSID *(the WiFi Name)* and Passwort is configured in the config.h and defaults to the SSID "`AHOY-DTU`" with the Passwort "`esp_8266`".<br/>
- The Ahoy DTU will keep that Network open for a certain amount of time (also configurable in the config.h and defaults to 60secs).<br/>
- If nothing connects to it and that time runs up, it will retry to connect to the configured network an so on.<br/>
- <br/>
- If connected to your local Network, you just have to find out the used IP Address or try the default name [http://ahoy-dtu/](http://ahoy-dtu/). In most cases your Router will give you a hint.<br/>
- If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is [http://192.168.4.1/](http://192.168.4.1/).<br/>
- Just open the IP-Address in your browser.<br/>
- <br/>
- The webinterface has the following abilities:
+ After you have successfully flashed and powered up your Ahoy DTU, you can access it from your browser.<br/>
+ If your Ahoy DTU was able to log on to the configured WiFi network, it will try to obtain an IP address from your local DHCP server (in most cases this is your router).
+ 
+ If it cannot connect to your configured network, it will provide its own WiFi network that you can
+ to for further configuration.
+ 
+ The WiFi SSID *(the WiFi name)* and password are pre-configured and are set to SSID "`AHOY-DTU`" and password "`esp_8266`" by default.
+ 
+ The Ahoy DTU will keep this network open for a certain amount of time (default is 60sec).
+ If nothing connects to it and the time expires, it will retry to connect to the configured network, and so on.
+ 
+ If you are connected to your local network, just find out the IP address used or try the default name [http://ahoy-dtu/](http://ahoy-dtu/). 
+ In most cases, your router will give you a hint.
+ 
+ If you connect to the WiFi the Ahoy DTU opens in case it could not connect to any other Network, the IP-Address of your Ahoy DTU is [http://192.168.4.1/](http://192.168.4.1/).
+ Just open the IP-Address in your browser.
+ 
+ The web interface has the following capabilities:
 
-- OTA Update (Over The Air Update)
-- Configuration (Wifi, inverter(s), NTP Server, Pinout, MQTT, Amplifier Power Level, Debug)
-- visual display of the connected inverters / modules
-- some statistics about communication (debug)
+- Live data (values updated every 5 seconds)
+ Click on the title/name/alarm for more actions.
+- Webserial (Debug)
+- Settings (System Config, Network, Protection, Inverter, NTP Server, Sunrise/Sunset, MQTT, Display Config)
+- Update (Over The Air Update)
+- System (status about the modules)
 
 ##### HTTP based Pages
 
- To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.4.1/setup](http://192.168.4.1/setup) ).<br/>
+ To take control of your Ahoy DTU, you can directly call one of the following sub-pages (e.g. [http://ahoy-dtu/setup](http://ahoy-dtu/setup) or [http://192.168.4.1/setup](http://192.168.4.1/setup) ).
 
 | page | use | output | default availability |
 | ---- | ------ | ------ | ------ |
-| /uptime | displays the uptime uf your Ahoy DTU | 0 Days, 01:37:34; now: 2022-08-21 11:13:53 | yes |
+| /logout| logout the user from webinterface | | yes |
 | /reboot | reboots the Ahoy DTU | | yes |
+| /system| show system inforamtion | | yes |
+| /live | displays the live data |     | yes |
+| /save | | | yes |
 | /erase | erases the EEPROM |    | yes |
 | /factory | resets to the factory defaults configured in config.h |    | yes |
 | /setup | opens the setup page |    | yes |
-| /save | | | yes |
-| /cmdstat | show stat from the home page | | yes |
-| /visualization | displays the information from your converter |     | yes |
-| /livedata | displays the live data |     | yes |
 | /metrics | gets live-data for prometheus | prometheus metrics from the livedata | no - enable via config_override.h |
 | /api | gets configuration and live-data in JSON format | json output from the configuration or livedata    |  yes |
 
@@ -290,12 +288,14 @@ When everything is wired up and the firmware is flashed, it is time to connect t
 | `SPI`                 | 1.0     | LGPL-2.1 |
 | `Hash`                | 1.0     | LGPL-2.1 |
 | `EEPROM`              | 1.0     | LGPL-2.1 |
-| `ESP Async WebServer` | 1.2.3   | LGPL-3.0 |
-| `ESPAsyncTCP`         | 1.2.2   | LGPL-3.0 |
-| `Time`                | 1.6.1   | LGPL-2.1 |
-| `RF24`                | 1.4.7   | GPL-2.0  |
-| `espMqttClient`       | 1.4.4   | MIT      |
-| `ArduinoJson`         | 6.21.3  | MIT      |
+| `ESPAsyncWebServer` | 1.2.3   | LGPL-3.0 |
+| [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP)         | 1.2.2   | [LGPL-3.0 license](https://github.com/me-no-dev/ESPAsyncTCP#LGPL-3.0-1-ov-file) |
+| [Time](https://github.com/PaulStoffregen/Time)                | 1.6.1   | ? |
+| [RF24](https://github.com/nRF24/RF24)                | 1.4.8   | [GPL-2.0 license](https://github.com/nRF24/RF24#GPL-2.0-1-ov-file)  |
+| [espMqttClient](https://github.com/bertmelis/espMqttClient)       | ?   | [MIT license](https://github.com/bertmelis/espMqttClient#MIT-1-ov-file)      |
+| [ArduinoJson](https://github.com/bblanchon/ArduinoJson)         | 6.21.3  | [MIT license](https://github.com/bblanchon/ArduinoJson#MIT-1-ov-file)|
+| [GxEPD2](https://github.com/ZinggJM/GxEPD2)         | 1.5.2  | [GPL-3.0 license](https://github.com/ZinggJM/GxEPD2#GPL-3.0-1-ov-file)|
+| [U8g2_Arduino](https://registry.platformio.org/libraries/olikraus/U8g2) | [2.35.9](https://registry.platformio.org/libraries/olikraus/U8g2/versions) | [BSD-2-Clause](https://spdx.org/licenses/BSD-2-Clause.html) |
 
 ## ToDo
 
