@@ -49,6 +49,6 @@ class DbgSyslog {
         int mSyslogSeverity = PRI_NOTICE;
 };
 
-#endif
+#endif /*ENABLE_SYSLOG*/
 
-#endif
+#endif /*__SYSLOG_H__*/

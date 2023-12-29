@@ -3,6 +3,7 @@
 ## 0.8.32 - 2023-12-29
 * fix `start` / `stop` / `restart` commands #1287
 * added message, if profile was not read until now #1300
+* added developer option to use 'syslog-server' instead of 'web-serail' #1299
 
 ## 0.8.31 - 2023-12-29
 * added class to handle timeouts PR #1298
