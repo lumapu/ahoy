@@ -159,6 +159,7 @@
                 {
                     "name": "Nominal Voltage",
                     "div": 10,
+                    "def": 230,
                     "unit": "V"
                 },
                 {

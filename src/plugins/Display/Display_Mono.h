@@ -19,6 +19,7 @@
 #include "../../utils/helper.h"
 #include "Display_data.h"
 #include "../../utils/dbg.h"
+#include "../../utils/timemonitor.h"
 
 class DisplayMono {
    public:
@@ -37,19 +38,19 @@ class DisplayMono {
 
          if (mDisplayActive) {
             if (!dispConditions) {
-                if ((millis() - mStarttime) > DISP_DEFAULT_TIMEOUT * 1000ul) { // switch display off after timeout
+                if (mDisplayTime.isTimeout()) { // switch display off after timeout
                     mDisplayActive = false;
                     mDisplay->setPowerSave(true);
                     DBGPRINTLN("**** Display off ****");
                 }
             }
             else
-                mStarttime = millis();   // keep display on
+                mDisplayTime.reStartTimeMonitor(); // keep display on
          }
          else {
             if (dispConditions) {
-                mDisplayActive = true;  // switch display on
-                mStarttime = millis();
+                mDisplayActive = true;
+                mDisplayTime.reStartTimeMonitor(); // switch display on
                 mDisplay->setPowerSave(false);
                 DBGPRINTLN("**** Display on ****");
             }
@@ -79,7 +80,7 @@ class DisplayMono {
 
       uint8_t mExtra;
       int8_t  mPixelshift=0;
-      uint32_t mStarttime = millis();
+      TimeMonitor mDisplayTime = TimeMonitor(1000 * 15, true);
       bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
 

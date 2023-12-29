@@ -1,5 +1,14 @@
 # Development Changes
 
+## 0.8.31 - 2023-12-29
+* added class to handle timeouts PR #1298
+
+## 0.8.30 - 2023-12-28
+* added info if grid profile was not found
+* merge PR #1293
+* merge PR #1295 fix ESP8266 pin settings
+* merge PR #1297 fix layout for OLED displays
+
 ## 0.8.29 - 2023-12-27
 * fix MqTT generic topic `comm_disabled` #1265 #1286
 * potential fix of #1285 (reset yield day)

@@ -121,9 +121,10 @@ class HmRadio : public Radio {
 
             uint32_t startMicros      = micros();
             uint32_t loopMillis       = millis();
-            uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) ? 400 : 600);
+            uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) && (mLastIv->mCmd != GridOnProFilePara)) ? 400 : 600;
 
             while ((millis() - loopMillis) < outerLoopTimeout) {
+                startMicros = micros();
                 while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
@@ -137,7 +138,6 @@ class HmRadio : public Radio {
                 // switch to next RX channel
                 mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;
                 mNrf24->setChannel(mRfChLst[mRxChIdx]);
-                startMicros = micros();
             }
             // not finished but time is over
             mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;

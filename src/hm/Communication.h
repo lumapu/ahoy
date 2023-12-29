@@ -9,6 +9,7 @@
 #include "CommQueue.h"
 #include <Arduino.h>
 #include "../utils/crc.h"
+#include "../utils/timemonitor.h"
 #include "Heuristic.h"
 
 #define MI_TIMEOUT          250 // timeout for MI type requests
@@ -59,8 +60,7 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
-                uint16_t timeout_min = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : ((q->iv->mGotFragment || mIsRetransmit)) ? SINGLEFR_TIMEOUT : FRSTMSG_TIMEOUT;
+                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) && (q->cmd != GridOnProFilePara) ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
 
                 /*if(mDebugState != mState) {
                     DPRINT(DBG_INFO, F("State: "));
@@ -69,8 +69,9 @@ class Communication : public CommQueue<> {
                 }*/
                 switch(mState) {
                     case States::RESET:
-                        if(millis() < mWaitTimeout)
+                        if (!mWaitTime.isTimeout())
                             return;
+
                         mMaxFrameId = 0;
                         for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
                             mLocalBuf[i].len = 0;
@@ -108,16 +109,17 @@ class Communication : public CommQueue<> {
                             q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
 
                         q->iv->radioStatistics.txCnt++;
-                        mWaitTimeout     = millis() + timeout;
-                        mWaitTimeout_min = millis() + timeout_min;
+                        mWaitTime.startTimeMonitor(timeout);
                         mIsRetransmit    = false;
-                        mlastTO_min      = timeout_min;
                         setAttempt();
+                        if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                            incrAttempt(q->cmd == AlarmData? 5 : 3);
+
                         mState = States::WAIT;
                         break;
 
                     case States::WAIT:
-                        if(millis() < mWaitTimeout)
+                        if (!mWaitTime.isTimeout())
                             return;
                         mState = States::CHECK_FRAMES;
                         break;
@@ -127,13 +129,13 @@ class Communication : public CommQueue<> {
                             if(*mSerialDebug) {
                                 DPRINT_IVID(DBG_INFO, q->iv->id);
                                 DBGPRINT(F("request timeout: "));
-                                DBGPRINT(String(millis() - mWaitTimeout + timeout));
+                                DBGPRINT(String(mWaitTime.getRunTime()));
                                 DBGPRINTLN(F("ms"));
                             }
                             if(!q->iv->mGotFragment) {
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
-                                    mWaitTimeout = millis() + 1000;
+                                    mWaitTime.startTimeMonitor(1000);
                                 }
                             }
                             closeRequest(q, false);
@@ -182,7 +184,7 @@ class Communication : public CommQueue<> {
                                 bool fastNext = true;
                                 if(q->iv->miMultiParts < 6) {
                                     mState = States::WAIT;
-                                    if((millis() > mWaitTimeout && mIsRetransmit) || !mIsRetransmit) {
+                                    if((mWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
                                         miRepeatRequest(q);
                                         return;
                                     }
@@ -242,7 +244,6 @@ class Communication : public CommQueue<> {
                                 q->iv->mIsSingleframeReq = true;
                             sendRetransmit(q, (framnr-1));
                             mIsRetransmit = true;
-                            mlastTO_min = timeout_min;
                             return;
                         }
 
@@ -446,7 +447,6 @@ class Communication : public CommQueue<> {
             if(NULL == rec) {
                 if(GetLossRate == q->cmd) {
                     q->iv->parseGetLossRate(mPayload, len);
-                    //closeRequest(q, true); //@lumapu: Activating would crash most esp's!
                     return;
                 } else {
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
@@ -490,7 +490,7 @@ class Communication : public CommQueue<> {
             if(q->attempts) {
                 q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
                 q->iv->radioStatistics.retransmits++;
-                mWaitTimeout = millis() + SINGLEFR_TIMEOUT; // timeout
+                mWaitTime.startTimeMonitor(SINGLEFR_TIMEOUT); // timeout
                 mState = States::WAIT;
             } else {
                 //add(q, true);
@@ -507,7 +507,7 @@ class Communication : public CommQueue<> {
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-            mWaitTimeout = millis() + *mInverterGap;
+            mWaitTime.startTimeMonitor(*mInverterGap);
 
             bool keep = false;
             if(q->isDevControl)
@@ -729,8 +729,7 @@ class Communication : public CommQueue<> {
             //q->iv->radioStatistics.retransmits++;
             q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
 
-            mWaitTimeout = millis() + MI_TIMEOUT;
-            mWaitTimeout_min = mWaitTimeout;
+            mWaitTime.startTimeMonitor(MI_TIMEOUT);
             q->iv->miMultiParts = 0;
             q->iv->mGotFragment = 0;
             mIsRetransmit = true;
@@ -750,8 +749,7 @@ class Communication : public CommQueue<> {
 
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
 
-            mWaitTimeout = millis() + MI_TIMEOUT;
-            mWaitTimeout_min = mWaitTimeout;
+            mWaitTime.startTimeMonitor(MI_TIMEOUT);
             //mState = States::WAIT;
             mIsRetransmit = false;
         }
@@ -885,12 +883,10 @@ class Communication : public CommQueue<> {
         uint32_t *mTimestamp;
         bool *mPrivacyMode, *mSerialDebug, *mPrintWholeTrace;
         uint16_t *mInverterGap;
-        uint32_t mWaitTimeout     = 0;
-        uint32_t mWaitTimeout_min = 0;
+        TimeMonitor mWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
-        bool mFirstTry = false;                    // see, if we should do a second try
-        bool mIsRetransmit = false;                    // we alrady had waited one complete cycle
-        uint16_t mlastTO_min = DEFAULT_TIMEOUT;    // remember timeout_min for correct calculation
+        bool mFirstTry = false;     // see, if we should do a second try
+        bool mIsRetransmit = false; // we already had waited one complete cycle
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
