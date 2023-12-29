@@ -99,6 +99,7 @@ class CmtRadio : public Radio {
                     DHEX(mTxBuf[0]);
                     DBGPRINT(F(" "));
                     DHEX(mTxBuf[10]);
+                    DBGPRINT(F(" "));
                     DBGHEXLN(mTxBuf[9]);
                 }
             }

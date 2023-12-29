@@ -276,9 +276,10 @@ class Communication : public CommQueue<> {
             } else {
                 DBGPRINT(F(" "));
                 DBGPRINT(String(p->rssi));
-                DBGPRINT(F("dBm | "));
+                DBGPRINT(F("dBm "));
             }
             if(*mPrintWholeTrace) {
+                DBGPRINT(F("| "));
                 if(*mPrivacyMode)
                     ah::dumpBuf(p->packet, p->len, 1, 8);
                 else
@@ -363,8 +364,24 @@ class Communication : public CommQueue<> {
         }
 
         inline bool parseDevCtrl(packet_t *p, const queue_s *q) {
-            if((p->packet[12] != ActivePowerContr) || (p->packet[13] != 0x00))
-                return false;
+            switch(p->packet[12]) {
+                case ActivePowerContr:
+                    if(p->packet[13] != 0x00)
+                        return false;
+                    break;
+
+                case TurnOn: [[fallthrough]];
+                case TurnOff: [[fallthrough]];
+                case Restart:
+                    return true;
+                    break;
+
+                default:
+                    DPRINT(DBG_WARN, F("unknown dev ctrl: "));
+                    DBGHEXLN(p->packet[12]);
+                    break;
+            }
+
             bool accepted = true;
             if((p->packet[10] == 0x00) && (p->packet[11] == 0x00))
                 q->iv->powerLimitAck = true;

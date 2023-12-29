@@ -316,7 +316,11 @@ class RestApi {
 
         void getHtmlReboot(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("refresh")] = 5;
+            #else
             obj[F("refresh")] = 20;
+            #endif
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("rebooting ...");
         }
