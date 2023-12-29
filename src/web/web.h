@@ -39,7 +39,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -284,12 +284,18 @@ class Web {
 
             bool reboot = (!Update.hasError());
 
-            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
+            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+                html += F("5");
+            #else
+                html += F("20");
+            #endif
+            html += F("; URL=/\"></head><body>Update: ");
             if (reboot)
                 html += "success";
             else
                 html += "failed";
-            html += F("<br/><br/>rebooting ... auto reload after 20s</body></html>");
+            html += F("<br/><br/>rebooting ...</body></html>");
 
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), html);
             response->addHeader("Connection", "close");
@@ -521,7 +527,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 14; i++) {
+            for (uint8_t i = 0; i < 15; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -530,14 +536,15 @@ class Web {
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
                     case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0 = pin; break;
-                    case 7:  mConfig->led.led1 = pin; break;
-                    case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->cmt.pinSclk  = pin; break;
-                    case 10: mConfig->cmt.pinSdio  = pin; break;
-                    case 11: mConfig->cmt.pinCsb   = pin; break;
-                    case 12: mConfig->cmt.pinFcsb  = pin; break;
-                    case 13: mConfig->cmt.pinIrq   = pin; break;
+                    case 6:  mConfig->led.led0     = pin; break;
+                    case 7:  mConfig->led.led1     = pin; break;
+                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10: mConfig->cmt.pinSclk  = pin; break;
+                    case 11: mConfig->cmt.pinSdio  = pin; break;
+                    case 12: mConfig->cmt.pinCsb   = pin; break;
+                    case 13: mConfig->cmt.pinFcsb  = pin; break;
+                    case 14: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
