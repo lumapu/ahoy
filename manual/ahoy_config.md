@@ -54,6 +54,10 @@ Each inverter has its own S.Nr. This also serves as an identity for communicatio
 The S.Nr is a 12-digit number. You can look it up [here (german)](https://github.com/lumapu/ahoy/wiki/Hardware#wie-ist-die-serien-nummer-der-inverter-aufgebaut) for more information.
 #### set pv-modules (not necessary)
 Click on "Add Inverter" and enter the S.No. and a name. Please keep the name short!
+![grafik](https://github.com/DanielR92/ahoy/assets/25644396/b52a2d5d-513c-4895-848a-01ce129f93c1)
+
+![grafik](https://github.com/DanielR92/ahoy/assets/25644396/b508824f-08a7-4b9c-bc41-29dfee02dced)
+
 In the upper tab "Inputs" you can enter the data of the solar modules. These are only used directly in Ahoy for calculation and have no influence on the inverter.
 
 #### set radio parameter (not necessary, only for EU)
@@ -62,4 +66,5 @@ In the next tab "Radio" you can adjust the power and other parameters if necessa
 #### advanced options (not necessary)
 In the "Advanced" section, you can customize more settings.
 
+Save and reboot.
 # Done - Now check the live site
