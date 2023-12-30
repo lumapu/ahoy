@@ -88,6 +88,10 @@ class RestApi {
             else if(path == "html/logout")    getHtmlLogout(request, root);
             else if(path == "html/reboot")    getHtmlReboot(request, root);
             else if(path == "html/save")      getHtmlSave(request, root);
+            else if(path == "html/erase")     getHtmlErase(request, root);
+            else if(path == "html/erasetrue") getHtmlEraseTrue(request, root);
+            else if(path == "html/factory")     getHtmlFactory(request, root);
+            else if(path == "html/factorytrue") getHtmlFactoryTrue(request, root);
             else if(path == "system")         getSysInfo(request, root);
             else if(path == "generic")        getGeneric(request, root);
             else if(path == "reboot")         getReboot(request, root);
@@ -214,6 +218,16 @@ class RestApi {
                         tmp.remove(i, tmp.indexOf("\"", i)-i);
                     }
                 }
+                i = 0;
+                // convert all serial numbers to hexadecimal
+                while (i != -1) {
+                    i = tmp.indexOf("\"sn\":", i);
+                    if(-1 != i) {
+                        i+=5;
+                        String sn = tmp.substring(i, tmp.indexOf("\"", i)-1);
+                        tmp.replace(sn, String(atoll(sn.c_str()), HEX));
+                    }
+                }
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
             }
 
@@ -330,6 +344,40 @@ class RestApi {
             obj[F("pending")] = (bool)mApp->getSavePending();
             obj[F("success")] = (bool)mApp->getLastSaveSucceed();
             obj[F("reboot")] = (bool)mApp->getShouldReboot();
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
+        }
+
+        void getHtmlErase(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("html")] = F("Erase settings (not WiFi)? <a class=\"btn\" href=\"/erasetrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+        }
+
+        void getHtmlEraseTrue(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            mApp->eraseSettings(false);
+            mApp->setRebootFlag();
+            obj[F("html")] = F("Erase settings: success");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
+        }
+
+        void getHtmlFactory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("html")] = F("Factory reset? <a class=\"btn\" href=\"/factorytrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+        }
+
+        void getHtmlFactoryTrue(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            mApp->eraseSettings(true);
+            mApp->setRebootFlag();
+            obj[F("html")] = F("Factory reset: success");
             #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
             obj[F("reload")] = 5;
             #else
@@ -564,7 +612,8 @@ class RestApi {
             obj[F("miso")] = mConfig->nrf.pinMiso;
             obj[F("led0")] = mConfig->led.led0;
             obj[F("led1")] = mConfig->led.led1;
-            obj[F("led_high_active")] = mConfig->led.led_high_active;
+            obj[F("led_high_active")] = mConfig->led.high_active;
+            obj[F("led_lum")]         = mConfig->led.luminance;
         }
 
         #if defined(ESP32)

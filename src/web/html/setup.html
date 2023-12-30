@@ -918,8 +918,12 @@
                     ml("div", { class: "row mb-3" }, [
                         ml("div", { class: "col-12 col-sm-3 my-2" }, "LED polarity"),
                         ml("div", { class: "col-12 col-sm-9" },
-                            sel('pinLedHighActive', led_high_active, obj['led_high_active'])
+                            sel('pinLedHighActive', led_high_active, obj.led_high_active)
                         )
+                    ]),
+                    ml("div", { class: "row mb-3" }, [
+                        ml("div", { class: "col-12 col-sm-3 my-2" }, "LED luminance (0-255)"),
+                        ml("div", { class: "col-12 col-sm-9" }, ml("input", {class: "text", type: "number", name: "pinLedLum", value: obj.led_lum, min: 0, max: 255}, null))
                     ])
                 )
             }
