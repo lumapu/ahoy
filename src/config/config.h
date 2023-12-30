@@ -153,7 +153,11 @@
 
 // number of configurable inverters
 #if defined(ESP32)
-    #define MAX_NUM_INVERTERS   16
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+        #define MAX_NUM_INVERTERS   32
+    #else
+        #define MAX_NUM_INVERTERS   16
+    #endif
 #else
     #define MAX_NUM_INVERTERS   4
 #endif

@@ -39,7 +39,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -71,14 +71,15 @@ class Web {
             mWeb.onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
             mWeb.on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
             mWeb.on("/system",         HTTP_ANY,  std::bind(&Web::onSystem,       this, std::placeholders::_1));
-            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showErase,      this, std::placeholders::_1));
-            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
+            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/erasetrue",      HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factorytrue",    HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
@@ -197,6 +198,11 @@ class Web {
                     #if !defined(ETHERNET)
                     strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
                     #endif
+                    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                        if((mConfig->inst.iv[i].serial.u64 != 0) && (mConfig->inst.iv[i].serial.u64 < 138999999999)) { // hexadecimal
+                            mConfig->inst.iv[i].serial.u64 = ah::Serial2u64(String(mConfig->inst.iv[i].serial.u64).c_str());
+                        }
+                    }
                     mApp->saveSettings(true);
                 }
                 if (!mUploadFail)
@@ -284,12 +290,18 @@ class Web {
 
             bool reboot = (!Update.hasError());
 
-            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
+            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+                html += F("5");
+            #else
+                html += F("20");
+            #endif
+            html += F("; URL=/\"></head><body>Update: ");
             if (reboot)
                 html += "success";
             else
                 html += "failed";
-            html += F("<br/><br/>rebooting ... auto reload after 20s</body></html>");
+            html += F("<br/><br/>rebooting ...</body></html>");
 
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), html);
             response->addHeader("Connection", "close");
@@ -420,39 +432,12 @@ class Web {
             request->send(response);
         }
 
-        void showErase(AsyncWebServerRequest *request) {
+        void showHtml(AsyncWebServerRequest *request) {
             checkProtection(request);
 
-            DPRINTLN(DBG_VERBOSE, F("showErase"));
-            mApp->eraseSettings(false);
-            onReboot(request);
-        }
-
-        void showFactoryRst(AsyncWebServerRequest *request) {
-            checkProtection(request);
-
-            DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
-            String content = "";
-            int refresh = 3;
-            if (request->args() > 0) {
-                if (request->arg("reset").toInt() == 1) {
-                    refresh = 10;
-                    if (mApp->eraseSettings(true))
-                        content = F("factory reset: success\n\nrebooting ... ");
-                    else
-                        content = F("factory reset: failed\n\nrebooting ... ");
-                } else {
-                    content = F("factory reset: aborted");
-                    refresh = 3;
-                }
-            } else {
-                content = F("<h1>Factory Reset</h1>"
-                    "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
-                refresh = 120;
-            }
-            request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if (refresh == 10)
-                onReboot(request);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
         }
 
         void onSetup(AsyncWebServerRequest *request) {
@@ -521,7 +506,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 14; i++) {
+            for (uint8_t i = 0; i < 15; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -530,14 +515,15 @@ class Web {
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
                     case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0 = pin; break;
-                    case 7:  mConfig->led.led1 = pin; break;
-                    case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->cmt.pinSclk  = pin; break;
-                    case 10: mConfig->cmt.pinSdio  = pin; break;
-                    case 11: mConfig->cmt.pinCsb   = pin; break;
-                    case 12: mConfig->cmt.pinFcsb  = pin; break;
-                    case 13: mConfig->cmt.pinIrq   = pin; break;
+                    case 6:  mConfig->led.led0     = pin; break;
+                    case 7:  mConfig->led.led1     = pin; break;
+                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10: mConfig->cmt.pinSclk  = pin; break;
+                    case 11: mConfig->cmt.pinSdio  = pin; break;
+                    case 12: mConfig->cmt.pinCsb   = pin; break;
+                    case 13: mConfig->cmt.pinFcsb  = pin; break;
+                    case 14: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 

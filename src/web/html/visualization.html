@@ -358,9 +358,13 @@
                     var content = [];
                     var g = getGridType(glob.info.type, getGridIdentifier(glob))
                     if(null === g) {
-                        content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "Unknown Profile"))))
-                        content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Please open a new issue at https://github.com/lumapu/ahoy and copy the raw data into it."))))
-                        content.push(ml("div", {class: "row"}, ml("div", {class: "col my-2"}, ml("pre", {}, obj.grid))))
+                        if(0 == obj.grid.length) {
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Profile was not read until now, maybe turned off?"))))
+                        } else {
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "Unknown Profile"))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Please open a new issue at https://github.com/lumapu/ahoy and copy the raw data into it."))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col my-2"}, ml("pre", {}, obj.grid))))
+                        }
                     } else {
                         content.push(ml("div", {class: "row"},
                             ml("div", {class: "col my-3"}, ml("h5", {}, g + " (Version " + getGridValue(glob).toString(16) + ")"))

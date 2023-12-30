@@ -113,34 +113,51 @@ class HmRadio : public Radio {
             mNrf24->flush_tx();                              // empty TX FIFO
 
             // start listening
+            uint8_t chOffset = 2;
+            mRxChIdx = (mTxChIdx + chOffset) % RF_CHANNELS;
             mNrf24->setChannel(mRfChLst[mRxChIdx]);
             mNrf24->startListening();
 
             if(NULL == mLastIv) // prevent reading on NULL object!
                 return;
 
-            uint32_t startMicros      = micros();
+            uint32_t innerLoopTimeout = 55000;
             uint32_t loopMillis       = millis();
             uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) && (mLastIv->mCmd != GridOnProFilePara)) ? 400 : 600;
+            bool isRxInit             = true;
+
 
             while ((millis() - loopMillis) < outerLoopTimeout) {
-                startMicros = micros();
-                while ((micros() - startMicros) < 5110) {  // listen (4088us or?) 5110us to each channel
+                uint32_t startMicros = micros();
+                while ((micros() - startMicros) < innerLoopTimeout) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
 
                         if (getReceived()) { // everything received
                             return;
                         }
+
+                        innerLoopTimeout = 4088*5;
+                        if (isRxInit) {
+                            isRxInit = false;
+                            if (micros() - startMicros < 42000) {
+                                innerLoopTimeout = 4088*12;
+                                mRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
+                                mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                            }
+                        }
+
+                        startMicros = micros();
                     }
                     yield();
                 }
                 // switch to next RX channel
-                mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;
+                mRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
                 mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                innerLoopTimeout = 4088;
+                isRxInit = false;
             }
             // not finished but time is over
-            mRxChIdx = (mRxChIdx + 1) % RF_CHANNELS;
 
             return;
         }

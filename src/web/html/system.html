@@ -119,21 +119,20 @@
 
             function parse(obj) {
                 if(null != obj) {
-                    parseGeneric(obj["generic"]);
+                    parseGeneric(obj.generic);
 
-                    if(null != obj["refresh"]) {
+                    if(null != obj.refresh) {
                         var meta = document.createElement('meta');
                         meta.httpEquiv = "refresh"
-                        meta.content = obj["refresh"] + "; URL=" + obj["refresh_url"];
+                        meta.content = obj.refresh + "; URL=" + obj.refresh_url;
                         document.getElementsByTagName('head')[0].appendChild(meta);
-                    }
-                    else {
+                    } else if(null != obj.system) {
                         parseRadio(obj.system);
                         parseMqtt(obj.system.mqtt);
-                        parseSysInfo(obj["system"]);
+                        parseSysInfo(obj.system);
                         getAjax('/api/index', parseIndex);
                     }
-                    document.getElementById("html").innerHTML = obj["html"];
+                    document.getElementById("html").innerHTML = obj.html;
                 }
             }
 

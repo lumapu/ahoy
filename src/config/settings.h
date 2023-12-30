@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      6
+#define CONFIG_VERSION      7
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -117,9 +117,10 @@ typedef struct {
 } cfgSerial_t;
 
 typedef struct {
-    uint8_t led0;  // first LED pin
-    uint8_t led1;  // second LED pin
-    bool led_high_active;  // determines if LEDs are high or low active
+    uint8_t led0;      // first LED pin
+    uint8_t led1;      // second LED pin
+    bool high_active;  // determines if LEDs are high or low active
+    uint8_t luminance; // luminance of LED
 } cfgLed_t;
 
 typedef struct {
@@ -448,7 +449,7 @@ class settings {
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
-            mCfg.serial.printWholeTrace = true;
+            mCfg.serial.printWholeTrace = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -479,7 +480,7 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 2000;
+            mCfg.inst.gapMs            = 500;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -489,11 +490,10 @@ class settings {
                 mCfg.inst.iv[i].add2Total   = true;
             }
 
-            mCfg.led.led0 = DEF_LED0;
-            mCfg.led.led1 = DEF_LED1;
-            mCfg.led.led_high_active = LED_HIGH_ACTIVE;
-
-            memset(&mCfg.inst, 0, sizeof(cfgInst_t));
+            mCfg.led.led0        = DEF_LED0;
+            mCfg.led.led1        = DEF_LED1;
+            mCfg.led.high_active = LED_HIGH_ACTIVE;
+            mCfg.led.luminance   = 255;
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
@@ -531,6 +531,9 @@ class settings {
                 if(mCfg.configVersion < 6) {
                     mCfg.inst.gapMs    = 500;
                     mCfg.inst.readGrid = true;
+                }
+                if(mCfg.configVersion < 7) {
+                    mCfg.led.luminance = 255;
                 }
             }
         }
@@ -741,13 +744,15 @@ class settings {
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("0")] = mCfg.led.led0;
-                obj[F("1")] = mCfg.led.led1;
-                obj[F("act_high")] = mCfg.led.led_high_active;
+                obj[F("0")]        = mCfg.led.led0;
+                obj[F("1")]        = mCfg.led.led1;
+                obj[F("act_high")] = mCfg.led.high_active;
+                obj[F("lum")]      = mCfg.led.luminance;
             } else {
                 getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
                 getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
-                getVal<bool>(obj, F("act_high"), &mCfg.led.led_high_active);
+                getVal<bool>(obj, F("act_high"), &mCfg.led.high_active);
+                getVal<uint8_t>(obj, F("lum"), &mCfg.led.luminance);
             }
         }
 

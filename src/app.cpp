@@ -78,6 +78,9 @@ void app::setup() {
 
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
 
+    #ifdef ENABLE_SYSLOG
+    mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
+    #endif
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (mConfig->plugin.display.type != 0)
@@ -104,14 +107,14 @@ void app::setup() {
 
 //-----------------------------------------------------------------------------
 void app::loop(void) {
-    ah::Scheduler::loop();
-
     if(mConfig->nrf.enabled)
         mNrfRadio.loop();
     #if defined(ESP32)
     if(mConfig->cmt.enabled)
         mCmtRadio.loop();
     #endif
+
+    ah::Scheduler::loop();
     mCommunication.loop();
 
     if (mMqttEnabled && mNetworkConnected)
@@ -363,6 +366,9 @@ void app::tickSend(void) {
                 continue;
             }
 
+            if(!iv->radio->isChipConnected())
+                continue;
+
             iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
                 if(isDevControl)
                     mCommunication.addImportant(iv, cmd);
@@ -462,22 +468,22 @@ void app::mqttSubRxCb(JsonObject obj) {
 
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
-    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
+    uint8_t led_off = (mConfig->led.high_active) ? 0 : 255;
 
     if (mConfig->led.led0 != DEF_PIN_OFF) {
         pinMode(mConfig->led.led0, OUTPUT);
-        digitalWrite(mConfig->led.led0, led_off);
+        analogWrite(mConfig->led.led0, led_off);
     }
     if (mConfig->led.led1 != DEF_PIN_OFF) {
         pinMode(mConfig->led.led1, OUTPUT);
-        digitalWrite(mConfig->led.led1, led_off);
+        analogWrite(mConfig->led.led1, led_off);
     }
 }
 
 //-----------------------------------------------------------------------------
 void app::updateLed(void) {
-    uint8_t led_off = (mConfig->led.led_high_active) ? LOW : HIGH;
-    uint8_t led_on = (mConfig->led.led_high_active) ? HIGH : LOW;
+    uint8_t led_off = (mConfig->led.high_active) ? 0 : 255;
+    uint8_t led_on = (mConfig->led.high_active) ? (mConfig->led.luminance) : (255-mConfig->led.luminance);
 
     if (mConfig->led.led0 != DEF_PIN_OFF) {
         Inverter<> *iv;
@@ -486,20 +492,20 @@ void app::updateLed(void) {
             if (NULL != iv) {
                 if (iv->isProducing()) {
                     // turn on when at least one inverter is producing
-                    digitalWrite(mConfig->led.led0, led_on);
+                    analogWrite(mConfig->led.led0, led_on);
                     break;
                 }
                 else if(iv->config->enabled)
-                    digitalWrite(mConfig->led.led0, led_off);
+                    analogWrite(mConfig->led.led0, led_off);
             }
         }
     }
 
     if (mConfig->led.led1 != DEF_PIN_OFF) {
         if (getMqttIsConnected()) {
-            digitalWrite(mConfig->led.led1, led_on);
+            analogWrite(mConfig->led.led1, led_on);
         } else {
-            digitalWrite(mConfig->led.led1, led_off);
+            analogWrite(mConfig->led.led1, led_off);
         }
     }
 }
