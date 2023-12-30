@@ -71,14 +71,15 @@ class Web {
             mWeb.onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
             mWeb.on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
             mWeb.on("/system",         HTTP_ANY,  std::bind(&Web::onSystem,       this, std::placeholders::_1));
-            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showErase,      this, std::placeholders::_1));
-            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
+            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/erasetrue",      HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factorytrue",    HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
@@ -197,6 +198,11 @@ class Web {
                     #if !defined(ETHERNET)
                     strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
                     #endif
+                    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                        if((mConfig->inst.iv[i].serial.u64 != 0) && (mConfig->inst.iv[i].serial.u64 < 138999999999)) { // hexadecimal
+                            mConfig->inst.iv[i].serial.u64 = ah::Serial2u64(String(mConfig->inst.iv[i].serial.u64).c_str());
+                        }
+                    }
                     mApp->saveSettings(true);
                 }
                 if (!mUploadFail)
@@ -426,39 +432,12 @@ class Web {
             request->send(response);
         }
 
-        void showErase(AsyncWebServerRequest *request) {
+        void showHtml(AsyncWebServerRequest *request) {
             checkProtection(request);
 
-            DPRINTLN(DBG_VERBOSE, F("showErase"));
-            mApp->eraseSettings(false);
-            onReboot(request);
-        }
-
-        void showFactoryRst(AsyncWebServerRequest *request) {
-            checkProtection(request);
-
-            DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
-            String content = "";
-            int refresh = 3;
-            if (request->args() > 0) {
-                if (request->arg("reset").toInt() == 1) {
-                    refresh = 10;
-                    if (mApp->eraseSettings(true))
-                        content = F("factory reset: success\n\nrebooting ... ");
-                    else
-                        content = F("factory reset: failed\n\nrebooting ... ");
-                } else {
-                    content = F("factory reset: aborted");
-                    refresh = 3;
-                }
-            } else {
-                content = F("<h1>Factory Reset</h1>"
-                    "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
-                refresh = 120;
-            }
-            request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if (refresh == 10)
-                onReboot(request);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
         }
 
         void onSetup(AsyncWebServerRequest *request) {

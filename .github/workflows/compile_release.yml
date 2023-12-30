@@ -77,7 +77,7 @@ jobs:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
 
     - name: Create Artifact
-      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/firmware/* User_Manual.md
+      run: zip --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/firmware/* User_Manual.md
 
     - name: Upload Release
       id: upload-release

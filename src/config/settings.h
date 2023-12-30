@@ -425,7 +425,7 @@ class settings {
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
-            mCfg.serial.printWholeTrace = true;
+            mCfg.serial.printWholeTrace = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -441,7 +441,7 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 2000;
+            mCfg.inst.gapMs            = 500;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -455,8 +455,6 @@ class settings {
             mCfg.led.led1        = DEF_LED1;
             mCfg.led.high_active = LED_HIGH_ACTIVE;
             mCfg.led.luminance   = 255;
-
-            memset(&mCfg.inst, 0, sizeof(cfgInst_t));
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;

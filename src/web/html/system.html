@@ -126,8 +126,7 @@
                         meta.httpEquiv = "refresh"
                         meta.content = obj.refresh + "; URL=" + obj.refresh_url;
                         document.getElementsByTagName('head')[0].appendChild(meta);
-                    }
-                    else {
+                    } else if(null != obj.system) {
                         parseRadio(obj.system);
                         parseMqtt(obj.system.mqtt);
                         parseSysInfo(obj.system);

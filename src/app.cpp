@@ -354,6 +354,9 @@ void app::tickSend(void) {
                 continue;
             }
 
+            if(!iv->radio->isChipConnected())
+                continue;
+
             iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
                 if(isDevControl)
                     mCommunication.addImportant(iv, cmd);
