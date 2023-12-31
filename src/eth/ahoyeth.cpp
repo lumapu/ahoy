@@ -25,6 +25,7 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     mUtcTimestamp = utcTimestamp;
     mOnNetworkCB = onNetworkCB;
     mOnTimeCB = onTimeCB;
+    mEthConnected = false;
 
     Serial.flush();
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
@@ -33,7 +34,8 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     #if defined(CONFIG_IDF_TARGET_ESP32S3)
     mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
     #else
-    ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
+    //ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLK_MODE);
+    ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, DEF_ETH_MOSI_PIN, ETH_PHY_TYPE, ETH_CLK_MODE);
     #endif
 
     if(mConfig->sys.ip.ip[0] != 0) {
@@ -130,7 +132,7 @@ void ahoyeth::welcome(String ip, String mode) {
 }
 
 void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
-    AWS_LOG(F("[ETH]: Got event..."));
+    DPRINTLN(DBG_VERBOSE, F("[ETH]: Got event..."));
     switch (event) {
 #if ( ( defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 2) ) && ( ARDUINO_ESP32_GIT_VER != 0x46d5afb1 ) )
     // For breaking core v2.0.0
@@ -138,7 +140,7 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
     // compared to the old system_event_id_t, now in tools/sdk/esp32/include/esp_event/include/esp_event_legacy.h
     // You can preserve the old enum order and just adding new items to do no harm
     case ARDUINO_EVENT_ETH_START:
-        AWS_LOG(F("\nETH Started"));
+        DPRINTLN(DBG_INFO, F("\nETH Started"));
         //set eth hostname here
         if(String(mConfig->sys.deviceName) != "")
             ETH.setHostname(mConfig->sys.deviceName);
@@ -147,26 +149,30 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
         break;
 
     case ARDUINO_EVENT_ETH_CONNECTED:
-        AWS_LOG(F("ETH Connected"));
+        DPRINTLN(DBG_INFO, F("ETH Connected"));
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected) {
+        if (!mEthConnected) {
+            DPRINT(DBG_INFO, F("ETH MAC: "));
             #if defined (CONFIG_IDF_TARGET_ESP32S3)
-            AWS_LOG3(F("ETH MAC: "), mEthSpi.macAddress(), F(", IPv4: "), ETH.localIP());
+            DBGPRINT(mEthSpi.macAddress());
             #else
-            AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
+            DBGPRINT(ETH.macAddress());
             #endif
+            DBGPRINT(F(", IPv4: "));
+            DBGPRINTLN(String(ETH.localIP()));
 
             if (ETH.fullDuplex()) {
-                AWS_LOG0(F("FULL_DUPLEX, "));
+                DPRINTLN(DBG_INFO, F("FULL_DUPLEX, "));
             } else {
-                AWS_LOG0(F("HALF_DUPLEX, "));
+                DPRINTLN(DBG_INFO, F("HALF_DUPLEX, "));
             }
 
-            AWS_LOG1(ETH.linkSpeed(), F("Mbps"));
+            DPRINT(DBG_INFO, String(ETH.linkSpeed()));
+            DBGPRINTLN(F("Mbps"));
 
-            ESP32_W5500_eth_connected = true;
+            mEthConnected = true;
             mOnNetworkCB(true);
         }
         if (!MDNS.begin(mConfig->sys.deviceName)) {
@@ -179,15 +185,15 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
         break;
 
     case ARDUINO_EVENT_ETH_DISCONNECTED:
-      AWS_LOG("ETH Disconnected");
-      ESP32_W5500_eth_connected = false;
+      DPRINTLN(DBG_INFO, "ETH Disconnected");
+      mEthConnected = false;
       mUdp.close();
       mOnNetworkCB(false);
       break;
 
     case ARDUINO_EVENT_ETH_STOP:
-      AWS_LOG("\nETH Stopped");
-      ESP32_W5500_eth_connected = false;
+      DPRINTLN(DBG_INFO, "\nETH Stopped");
+      mEthConnected = false;
       mUdp.close();
       mOnNetworkCB(false);
       break;
@@ -200,7 +206,7 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
     // compared to the old system_event_id_t, now in tools/sdk/esp32/include/esp_event/include/esp_event_legacy.h
     // You can preserve the old enum order and just adding new items to do no harm
     case SYSTEM_EVENT_ETH_START:
-        AWS_LOG(F("\nETH Started"));
+        DPRINTLN(DBG_INFO, F("\nETH Started"));
         //set eth hostname here
         if(String(mConfig->sys.deviceName) != "")
             ETH.setHostname(mConfig->sys.deviceName);
@@ -209,20 +215,24 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
         break;
 
     case SYSTEM_EVENT_ETH_CONNECTED:
-        AWS_LOG(F("ETH Connected"));
+        DPRINTLN(DBG_INFO, F("ETH Connected"));
         break;
 
     case SYSTEM_EVENT_ETH_GOT_IP:
         if (!ESP32_W5500_eth_connected) {
-            AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
+            DPRINT(DBG_INFO, F("ETH MAC: "));
+            DBGPRINT(ETH.macAddress());
+            DBGPRINT(F(", IPv4: "));
+            DBGPRINTLN(ETH.localIP());
 
             if (ETH.fullDuplex()) {
-                AWS_LOG0(F("FULL_DUPLEX, "));
+                DPRINTLN(DBG_INFO, F("FULL_DUPLEX, "));
             } else {
-                AWS_LOG0(F("HALF_DUPLEX, "));
+                DPRINTLN(DBG_INFO, F("HALF_DUPLEX, "));
             }
 
-            AWS_LOG1(ETH.linkSpeed(), F("Mbps"));
+            DPRINT(DBG_INFO, ETH.linkSpeed());
+            DBGPRINTLN(F("Mbps"));
 
             ESP32_W5500_eth_connected = true;
             mOnNetworkCB(true);
@@ -237,14 +247,14 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
         break;
 
     case SYSTEM_EVENT_ETH_DISCONNECTED:
-        AWS_LOG("ETH Disconnected");
+        DPRINT(DBG_INFO, F("ETH Disconnected"));
         ESP32_W5500_eth_connected = false;
         mUdp.close();
         mOnNetworkCB(false);
         break;
 
     case SYSTEM_EVENT_ETH_STOP:
-        AWS_LOG("\nETH Stopped");
+        DPRINT(DBG_INFO, F("ETH Stopped"));
         ESP32_W5500_eth_connected = false;
         mUdp.close();
         mOnNetworkCB(false);

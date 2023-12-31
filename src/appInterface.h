@@ -8,11 +8,7 @@
 
 #include "defines.h"
 #include "hm/hmSystem.h"
-#if defined(ETHERNET)
-#include "AsyncWebServer_ESP32_W5500.h"
-#else
 #include "ESPAsyncWebServer.h"
-#endif
 
 //#include "hms/hmsRadio.h"
 #if defined(ESP32)

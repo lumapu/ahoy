@@ -9,16 +9,16 @@
 
 #include <functional>
 
+#include "../utils/dbg.h"
 #include <Arduino.h>
 #include <AsyncUDP.h>
 #include <DNSServer.h>
 
 #include "ethSpi.h"
+#include <ETH.h>
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include "../config/settings.h"
-
-#include "AsyncWebServer_ESP32_W5500.h"
 
 
 class app;
@@ -57,6 +57,7 @@ class ahoyeth {
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;
+        bool mEthConnected;
 
 };
 
