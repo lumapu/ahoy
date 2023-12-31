@@ -215,6 +215,8 @@ class Inverter {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
                         cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                        cb(0x10, false); // legacy GPF command
                     else
                         cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
