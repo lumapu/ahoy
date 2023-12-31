@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.38 - 2023-12-31
+* fix Grid-Profile JSON #1304
+
 ## 0.8.37 - 2023-12-30
 * added grid profiles
 * format version of grid profile 
