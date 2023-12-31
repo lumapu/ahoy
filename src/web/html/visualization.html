@@ -357,6 +357,7 @@
                     var glob = {offs:0, grid:obj.grid, info: data}
                     var content = [];
                     var g = getGridType(glob.info.type, getGridIdentifier(glob))
+                    var v = getGridValue(glob);
                     if(null === g) {
                         if(0 == obj.grid.length) {
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Profile was not read until now, maybe turned off?"))))
@@ -367,7 +368,7 @@
                         }
                     } else {
                         content.push(ml("div", {class: "row"},
-                            ml("div", {class: "col my-3"}, ml("h5", {}, g + " (Version " + getGridValue(glob).toString(16) + ")"))
+                            ml("div", {class: "col my-3"}, ml("h5", {}, g + " (Version " + (Math.round(v / 0x1000)) + "." + (Math.round((v & 0x0ff0) / 0x10)) + "." + (v & 0x0F) + ")"))
                         ))
 
                         while((glob.offs*3) < glob.grid.length) {

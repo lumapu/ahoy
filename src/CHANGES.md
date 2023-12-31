@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.37 - 2023-12-30
+* added grid profiles
+* format version of grid profile 
+
+# RELEASE 0.8.36 - 2023-12-30
+
 ## 0.8.35 - 2023-12-30
 * added dim option for LEDS
 * changed reload time for opendtufusion after update to 5s
