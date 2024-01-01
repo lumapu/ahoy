@@ -1,19 +1,18 @@
-  
+# Ahoy configuration
 
-## Ahoy configuration
+## Prerequists
+You have build your own hardware (or purchased one). The firmware is already loaded on the ESP and the WebUI is accessible from your browser.
 
-  So far we have built our own DTU, written a program on it and put it into operation.
+## Start
 But how do I get my data from the inverter?
-
-To do this, we need to configure the DTU.
 
 The following steps are required:
 1. Set the pinning to communicate with the radio module.
 2. Check if Ahoy has a current time
-3. Set inverter data
+3. Configure the inverter data (e.g. serialnumber)
 
 ### 1.) Set the pinning
-Once you are in the web interface, you will find the "System Config" sub-item in the Setup area (left).
+Once you are in the web interface, you will find the "System Config" sub-item in the Setup area.
 
 This is where you tell the ESP how you connected the radio module.
 Note the schematics you saw earlier. - If you haven't noticed them yet, here's another table of connections.
@@ -38,7 +37,7 @@ Note the schematics you saw earlier. - If you haven't noticed them yet, here's a
 | FCSB| GPIO21
 | GPIO3| GPIO8
 
-### 2.) Set current time (normal skip this step)
+### 2.) Set current time (standard: skip this step)
 Ahoy needs a current date and time to talk to the inverter.
 It works without, but it is recommended to include a time. This allows you to analyze information from the inverter in more detail.
 Normally, a date/time should be automatically retrieved from the NTP server. However, it may happen that the firewall of some routers does not allow this.
@@ -51,20 +50,22 @@ Now it's time to place the inverter. This is necessary because it is not the inv
 
 Each inverter has its own S.Nr. This also serves as an identity for communication between the DTU and the inverter.
 
-The S.Nr is a 12-digit number. You can look it up [here (german)](https://github.com/lumapu/ahoy/wiki/Hardware#wie-ist-die-serien-nummer-der-inverter-aufgebaut) for more information.
+The S.Nr is a 12-digit number. Check [here (german)](https://github.com/lumapu/ahoy/wiki/Hardware#wie-ist-die-serien-nummer-der-inverter-aufgebaut) for more information.
+
 #### set pv-modules (not necessary)
 Click on "Add Inverter" and enter the S.No. and a name. Please keep the name short!
-![grafik](https://github.com/DanielR92/ahoy/assets/25644396/b52a2d5d-513c-4895-848a-01ce129f93c1)
+![grafik](https://github.com/lumapu/ahoy/doc/screenshots/settings.png)
 
-![grafik](https://github.com/DanielR92/ahoy/assets/25644396/b508824f-08a7-4b9c-bc41-29dfee02dced)
+![grafik](https://github.com/lumapu/ahoy/doc/screenshots/inverterSettings.png)
 
 In the upper tab "Inputs" you can enter the data of the solar modules. These are only used directly in Ahoy for calculation and have no influence on the inverter.
 
 #### set radio parameter (not necessary, only for EU)
 In the next tab "Radio" you can adjust the power and other parameters if necessary. However, these should be left as default (EU only).
 
-#### advanced options (not necessary)
+#### advanced options (not necessary to be changed)
 In the "Advanced" section, you can customize more settings.
 
 Save and reboot.
-# Done - Now check the live site
+
+## ✅ Done - Now check the live site

@@ -1,5 +1,4 @@
-
- ## Overview
+## Overview
 
 This page contains detailed instructions on building a module and flashing it with the latest firmware. Following these instructions will allow you to communicate with compatible inverters.
 
