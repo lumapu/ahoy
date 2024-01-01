@@ -1,10 +1,10 @@
 # Prometheus Endpoint
 Metrics available for AhoyDTU device, inverters and channels.
 
-Prometheus metrics provided at `/metrics`. 
+Prometheus metrics provided at `/metrics`.
 
 ## Labels
-| Label name   | Description                           | 
+| Label name   | Description                           |
 |:-------------|:--------------------------------------|
 | version      | current installed version of AhoyDTU  |
 | image        | currently not used                    |
@@ -19,11 +19,21 @@ Prometheus metrics provided at `/metrics`.
 |----------------------------------------------|---------|----------------------------------------------------------|--------------|
 | `ahoy_solar_info`                            | Gauge   | Information about the AhoyDTU device                     | version, image, devicename |
 | `ahoy_solar_uptime`                          | Counter | Seconds since boot of the AhoyDTU device                 | devicename |
-| `ahoy_solar_rssi_db`                         | Gauge   | Quality of the Wifi STA connection                       | devicename |
+| `ahoy_solar_freeheap`                        | Gauge   | free heap memory of the AhoyDTU device                   | devicename |
+| `ahoy_solar_wifi_rssi_db`                    | Gauge   | Quality of the Wifi STA connection                       | devicename |
 | `ahoy_solar_inverter_info`                   | Gauge   | Information about the configured inverter(s)             | name, serial |
 | `ahoy_solar_inverter_enabled`                | Gauge   | Is the inverter enabled?                                 | inverter  |
 | `ahoy_solar_inverter_is_available`           | Gauge   | is the inverter available?                               | inverter  |
 | `ahoy_solar_inverter_is_producing`           | Gauge   | Is the inverter producing?                               | inverter  |
+| `ahoy_solar_inverter_power_limit_read`       | Gauge   | Power Limit read from inverter                           | inverter  |
+| `ahoy_solar_inverter_power_limit_ack`        | Gauge   | Power Limit acknowledged by inverter                     | inverter  |
+| `ahoy_solar_inverter_max_power`              | Gauge   | Max Power of inverter                                    | inverter  |
+| `ahoy_solar_inverter_radio_rx_success`       | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_rx_fail`          | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_rx_fail_answer`   | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_frame_cnt`        | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_tx_cnt`           | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_retransmits`      | Counter | NRF24 statistic of inverter                              | inverter  |
 | `ahoy_solar_U_AC_volt`                       | Gauge   | AC voltage of inverter [V]                               | inverter  |
 | `ahoy_solar_I_AC_ampere`                     | Gauge   | AC current of inverter [A]                               | inverter  |
 | `ahoy_solar_P_AC_watt`                       | Gauge   | AC power of inverter [W]                                 | inverter  |
@@ -46,9 +56,4 @@ Prometheus metrics provided at `/metrics`.
 | `ahoy_solar_YieldDay_wattHours`              | Counter | Energy converted to AC per day [Wh]                      | inverter, channel |
 | `ahoy_solar_YieldTotal_kilowattHours`        | Counter | Energy converted to AC since reset [kWh]                 | inverter, channel |
 | `ahoy_solar_Irradiation_ratio`               | Gauge   | ratio DC Power over set maximum power per channel [%]    | inverter, channel |
-| `ahoy_solar_radio_rx_success`                | Gauge   | NRF24 statistic                                          | |
-| `ahoy_solar_radio_rx_fail`                   | Gauge   | NRF24 statistic                                          | |
-| `ahoy_solar_radio_rx_fail_answer`            | Gauge   | NRF24 statistic                                          | |
-| `ahoy_solar_radio_frame_cnt`                 | Gauge   | NRF24 statistic                                          | |
-| `ahoy_solar_radio_tx_cnt`                    | Gauge   | NRF24 statistic                                          | |
 
