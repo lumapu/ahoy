@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -392,7 +392,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(F("has "));
             if(!accepted) DBGPRINT(F("not "));
             DBGPRINT(F("accepted power limit set point "));
-            DBGPRINT(String(q->iv->powerLimit[0]));
+            DBGPRINT(String(q->iv->powerLimit[0]/10));
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value

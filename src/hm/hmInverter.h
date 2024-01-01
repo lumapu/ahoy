@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_INVERTER_H__
@@ -110,7 +110,7 @@ class Inverter {
         uint8_t       id;                // unique id
         uint8_t       type;              // integer which refers to inverter type
         uint16_t      alarmMesIndex;     // Last recorded Alarm Message Index
-        uint16_t      powerLimit[2];     // limit power output
+        uint16_t      powerLimit[2];     // limit power output (multiplied by 10)
         float         actPowerLimit;     // actual power limit
         bool          powerLimitAck;     // acknowledged power limit (default: false)
         uint8_t       devControlCmd;     // carries the requested cmd
@@ -152,7 +152,7 @@ class Inverter {
 
         Inverter() {
             ivGen              = IV_HM;
-            powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
+            powerLimit[0]      = 0xffff;               // 6553.5 W Limit -> unlimited
             powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
             powerLimitAck      = false;
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1

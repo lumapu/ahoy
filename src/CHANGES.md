@@ -1,8 +1,9 @@
 # Development Changes
 
 ## 0.8.39 - 2024-01-01
-* fix MqTT dis_night_comm in the morning #1309
+* fix MqTT dis_night_comm in the morning #1309 #1286
 * seperated offset for sunrise and sunset #1308
+* **BREAKING CHANGE**: powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 
 ## 0.8.38 - 2023-12-31
 * fix Grid-Profile JSON #1304
