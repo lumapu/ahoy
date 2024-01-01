@@ -351,10 +351,9 @@ class Communication : public CommQueue<> {
                 // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 //mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(p, q);
-            } else if (p->packet[0] == (0x0f + ALL_FRAMES))
+            } else if (p->packet[0] == (0x0f + ALL_FRAMES)) {
                 miHwDecode(p, q);
-
-            else if (p->packet[0] == ( 0x10 + ALL_FRAMES)) {
+            } else if (p->packet[0] == ( 0x10 + ALL_FRAMES)) {
                 // MI response from get Grid Profile information request
                 miGPFDecode(p, q);
             }
@@ -665,13 +664,13 @@ class Communication : public CommQueue<> {
             q->iv->setValue(2, rec, (uint32_t) (((p->packet[10] << 8) | p->packet[11]))); //FLD_GRID_PROFILE_CODE
             q->iv->setValue(3, rec, (uint32_t) (((p->packet[12] << 8) | p->packet[13]))); //FLD_GRID_PROFILE_VERSION
 
-/* according to xlsx (different start byte -1!)
- Polling Grid-connected Protection Parameter File Command - Receipt
- byte[10]               ST1 indicates the status of the grid-connected protection file. ST1=1 indicates the default grid-connected protection file, ST=2 indicates that the grid-connected protection file is configured and normal, ST=3 indicates that the grid-connected protection file cannot be recognized, ST=4 indicates that the grid-connected protection file is damaged
- byte[11]	 byte[12]   CountryStd variable indicates the national standard code of the grid-connected protection file
- byte[13]	 byte[14]   Version indicates the version of the grid-connected protection file
- byte[15]	 byte[16]
-*/
+            /* according to xlsx (different start byte -1!)
+             Polling Grid-connected Protection Parameter File Command - Receipt
+             byte[10]               ST1 indicates the status of the grid-connected protection file. ST1=1 indicates the default grid-connected protection file, ST=2 indicates that the grid-connected protection file is configured and normal, ST=3 indicates that the grid-connected protection file cannot be recognized, ST=4 indicates that the grid-connected protection file is damaged
+             byte[11]	 byte[12]   CountryStd variable indicates the national standard code of the grid-connected protection file
+             byte[13]	 byte[14]   Version indicates the version of the grid-connected protection file
+             byte[15]	 byte[16]
+            */
             /*if(mSerialDebug) {
                 DPRINT(DBG_INFO,F("ST1 "));
                 DBGPRINTLN(String(p->packet[9]));
