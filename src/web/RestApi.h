@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
@@ -600,7 +600,8 @@ class RestApi {
         void getSun(JsonObject obj) {
             obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
             obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
-            obj[F("offs")] = mConfig->sun.offsetSec;
+            obj[F("offsSr")] = mConfig->sun.offsetSecMorning;
+            obj[F("offsSs")] = mConfig->sun.offsetSecEvening;
         }
 
         void getPinout(JsonObject obj) {
@@ -685,10 +686,11 @@ class RestApi {
 
         void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("ts_now")]       = mApp->getTimestamp();
-            obj[F("ts_sunrise")]   = mApp->getSunrise();
-            obj[F("ts_sunset")]    = mApp->getSunset();
-            obj[F("ts_offset")]    = mConfig->sun.offsetSec;
+            obj[F("ts_now")]     = mApp->getTimestamp();
+            obj[F("ts_sunrise")] = mApp->getSunrise();
+            obj[F("ts_sunset")]  = mApp->getSunset();
+            obj[F("ts_offsSr")]  = mConfig->sun.offsetSecMorning;
+            obj[F("ts_offsSs")]  = mConfig->sun.offsetSecEvening;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;

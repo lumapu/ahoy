@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.39 - 2024-01-01
+* fix MqTT dis_night_comm in the morning #1309
+* seperated offset for sunrise and sunset #1308
+
 ## 0.8.38 - 2023-12-31
 * fix Grid-Profile JSON #1304
 

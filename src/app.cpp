@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -226,15 +226,18 @@ void app::tickCalcSunrise(void) {
     if (mSunrise == 0)                                          // on boot/reboot calc sun values for current time
         ah::calculateSunriseSunset(mTimestamp, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
-    if (mTimestamp > (mSunset + mConfig->sun.offsetSec))        // current time is past communication stop, calc sun values for next day
+    if (mTimestamp > (mSunset + mConfig->sun.offsetSecEvening))        // current time is past communication stop, calc sun values for next day
         ah::calculateSunriseSunset(mTimestamp + 86400, mCalculatedTimezoneOffset, mConfig->sun.lat, mConfig->sun.lon, &mSunrise, &mSunset);
 
     tickIVCommunication();
 
-    uint32_t nxtTrig = mSunset + mConfig->sun.offsetSec + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
+    uint32_t nxtTrig = mSunset + mConfig->sun.offsetSecEvening + 60;    // set next trigger to communication stop, +60 for safety that it is certain past communication stop
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig, "Sunri");
-    if (mMqttEnabled)
+    if (mMqttEnabled) {
         tickSun();
+        nxtTrig = mSunrise - mConfig->sun.offsetSecMorning + 1;         // one second safety to trigger correctly
+        onceAt(std::bind(&app::tickSun, this), nxtTrig, "mqSr"); // trigger on sunrise to update 'dis_night_comm'
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -251,14 +254,14 @@ void app::tickIVCommunication(void) {
 
         iv->commEnabled = !iv->config->disNightCom; // if sun.disNightCom is false, communication is always on
         if (!iv->commEnabled) {  // inverter communication only during the day
-            if (mTimestamp < (mSunrise - mConfig->sun.offsetSec)) { // current time is before communication start, set next trigger to communication start
-                nxtTrig = mSunrise - mConfig->sun.offsetSec;
+            if (mTimestamp < (mSunrise - mConfig->sun.offsetSecMorning)) { // current time is before communication start, set next trigger to communication start
+                nxtTrig = mSunrise - mConfig->sun.offsetSecMorning;
             } else {
-                if (mTimestamp >= (mSunset + mConfig->sun.offsetSec)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
+                if (mTimestamp >= (mSunset + mConfig->sun.offsetSecEvening)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
                     nxtTrig = 0;
                 } else { // current time lies within communication start/stop time, set next trigger to communication stop
                     iv->commEnabled = true;
-                    nxtTrig = mSunset + mConfig->sun.offsetSec;
+                    nxtTrig = mSunset + mConfig->sun.offsetSecEvening;
                 }
             }
             if (nxtTrig != 0)
@@ -279,7 +282,7 @@ void app::tickIVCommunication(void) {
 //-----------------------------------------------------------------------------
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
-    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSec))
+    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening))
         once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
 }
 

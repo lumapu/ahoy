@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      7
+#define CONFIG_VERSION      8
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -106,7 +106,8 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    uint16_t offsetSec;
+    uint16_t offsetSecMorning;
+    uint16_t offsetSecEvening;
 } cfgSun_t;
 
 typedef struct {
@@ -420,7 +421,8 @@ class settings {
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
-            mCfg.sun.offsetSec   = 0;
+            mCfg.sun.offsetSecMorning = 0;
+            mCfg.sun.offsetSecEvening = 0;
 
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
@@ -495,6 +497,9 @@ class settings {
                 }
                 if(mCfg.configVersion < 7) {
                     mCfg.led.luminance = 255;
+                }
+                if(mCfg.configVersion < 8) {
+                    mCfg.sun.offsetSecEvening = mCfg.sun.offsetSecMorning;
                 }
             }
         }
@@ -625,11 +630,13 @@ class settings {
             if(set) {
                 obj[F("lat")]  = mCfg.sun.lat;
                 obj[F("lon")]  = mCfg.sun.lon;
-                obj[F("offs")] = mCfg.sun.offsetSec;
+                obj[F("offs")] = mCfg.sun.offsetSecMorning;
+                obj[F("offsEve")] = mCfg.sun.offsetSecEvening;
             } else {
                 getVal<float>(obj, F("lat"), &mCfg.sun.lat);
                 getVal<float>(obj, F("lon"), &mCfg.sun.lon);
-                getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSec);
+                getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSecMorning);
+                getVal<uint16_t>(obj, F("offsEve"), &mCfg.sun.offsetSecEvening);
             }
         }
 

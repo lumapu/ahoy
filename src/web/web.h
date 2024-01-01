@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -541,11 +541,13 @@ class Web {
             if (request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
                 mConfig->sun.lat = 0.0;
                 mConfig->sun.lon = 0.0;
-                mConfig->sun.offsetSec = 0;
+                mConfig->sun.offsetSecMorning = 0;
+                mConfig->sun.offsetSecEvening = 0;
             } else {
                 mConfig->sun.lat = request->arg("sunLat").toFloat();
                 mConfig->sun.lon = request->arg("sunLon").toFloat();
-                mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
+                mConfig->sun.offsetSecMorning = request->arg("sunOffsSr").toInt() * 60;
+                mConfig->sun.offsetSecEvening = request->arg("sunOffsSs").toInt() * 60;
             }
 
             // mqtt
