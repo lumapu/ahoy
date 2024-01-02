@@ -1,3 +1,9 @@
+Changelog VArt (based on v0.7.36)
+* Changed reconnect on WiFi lost
+* Added Histroy Menu and Charts
+* Added chart to Display128x64
+
+
 Changelog v0.7.36
 
 * added Ethernet variant
