@@ -22,6 +22,8 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
+#include "plugins/history.h"
+
 #if defined(F) && defined(ESP32)
 #undef F
 #define F(sl) (sl)
@@ -97,7 +99,9 @@ class RestApi {
             #if !defined(ETHERNET)
             else if(path == "setup/networks") getNetworks(root);
             #endif /* !defined(ETHERNET) */
-            else if(path == "live")           getLive(request,root);
+            else if(path == "live")           getLive(request, root);
+            else if (path == "powerHistory")  getPowerHistory(request, root);
+            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             /*else if(path == "record/info")    getRecord(root, InverterDevInform_All);
             else if(path == "record/alarm")   getRecord(root, AlarmData);
             else if(path == "record/config")  getRecord(root, SystemConfigPara);
@@ -166,8 +170,9 @@ class RestApi {
             ep[F("setup")]            = url + F("setup");
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
+            ep[F("powerHistory")]     = url + F("powerHistory");
+            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
         }
-
 
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
@@ -590,6 +595,38 @@ class RestApi {
                     parse = iv->config->enabled;
                 obj[F("iv")][i] = parse;
             }
+        }
+
+        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("refresh")] = mConfig->nrf.sendInterval;
+            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
+            uint16_t maximum = 0;
+            TotalPowerHistory *p = mApp->getTotalPowerHistoryPtr();
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = p->valueAt(fld);
+                obj[F("value")][fld] = value;
+                if (value > maximum)
+                    maximum = value;
+                }
+                obj[F("maximum")] = maximum;
+                obj[F("dispIndex")] = p->getDisplIdx();
+        }
+
+        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("refresh")] = 86400;  // 1 day
+            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
+            uint16_t maximum = 0;
+            YieldDayHistory *p = mApp->getYieldDayHistoryPtr();
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = p->valueAt(fld);
+                obj[F("value")][fld] = value;
+                if (value > maximum)
+                    maximum = value;
+                }
+                obj[F("maximum")] = maximum;
+                obj[F("dispIndex")] = p->getDisplIdx();
         }
 
         /*void getRecord(JsonObject obj, uint8_t recType) {

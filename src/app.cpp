@@ -9,6 +9,7 @@
 
 #include "utils/sun.h"
 
+#include "plugins/history.h"
 
 //-----------------------------------------------------------------------------
 app::app()
@@ -117,9 +118,14 @@ void app::setup() {
     if (mConfig->plugin.display.type != 0)
         mDisplay.setup(&mConfig->plugin.display, &mSys, &mTimestamp, mVersion);
 
+    mTotalPowerHistory = new TotalPowerHistory();
+    mTotalPowerHistory->setup(this, &mSys, mConfig);
+    mYieldDayHistory = new YieldDayHistory();
+    mYieldDayHistory->setup(this, &mSys, mConfig);
+
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
-    #if !defined(ETHERNET)
+#if !defined(ETHERNET)
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
     #endif
 
@@ -251,6 +257,8 @@ void app::regularTickers(void) {
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
     // every([this]() { mPayload.simulation();}, 15, "simul");
+    everySec(std::bind(&TotalPowerHistory::tickerSecond, mTotalPowerHistory), "totalPowerHistory");
+    everySec(std::bind(&YieldDayHistory::tickerSecond,   mYieldDayHistory),   "yieldDayHistory");
 }
 
 #if defined(ETHERNET)

@@ -98,9 +98,9 @@ void ahoywifi::tickWifiLoop() {
         }
         mCnt++;
 
-        uint8_t timeout = (mStaConn == DISCONNECTED) ? 10 : 20; // seconds
+        uint8_t timeout = (mStaConn == DISCONNECTED) ? 20 : 30; // seconds
         if (mStaConn == CONNECTED) // connected but no ip
-            timeout = 20;
+            timeout = 30;
 
         if(!mScanActive && mBSSIDList.empty() && (mStaConn == DISCONNECTED)) { // start scanning APs with the given SSID
             DBGPRINT(F("scanning APs with SSID "));
@@ -122,16 +122,17 @@ void ahoywifi::tickWifiLoop() {
             #endif
             return;
         }
-        DBGPRINT(F("reconnect in "));
-        DBGPRINT(String(timeout-mCnt));
-        DBGPRINTLN(F(" seconds"));
         if(mScanActive) {
             getBSSIDs();
             if((!mScanActive) && (!mBSSIDList.empty()))  // scan completed
                 if ((mCnt % timeout) < timeout - 2)
                     mCnt = timeout - 2;
         }
-        if((mCnt % timeout) == 0) { // try to reconnect after x sec without connection
+        DBGPRINT(F("reconnect in "));
+        DBGPRINT(String(timeout - mCnt));
+        DBGPRINTLN(F(" seconds"));
+        if (mStaConn == DISCONNECTED) {
+        if ((mCnt % timeout) == 0) {  // try to reconnect after x sec without connection
             mStaConn = CONNECTING;
             WiFi.disconnect();
 
@@ -150,6 +151,7 @@ void ahoywifi::tickWifiLoop() {
                 mStaConn = DISCONNECTED;
 
             mCnt = 0;
+        }
         }
     }
     #endif
@@ -347,7 +349,12 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
             if(mStaConn != CONNECTED) {
                 mStaConn = CONNECTED;
                 DBGPRINTLN(F("\n[WiFi] Connected"));
+                DBGPRINTLN(F("[WiFi] RRSI: "));
+                DBGPRINTLN(String(WiFi.RSSI()));
             }
+            mCnt = 0;
+            WiFi.setAutoReconnect(true);
+            WiFi.persistent(true);
             break;
 
         case GOT_IP:
@@ -361,13 +368,16 @@ void ahoywifi::connectionEvent(WiFiStatus_t status) {
             WiFi.mode(WIFI_STA);
             DBGPRINTLN(F("[WiFi] AP disabled"));
             delay(100);
+            mCnt = 0;
+            WiFi.setAutoReconnect(true);
+            WiFi.persistent(true);
             mAppWifiCb(true);
             break;
 
         case DISCONNECTED:
             if(mStaConn != CONNECTING) {
                 mStaConn = DISCONNECTED;
-                mCnt       = 5;     // try to reconnect in 5 sec
+                mCnt       = 6;     // try to reconnect in timeout - 6 sec
                 setupWifi();        // reconnect with AP / Station setup
                 mAppWifiCb(false);
                 DPRINTLN(DBG_INFO, "[WiFi] Connection Lost");

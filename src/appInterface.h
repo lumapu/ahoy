@@ -14,6 +14,9 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
+class TotalPowerHistory;
+class YieldDayHistory;
+
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
 class IApp {
@@ -62,6 +65,9 @@ class IApp {
 
         virtual void getNrfRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
         //virtual void getCmtRadioCounters(uint32_t *sendCnt, uint32_t *retransmits) = 0;
+
+        virtual TotalPowerHistory *getTotalPowerHistoryPtr() = 0;
+        virtual YieldDayHistory   *getYieldDayHistoryPtr() = 0;
 };
 
 #endif /*__IAPP_H__*/

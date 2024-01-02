@@ -21,24 +21,25 @@
 #else /* defined(ETHERNET) */
 #include "ESPAsyncWebServer.h"
 #endif /* defined(ETHERNET) */
+#include "html/h/about_html.h"
 #include "html/h/api_js.h"
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"
 #include "html/h/favicon_ico.h"
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
+#include "html/h/save_html.h"
 #include "html/h/serial_html.h"
 #include "html/h/setup_html.h"
 #include "html/h/style_css.h"
 #include "html/h/system_html.h"
-#include "html/h/save_html.h"
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
-#include "html/h/about_html.h"
+#include "html/h/history_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCsb", "pinFcsb", "pinGpio3"};
+    const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -75,10 +76,11 @@ class Web {
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
-            mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
-            //mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
+            mWeb.on("/live",           HTTP_ANY, std::bind(&Web::onLive,          this, std::placeholders::_1));
+            mWeb.on("/history",        HTTP_ANY, std::bind(&Web::onHistory,       this, std::placeholders::_1));
+            // mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
 
-        #ifdef ENABLE_PROMETHEUS_EP
+#ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
 
@@ -110,7 +112,7 @@ class Web {
                         mProtected = true;
                 }
 
-                DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
+                //DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
             }
 
             if (mSerialClientConnnected) {
@@ -244,6 +246,8 @@ class Web {
                 request->redirect(F("/index"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
                 request->redirect(F("/live"));
+            else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY)
+                request->redirect(F("/history"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
                 request->redirect(F("/serial"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
@@ -259,7 +263,7 @@ class Web {
             }
         }
 
-        void getPage(AsyncWebServerRequest *request, uint8_t mask, const uint8_t *zippedHtml, uint32_t len) {
+        void getPage(AsyncWebServerRequest *request, uint16_t mask, const uint8_t *zippedHtml, uint32_t len) {
             if (CHECK_MASK(mConfig->sys.protectionMask, mask))
                 checkProtection(request);
 
@@ -634,6 +638,10 @@ class Web {
 
         void onLive(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_LIVE, visualization_html, visualization_html_len);
+        }
+
+        void onHistory(AsyncWebServerRequest *request) {
+            getPage(request, PROT_MASK_HISTORY, history_html, history_html_len);
         }
 
         void onAbout(AsyncWebServerRequest *request) {

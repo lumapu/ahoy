@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>History</title>
+    {#HTML_HEADER}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+
+</head>
+
+<body>
+    {#HTML_NAV}
+    <div id="wrapper">
+    <div id="content">
+    <h3>Total Power history</h3>
+    <div class="chartDivContainer">
+        <div class="chartDiv" id="phHistoryChart">  </div>
+        <p class="center" style="margin:0px;border:0px;">
+            Maximum value: <span id="phMaximum"></span> Watt<br />
+            Updated every <span id="phRefresh"></span> seconds </p>
+    </div>
+
+    <h3>Yield per day history</h3>
+    <div class="chartDivContainer">
+        <div class="chartDiv" id="ydHistoryChart"> </div>
+        <p class="center" style="margin:0px;border:0px;">
+            Maximum value: <span id="ydMaximum"></span> Watt<br />
+            Updated every <span id="ydRefresh"></span> seconds </p>
+    </div>
+    </div>
+    </div>
+    {#HTML_FOOTER}
+
+    <script type="text/javascript">
+        const svgns = "http://www.w3.org/2000/svg";
+        var phExeOnce = true;
+        var ydExeOnce = true;
+        // make a simple rectangle
+        var mRefresh = 60;
+        var phDatapoints = 512;
+        var mMaximum = 0;
+        var mDispIdx = 0
+        var mDataValues = [];
+        const mChartHight = 250;
+
+        function parseHistory(obj, namePrefix, execOnce) {
+            mRefresh = obj["refresh"];
+            phDatapoints = obj["datapoints"];
+            mDataValues = Object.assign({}, obj["value"]);
+            mMaximum = obj["maximum"];
+            mDispIdx = obj["dispIndex"];  // start index of oldest value
+            // generate svg
+            if (true == execOnce) {
+                let svg = document.createElementNS(svgns, "svg");
+                svg.setAttribute("class", "chart");
+                svg.setAttribute("width", String(phDatapoints * 2) + "");
+                svg.setAttribute("height", String(mChartHight) + "");
+                svg.setAttribute("aria-labelledby", "title desc");
+                svg.setAttribute("role", "img");
+                t = ml("title");
+                t.innerHTML = "History of day";
+                svg.appendChild(t);
+                let g = document.createElementNS(svgns, "g");
+                svg.appendChild(g);
+                for (var i = 0; i < phDatapoints; i++) {
+                    val = mDataValues[i];
+                    let rect = document.createElementNS(svgns, "rect");
+                    rect.setAttribute("id", namePrefix+"Rect" + i);
+                    rect.setAttribute("x", String(i * 2) + "");
+                    rect.setAttribute("width", String(2) + "");
+                    g.appendChild(rect);
+                }
+                document.getElementById(namePrefix+"HistoryChart").appendChild(svg);
+            }
+            // normalize data to chart
+            let divider = mMaximum / mChartHight;
+            let idx = mDispIdx;
+            if (divider == 0)
+                divider = 1;
+            for (var i = 0; i < phDatapoints; i++) {
+                val = mDataValues[i];
+                idx = (idx + 1) % phDatapoints;
+                val = val / divider
+                rect = document.getElementById(namePrefix+"Rect" + i);
+                rect.setAttribute("height", val);
+                rect.setAttribute("y", mChartHight - val);
+            }
+            document.getElementById(namePrefix + "Maximum").innerHTML = mMaximum;
+            if (mRefresh < 5)
+                mRefresh = 5;
+            document.getElementById(namePrefix + "Refresh").innerHTML = mRefresh;
+        }
+        function parsePowerHistory(obj){
+            if (null != obj) {
+                parseNav(obj["generic"]);
+                parseHistory(obj,"ph", phExeOnce)
+            }
+            if (true == phExeOnce) {
+                window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
+                phExeOnce = false;
+            }
+        }
+        function parseYieldDayHistory(obj) {
+            if (null != obj) {
+                parseNav(obj["generic"]);
+                parseHistory(obj, "yd", ydExeOnce)
+            }
+            if (true == ydExeOnce) {
+                window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", mRefresh * 1000);
+                ydExeOnce = false;
+            }
+        }
+
+        getAjax("/api/powerHistory", parsePowerHistory);
+        getAjax("/api/yieldDayHistory", parseYieldDayHistory);
+    </script>
+
+</body>
+
+</html>

@@ -14,6 +14,7 @@
 #include "Display_ePaper.h"
 
 template <class HMSYSTEM>
+
 class Display {
    public:
     Display() {
