@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -151,7 +151,7 @@ class Communication : public CommQueue<> {
 
                             if(validateIvSerial(&p->packet[1], q->iv)) {
                                 q->iv->radioStatistics.frmCnt++;
-                                q->iv->mDtuRxCnt++;
+                                q->iv->radioStatistics.dtuRxCnt++;
 
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                     if(parseFrame(p))
@@ -351,8 +351,13 @@ class Communication : public CommQueue<> {
                 // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 //mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(p, q);
-            } else if (p->packet[0] == (0x0f + ALL_FRAMES))
+            } else if (p->packet[0] == (0x0f + ALL_FRAMES)) {
                 miHwDecode(p, q);
+            } else if (p->packet[0] == ( 0x10 + ALL_FRAMES)) {
+                // MI response from get Grid Profile information request
+                miGPFDecode(p, q);
+            }
+
             else if ((p->packet[0] == 0x88) || (p->packet[0] == 0x92)) {
                 record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
                 rec->ts = q->ts;
@@ -392,7 +397,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(F("has "));
             if(!accepted) DBGPRINT(F("not "));
             DBGPRINT(F("accepted power limit set point "));
-            DBGPRINT(String(q->iv->powerLimit[0]));
+            DBGPRINT(String(q->iv->powerLimit[0]/10));
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value
@@ -650,22 +655,31 @@ class Communication : public CommQueue<> {
                     (mCbPayload)(InverterDevInform_Simple, q->iv);
                 q->iv->miMultiParts++;
             }
-            //if(q->iv->miMultiParts > 5)
-                //closeRequest(q->iv, true);
-            //else
-            //if(q->iv->miMultiParts < 6)
-            //    mState = States::WAIT;
+        }
 
-            /*if (mPayload[iv->id].multi_parts > 5) {
-                iv->setQueuedCmdFinished();
-                mPayload[iv->id].complete = true;
-                mPayload[iv->id].rxTmo    = true;
-                mPayload[iv->id].requested= false;
-                iv->radioStatistics.rxSuccess++;
-            }
-            if (mHighPrioIv == NULL)
-                mHighPrioIv = iv;
-                */
+        inline void miGPFDecode(packet_t *p, const queue_s *q) {
+            record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+            rec->ts = q->ts;
+
+            q->iv->setValue(2, rec, (uint32_t) (((p->packet[10] << 8) | p->packet[11]))); //FLD_GRID_PROFILE_CODE
+            q->iv->setValue(3, rec, (uint32_t) (((p->packet[12] << 8) | p->packet[13]))); //FLD_GRID_PROFILE_VERSION
+
+            /* according to xlsx (different start byte -1!)
+             Polling Grid-connected Protection Parameter File Command - Receipt
+             byte[10]               ST1 indicates the status of the grid-connected protection file. ST1=1 indicates the default grid-connected protection file, ST=2 indicates that the grid-connected protection file is configured and normal, ST=3 indicates that the grid-connected protection file cannot be recognized, ST=4 indicates that the grid-connected protection file is damaged
+             byte[11]	 byte[12]   CountryStd variable indicates the national standard code of the grid-connected protection file
+             byte[13]	 byte[14]   Version indicates the version of the grid-connected protection file
+             byte[15]	 byte[16]
+            */
+            /*if(mSerialDebug) {
+                DPRINT(DBG_INFO,F("ST1 "));
+                DBGPRINTLN(String(p->packet[9]));
+                DPRINT(DBG_INFO,F("CountryStd "));
+                DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                DPRINT(DBG_INFO,F("Version "));
+                DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+            }*/
+            q->iv->miMultiParts = 7; // indicate we are ready
         }
 
         inline void miDataDecode(packet_t *p, const queue_s *q) {

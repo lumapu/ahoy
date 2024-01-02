@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       37
+#define VERSION_PATCH       39
 
 //-------------------------------------
 typedef struct {
@@ -106,6 +106,10 @@ typedef struct {
     uint32_t frmCnt;
     uint32_t txCnt;
     uint32_t retransmits;
+    uint16_t ivRxCnt;   // last iv rx frames (from GetLossRate)
+    uint16_t ivTxCnt;   // last iv tx frames (from GetLossRate)
+    uint16_t dtuRxCnt;  // current DTU rx frames (since last GetLossRate)
+    uint16_t dtuTxCnt;  // current DTU tx frames (since last GetLossRate)
 } statistics_t;
 
 #endif /*__DEFINES_H__*/

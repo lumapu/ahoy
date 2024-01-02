@@ -45,12 +45,12 @@
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
-                if(obj["success"]) {
+                if(obj.success) {
                     e.innerHTML = " command executed";
                     getAjax("/api/index", parse);
                 }
                 else
-                    e.innerHTML = " Error: " + obj["error"];
+                    e.innerHTML = " Error: " + obj.error;
             }
 
             function setTime() {
@@ -68,9 +68,9 @@
             }
 
             function parseSys(obj) {
-                ts = obj["ts_now"];
-                var date = new Date(obj["ts_now"] * 1000);
-                var up = obj["generic"]["ts_uptime"];
+                ts = obj.ts_now;
+                var date = new Date(obj.ts_now * 1000);
+                var up = obj.generic["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
@@ -83,8 +83,8 @@
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);
                 var dSpan = document.getElementById("date");
-                if(0 != obj["ts_now"]) {
-                    if(obj["ts_now"] < 1680000000)
+                if(0 != obj.ts_now) {
+                    if(obj.ts_now < 1680000000)
                         setTime();
                     else
                         dSpan.innerHTML = toIsoDateStr(date);
@@ -98,18 +98,18 @@
                     e.addEventListener("click", setTime);
                 }
 
-                if(obj["disNightComm"]) {
-                    if(((obj["ts_sunrise"] - obj["ts_offset"]) < obj["ts_now"])
-                        && ((obj["ts_sunset"] + obj["ts_offset"]) > obj["ts_now"])) {
-                        commInfo = "Polling inverter(s), will pause at sunset " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                if(obj.disNightComm) {
+                    if(((obj.ts_sunrise - obj.ts_offsSr) < obj.ts_now)
+                        && ((obj.ts_sunset + obj.ts_offsSs) > obj.ts_now)) {
+                        commInfo = "Polling inverter(s), will pause at sunset " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                     }
                     else {
                         commInfo = "Night time, inverter polling disabled, ";
-                        if(obj["ts_now"] > (obj["ts_sunrise"] - obj["ts_offset"])) {
-                            commInfo += "paused at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        if(obj.ts_now > (obj.ts_sunrise - obj.ts_offsSr)) {
+                            commInfo += "paused at " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                         }
                         else {
-                            commInfo += "will start polling at " + (new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                            commInfo += "will start polling at " + (new Date((obj.ts_sunrise - obj.ts_offsSr) * 1000).toLocaleString('de-DE'));
                         }
                     }
                 }
@@ -190,11 +190,11 @@
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
-                        parseNav(obj["generic"]);
-                    parseGeneric(obj["generic"]);
+                        parseNav(obj.generic);
+                    parseGeneric(obj.generic);
                     parseSys(obj);
-                    parseIv(obj["inverter"], obj.ts_now);
-                    parseWarn(obj["warnings"]);
+                    parseIv(obj.inverter, obj.ts_now);
+                    parseWarn(obj.warnings);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;
@@ -210,7 +210,7 @@
             }
 
             function parseRelease(obj) {
-                release = obj["name"].substring(6);
+                release = obj.name.substring(6);
                 getAjax("/api/index", parse);
             }
 

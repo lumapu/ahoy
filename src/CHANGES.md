@@ -1,5 +1,17 @@
 # Development Changes
 
+## 0.8.39 - 2024-01-01
+* fix MqTT dis_night_comm in the morning #1309 #1286
+* seperated offset for sunrise and sunset #1308
+* **BREAKING CHANGE**: powerlimit (active power control) now has one decimal place (MqTT / API) #1199
+* merge Prometheus metrics fix #1310
+* merge MI grid profile request #1306
+* merge update documentation / readme #1305
+* add `getLossRate` to radio statistics and to MqTT #1199
+
+## 0.8.38 - 2023-12-31
+* fix Grid-Profile JSON #1304
+
 ## 0.8.37 - 2023-12-30
 * added grid profiles
 * format version of grid profile 

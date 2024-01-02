@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_INVERTER_H__
@@ -110,7 +110,7 @@ class Inverter {
         uint8_t       id;                // unique id
         uint8_t       type;              // integer which refers to inverter type
         uint16_t      alarmMesIndex;     // Last recorded Alarm Message Index
-        uint16_t      powerLimit[2];     // limit power output
+        uint16_t      powerLimit[2];     // limit power output (multiplied by 10)
         float         actPowerLimit;     // actual power limit
         bool          powerLimitAck;     // acknowledged power limit (default: false)
         uint8_t       devControlCmd;     // carries the requested cmd
@@ -141,18 +141,12 @@ class Inverter {
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
-        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
-        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
-        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
-        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
-        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debu
-
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
 
         Inverter() {
             ivGen              = IV_HM;
-            powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
+            powerLimit[0]      = 0xffff;               // 6553.5 W Limit -> unlimited
             powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
             powerLimitAck      = false;
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
@@ -171,10 +165,6 @@ class Inverter {
             mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
-            mIvRxCnt           = 0;
-            mIvTxCnt           = 0;
-            mDtuRxCnt          = 0;
-            mDtuTxCnt          = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(heuristics.txRfQuality, -6, 5);
@@ -215,6 +205,8 @@ class Inverter {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
                     if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
                         cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                        cb(0x10, false); // legacy GPF command
                     else
                         cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
@@ -603,21 +595,25 @@ class Inverter {
                 uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
                 uint16_t txCnt = (pyld[2] << 8) + pyld[3];
 
-                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                if (radioStatistics.ivRxCnt || radioStatistics.ivTxCnt) { // there was successful GetLossRate in the past
                     DPRINT_IVID(DBG_INFO, id);
-                    DBGPRINTLN("Inv loss: " +
-                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
-                        String (mDtuTxCnt) + ", DTU loss: " +
-                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
-                        String (txCnt - mIvTxCnt));
+                    DBGPRINT(F("Inv loss: "));
+                    DBGPRINT(String (radioStatistics.dtuTxCnt - (rxCnt - radioStatistics.ivRxCnt)));
+                    DBGPRINT(F(" of "));
+                    DBGPRINT(String (radioStatistics.dtuTxCnt));
+                    DBGPRINT(F(", DTU loss: "));
+                    DBGPRINT(String (txCnt - radioStatistics.ivTxCnt - radioStatistics.dtuRxCnt));
+                    DBGPRINT(F(" of "));
+                    DBGPRINTLN(String (txCnt - radioStatistics.ivTxCnt));
                 }
 
-                mIvRxCnt = rxCnt;
-                mIvTxCnt = txCnt;
-                mDtuRxCnt = 0;  // start new interval
-                mDtuTxCnt = 0;  // start new interval
+                radioStatistics.ivRxCnt = rxCnt;
+                radioStatistics.ivTxCnt = txCnt;
+                radioStatistics.dtuRxCnt = 0;  // start new interval
+                radioStatistics.dtuTxCnt = 0;  // start new interval
                 return true;
             }
+
             return false;
         }
 
@@ -809,6 +805,7 @@ class Inverter {
         bool mDevControlRequest; // true if change needed
         uint8_t mGridLen = 0;
         uint8_t mGridProfile[MAX_GRID_LENGTH];
+        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
 };
 
 template <class REC_TYP>

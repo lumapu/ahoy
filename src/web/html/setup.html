@@ -233,8 +233,12 @@
                             <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
-                            <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
+                            <div class="col-12 col-sm-3 my-2">Offset (sunrise)</div>
+                            <div class="col-12 col-sm-9"><select name="sunOffsSr"></select></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Offset (sunset)</div>
+                            <div class="col-12 col-sm-9"><select name="sunOffsSs"></select></div>
                         </div>
                     </fieldset>
                     </div>
@@ -936,9 +940,11 @@
             function parseSun(obj) {
                 document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
-                const sel = document.getElementsByName("sunOffs")[0];
-                for(var i = 0; i <= 60; i++) {
-                    sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));
+                for(p of [["sunOffsSr", "offsSr"], ["sunOffsSs", "offsSs"]]) {
+                    const sel = document.getElementsByName(p[0])[0];
+                    for(var i = 0; i <= 60; i++) {
+                        sel.appendChild(opt(i, i + " minutes", (i == (obj[p[1]] / 60))));
+                    }
                 }
             }
 

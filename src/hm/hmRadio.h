@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -177,10 +177,10 @@ class HmRadio : public Radio {
                 mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
                 mTxBuf[cnt++] = 0x00;
                 if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
-                    mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                    mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
-                    mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                    mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+                    mTxBuf[cnt++] = (data[0] >> 8) & 0xff; // power limit, multiplied by 10 (because of fraction)
+                    mTxBuf[cnt++] = (data[0]     ) & 0xff; // power limit
+                    mTxBuf[cnt++] = (data[1] >> 8) & 0xff; // setting for persistens handlings
+                    mTxBuf[cnt++] = (data[1]     ) & 0xff; // setting for persistens handling
                 }
             } else { //MI 2nd gen. specific
                 uint16_t powerMax = ((iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
@@ -339,7 +339,7 @@ class HmRadio : public Radio {
             mMillis = millis();
 
             mLastIv = iv;
-            iv->mDtuTxCnt++;
+            iv->radioStatistics.dtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

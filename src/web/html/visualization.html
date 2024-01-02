@@ -400,7 +400,7 @@
                 var html = ml("div", {}, [
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-12 col-sm-5 my-2"}, "Limit Value"),
-                        ml("div", {class: "col-8 col-sm-5"}, ml("input", {name: "limit", type: "number"}, "")),
+                        ml("div", {class: "col-8 col-sm-5"}, ml("input", {name: "limit", type: "number", step: "0.1", min: 1}, "")),
                         ml("div", {class: "col-4 col-sm-2"}, sel("type", opt, "pct"))
                     ]),
                     ml("div", {class: "row mb-3"}, [
@@ -451,7 +451,7 @@
                 var obj = new Object();
                 obj.id = id;
                 obj.cmd = cmd;
-                obj.val = val;
+                obj.val = Math.round(val*10);
                 getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
             }
 
