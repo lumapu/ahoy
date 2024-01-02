@@ -80,7 +80,7 @@ class DisplayMono {
 
       uint8_t mExtra;
       int8_t  mPixelshift=0;
-      TimeMonitor mDisplayTime = TimeMonitor(1000 * 15, true);
+      TimeMonitor mDisplayTime = TimeMonitor(1000 * DISP_DEFAULT_TIMEOUT, true);
       bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
 

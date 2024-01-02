@@ -942,7 +942,7 @@
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
                 for(p of [["sunOffsSr", "offsSr"], ["sunOffsSs", "offsSs"]]) {
                     const sel = document.getElementsByName(p[0])[0];
-                    for(var i = 0; i <= 60; i++) {
+                    for(var i = -60; i <= 60; i++) {
                         sel.appendChild(opt(i, i + " minutes", (i == (obj[p[1]] / 60))));
                     }
                 }

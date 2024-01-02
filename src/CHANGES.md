@@ -1,9 +1,17 @@
 # Development Changes
 
+## 0.8.41 - 2024-01-02
+* fix display timeout (OLED) to 60s
+* change offs to signed value
+
+## 0.8.40 - 2024-01-02
+* fix display of sunrise and sunset in `/system` #1308
+* fix MqTT set power limit #1313
+
 ## 0.8.39 - 2024-01-01
 * fix MqTT dis_night_comm in the morning #1309 #1286
 * seperated offset for sunrise and sunset #1308
-* **BREAKING CHANGE**: powerlimit (active power control) now has one decimal place (MqTT / API) #1199
+* powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
 * merge update documentation / readme #1305

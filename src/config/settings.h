@@ -106,8 +106,8 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    uint16_t offsetSecMorning;
-    uint16_t offsetSecEvening;
+    int16_t offsetSecMorning;
+    int16_t offsetSecEvening;
 } cfgSun_t;
 
 typedef struct {
@@ -675,8 +675,8 @@ class settings {
             } else {
                 getVal<float>(obj, F("lat"), &mCfg.sun.lat);
                 getVal<float>(obj, F("lon"), &mCfg.sun.lon);
-                getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSecMorning);
-                getVal<uint16_t>(obj, F("offsEve"), &mCfg.sun.offsetSecEvening);
+                getVal<int16_t>(obj, F("offs"), &mCfg.sun.offsetSecMorning);
+                getVal<int16_t>(obj, F("offsEve"), &mCfg.sun.offsetSecEvening);
             }
         }
 

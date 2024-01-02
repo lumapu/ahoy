@@ -134,13 +134,13 @@ class PubMqtt {
             #endif
         }
 
-        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint16_t offsM, uint16_t offsE) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, int16_t offsM, int16_t offsE) {
             if (!mClient.connected())
                 return false;
 
             publish(subtopics[MQTT_SUNRISE], String(sunrise).c_str(), true);
             publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
-            publish(subtopics[MQTT_COMM_START], String(sunrise - offsM).c_str(), true);
+            publish(subtopics[MQTT_COMM_START], String(sunrise + offsM).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offsE).c_str(), true);
 
             Inverter<> *iv;
@@ -155,7 +155,7 @@ class PubMqtt {
 
 
             snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
-            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise - offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
         }
@@ -310,15 +310,18 @@ class PubMqtt {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
-                root[F("val")] = atoi(pyld);
+                if(NULL == strstr(topic, "limit"))
+                    root[F("val")] = atoi(pyld);
+                else
+                    root[F("val")] = (int)(atof(pyld) * 10.0f);
+
                 if(pyld[len-1] == 'W')
                     limitAbs = true;
                 delete[] pyld;
             }
 
             const char *p = topic + strlen(mCfgMqtt->topic);
-            uint8_t pos = 0;
-            uint8_t elm = 0;
+            uint8_t pos = 0, elm = 0;
             char tmp[30];
 
             while(1) {
@@ -333,8 +336,7 @@ class PubMqtt {
                                     root[F("cmd")] = F("limit_nonpersistent_absolute");
                                 else
                                     root[F("cmd")] = F("limit_nonpersistent_relative");
-                            }
-                            else
+                            } else
                                 root[F("cmd")] = String(tmp);
                             break;
                         case 3: root[F("id")] = atoi(tmp);   break;
