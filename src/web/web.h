@@ -39,7 +39,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -506,7 +506,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 15; i++) {
+            for (uint8_t i = 0; i < 16; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -515,15 +515,16 @@ class Web {
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
                     case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0     = pin; break;
-                    case 7:  mConfig->led.led1     = pin; break;
-                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 10: mConfig->cmt.pinSclk  = pin; break;
-                    case 11: mConfig->cmt.pinSdio  = pin; break;
-                    case 12: mConfig->cmt.pinCsb   = pin; break;
-                    case 13: mConfig->cmt.pinFcsb  = pin; break;
-                    case 14: mConfig->cmt.pinIrq   = pin; break;
+                    case 6:  mConfig->led.led[0]   = pin; break;
+                    case 7:  mConfig->led.led[1]   = pin; break;
+                    case 8:  mConfig->led.led[2]   = pin; break;
+                    case 9:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 11: mConfig->cmt.pinSclk  = pin; break;
+                    case 12: mConfig->cmt.pinSdio  = pin; break;
+                    case 13: mConfig->cmt.pinCsb   = pin; break;
+                    case 14: mConfig->cmt.pinFcsb  = pin; break;
+                    case 15: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 

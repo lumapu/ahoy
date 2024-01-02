@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.42 - 2024-01-02
+* add LED to display whether it's night time or not. Can be reused as output to control battery system #1308
+
 ## 0.8.41 - 2024-01-02
 * fix display timeout (OLED) to 60s
 * change offs to signed value

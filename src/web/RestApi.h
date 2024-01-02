@@ -611,8 +611,9 @@ class RestApi {
             obj[F("sclk")] = mConfig->nrf.pinSclk;
             obj[F("mosi")] = mConfig->nrf.pinMosi;
             obj[F("miso")] = mConfig->nrf.pinMiso;
-            obj[F("led0")] = mConfig->led.led0;
-            obj[F("led1")] = mConfig->led.led1;
+            obj[F("led0")] = mConfig->led.led[0];
+            obj[F("led1")] = mConfig->led.led[1];
+            obj[F("led2")] = mConfig->led.led[2];
             obj[F("led_high_active")] = mConfig->led.high_active;
             obj[F("led_lum")]         = mConfig->led.luminance;
         }

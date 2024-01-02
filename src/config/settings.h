@@ -118,8 +118,7 @@ typedef struct {
 } cfgSerial_t;
 
 typedef struct {
-    uint8_t led0;      // first LED pin
-    uint8_t led1;      // second LED pin
+    uint8_t led[3];    // LED pins
     bool high_active;  // determines if LEDs are high or low active
     uint8_t luminance; // luminance of LED
 } cfgLed_t;
@@ -453,8 +452,9 @@ class settings {
                 mCfg.inst.iv[i].add2Total   = true;
             }
 
-            mCfg.led.led0        = DEF_LED0;
-            mCfg.led.led1        = DEF_LED1;
+            mCfg.led.led[0]      = DEF_LED0;
+            mCfg.led.led[1]      = DEF_LED1;
+            mCfg.led.led[2]      = DEF_LED2;
             mCfg.led.high_active = LED_HIGH_ACTIVE;
             mCfg.led.luminance   = 255;
 
@@ -677,13 +677,15 @@ class settings {
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("0")]        = mCfg.led.led0;
-                obj[F("1")]        = mCfg.led.led1;
+                obj[F("0")]        = mCfg.led.led[0];
+                obj[F("1")]        = mCfg.led.led[1];
+                obj[F("2")]        = mCfg.led.led[2];
                 obj[F("act_high")] = mCfg.led.high_active;
                 obj[F("lum")]      = mCfg.led.luminance;
             } else {
-                getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
-                getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
+                getVal<uint8_t>(obj, F("0"), &mCfg.led.led[0]);
+                getVal<uint8_t>(obj, F("1"), &mCfg.led.led[1]);
+                getVal<uint8_t>(obj, F("2"), &mCfg.led.led[2]);
                 getVal<bool>(obj, F("act_high"), &mCfg.led.high_active);
                 getVal<uint8_t>(obj, F("lum"), &mCfg.led.luminance);
             }
