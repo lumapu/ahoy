@@ -165,6 +165,9 @@ class Display {
         else
             mDisplayData.utcTs = 0;
 
+        mDisplayData.pGraphStartTime = mApp->getSunrise();
+        mDisplayData.pGraphEndTime = mApp->getSunset();
+
         if (mMono ) {
             mMono->disp();
         }

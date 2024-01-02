@@ -5,7 +5,6 @@
 
 #pragma once
 #include "Display_Mono.h"
-#include "../../utils/dbg.h"
 
 class DisplayMono84X48 : public DisplayMono {
     public:
@@ -23,6 +22,9 @@ class DisplayMono84X48 : public DisplayMono {
             u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
             monoInit(new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset), type, displayData);
             calcLinePositions();
+
+            initPowerGraph(mDispWidth - 16, mLineYOffsets[4] - mLineYOffsets[1] - 2);
+
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
             printText(mDisplayData->version, l_Version, 0xff);
@@ -45,16 +47,9 @@ class DisplayMono84X48 : public DisplayMono {
             mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
             */
 
-            // print total power
+            // add new power data to power graph
             if (mDisplayData->nrProducing > 0) {
-                if (mDisplayData->totalPower > 9999.0)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
-                else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
-
-                printText(mFmtText, l_TotalPower, 0xff);
-            } else {
-                printText("offline", l_TotalPower, 0xff);
+                addPowerGraphEntry(mDisplayData->totalPower);
             }
 
             // print Date and time
@@ -80,31 +75,51 @@ class DisplayMono84X48 : public DisplayMono {
                 printText(mFmtText, l_Status, 0xff);
             }
 
-            // print yields
-            printText("\x88", l_YieldDay,   10);        // day symbol
-            printText("\x83", l_YieldTotal, 10);        // total symbol
+            if (mDispSwitchState == d_POWER_TEXT) {
 
-            if (mDisplayData->totalYieldDay > 9999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
-            else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
-            printText(mFmtText, l_YieldDay, 0xff);
+                // print total power
+                if (mDisplayData->nrProducing > 0) {
+                    if (mDisplayData->totalPower > 9999.0)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
+                    else
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
 
-            if (mDisplayData->totalYieldTotal > 9999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
-            else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
-            printText(mFmtText, l_YieldTotal, 0xff);
+                    printText(mFmtText, l_TotalPower, 0xff);
+                } else {
+                    printText("offline", l_TotalPower, 0xff);
+                }
 
-            // draw dynamic Nokia RSSI bars
+                // print day yield
+                printText("\x88", l_YieldDay,   10);        // day symbol
+                if (mDisplayData->totalYieldDay > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
+                else
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
+                printText(mFmtText, l_YieldDay, 0xff);
+
+                // print total yield
+                printText("\x83", l_YieldTotal, 10);        // total symbol
+                if (mDisplayData->totalYieldTotal > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
+                else
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
+                printText(mFmtText, l_YieldTotal, 0xff);
+
+            } else {
+                // plot power graph
+                plotPowerGraph(8, mLineYOffsets[4] - 1);
+            }
+
+            // draw dynamic RSSI bars
             int rssi_bar_height = 7;
-            for (int i=0; i<4;i++) {
-                int radio_rssi_threshold = -60 - i*10; // radio rssi not yet tested in reality!
-                int wifi_rssi_threshold = -60 - i*10;
+            for (int i = 0; i < 4; i++) {
+                int radio_rssi_threshold = -60 - i * 10;
+                int wifi_rssi_threshold = -60 - i * 10;
+                uint8_t barwidth = std::min(4 - i, 3);
                 if (mDisplayData->RadioRSSI > radio_rssi_threshold)
-                    mDisplay->drawBox(0,              8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+                    mDisplay->drawBox(0,                     8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
                 if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
-                    mDisplay->drawBox(mDispWidth-4+i, 8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+                    mDisplay->drawBox(mDispWidth - barwidth, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
             }
 
             // draw dynamic antenna and WiFi symbols
@@ -150,7 +165,7 @@ class DisplayMono84X48 : public DisplayMono {
                 yOff += asc;
                 mLineYOffsets[i] = yOff;
                 dsc = mDisplay->getDescent();
-                if (l_TotalPower!=i)   // power line needs no descent spacing
+                if (l_TotalPower != i)   // power line needs no descent spacing
                     yOff -= dsc;
                 yOff++;     // instead lets spend one pixel space between all lines
                 i++;
@@ -158,7 +173,8 @@ class DisplayMono84X48 : public DisplayMono {
         }
 
         inline void setLineFont(uint8_t line) {
-            if ((line == l_TotalPower) || (line == l_Ahoy))
+            if ((line == l_TotalPower) ||
+                (line == l_Ahoy))
                 mDisplay->setFont(u8g2_font_logisoso16_tr);
             else
                 mDisplay->setFont(u8g2_font_5x8_symbols_ahoy);

@@ -34,6 +34,8 @@ class DisplayMono128X64 : public DisplayMono {
             }
             calcLinePositions();
 
+            initPowerGraph(mDispWidth - 20, mLineYOffsets[4] - mLineYOffsets[1]);
+
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
             printText(mDisplayData->version, l_Version, 0xff);
@@ -61,23 +63,16 @@ class DisplayMono128X64 : public DisplayMono {
             // calculate current pixelshift for pixelshift screensaver
             calcPixelShift(pixelShiftRange);
 
-            // print total power
+            // add new power data to power graph
             if (mDisplayData->nrProducing > 0) {
-                if (mDisplayData->totalPower > 9999.0)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
-                else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
-
-                printText(mFmtText, l_TotalPower, 0xff);
-            } else {
-                printText("offline", l_TotalPower, 0xff);
+                addPowerGraphEntry(mDisplayData->totalPower);
             }
 
             // print Date and time
             if (0 != mDisplayData->utcTs)
                 printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
 
-            // dynamic status bar, alternatively:
+            // alternatively:
             // print ip address
             if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
                 snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
@@ -115,22 +110,41 @@ class DisplayMono128X64 : public DisplayMono {
                     mDisplay->drawStr(pos + moon_pos + mPixelshift, mLineYOffsets[l_Status], "H");    // moon symbol
             }
 
-            // print yields
-            mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
-            mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldDay],   "I");    // day symbol
-            mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldTotal], "D");    // total symbol
+            if (mDispSwitchState == d_POWER_TEXT) {
 
-            if (mDisplayData->totalYieldDay > 9999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
-            else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
-            printText(mFmtText, l_YieldDay, 0xff);
+                // print total power
+                if (mDisplayData->nrProducing > 0) {
+                    if (mDisplayData->totalPower > 9999.0)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
+                    else
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
 
-            if (mDisplayData->totalYieldTotal > 9999.0)
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
-            else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
-            printText(mFmtText, l_YieldTotal, 0xff);
+                    printText(mFmtText, l_TotalPower, 0xff);
+                } else {
+                    printText("offline", l_TotalPower, 0xff);
+                }
+
+                // print yields
+                mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
+                mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldDay],   "I");    // day symbol
+                mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldTotal], "D");    // total symbol
+
+                if (mDisplayData->totalYieldDay > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
+                else
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
+                printText(mFmtText, l_YieldDay, 0xff);
+
+                if (mDisplayData->totalYieldTotal > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
+                else
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
+                printText(mFmtText, l_YieldTotal, 0xff);
+
+            } else {
+                // plot power graph
+                plotPowerGraph(10 + mPixelshift, mLineYOffsets[4] - 1);
+            }
 
             // draw dynamic RSSI bars
             int xoffs;
@@ -142,10 +156,11 @@ class DisplayMono128X64 : public DisplayMono {
             for (int i = 0; i < 4; i++) {
                 int radio_rssi_threshold = -60 - i * 10;
                 int wifi_rssi_threshold = -60 - i * 10;
+                uint8_t barwidth = std::min(4 - i, 3);
                 if (mDisplayData->RadioRSSI > radio_rssi_threshold)
-                    mDisplay->drawBox(xoffs + mPixelshift, 8 + (rssi_bar_height + 1) * i, 4 - i, rssi_bar_height);
+                    mDisplay->drawBox(xoffs + mPixelshift,                         8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
                 if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
-                    mDisplay->drawBox(mDispWidth - 4 - xoffs + mPixelshift + i, 8 + (rssi_bar_height + 1) * i, 4 - i, rssi_bar_height);
+                    mDisplay->drawBox(mDispWidth - barwidth - xoffs + mPixelshift, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
             }
             // draw dynamic antenna and WiFi symbols
             mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
@@ -158,9 +173,6 @@ class DisplayMono128X64 : public DisplayMono {
             else
                 sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
             mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - xoffs + mPixelshift, mLineYOffsets[l_RSSI], sym);
-            mDisplay->sendBuffer();
-
-
             mDisplay->sendBuffer();
 
             mExtra++;
@@ -198,8 +210,8 @@ class DisplayMono128X64 : public DisplayMono {
                 mLineYOffsets[i] = yOff;
                 dsc = mDisplay->getDescent();
                 yOff -= dsc;
-                if (l_Time==i)   // prevent time and status line to touch
-                    yOff+=1;     // -> one pixels space
+                if (l_Time == i)   // prevent time and status line to touch
+                    yOff++;     // -> one pixels space
                 i++;
             } while(l_MAX_LINES>i);
         }
