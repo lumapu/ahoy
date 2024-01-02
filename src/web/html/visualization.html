@@ -106,7 +106,7 @@
                 if(65535 != obj.power_limit_read) {
                     pwrLimit = obj.power_limit_read + "&nbsp;%";
                     if(0 != obj.max_pwr)
-                        pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "W";
+                        pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "&nbsp;W";
                 }
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
@@ -192,9 +192,9 @@
 
                 if(obj.rssi > -127) {
                     if(obj.generation < 2)
-                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? ">=" : "<") + " -64dBm)";
+                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? "&gt;=" : "&lt;") + " -64&nbsp;dBm)";
                     else
-                        ageInfo += " (RSSI: " + obj.rssi + "dBm)";
+                        ageInfo += " (RSSI: " + obj.rssi + "&nbsp;dBm)";
                 }
 
                 return ml("div", {class: "mb-5"}, [
@@ -383,9 +383,9 @@
                 var html = ml("table", {class: "table"}, [
                     ml("tbody", {}, [
                         tr2(["TX count", obj.tx_cnt, ""]),
-                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "%"]),
-                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "%"]),
-                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "%"]),
+                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
                         tr2(["RX fragments", obj.frame_cnt, ""]),
                         tr2(["TX retransmits", obj.retransmits, ""])
                     ])
