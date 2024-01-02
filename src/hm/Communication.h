@@ -397,7 +397,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(F("has "));
             if(!accepted) DBGPRINT(F("not "));
             DBGPRINT(F("accepted power limit set point "));
-            DBGPRINT(String(q->iv->powerLimit[0]/10));
+            DBGPRINT(String((float)q->iv->powerLimit[0]/10.0));
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value

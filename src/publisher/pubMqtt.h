@@ -310,15 +310,18 @@ class PubMqtt {
                 char *pyld = new char[len + 1];
                 strncpy(pyld, (const char*)payload, len);
                 pyld[len] = '\0';
-                root[F("val")] = atoi(pyld);
+                if(NULL == strstr(topic, "limit"))
+                    root[F("val")] = atoi(pyld);
+                else
+                    root[F("val")] = (int)(atof(pyld) * 10.0f);
+
                 if(pyld[len-1] == 'W')
                     limitAbs = true;
                 delete[] pyld;
             }
 
             const char *p = topic + strlen(mCfgMqtt->topic);
-            uint8_t pos = 0;
-            uint8_t elm = 0;
+            uint8_t pos = 0, elm = 0;
             char tmp[30];
 
             while(1) {
@@ -333,8 +336,7 @@ class PubMqtt {
                                     root[F("cmd")] = F("limit_nonpersistent_absolute");
                                 else
                                     root[F("cmd")] = F("limit_nonpersistent_relative");
-                            }
-                            else
+                            } else
                                 root[F("cmd")] = String(tmp);
                             break;
                         case 3: root[F("id")] = atoi(tmp);   break;

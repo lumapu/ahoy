@@ -805,7 +805,7 @@ class Inverter {
         bool mDevControlRequest; // true if change needed
         uint8_t mGridLen = 0;
         uint8_t mGridProfile[MAX_GRID_LENGTH];
-        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
+        uint8_t mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
 };
 
 template <class REC_TYP>
