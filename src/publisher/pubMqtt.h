@@ -134,13 +134,13 @@ class PubMqtt {
             #endif
         }
 
-        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint16_t offsM, uint16_t offsE) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, int16_t offsM, int16_t offsE) {
             if (!mClient.connected())
                 return false;
 
             publish(subtopics[MQTT_SUNRISE], String(sunrise).c_str(), true);
             publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
-            publish(subtopics[MQTT_COMM_START], String(sunrise - offsM).c_str(), true);
+            publish(subtopics[MQTT_COMM_START], String(sunrise + offsM).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offsE).c_str(), true);
 
             Inverter<> *iv;
@@ -155,7 +155,7 @@ class PubMqtt {
 
 
             snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
-            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise - offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
         }

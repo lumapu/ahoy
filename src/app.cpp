@@ -235,7 +235,7 @@ void app::tickCalcSunrise(void) {
     onceAt(std::bind(&app::tickCalcSunrise, this), nxtTrig, "Sunri");
     if (mMqttEnabled) {
         tickSun();
-        nxtTrig = mSunrise - mConfig->sun.offsetSecMorning + 1;         // one second safety to trigger correctly
+        nxtTrig = mSunrise + mConfig->sun.offsetSecMorning + 1;         // one second safety to trigger correctly
         onceAt(std::bind(&app::tickSun, this), nxtTrig, "mqSr"); // trigger on sunrise to update 'dis_night_comm'
     }
 }
@@ -254,8 +254,8 @@ void app::tickIVCommunication(void) {
 
         iv->commEnabled = !iv->config->disNightCom; // if sun.disNightCom is false, communication is always on
         if (!iv->commEnabled) {  // inverter communication only during the day
-            if (mTimestamp < (mSunrise - mConfig->sun.offsetSecMorning)) { // current time is before communication start, set next trigger to communication start
-                nxtTrig = mSunrise - mConfig->sun.offsetSecMorning;
+            if (mTimestamp < (mSunrise + mConfig->sun.offsetSecMorning)) { // current time is before communication start, set next trigger to communication start
+                nxtTrig = mSunrise + mConfig->sun.offsetSecMorning;
             } else {
                 if (mTimestamp >= (mSunset + mConfig->sun.offsetSecEvening)) { // current time is past communication stop, nothing to do. Next update will be done at midnight by tickCalcSunrise
                     nxtTrig = 0;

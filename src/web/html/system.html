@@ -108,7 +108,7 @@
                             ml("tbody", {}, [
                                 tr("Sunrise", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
                                 tr("Sunset", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
-                                tr("Communication start", new Date((obj.ts_sunrise - obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
+                                tr("Communication start", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
                                 tr("Communication stop", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
                                 tr("Night behaviour", badge(obj.disNightComm, ((obj.disNightComm) ? "not" : "") + " communicating", "warning"))
                             ])

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.41 - 2024-01-02
+* fix display timeout (OLED) to 60s
+* change offs to signed value
+
 ## 0.8.40 - 2024-01-02
 * fix display of sunrise and sunset in `/system` #1308
 * fix MqTT set power limit #1313
