@@ -103,6 +103,10 @@ typedef struct {
     uint32_t frmCnt;
     uint32_t txCnt;
     uint32_t retransmits;
+    uint16_t ivRxCnt;   // last iv rx frames (from GetLossRate)
+    uint16_t ivTxCnt;   // last iv tx frames (from GetLossRate)
+    uint16_t dtuRxCnt;  // current DTU rx frames (since last GetLossRate)
+    uint16_t dtuTxCnt;  // current DTU tx frames (since last GetLossRate)
 } statistics_t;
 
 #endif /*__DEFINES_H__*/

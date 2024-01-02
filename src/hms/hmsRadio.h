@@ -112,7 +112,7 @@ class CmtRadio : public Radio {
                 if(CMT_ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
-            iv->mDtuTxCnt++;
+            iv->radioStatistics.dtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

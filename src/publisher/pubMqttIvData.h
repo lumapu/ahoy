@@ -195,12 +195,16 @@ class PubMqttIvData {
 
         inline void sendRadioStat(uint8_t start) {
             snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/radio_stat", mIv->config->name);
-            snprintf(mVal, 100, "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d}",
+            snprintf(mVal, 140, "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d,\"lossIvRx\":%d,\"lossIvTx\":%d,\"lossDtuRx\":%d,\"lossDtuTx\":%d}",
                 mIv->radioStatistics.txCnt,
                 mIv->radioStatistics.rxSuccess,
                 mIv->radioStatistics.rxFail,
                 mIv->radioStatistics.rxFailNoAnser,
-                mIv->radioStatistics.retransmits);
+                mIv->radioStatistics.retransmits,
+                mIv->radioStatistics.ivRxCnt,
+                mIv->radioStatistics.ivTxCnt,
+                mIv->radioStatistics.dtuRxCnt,
+                mIv->radioStatistics.dtuTxCnt);
             mPublish(mSubTopic, mVal, false, QOS_0);
         }
 
@@ -263,7 +267,7 @@ class PubMqttIvData {
         bool mRTRDataHasBeenSent;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[100];
+        char mVal[140];
         bool mZeroValues; // makes sure that yield day is sent even if no inverter is online
 
         std::queue<sendListCmdIv> *mSendList;

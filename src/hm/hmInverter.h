@@ -141,12 +141,6 @@ class Inverter {
         uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
         bool          commEnabled;       // 'pause night communication' sets this field to false
 
-        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
-        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
-        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
-        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
-        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debu
-
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
 
@@ -171,10 +165,6 @@ class Inverter {
             mIsSingleframeReq  = false;
             radio              = NULL;
             commEnabled        = true;
-            mIvRxCnt           = 0;
-            mIvTxCnt           = 0;
-            mDtuRxCnt          = 0;
-            mDtuTxCnt          = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
             memset(heuristics.txRfQuality, -6, 5);
@@ -605,21 +595,25 @@ class Inverter {
                 uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
                 uint16_t txCnt = (pyld[2] << 8) + pyld[3];
 
-                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                if (radioStatistics.ivRxCnt || radioStatistics.ivTxCnt) { // there was successful GetLossRate in the past
                     DPRINT_IVID(DBG_INFO, id);
-                    DBGPRINTLN("Inv loss: " +
-                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
-                        String (mDtuTxCnt) + ", DTU loss: " +
-                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
-                        String (txCnt - mIvTxCnt));
+                    DBGPRINT(F("Inv loss: "));
+                    DBGPRINT(String (radioStatistics.dtuTxCnt - (rxCnt - radioStatistics.ivRxCnt)));
+                    DBGPRINT(F(" of "));
+                    DBGPRINT(String (radioStatistics.dtuTxCnt));
+                    DBGPRINT(F(", DTU loss: "));
+                    DBGPRINT(String (txCnt - radioStatistics.ivTxCnt - radioStatistics.dtuRxCnt));
+                    DBGPRINT(F(" of "));
+                    DBGPRINTLN(String (txCnt - radioStatistics.ivTxCnt));
                 }
 
-                mIvRxCnt = rxCnt;
-                mIvTxCnt = txCnt;
-                mDtuRxCnt = 0;  // start new interval
-                mDtuTxCnt = 0;  // start new interval
+                radioStatistics.ivRxCnt = rxCnt;
+                radioStatistics.ivTxCnt = txCnt;
+                radioStatistics.dtuRxCnt = 0;  // start new interval
+                radioStatistics.dtuTxCnt = 0;  // start new interval
                 return true;
             }
+
             return false;
         }
 
@@ -811,6 +805,7 @@ class Inverter {
         bool mDevControlRequest; // true if change needed
         uint8_t mGridLen = 0;
         uint8_t mGridProfile[MAX_GRID_LENGTH];
+        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
 };
 
 template <class REC_TYP>

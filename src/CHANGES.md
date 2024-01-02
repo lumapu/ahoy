@@ -7,6 +7,7 @@
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
 * merge update documentation / readme #1305
+* add `getLossRate` to radio statistics and to MqTT #1199
 
 ## 0.8.38 - 2023-12-31
 * fix Grid-Profile JSON #1304
