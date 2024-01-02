@@ -3,7 +3,7 @@
 ## 0.8.42 - 2024-01-02
 * add LED to display whether it's night time or not. Can be reused as output to control battery system #1308
 * merge PR: beautifiying typography, added spaces between value and unit for `/visualization` #1314
-* meger PR: Prometheus add `getLossRate` and bugfixing #1315
+* merge PR: Prometheus add `getLossRate` and bugfixing #1315
 
 ## 0.8.41 - 2024-01-02
 * fix display timeout (OLED) to 60s
