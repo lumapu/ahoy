@@ -27,7 +27,7 @@ answer = "aktuell wird nur die HM-Serie unterstützt. (Mi-300, Mi-600, Mi-1000, 
 
 [[items]]
 question = "Wird die MI-Serie unterstützt?"
-answer = "Ja aber noch rudimentär. In der aktuellen Development Version werden erste Datenfragmente bereits empfangen und dekodiert."
+answer = "Ja, Geräte der 2nd Gen. werden unterstützt. Allerdings sind Hardware- und protokoll-bedingt weniger Datenpunkte auslesbar und der Funktionsumfang für Controll-Kommandos eingeschränkt."
 
 [[items]]
 question = "Wird die HMS / HMT-Serie unterstützt?"
@@ -46,12 +46,12 @@ question = "Kann ich Wechselrichter verschiedener Baureihen / Serien auslesen?"
 answer = "Ja, Ahoy unterstützt alle drei bisher erschienenen Serien: Mi, HM und HMS / HMT."
 
 [[items]]
-question = "Welches Funkmodul benötige ich für Mi Wechselrichter?"
-answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch für die HM Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
+question = "Welches Funkmodul benötige ich für MI Wechselrichter?"
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch (und parallel) für die HM Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
 
 [[items]]
 question = "Welches Funkmodul benötige ich für HM Wechselrichter?"
-answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch für die Mi Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
+answer = "Man benötigt ein NRF24L01+ Funkmodul. Es gibt sowohl welche mit PCB Antenne, welche mit schraubbarer Antenne (SMA) und auch mit Pigtail-Anschluss. Ein und das selbe Funkmodul kann auch (und parallel) für die MI Serie benutzt werden, es ist also eine Mischung dieser beiden Generationen möglich."
 
 [[items]]
 question = "Welches Funkmodul benötige ich für HMS / HMT Wechselrichter?"
