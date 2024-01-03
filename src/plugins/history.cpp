@@ -11,6 +11,7 @@ void TotalPowerHistory::setup(IApp *app, HmSystemType *sys, settings_t *config) 
     mConfig = config;
     mRefreshCycle = 0;
     mRefreshCycle = mConfig->nrf.sendInterval;
+    mMaximumDay = 0;
 }
 
 void TotalPowerHistory::tickerSecond() {
@@ -18,7 +19,8 @@ void TotalPowerHistory::tickerSecond() {
     if ((mLoopCnt % mRefreshCycle) == 0) {
         //DPRINTLN(DBG_DEBUG,F("TotalPowerHistory::tickerSecond > refreshCycle" + String(mRefreshCycle) + "|" + String(mLoopCnt) + "|" + String(mRefreshCycle % mLoopCnt));
         mLoopCnt = 0;
-        float totalPower = -0.1;
+        float totalPower = 0;
+        float totalPowerDay = 0;
         Inverter<> *iv;
         record_t<> *rec;
         for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
@@ -27,11 +29,15 @@ void TotalPowerHistory::tickerSecond() {
             if (iv == NULL)
                 continue;
             totalPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+            totalPowerDay += iv->getChannelFieldValue(CH0, FLD_MP, rec);
         }
         if (totalPower > 0) {
             uint16_t iTotalPower = roundf(totalPower);
             DPRINTLN(DBG_DEBUG, F("addValue(iTotalPower)=") + String(iTotalPower));
             addValue(iTotalPower);
+        }
+        if (totalPowerDay > 0) {
+            mMaximumDay = roundf(totalPowerDay);
         }
     }
 }

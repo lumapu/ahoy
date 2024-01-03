@@ -17,15 +17,15 @@
     <div class="chartDivContainer">
         <div class="chartDiv" id="phHistoryChart">  </div>
         <p class="center" style="margin:0px;border:0px;">
-            Maximum value: <span id="phMaximum"></span> Watt<br />
-            Updated every <span id="phRefresh"></span> seconds </p>
+            Maximum day: <span id="phMaximumDay"></span> W. Last measured value: <span id="phActual"></span> W.<br />
+            Maximum graphics: <span id="phMaximum"></span> W. Updated every <span id="phRefresh"></span> seconds </p>
     </div>
 
     <h3>Yield per day history</h3>
     <div class="chartDivContainer">
         <div class="chartDiv" id="ydHistoryChart"> </div>
         <p class="center" style="margin:0px;border:0px;">
-            Maximum value: <span id="ydMaximum"></span> Watt<br />
+            Maximum value: <span id="ydMaximum"></span> Wh<br />
             Updated every <span id="ydRefresh"></span> seconds </p>
     </div>
     </div>
@@ -40,6 +40,7 @@
         var mRefresh = 60;
         var phDatapoints = 512;
         var mMaximum = 0;
+        var mLastValue = 0;
         var mDispIdx = 0
         var mDataValues = [];
         const mChartHight = 250;
@@ -79,12 +80,14 @@
             if (divider == 0)
                 divider = 1;
             for (var i = 0; i < phDatapoints; i++) {
-                val = mDataValues[i];
-                idx = (idx + 1) % phDatapoints;
+                val = mDataValues[idx];
+                if (val>0)
+                    mLastValue = val
                 val = val / divider
                 rect = document.getElementById(namePrefix+"Rect" + i);
                 rect.setAttribute("height", val);
                 rect.setAttribute("y", mChartHight - val);
+                idx = (idx + 1) % phDatapoints;
             }
             document.getElementById(namePrefix + "Maximum").innerHTML = mMaximum;
             if (mRefresh < 5)
@@ -95,10 +98,17 @@
             if (null != obj) {
                 parseNav(obj["generic"]);
                 parseHistory(obj,"ph", phExeOnce)
+                let maximumDay = obj["maximumDay"];
+                document.getElementById("phActual").innerHTML = mLastValue;
+                document.getElementById("phMaximumDay").innerHTML = maximumDay;
             }
             if (true == phExeOnce) {
-                window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
                 phExeOnce = false;
+                window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
+                // one after the other
+                setTimeout(() => {
+                    getAjax("/api/yieldDayHistory", parseYieldDayHistory);
+                } , 20);
             }
         }
         function parseYieldDayHistory(obj) {
@@ -107,13 +117,12 @@
                 parseHistory(obj, "yd", ydExeOnce)
             }
             if (true == ydExeOnce) {
-                window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", mRefresh * 1000);
                 ydExeOnce = false;
+                window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", mRefresh * 500);
             }
         }
 
         getAjax("/api/powerHistory", parsePowerHistory);
-        getAjax("/api/yieldDayHistory", parseYieldDayHistory);
     </script>
 
 </body>

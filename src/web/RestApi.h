@@ -608,9 +608,10 @@ class RestApi {
                 obj[F("value")][fld] = value;
                 if (value > maximum)
                     maximum = value;
-                }
-                obj[F("maximum")] = maximum;
-                obj[F("dispIndex")] = p->getDisplIdx();
+            }
+            obj[F("maximum")] = maximum;
+            obj[F("maximumDay")] = p->getMaximumDay();
+            obj[F("dispIndex")] = p->getDisplIdx();
         }
 
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {

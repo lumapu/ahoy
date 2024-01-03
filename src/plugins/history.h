@@ -52,6 +52,7 @@ class TotalPowerHistory : public HistoryData {
 
     void setup(IApp *app, HmSystemType *sys, settings_t *config);
     void tickerSecond();
+    uint16_t getMaximumDay() { return mMaximumDay; }
 
    private:
     IApp *mApp;
@@ -60,6 +61,8 @@ class TotalPowerHistory : public HistoryData {
     settings_t *mConfig;
     uint16_t mRefreshCycle;
     uint16_t mLoopCnt;
+
+    uint16_t mMaximumDay;
 };
 
 class YieldDayHistory : public HistoryData {

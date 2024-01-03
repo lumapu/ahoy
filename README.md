@@ -29,11 +29,14 @@ This fork adds the following features:
 ### Added chart to Display128x64
 
 ### Added a History menu
-This menu displays a bar-chart of the last 256 total power values
-and a bar chart of the last 256 Yield-Day values.
-
+This menu displays
+- a bar-chart of the last 256 Total-Power values
+- a bar chart of the last 256 Yield-Day values.
 Note: The history of the values gets lost after rebbot!
 
 ### Changed WiFi reconnect behaviour
 For me the original reconnect did not work. I always lost connection after some time.
-Now it is much more stable.
+Now it is more stable.
+
+### Reduced frequency channels
+Removed frequencies 2461, 2475MHz. Now the transfers are much more stable

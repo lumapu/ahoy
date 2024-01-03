@@ -48,6 +48,9 @@ class HmRadio {
             mRfChLst[2] = 40;
             mRfChLst[3] = 61;
             mRfChLst[4] = 75;
+            // VArt: Overwriting 61/75 so I got much more stable responses
+            mRfChLst[3] = 23;
+            mRfChLst[4] = 40;
 
             // default channels
             mTxChIdx    = 2; // Start TX with 40
@@ -134,10 +137,10 @@ class HmRadio {
             mNrf24.setChannel(mRfChLst[mRxChIdx]);
             mNrf24.startListening();
 
-            uint32_t startMicros = micros();
             uint32_t loopMillis = millis();
             while (millis()-loopMillis < 400) {
-                while (micros()-startMicros < 5110) {  // listen (4088us or?) 5110us to each channel
+                uint32_t startMicros = micros();
+                while (micros()-startMicros < 5111) {  // listen (4088us or?) 5110us to each channel
                     if (mIrqRcvd) {
                         mIrqRcvd = false;
                         if (getReceived()) {        // everything received
@@ -147,7 +150,6 @@ class HmRadio {
                     yield();
                 }
                 // switch to next RX channel
-                startMicros = micros();
                 if(++mRxChIdx >= RF_CHANNELS)
                     mRxChIdx = 0;
                 mNrf24.setChannel(mRfChLst[mRxChIdx]);
