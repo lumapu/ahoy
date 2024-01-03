@@ -34,8 +34,8 @@
                             html = "Settings successfully saved. Automatic page reload in 3 seconds.";
                             meta.content = 3;
                         } else {
-                            html = "Settings successfully saved. Rebooting. Automatic redirect in 20 seconds.";
-                            meta.content = 20 + "; URL=/";
+                            html = "Settings successfully saved. Rebooting. Automatic redirect in " + obj.reload + " seconds.";
+                            meta.content = obj.reload + "; URL=/";
                         }
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     } else {
@@ -51,7 +51,9 @@
                     parseHtml(obj);
                 }
             }
-           intervalId =  window.setInterval("getAjax('/api/html/save', parse)", 2500);
+
+            intervalId =  window.setInterval("getAjax('/api/html/save', parse)", 2500);
+            getAjax("/api/generic", parseGeneric);
         </script>
     </body>
 </html>

@@ -5,93 +5,116 @@
 
 #pragma once
 #include "Display_Mono.h"
+#include "../../utils/dbg.h"
 
 class DisplayMono84X48 : public DisplayMono {
     public:
         DisplayMono84X48() : DisplayMono() {
-            mEnPowerSafe = true;
-            mEnScreenSaver = true;
-            mLuminance = 60;
             mExtra = 0;
-            mDispY = 0;
-            mTimeout = DISP_DEFAULT_TIMEOUT;  // interval at which to power save (milliseconds)
-            mUtcTs = NULL;
-            mType = 0;
-            mDispWidth = 0;
         }
 
-        void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, uint32_t *utcTs, const char *version) {
-
-            u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
-            mType = type;
-            mDisplay = new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset);
-
-            mUtcTs = utcTs;
-
-            mDisplay->begin();
-            mDispWidth = mDisplay->getDisplayWidth();
-            calcLinePositions();
-
-            mDisplay->clearBuffer();
-            mDisplay->setContrast(mLuminance);
-
-            printText("AHOY!", l_Ahoy);
-            printText("ahoydtu.de", l_Website);
-            printText(version, l_Version);
-            mDisplay->sendBuffer();
-        }
-
-        void config(bool enPowerSafe, bool enScreenSaver, uint8_t lum) {
-            mEnPowerSafe = enPowerSafe;
-            mEnScreenSaver = enScreenSaver;
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
+            mEnPowerSave = enPowerSave;
+            mScreenSaver = screenSaver;
             mLuminance = lum;
         }
 
-        void loop(void) {
-            if (mEnPowerSafe) {
-                if (mTimeout != 0)
-                        mTimeout--;
-            }
+        void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {
+            u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
+            monoInit(new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset), type, displayData);
+            calcLinePositions();
+            printText("Ahoy!", l_Ahoy, 0xff);
+            printText("ahoydtu.de", l_Website, 0xff);
+            printText(mDisplayData->version, l_Version, 0xff);
+            mDisplay->sendBuffer();
         }
 
-        void disp(float totalPower, float totalYieldDay, float totalYieldTotal, uint8_t isprod) {
+        void disp(void) {
             mDisplay->clearBuffer();
 
-            // set Contrast of the Display to raise the lifetime
-            mDisplay->setContrast(mLuminance);
+            // Layout-Test
+            /*
+            mDisplayData->nrSleeping = 10;
+            mDisplayData->nrProducing = 10;
+            mDisplayData->totalPower = 19897.6; // W
+            mDisplayData->totalYieldDay = 15521.9; // Wh
+            mDisplayData->totalYieldTotal = 654321.9; // kWh
+            mDisplay->drawPixel(0, 0);
+            mDisplay->drawPixel(mDispWidth-1, 0);
+            mDisplay->drawPixel(0, mDispHeight-1);
+            mDisplay->drawPixel(mDispWidth-1, mDispHeight-1);
+            */
 
-            if ((totalPower > 0) && (isprod > 0)) {
-                mTimeout = DISP_DEFAULT_TIMEOUT;
-                mDisplay->setPowerSave(false);
-
-                if (totalPower > 999)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (totalPower / 1000));
+            // print total power
+            if (mDisplayData->nrProducing > 0) {
+                if (mDisplayData->totalPower > 9999.0)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kW", (mDisplayData->totalPower / 1000.0));
                 else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", totalPower);
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f W", mDisplayData->totalPower);
 
-                printText(mFmtText, l_TotalPower);
+                printText(mFmtText, l_TotalPower, 0xff);
             } else {
-                printText("offline", l_TotalPower);
-                // check if it's time to enter power saving mode
-                if (mTimeout == 0)
-                    mDisplay->setPowerSave(mEnPowerSafe);
+                printText("offline", l_TotalPower, 0xff);
             }
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Today: %4.0f Wh", totalYieldDay);
-            printText(mFmtText, l_YieldDay);
+            // print Date and time
+            if (0 != mDisplayData->utcTs)
+                printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Total: %.1f kWh", totalYieldTotal);
-            printText(mFmtText, l_YieldTotal);
+            // alternatively:
+            // print ip address
+            if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
+                printText(mFmtText, l_Status, 0xff);
+            }
+            // print status of inverters
+            else {
+                if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                else if (0 == mDisplayData->nrSleeping)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");      // sun symbol
+                else if (0 == mDisplayData->nrProducing)
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");      // moon symbol
+                else
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d\x86 %d\x87", mDisplayData->nrProducing, mDisplayData->nrSleeping);
+                printText(mFmtText, l_Status, 0xff);
+            }
 
-            if (NULL != mUtcTs)
-                printText(ah::getDateTimeStrShort(gTimezone.toLocal(*mUtcTs)).c_str(), l_Time);
+            // print yields
+            printText("\x88", l_YieldDay,   10);        // day symbol
+            printText("\x83", l_YieldTotal, 10);        // total symbol
 
-            IPAddress ip = WiFi.localIP();
-            if (!(mExtra % 5) && (ip))
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", ip.toString().c_str());
+            if (mDisplayData->totalYieldDay > 9999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f kWh", mDisplayData->totalYieldDay / 1000.0);
             else
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "Inv.On: %d", isprod);
-            printText(mFmtText, l_Status);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
+            printText(mFmtText, l_YieldDay, 0xff);
+
+            if (mDisplayData->totalYieldTotal > 9999.0)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
+            else
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
+            printText(mFmtText, l_YieldTotal, 0xff);
+
+            // draw dynamic Nokia RSSI bars
+            int rssi_bar_height = 7;
+            for (int i=0; i<4;i++) {
+                int radio_rssi_threshold = -60 - i*10; // radio rssi not yet tested in reality!
+                int wifi_rssi_threshold = -60 - i*10;
+                if (mDisplayData->RadioRSSI > radio_rssi_threshold)
+                    mDisplay->drawBox(0,              8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+                if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
+                    mDisplay->drawBox(mDispWidth-4+i, 8+(rssi_bar_height+1)*i,  4-i,rssi_bar_height);
+            }
+
+            // draw dynamic antenna and WiFi symbols
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%c", mDisplayData->RadioSymbol?'\x80':'\x84'); // NRF
+            printText(mFmtText, l_RSSI);
+            if (mDisplayData->MQTTSymbol)
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x89"); // MQTT
+            else
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%c", mDisplayData->WifiSymbol?'\x81':'\x85'); // Wifi connected
+            printText(mFmtText, l_RSSI, mDispWidth - 6);
 
             mDisplay->sendBuffer();
 
@@ -99,7 +122,6 @@ class DisplayMono84X48 : public DisplayMono {
         }
 
     private:
-        uint16_t mDispWidth;
         enum _dispLine {
             // start page
             l_Website = 0,
@@ -111,6 +133,8 @@ class DisplayMono84X48 : public DisplayMono {
             l_TotalPower = 2,
             l_YieldDay = 3,
             l_YieldTotal = 4,
+            // run page - rssi bar symbols
+            l_RSSI = 4,
             // End
             l_MAX_LINES = 5,
         };
@@ -121,7 +145,7 @@ class DisplayMono84X48 : public DisplayMono {
             uint8_t asc, dsc;
 
             do {
-                setFont(i);
+                setLineFont(i);
                 asc = mDisplay->getAscent();
                 yOff += asc;
                 mLineYOffsets[i] = yOff;
@@ -133,18 +157,23 @@ class DisplayMono84X48 : public DisplayMono {
             } while(l_MAX_LINES>i);
         }
 
-        inline void setFont(uint8_t line) {
+        inline void setLineFont(uint8_t line) {
             if ((line == l_TotalPower) || (line == l_Ahoy))
                 mDisplay->setFont(u8g2_font_logisoso16_tr);
             else
-                mDisplay->setFont(u8g2_font_5x8_tr);
+                mDisplay->setFont(u8g2_font_5x8_symbols_ahoy);
         }
 
-        void printText(const char *text, uint8_t line) {
+        void printText(const char *text, uint8_t line, uint8_t col=0) {
             uint8_t dispX;
-            setFont(line);
-            dispX = (mDispWidth - mDisplay->getStrWidth(text)) / 2;  // center text
-            dispX += (mEnScreenSaver) ? (mExtra % 7) : 0;
+
+            setLineFont(line);
+            if (0xff == col)
+                dispX = (mDispWidth - mDisplay->getStrWidth(text)) / 2;  // center text
+            else
+                dispX = col;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
         }
 };
+
+

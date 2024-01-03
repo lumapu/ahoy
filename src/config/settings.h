@@ -29,7 +29,8 @@
  * More info:
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
-#define DEF_PIN_OFF         255
+
+#define CONFIG_VERSION      7
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -67,35 +68,31 @@ typedef struct {
     bool darkMode;
     bool schedReboot;
 
-#if defined(ETHERNET)
-    // ethernet
-
-#else /* defined(ETHERNET) */
+#if !defined(ETHERNET)
     // wifi
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     char apPwd[PWD_LEN];
     bool isHidden;
-#endif /* defined(ETHERNET) */
+#endif /* !defined(ETHERNET) */
 
     cfgIp_t ip;
 } cfgSys_t;
 
 typedef struct {
     bool enabled;
-    uint16_t sendInterval;
-    uint8_t maxRetransPerPyld;
     uint8_t pinCs;
     uint8_t pinCe;
     uint8_t pinIrq;
     uint8_t pinMiso;
     uint8_t pinMosi;
     uint8_t pinSclk;
-    uint8_t amplifierPower;
 } cfgNrf24_t;
 
 typedef struct {
     bool enabled;
+    uint8_t pinSclk;
+    uint8_t pinSdio;
     uint8_t pinCsb;
     uint8_t pinFcsb;
     uint8_t pinIrq;
@@ -110,20 +107,21 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    bool disNightCom;  // disable night communication
     uint16_t offsetSec;
 } cfgSun_t;
 
 typedef struct {
-    uint16_t interval;
     bool showIv;
     bool debug;
+    bool privacyLog;
+    bool printWholeTrace;
 } cfgSerial_t;
 
 typedef struct {
-    uint8_t led0;  // first LED pin
-    uint8_t led1;  // second LED pin
-    bool led_high_active;  // determines if LEDs are high or low active
+    uint8_t led0;      // first LED pin
+    uint8_t led1;      // second LED pin
+    bool high_active;  // determines if LEDs are high or low active
+    uint8_t luminance; // luminance of LED
 } cfgLed_t;
 
 typedef struct {
@@ -143,23 +141,31 @@ typedef struct {
     uint16_t chMaxPwr[6];
     double yieldCor[6];  // YieldTotal correction value
     char chName[6][MAX_NAME_LENGTH];
+    uint8_t frequency;
+    uint8_t powerLevel;
+    bool disNightCom;  // disable night communication
+    bool add2Total; // add values to total values - useful if one inverter is on battery to turn off
 } cfgIv_t;
 
 typedef struct {
     bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
+    uint16_t sendInterval;
     bool rstYieldMidNight;
     bool rstValsNotAvail;
     bool rstValsCommStop;
+    bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
+    uint16_t gapMs;
+    bool readGrid;
 } cfgInst_t;
 
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
-    bool pxShift;
+    uint8_t screenSaver;
     uint8_t rot;
     //uint16_t wakeUp;
     //uint16_t sleepAt;
@@ -170,6 +176,7 @@ typedef struct {
     uint8_t disp_reset;
     uint8_t disp_busy;
     uint8_t disp_dc;
+    uint8_t pirPin;
 } display_t;
 
 typedef struct {
@@ -188,6 +195,7 @@ typedef struct {
     cfgInst_t   inst;
     plugins_t   plugin;
     bool        valid;
+    uint16_t    configVersion;
 } settings_t;
 
 class settings {
@@ -284,6 +292,7 @@ class settings {
                     if(root.containsKey(F("led"))) jsonLed(root[F("led")]);
                     if(root.containsKey(F("plugin"))) jsonPlugin(root[F("plugin")]);
                     if(root.containsKey(F("inst"))) jsonInst(root[F("inst")]);
+                    getConfigVersion(root.as<JsonObject>());
                 }
                 else {
                     Serial.println(F("failed to parse json, using default config"));
@@ -299,6 +308,7 @@ class settings {
 
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
+            json[F("version")] = CONFIG_VERSION;
             jsonNetwork(root.createNestedObject(F("wifi")), true);
             jsonNrf(root.createNestedObject(F("nrf")), true);
             #if defined(ESP32)
@@ -368,36 +378,41 @@ class settings {
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
-            #if defined(ETHERNET)
-            memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
-            #else /* defined(ETHERNET) */
             if(keepWifi)
                 memcpy(&mCfg.sys, &tmp, sizeof(cfgSys_t));
+            #if !defined(ETHERNET)
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
                 snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
                 mCfg.sys.isHidden = false;
             }
-            #endif /* defined(ETHERNET) */
+            #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
 
-            mCfg.nrf.sendInterval      = SEND_INTERVAL;
-            mCfg.nrf.maxRetransPerPyld = DEF_MAX_RETRANS_PER_PYLD;
-            mCfg.nrf.pinCs             = DEF_CS_PIN;
-            mCfg.nrf.pinCe             = DEF_CE_PIN;
-            mCfg.nrf.pinIrq            = DEF_IRQ_PIN;
-            mCfg.nrf.pinMiso           = DEF_MISO_PIN;
-            mCfg.nrf.pinMosi           = DEF_MOSI_PIN;
-            mCfg.nrf.pinSclk           = DEF_SCLK_PIN;
+            mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
+            mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
+            mCfg.nrf.pinIrq            = DEF_NRF_IRQ_PIN;
+            mCfg.nrf.pinMiso           = DEF_NRF_MISO_PIN;
+            mCfg.nrf.pinMosi           = DEF_NRF_MOSI_PIN;
+            mCfg.nrf.pinSclk           = DEF_NRF_SCLK_PIN;
 
-            mCfg.nrf.amplifierPower    = DEF_AMPLIFIERPOWER & 0x03;
             mCfg.nrf.enabled           = true;
 
+            #if defined(ESP32)
+            mCfg.cmt.pinSclk           = DEF_CMT_SCLK;
+            mCfg.cmt.pinSdio           = DEF_CMT_SDIO;
+            mCfg.cmt.pinCsb            = DEF_CMT_CSB;
+            mCfg.cmt.pinFcsb           = DEF_CMT_FCSB;
+            mCfg.cmt.pinIrq            = DEF_CMT_IRQ;
+            #else
+            mCfg.cmt.pinSclk           = DEF_PIN_OFF;
+            mCfg.cmt.pinSdio           = DEF_PIN_OFF;
             mCfg.cmt.pinCsb            = DEF_PIN_OFF;
             mCfg.cmt.pinFcsb           = DEF_PIN_OFF;
             mCfg.cmt.pinIrq            = DEF_PIN_OFF;
+            #endif
             mCfg.cmt.enabled           = false;
 
             snprintf(mCfg.ntp.addr, NTP_ADDR_LEN, "%s", DEF_NTP_SERVER_NAME);
@@ -406,12 +421,12 @@ class settings {
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
-            mCfg.sun.disNightCom = false;
             mCfg.sun.offsetSec   = 0;
 
-            mCfg.serial.interval = SERIAL_INTERVAL;
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
+            mCfg.serial.privacyLog = true;
+            mCfg.serial.printWholeTrace = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -420,29 +435,78 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
+            mCfg.inst.sendInterval     = SEND_INTERVAL;
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
-            mCfg.inst.yieldEffiency    = 0.955f;
+            mCfg.inst.rstMaxValsMidNight = false;
+            mCfg.inst.yieldEffiency    = 1.0f;
+            mCfg.inst.gapMs            = 500;
+            mCfg.inst.readGrid         = true;
 
-            mCfg.led.led0 = DEF_PIN_OFF;
-            mCfg.led.led1 = DEF_PIN_OFF;
-            mCfg.led.led_high_active = false;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
+                mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
+                mCfg.inst.iv[i].disNightCom = false;
+                mCfg.inst.iv[i].add2Total   = true;
+            }
 
-            memset(&mCfg.inst, 0, sizeof(cfgInst_t));
+            mCfg.led.led0        = DEF_LED0;
+            mCfg.led.led1        = DEF_LED1;
+            mCfg.led.high_active = LED_HIGH_ACTIVE;
+            mCfg.led.luminance   = 255;
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
-            mCfg.plugin.display.pxShift = true;
+            mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
             mCfg.plugin.display.rot = 0;
-            mCfg.plugin.display.disp_data  = DEF_PIN_OFF;  // SDA
-            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF;   // SCL
+            mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
+            mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
             mCfg.plugin.display.disp_cs    = DEF_PIN_OFF;
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
-       }
+            mCfg.plugin.display.pirPin     = DEF_MOTION_SENSOR_PIN;
+        }
+
+        void loadAddedDefaults() {
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                if(mCfg.configVersion < 1) {
+                    mCfg.inst.iv[i].powerLevel = 0xff; // impossible high value
+                    mCfg.inst.iv[i].frequency  = 0x0; // 860MHz (backward compatibility)
+                }
+                if(mCfg.configVersion < 2) {
+                    mCfg.inst.iv[i].disNightCom = false;
+                    mCfg.inst.iv[i].add2Total   = true;
+                }
+                if(mCfg.configVersion < 3) {
+                    mCfg.serial.printWholeTrace = false;
+                }
+                if(mCfg.configVersion < 4) {
+                    mCfg.inst.gapMs = 500;
+                }
+                if(mCfg.configVersion < 5) {
+                    mCfg.inst.sendInterval = SEND_INTERVAL;
+                    mCfg.serial.printWholeTrace = false;
+                }
+                if(mCfg.configVersion < 6) {
+                    mCfg.inst.gapMs    = 500;
+                    mCfg.inst.readGrid = true;
+                }
+                if(mCfg.configVersion < 7) {
+                    mCfg.led.luminance = 255;
+                }
+            }
+        }
+
+        void getConfigVersion(JsonObject obj) {
+            getVal<uint16_t>(obj, F("version"), &mCfg.configVersion);
+            DPRINT(DBG_INFO, F("Config Version: "));
+            DBGPRINTLN(String(mCfg.configVersion));
+            if(CONFIG_VERSION != mCfg.configVersion)
+                loadAddedDefaults();
+        }
 
         void jsonNetwork(JsonObject obj, bool set = false) {
             if(set) {
@@ -489,55 +553,59 @@ class settings {
 
         void jsonNrf(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("intvl")]     = mCfg.nrf.sendInterval;
-                obj[F("maxRetry")]  = mCfg.nrf.maxRetransPerPyld;
                 obj[F("cs")]        = mCfg.nrf.pinCs;
                 obj[F("ce")]        = mCfg.nrf.pinCe;
                 obj[F("irq")]       = mCfg.nrf.pinIrq;
                 obj[F("sclk")]      = mCfg.nrf.pinSclk;
                 obj[F("mosi")]      = mCfg.nrf.pinMosi;
                 obj[F("miso")]      = mCfg.nrf.pinMiso;
-                obj[F("pwr")]       = mCfg.nrf.amplifierPower;
                 obj[F("en")]        = (bool) mCfg.nrf.enabled;
             } else {
-                getVal<uint16_t>(obj, F("intvl"), &mCfg.nrf.sendInterval);
-                getVal<uint8_t>(obj, F("maxRetry"), &mCfg.nrf.maxRetransPerPyld);
                 getVal<uint8_t>(obj, F("cs"), &mCfg.nrf.pinCs);
                 getVal<uint8_t>(obj, F("ce"), &mCfg.nrf.pinCe);
                 getVal<uint8_t>(obj, F("irq"), &mCfg.nrf.pinIrq);
                 getVal<uint8_t>(obj, F("sclk"), &mCfg.nrf.pinSclk);
                 getVal<uint8_t>(obj, F("mosi"), &mCfg.nrf.pinMosi);
                 getVal<uint8_t>(obj, F("miso"), &mCfg.nrf.pinMiso);
-                getVal<uint8_t>(obj, F("pwr"), &mCfg.nrf.amplifierPower);
                 #if !defined(ESP32)
                 mCfg.nrf.enabled = true; // ESP8266, read always as enabled
                 #else
                 mCfg.nrf.enabled = (bool) obj[F("en")];
                 #endif
                 if((obj[F("cs")] == obj[F("ce")])) {
-                    mCfg.nrf.pinCs   = DEF_CS_PIN;
-                    mCfg.nrf.pinCe   = DEF_CE_PIN;
-                    mCfg.nrf.pinIrq  = DEF_IRQ_PIN;
-                    mCfg.nrf.pinSclk = DEF_SCLK_PIN;
-                    mCfg.nrf.pinMosi = DEF_MOSI_PIN;
-                    mCfg.nrf.pinMiso = DEF_MISO_PIN;
+                    mCfg.nrf.pinCs   = DEF_NRF_CS_PIN;
+                    mCfg.nrf.pinCe   = DEF_NRF_CE_PIN;
+                    mCfg.nrf.pinIrq  = DEF_NRF_IRQ_PIN;
+                    mCfg.nrf.pinSclk = DEF_NRF_SCLK_PIN;
+                    mCfg.nrf.pinMosi = DEF_NRF_MOSI_PIN;
+                    mCfg.nrf.pinMiso = DEF_NRF_MISO_PIN;
                 }
             }
         }
 
+        #if defined(ESP32)
         void jsonCmt(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("csb")]  = mCfg.cmt.pinCsb;
                 obj[F("fcsb")] = mCfg.cmt.pinFcsb;
                 obj[F("irq")]  = mCfg.cmt.pinIrq;
+                obj[F("dio")]  = mCfg.cmt.pinSdio;
+                obj[F("clk")]  = mCfg.cmt.pinSclk;
                 obj[F("en")]   = (bool) mCfg.cmt.enabled;
             } else {
                 mCfg.cmt.pinCsb  = obj[F("csb")];
                 mCfg.cmt.pinFcsb = obj[F("fcsb")];
                 mCfg.cmt.pinIrq  = obj[F("irq")];
+                mCfg.cmt.pinSdio = obj[F("dio")];
+                mCfg.cmt.pinSclk = obj[F("clk")];
                 mCfg.cmt.enabled = (bool) obj[F("en")];
+                if(0 == mCfg.cmt.pinSclk)
+                    mCfg.cmt.pinSclk = DEF_CMT_SCLK;
+                if(0 == mCfg.cmt.pinSdio)
+                    mCfg.cmt.pinSdio = DEF_CMT_SDIO;
             }
         }
+        #endif
 
         void jsonNtp(JsonObject obj, bool set = false) {
             if(set) {
@@ -558,42 +626,44 @@ class settings {
             if(set) {
                 obj[F("lat")]  = mCfg.sun.lat;
                 obj[F("lon")]  = mCfg.sun.lon;
-                obj[F("dis")]  = mCfg.sun.disNightCom;
                 obj[F("offs")] = mCfg.sun.offsetSec;
             } else {
                 getVal<float>(obj, F("lat"), &mCfg.sun.lat);
                 getVal<float>(obj, F("lon"), &mCfg.sun.lon);
-                getVal<bool>(obj, F("dis"), &mCfg.sun.disNightCom);
                 getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSec);
             }
         }
 
         void jsonSerial(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("intvl")] = mCfg.serial.interval;
                 obj[F("show")]  = mCfg.serial.showIv;
                 obj[F("debug")] = mCfg.serial.debug;
+                obj[F("prv")] = (bool) mCfg.serial.privacyLog;
+                obj[F("trc")] = (bool) mCfg.serial.printWholeTrace;
             } else {
-                getVal<uint16_t>(obj, F("intvl"), &mCfg.serial.interval);
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
+                getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
+                getVal<bool>(obj, F("trc"), &mCfg.serial.printWholeTrace);
             }
         }
 
         void jsonMqtt(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("broker")] = mCfg.mqtt.broker;
-                obj[F("port")]   = mCfg.mqtt.port;
-                obj[F("user")]   = mCfg.mqtt.user;
-                obj[F("pwd")]    = mCfg.mqtt.pwd;
-                obj[F("topic")]  = mCfg.mqtt.topic;
-                obj[F("intvl")]  = mCfg.mqtt.interval;
+                obj[F("broker")]   = mCfg.mqtt.broker;
+                obj[F("port")]     = mCfg.mqtt.port;
+                obj[F("clientId")] = mCfg.mqtt.clientId;
+                obj[F("user")]     = mCfg.mqtt.user;
+                obj[F("pwd")]      = mCfg.mqtt.pwd;
+                obj[F("topic")]    = mCfg.mqtt.topic;
+                obj[F("intvl")]    = mCfg.mqtt.interval;
 
             } else {
                 getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.mqtt.interval);
                 getChar(obj, F("broker"), mCfg.mqtt.broker, MQTT_ADDR_LEN);
                 getChar(obj, F("user"), mCfg.mqtt.user, MQTT_USER_LEN);
+                getChar(obj, F("clientId"), mCfg.mqtt.clientId, MQTT_CLIENTID_LEN);
                 getChar(obj, F("pwd"), mCfg.mqtt.pwd, MQTT_PWD_LEN);
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
             }
@@ -601,13 +671,15 @@ class settings {
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("0")] = mCfg.led.led0;
-                obj[F("1")] = mCfg.led.led1;
-                obj[F("act_high")] = mCfg.led.led_high_active;
+                obj[F("0")]        = mCfg.led.led0;
+                obj[F("1")]        = mCfg.led.led1;
+                obj[F("act_high")] = mCfg.led.high_active;
+                obj[F("lum")]      = mCfg.led.luminance;
             } else {
                 getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
                 getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
-                getVal<bool>(obj, F("act_high"), &mCfg.led.led_high_active);
+                getVal<bool>(obj, F("act_high"), &mCfg.led.high_active);
+                getVal<uint8_t>(obj, F("lum"), &mCfg.led.luminance);
             }
         }
 
@@ -616,7 +688,7 @@ class settings {
                 JsonObject disp = obj.createNestedObject("disp");
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
-                disp[F("pxShift")] = (bool)mCfg.plugin.display.pxShift;
+                disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
@@ -627,11 +699,12 @@ class settings {
                 disp[F("reset")] = mCfg.plugin.display.disp_reset;
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
+                disp[F("pirPin")] = mCfg.plugin.display.pirPin;
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
-                getVal<bool>(disp, F("pxShift"), &mCfg.plugin.display.pxShift);
+                getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
@@ -642,25 +715,34 @@ class settings {
                 getVal<uint8_t>(disp, F("reset"), &mCfg.plugin.display.disp_reset);
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
+                getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
             }
         }
 
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
+                obj[F("intvl")]          = mCfg.inst.sendInterval;
                 obj[F("en")] = (bool)mCfg.inst.enabled;
-                obj[F("rstMidNight")] = (bool)mCfg.inst.rstYieldMidNight;
-                obj[F("rstNotAvail")] = (bool)mCfg.inst.rstValsNotAvail;
-                obj[F("rstComStop")]  = (bool)mCfg.inst.rstValsCommStop;
-                obj[F("strtWthtTime")] = (bool)mCfg.inst.startWithoutTime;
-                obj[F("yldEff")]       = mCfg.inst.yieldEffiency;
+                obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
+                obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
+                obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
+                obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
+                obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
+                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
+                obj[F("gap")]            = mCfg.inst.gapMs;
+                obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
+                getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
                 getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
+                getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
+                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
+                getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
                     mCfg.inst.yieldEffiency = 1.0f;
@@ -685,6 +767,10 @@ class settings {
                 obj[F("en")]   = (bool)cfg->enabled;
                 obj[F("name")] = cfg->name;
                 obj[F("sn")]   = cfg->serial.u64;
+                obj[F("freq")] = cfg->frequency;
+                obj[F("pa")]   = cfg->powerLevel;
+                obj[F("dis")]  = cfg->disNightCom;
+                obj[F("add")]  = cfg->add2Total;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -694,6 +780,10 @@ class settings {
                 getVal<bool>(obj, F("en"), &cfg->enabled);
                 getChar(obj, F("name"), cfg->name, MAX_NAME_LENGTH);
                 getVal<uint64_t>(obj, F("sn"), &cfg->serial.u64);
+                getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
+                getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
+                getVal<bool>(obj, F("dis"), &cfg->disNightCom);
+                getVal<bool>(obj, F("add"), &cfg->add2Total);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();

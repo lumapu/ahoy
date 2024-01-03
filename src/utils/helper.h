@@ -20,21 +20,21 @@ static Timezone gTimezone(CEST, CET);
 
 #define CHECK_MASK(a,b) ((a & b) == b)
 
-#define CP_U32_LittleEndian(buf, v) ({ \
+#define CP_U32_LittleEndian(buf, v) do { \
     uint8_t *b = buf; \
     b[0] = ((v >> 24) & 0xff); \
     b[1] = ((v >> 16) & 0xff); \
     b[2] = ((v >>  8) & 0xff); \
     b[3] = ((v      ) & 0xff); \
-})
+} while (0)
 
-#define CP_U32_BigEndian(buf, v) ({ \
+#define CP_U32_BigEndian(buf, v) do { \
     uint8_t *b = buf; \
     b[3] = ((v >> 24) & 0xff); \
     b[2] = ((v >> 16) & 0xff); \
     b[1] = ((v >>  8) & 0xff); \
     b[0] = ((v      ) & 0xff); \
-})
+} while (0)
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr);
@@ -44,8 +44,9 @@ namespace ah {
     String getDateTimeStrShort(time_t t);
     String getDateTimeStrFile(time_t t);
     String getTimeStr(time_t t);
+    String getTimeStrMs(uint64_t t);
     uint64_t Serial2u64(const char *val);
-    void dumpBuf(uint8_t buf[], uint8_t len);
+    void dumpBuf(uint8_t buf[], uint8_t len, uint8_t firstRepl = 0, uint8_t lastRepl = 0);
 }
 
 #endif /*__HELPER_H__*/

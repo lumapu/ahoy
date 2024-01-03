@@ -43,18 +43,14 @@ jobs:
 
     - name: Install PlatformIO
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install setuptools --upgrade pip
         pip install --upgrade platformio
 
-    - name: Convert HTML files
-      working-directory: src/web/html
-      run: python convert.py
-
     - name: Run PlatformIO
-      run: pio run -d src --environment esp8266-release --environment esp8266-release-prometheus --environment esp8285-release --environment esp32-wroom32-release --environment esp32-wroom32-release-prometheus --environment esp32-wroom32-ethernet-release --environment opendtufusionv1-release
+      run: pio run -d src --environment esp8266 --environment esp8266-prometheus --environment esp8285 --environment esp32-wroom32 --environment esp32-wroom32-prometheus --environment esp32-wroom32-ethernet --environment esp32-s2-mini --environment esp32-c3-mini --environment opendtufusion --environment opendtufusion-ethernet
 
     - name: Copy boot_app0.bin
-      run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusionv1-release/ota.bin
+      run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
     - name: Rename Binary files
       id: rename-binary-files
@@ -81,7 +77,7 @@ jobs:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
 
     - name: Create Artifact
-      run: zip  --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/firmware/* User_Manual.md
+      run: zip --junk-paths ${{ steps.rename-binary-files.outputs.name }}.zip src/firmware/* User_Manual.md
 
     - name: Upload Release
       id: upload-release
@@ -93,3 +89,16 @@ jobs:
         asset_path: ./${{ steps.rename-binary-files.outputs.name }}.zip
         asset_name: ${{ steps.rename-binary-files.outputs.name }}.zip
         asset_content_type: application/zip
+
+    - name: Rename firmware directory
+      run: mv src/firmware src/${{ steps.rename-binary-files.outputs.name }}
+
+    - name: Deploy
+      uses: nogsantos/scp-deploy@master
+      with:
+        src: src/${{ steps.rename-binary-files.outputs.name }}/
+        host: ${{ secrets.FW_SSH_HOST }}
+        remote: ${{ secrets.FW_SSH_DIR }}/release
+        port: ${{ secrets.FW_SSH_PORT }}
+        user: ${{ secrets.FW_SSH_USER }}
+        key: ${{ secrets.FW_SSH_KEY }}

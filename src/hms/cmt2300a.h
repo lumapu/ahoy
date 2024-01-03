@@ -6,16 +6,11 @@
 #ifndef __CMT2300A_H__
 #define __CMT2300A_H__
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+#include "cmtHal.h"
+#else
 #include "esp32_3wSpi.h"
-
-#define WORK_FREQ_KHZ       865000 // disired work frequency between DTU and
-                                   // inverter in kHz
-#define HOY_BASE_FREQ_KHZ   860000 // in kHz
-#define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
-#define HOY_BOOT_FREQ_KHZ   868000 // Hoymiles boot/init frequency after power up inverter
-#define FREQ_STEP_KHZ       250    // channel step size in kHz
-#define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
-#define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
+#endif
 
 // detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 
@@ -25,6 +20,10 @@
 #define CMT2300A_MASK_CHIP_MODE_STA     0x0F
 
 #define CMT2300A_CUS_CMT10              0x09
+#define CMT2300A_CUS_TX5                0x59
+#define CMT2300A_CUS_TX8                0x5C
+#define CMT2300A_CUS_TX9                0x5D
+#define CMT2300A_CUS_TX10               0x5E
 
 #define CMT2300A_CUS_MODE_CTL           0x60    // [7] go_switch
                                                 // [6] go_tx
@@ -153,7 +152,43 @@
 #define CMT2300A_MASK_TX_DONE_FLG       0x08
 #define CMT2300A_MASK_PKT_OK_FLG        0x01
 
-// default CMT paramters
+// this list and the TX5, TX10 registers were compiled from the output of
+// HopeRF RFPDK Tool v1.54
+static uint8_t paLevelList[31][2] PROGMEM = {
+    {0x17, 0x01}, // -10dBm
+    {0x1a, 0x01}, // -09dBm
+    {0x1d, 0x01}, // -08dBm
+    {0x21, 0x01}, // -07dBm
+    {0x25, 0x01}, // -06dBm
+    {0x29, 0x01}, // -05dBm
+    {0x2d, 0x01}, // -04dBm
+    {0x33, 0x01}, // -03dBm
+    {0x39, 0x02}, // -02dBm
+    {0x41, 0x02}, // -01dBm
+    {0x4b, 0x02}, //  00dBm
+    {0x56, 0x03}, //  01dBm
+    {0x63, 0x03}, //  02dBm
+    {0x71, 0x04}, //  03dBm
+    {0x80, 0x04}, //  04dBm
+    {0x22, 0x01}, //  05dBm
+    {0x27, 0x04}, //  06dBm
+    {0x2c, 0x05}, //  07dBm
+    {0x31, 0x06}, //  08dBm
+    {0x38, 0x06}, //  09dBm
+    {0x3f, 0x07}, //  10dBm
+    {0x48, 0x08}, //  11dBm
+    {0x52, 0x09}, //  12dBm
+    {0x5d, 0x0b}, //  13dBm
+    {0x6a, 0x0c}, //  14dBm
+    {0x79, 0x0d}, //  15dBm
+    {0x46, 0x10}, //  16dBm
+    {0x51, 0x10}, //  17dBm
+    {0x60, 0x12}, //  18dBm
+    {0x71, 0x14}, //  19dBm
+    {0x8c, 0x1c}  //  20dBm
+};
+
+// default CMT parameters
 static uint8_t cmtConfig[0x60] PROGMEM {
     // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
     0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
@@ -168,29 +203,22 @@ static uint8_t cmtConfig[0x60] PROGMEM {
     0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
     0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
     // 0x40 - 0x4f
-    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1D, 0x00,
+    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1F, 0x00,
     0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
     // 0x50 - 0x5f
     0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
-    0x00, 0x07, 0x50, 0x00, 0x42, 0x0C, 0x3F, 0x7F //  - TX 13dBm
+    0x00, 0x07, 0x50, 0x00, 0x5D, 0x0B, 0x3F, 0x7F //  - TX 13dBm
 };
 
 
 enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
 
-template<class SPI>
 class Cmt2300a {
-    typedef SPI SpiType;
     public:
         Cmt2300a() {}
 
-        void setup(uint8_t pinCsb, uint8_t pinFcsb) {
-            mSpi.setup(pinCsb, pinFcsb);
-            init();
-        }
-
-        void setup() {
-            mSpi.setup();
+        void setup(uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb) {
+            mSpi.init(pinSdio, pinSclk, pinCsb, pinFcsb);
             init();
         }
 
@@ -239,7 +267,7 @@ class Cmt2300a {
             return CMT_SUCCESS;
         }
 
-        uint8_t getRx(uint8_t buf[], uint8_t len, int8_t *rssi) {
+        uint8_t getRx(uint8_t buf[], uint8_t *rxLen, uint8_t maxlen, int8_t *rssi) {
             if(mTxPending)
                 return CMT_ERR_TX_PENDING;
 
@@ -250,7 +278,7 @@ class Cmt2300a {
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                 return CMT_ERR_SWITCH_STATE;
 
-            mSpi.readFifo(buf, len);
+            mSpi.readFifo(buf, rxLen, maxlen);
             *rssi = mSpi.readReg(CMT2300A_CUS_RSSI_DBM) - 128;
 
             if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
@@ -315,6 +343,8 @@ class Cmt2300a {
 
             mSpi.writeReg(CMT2300A_CUS_MODE_STA, 0x52);
             mSpi.writeReg(0x62, 0x20);
+            if(mSpi.readReg(0x62) != 0x20)
+                return false; // not connected!
 
             for(uint8_t i = 0; i < 0x60; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);
@@ -360,7 +390,7 @@ class Cmt2300a {
 
         inline uint8_t freq2Chan(const uint32_t freqKhz) {
             if((freqKhz % FREQ_STEP_KHZ) != 0) {
-                DPRINT(DBG_WARN, F("swtich frequency to "));
+                DPRINT(DBG_WARN, F("switch frequency to "));
                 DBGPRINT(String(freqKhz));
                 DBGPRINT(F("kHz not possible!"));
                 return 0xff; // error
@@ -373,7 +403,7 @@ class Cmt2300a {
                 return 0xff; // error
 
             if((freqKhz < FREQ_WARN_MIN_KHZ) || (freqKhz > FREQ_WARN_MAX_KHZ))
-                DPRINTLN(DBG_WARN, F("Disired frequency is out of EU legal range! (863 - 870MHz)"));
+                DPRINTLN(DBG_WARN, F("Desired frequency is out of EU legal range! (863 - 870MHz)"));
 
             return (freqKhz - HOY_BASE_FREQ_KHZ) / FREQ_STEP_KHZ;
         }
@@ -387,6 +417,30 @@ class Cmt2300a {
                 return HOY_BASE_FREQ_KHZ + (mRqstCh * FREQ_STEP_KHZ);
             else
                 return HOY_BASE_FREQ_KHZ + (mCurCh * FREQ_STEP_KHZ);
+        }
+
+        uint8_t getCurrentChannel(void) {
+            return mCurCh;
+        }
+
+        void setPaLevel(int8_t level) {
+            if(level < -10)
+                level = -10;
+            if(level > 20)
+                level = 20;
+
+            level += 10; // unsigned value
+
+            if(level >= 15) {
+                mSpi.writeReg(CMT2300A_CUS_TX5, 0x07);
+                mSpi.writeReg(CMT2300A_CUS_TX10, 0x3f);
+            } else {
+                mSpi.writeReg(CMT2300A_CUS_TX5, 0x13);
+                mSpi.writeReg(CMT2300A_CUS_TX10, 0x18);
+            }
+
+            mSpi.writeReg(CMT2300A_CUS_TX8, paLevelList[level][0]);
+            mSpi.writeReg(CMT2300A_CUS_TX9, paLevelList[level][1]);
         }
 
     private:
@@ -426,7 +480,11 @@ class Cmt2300a {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
-        SpiType mSpi;
+        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+        cmtHal mSpi;
+        #else
+        esp32_3wSpi mSpi;
+        #endif
         uint8_t mCnt;
         bool mTxPending;
         bool mInRxMode;

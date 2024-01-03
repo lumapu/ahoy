@@ -33,26 +33,28 @@ const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_Y
 const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
 const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
-template<class HMSYSTEM, class HMRADIO>
+template<class HMSYSTEM>
 class RestApi {
     public:
         RestApi() {
             mTimezoneOffset = 0;
-            mHeapFree = 0;
-            mHeapFreeBlk = 0;
-            mHeapFrag = 0;
-            nr = 0;
+            mHeapFree       = 0;
+            mHeapFreeBlk    = 0;
+            mHeapFrag       = 0;
         }
 
-        void setup(IApp *app, HMSYSTEM *sys, HMRADIO *radio, AsyncWebServer *srv, settings_t *config) {
-            mApp     = app;
-            mSrv     = srv;
-            mSys     = sys;
-            mRadio   = radio;
-            mConfig  = config;
-            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
+        void setup(IApp *app, HMSYSTEM *sys, AsyncWebServer *srv, settings_t *config) {
+            mApp      = app;
+            mSrv      = srv;
+            mSys      = sys;
+            mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
+            #if defined(ESP32)
+            mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
+            #endif
+            mConfig   = config;
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+            mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
         }
@@ -62,9 +64,6 @@ class RestApi {
         }
 
         void ctrlRequest(JsonObject obj) {
-            /*char out[128];
-            serializeJson(obj, out, 128);
-            DPRINTLN(DBG_INFO, "RestApi: " + String(out));*/
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
@@ -75,6 +74,8 @@ class RestApi {
 
     private:
         void onApi(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, String("onApi: ") + String((uint16_t)request->method())); // 1 == Get, 3 == POST
+
             mHeapFree = ESP.getFreeHeap();
             #ifndef ESP32
             mHeapFreeBlk = ESP.getMaxFreeBlockSize();
@@ -89,10 +90,13 @@ class RestApi {
             else if(path == "html/logout")    getHtmlLogout(request, root);
             else if(path == "html/reboot")    getHtmlReboot(request, root);
             else if(path == "html/save")      getHtmlSave(request, root);
+            else if(path == "html/erase")     getHtmlErase(request, root);
+            else if(path == "html/erasetrue") getHtmlEraseTrue(request, root);
+            else if(path == "html/factory")     getHtmlFactory(request, root);
+            else if(path == "html/factorytrue") getHtmlFactoryTrue(request, root);
             else if(path == "system")         getSysInfo(request, root);
             else if(path == "generic")        getGeneric(request, root);
             else if(path == "reboot")         getReboot(request, root);
-            else if(path == "statistics")     getStatistics(root);
             else if(path == "inverter/list")  getInverterList(root);
             else if(path == "index")          getIndex(request, root);
             else if(path == "setup")          getSetup(request, root);
@@ -111,6 +115,14 @@ class RestApi {
                     getInverter(root, request->url().substring(17).toInt());
                 else if(path.substring(0, 15) == "inverter/alarm/")
                     getIvAlarms(root, request->url().substring(20).toInt());
+                else if(path.substring(0, 17) == "inverter/version/")
+                    getIvVersion(root, request->url().substring(22).toInt());
+                else if(path.substring(0, 19) == "inverter/radiostat/")
+                    getIvStatistis(root, request->url().substring(24).toInt());
+                else if(path.substring(0, 16) == "inverter/pwrack/")
+                    getIvPowerLimitAck(root, request->url().substring(21).toInt());
+                else if(path.substring(0, 14) == "inverter/grid/")
+                    getGridProfile(root, request->url().substring(19).toInt());
                 else
                     getNotFound(root, F("http://") + request->host() + F("/api/"));
             }
@@ -124,16 +136,36 @@ class RestApi {
 
         void onApiPost(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, "onApiPost");
+            #if defined(ETHERNET)
+            // workaround for AsyncWebServer_ESP32_W5500, because it can't distinguish
+            // between HTTP_GET and HTTP_POST if both are registered
+            if(request->method() == HTTP_GET)
+                onApi(request);
+            #endif
         }
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
-            DynamicJsonDocument json(200);
+
+            if(0 == index) {
+                if(NULL != mTmpBuf)
+                    delete[] mTmpBuf;
+                mTmpBuf = new uint8_t[total+1];
+                mTmpSize = total;
+            }
+            if(mTmpSize >= (len + index))
+                memcpy(&mTmpBuf[index], data, len);
+
+            if((len + index) != total)
+                return; // not last frame - nothing to do
+
+            DynamicJsonDocument json(1000);
+
+            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            JsonObject obj = json.as<JsonObject>();
+
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-
-            DeserializationError err = deserializeJson(json, (const char *)data, len);
-            JsonObject obj = json.as<JsonObject>();
             root[F("success")] = (err) ? false : true;
             if(!err) {
                 String path = request->url().substring(5);
@@ -145,18 +177,20 @@ class RestApi {
                     root[F("success")] = false;
                     root[F("error")]   = "Path not found: " + path;
                 }
-            }
-            else {
+            } else {
                 switch (err.code()) {
                     case DeserializationError::Ok: break;
-                    case DeserializationError::InvalidInput: root[F("error")] = F("Invalid input");          break;
-                    case DeserializationError::NoMemory:     root[F("error")] = F("Not enough memory");      break;
-                    default:                                 root[F("error")] = F("Deserialization failed"); break;
+                    case DeserializationError::IncompleteInput: root[F("error")] = F("Incomplete input");       break;
+                    case DeserializationError::InvalidInput:    root[F("error")] = F("Invalid input");          break;
+                    case DeserializationError::NoMemory:        root[F("error")] = F("Not enough memory");      break;
+                    default:                                    root[F("error")] = F("Deserialization failed"); break;
                 }
             }
 
             response->setLength();
             request->send(response);
+            delete[] mTmpBuf;
+            mTmpBuf = NULL;
         }
 
         void getNotFound(JsonObject obj, String url) {
@@ -164,7 +198,7 @@ class RestApi {
             ep[F("inverter/list")]    = url + F("inverter/list");
             ep[F("inverter/id/0")]    = url + F("inverter/id/0");
             ep[F("inverter/alarm/0")] = url + F("inverter/alarm/0");
-            ep[F("statistics")]       = url + F("statistics");
+            ep[F("inverter/version/0")] = url + F("inverter/version/0");
             ep[F("generic")]          = url + F("generic");
             ep[F("index")]            = url + F("index");
             ep[F("setup")]            = url + F("setup");
@@ -191,6 +225,16 @@ class RestApi {
                     if(-1 != i) {
                         i+=7;
                         tmp.remove(i, tmp.indexOf("\"", i)-i);
+                    }
+                }
+                i = 0;
+                // convert all serial numbers to hexadecimal
+                while (i != -1) {
+                    i = tmp.indexOf("\"sn\":", i);
+                    if(-1 != i) {
+                        i+=5;
+                        String sn = tmp.substring(i, tmp.indexOf("\"", i)-1);
+                        tmp.replace(sn, String(atoll(sn.c_str()), HEX));
                     }
                 }
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);
@@ -231,7 +275,7 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
-            obj[F("sched_reboot")]    = (bool)mConfig->sys.schedReboot;
+            obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
@@ -245,14 +289,17 @@ class RestApi {
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
             getGeneric(request, obj);
 
-            getRadioNrf(obj.createNestedObject(F("radio")));
-            getStatistics(obj.createNestedObject(F("statistics")));
+            getRadioNrf(obj.createNestedObject(F("radioNrf")));
+            #if defined(ESP32)
+            getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
+            #endif
+            getMqttInfo(obj.createNestedObject(F("mqtt")));
 
         #if defined(ESP32)
-            obj[F("heap_total")]    = ESP.getHeapSize();
             obj[F("chip_revision")] = ESP.getChipRevision();
             obj[F("chip_model")]    = ESP.getChipModel();
             obj[F("chip_cores")]    = ESP.getChipCores();
+            obj[F("heap_total")]    = ESP.getHeapSize();
             //obj[F("core_version")]  = F("n/a");
             //obj[F("flash_size")]    = F("n/a");
             //obj[F("heap_frag")]     = F("n/a");
@@ -263,10 +310,10 @@ class RestApi {
             //obj[F("chip_revision")] = F("n/a");
             //obj[F("chip_model")]    = F("n/a");
             //obj[F("chip_cores")]    = F("n/a");
-            obj[F("core_version")]  = ESP.getCoreVersion();
-            obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
             obj[F("heap_frag")]     = mHeapFrag;
             obj[F("max_free_blk")]  = mHeapFreeBlk;
+            obj[F("core_version")]  = ESP.getCoreVersion();
+            obj[F("flash_size")]    = ESP.getFlashChipRealSize() / 1024; // in kb
             obj[F("reboot_reason")] = ESP.getResetReason();
         #endif
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
@@ -280,28 +327,71 @@ class RestApi {
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
             getSysInfo(request, obj.createNestedObject(F("system")));
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">Factory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
+            obj[F("html")] = F("<a href=\"/factory\" class=\"btn\">AhoyFactory Reset</a><br/><br/><a href=\"/reboot\" class=\"btn\">Reboot</a>");
         }
 
         void getHtmlLogout(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 3;
             obj[F("refresh_url")] = "/";
-            obj[F("html")] = F("succesfully logged out");
+            obj[F("html")] = F("successfully logged out");
         }
 
         void getHtmlReboot(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("refresh")] = 5;
+            #else
             obj[F("refresh")] = 20;
+            #endif
             obj[F("refresh_url")] = "/";
             obj[F("html")] = F("rebooting ...");
         }
 
         void getHtmlSave(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj["pending"] = (bool)mApp->getSavePending();
-            obj["success"] = (bool)mApp->getLastSaveSucceed();
-            obj["reboot"] = (bool)mApp->getShouldReboot();
+            obj[F("pending")] = (bool)mApp->getSavePending();
+            obj[F("success")] = (bool)mApp->getLastSaveSucceed();
+            obj[F("reboot")] = (bool)mApp->getShouldReboot();
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
+        }
+
+        void getHtmlErase(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("html")] = F("Erase settings (not WiFi)? <a class=\"btn\" href=\"/erasetrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+        }
+
+        void getHtmlEraseTrue(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            mApp->eraseSettings(false);
+            mApp->setRebootFlag();
+            obj[F("html")] = F("Erase settings: success");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
+        }
+
+        void getHtmlFactory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("html")] = F("Factory reset? <a class=\"btn\" href=\"/factorytrue\">yes</a> <a class=\"btn\" href=\"/\">no</a>");
+        }
+
+        void getHtmlFactoryTrue(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            mApp->eraseSettings(true);
+            mApp->setRebootFlag();
+            obj[F("html")] = F("Factory reset: success");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+            obj[F("reload")] = 5;
+            #else
+            obj[F("reload")] = 20;
+            #endif
         }
 
         void getReboot(AsyncWebServerRequest *request, JsonObject obj) {
@@ -311,14 +401,28 @@ class RestApi {
             obj[F("html")] = F("reboot. Autoreload after 10 seconds");
         }
 
-        void getStatistics(JsonObject obj) {
-            statistics_t *stat = mApp->getStatistics();
-            obj[F("rx_success")]     = stat->rxSuccess;
-            obj[F("rx_fail")]        = stat->rxFail;
-            obj[F("rx_fail_answer")] = stat->rxFailNoAnser;
-            obj[F("frame_cnt")]      = stat->frmCnt;
-            obj[F("tx_cnt")]         = mRadio->mSendCnt;
-            obj[F("retransmits")]    = mRadio->mRetransmits;
+        void getIvStatistis(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+            obj[F("name")]           = String(iv->config->name);
+            obj[F("rx_success")]     = iv->radioStatistics.rxSuccess;
+            obj[F("rx_fail")]        = iv->radioStatistics.rxFail;
+            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnser;
+            obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
+            obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
+            obj[F("retransmits")]    = iv->radioStatistics.retransmits;
+        }
+
+        void getIvPowerLimitAck(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+            obj["ack"] = (bool)iv->powerLimitAck;
         }
 
         void getInverterList(JsonObject obj) {
@@ -327,30 +431,42 @@ class RestApi {
             Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    JsonObject obj2 = invArr.createNestedObject();
-                    obj2[F("enabled")]  = (bool)iv->config->enabled;
-                    obj2[F("id")]       = i;
-                    obj2[F("name")]     = String(iv->config->name);
-                    obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
-                    obj2[F("channels")] = iv->channels;
-                    obj2[F("version")]  = String(iv->getFwVersion());
+                if(NULL == iv)
+                    continue;
 
-                    for(uint8_t j = 0; j < iv->channels; j ++) {
-                        obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
-                        obj2[F("ch_name")][j]      = iv->config->chName[j];
-                        obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
-                    }
+                JsonObject obj2 = invArr.createNestedObject();
+                obj2[F("enabled")]  = (bool)iv->config->enabled;
+                obj2[F("id")]       = i;
+                obj2[F("name")]     = String(iv->config->name);
+                obj2[F("serial")]   = String(iv->config->serial.u64, HEX);
+                obj2[F("channels")] = iv->channels;
+                obj2[F("freq")]     = iv->config->frequency;
+                obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
+                obj2[F("add2total")] = (bool)iv->config->add2Total;
+                if(0xff == iv->config->powerLevel) {
+                    if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
+                        obj2[F("pa")] = 30; // 20dBm
+                    else
+                        obj2[F("pa")] = 1; // low
+                } else
+                    obj2[F("pa")] = iv->config->powerLevel;
+
+                for(uint8_t j = 0; j < iv->channels; j ++) {
+                    obj2[F("ch_yield_cor")][j] = (double)iv->config->yieldCor[j];
+                    obj2[F("ch_name")][j]      = iv->config->chName[j];
+                    obj2[F("ch_max_pwr")][j]   = iv->config->chMaxPwr[j];
                 }
             }
-            obj[F("interval")]          = String(mConfig->nrf.sendInterval);
-            obj[F("retries")]           = String(mConfig->nrf.maxRetransPerPyld);
+            obj[F("interval")]          = String(mConfig->inst.sendInterval);
             obj[F("max_num_inverters")] = MAX_NUM_INVERTERS;
             obj[F("rstMid")]            = (bool)mConfig->inst.rstYieldMidNight;
-            obj[F("rstNAvail")]         = (bool)mConfig->inst.rstValsNotAvail;
+            obj[F("rstNotAvail")]       = (bool)mConfig->inst.rstValsNotAvail;
             obj[F("rstComStop")]        = (bool)mConfig->inst.rstValsCommStop;
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
+            obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
+            obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
+            obj[F("gap")]               = mConfig->inst.gapMs;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -368,10 +484,12 @@ class RestApi {
             obj[F("version")]          = String(iv->getFwVersion());
             obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
             obj[F("power_limit_ack")]  = iv->powerLimitAck;
+            obj[F("max_pwr")]          = iv->getMaxPower();
             obj[F("ts_last_success")]  = rec->ts;
             obj[F("generation")]       = iv->ivGen;
-            obj[F("status")]           = (uint8_t)iv->status;
+            obj[F("status")]           = (uint8_t)iv->getStatus();
             obj[F("alarm_cnt")]        = iv->alarmCnt;
+            obj[F("rssi")]             = iv->rssi;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -385,10 +503,10 @@ class RestApi {
                     ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
                 }
             } else  {
-            for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
-                pos = (iv->getPosByChFld(CH0, acList[fld], rec));
-                ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
-            }
+                for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
+                    pos = (iv->getPosByChFld(CH0, acList[fld], rec));
+                    ch0[fld] = (0xff != pos) ? ah::round3(iv->getValue(pos, rec)) : 0.0;
+                }
             }
 
             // DC
@@ -403,6 +521,16 @@ class RestApi {
             }
         }
 
+        void getGridProfile(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                return;
+            }
+
+            obj[F("name")] = String(iv->config->name);
+            obj[F("grid")] = iv->getGridProfile();
+        }
+
         void getIvAlarms(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
@@ -413,6 +541,7 @@ class RestApi {
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
             obj[F("iv_id")]   = id;
+            obj[F("iv_name")] = String(iv->config->name);
             obj[F("cnt")]     = iv->alarmCnt;
             obj[F("last_id")] = iv->getChannelFieldValue(CH0, FLD_EVT, rec);
 
@@ -423,6 +552,42 @@ class RestApi {
                 alarm[i][F("start")] = iv->lastAlarm[i].start;
                 alarm[i][F("end")]   = iv->lastAlarm[i].end;
             }
+        }
+
+        void getIvVersion(JsonObject obj, uint8_t id) {
+            Inverter<> *iv = mSys->getInverterByPos(id);
+            if(NULL == iv) {
+                obj[F("error")] = F("inverter not found!");
+                return;
+            }
+
+            record_t<> *rec = iv->getRecordStruct(InverterDevInform_Simple);
+
+            obj[F("id")]         = id;
+            obj[F("name")]       = String(iv->config->name);
+            obj[F("serial")]     = String(iv->config->serial.u64, HEX);
+            obj[F("generation")] = iv->ivGen;
+            obj[F("max_pwr")]    = iv->getMaxPower();
+            obj[F("part_num")]   = iv->getChannelFieldValueInt(CH0, FLD_PART_NUM, rec);
+            obj[F("hw_ver")]     = iv->getChannelFieldValueInt(CH0, FLD_HW_VERSION, rec);
+            obj[F("prod_cw")]    = ((iv->config->serial.b[3] & 0x0f) * 10 + (((iv->config->serial.b[2] >> 4) & 0x0f)));
+            obj[F("prod_year")]  = ((iv->config->serial.b[3] >> 4) & 0x0f) + 2014;
+
+
+            rec = iv->getRecordStruct(InverterDevInform_All);
+            char buf[10];
+            uint16_t val;
+
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_MONTH_DAY, rec);
+            snprintf(buf, 10, "-%02d-%02d", (val / 100), (val % 100));
+            obj[F("fw_date")]    = String(iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_YEAR, rec)) + String(buf);
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec);
+            snprintf(buf, 10, "%02d:%02d", (val / 100), (val % 100));
+            obj[F("fw_time")]    = String(buf);
+            val = iv->getChannelFieldValueInt(CH0, FLD_FW_VERSION, rec);
+            snprintf(buf, 10, "%d.%02d.%02d", (val / 10000), ((val % 10000) / 100), (val % 100));
+            obj[F("fw_ver")]     = String(buf);
+            obj[F("boot_ver")]   = iv->getChannelFieldValueInt(CH0, FLD_BOOTLOADER_VER, rec);
         }
 
         void getMqtt(JsonObject obj) {
@@ -444,7 +609,6 @@ class RestApi {
         void getSun(JsonObject obj) {
             obj[F("lat")] = mConfig->sun.lat ? String(mConfig->sun.lat, 5) : "";
             obj[F("lon")] = mConfig->sun.lat ? String(mConfig->sun.lon, 5) : "";
-            obj[F("disnightcom")] = mConfig->sun.disNightCom;
             obj[F("offs")] = mConfig->sun.offsetSec;
         }
 
@@ -457,28 +621,43 @@ class RestApi {
             obj[F("miso")] = mConfig->nrf.pinMiso;
             obj[F("led0")] = mConfig->led.led0;
             obj[F("led1")] = mConfig->led.led1;
-            obj[F("led_high_active")] = mConfig->led.led_high_active;
+            obj[F("led_high_active")] = mConfig->led.high_active;
+            obj[F("led_lum")]         = mConfig->led.luminance;
         }
 
+        #if defined(ESP32)
         void getRadioCmt(JsonObject obj) {
-            obj[F("csb")]  = mConfig->cmt.pinCsb;
-            obj[F("fcsb")] = mConfig->cmt.pinFcsb;
-            obj[F("irq")]  = mConfig->cmt.pinIrq;
-            obj[F("en")]   = (bool) mConfig->cmt.enabled;
+            obj[F("sclk")]  = mConfig->cmt.pinSclk;
+            obj[F("sdio")]  = mConfig->cmt.pinSdio;
+            obj[F("csb")]   = mConfig->cmt.pinCsb;
+            obj[F("fcsb")]  = mConfig->cmt.pinFcsb;
+            obj[F("gpio3")] = mConfig->cmt.pinIrq;
+            obj[F("en")]    = (bool) mConfig->cmt.enabled;
         }
+
+        void getRadioCmtInfo(JsonObject obj) {
+            obj[F("en")] = (bool) mConfig->cmt.enabled;
+            if(mConfig->cmt.enabled) {
+                obj[F("isconnected")] = mRadioCmt->isChipConnected();
+                obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+            }
+        }
+        #endif
 
         void getRadioNrf(JsonObject obj) {
-            obj[F("power_level")] = mConfig->nrf.amplifierPower;
-            obj[F("isconnected")] = mRadio->isChipConnected();
-            obj[F("DataRate")] = mRadio->getDataRate();
-            obj[F("isPVariant")] = mRadio->isPVariant();
-            obj[F("en")]         = (bool) mConfig->nrf.enabled;
+            obj[F("en")] = (bool) mConfig->nrf.enabled;
+            if(mConfig->nrf.enabled) {
+                obj[F("isconnected")] = mRadioNrf->isChipConnected();
+                obj[F("dataRate")]    = mRadioNrf->getDataRate();
+                obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+            }
         }
 
         void getSerial(JsonObject obj) {
-            obj[F("interval")]       = (uint16_t)mConfig->serial.interval;
             obj[F("show_live_data")] = mConfig->serial.showIv;
             obj[F("debug")]          = mConfig->serial.debug;
+            obj[F("priv")]           = mConfig->serial.privacyLog;
+            obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
         }
 
         void getStaticIp(JsonObject obj) {
@@ -493,7 +672,7 @@ class RestApi {
         void getDisplay(JsonObject obj) {
             obj[F("disp_typ")]     = (uint8_t)mConfig->plugin.display.type;
             obj[F("disp_pwr")]     = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
-            obj[F("disp_pxshift")] = (bool)mConfig->plugin.display.pxShift;
+            obj[F("disp_screensaver")] = (uint8_t)mConfig->plugin.display.screenSaver;
             obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
             obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
             obj[F("disp_clk")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
@@ -502,6 +681,15 @@ class RestApi {
             obj[F("disp_dc")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
             obj[F("disp_rst")]     = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
             obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
+            obj[F("pir_pin")]      =  mConfig->plugin.display.pirPin;
+        }
+
+        void getMqttInfo(JsonObject obj) {
+            obj[F("enabled")]   = (mConfig->mqtt.broker[0] != '\0');
+            obj[F("connected")] = mApp->getMqttIsConnected();
+            obj[F("tx_cnt")]    = mApp->getMqttTxCnt();
+            obj[F("rx_cnt")]    = mApp->getMqttRxCnt();
+            obj[F("interval")]  = mConfig->mqtt.interval;
         }
 
         void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
@@ -510,47 +698,38 @@ class RestApi {
             obj[F("ts_sunrise")]   = mApp->getSunrise();
             obj[F("ts_sunset")]    = mApp->getSunset();
             obj[F("ts_offset")]    = mConfig->sun.offsetSec;
-            obj[F("disNightComm")] = mConfig->sun.disNightCom;
 
             JsonArray inv = obj.createNestedArray(F("inverter"));
             Inverter<> *iv;
+            bool disNightCom = false;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
                 iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                    JsonObject invObj = inv.createNestedObject();
-                    invObj[F("enabled")]         = (bool)iv->config->enabled;
-                    invObj[F("id")]              = i;
-                    invObj[F("name")]            = String(iv->config->name);
-                    invObj[F("version")]         = String(iv->getFwVersion());
-                    invObj[F("is_avail")]        = iv->isAvailable();
-                    invObj[F("is_producing")]    = iv->isProducing();
-                    invObj[F("ts_last_success")] = iv->getLastTs(rec);
-                }
+                if(NULL == iv)
+                    continue;
+
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                JsonObject invObj = inv.createNestedObject();
+                invObj[F("enabled")]         = (bool)iv->config->enabled;
+                invObj[F("id")]              = i;
+                invObj[F("name")]            = String(iv->config->name);
+                invObj[F("cur_pwr")]         = ah::round3(iv->getChannelFieldValue(CH0, FLD_PAC, rec));
+                invObj[F("is_avail")]        = iv->isAvailable();
+                invObj[F("is_producing")]    = iv->isProducing();
+                invObj[F("ts_last_success")] = iv->getLastTs(rec);
+                if(iv->config->disNightCom)
+                    disNightCom = true;
             }
+            obj[F("disNightComm")] = disNightCom;
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mRadio->isChipConnected() && mConfig->nrf.enabled)
+            if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
                 warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            else if(!mRadio->isPVariant() && mConfig->nrf.enabled)
-                warn.add(F("your NRF24 module isn't a plus version(+), maybe incompatible"));
             if(!mApp->getSettingsValid())
                 warn.add(F("your settings are invalid"));
             if(mApp->getRebootRequestState())
                 warn.add(F("reboot your ESP to apply all your configuration changes"));
             if(0 == mApp->getTimestamp())
                 warn.add(F("time not set. No communication to inverter possible"));
-            /*if(0 == mSys->getNumInverters())
-                warn.add(F("no inverter configured"));*/
-
-            if((!mApp->getMqttIsConnected()) && (String(mConfig->mqtt.broker).length() > 0))
-                warn.add(F("MQTT is not connected"));
-
-            JsonArray info = obj.createNestedArray(F("infos"));
-            if(mApp->getMqttIsConnected())
-                info.add(F("MQTT is connected, ") + String(mApp->getMqttTxCnt()) + F(" packets sent, ") + String(mApp->getMqttRxCnt()) + F(" packets received"));
-            if(mConfig->mqtt.interval > 0)
-                info.add(F("MQTT publishes in a fixed interval of ") + String(mConfig->mqtt.interval) + F(" seconds"));
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
@@ -561,7 +740,9 @@ class RestApi {
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));
+            #if defined(ESP32)
             getRadioCmt(obj.createNestedObject(F("radioCmt")));
+            #endif
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
@@ -576,7 +757,7 @@ class RestApi {
 
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            obj[F("refresh")] = mConfig->nrf.sendInterval;
+            obj[F("refresh")] = mConfig->inst.sendInterval;
 
             for (uint8_t fld = 0; fld < sizeof(acList); fld++) {
                 obj[F("ch0_fld_units")][fld] = String(units[fieldUnits[acList[fld]]]);
@@ -630,28 +811,6 @@ class RestApi {
                 obj[F("dispIndex")] = p->getDisplIdx();
         }
 
-        /*void getRecord(JsonObject obj, uint8_t recType) {
-            JsonArray invArr = obj.createNestedArray(F("inverter"));
-
-            Inverter<> *iv;
-            record_t<> *rec;
-            uint8_t pos;
-            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-                iv = mSys->getInverterByPos(i);
-                if(NULL != iv) {
-                    rec = iv->getRecordStruct(recType);
-                    JsonArray obj2 = invArr.createNestedArray();
-                    for(uint8_t j = 0; j < rec->length; j++) {
-                        byteAssign_t *assign = iv->getByteAssign(j, rec);
-                        pos = (iv->getPosByChFld(assign->ch, assign->fieldId, rec));
-                        obj2[j]["fld"]  = (0xff != pos) ? String(iv->getFieldName(pos, rec)) : notAvail;
-                        obj2[j]["unit"] = (0xff != pos) ? String(iv->getUnit(pos, rec)) : notAvail;
-                        obj2[j]["val"]  = (0xff != pos) ? String(iv->getValue(pos, rec)) : notAvail;
-                    }
-                }
-            }
-        }*/
-
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
@@ -659,6 +818,7 @@ class RestApi {
                 jsonOut[F("error")] = F("inverter index invalid: ") + jsonIn[F("id")].as<String>();
                 return false;
             }
+            jsonOut[F("id")] = jsonIn[F("id")];
 
             if(F("power") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);
@@ -676,12 +836,10 @@ class RestApi {
                     iv->powerLimit[1] = AbsolutNonPersistent;
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
-            }
-            else if(F("dev") == jsonIn[F("cmd")]) {
+            } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
-                iv->enqueCommand<InfoCommand>(jsonIn[F("val")].as<int>());
-            }
-            else {
+                iv->setDevCommand(jsonIn[F("val")].as<int>());
+            } else {
                 jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
                 return false;
             }
@@ -689,8 +847,7 @@ class RestApi {
             if(!accepted) {
                 jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
                 return false;
-            } else
-                mApp->ivSendHighPrio(iv);
+            }
 
             return true;
         }
@@ -707,8 +864,26 @@ class RestApi {
                 mApp->setTimestamp(0); // 0: update ntp flag
             else if(F("serial_utc_offset") == jsonIn[F("cmd")])
                 mTimezoneOffset = jsonIn[F("val")];
-            else if(F("discovery_cfg") == jsonIn[F("cmd")]) {
+            else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
+            else if(F("save_iv") == jsonIn[F("cmd")]) {
+                Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
+                iv->config->enabled = jsonIn[F("en")];
+                iv->config->serial.u64 = jsonIn[F("ser")];
+                snprintf(iv->config->name, MAX_NAME_LENGTH, "%s", jsonIn[F("name")].as<const char*>());
+
+                for(uint8_t i = 0; i < 6; i++) {
+                    iv->config->chMaxPwr[i] = jsonIn[F("ch")][i][F("pwr")];
+                    iv->config->yieldCor[i] = jsonIn[F("ch")][i][F("yld")];
+                    snprintf(iv->config->chName[i], MAX_NAME_LENGTH, "%s", jsonIn[F("ch")][i][F("name")].as<const char*>());
+                }
+
+                mApp->initInverter(jsonIn[F("id")]);
+                iv->config->frequency   = jsonIn[F("freq")];
+                iv->config->powerLevel  = jsonIn[F("pa")];
+                iv->config->disNightCom = jsonIn[F("disnightcom")];
+                iv->config->add2Total   = jsonIn[F("add2total")];
+                mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("unknown cmd");
                 return false;
@@ -719,14 +894,18 @@ class RestApi {
 
         IApp *mApp;
         HMSYSTEM *mSys;
-        HMRADIO *mRadio;
+        HmRadio<> *mRadioNrf;
+        #if defined(ESP32)
+        CmtRadio<> *mRadioCmt;
+        #endif
         AsyncWebServer *mSrv;
         settings_t *mConfig;
 
         uint32_t mTimezoneOffset;
         uint32_t mHeapFree, mHeapFreeBlk;
         uint8_t mHeapFrag;
-        uint16_t nr;
+        uint8_t *mTmpBuf = NULL;
+        uint32_t mTmpSize;
 };
 
 #endif /*__WEB_API_H__*/

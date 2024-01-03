@@ -28,14 +28,14 @@ class PubMqttIvData {
             mState        = IDLE;
             mZeroValues   = false;
 
-            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
+            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * sizeof(uint32_t));
             mRTRDataHasBeenSent = false;
 
-            mTable[IDLE]        = &PubMqttIvData::stateIdle;
-            mTable[START]       = &PubMqttIvData::stateStart;
-            mTable[FIND_NXT_IV] = &PubMqttIvData::stateFindNxtIv;
-            mTable[SEND_DATA]   = &PubMqttIvData::stateSend;
-            mTable[SEND_TOTALS] = &PubMqttIvData::stateSendTotals;
+            mTable[IDLE]            = &PubMqttIvData::stateIdle;
+            mTable[START]           = &PubMqttIvData::stateStart;
+            mTable[FIND_NXT_IV]     = &PubMqttIvData::stateFindNxtIv;
+            mTable[SEND_DATA]       = &PubMqttIvData::stateSend;
+            mTable[SEND_TOTALS]     = &PubMqttIvData::stateSendTotals;
         }
 
         void loop() {
@@ -102,9 +102,17 @@ class PubMqttIvData {
             mPos = 0;
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
-                snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
-                mPublish(mSubTopic, mVal, true, QOS_0);
+                if((RealTimeRunData_Debug == mCmd) && mIv->getLastTs(rec) != 0 ) { //workaround for startup. Suspect, mCmd might cause to much messages....
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
+                    snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
+                    mPublish(mSubTopic, mVal, true, QOS_0);
+
+                    if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mVal, 40, "%d", mIv->rssi);
+                        mPublish(mSubTopic, mVal, false, QOS_0);
+                    }
+                }
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
@@ -119,6 +127,11 @@ class PubMqttIvData {
 
         void stateSend() {
             record_t<> *rec = mIv->getRecordStruct(mCmd);
+            if(rec == NULL) {
+                if (mCmd != GetLossRate)
+                    DPRINT(DBG_WARN, "unknown record to publish!");
+                return;
+            }
             uint32_t lastTs = mIv->getLastTs(rec);
             bool pubData = (lastTs > 0);
             if (mCmd == RealTimeRunData_Debug)
@@ -133,26 +146,28 @@ class PubMqttIvData {
 
                         // calculate total values for RealTimeRunData_Debug
                         if (CH0 == rec->assign[mPos].ch) {
-                            if(mIv->status > InverterStatus::STARTING) {
-                                mTotalFound = true;
-                                switch (rec->assign[mPos].fieldId) {
-                                    case FLD_PAC:
-                                        mTotal[0] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YT:
-                                        mTotal[1] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YD: {
-                                        float val = mIv->getValue(mPos, rec);
-                                        if(0 == val) // inverter restarted during day
-                                            mSendTotalYd = false;
-                                        else
-                                            mTotal[2] += val;
-                                        break;
+                            if(mIv->getStatus() > InverterStatus::STARTING) {
+                                if(mIv->config->add2Total) {
+                                    mTotalFound = true;
+                                    switch (rec->assign[mPos].fieldId) {
+                                        case FLD_PAC:
+                                            mTotal[0] += mIv->getValue(mPos, rec);
+                                            break;
+                                        case FLD_YT:
+                                            mTotal[1] += mIv->getValue(mPos, rec);
+                                            break;
+                                        case FLD_YD: {
+                                            float val = mIv->getValue(mPos, rec);
+                                            if(0 == val) // inverter restarted during day
+                                                mSendTotalYd = false;
+                                            else
+                                                mTotal[2] += val;
+                                            break;
+                                        }
+                                        case FLD_PDC:
+                                            mTotal[3] += mIv->getValue(mPos, rec);
+                                            break;
                                     }
-                                    case FLD_PDC:
-                                        mTotal[3] += mIv->getValue(mPos, rec);
-                                        break;
                                 }
                             } else
                                 mAllTotalFound = false;
@@ -170,10 +185,23 @@ class PubMqttIvData {
                         mPublish(mSubTopic, mVal, retained, qos);
                     }
                     mPos++;
-                } else
+                } else {
+                    sendRadioStat(rec->length);
                     mState = FIND_NXT_IV;
+                }
             } else
                 mState = FIND_NXT_IV;
+        }
+
+        inline void sendRadioStat(uint8_t start) {
+            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/radio_stat", mIv->config->name);
+            snprintf(mVal, 100, "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d}",
+                mIv->radioStatistics.txCnt,
+                mIv->radioStatistics.rxSuccess,
+                mIv->radioStatistics.rxFail,
+                mIv->radioStatistics.rxFailNoAnser,
+                mIv->radioStatistics.retransmits);
+            mPublish(mSubTopic, mVal, false, QOS_0);
         }
 
         void stateSendTotals() {
@@ -213,7 +241,8 @@ class PubMqttIvData {
             } else {
                 mSendList->pop();
                 mZeroValues = false;
-                mState = START;
+                mPos = 0;
+                mState = IDLE;
             }
         }
 
@@ -234,7 +263,7 @@ class PubMqttIvData {
         bool mRTRDataHasBeenSent;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[40];
+        char mVal[100];
         bool mZeroValues; // makes sure that yield day is sent even if no inverter is online
 
         std::queue<sendListCmdIv> *mSendList;

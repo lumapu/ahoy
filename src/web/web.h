@@ -26,6 +26,7 @@
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"
 #include "html/h/favicon_ico.h"
+#include "html/h/grid_info_json.h"
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
 #include "html/h/save_html.h"
@@ -39,7 +40,8 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-    const char *const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinCsb", "pinFcsb", "pinGpio3"};
+
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -66,27 +68,28 @@ class Web {
             mWeb.on("/colors.css",     HTTP_GET,  std::bind(&Web::onColor,        this, std::placeholders::_1));
             mWeb.on("/style.css",      HTTP_GET,  std::bind(&Web::onCss,          this, std::placeholders::_1));
             mWeb.on("/api.js",         HTTP_GET,  std::bind(&Web::onApiJs,        this, std::placeholders::_1));
+            mWeb.on("/grid_info.json", HTTP_GET,  std::bind(&Web::onGridInfoJson, this, std::placeholders::_1));
             mWeb.on("/favicon.ico",    HTTP_GET,  std::bind(&Web::onFavicon,      this, std::placeholders::_1));
             mWeb.onNotFound (                     std::bind(&Web::showNotFound,   this, std::placeholders::_1));
             mWeb.on("/reboot",         HTTP_ANY,  std::bind(&Web::onReboot,       this, std::placeholders::_1));
             mWeb.on("/system",         HTTP_ANY,  std::bind(&Web::onSystem,       this, std::placeholders::_1));
-            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showErase,      this, std::placeholders::_1));
-            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showFactoryRst, this, std::placeholders::_1));
+            mWeb.on("/erase",          HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/erasetrue",      HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factory",        HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
+            mWeb.on("/factorytrue",    HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
-
-            mWeb.on("/live",           HTTP_ANY, std::bind(&Web::onLive,          this, std::placeholders::_1));
             mWeb.on("/history",        HTTP_ANY, std::bind(&Web::onHistory,       this, std::placeholders::_1));
-            // mWeb.on("/api1",           HTTP_POST, std::bind(&Web::showWebApi,     this, std::placeholders::_1));
+            mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
 
 #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
 
-            mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/update",         HTTP_POST, std::bind(&Web::showUpdate,     this, std::placeholders::_1),
                                                   std::bind(&Web::showUpdate2,    this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+            mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
@@ -150,10 +153,6 @@ class Web {
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            #if !defined(ETHERNET)
-            mApp->setOnUpdate();
-            #endif /* !defined(ETHERNET) */
-
             if (!index) {
                 Serial.printf("Update Start: %s\n", filename.c_str());
                 #ifndef ESP32
@@ -189,8 +188,8 @@ class Web {
             mUploadFp.write(data, len);
             if (final) {
                 mUploadFp.close();
-                char pwd[PWD_LEN];
                 #if !defined(ETHERNET)
+                char pwd[PWD_LEN];
                 strncpy(pwd, mConfig->sys.stationPwd, PWD_LEN); // backup WiFi PWD
                 #endif
                 if (!mApp->readSettings("/tmp.json")) {
@@ -201,6 +200,11 @@ class Web {
                     #if !defined(ETHERNET)
                     strncpy(mConfig->sys.stationPwd, pwd, PWD_LEN); // restore WiFi PWD
                     #endif
+                    for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                        if((mConfig->inst.iv[i].serial.u64 != 0) && (mConfig->inst.iv[i].serial.u64 < 138999999999)) { // hexadecimal
+                            mConfig->inst.iv[i].serial.u64 = ah::Serial2u64(String(mConfig->inst.iv[i].serial.u64).c_str());
+                        }
+                    }
                     mApp->saveSettings(true);
                 }
                 if (!mUploadFail)
@@ -214,10 +218,11 @@ class Web {
 
             msg.replace("\r\n", "<rn>");
             if (mSerialAddTime) {
-                if ((9 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
+                if ((13 + mSerialBufFill) < WEB_SERIAL_BUF_SIZE) {
                     if (mApp->getTimestamp() > 0) {
-                        strncpy(&mSerialBuf[mSerialBufFill], mApp->getTimeStr(mApp->getTimezoneOffset()).c_str(), 9);
-                        mSerialBufFill += 9;
+                        strncpy(&mSerialBuf[mSerialBufFill], ah::getTimeStrMs(mApp->getTimestampMs() + mApp->getTimezoneOffset() * 1000).c_str(), 12);
+                        mSerialBuf[mSerialBufFill+12] = ' ';
+                        mSerialBufFill += 13;
                     }
                 } else {
                     mSerialBufFill = 0;
@@ -280,14 +285,27 @@ class Web {
         }
 
         void showUpdate(AsyncWebServerRequest *request) {
+            #if defined(ETHERNET)
+            // workaround for AsyncWebServer_ESP32_W5500, because it can't distinguish
+            // between HTTP_GET and HTTP_POST if both are registered
+            if(request->method() == HTTP_GET)
+                onUpdate(request);
+            #endif
+
             bool reboot = (!Update.hasError());
 
-            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"20; URL=/\"></head><body>Update: ");
+            String html = F("<!doctype html><html><head><title>Update</title><meta http-equiv=\"refresh\" content=\"");
+            #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
+                html += F("5");
+            #else
+                html += F("20");
+            #endif
+            html += F("; URL=/\"></head><body>Update: ");
             if (reboot)
                 html += "success";
             else
                 html += "failed";
-            html += F("<br/><br/>rebooting ... auto reload after 20s</body></html>");
+            html += F("<br/><br/>rebooting ...</body></html>");
 
             AsyncWebServerResponse *response = request->beginResponse(200, F("text/html; charset=UTF-8"), html);
             response->addHeader("Connection", "close");
@@ -389,6 +407,16 @@ class Web {
             request->send(response);
         }
 
+        void onGridInfoJson(AsyncWebServerRequest *request) {
+            DPRINTLN(DBG_VERBOSE, F("onGridInfoJson"));
+
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("application/json; charset=utf-8"), grid_info_json, grid_info_json_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            if(request->hasParam("v"))
+                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            request->send(response);
+        }
+
         void onFavicon(AsyncWebServerRequest *request) {
             static const char favicon_type[] PROGMEM = "image/x-icon";
             AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico, favicon_ico_len);
@@ -408,39 +436,12 @@ class Web {
             request->send(response);
         }
 
-        void showErase(AsyncWebServerRequest *request) {
+        void showHtml(AsyncWebServerRequest *request) {
             checkProtection(request);
 
-            DPRINTLN(DBG_VERBOSE, F("showErase"));
-            mApp->eraseSettings(false);
-            onReboot(request);
-        }
-
-        void showFactoryRst(AsyncWebServerRequest *request) {
-            checkProtection(request);
-
-            DPRINTLN(DBG_VERBOSE, F("showFactoryRst"));
-            String content = "";
-            int refresh = 3;
-            if (request->args() > 0) {
-                if (request->arg("reset").toInt() == 1) {
-                    refresh = 10;
-                    if (mApp->eraseSettings(true))
-                        content = F("factory reset: success\n\nrebooting ... ");
-                    else
-                        content = F("factory reset: failed\n\nrebooting ... ");
-                } else {
-                    content = F("factory reset: aborted");
-                    refresh = 3;
-                }
-            } else {
-                content = F("<h1>Factory Reset</h1>"
-                    "<p><a href=\"/factory?reset=1\">RESET</a><br/><br/><a href=\"/factory?reset=0\">CANCEL</a><br/></p>");
-                refresh = 120;
-            }
-            request->send(200, F("text/html; charset=UTF-8"), F("<!doctype html><html><head><title>Factory Reset</title><meta http-equiv=\"refresh\" content=\"") + String(refresh) + F("; URL=/\"></head><body>") + content + F("</body></html>"));
-            if (refresh == 10)
-                onReboot(request);
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            request->send(response);
         }
 
         void onSetup(AsyncWebServerRequest *request) {
@@ -495,80 +496,42 @@ class Web {
             request->arg("ipGateway").toCharArray(buf, 20);
             ah::ip2Arr(mConfig->sys.ip.gateway, buf);
 
-            // inverter
-            Inverter<> *iv;
-            for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                iv = mSys->getInverterByPos(i, false);
-                // enable communication
-                iv->config->enabled = (request->arg("inv" + String(i) + "Enable") == "on");
-                // address
-                request->arg("inv" + String(i) + "Addr").toCharArray(buf, 20);
-                if (strlen(buf) == 0)
-                    memset(buf, 0, 20);
-                iv->config->serial.u64 = ah::Serial2u64(buf);
-                switch(iv->config->serial.b[4]) {
-                    case 0x24:
-                    case 0x22:
-                    case 0x21: iv->type = INV_TYPE_1CH; iv->channels = 1; break;
-
-                    case 0x44:
-                    case 0x42:
-                    case 0x41: iv->type = INV_TYPE_2CH; iv->channels = 2; break;
-
-                    case 0x64:
-                    case 0x62:
-                    case 0x61: iv->type = INV_TYPE_4CH; iv->channels = 4; break;
-                    default:  break;
-                }
-
-                // name
-                request->arg("inv" + String(i) + "Name").toCharArray(iv->config->name, MAX_NAME_LENGTH);
-
-                // max channel power / name
-                for (uint8_t j = 0; j < 6; j++) {
-                    iv->config->yieldCor[j] = request->arg("inv" + String(i) + "YieldCor" + String(j)).toDouble();
-                    iv->config->chMaxPwr[j] = request->arg("inv" + String(i) + "ModPwr" + String(j)).toInt() & 0xffff;
-                    request->arg("inv" + String(i) + "ModName" + String(j)).toCharArray(iv->config->chName[j], MAX_NAME_LENGTH);
-                }
-                iv->initialized = true;
-            }
-
             if (request->arg("invInterval") != "")
-                mConfig->nrf.sendInterval = request->arg("invInterval").toInt();
-            if (request->arg("invRetry") != "")
-                mConfig->nrf.maxRetransPerPyld = request->arg("invRetry").toInt();
+                mConfig->inst.sendInterval = request->arg("invInterval").toInt();
             mConfig->inst.rstYieldMidNight = (request->arg("invRstMid") == "on");
             mConfig->inst.rstValsCommStop = (request->arg("invRstComStop") == "on");
             mConfig->inst.rstValsNotAvail = (request->arg("invRstNotAvail") == "on");
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
+            mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
+            mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
+            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 12; i++) {
+            for (uint8_t i = 0; i < 15; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
-                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_CS_PIN);  break;
-                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_CE_PIN);  break;
-                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_IRQ_PIN); break;
-                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_SCLK_PIN); break;
-                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_MOSI_PIN); break;
-                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0 = pin; break;
-                    case 7:  mConfig->led.led1 = pin; break;
-                    case 8:  mConfig->led.led_high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->cmt.pinCsb   = pin; break;
-                    case 10: mConfig->cmt.pinFcsb  = pin; break;
-                    case 11: mConfig->cmt.pinIrq   = pin; break;
+                    case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
+                    case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_NRF_CE_PIN);  break;
+                    case 2:  mConfig->nrf.pinIrq   = ((pin != 0xff) ? pin : DEF_NRF_IRQ_PIN); break;
+                    case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
+                    case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
+                    case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
+                    case 6:  mConfig->led.led0     = pin; break;
+                    case 7:  mConfig->led.led1     = pin; break;
+                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10: mConfig->cmt.pinSclk  = pin; break;
+                    case 11: mConfig->cmt.pinSdio  = pin; break;
+                    case 12: mConfig->cmt.pinCsb   = pin; break;
+                    case 13: mConfig->cmt.pinFcsb  = pin; break;
+                    case 14: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
-            // nrf24 amplifier power
-            mConfig->nrf.amplifierPower = request->arg("rf24Power").toInt() & 0x03;
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
-
-            // cmt
             mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
 
             // ntp
@@ -582,12 +545,10 @@ class Web {
             if (request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
                 mConfig->sun.lat = 0.0;
                 mConfig->sun.lon = 0.0;
-                mConfig->sun.disNightCom = false;
                 mConfig->sun.offsetSec = 0;
             } else {
                 mConfig->sun.lat = request->arg("sunLat").toFloat();
                 mConfig->sun.lon = request->arg("sunLon").toFloat();
-                mConfig->sun.disNightCom = (request->arg("sunDisNightCom") == "on");
                 mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
             }
 
@@ -607,18 +568,14 @@ class Web {
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
             // serial console
-            if (request->arg("serIntvl") != "") {
-                mConfig->serial.interval = request->arg("serIntvl").toInt() & 0xffff;
-
-                mConfig->serial.debug = (request->arg("serDbg") == "on");
-                mConfig->serial.showIv = (request->arg("serEn") == "on");
-                // Needed to log TX buffers to serial console
-                // mSys->Radio.mSerialDebug = mConfig->serial.debug;
-            }
+            mConfig->serial.debug = (request->arg("serDbg") == "on");
+            mConfig->serial.privacyLog = (request->arg("priv") == "on");
+            mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
+            mConfig->serial.showIv = (request->arg("serEn") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
-            mConfig->plugin.display.pxShift    = (request->arg("disp_pxshift") == "on");
+            mConfig->plugin.display.screenSaver = request->arg("disp_screensaver").toInt();
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
             mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
@@ -628,6 +585,7 @@ class Web {
             mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
             mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
             mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.pirPin     = request->arg("pir_pin").toInt();
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
@@ -673,7 +631,7 @@ class Web {
 #ifdef ENABLE_PROMETHEUS_EP
         // Note
         // Prometheus exposition format is defined here: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-        // TODO: Check packetsize for MAX_NUM_INVERTERS. Successfull Tested with 4 Inverters (each with 4 channels)
+        // TODO: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
         enum {
             metricsStateStart,
             metricsStateInverter1, metricsStateInverter2, metricsStateInverter3, metricsStateInverter4,
@@ -693,7 +651,6 @@ class Web {
             {
                 Inverter<> *iv;
                 record_t<> *rec;
-                statistics_t *stat;
                 String promUnit, promType;
                 String metrics;
                 char type[60], topic[100], val[25];
@@ -724,16 +681,14 @@ class Web {
                         metrics += String(type) + String(topic);
 
                         // NRF Statistics
-                        stat = mApp->getStatistics();
-                        uint32_t nrfSendCnt;
-                        uint32_t nrfRetransmits;
-                        mApp->getNrfRadioCounters(&nrfSendCnt, &nrfRetransmits);
+                        // @TODO 2023-10-01: the statistic data is now available per inverter
+                        /*stat = mApp->getNrfStatistics();
                         metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
                         metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
                         metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
                         metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         nrfSendCnt);
-                        metrics += radioStatistic(F("retrans_cnt"),    nrfRetransmits);
+                        metrics += radioStatistic(F("tx_cnt"),         stat->txCnt);
+                        metrics += radioStatistic(F("retrans_cnt"),    stat->retransmits);*/
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
@@ -807,16 +762,31 @@ class Web {
                                             // This is the correct field to report
                                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
                                             // Declare metric only once
-                                            if (!metricDeclared) {
+                                            if (channel != 0 && !metricDeclared) {
                                                 snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
                                                 metrics += type;
                                                 metricDeclared = true;
                                             }
                                             // report value
                                             if (0 == channel) {
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name);
+                                                char total[7];
+                                                total[0] = 0;
+                                                if (metricDeclared) {
+                                                    // A declaration and value for channels has been delivered. So declare and deliver a _total metric
+                                                    strncpy(total,"_total",sizeof(total));
+                                                }
+                                                snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                metrics += type;
+                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,iv->config->chName[channel-1]);
+                                                // Use a fallback channel name (ch0, ch1, ...)if non is given by user
+                                                char chName[MAX_NAME_LENGTH];
+                                                if (iv->config->chName[channel-1][0] != 0) {
+                                                    strncpy(chName, iv->config->chName[channel-1], sizeof(chName));
+                                                } else {
+                                                    snprintf(chName,sizeof(chName),"ch%1d",channel);
+                                                }
+                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
                                             snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;

@@ -20,6 +20,15 @@ fieldset, input[type=submit], .btn {
     border-radius: 4px;
 }
 
+input[type=file] {
+    width: 100%;
+}
+
+textarea {
+    color: var(--fg);
+    background-color: var(--bg);
+}
+
 #live span {
     color: var(--fg2);
 }
@@ -105,7 +114,11 @@ svg.icon {
     fill: var(--success);
 }
 
-.wifi {
+.icon-fg {
+    fill: var(--fg);
+}
+
+.icon-fg2 {
     fill: var(--fg2);
 }
 
@@ -282,6 +295,9 @@ p {
 .a-r { text-align: right; }
 .a-c { text-align: center; }
 
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+
 .row > * {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
@@ -320,6 +336,9 @@ p {
     .fs-sm-6 { font-size: 1.5rem; }
     .fs-sm-7 { font-size: 1.25rem; }
     .fs-sm-8 { font-size: 1rem; }
+
+    .d-sm-block { display: block !important;}
+    .d-sm-none { display: none !important; }
 }
 
 /* md */
@@ -336,6 +355,20 @@ p {
     .col-md-10 { width: 83.33333333%; }
     .col-md-11 { width: 91.66666667%; }
     .col-md-12 { width: 100%; }
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    text-align: inherit;
+}
+
+.table td, .table th {
+    padding: .75rem;
+    border-bottom: 1px solid var(--table-border);
 }
 
 #wrapper {
@@ -507,7 +540,7 @@ input[type=text], input[type=password], select, input[type=number] {
 
 input:invalid {
     border: 2px solid #f00 !important;
-    background-color: #400 !important;
+    background-color: var(--invalid-bg) !important;
 }
 
 input.sh {
@@ -677,13 +710,17 @@ div.hr {
     margin: 1.75rem auto;
 }
 
-.modal {
+.modal, #modal-wrapper {
     position: fixed;
     top: 0;
     right: 0;
     left: 0;
     z-index: 1072;
     display: block;
+}
+
+.modal {
+    height: calc(100% - 3.5rem);
 }
 
 #modal-wrapper {
@@ -699,8 +736,10 @@ div.hr {
     width: 100%;
     background-color: var(--modal-bg);
     background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.2);
+    border: 1px solid var(--fg);
     flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
 }
 
 .modal-header {
@@ -708,7 +747,7 @@ div.hr {
     align-items: flex-start;
     justify-content: space-between;
     padding: 1rem;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--table-border);
 }
 
 .modal-header .close {
@@ -717,7 +756,8 @@ div.hr {
 }
 
 .modal-body {
-    padding: 1rem 1rem 2rem 1rem;
+    padding: 1rem;
+    overflow-y: auto;
 }
 
 .close {
@@ -742,4 +782,70 @@ h5 {
 
 .pointer {
     cursor: pointer;
+}
+
+.badge-success {
+  color: #fff;
+  background-color: #28a745;
+}
+
+.badge-warning {
+  color: #212529;
+  background-color: #ffc107;
+}
+
+.badge-error {
+  color: #fff;
+  background-color: #dc3545;
+}
+
+.badge {
+    display: inline-block;
+    padding: .25em .4em;
+    font-size: 85%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25rem;
+}
+
+ul {
+    margin-top: 0;
+}
+
+.nav {
+    display: flex;
+    flex-wrap: wrap;
+    padding-left: 0;
+    list-style: none;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid var(--fg);
+}
+
+.nav-tabs .nav-link {
+    margin-bottom: -1px;
+    border: 1px solid transparent;
+    border-top-left-radius: .25rem;
+    border-top-right-radius: .25rem;
+}
+
+.nav-link {
+    display: block;
+    padding: .5rem 1rem;
+    text-decoration: none;
+    color: var(--fg);
+}
+
+.nav-tabs .nav-link.active {
+    border-color: var(--primary) var(--fg) var(--bg);
+    border-top-width: 4px;
+}
+
+.nav-link:hover, .nav-link:visited {
+    background-color: var(--input-bg);
+    color: var(--fg);
 }

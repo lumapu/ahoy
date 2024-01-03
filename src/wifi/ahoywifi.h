@@ -32,10 +32,13 @@ class ahoywifi {
     private:
         typedef enum WiFiStatus {
             DISCONNECTED = 0,
+            SCAN_READY,
             CONNECTING,
             CONNECTED,
             IN_AP_MODE,
-            GOT_IP
+            GOT_IP,
+            IN_STA_MODE,
+            RESET
         } WiFiStatus_t;
 
         void setupWifi(bool startAP);
@@ -43,9 +46,11 @@ class ahoywifi {
         void setupStation(void);
         void sendNTPpacket(IPAddress& address);
         void sortRSSI(int *sort, int n);
-        void getBSSIDs(void);
+        bool getBSSIDs(void);
         void connectionEvent(WiFiStatus_t status);
-        #if defined(ESP8266)
+        bool isTimeout(uint8_t timeout) {  return (mCnt % timeout) == 0; }
+
+#if defined(ESP8266)
         void onConnect(const WiFiEventStationModeConnected& event);
         void onGotIP(const WiFiEventStationModeGotIP& event);
         void onDisconnect(const WiFiEventStationModeDisconnected& event);
@@ -71,6 +76,7 @@ class ahoywifi {
 
         uint8_t mScanCnt;
         bool mScanActive;
+        bool mGotDisconnect;
         std::list<uint8_t> mBSSIDList;
 };
 

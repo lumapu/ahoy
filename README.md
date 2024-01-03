@@ -16,16 +16,12 @@ This work is licensed under a
 
 
 THIS IS A FORK OF:
-
-
 # 🖐 Ahoy!
-![Logo](https://github.com/grindylow/ahoy/blob/main/doc/logo1_small.png?raw=true)
-
-
+![Logo](https://github.com/lumapu/ahoy/blob/main/doc/logo1_small.png?raw=true)
 
 For details on the base project visit the Ahoy site.
-
 This fork adds the following features:
+
 ### Added chart to Display128x64
 
 ### Added a History menu

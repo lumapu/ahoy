@@ -33,16 +33,16 @@ def buildManifest(path, infile, outfile):
     esp32 = {}
     esp32["chipFamily"] = "ESP32"
     esp32["parts"] = []
-    esp32["parts"].append({"path": "bootloader.bin", "offset": 4096})
-    esp32["parts"].append({"path": "partitions.bin", "offset": 32768})
-    esp32["parts"].append({"path": "ota.bin", "offset": 57344})
-    esp32["parts"].append({"path": version[1] + "_" + sha + "_esp32.bin", "offset": 65536})
+    esp32["parts"].append({"path": "ESP32/bootloader.bin", "offset": 4096})
+    esp32["parts"].append({"path": "ESP32/partitions.bin", "offset": 32768})
+    esp32["parts"].append({"path": "ESP32/ota.bin", "offset": 57344})
+    esp32["parts"].append({"path": "ESP32/" + version[1] + "_" + sha + "_esp32.bin", "offset": 65536})
     data["builds"].append(esp32)
 
     esp8266 = {}
     esp8266["chipFamily"] = "ESP8266"
     esp8266["parts"] = []
-    esp8266["parts"].append({"path": version[1] + "_" + sha + "_esp8266.bin", "offset": 0})
+    esp8266["parts"].append({"path": "ESP8266/" + version[1] + "_" + sha + "_esp8266.bin", "offset": 0})
     data["builds"].append(esp8266)
 
     jsonString = json.dumps(data, indent=2)

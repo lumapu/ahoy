@@ -134,7 +134,7 @@ class PubMqtt {
             #endif
         }
 
-        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs, bool disNightCom) {
+        bool tickerSun(uint32_t sunrise, uint32_t sunset, uint32_t offs) {
             if (!mClient.connected())
                 return false;
 
@@ -142,7 +142,20 @@ class PubMqtt {
             publish(subtopics[MQTT_SUNSET], String(sunset).c_str(), true);
             publish(subtopics[MQTT_COMM_START], String(sunrise - offs).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offs).c_str(), true);
-            publish(subtopics[MQTT_DIS_NIGHT_COMM], ((disNightCom) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+
+            Inverter<> *iv;
+            for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
+                iv = mSys->getInverterByPos(i);
+                if(NULL == iv)
+                    continue;
+
+                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/dis_night_comm", iv->config->name);
+                publish(mSubTopic, ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            }
+
+
+            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
+            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offs)) || (*mUtcTimestamp < (sunrise - offs))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
         }
@@ -236,7 +249,11 @@ class PubMqtt {
 
             publish(subtopics[MQTT_VERSION], mVersion, true);
             publish(subtopics[MQTT_DEVICE], mDevName, true);
+            #if defined(ETHERNET)
+            publish(subtopics[MQTT_IP_ADDR], ETH.localIP().toString().c_str(), true);
+            #else
             publish(subtopics[MQTT_IP_ADDR], WiFi.localIP().toString().c_str(), true);
+            #endif
             tickerMinute();
             publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
 
@@ -470,22 +487,22 @@ class PubMqtt {
                     continue; // skip to next inverter
 
                 // inverter status
-                iv->isProducing(); // recalculate status
-                if (InverterStatus::OFF < iv->status)
+                InverterStatus status = iv->getStatus();
+                if (InverterStatus::OFF < status)
                     anyAvail = true;
                 else // inverter is enabled but not available
                     allAvail = false;
 
-                if(mLastIvState[id] != iv->status) {
+                if(mLastIvState[id] != status) {
                     // if status changed from producing to not producing send last data immediately
                     if (InverterStatus::WAS_PRODUCING == mLastIvState[id])
                         sendData(iv, RealTimeRunData_Debug);
 
-                    mLastIvState[id] = iv->status;
+                    mLastIvState[id] = status;
                     changed = true;
 
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(mVal, 40, "%d", (uint8_t)iv->status);
+                    snprintf(mVal, 40, "%d", (uint8_t)status);
                     publish(mSubTopic, mVal, true);
                 }
             }
@@ -516,25 +533,17 @@ class PubMqtt {
 
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/cnt", iv->config->name);
                 snprintf(mVal, 40, "%d", iv->alarmCnt);
-                publish(mSubTopic, mVal, true);
+                publish(mSubTopic, mVal, false);
 
                 for(uint8_t j = 0; j < 10; j++) {
                     if(0 != iv->lastAlarm[j].code) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/code", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].code);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/str", iv->config->name, j);
-                        snprintf(mVal, 40, "%s", iv->getAlarmStr(iv->lastAlarm[j].code).c_str());
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/start", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].start + lastMidnight);
-                        publish(mSubTopic, mVal, true);
-
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d/end", iv->config->name, j);
-                        snprintf(mVal, 40, "%d", iv->lastAlarm[j].end + lastMidnight);
-                        publish(mSubTopic, mVal, true);
+                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d", iv->config->name, j);
+                        snprintf(mVal, 100, "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
+                            iv->lastAlarm[j].code,
+                            iv->getAlarmStr(iv->lastAlarm[j].code).c_str(),
+                            iv->lastAlarm[j].start + lastMidnight,
+                            iv->lastAlarm[j].end + lastMidnight);
+                        publish(mSubTopic, mVal, false);
                         yield();
                     }
                 }
@@ -606,14 +615,14 @@ class PubMqtt {
         uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         uint16_t mIntervalTimeout;
 
-        // last will topic and payload must be available trough lifetime of 'espMqttClient'
+        // last will topic and payload must be available through lifetime of 'espMqttClient'
         char mLwtTopic[MQTT_TOPIC_LEN+5];
         const char *mDevName, *mVersion;
         char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
         // global buffer for mqtt topic. Used when publishing mqtt messages.
         char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[40];
+        char mVal[100];
         discovery_t mDiscovery;
 };
 

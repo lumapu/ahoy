@@ -10,7 +10,7 @@
   #define F(sl) (sl)
 #endif
 #include "ahoyeth.h"
-
+#include <ESPmDNS.h>
 
 //-----------------------------------------------------------------------------
 ahoyeth::ahoyeth()
@@ -26,12 +26,16 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     mOnNetworkCB = onNetworkCB;
     mOnTimeCB = onTimeCB;
 
-    DPRINTLN(DBG_INFO, F("[ETH]: Register for events..."));
     Serial.flush();
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
 
-    DPRINTLN(DBG_INFO, F("[ETH]: begin..."));
     Serial.flush();
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
+    #else
+    ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
+    #endif
+
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
         IPAddress mask(mConfig->sys.ip.mask);
@@ -41,8 +45,6 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
         if(!ETH.config(ip, gateway, mask, dns1, dns2))
             DPRINTLN(DBG_ERROR, F("failed to set static IP!"));
     }
-    ETH.begin(ETH_MISO_GPIO, ETH_MOSI_GPIO, ETH_SCK_GPIO, ETH_CS_PIN, ETH_INT_GPIO, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
-
 }
 
 
@@ -57,8 +59,7 @@ bool ahoyeth::updateNtpTime(void) {
         return false;
 
     DPRINTLN(DBG_DEBUG, F("updateNtpTime: checking udp \"connection\"...")); Serial.flush();
-    if (!mUdp.connected())
-    {
+    if (!mUdp.connected()) {
         DPRINTLN(DBG_DEBUG, F("updateNtpTime: About to (re)connect...")); Serial.flush();
         IPAddress timeServer;
         if (!WiFi.hostByName(mConfig->ntp.addr, timeServer))
@@ -68,8 +69,7 @@ bool ahoyeth::updateNtpTime(void) {
             return false;
 
         DPRINTLN(DBG_DEBUG, F("updateNtpTime: Connected...")); Serial.flush();
-        mUdp.onPacket([this](AsyncUDPPacket packet)
-        {
+        mUdp.onPacket([this](AsyncUDPPacket packet) {
             DPRINTLN(DBG_DEBUG, F("updateNtpTime: about to handle ntp packet...")); Serial.flush();
             this->handleNTPPacket(packet);
         });
@@ -129,11 +129,9 @@ void ahoyeth::welcome(String ip, String mode) {
     DBGPRINTLN(F("--------------------------------\n"));
 }
 
-void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
-{
+void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
     AWS_LOG(F("[ETH]: Got event..."));
-    switch (event)
-    {
+    switch (event) {
 #if ( ( defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 2) ) && ( ARDUINO_ESP32_GIT_VER != 0x46d5afb1 ) )
     // For breaking core v2.0.0
     // Why so strange to define a breaking enum arduino_event_id_t in WiFiGeneric.h
@@ -153,16 +151,16 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
         break;
 
     case ARDUINO_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected)
-        {
+        if (!ESP32_W5500_eth_connected) {
+            #if defined (CONFIG_IDF_TARGET_ESP32S3)
+            AWS_LOG3(F("ETH MAC: "), mEthSpi.macAddress(), F(", IPv4: "), ETH.localIP());
+            #else
             AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
+            #endif
 
-            if (ETH.fullDuplex())
-            {
-            AWS_LOG0(F("FULL_DUPLEX, "));
-            }
-            else
-            {
+            if (ETH.fullDuplex()) {
+                AWS_LOG0(F("FULL_DUPLEX, "));
+            } else {
                 AWS_LOG0(F("HALF_DUPLEX, "));
             }
 
@@ -170,6 +168,13 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
 
             ESP32_W5500_eth_connected = true;
             mOnNetworkCB(true);
+        }
+        if (!MDNS.begin(mConfig->sys.deviceName)) {
+            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
+        } else {
+            DBGPRINT(F("[WiFi] mDNS established: "));
+            DBGPRINT(mConfig->sys.deviceName);
+            DBGPRINTLN(F(".local"));
         }
         break;
 
@@ -208,16 +213,12 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
         break;
 
     case SYSTEM_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected)
-        {
+        if (!ESP32_W5500_eth_connected) {
             AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
 
-            if (ETH.fullDuplex())
-            {
+            if (ETH.fullDuplex()) {
                 AWS_LOG0(F("FULL_DUPLEX, "));
-            }
-            else
-            {
+            } else {
                 AWS_LOG0(F("HALF_DUPLEX, "));
             }
 
@@ -225,6 +226,13 @@ void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info)
 
             ESP32_W5500_eth_connected = true;
             mOnNetworkCB(true);
+        }
+        if (!MDNS.begin(mConfig->sys.deviceName)) {
+            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
+        } else {
+            DBGPRINT(F("[WiFi] mDNS established: "));
+            DBGPRINT(mConfig->sys.deviceName);
+            DBGPRINTLN(F(".local"));
         }
         break;
 

@@ -1,0 +1,765 @@
+{
+    "type": [
+        {"0x0300": "DE_VDE4105_2018"},
+        {"0x0a00": "DE NF_EN_50549-1:2019"},
+        {"0x0c00": "AT_TOR_Erzeuger_default"},
+        {"0x0d04": "France NF_EN_50549-1:2019"},
+        {"0x1200": "2.0.4 (EU_EN50438)"},
+        {"0x3700": "2.0.0 (CH_NA EEA-NE7–CH2020)"}
+    ],
+    "grp_codes": [
+        {"0x00": "Voltage H/LVRT"},
+        {"0x10": "Frequency H/LFRT"},
+        {"0x20": "Islanding Detection"},
+        {"0x30": "Reconnection"},
+        {"0x40": "Ramp Rates"},
+        {"0x50": "Frequency Watt"},
+        {"0x60": "Volt Watt"},
+        {"0x70": "Active Power Control"},
+        {"0x80": "Volt Var"},
+        {"0x90": "Specified Power Factor"},
+        {"0xa0": "Reactive Power Control"},
+        {"0xb0": "Watt Power Factor"}
+    ],
+    "group": [
+        {
+            "0x0003": [
+                {
+                    "name": "Nominal Voltage",
+                    "div": 10,
+                    "def": 230,
+                    "unit": "V"
+                },
+                {
+                    "name": "Low Voltage 1",
+                    "div": 10,
+                    "min": 180,
+                    "max": 207,
+                    "def": 184,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 1.5,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 1",
+                    "div": 10,
+                    "min": 250,
+                    "max": 270,
+                    "def": 253,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV1 Maximum Trip Time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 100,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "Low Voltage 2",
+                    "div": 10,
+                    "min": 80,
+                    "max": 161,
+                    "def": 104,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV2 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 0.3,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 2",
+                    "div": 10,
+                    "min": 230,
+                    "max": 299,
+                    "def": 276,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV2 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0,
+                    "max": 5,
+                    "def": 0.05,
+                    "unit": "s"
+                }
+            ]
+        },
+        {
+            "0x000a": [
+                {
+                    "name": "Nominal Voltage",
+                    "div": 10,
+                    "def": 230,
+                    "unit": "V"
+                },
+                {
+                    "name": "Low Voltage 1",
+                    "div": 10,
+                    "min": 160,
+                    "max": 195.5,
+                    "def": 184,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 3,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 1",
+                    "div": 10,
+                    "min": 270,
+                    "max": 287.5,
+                    "def": 287.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "Low Voltage 2",
+                    "div": 10,
+                    "max": 150,
+                    "min": 100,
+                    "def": 103.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV2 Maximum Trip Time",
+                    "div": 100,
+                    "def": 0.3,
+                    "unit": "s"
+                },
+                {
+                    "name": "10 mins Average High Voltage",
+                    "div": 10,
+                    "min": 250,
+                    "max": 270,
+                    "def": 253,
+                    "unit": "V"
+                }
+            ]
+        },
+        {
+            "0x000c": [
+                {
+                    "name": "Nominal Voltage",
+                    "div": 10,
+                    "def": 230,
+                    "unit": "V"
+                },
+                {
+                    "name": "Low Voltage 1",
+                    "div": 10,
+                    "min": 180,
+                    "max": 207,
+                    "def": 184,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV1 Maximum Trip Time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 1.5,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 1",
+                    "div": 10,
+                    "min": 250,
+                    "max": 270,
+                    "def": 253,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV1 Maximum Trip Time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 100,
+                    "def": 3,
+                    "unit": "s"
+                },
+                {
+                    "name": "Low Voltage 2",
+                    "div": 10,
+                    "min": 80,
+                    "max": 161,
+                    "def": 161,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV2 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 0.2,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 2",
+                    "div": 10,
+                    "min": 230,
+                    "max": 299,
+                    "def": 264.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV2 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 0.2,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 3",
+                    "div": 10,
+                    "def": 276,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV3 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "10 mins Average High Voltage",
+                    "div": 10,
+                    "def": 253,
+                    "unit": "V"
+                }
+            ]
+        },
+        {
+            "0x1000": [
+                {
+                    "name": "Nominal Frequency",
+                    "div": 100,
+                    "def": 50,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "Low Frequency 1",
+                    "div": 100,
+                    "min": 47.5,
+                    "max": 49.9,
+                    "def": 47.5,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "LF1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Frequency 1",
+                    "div": 100,
+                    "min": 50.1,
+                    "max": 51.5,
+                    "def": 51.5,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "HF1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                }
+            ]
+        },
+        {
+            "0x1003": [
+                {
+                    "name": "Nominal Frequency",
+                    "div": 100,
+                    "def": 50,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "Low Frequency 1",
+                    "div": 100,
+                    "min": 45,
+                    "max": 49.9,
+                    "def": 48,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "LF1 Maximum Trip Time",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 20,
+                    "def": 2,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Frequency 1",
+                    "div": 100,
+                    "min": 50,
+                    "max": 53,
+                    "def": 51,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "HF1 Maximum Trip time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 20,
+                    "def": 2,
+                    "unit": "s"
+                },
+                {
+                    "name": "Low Frequency 2",
+                    "div": 100,
+                    "min": 45,
+                    "max": 50,
+                    "def": 47.5,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "LF2 Maximum Trip Time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 0.5,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Frequency 2",
+                    "div": 100,
+                    "min": 50,
+                    "max": 52,
+                    "def": 52,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "HF2 Maximum Trip time",
+                    "div": 10,
+                    "min": 0.1,
+                    "max": 5,
+                    "def": 0.5,
+                    "unit": "s"
+                }
+            ]
+        },
+        {
+            "0x2000": [
+                {
+                    "name": "Island Detection Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                }
+            ]
+        },
+        {
+            "0x3003": [
+                {
+                    "name": "Reconnect Time",
+                    "div": 10,
+                    "min": 10,
+                    "max": 300,
+                    "def": 60,
+                    "unit": "s"
+                },
+                {
+                    "name": "Reconnect High Voltage",
+                    "div": 10,
+                    "min": 240,
+                    "max": 276,
+                    "def": 253,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reconnect Low Voltage",
+                    "div": 10,
+                    "min": 195.5,
+                    "max": 210,
+                    "def": 195.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reconnect High Frequency",
+                    "div": 100,
+                    "max": 50.9,
+                    "min": 50.1,
+                    "def": 50.2,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "Reconnect Low Frequency",
+                    "div": 100,
+                    "min": 47.5,
+                    "max": 49.9,
+                    "def": 49.5,
+                    "unit": "Hz"
+                }
+            ]
+        },
+        {
+            "0x4000": [
+                {
+                    "name": "Normal Ramp up Rate",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 100,
+                    "def": 20,
+                    "unit": "Rated%/s"
+                },
+                {
+                    "name": "Soft Start Ramp up Rate ",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 10,
+                    "def": 0.16,
+                    "unit": "Rated%/s"
+                }
+            ]
+        },
+        {
+            "0x5001": [
+                {
+                    "name": "FW Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                },
+                {
+                    "name": "Start of Frequency Watt Droop",
+                    "div": 100,
+                    "min": 50.2,
+                    "max": 53,
+                    "def": 50.2,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "FW Droop Slope",
+                    "div": 10,
+                    "min": 16.7,
+                    "max": 100,
+                    "def": 40,
+                    "unit": "Pn%/Hz"
+                },
+                {
+                    "name": "Recovery Ramp Rate",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 100,
+                    "def": 0.16,
+                    "unit": "Pn%/s"
+
+                },
+                {
+                    "name": "FW Setting Time",
+                    "div": 10,
+                    "min": 0,
+                    "max": 2,
+                    "def": 0,
+                    "unit": "s"
+                }
+            ]
+        },
+        {
+            "0x5008": [
+                {
+                    "name": "FW Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                },
+                {
+                    "name": "Start of Frequency Watt Droop",
+                    "div": 100,
+                    "min": 50.2,
+                    "max": 52,
+                    "def": 50.2,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "FW Droop Slope",
+                    "div": 10,
+                    "min": 16.7,
+                    "max": 100,
+                    "def": 40,
+                    "unit": "Pn%/Hz"
+                },
+                {
+                    "name": "Recovery Ramp Rate",
+                    "div": 100,
+                    "min": 0.1,
+                    "max": 50,
+                    "def": 0.16,
+                    "unit": "Pn%/s"
+                },
+                {
+                    "name": "Recovery High Frequency",
+                    "div": 10,
+                    "min": 50.1,
+                    "max": 52,
+                    "def": 50.2,
+                    "unit": "Hz"
+                },
+                {
+                    "name": "Recovery Low Frequency",
+                    "div": 100,
+                    "min": 49,
+                    "max": 49.9,
+                    "def": 49.8,
+                    "unit": "Hz"
+                }
+            ]
+        },
+        {
+            "0x6000": [
+                {
+                    "name": "VW Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                },
+                {
+                    "name": "Start of Voltage Watt Droop",
+                    "div": 10,
+                    "def": 253,
+                    "unit": "V"
+                },
+                {
+                    "name": "End of Voltage Watt Droop",
+                    "div": 10,
+                    "min": 258,
+                    "max": 270,
+                    "def": 265,
+                    "unit": "V"
+                },
+                {
+                    "name": "VW Droop Slope",
+                    "div": 100,
+                    "min": 5,
+                    "max": 18,
+                    "def": 5.33,
+                    "unit": "Pn%/V"
+                }
+            ]
+        },
+        {
+            "0x7002": [
+                {
+                    "name": "APC Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                },
+                {
+                    "name": "Power Ramp Rate",
+                    "div": 100,
+                    "min": 0.33,
+                    "max": 100,
+                    "def": 100,
+                    "unit": "Pn%/s"
+                }
+            ]
+        },
+        {
+            "0x8000": [
+                {
+                    "name": "VV Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 0
+                },
+                {
+                    "name": "Voltage Set Point V1",
+                    "div": 10,
+                    "min": 184,
+                    "max": 230,
+                    "def": 213.9,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reactive Set Point Q1",
+                    "div": 10,
+                    "min": 0,
+                    "max": 100,
+                    "def": 30,
+                    "unit": "%Pn"
+                },
+                {
+                    "name": "Voltage Set Point V2",
+                    "div": 10,
+                    "min": 210,
+                    "max": 240,
+                    "def": 223.1,
+                    "unit": "V"
+                },
+                {
+                    "name": "Voltage Set Point V3",
+                    "div": 10,
+                    "min": 220,
+                    "max": 240,
+                    "def": 236.9,
+                    "unit": "V"
+                },
+                {
+                    "name": "Voltage Set Point V4",
+                    "div": 10,
+                    "min": 230,
+                    "max": 253,
+                    "def": 246.1,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reactive Set Point Q4",
+                    "div": 10,
+                    "min": 0,
+                    "max": 100,
+                    "def": 30,
+                    "unit": "%Pn"
+                }
+            ]
+        },
+        {
+            "0x8001": [
+                {
+                    "name": "VV Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 0
+                },
+                {
+                    "name": "Voltage Set Point V1",
+                    "div": 10,
+                    "def": 213.9,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reactive Set Point Q1",
+                    "div": 10,
+                    "min": 0,
+                    "max": 100,
+                    "def": 30,
+                    "unit": "%Pn"
+                },
+                {
+                    "name": "Voltage Set Point V2",
+                    "div": 10,
+                    "def": 223.1,
+                    "unit": "V"
+                },
+                {
+                    "name": "Voltage Set Point V3",
+                    "div": 10,
+                    "def": 236.9,
+                    "unit": "V"
+                },
+                {
+                    "name": "Voltage Set Point V4",
+                    "div": 10,
+                    "def": 246.1,
+                    "unit": "V"
+                },
+                {
+                    "name": "Reactive Set Point Q4",
+                    "div": 10,
+                    "min": 0,
+                    "max": 100,
+                    "def": 30,
+                    "unit": "%Pn"
+                },
+                {
+                    "name": "VV Setting Time",
+                    "div": 10,
+                    "min": 0,
+                    "max": 60,
+                    "def": 10,
+                    "unit": "s"
+                }
+            ]
+        },
+        {
+            "0x9000": [
+                {
+                    "name": "Specified Power Factor Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 0
+                },
+                {
+                    "name": "Power Factor",
+                    "div": 100,
+                    "min": 0.9,
+                    "max": 1,
+                    "def": 0.95
+                }
+            ]
+        },
+        {
+            "0xa002": [
+                {
+                    "name": "RPC Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 0
+                },
+                {
+                    "name": "Reactive Power",
+                    "div": 100,
+                    "min": 0,
+                    "max": 50,
+                    "def": 0,
+                    "unit": "%Sn"
+                }
+            ]
+        },
+        {
+            "0xb000": [
+                {
+                    "name": "WPF Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 0
+                },
+                {
+                    "name": "Start of Power of WPF",
+                    "div": 10,
+                    "def": 50,
+                    "unit": "%Pn"
+                },
+                {
+                    "name": "Power Factor ar Rated Power",
+                    "div": 100,
+                    "min": 0.8,
+                    "max": 1,
+                    "def": 0.95
+                }
+            ]
+        }
+    ]
+}

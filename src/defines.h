@@ -12,14 +12,16 @@
 // VERSION
 //-------------------------------------
 #define VERSION_MAJOR       0
-#define VERSION_MINOR       7
+#define VERSION_MINOR       8
 #define VERSION_PATCH       36
 
 //-------------------------------------
 typedef struct {
     uint8_t ch;
     uint8_t len;
+    int8_t rssi;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
+    uint16_t millis;
 } packet_t;
 
 typedef enum {
@@ -92,11 +94,15 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
 #define MQTT_MAX_PACKET_SIZE    384
 
+#define PLUGIN_DISPLAY
+
 typedef struct {
     uint32_t rxFail;
     uint32_t rxFailNoAnser;
     uint32_t rxSuccess;
     uint32_t frmCnt;
+    uint32_t txCnt;
+    uint32_t retransmits;
 } statistics_t;
 
 #endif /*__DEFINES_H__*/

@@ -1,6 +1,4 @@
-/**
- * SVG ICONS
- */
+/* SVG ICONS - https://icons.getbootstrap.com */
 
 iconWifi1 = [
     "M11.046 10.454c.226-.226.185-.605-.1-.75A6.473 6.473 0 0 0 8 9c-1.06 0-2.062.254-2.946.704-.285.145-.326.524-.1.75l.015.015c.16.16.407.19.611.09A5.478 5.478 0 0 1 8 10c.868 0 1.69.201 2.42.56.203.1.45.07.611-.091l.015-.015zM9.06 12.44c.196-.196.198-.52-.04-.66A1.99 1.99 0 0 0 8 11.5a1.99 1.99 0 0 0-1.02.28c-.238.14-.236.464-.04.66l.706.706a.5.5 0 0 0 .707 0l.708-.707z"
@@ -32,6 +30,15 @@ iconSuccess = [
 
 iconSuccessFull = [
     "M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"
+];
+
+iconGear = [
+    "M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"
+];
+
+iconDel = [
+    "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z",
+    "M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"
 ];
 
  /**
@@ -119,24 +126,25 @@ function parseRssi(obj) {
         icon = iconWifi1;
     else if(obj["wifi_rssi"] <= -70)
         icon = iconWifi2;
-    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "wifi", obj["wifi_rssi"]));
+    document.getElementById("wifiicon").replaceChildren(svg(icon, 32, 32, "icon-fg2", obj["wifi_rssi"]));
 }
 
 function toIsoDateStr(d) {
     return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(0, 19).replace('T', ', ');
 }
 
-function toIsoTimeStr(d) {
-    return new Date(d.getTime() + (d.getTimezoneOffset() * -60000)).toISOString().substring(11, 19).replace('T', ', ');
+function toIsoTimeStr(d) { // UTC!
+    return new Date(d.getTime()).toISOString().substring(11, 19).replace('T', ', ');
 }
 
 function setHide(id, hide) {
     var elm = document.getElementById(id);
+    if(null == elm)
+        return;
     if(hide) {
         if(!elm.classList.contains("hide"))
             elm.classList.add("hide");
-    }
-    else
+    } else
         elm.classList.remove('hide');
 }
 
@@ -167,9 +175,71 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
 }
 
+const getJSON = async url => {
+    const re = await fetch(url);
+    if(!re.ok)
+        throw new Error(re.statusText);
+    const data = re.json();
+    return data;
+}
+
 /**
  * CREATE DOM FUNCTIONS
  */
+
+function tr(val1, val2) {
+    if(typeof val2 == "number")
+        val2 = String(val2);
+    return ml("tr", {}, [
+        ml("th", {style: "width: 50%"}, val1),
+        ml("td", {}, val2)
+    ]);
+}
+
+function tr2(cols) {
+    var t = [];
+    for(val of cols) {
+        if(typeof val == "number")
+            val = String(val);
+        if(t.length == 0)
+            t.push(ml("th", {}, val));
+        else
+            t.push(ml("td", {}, val));
+    }
+    return ml("tr", {}, t);
+}
+
+function badge(success, text, second="error") {
+    return ml("span", {class: "badge badge-" + ((success) ? "success" : second)}, text);
+}
+
+function tabChange(id) {
+    var els = document.getElementsByClassName("nav-link");
+    [].forEach.call(els, function(e) {
+        if(e.id != id)
+            e.classList.remove('active');
+        else
+            e.classList.add('active');
+    });
+
+    els = document.getElementsByClassName("tab-content");
+    [].forEach.call(els, function(e) {
+        if(e.id == ("div"+id.substring(3)))
+            e.classList.remove('hide');
+        else
+            e.classList.add('hide');
+    });
+}
+
+function tabs(items) {
+    var li = [];
+    var cl = " active";
+    for(it of items) {
+        li.push(ml("li", {class: "nav-item"},ml("a", {id: "tab"+it, class: "nav-link" + cl, href: "#", onclick: function(){tabChange(this.id)}}, it)))
+        cl = "";
+    }
+    return ml("ul", {class: "nav nav-tabs mb-4"}, li);
+}
 
 function des(val) {
     e = document.createElement('p');
@@ -202,13 +272,11 @@ function inp(name, val, max=32, cl=["text"], id=null, type=null, pattern=null, t
 }
 
 function sel(name, options, selId) {
-    e = document.createElement('select');
-    e.name = name;
+    var o = [];
     for(it of options) {
-        o = opt(it[0], it[1], (it[0] == selId));
-        e.appendChild(o);
+        o.push(opt(it[0], it[1], (it[0] == selId)));
     }
-    return e;
+    return ml("select", {name: name}, o);
 }
 
 function selDelAllOpt(sel) {
@@ -219,9 +287,7 @@ function selDelAllOpt(sel) {
 }
 
 function opt(val, html, sel=false) {
-    o = document.createElement('option');
-    o.value = val;
-    o.innerHTML = html;
+    var o = ml("option", {value: val}, html);
     if(sel)
         o.selected = true;
     return o;
@@ -280,7 +346,7 @@ function svg(data=null, w=24, h=24, cl=null, tooltip=null) {
 function modal(title, body) {
     if(null == document.getElementById("modal")) {
         document.getElementById("wrapper").append(
-            ml("div", {id: "modal-wrapper", class: "modal", onclick: modalClose}),
+            ml("div", {id: "modal-wrapper", onclick: modalClose}),
             ml("div", {id: "modal", class: "modal"},
                 ml("div", {class: "modal-content"}, [
                         ml("div", {class: "modal-header"}, [

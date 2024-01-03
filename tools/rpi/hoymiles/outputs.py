@@ -227,6 +227,11 @@ class MqttOutputPlugin(OutputPluginFactory):
         """
 
         data = response.__dict__()
+
+        if data is None:
+            logging.warn("received data object is empty")
+            return
+
         topic = params.get('topic', None)
         if not topic:
             topic = f'{data.get("inverter_name", "hoymiles")}/{data.get("inverter_ser", None)}'
@@ -243,31 +248,33 @@ class MqttOutputPlugin(OutputPluginFactory):
             # AC Data
             phase_id = 0
             phase_sum_power = 0
-            for phase in data['phases']:
-                self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter/{phase_id}/frequency', phase['frequency'], self.qos, self.ret)
-                phase_id = phase_id + 1
-                phase_sum_power += phase['power']
+            if data['phases'] is not None:
+                for phase in data['phases']:
+                    self.client.publish(f'{topic}/emeter/{phase_id}/voltage', phase['voltage'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter/{phase_id}/current', phase['current'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter/{phase_id}/power', phase['power'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter/{phase_id}/Q_AC', phase['reactive_power'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter/{phase_id}/frequency', phase['frequency'], self.qos, self.ret)
+                    phase_id = phase_id + 1
+                    phase_sum_power += phase['power']
 
             # DC Data
             string_id = 0
             string_sum_power = 0
-            for string in data['strings']:
-                if 'name' in string:
-                    string_name = string['name'].replace(" ","_")
-                else:
-                    string_name = string_id
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/voltage', string['voltage'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/current', string['current'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/power', string['power'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldDay', string['energy_daily'], self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldTotal', string['energy_total']/1000, self.qos, self.ret)
-                self.client.publish(f'{topic}/emeter-dc/{string_name}/Irradiation', string['irradiation'], self.qos, self.ret)
-                string_id = string_id + 1
-                string_sum_power += string['power']
+            if data['strings'] is not None:
+                for string in data['strings']:
+                    if 'name' in string:
+                        string_name = string['name'].replace(" ","_")
+                    else:
+                        string_name = string_id
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/voltage', string['voltage'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/current', string['current'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/power', string['power'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldDay', string['energy_daily'], self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/YieldTotal', string['energy_total']/1000, self.qos, self.ret)
+                    self.client.publish(f'{topic}/emeter-dc/{string_name}/Irradiation', string['irradiation'], self.qos, self.ret)
+                    string_id = string_id + 1
+                    string_sum_power += string['power']
 
             # Global
             if data['event_count'] is not None:
@@ -279,19 +286,23 @@ class MqttOutputPlugin(OutputPluginFactory):
                self.client.publish(f'{topic}/YieldTotal', data['yield_total']/1000, self.qos, self.ret)
             if data['yield_today'] is not None:
                self.client.publish(f'{topic}/YieldToday', data['yield_today']/1000, self.qos, self.ret)
-            self.client.publish(f'{topic}/Efficiency', data['efficiency'], self.qos, self.ret)
+            if data['efficiency'] is not None:
+                self.client.publish(f'{topic}/Efficiency', data['efficiency'], self.qos, self.ret)
 
 
         elif isinstance(response, HardwareInfoResponse):
-            self.client.publish(f'{topic}/Firmware/Version',\
-                 f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}', self.qos, self.ret)
+            if data["FW_ver_maj"] is not None and data["FW_ver_min"] is not None and data["FW_ver_pat"] is not None:
+                self.client.publish(f'{topic}/Firmware/Version',\
+                    f'{data["FW_ver_maj"]}.{data["FW_ver_min"]}.{data["FW_ver_pat"]}', self.qos, self.ret)
 
-            self.client.publish(f'{topic}/Firmware/Build_at',\
-                 f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}',\
-                 self.qos, self.ret)
+            if data["FW_build_dd"] is not None and data["FW_build_mm"] is not None and data["FW_build_yy"] is not None and data["FW_build_HH"] is not None and data["FW_build_MM"] is not None:
+                self.client.publish(f'{topic}/Firmware/Build_at',\
+                    f'{data["FW_build_dd"]}/{data["FW_build_mm"]}/{data["FW_build_yy"]}T{data["FW_build_HH"]}:{data["FW_build_MM"]}',\
+                    self.qos, self.ret)
 
-            self.client.publish(f'{topic}/Firmware/HWPartId',\
-                 f'{data["FW_HW_ID"]}', self.qos, self.ret)
+            if data["FW_HW_ID"] is not None:
+                self.client.publish(f'{topic}/Firmware/HWPartId',\
+                    f'{data["FW_HW_ID"]}', self.qos, self.ret)
 
         else:
              raise ValueError('Data needs to be instance of StatusResponse or a instance of HardwareInfoResponse')

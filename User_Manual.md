@@ -124,6 +124,8 @@ The AhoyDTU subscribes on following topics:
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
 
+**NOTE:** Some users reported that a limit below 20W results in 0W output of the inverter. To reenable the inverter a reboot command was need to be sent, because a new limit with 100% didn't work.
+
 
 ### Inverter restart
 ```mqtt
@@ -265,31 +267,32 @@ In the same approach as for MQTT any other SubCmd and also MainCmd can be applie
 Gather user inverter information here to understand what differs between some inverters.
 To get the information open the URL `/api/record/info` on your AhoyDTU. The information will only be present once the AhoyDTU was able to communicate with an inverter.
 
-| Name       | Inverter Typ | Bootloader V. | FWVersion | FWBuild [YYYY] | FWBuild [MM-DD] | HWPartId  |          |           |
-| ---------- | ------------ | ------------- | --------- | -------------- | --------------- | --------- | -------- | --------- |
-| DanielR92  | HM-1500      |               | 1.0.16    | 2021           | 10-12           | 100       |          |           |
-| isdor      | HM-300       |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
-| aschiffler | HM-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
-| klahus1    | HM-300       |               | 1.0.10    | 2020           | 07-07           | 102       |          |           |
-| roku133    | HM-400       |               | 1.0.10    | 2020           | 07-07           | 102       |          |           |
-| eeprom23   | HM-1200      | 0.1.0         | 1.0.18    | 2021           | 12-24           | 269619201 | 18:21:00 | HWRev 256 |
-| eeprom23   | HM-1200 2t   | 0.1.0         | 1.0.16    | 2021           | 10-12           | 269619207 | 17:06:00 | HWRev 256 |
-| fila612    | HM-700       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
-| tfhcm      | TSUN-350     |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
-| Groobi     | TSOL-M400    |               | 1.0.14    | 2021           | 12-09           | 102       |          |           |
-| setje      | HM-600       |               | 1.0.08    | 2020           | 07-10           | 104       |          |           |
-| madmartin  | HM-600       | 0.1.4         | 1.0.10    | 2021           | 11-01           | 104       |          |           |
-| lumapu     | HM-1200      | 0.1.0         | 1.0.12    | 2020           | 06-24           |           |          |           |
-| chehrlic   | HM-600       |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
-| chehrlic   | TSOL-M800de  |               | 1.0.10    | 2021           | 11-01           | 104       |          |           |
-| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |          |           |
-| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |          |           |
-| tomquist   | TSOL-M1600   |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
-| rejoe2     | MI-600       |               | 236       | 2018           | 11-27           | 17        |          |           |
-| rejoe2     | MI-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |          |           |
-| dragricola | HM-1200      |               | 1.0.16    | 2021           | 10-12           | 100       |          |           |
-| dragricola | MI-300       |               | 230       | 2017           | 08-08           | 1         |          |           |
-|            |              |               |           |                |                 |           |          |           |
+| Name       | Inverter Typ | Bootloader V. | FWVersion | FWBuild [YYYY] | FWBuild [MM-DD] | HWPartId  |  FWBuild [HH:MM:SS]  |           | 
+| ---------- | ------------ | ------------- | --------- | -------------- | --------------- | --------- | -------------------- | --------- | 
+| lumapu     | HM-1200      | 0.1.0         | 1.0.12    | 2020           | 06-24           |           |                      |           | 
+| dragricola | HM-1200      |               | 1.0.16    | 2021           | 10-12           | 100       |                      |           | 
+| eeprom23   | HM-1200      | 0.1.0         | 1.0.18    | 2021           | 12-24           | 269619201 | 18:21:00             |           | 
+| eeprom23   | HM-1200 2t   | 0.1.0         | 1.0.16    | 2021           | 10-12           | 269619207 | 17:06:00             |           | 
+| aschiffler | HM-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |                      |           | 
+| DanielR92  | HM-1500      |               | 1.0.16    | 2021           | 10-12           | 100       |                      |           | 
+| Copro      | HM-300       |               | 1.0.10    | 2020           | 07-07           | 102       | 14:12:00             |           | 
+| klahus1    | HM-300       |               | 1.0.10    | 2020           | 07-07           | 102       |                      |           | 
+| isdor      | HM-300       |               | 1.0.14    | 2021           | 12-09           | 102       |                      |           | 
+| roku133    | HM-400       |               | 1.0.10    | 2020           | 07-07           | 102       |                      | HWRev 256 | 
+| setje      | HM-600       |               | 1.0.08    | 2020           | 07-10           | 104       |                      | HWRev 256 | 
+| madmartin  | HM-600       | 0.1.4         | 1.0.10    | 2021           | 11-01           | 104       |                      |           | 
+| chehrlic   | HM-600       |               | 1.0.10    | 2021           | 11-01           | 104       |                      |           | 
+| fila612    | HM-700       |               | 1.0.10    | 2021           | 11-01           | 104       |                      |           | 
+| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |                      |           | 
+| B5r1oJ0A9G | HM-800       |               | 1.0.10    | 2021           |                 | 104       |                      |           | 
+| rejoe2     | MI-1500      |               | 1.0.12    | 2020           | 06-24           | 100       |                      |           | 
+| dragricola | MI-300       |               | 230       | 2017           | 08-08           | 1         |                      |           | 
+| rejoe2     | MI-600       |               | 236       | 2018           | 11-27           | 17        |                      |           | 
+| tomquist   | TSOL-M1600   |               | 1.0.12    | 2020           | 06-24           | 100       |                      |           | 
+| Groobi     | TSOL-M400    |               | 1.0.14    | 2021           | 12-09           | 102       |                      |           | 
+| chehrlic   | TSOL-M800de  |               | 1.0.10    | 2021           | 11-01           | 104       |                      |           | 
+| tfhcm      | TSUN-350     |               | 1.0.14    | 2021           | 12-09           | 102       |                      |           | 
+|            |              |               |           |                |                 |           |                      |           | 
 
 ## Developer Information about Command Queue
 After reboot or startup the ahoy firmware it will enque three commands in the following sequence:

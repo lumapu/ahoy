@@ -8,6 +8,7 @@
     --success: #00bb00;
 
     --input-bg: #333;
+    --table-border: #333;
 
     --nav-bg: #333;
     --primary: #004d87;
@@ -15,7 +16,9 @@
     --secondary: #0072c8;
     --nav-active: #555;
     --footer-bg: #282828;
-    --modal-bg: #666;
+    --modal-bg: #282828;
+
+    --invalid-bg: #400;
 
     --total-head-title: #555511;
     --total-bg: #666622;

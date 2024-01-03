@@ -11,22 +11,23 @@
   #define F(sl) (sl)
 #endif
 
+#define MAX_GRID_LENGTH     150
+
 #include "hmDefines.h"
+#include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
 #include <memory>
 #include <queue>
+#include <functional>
 #include "../config/settings.h"
 
+#include "radio.h"
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.
  * A list of functions can be linked to the assignment and will be executed
  * automatically. Their result does not differ from original read values.
  */
-
-// forward declaration of class
-template <class REC_TYP=float>
-class Inverter;
 
 
 // prototypes
@@ -65,7 +66,7 @@ struct calcFunc_t {
 
 template<class T=float>
 struct record_t {
-    byteAssign_t* assign; // assigment of bytes in payload
+    byteAssign_t* assign; // assignment of bytes in payload
     uint8_t length;       // length of the assignment list
     T *record;            // data pointer
     uint32_t ts;          // timestamp of last received payload
@@ -78,31 +79,6 @@ struct alarm_t {
     uint32_t end;
     alarm_t(uint16_t c, uint32_t s, uint32_t e) : code(c), start(s), end(e) {}
     alarm_t() : code(0), start(0), end(0) {}
-};
-
-class CommandAbstract {
-    public:
-        CommandAbstract(uint8_t txType = 0, uint8_t cmd = 0) {
-            _TxType = txType;
-            _Cmd = cmd;
-        };
-        virtual ~CommandAbstract() {};
-
-        const uint8_t getCmd() {
-            return _Cmd;
-        }
-
-    protected:
-        uint8_t _TxType;
-        uint8_t _Cmd;
-};
-
-class InfoCommand : public CommandAbstract {
-    public:
-        InfoCommand(uint8_t cmd){
-            _TxType = 0x15;
-            _Cmd = cmd;
-        }
 };
 
 // list of all available functions, mapped in hmDefines.h
@@ -142,16 +118,34 @@ class Inverter {
         uint8_t       channels;          // number of PV channels (1-4)
         record_t<REC_TYP> recordMeas;    // structure for measured values
         record_t<REC_TYP> recordInfo;    // structure for info values
+        record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        //String        lastAlarmMsg;
-        bool          initialized;       // needed to check if the inverter was correctly added (ESP32 specific - union types are never null)
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
-        uint16_t      alarmCnt;          // counts the total number of occured alarms
+        uint16_t      alarmCnt;          // counts the total number of occurred alarms
+        uint16_t      alarmLastId;       // lastId which was received
+        int8_t        rssi;              // RSSI
+        uint8_t       miMultiParts;      // helper info for MI multiframe msgs
+        uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
+        bool          mGotFragment;      // shows if inverter has sent at least one fragment
+        uint8_t       curFrmCnt;         // count received frames in current loop
+        bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
+        uint8_t       mCmd;              // holds the command to send
+        bool          mIsSingleframeReq; // indicates this is a missing single frame request
+        Radio         *radio;            // pointer to associated radio class
+        statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
+        HeuristicInv  heuristics;        // heuristic information / logic
+        uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
+        bool          commEnabled;       // 'pause night communication' sets this field to false
 
+        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
+        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
+        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
+        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
+        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debu
 
         static uint32_t *timestamp;      // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
@@ -164,73 +158,78 @@ class Inverter {
             actPowerLimit      = 0xffff;               // init feedback from inverter to -1
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
-            initialized        = false;
-            //lastAlarmMsg       = "nothing";
             alarmMesIndex      = 0;
             isConnected        = false;
             status             = InverterStatus::OFF;
             alarmNxtWrPos      = 0;
             alarmCnt           = 0;
+            alarmLastId        = 0;
+            rssi               = -127;
+            miMultiParts       = 0;
+            mGotLastMsg        = false;
+            mCmd               = InitDataState;
+            mIsSingleframeReq  = false;
+            radio              = NULL;
+            commEnabled        = true;
+            mIvRxCnt           = 0;
+            mIvTxCnt           = 0;
+            mDtuRxCnt          = 0;
+            mDtuTxCnt          = 0;
+
+            memset(&radioStatistics, 0, sizeof(statistics_t));
+            memset(heuristics.txRfQuality, -6, 5);
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
         }
 
-        ~Inverter() {
-            // TODO: cleanup
-        }
-
-        template <typename T>
-        void enqueCommand(uint8_t cmd) {
-           _commandQueue.push(std::make_shared<T>(cmd));
-           DPRINT_IVID(DBG_INFO, id);
-           DBGPRINT(F("enqueCommand: 0x"));
-           DBGHEXLN(cmd);
-        }
-
-        void setQueuedCmdFinished() {
-            if (!_commandQueue.empty()) {
-                // Will destroy CommandAbstract Class Object (?)
-                _commandQueue.pop();
-            }
-        }
-
-        void clearCmdQueue() {
-            DPRINTLN(DBG_INFO, F("clearCmdQueue"));
-            while (!_commandQueue.empty()) {
-                // Will destroy CommandAbstract Class Object (?)
-                _commandQueue.pop();
-            }
-        }
-
-        uint8_t getQueuedCmd() {
-            if (_commandQueue.empty()) {
-                if (ivGen != IV_MI) {
-                    if (getFwVersion() == 0)
-                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version
-                    enqueCommand<InfoCommand>(RealTimeRunData_Debug);  // live data
-                } else if (ivGen == IV_MI){
-                    if (getFwVersion() == 0)
-                        enqueCommand<InfoCommand>(InverterDevInform_All); // firmware version; might not work, esp. for 1/2 ch hardware
-                    if (type == INV_TYPE_4CH) {
-                        enqueCommand<InfoCommand>(0x36);
-                    } else {
-                        enqueCommand<InfoCommand>(0x09);
-                    }
+        void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
+            if(mDevControlRequest) {
+                cb(devControlCmd, true);
+                mDevControlRequest = false;
+            } else if (IV_MI != ivGen) {
+                mGetLossInterval++;
+                if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                    cb(AlarmData, false);                // get last alarms
+                else if(0 == getFwVersion())
+                    cb(InverterDevInform_All, false);    // get firmware version
+                else if(0 == getHwVersion())
+                    cb(InverterDevInform_Simple, false); // get hardware version
+                else if(actPowerLimit == 0xffff)
+                    cb(SystemConfigPara, false);         // power limit info
+                else if(InitDataState != devControlCmd) {
+                    cb(devControlCmd, false);            // custom command which was received by API
+                    devControlCmd = InitDataState;
+                    mGetLossInterval = 1;
+                } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                    cb(GridOnProFilePara, false);
+                } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
+                    mGetLossInterval = 1;
+                    cb(GetLossRate, false);
+                } else
+                    cb(RealTimeRunData_Debug, false);    // get live data
+            } else {
+                if(0 == getFwVersion())
+                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
+                else {
+                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                    else
+                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
                 }
-
-                if ((actPowerLimit == 0xffff) && isConnected)
-                    enqueCommand<InfoCommand>(SystemConfigPara); // power limit info
             }
-            return _commandQueue.front().get()->getCmd();
         }
-
 
         void init(void) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:init"));
             initAssignment(&recordMeas, RealTimeRunData_Debug);
             initAssignment(&recordInfo, InverterDevInform_All);
+            initAssignment(&recordHwInfo, InverterDevInform_Simple);
             initAssignment(&recordConfig, SystemConfigPara);
             initAssignment(&recordAlarm, AlarmData);
             toRadioId();
-            initialized = true;
+            curCmtFreq = this->config->frequency; // update to frequency read from settings
         }
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
@@ -280,12 +279,10 @@ class Inverter {
             return isConnected;
         }
 
-        void clearDevControlRequest() {
-            mDevControlRequest = false;
-        }
-
-        inline bool getDevControlRequest() {
-            return mDevControlRequest;
+        bool setDevCommand(uint8_t cmd) {
+            if(isConnected)
+                devControlCmd = cmd;
+            return isConnected;
         }
 
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
@@ -308,7 +305,12 @@ class Inverter {
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
                             rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            float actYD = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            uint8_t idx = rec->assign[pos].ch - 1;
+                            if (mLastYD[idx] > actYD)
+                                mOffYD[idx] += mLastYD[idx];
+                            mLastYD[idx] = actYD;
+                            rec->record[pos] = mOffYD[idx] + actYD;
                         } else {
                             if ((REC_TYP)(div) > 1)
                                 rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
@@ -325,11 +327,9 @@ class Inverter {
                     if (getPosByChFld(0, FLD_EVT, rec) == pos) {
                         if (alarmMesIndex < rec->record[pos]) {
                             alarmMesIndex = rec->record[pos];
-                            //enqueCommand<InfoCommand>(AlarmUpdate); // What is the function of AlarmUpdate?
 
                             DPRINT(DBG_INFO, "alarm ID incremented to ");
                             DBGPRINTLN(String(alarmMesIndex));
-                            enqueCommand<InfoCommand>(AlarmData);
                         }
                     }
                 }
@@ -337,6 +337,10 @@ class Inverter {
                     DPRINTLN(DBG_DEBUG, "add info");
                     // eg. fw version ...
                     isConnected = true;
+                }
+                else if (rec->assign == SimpleInfoAssignment) {
+                    DPRINTLN(DBG_DEBUG, "add simple info");
+                    // eg. hw version ...
                 }
                 else if (rec->assign == SystemConfigParaAssignment) {
                     DPRINTLN(DBG_DEBUG, "add config");
@@ -348,12 +352,9 @@ class Inverter {
                 }
                 else if (rec->assign == AlarmDataAssignment) {
                     DPRINTLN(DBG_DEBUG, "add alarm");
-                    //if (getPosByChFld(0, FLD_LAST_ALARM_CODE, rec) == pos){
-                    //    lastAlarmMsg = getAlarmStr(rec->record[pos]);
-                    //}
                 }
                 else
-                    DPRINTLN(DBG_WARN, F("add with unknown assginment"));
+                    DPRINTLN(DBG_WARN, F("add with unknown assignment"));
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
@@ -388,6 +389,10 @@ class Inverter {
                 return 0;
         }
 
+        uint32_t getChannelFieldValueInt(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
+            return (uint32_t) getChannelFieldValue(channel, fieldId, rec);
+        }
+
         REC_TYP getValue(uint8_t pos, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getValue"));
             if(NULL == rec)
@@ -410,6 +415,10 @@ class Inverter {
 
         bool isAvailable() {
             bool avail = false;
+
+            if((recordMeas.ts == 0) && (recordInfo.ts == 0) && (recordConfig.ts == 0) && (recordAlarm.ts == 0))
+                return false;
+
             if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
                 avail = true;
             if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
@@ -426,6 +435,7 @@ class Inverter {
                 if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                    alarmMesIndex = 0;
                 }
                 else
                     status = InverterStatus::WAS_ON;
@@ -448,10 +458,31 @@ class Inverter {
             return producing;
         }
 
+        InverterStatus getStatus(){
+            isProducing(); // recalculate status
+            return status;
+        }
+
         uint16_t getFwVersion() {
             record_t<> *rec = getRecordStruct(InverterDevInform_All);
-            uint8_t pos = getPosByChFld(CH0, FLD_FW_VERSION, rec);
-            return getValue(pos, rec);
+            return getChannelFieldValue(CH0, FLD_FW_VERSION, rec);
+        }
+
+        uint16_t getHwVersion() {
+            record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+            return getChannelFieldValue(CH0, FLD_HW_VERSION, rec);
+        }
+
+        uint16_t getMaxPower() {
+            record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+            if(0 == getChannelFieldValue(CH0, FLD_HW_VERSION, rec))
+                return 0;
+
+            for(uint8_t i = 0; i < sizeof(devInfo) / sizeof(devInfo_t); i++) {
+                if(devInfo[i].hwPart == (getChannelFieldValueInt(CH0, FLD_PART_NUM, rec) >> 8))
+                    return devInfo[i].maxPower;
+            }
+            return 0;
         }
 
         uint32_t getLastTs(record_t<> *rec) {
@@ -461,11 +492,12 @@ class Inverter {
 
         record_t<> *getRecordStruct(uint8_t cmd) {
             switch (cmd) {
-                case RealTimeRunData_Debug: return &recordMeas;   // 11 = 0x0b
-                case InverterDevInform_All: return &recordInfo;   //  1 = 0x01
-                case SystemConfigPara:      return &recordConfig; //  5 = 0x05
-                case AlarmData:             return &recordAlarm;  // 17 = 0x11
-                default:                    break;
+                case RealTimeRunData_Debug:    return &recordMeas;   // 11 = 0x0b
+                case InverterDevInform_Simple: return &recordHwInfo; //  0 = 0x00
+                case InverterDevInform_All:    return &recordInfo;   //  1 = 0x01
+                case SystemConfigPara:         return &recordConfig; //  5 = 0x05
+                case AlarmData:                return &recordAlarm;  // 17 = 0x11
+                default:                       break;
             }
             return NULL;
         }
@@ -485,10 +517,7 @@ class Inverter {
                             rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
                             rec->assign  = (byteAssign_t *)hms1chAssignment;
                             rec->pyldLen = HMS1CH_PAYLOAD_LEN;
-                        }  /*else if(IV_MI == ivGen) {
-                            rec->length  = (uint8_t)(HM1CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hm1chAssignment;
-                        }*/
+                        }
                         channels = 1;
                     }
                     else if (INV_TYPE_2CH == type) {
@@ -533,6 +562,11 @@ class Inverter {
                     rec->assign  = (byteAssign_t *)InfoAssignment;
                     rec->pyldLen = HMINFO_PAYLOAD_LEN;
                     break;
+                case InverterDevInform_Simple:
+                    rec->length  = (uint8_t)(HMSIMPLE_INFO_LIST_LEN);
+                    rec->assign  = (byteAssign_t *)SimpleInfoAssignment;
+                    rec->pyldLen = HMSIMPLE_INFO_PAYLOAD_LEN;
+                    break;
                 case SystemConfigPara:
                     rec->length  = (uint8_t)(HMSYSTEM_LIST_LEN);
                     rec->assign  = (byteAssign_t *)SystemConfigParaAssignment;
@@ -554,6 +588,39 @@ class Inverter {
             }
         }
 
+        void resetAlarms() {
+            lastAlarm.fill({0, 0, 0});
+            alarmNxtWrPos = 0;
+            alarmCnt = 0;
+            alarmLastId = 0;
+
+            memset(mOffYD, 0, sizeof(float) * 6);
+            memset(mLastYD, 0, sizeof(float) * 6);
+        }
+
+        bool parseGetLossRate(uint8_t pyld[], uint8_t len) {
+            if (len == HMGETLOSSRATE_PAYLOAD_LEN) {
+                uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
+                uint16_t txCnt = (pyld[2] << 8) + pyld[3];
+
+                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                    DPRINT_IVID(DBG_INFO, id);
+                    DBGPRINTLN("Inv loss: " +
+                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
+                        String (mDtuTxCnt) + ", DTU loss: " +
+                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
+                        String (txCnt - mIvTxCnt));
+                }
+
+                mIvRxCnt = rxCnt;
+                mIvTxCnt = txCnt;
+                mDtuRxCnt = 0;  // start new interval
+                mDtuTxCnt = 0;  // start new interval
+                return true;
+            }
+            return false;
+        }
+
         uint16_t parseAlarmLog(uint8_t id, uint8_t pyld[], uint8_t len) {
             uint8_t startOff = 2 + id * ALARM_LOG_ENTRY_SIZE;
             if((startOff + ALARM_LOG_ENTRY_SIZE) > len)
@@ -563,9 +630,9 @@ class Inverter {
             uint32_t startTimeOffset = 0, endTimeOffset = 0;
             uint32_t start, endTime;
 
-            if (((wCode >> 13) & 0x01) == 1) // check if is AM or PM
-                startTimeOffset = 12 * 60 * 60;
-            if (((wCode >> 12) & 0x01) == 1) // check if is AM or PM
+            // check if is AM or PM
+            startTimeOffset = ((wCode >> 13) & 0x01) * 12 * 60 * 60;
+            if (((wCode >> 12) & 0x03) != 0)
                 endTimeOffset = 12 * 60 * 60;
 
             start     = (((uint16_t)pyld[startOff + 4] << 8) | ((uint16_t)pyld[startOff + 5])) + startTimeOffset;
@@ -575,6 +642,7 @@ class Inverter {
             addAlarm(pyld[startOff+1], start, endTime);
 
             alarmCnt++;
+            alarmLastId = alarmMesIndex;
 
             return pyld[startOff+1];
         }
@@ -582,59 +650,102 @@ class Inverter {
         static String getAlarmStr(uint16_t alarmCode) {
             switch (alarmCode) { // breaks are intentionally missing!
                 case 1:    return String(F("Inverter start"));
-                case 2:    return String(F("DTU command failed"));
+                case 2:    return String(F("Time calibration"));
+                case 3:    return String(F("EEPROM reading and writing error during operation"));
+                case 4:    return String(F("Offline"));
+                case 11:   return String(F("Grid voltage surge"));
+                case 12:   return String(F("Grid voltage sharp drop"));
+                case 13:   return String(F("Grid frequency mutation"));
+                case 14:   return String(F("Grid phase mutation"));
+                case 15:   return String(F("Grid transient fluctuation"));
+                case 36:   return String(F("INV overvoltage or overcurrent"));
+                case 46:   return String(F("FB overvoltage"));
+                case 47:   return String(F("FB overcurrent"));
+                case 48:   return String(F("FB clamp overvoltage"));
+                case 49:   return String(F("FB clamp overvoltage"));
+                case 61:   return String(F("Calibration parameter error"));
+                case 62:   return String(F("System configuration parameter error"));
+                case 63:   return String(F("Abnormal power generation data"));
+
+                case 71:   return String(F("Grid overvoltage load reduction (VW) function enable"));
+                case 72:   return String(F("Power grid over-frequency load reduction (FW) function enable"));
+                case 73:   return String(F("Over-temperature load reduction (TW) function enable"));
+
+                case 95:   return String(F("PV-1: Module in suspected shadow"));
+                case 96:   return String(F("PV-2: Module in suspected shadow"));
+                case 97:   return String(F("PV-3: Module in suspected shadow"));
+                case 98:   return String(F("PV-4: Module in suspected shadow"));
+
                 case 121:  return String(F("Over temperature protection"));
+                case 122:  return String(F("Microinverter is suspected of being stolen"));
+                case 123:  return String(F("Locked by remote control"));
+                case 124:  return String(F("Shut down by remote control"));
                 case 125:  return String(F("Grid configuration parameter error"));
-                case 126:  return String(F("Software error code 126"));
+                case 126:  return String(F("EEPROM reading and writing error"));
                 case 127:  return String(F("Firmware error"));
-                case 128:  return String(F("Software error code 128"));
-                case 129:  return String(F("Software error code 129"));
+                case 128:  return String(F("Hardware configuration error"));
+                case 129:  return String(F("Abnormal bias"));
                 case 130:  return String(F("Offline"));
-                case 141:  return String(F("Grid overvoltage"));
-                case 142:  return String(F("Average grid overvoltage"));
-                case 143:  return String(F("Grid undervoltage"));
-                case 144:  return String(F("Grid overfrequency"));
-                case 145:  return String(F("Grid underfrequency"));
-                case 146:  return String(F("Rapid grid frequency change"));
-                case 147:  return String(F("Power grid outage"));
-                case 148:  return String(F("Grid disconnection"));
-                case 149:  return String(F("Island detected"));
-                case 205:  return String(F("Input port 1 & 2 overvoltage"));
-                case 206:  return String(F("Input port 3 & 4 overvoltage"));
-                case 207:  return String(F("Input port 1 & 2 undervoltage"));
-                case 208:  return String(F("Input port 3 & 4 undervoltage"));
-                case 209:  return String(F("Port 1 no input"));
-                case 210:  return String(F("Port 2 no input"));
-                case 211:  return String(F("Port 3 no input"));
-                case 212:  return String(F("Port 4 no input"));
-                case 213:  return String(F("PV-1 & PV-2 abnormal wiring"));
-                case 214:  return String(F("PV-3 & PV-4 abnormal wiring"));
-                case 215:  return String(F("PV-1 Input overvoltage"));
-                case 216:  return String(F("PV-1 Input undervoltage"));
-                case 217:  return String(F("PV-2 Input overvoltage"));
-                case 218:  return String(F("PV-2 Input undervoltage"));
-                case 219:  return String(F("PV-3 Input overvoltage"));
-                case 220:  return String(F("PV-3 Input undervoltage"));
-                case 221:  return String(F("PV-4 Input overvoltage"));
-                case 222:  return String(F("PV-4 Input undervoltage"));
-                case 301:  return String(F("Hardware error code 301"));
-                case 302:  return String(F("Hardware error code 302"));
-                case 303:  return String(F("Hardware error code 303"));
-                case 304:  return String(F("Hardware error code 304"));
-                case 305:  return String(F("Hardware error code 305"));
-                case 306:  return String(F("Hardware error code 306"));
-                case 307:  return String(F("Hardware error code 307"));
-                case 308:  return String(F("Hardware error code 308"));
+                case 141:  return String(F("Grid: Grid overvoltage"));
+                case 142:  return String(F("Grid: 10 min value grid overvoltage"));
+                case 143:  return String(F("Grid: Grid undervoltage"));
+                case 144:  return String(F("Grid: Grid overfrequency"));
+                case 145:  return String(F("Grid: Grid underfrequency"));
+                case 146:  return String(F("Grid: Rapid grid frequency change rate"));
+                case 147:  return String(F("Grid: Power grid outage"));
+                case 148:  return String(F("Grid: Grid disconnection"));
+                case 149:  return String(F("Grid: Island detected"));
+
+                case 150:  return String(F("DCI exceeded"));
+
+                case 171:  return String(F("Grid: Abnormal phase difference between phase to phase"));
+                case 181:  return String(F("Abnormal insulation impedance"));
+                case 182:  return String(F("Abnormal grounding"));
+                case 205:  return String(F("MPPT-A: Input overvoltage"));
+                case 206:  return String(F("MPPT-B: Input overvoltage"));
+                case 207:  return String(F("MPPT-A: Input undervoltage"));
+                case 208:  return String(F("MPPT-B: Input undervoltage"));
+                case 209:  return String(F("PV-1: No input"));
+                case 210:  return String(F("PV-2: No input"));
+                case 211:  return String(F("PV-3: No input"));
+                case 212:  return String(F("PV-4: No input"));
+                case 213:  return String(F("MPPT-A: PV-1 & PV-2 abnormal wiring"));
+                case 214:  return String(F("MPPT-B: PV-3 & PV-4 abnormal wiring"));
+                case 215:  return String(F("MPPT-C: Input overvoltage"));
+                case 216:  return String(F("PV-1: Input undervoltage"));
+                case 217:  return String(F("PV-2: Input overvoltage"));
+                case 218:  return String(F("PV-2: Input undervoltage"));
+                case 219:  return String(F("PV-3: Input overvoltage"));
+                case 220:  return String(F("PV-3: Input undervoltage"));
+                case 221:  return String(F("PV-4: Input overvoltage"));
+                case 222:  return String(F("PV-4: Input undervoltage"));
+
+                case 301:  return String(F("FB short circuit failure"));
+                case 302:  return String(F("FB short circuit failure"));
+                case 303:  return String(F("FB overcurrent protection failure"));
+                case 304:  return String(F("FB overcurrent protection failure"));
+                case 305:  return String(F("FB clamp circuit failure"));
+                case 306:  return String(F("FB clamp circuit failure"));
+                case 307:  return String(F("INV power device failure"));
+                case 308:  return String(F("INV overcurrent or overvoltage protection failure"));
                 case 309:  return String(F("Hardware error code 309"));
                 case 310:  return String(F("Hardware error code 310"));
                 case 311:  return String(F("Hardware error code 311"));
                 case 312:  return String(F("Hardware error code 312"));
                 case 313:  return String(F("Hardware error code 313"));
                 case 314:  return String(F("Hardware error code 314"));
-                case 5041: return String(F("Error code-04 Port 1"));
-                case 5042: return String(F("Error code-04 Port 2"));
-                case 5043: return String(F("Error code-04 Port 3"));
-                case 5044: return String(F("Error code-04 Port 4"));
+
+                case 5011: return String(F("PV-1: MOSFET overcurrent (II)"));
+                case 5012: return String(F("PV-2: MOSFET overcurrent (II)"));
+                case 5013: return String(F("PV-3: MOSFET overcurrent (II)"));
+                case 5014: return String(F("PV-4: MOSFET overcurrent (II)"));
+                case 5020: return String(F("H-bridge MOSFET overcurrent or H-bridge overvoltage"));
+
+                case 5041: return String(F("PV-1: current overcurrent (II)"));
+                case 5042: return String(F("PV-2: current overcurrent (II)"));
+                case 5043: return String(F("PV-3: current overcurrent (II)"));
+                case 5044: return String(F("PV-4: current overcurrent (II)"));
+
                 case 5051: return String(F("PV Input 1 Overvoltage/Undervoltage"));
                 case 5052: return String(F("PV Input 2 Overvoltage/Undervoltage"));
                 case 5053: return String(F("PV Input 3 Overvoltage/Undervoltage"));
@@ -644,13 +755,36 @@ class Inverter {
                 case 5080: return String(F("Grid Overvoltage/Undervoltage"));
                 case 5090: return String(F("Grid Overfrequency/Underfrequency"));
                 case 5100: return String(F("Island detected"));
+                case 5110: return String(F("GFDI"));
                 case 5120: return String(F("EEPROM reading and writing error"));
+                case 5141:
+                case 5142:
+                case 5143:
+                case 5144:
+                           return String(F("FB clamp overvoltage"));
                 case 5150: return String(F("10 min value grid overvoltage"));
+                case 5160: return String(F("Grid transient fluctuation"));
                 case 5200: return String(F("Firmware error"));
-                case 8310: return String(F("Shut down"));
+                case 8310: return String(F("Shut down by remote control"));
+                case 8320: return String(F("Locked by remote control"));
                 case 9000: return String(F("Microinverter is suspected of being stolen"));
                 default:   return String(F("Unknown"));
             }
+        }
+
+        void addGridProfile(uint8_t buf[], uint8_t length) {
+            mGridLen = (length > MAX_GRID_LENGTH) ? MAX_GRID_LENGTH : length;
+            std::copy(buf, &buf[mGridLen], mGridProfile);
+        }
+
+        String getGridProfile(void) {
+            char buf[MAX_GRID_LENGTH * 3];
+            memset(buf, 0, MAX_GRID_LENGTH);
+            for(uint8_t i = 0; i < mGridLen; i++) {
+                snprintf(&buf[i*3], 4, "%02X ", mGridProfile[i]);
+            }
+            buf[mGridLen*3] = 0;
+            return String(buf);
         }
 
     private:
@@ -670,8 +804,11 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
-        std::queue<std::shared_ptr<CommandAbstract>> _commandQueue;
-        bool          mDevControlRequest; // true if change needed
+    private:
+        float mOffYD[6], mLastYD[6];
+        bool mDevControlRequest; // true if change needed
+        uint8_t mGridLen = 0;
+        uint8_t mGridProfile[MAX_GRID_LENGTH];
 };
 
 template <class REC_TYP>

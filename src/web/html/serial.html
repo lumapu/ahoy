@@ -7,57 +7,18 @@
     <body>
         {#HTML_NAV}
         <div id="wrapper">
-            <div id="content">
+            <div id="content" style="max-width: 100% !important;">
                 <div class="row">
-                    <textarea id="serial" class="mt-3" cols="80" rows="20" readonly></textarea>
+                    <textarea id="serial" class="mt-3" cols="80" rows="40" readonly></textarea>
                 </div>
                 <div class="row my-3">
-                    <div class="col-3">connected: <span class="dot" id="connected"></span></div>
+                    <div class="col-3">console active: <span class="dot" id="active"></span></div>
                     <div class="col-3 col-sm-4 my-3">Uptime: <span id="uptime"></span></div>
-                    <div class="col-6 col-sm-4">
+                    <div class="col-6 col-sm-4 a-r">
                         <input type="button" value="clear" class="btn" id="clear"/>
                         <input type="button" value="autoscroll" class="btn" id="scroll"/>
+                        <input type="button" value="copy" class="btn" id="copy"/>
                     </div>
-                </div>
-                <div class="hr my-3"></div>
-                <div class="row mb-3">
-                    <h3>Commands</h3>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12 col-sm-3 my-2">Select Inverter</div>
-                    <div class="col-12 col-sm-9"><select name="iv" id="InvID"></select></div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12 col-sm-3 my-2">Power Limit Command</div>
-                    <div class="col-12 col-sm-9">
-                        <select name="pwrlimctrl">
-                            <option value="" selected disabled hidden>select the unit and persistence</option>
-                            <option value="limit_nonpersistent_absolute">absolute non persistent [W]</option>
-                            <option value="limit_nonpersistent_relative">relative non persistent [%]</option>
-                            <option value="limit_persistent_absolute">absolute persistent [W]</option>
-                            <option value="limit_persistent_relative">relative persistent [%]</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12 col-sm-3 my-2">Power Limit Value</div>
-                    <div class="col-12 col-sm-9"><input type="number" name="pwrlimval" maxlength="4"/></div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12 col-sm-3"></div>
-                    <div class="col-12 col-sm-9"><input type="button" value="Send Power Limit" class="btn" id="sendpwrlim"/></div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-12 col-sm-3 my-2">Control Inverter</div>
-                    <div class="col-12 col-sm-9" id="power">
-                        <input type="button" value="Restart" class="btn" id="restart"/>
-                        <input type="button" value="Turn Off" class="btn" id="power_off"/>
-                        <input type="button" value="Turn On" class="btn" id="power_on"/>
-                    </div>
-                </div>
-                <div class="row mb-5">
-                    <div class="col-3 my-2">Ctrl result</div>
-                    <div class="col-9 my-2"><span id="result">n/a</span></div>
                 </div>
             </div>
         </div>
@@ -66,6 +27,7 @@
             var mAutoScroll = true;
             var con = document.getElementById("serial");
             var exeOnce = true;
+            var version, build;
 
             function parseGeneric(obj) {
                 var up = obj["ts_uptime"];
@@ -82,25 +44,15 @@
                 if(true == exeOnce) {
                     parseNav(obj);
                     parseESP(obj);
-                    window.setInterval("getAjax('/api/generic', parseGeneric)", 10000);
+                    window.setInterval("getAjax('/api/generic', parseGeneric)", 5000);
                     exeOnce = false;
-                    getAjax("/api/inverter/list", parse);
+                    setTimeOffset();
                 }
+                version = obj.version;
+                build   = obj.build;
             }
 
-            function parse(root) {
-                select = document.getElementById('InvID');
-
-                if(null == root) return;
-                root = root.inverter;
-                for(var i = 0; i < root.length; i++) {
-                    inv = root[i];
-                    var opt = document.createElement('option');
-                    opt.value = inv.id;
-                    opt.innerHTML = inv.name;
-                    select.appendChild(opt);
-                }
-
+            function setTimeOffset() {
                 // set time offset for serial console
                 var obj = new Object();
                 obj.cmd = "serial_utc_offset";
@@ -115,16 +67,36 @@
                 mAutoScroll = !mAutoScroll;
                 this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
             });
+            document.getElementById("copy").addEventListener("click", function() {
+                con.value = version + " - " + build + "\n---------------\n" + con.value;
+                if (window.clipboardData && window.clipboardData.setData) {
+                    return window.clipboardData.setData("Text", text);
+                } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+                    var ta = document.createElement("textarea");
+                    ta.textContent = con.value;
+                    ta.style.position = "fixed";  // Prevent scrolling to bottom of page in Microsoft Edge.
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try {
+                        return document.execCommand("copy");  // Security exception may be thrown by some browsers.
+                    } catch (ex) {
+                        alert("Copy to clipboard failed" + ex);
+                    } finally {
+                        document.body.removeChild(ta);
+                        alert("Copied to clipboard");
+                    }
+                }
+            });
 
             if (!!window.EventSource) {
                 var source = new EventSource('/events');
                 source.addEventListener('open', function(e) {
-                    document.getElementById("connected").style.backgroundColor = "#0c0";
+                    document.getElementById("active").style.backgroundColor = "#0c0";
                 }, false);
 
                 source.addEventListener('error', function(e) {
                     if (e.target.readyState != EventSource.OPEN) {
-                        document.getElementById("connected").style.backgroundColor = "#f00";
+                        document.getElementById("active").style.backgroundColor = "#f00";
                     }
                 }, false);
 
@@ -134,56 +106,6 @@
                         con.scrollTop = con.scrollHeight;
                 }, false);
             }
-
-
-            function ctrlCb(obj) {
-                var e = document.getElementById("result");
-                if(obj["success"])
-                    e.innerHTML = "ok";
-                else
-                    e.innerHTML = "Error: " + obj["error"];
-            }
-
-            function get_selected_iv() {
-                var e = document.getElementById("InvID");
-                return  parseInt(e.value);
-            }
-
-            const wrapper = document.getElementById('power');
-
-            wrapper.addEventListener('click', (event) => {
-                var obj = new Object();
-                obj.id = get_selected_iv();
-                obj.cmd = "power";
-
-                switch (event.target.value) {
-                    default:
-                    case "Turn On":
-                        obj.val = 1;
-                        break;
-                    case "Turn Off":
-                        obj.val = 0;
-                        break;
-                }
-
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
-
-            document.getElementById("sendpwrlim").addEventListener("click", function() {
-                var val = parseInt(document.getElementsByName('pwrlimval')[0].value);
-                var cmd = document.getElementsByName('pwrlimctrl')[0].value;
-
-                if(isNaN(val)) {
-                    document.getElementById("result").textContent = "value is missing";
-                    return;
-                }
-
-                var obj = new Object();
-                obj.id = get_selected_iv();
-                obj.cmd = cmd;
-                obj.val = val;
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
-            });
 
             getAjax("/api/generic", parseGeneric);
         </script>
