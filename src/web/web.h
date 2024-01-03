@@ -665,10 +665,10 @@ class Web {
             { "radio_frame_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
             { "radio_tx_cnt",         "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
             { "radio_retransmits",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} },
-            { "radio_iv_rx_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivRxCnt;} },
-            { "radio_iv_tx_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivTxCnt;} },
-            { "radio_dtu_rx_cnt",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuRxCnt;} },
-            { "radio_dtu_tx_cnt",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuTxCnt;} }
+            { "radio_iv_loss_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivLoss;} },
+            { "radio_iv_sent_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivSent;} },
+            { "radio_dtu_loss_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuLoss;} },
+            { "radio_dtu_sent_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuSent;} }
         };
         int metricsInverterId;
         uint8_t metricsFieldId;

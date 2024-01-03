@@ -405,6 +405,10 @@ class RestApi {
             obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
             obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
             obj[F("retransmits")]    = iv->radioStatistics.retransmits;
+            obj[F("ivLoss")]         = iv->radioStatistics.ivLoss;
+            obj[F("ivSent")]         = iv->radioStatistics.ivSent;
+            obj[F("dtuLoss")]        = iv->radioStatistics.dtuLoss;
+            obj[F("dtuSent")]        = iv->radioStatistics.dtuSent;
         }
 
         void getIvPowerLimitAck(JsonObject obj, uint8_t id) {
@@ -633,6 +637,7 @@ class RestApi {
             if(mConfig->cmt.enabled) {
                 obj[F("isconnected")] = mRadioCmt->isChipConnected();
                 obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+                obj[F("irqOk")]       = mRadioCmt->mIrqOk;
             }
         }
         #endif
@@ -643,6 +648,7 @@ class RestApi {
                 obj[F("isconnected")] = mRadioNrf->isChipConnected();
                 obj[F("dataRate")]    = mRadioNrf->getDataRate();
                 obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+                obj[F("irqOk")]       = mRadioNrf->mIrqOk;
             }
         }
 

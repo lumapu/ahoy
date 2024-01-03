@@ -388,7 +388,9 @@
                         tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
                         tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
                         tr2(["RX fragments", obj.frame_cnt, ""]),
-                        tr2(["TX retransmits", obj.retransmits, ""])
+                        tr2(["TX retransmits", obj.retransmits, ""]),
+                        tr2(["Inverter loss rate", "lost " + obj.ivLoss + " of " + obj.ivSent, String(Math.round(obj.ivLoss / obj.ivSent * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["DTU loss rate", "lost " + obj.dtuLoss + " of " + obj.dtuSent, String(Math.round(obj.dtuLoss / obj.dtuSent * 10000) / 100) + "&nbsp;%"])
                     ])
                 ])
                 modal("Radio statistics for inverter " + obj.name, ml("div", {}, html))

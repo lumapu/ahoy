@@ -339,7 +339,7 @@ class HmRadio : public Radio {
             mMillis = millis();
 
             mLastIv = iv;
-            iv->radioStatistics.dtuTxCnt++;
+            iv->mDtuTxCnt++;
         }
 
         uint64_t getIvId(Inverter<> *iv) {

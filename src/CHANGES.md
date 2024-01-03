@@ -4,6 +4,9 @@
 * add LED to display whether it's night time or not. Can be reused as output to control battery system #1308
 * merge PR: beautifiying typography, added spaces between value and unit for `/visualization` #1314
 * merge PR: Prometheus add `getLossRate` and bugfixing #1315
+* add loss rate to `/visualization` in the statistics window
+* corrected `getLossRate` infos for MqTT and prometheus
+* added information about working IRQ for NRF24 and CMT2300A to `/system`
 
 ## 0.8.41 - 2024-01-02
 * fix display timeout (OLED) to 60s

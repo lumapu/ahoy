@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -201,10 +201,10 @@ class PubMqttIvData {
                 mIv->radioStatistics.rxFail,
                 mIv->radioStatistics.rxFailNoAnser,
                 mIv->radioStatistics.retransmits,
-                mIv->radioStatistics.ivRxCnt,
-                mIv->radioStatistics.ivTxCnt,
-                mIv->radioStatistics.dtuRxCnt,
-                mIv->radioStatistics.dtuTxCnt);
+                mIv->radioStatistics.ivLoss,
+                mIv->radioStatistics.ivSent,
+                mIv->radioStatistics.dtuLoss,
+                mIv->radioStatistics.dtuSent);
             mPublish(mSubTopic, mVal, false, QOS_0);
         }
 

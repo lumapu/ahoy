@@ -151,7 +151,7 @@ class Communication : public CommQueue<> {
 
                             if(validateIvSerial(&p->packet[1], q->iv)) {
                                 q->iv->radioStatistics.frmCnt++;
-                                q->iv->radioStatistics.dtuRxCnt++;
+                                q->iv->mDtuRxCnt++;
 
                                 if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                     if(parseFrame(p))

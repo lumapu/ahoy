@@ -595,22 +595,27 @@ class Inverter {
                 uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
                 uint16_t txCnt = (pyld[2] << 8) + pyld[3];
 
-                if (radioStatistics.ivRxCnt || radioStatistics.ivTxCnt) { // there was successful GetLossRate in the past
+                if (mIvRxCnt || mIvTxCnt) { // there was successful GetLossRate in the past
+                    radioStatistics.ivLoss = mDtuTxCnt - (rxCnt - mIvRxCnt);
+                    radioStatistics.ivSent = mDtuTxCnt;
+                    radioStatistics.dtuLoss = txCnt - mIvTxCnt - mDtuRxCnt;
+                    radioStatistics.dtuSent = txCnt - mIvTxCnt;
+
                     DPRINT_IVID(DBG_INFO, id);
                     DBGPRINT(F("Inv loss: "));
-                    DBGPRINT(String (radioStatistics.dtuTxCnt - (rxCnt - radioStatistics.ivRxCnt)));
+                    DBGPRINT(String(radioStatistics.ivLoss));
                     DBGPRINT(F(" of "));
-                    DBGPRINT(String (radioStatistics.dtuTxCnt));
+                    DBGPRINT(String(radioStatistics.ivSent));
                     DBGPRINT(F(", DTU loss: "));
-                    DBGPRINT(String (txCnt - radioStatistics.ivTxCnt - radioStatistics.dtuRxCnt));
+                    DBGPRINT(String(radioStatistics.dtuLoss));
                     DBGPRINT(F(" of "));
-                    DBGPRINTLN(String (txCnt - radioStatistics.ivTxCnt));
+                    DBGPRINTLN(String(radioStatistics.dtuSent));
                 }
 
-                radioStatistics.ivRxCnt = rxCnt;
-                radioStatistics.ivTxCnt = txCnt;
-                radioStatistics.dtuRxCnt = 0;  // start new interval
-                radioStatistics.dtuTxCnt = 0;  // start new interval
+                mIvRxCnt  = rxCnt;
+                mIvTxCnt  = txCnt;
+                mDtuRxCnt = 0;  // start new interval
+                mDtuTxCnt = 0;  // start new interval
                 return true;
             }
 
@@ -806,6 +811,12 @@ class Inverter {
         uint8_t mGridLen = 0;
         uint8_t mGridProfile[MAX_GRID_LENGTH];
         uint8_t mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
+        uint16_t mIvRxCnt  = 0;
+        uint16_t mIvTxCnt  = 0;
+
+    public:
+        uint16_t mDtuRxCnt = 0;
+        uint16_t mDtuTxCnt = 0;
 };
 
 template <class REC_TYP>
