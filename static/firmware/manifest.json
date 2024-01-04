@@ -15,7 +15,7 @@
     {
       "chipFamily": "ESP8266",
       "parts": [
-        { "path": "/firmware/231230_ahoy_0.8.36_6fb0535_esp8266", "offset": 0 }
+        { "path": "/firmware/231230_ahoy_0.8.36_6fb0535_esp8266.bin", "offset": 0 }
       ]
     }
   ]
