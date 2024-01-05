@@ -39,7 +39,7 @@
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
@@ -506,7 +506,7 @@ class Web {
 
             // pinout
             uint8_t pin;
-            for (uint8_t i = 0; i < 15; i++) {
+            for (uint8_t i = 0; i < 16; i++) {
                 pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -515,15 +515,16 @@ class Web {
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
                     case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0     = pin; break;
-                    case 7:  mConfig->led.led1     = pin; break;
-                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 10: mConfig->cmt.pinSclk  = pin; break;
-                    case 11: mConfig->cmt.pinSdio  = pin; break;
-                    case 12: mConfig->cmt.pinCsb   = pin; break;
-                    case 13: mConfig->cmt.pinFcsb  = pin; break;
-                    case 14: mConfig->cmt.pinIrq   = pin; break;
+                    case 6:  mConfig->led.led[0]   = pin; break;
+                    case 7:  mConfig->led.led[1]   = pin; break;
+                    case 8:  mConfig->led.led[2]   = pin; break;
+                    case 9:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 11: mConfig->cmt.pinSclk  = pin; break;
+                    case 12: mConfig->cmt.pinSdio  = pin; break;
+                    case 13: mConfig->cmt.pinCsb   = pin; break;
+                    case 14: mConfig->cmt.pinFcsb  = pin; break;
+                    case 15: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
@@ -661,13 +662,16 @@ class Web {
         // NOTE: Grouping for fields with channels and totals is currently not working
         // TODO: Handle grouping and sorting for independant from channel number
         // NOTE: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
-        const char * metricPrefix = "ahoy_solar_";
+        const char * metricConstPrefix = "ahoy_solar_";
+        const char * metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
         typedef enum {
-            metricsStateInverterInfo=0, metricsStateInverterEnabled=1, metricsStateInverterAvailable=2, metricsStateInverterProducing=3,
-            metricsStateInverterPowerLimitRead=4, metricsStateInverterPowerLimitAck=5, metricsStateInverterMaxPower=6,
-            metricsStateInverterRxSuccess=7, metricsStateInverterRxFail=8, metricsStateInverterRxFailAnswer=9,
-            metricsStateInverterFrameCnt=10, metricsStateInverterTxCnt=11, metricsStateInverterRetransmits=12,
-            metricStateRealtimeFieldId=metricsStateInverterRetransmits+1, // ensure that this state follows the last per_inverter state
+            metricsStateInverterInfo=0,           metricsStateInverterEnabled=1,        metricsStateInverterAvailable=2,
+            metricsStateInverterProducing=3,      metricsStateInverterPowerLimitRead=4, metricsStateInverterPowerLimitAck=5,
+            metricsStateInverterMaxPower=6,       metricsStateInverterRxSuccess=7,      metricsStateInverterRxFail=8,
+            metricsStateInverterRxFailAnswer=9,   metricsStateInverterFrameCnt=10,      metricsStateInverterTxCnt=11,
+            metricsStateInverterRetransmits=12,   metricsStateInverterIvRxCnt=13,       metricsStateInverterIvTxCnt=14,
+            metricsStateInverterDtuRxCnt=15,      metricsStateInverterDtuTxCnt=16,
+            metricStateRealtimeFieldId=metricsStateInverterDtuTxCnt+1, // ensure that this state follows the last per_inverter state
             metricStateRealtimeInverterId,
             metricsStateAlarmData,
             metricsStateStart,
@@ -675,24 +679,29 @@ class Web {
         } MetricStep_t;
         MetricStep_t metricsStep;
         typedef struct {
+            const char *topic;
             const char *type;
             const char *format;
             const std::function<uint64_t(Inverter<> *iv)> valueFunc;
         } InverterMetric_t;
-        InverterMetric_t inverterMetrics[13] = {
-            { "info",                 "info{name=\"%s\",serial=\"%12llx\"} 1\n",     [](Inverter<> *iv)-> uint64_t {return iv->config->serial.u64;} },
-            { "is_enabled",           "is_enabled {inverter=\"%s\"} %d\n",           [](Inverter<> *iv)-> uint64_t {return iv->config->enabled;} },
-            { "is_available",         "is_available {inverter=\"%s\"} %d\n",         [](Inverter<> *iv)-> uint64_t {return iv->isAvailable();} },
-            { "is_producing",         "is_producing {inverter=\"%s\"} %d\n",         [](Inverter<> *iv)-> uint64_t {return iv->isProducing();} },
-            { "power_limit_read",     "power_limit_read {inverter=\"%s\"} %d\n",     [](Inverter<> *iv)-> uint64_t {return (int64_t)ah::round3(iv->actPowerLimit);} },
-            { "power_limit_ack",      "power_limit_ack {inverter=\"%s\"} %d\n",      [](Inverter<> *iv)-> uint64_t {return (iv->powerLimitAck)?1:0;} },
-            { "max_power",            "max_power {inverter=\"%s\"} %d\n",            [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
-            { "radio_rx_success",     "radio_rx_success {inverter=\"%s\"} %d\n",     [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
-            { "radio_rx_fail",        "radio_rx_fail {inverter=\"%s\"} %d\n",        [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFail;} },
-            { "radio_rx_fail_answer", "radio_rx_fail_answer {inverter=\"%s\"} %d\n", [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnser;} },
-            { "radio_frame_cnt",      "radio_frame_cnt {inverter=\"%s\"} %d\n",      [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
-            { "radio_tx_cnt",         "radio_tx_cnt {inverter=\"%s\"} %d\n",         [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
-            { "radio_retransmits",    "radio_retransmits {inverter=\"%s\"} %d\n",    [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} }
+        InverterMetric_t inverterMetrics[17] = {
+            { "info",                 "gauge",   " {name=\"%s\",serial=\"%12llx\"} 1\n", [](Inverter<> *iv)-> uint64_t {return iv->config->serial.u64;} },
+            { "is_enabled",           "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->config->enabled;} },
+            { "is_available",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isAvailable();} },
+            { "is_producing",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isProducing();} },
+            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (int64_t)ah::round3(iv->actPowerLimit);} },
+            { "power_limit_ack",      "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (iv->powerLimitAck)?1:0;} },
+            { "max_power",            "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
+            { "radio_rx_success",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
+            { "radio_rx_fail",        "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFail;} },
+            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnser;} },
+            { "radio_frame_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
+            { "radio_tx_cnt",         "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
+            { "radio_retransmits",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} },
+            { "radio_iv_loss_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivLoss;} },
+            { "radio_iv_sent_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivSent;} },
+            { "radio_dtu_loss_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuLoss;} },
+            { "radio_dtu_sent_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuSent;} }
         };
         int metricsInverterId;
         uint8_t metricsFieldId;
@@ -718,21 +727,21 @@ class Web {
                 // So several "Info:" blocks are used to keep the transmission going
                 switch (metricsStep) {
                     case metricsStateStart: // System Info  : fit to one packet
-                        snprintf(type,sizeof(type),"# TYPE %sinfo gauge\n",metricPrefix);
-                        snprintf(topic,sizeof(topic),"%sinfo{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",metricPrefix,
+                        snprintf(type,sizeof(type),"# TYPE %sinfo gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%sinfo{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",metricConstPrefix,
                             mApp->getVersion(), mConfig->sys.deviceName);
                         metrics = String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE %sfreeheap gauge\n",metricPrefix);
-                        snprintf(topic,sizeof(topic),"%sfreeheap{devicename=\"%s\"} %u\n",metricPrefix,mConfig->sys.deviceName,ESP.getFreeHeap());
+                        snprintf(type,sizeof(type),"# TYPE %sfreeheap gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%sfreeheap{devicename=\"%s\"} %u\n",metricConstPrefix,mConfig->sys.deviceName,ESP.getFreeHeap());
                         metrics += String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE %suptime counter\n",metricPrefix);
-                        snprintf(topic,sizeof(topic),"%suptime{devicename=\"%s\"} %u\n",metricPrefix, mConfig->sys.deviceName, mApp->getUptime());
+                        snprintf(type,sizeof(type),"# TYPE %suptime counter\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%suptime{devicename=\"%s\"} %u\n",metricConstPrefix, mConfig->sys.deviceName, mApp->getUptime());
                         metrics += String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE %swifi_rssi_db gauge\n",metricPrefix);
-                        snprintf(topic,sizeof(topic),"%swifi_rssi_db{devicename=\"%s\"} %d\n",metricPrefix, mConfig->sys.deviceName, WiFi.RSSI());
+                        snprintf(type,sizeof(type),"# TYPE %swifi_rssi_db gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%swifi_rssi_db{devicename=\"%s\"} %d\n",metricConstPrefix, mConfig->sys.deviceName, WiFi.RSSI());
                         metrics += String(type) + String(topic);
 
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
@@ -754,8 +763,15 @@ class Web {
                     case metricsStateInverterFrameCnt:
                     case metricsStateInverterTxCnt:
                     case metricsStateInverterRetransmits:
-                        metrics = "# TYPE ahoy_solar_inverter_" + String(inverterMetrics[metricsStep].type) + " gauge\n";
-                        metrics += inverterMetric(topic, sizeof(topic),(String("ahoy_solar_inverter_") + inverterMetrics[metricsStep].format).c_str(), inverterMetrics[metricsStep].valueFunc);
+                    case metricsStateInverterIvRxCnt:
+                    case metricsStateInverterIvTxCnt:
+                    case metricsStateInverterDtuRxCnt:
+                    case metricsStateInverterDtuTxCnt:
+                        metrics = "# TYPE ahoy_solar_inverter_" + String(inverterMetrics[metricsStep].topic) + " " + String(inverterMetrics[metricsStep].type) + "\n";
+                        metrics += inverterMetric(topic, sizeof(topic),
+                                        (String("ahoy_solar_inverter_") + inverterMetrics[metricsStep].topic +
+                                            inverterMetrics[metricsStep].format).c_str(),
+                                            inverterMetrics[metricsStep].valueFunc);
                         len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
                         // ugly hack to increment the enum
                         metricsStep = static_cast<MetricStep_t>( static_cast<int>(metricsStep) + 1);
@@ -796,7 +812,7 @@ class Web {
                                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
                                             // Declare metric only once
                                             if (channel != 0 && !metricDeclared) {
-                                                snprintf(type, sizeof(type), "# TYPE %s%s%s %s\n",metricPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
+                                                snprintf(type, sizeof(type), "# TYPE %s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
                                                 metrics += type;
                                                 metricDeclared = true;
                                             }
@@ -810,11 +826,11 @@ class Web {
                                                     strncpy(total,"_total",sizeof(total));
                                                 }
                                                 if (!metricTotalDeclard) {
-                                                    snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                    snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
                                                     metrics += type;
                                                     metricTotalDeclard = true;
                                                 }
-                                                snprintf(topic, sizeof(topic), "%s%s%s%s{inverter=\"%s\"}",metricPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
+                                                snprintf(topic, sizeof(topic), "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
                                                 // Report (non zero) channel value
                                                 // Use a fallback channel name (ch0, ch1, ...)if non is given by user
@@ -824,7 +840,7 @@ class Web {
                                                 } else {
                                                     snprintf(chName,sizeof(chName),"ch%1d",channel);
                                                 }
-                                                snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
+                                                snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
                                             snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;
@@ -833,12 +849,14 @@ class Web {
                                     }
                                 }
                                 if (metrics.length() < 1) {
-                                    metrics = "# Info: Field #"+String(metricsFieldId)+" not available for inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
+                                    metrics = "# Info: Field #"+String(metricsFieldId)+" (" + fields[metricsFieldId] +
+                                                ") not available for inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
                                     metricsFieldId++; // Process next field Id
                                     metricsStep = metricStateRealtimeFieldId;
                                 }
                             } else {
-                                metrics = "# Info: No data for field #"+String(metricsFieldId)+" of inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
+                                metrics = "# Info: No data for field #"+String(metricsFieldId)+ " (" + fields[metricsFieldId] +
+                                          ") of inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
                                 metricsFieldId++; // Process next field Id
                                 metricsStep = metricStateRealtimeFieldId;
                             }
@@ -854,7 +872,7 @@ class Web {
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
                         // Perform grouping on metrics according to Prometheus exposition format specification
-                        snprintf(type, sizeof(type),"# TYPE %s%s gauge\n",metricPrefix,fields[FLD_LAST_ALARM_CODE]);
+                        snprintf(type, sizeof(type),"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
                         metrics = type;
 
                         for (metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
@@ -866,7 +884,7 @@ class Web {
                                 alarmChannelId = 0;
                                 if (alarmChannelId < rec->length) {
                                     std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
-                                    snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\"}",metricPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
+                                    snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
                                     snprintf(val, sizeof(val), " %.3f\n", iv->getValue(alarmChannelId, rec));
                                     metrics += topic;
                                     metrics += val;

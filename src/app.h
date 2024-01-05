@@ -185,10 +185,6 @@ class app : public IApp, public ah::Scheduler {
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1, "disCf");
         }
 
-        void setMqttPowerLimitAck(Inverter<> *iv) {
-            mMqtt.setPowerLimitAck(iv);
-        }
-
         bool getMqttIsConnected() {
             return mMqtt.isConnected();
         }

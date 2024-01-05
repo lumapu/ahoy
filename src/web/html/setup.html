@@ -818,7 +818,7 @@
                             ml("div", {class: "col-2"}, cbDisNightCom)
                         ]),
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-10"}, "Include inverter to sum of total (should be checked by default)"),
+                            ml("div", {class: "col-10"}, "Include inverter to sum of total (should be checked by default, MqTT only)"),
                             ml("div", {class: "col-2"}, cbAddTotal)
                         ])
                     ]),
@@ -962,7 +962,7 @@
                 if ("ESP32-S3" == system.chip_model) pinList = esp32s3pins;
                 else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
                 /*ENDIF_ESP32*/
-                pins = [['led0', 'pinLed0', 'At least one inverter is producing'], ['led1', 'pinLed1', 'MqTT connected']];
+                pins = [['led0', 'pinLed0', 'At least one inverter is producing'], ['led1', 'pinLed1', 'MqTT connected'], ['led2', 'pinLed2', 'Night time']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [

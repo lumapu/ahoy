@@ -14,6 +14,8 @@
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 
+enum { IRQ_UNKNOWN = 0, IRQ_OK, IRQ_ERROR };
+
 // forward declaration of class
 template <class REC_TYP=float>
 class Inverter;
@@ -30,6 +32,7 @@ class Radio {
 
         void handleIntr(void) {
             mIrqRcvd = true;
+            mIrqOk = IRQ_OK;
         }
 
         void sendCmdPacket(Inverter<> *iv, uint8_t mid, uint8_t pid, bool isRetransmit, bool appendCrc16=true) {
@@ -65,6 +68,7 @@ class Radio {
 
     public:
         std::queue<packet_t> mBufCtrl;
+        uint8_t mIrqOk = IRQ_UNKNOWN;
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;
@@ -77,6 +81,8 @@ class Radio {
             CP_U32_LittleEndian(&mTxBuf[5], mDtuSn);
             mTxBuf[9] = pid;
             memset(&mTxBuf[10], 0x00, (MAX_RF_PAYLOAD_SIZE-10));
+            if(IRQ_UNKNOWN == mIrqOk)
+                mIrqOk = IRQ_ERROR;
         }
 
         void updateCrcs(uint8_t *len, bool appendCrc16=true) {

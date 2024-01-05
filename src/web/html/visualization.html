@@ -46,13 +46,14 @@
                 ]);
             }
 
-            function numMid(val, unit, des) {
+            function numMid(val, unit, des, opt={class: "fs-6"}) {
                 return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
-                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
+                            ml("span", opt, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-1"}, unit)
-                        ])),
+                        ])
+                    ),
                     ml("div", {class: "row"},
                         ml("div", {class: "col"},
                             ml("span", {class: "fs-9"}, des)
@@ -92,10 +93,10 @@
             function ivHead(obj) {
                 if(0 != obj.status) { // only add totals if inverter is online
                     total[0] += obj.ch[0][2]; // P_AC
-                    total[3] += obj.ch[0][11]; // MAX P_AC
                     total[4] += obj.ch[0][8]; // P_DC
                     total[5] += obj.ch[0][10]; // Q_AC
                 }
+                total[3] += obj.ch[0][11]; // MAX P_AC
                 total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
 
@@ -107,8 +108,10 @@
                 if(65535 != obj.power_limit_read) {
                     pwrLimit = obj.power_limit_read + "&nbsp;%";
                     if(0 != obj.max_pwr)
-                        pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "W";
+                        pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "&nbsp;W";
                 }
+
+                var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -134,7 +137,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "Max AC Power"),
+                                numMid(obj.ch[0][11], "W", "Max AC Power", {class: "fs-6 tooltip", data: maxAcPwr}),
                                 numMid(obj.ch[0][8], "W", "DC Power"),
                                 numMid(obj.ch[0][0], "V", "AC Voltage"),
                                 numMid(obj.ch[0][1], "A", "AC Current"),
@@ -193,9 +196,9 @@
 
                 if(obj.rssi > -127) {
                     if(obj.generation < 2)
-                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? ">=" : "<") + " -64dBm)";
+                        ageInfo += " (RSSI: " + ((obj.rssi == -64) ? "&gt;=" : "&lt;") + " -64&nbsp;dBm)";
                     else
-                        ageInfo += " (RSSI: " + obj.rssi + "dBm)";
+                        ageInfo += " (RSSI: " + obj.rssi + "&nbsp;dBm)";
                 }
 
                 return ml("div", {class: "mb-5"}, [
@@ -385,11 +388,13 @@
                 var html = ml("table", {class: "table"}, [
                     ml("tbody", {}, [
                         tr2(["TX count", obj.tx_cnt, ""]),
-                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "%"]),
-                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "%"]),
-                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "%"]),
+                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
                         tr2(["RX fragments", obj.frame_cnt, ""]),
-                        tr2(["TX retransmits", obj.retransmits, ""])
+                        tr2(["TX retransmits", obj.retransmits, ""]),
+                        tr2(["Inverter loss rate", "lost " + obj.ivLoss + " of " + obj.ivSent, String(Math.round(obj.ivLoss / obj.ivSent * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["DTU loss rate", "lost " + obj.dtuLoss + " of " + obj.dtuSent, String(Math.round(obj.dtuLoss / obj.dtuSent * 10000) / 100) + "&nbsp;%"])
                     ])
                 ])
                 modal("Radio statistics for inverter " + obj.name, ml("div", {}, html))

@@ -142,6 +142,9 @@
 #ifndef DEF_LED1
     #define DEF_LED1                DEF_PIN_OFF
 #endif
+#ifndef DEF_LED2
+    #define DEF_LED2                DEF_PIN_OFF
+#endif
 #ifdef LED_ACTIVE_HIGH
     #define LED_HIGH_ACTIVE         true
 #else

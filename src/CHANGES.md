@@ -1,5 +1,25 @@
 # Development Changes
 
+## 0.8.44 - 2024-01-05
+* fix MqTT transmission of data #1326
+* live data is read much earlier / faster and more often
+
+## 0.8.43 - 2024-01-04
+* fix display of sunrise in `/system` #1308
+* fix overflow of `getLossRate` calculation #1318
+* improved MqTT by marking sent data and improved `last_success` resends #1319
+* added timestamp for `max ac power` as tooltip #1324 #1123 #1199
+* repaired Power-limit acknowledge #1322
+* fix `max_power` in `/visualization` was set to `0` after sunset
+
+## 0.8.42 - 2024-01-02
+* add LED to display whether it's night time or not. Can be reused as output to control battery system #1308
+* merge PR: beautifiying typography, added spaces between value and unit for `/visualization` #1314
+* merge PR: Prometheus add `getLossRate` and bugfixing #1315
+* add loss rate to `/visualization` in the statistics window
+* corrected `getLossRate` infos for MqTT and prometheus
+* added information about working IRQ for NRF24 and CMT2300A to `/system`
+
 ## 0.8.41 - 2024-01-02
 * fix display timeout (OLED) to 60s
 * change offs to signed value

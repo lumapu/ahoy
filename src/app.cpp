@@ -52,6 +52,7 @@ void app::setup() {
 
     mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->inst.gapMs);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
     mSys.setup(&mTimestamp, &mConfig->inst);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         initInverter(i);
@@ -472,14 +473,11 @@ void app::mqttSubRxCb(JsonObject obj) {
 //-----------------------------------------------------------------------------
 void app::setupLed(void) {
     uint8_t led_off = (mConfig->led.high_active) ? 0 : 255;
-
-    if (mConfig->led.led0 != DEF_PIN_OFF) {
-        pinMode(mConfig->led.led0, OUTPUT);
-        analogWrite(mConfig->led.led0, led_off);
-    }
-    if (mConfig->led.led1 != DEF_PIN_OFF) {
-        pinMode(mConfig->led.led1, OUTPUT);
-        analogWrite(mConfig->led.led1, led_off);
+    for(uint8_t i = 0; i < 3; i ++) {
+        if (mConfig->led.led[i] != DEF_PIN_OFF) {
+            pinMode(mConfig->led.led[i], OUTPUT);
+            analogWrite(mConfig->led.led[i], led_off);
+        }
     }
 }
 
@@ -488,28 +486,35 @@ void app::updateLed(void) {
     uint8_t led_off = (mConfig->led.high_active) ? 0 : 255;
     uint8_t led_on = (mConfig->led.high_active) ? (mConfig->led.luminance) : (255-mConfig->led.luminance);
 
-    if (mConfig->led.led0 != DEF_PIN_OFF) {
+    if (mConfig->led.led[0] != DEF_PIN_OFF) {
         Inverter<> *iv;
         for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
             iv = mSys.getInverterByPos(id);
             if (NULL != iv) {
                 if (iv->isProducing()) {
                     // turn on when at least one inverter is producing
-                    analogWrite(mConfig->led.led0, led_on);
+                    analogWrite(mConfig->led.led[0], led_on);
                     break;
                 }
                 else if(iv->config->enabled)
-                    analogWrite(mConfig->led.led0, led_off);
+                    analogWrite(mConfig->led.led[0], led_off);
             }
         }
     }
 
-    if (mConfig->led.led1 != DEF_PIN_OFF) {
+    if (mConfig->led.led[1] != DEF_PIN_OFF) {
         if (getMqttIsConnected()) {
-            analogWrite(mConfig->led.led1, led_on);
+            analogWrite(mConfig->led.led[1], led_on);
         } else {
-            analogWrite(mConfig->led.led1, led_off);
+            analogWrite(mConfig->led.led[1], led_off);
         }
+    }
+
+    if (mConfig->led.led[2] != DEF_PIN_OFF) {
+        if((mTimestamp > (mSunset + mConfig->sun.offsetSecEvening)) || (mTimestamp < (mSunrise + mConfig->sun.offsetSecMorning)))
+            analogWrite(mConfig->led.led[2], led_on);
+        else
+            analogWrite(mConfig->led.led[2], led_off);
     }
 }
 //-----------------------------------------------------------------------------

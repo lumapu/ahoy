@@ -405,6 +405,10 @@ class RestApi {
             obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
             obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
             obj[F("retransmits")]    = iv->radioStatistics.retransmits;
+            obj[F("ivLoss")]         = iv->radioStatistics.ivLoss;
+            obj[F("ivSent")]         = iv->radioStatistics.ivSent;
+            obj[F("dtuLoss")]        = iv->radioStatistics.dtuLoss;
+            obj[F("dtuSent")]        = iv->radioStatistics.dtuSent;
         }
 
         void getIvPowerLimitAck(JsonObject obj, uint8_t id) {
@@ -481,6 +485,7 @@ class RestApi {
             obj[F("status")]           = (uint8_t)iv->getStatus();
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
+            obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -627,8 +632,9 @@ class RestApi {
             obj[F("sclk")] = mConfig->nrf.pinSclk;
             obj[F("mosi")] = mConfig->nrf.pinMosi;
             obj[F("miso")] = mConfig->nrf.pinMiso;
-            obj[F("led0")] = mConfig->led.led0;
-            obj[F("led1")] = mConfig->led.led1;
+            obj[F("led0")] = mConfig->led.led[0];
+            obj[F("led1")] = mConfig->led.led[1];
+            obj[F("led2")] = mConfig->led.led[2];
             obj[F("led_high_active")] = mConfig->led.high_active;
             obj[F("led_lum")]         = mConfig->led.luminance;
         }
@@ -648,6 +654,7 @@ class RestApi {
             if(mConfig->cmt.enabled) {
                 obj[F("isconnected")] = mRadioCmt->isChipConnected();
                 obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
+                obj[F("irqOk")]       = mRadioCmt->mIrqOk;
             }
         }
         #endif
@@ -658,6 +665,7 @@ class RestApi {
                 obj[F("isconnected")] = mRadioNrf->isChipConnected();
                 obj[F("dataRate")]    = mRadioNrf->getDataRate();
                 obj[F("sn")]          = String(mRadioNrf->getDTUSn(), HEX);
+                obj[F("irqOk")]       = mRadioNrf->mIrqOk;
             }
         }
 
