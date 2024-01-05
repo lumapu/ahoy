@@ -485,6 +485,7 @@ class RestApi {
             obj[F("status")]           = (uint8_t)iv->getStatus();
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
+            obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
 
             JsonArray ch = obj.createNestedArray("ch");
 

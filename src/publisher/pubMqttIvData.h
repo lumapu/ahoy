@@ -28,7 +28,6 @@ class PubMqttIvData {
             mState        = IDLE;
             mZeroValues   = false;
 
-            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * sizeof(uint32_t));
             mRTRDataHasBeenSent = false;
 
             mTable[IDLE]            = &PubMqttIvData::stateIdle;
@@ -102,7 +101,7 @@ class PubMqttIvData {
             mPos = 0;
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
-                if((RealTimeRunData_Debug == mCmd) && mIv->getLastTs(rec) != 0 ) { //workaround for startup. Suspect, mCmd might cause to much messages....
+                if(MqttSentStatus::NEW_DATA == rec->mqttSentStatus) {
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
                     snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
                     mPublish(mSubTopic, mVal, true, QOS_0);
@@ -112,13 +111,14 @@ class PubMqttIvData {
                         snprintf(mVal, 40, "%d", mIv->rssi);
                         mPublish(mSubTopic, mVal, false, QOS_0);
                     }
+                    rec->mqttSentStatus = MqttSentStatus::LAST_SUCCESS_SENT;
                 }
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
-            } else if(mSendTotals && mTotalFound)
+            } else if(mSendTotals && mTotalFound) {
                 mState = SEND_TOTALS;
-            else {
+            } else {
                 mSendList->pop();
                 mZeroValues = false;
                 mState = START;
@@ -132,12 +132,8 @@ class PubMqttIvData {
                     DPRINT(DBG_WARN, "unknown record to publish!");
                 return;
             }
-            uint32_t lastTs = mIv->getLastTs(rec);
-            bool pubData = (lastTs > 0);
-            if (mCmd == RealTimeRunData_Debug)
-                pubData &= (lastTs != mIvLastRTRpub[mIv->id]);
 
-            if (pubData) {
+            if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
                 if(mPos < rec->length) {
                     bool retained = false;
                     if (mCmd == RealTimeRunData_Debug) {
@@ -172,21 +168,16 @@ class PubMqttIvData {
                             } else
                                 mAllTotalFound = false;
                         }
-                    } else
-                        mIvLastRTRpub[mIv->id] = lastTs;
-
-                    uint8_t qos = QOS_0;
-                    if(FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId)
-                        qos = QOS_2;
-
-                    if((mIvSend == mIv) || (NULL == mIvSend)) { // send only updated values, or all if the inverter is NULL
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
-                        snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
-                        mPublish(mSubTopic, mVal, retained, qos);
                     }
+
+                    uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
+                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
+                    snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
+                    mPublish(mSubTopic, mVal, retained, qos);
                     mPos++;
                 } else {
                     sendRadioStat(rec->length);
+                    rec->mqttSentStatus = MqttSentStatus::DATA_SENT;
                     mState = FIND_NXT_IV;
                 }
             } else
@@ -263,7 +254,6 @@ class PubMqttIvData {
 
         Inverter<> *mIv, *mIvSend;
         uint8_t mPos;
-        uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
         bool mRTRDataHasBeenSent;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];

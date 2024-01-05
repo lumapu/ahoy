@@ -99,17 +99,17 @@
                 }
 
                 if(obj.disNightComm) {
-                    if(((obj.ts_sunrise - obj.ts_offsSr) < obj.ts_now)
+                    if(((obj.ts_sunrise + obj.ts_offsSr) < obj.ts_now)
                         && ((obj.ts_sunset + obj.ts_offsSs) > obj.ts_now)) {
                         commInfo = "Polling inverter(s), will pause at sunset " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                     }
                     else {
                         commInfo = "Night time, inverter polling disabled, ";
-                        if(obj.ts_now > (obj.ts_sunrise - obj.ts_offsSr)) {
+                        if(obj.ts_now > (obj.ts_sunrise + obj.ts_offsSr)) {
                             commInfo += "paused at " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                         }
                         else {
-                            commInfo += "will start polling at " + (new Date((obj.ts_sunrise - obj.ts_offsSr) * 1000).toLocaleString('de-DE'));
+                            commInfo += "will start polling at " + (new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE'));
                         }
                     }
                 }

@@ -19,6 +19,7 @@
 #define MAX_BUFFER          250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
+typedef std::function<void(Inverter<> *)> powerLimitAckListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
@@ -38,6 +39,10 @@ class Communication : public CommQueue<> {
 
         void addPayloadListener(payloadListenerType cb) {
             mCbPayload = cb;
+        }
+
+        void addPowerLimitAckListener(powerLimitAckListenerType cb) {
+            mCbPwrAck = cb;
         }
 
         void addAlarmListener(alarmListenerType cb) {
@@ -401,6 +406,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value
+            (mCbPwrAck)(q->iv);
 
             return accepted;
         }
@@ -921,6 +927,7 @@ class Communication : public CommQueue<> {
         uint8_t mMaxFrameId;
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
+        powerLimitAckListenerType mCbPwrAck = NULL;
         alarmListenerType mCbAlarm = NULL;
         Heuristic mHeu;
         uint32_t mLastEmptyQueueMillis = 0;

@@ -45,13 +45,14 @@
                 ]);
             }
 
-            function numMid(val, unit, des) {
+            function numMid(val, unit, des, opt={class: "fs-6"}) {
                 return ml("div", {class: "col-6 col-sm-4 col-md-3 mb-2"}, [
                     ml("div", {class: "row"},
                         ml("div", {class: "col"}, [
-                            ml("span", {class: "fs-6"}, String(Math.round(val * 100) / 100)),
+                            ml("span", opt, String(Math.round(val * 100) / 100)),
                             ml("span", {class: "fs-8 mx-1"}, unit)
-                        ])),
+                        ])
+                    ),
                     ml("div", {class: "row"},
                         ml("div", {class: "col"},
                             ml("span", {class: "fs-9"}, des)
@@ -108,6 +109,8 @@
                     if(0 != obj.max_pwr)
                         pwrLimit += ", " + Math.round(obj.max_pwr * obj.power_limit_read / 100) + "&nbsp;W";
                 }
+
+                var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -133,7 +136,7 @@
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "Max AC Power"),
+                                numMid(obj.ch[0][11], "W", "Max AC Power", {class: "fs-6 tooltip", data: maxAcPwr}),
                                 numMid(obj.ch[0][8], "W", "DC Power"),
                                 numMid(obj.ch[0][0], "V", "AC Voltage"),
                                 numMid(obj.ch[0][1], "A", "AC Current"),
