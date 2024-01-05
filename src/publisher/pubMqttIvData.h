@@ -133,55 +133,56 @@ class PubMqttIvData {
                 return;
             }
 
-            if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
-                if(mPos < rec->length) {
-                    bool retained = false;
-                    if (mCmd == RealTimeRunData_Debug) {
-                        if((FLD_YT == rec->assign[mPos].fieldId) || (FLD_YD == rec->assign[mPos].fieldId))
-                            retained = true;
+            if(mPos < rec->length) {
+                bool retained = false;
+                if (mCmd == RealTimeRunData_Debug) {
+                    if((FLD_YT == rec->assign[mPos].fieldId) || (FLD_YD == rec->assign[mPos].fieldId))
+                        retained = true;
 
-                        // calculate total values for RealTimeRunData_Debug
-                        if (CH0 == rec->assign[mPos].ch) {
-                            if(mIv->getStatus() > InverterStatus::STARTING) {
-                                if(mIv->config->add2Total) {
-                                    mTotalFound = true;
-                                    switch (rec->assign[mPos].fieldId) {
-                                        case FLD_PAC:
-                                            mTotal[0] += mIv->getValue(mPos, rec);
-                                            break;
-                                        case FLD_YT:
-                                            mTotal[1] += mIv->getValue(mPos, rec);
-                                            break;
-                                        case FLD_YD: {
-                                            float val = mIv->getValue(mPos, rec);
-                                            if(0 == val) // inverter restarted during day
-                                                mSendTotalYd = false;
-                                            else
-                                                mTotal[2] += val;
-                                            break;
-                                        }
-                                        case FLD_PDC:
-                                            mTotal[3] += mIv->getValue(mPos, rec);
-                                            break;
+                    // calculate total values for RealTimeRunData_Debug
+                    if (CH0 == rec->assign[mPos].ch) {
+                        if(mIv->getStatus() > InverterStatus::STARTING) {
+                            if(mIv->config->add2Total) {
+                                mTotalFound = true;
+                                switch (rec->assign[mPos].fieldId) {
+                                    case FLD_PAC:
+                                        mTotal[0] += mIv->getValue(mPos, rec);
+                                        break;
+                                    case FLD_YT:
+                                        mTotal[1] += mIv->getValue(mPos, rec);
+                                        break;
+                                    case FLD_YD: {
+                                        float val = mIv->getValue(mPos, rec);
+                                        if(0 == val) // inverter restarted during day
+                                            mSendTotalYd = false;
+                                        else
+                                            mTotal[2] += val;
+                                        break;
                                     }
+                                    case FLD_PDC:
+                                        mTotal[3] += mIv->getValue(mPos, rec);
+                                        break;
                                 }
-                            } else
-                                mAllTotalFound = false;
-                        }
+                            }
+                        } else
+                            mAllTotalFound = false;
                     }
+                }
 
+                if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
                     uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
                     snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                     snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
                     mPublish(mSubTopic, mVal, retained, qos);
-                    mPos++;
-                } else {
+                }
+                mPos++;
+            } else {
+                if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
                     sendRadioStat(rec->length);
                     rec->mqttSentStatus = MqttSentStatus::DATA_SENT;
-                    mState = FIND_NXT_IV;
                 }
-            } else
                 mState = FIND_NXT_IV;
+            }
         }
 
         inline void sendRadioStat(uint8_t start) {
