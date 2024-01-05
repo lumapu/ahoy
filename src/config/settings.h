@@ -139,7 +139,7 @@ typedef struct {
 typedef struct {
     char monitor_url[ZEXPORT_ADDR_LEN];
     char json_path[ZEXPORT_ADDR_LEN];
-    uint8_t query_device;   // 0 - Shelly, 1 - Tibber, 2 - other (rs232?)
+    uint8_t query_device;   // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
     uint8_t Iv;         // saves the inverter that is used for regulation
     bool enabled;
     float power_avg;
@@ -469,7 +469,7 @@ class settings {
             mCfg.plugin.zexport.count_avg = 10;
             mCfg.plugin.zexport.lastTime =  millis();   // do not change!
 
-            mCfg.plugin.zexport.query_device = 0;       // Standard shelly
+            mCfg.plugin.zexport.query_device = 1;       // Standard shelly
             mCfg.plugin.zexport.power_avg = 10;
             mCfg.plugin.zexport.Iv = 0;
             mCfg.plugin.zexport.max_power = 600;        // Max 600W to stay safe
