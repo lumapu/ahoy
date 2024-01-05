@@ -498,6 +498,7 @@ class Communication : public CommQueue<> {
             for (uint8_t i = 0; i < rec->length; i++) {
                 q->iv->addValue(i, mPayload, rec);
             }
+            rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
 
             q->iv->rssi = rssi;
             q->iv->doCalculations();

@@ -186,28 +186,33 @@ class Inverter {
             if(mDevControlRequest) {
                 cb(devControlCmd, true);
                 mDevControlRequest = false;
-            } else if (IV_MI != ivGen) {
+            } else if (IV_MI != ivGen) { // HM / HMS / HMT
                 mGetLossInterval++;
-                if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                    cb(AlarmData, false);                // get last alarms
-                else if(0 == getFwVersion())
-                    cb(InverterDevInform_All, false);    // get firmware version
-                else if(0 == getHwVersion())
-                    cb(InverterDevInform_Simple, false); // get hardware version
-                else if(actPowerLimit == 0xffff)
-                    cb(SystemConfigPara, false);         // power limit info
-                else if(InitDataState != devControlCmd) {
-                    cb(devControlCmd, false);            // custom command which was received by API
-                    devControlCmd = InitDataState;
-                    mGetLossInterval = 1;
-                } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
-                    cb(GridOnProFilePara, false);
-                } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
-                    mGetLossInterval = 1;
-                    cb(GetLossRate, false);
-                } else
+                if(mNextLive)
                     cb(RealTimeRunData_Debug, false);    // get live data
-            } else {
+                else {
+                    mNextLive = true;
+                    if(actPowerLimit == 0xffff)
+                        cb(SystemConfigPara, false);         // power limit info
+                    else if(InitDataState != devControlCmd) {
+                        cb(devControlCmd, false);            // custom command which was received by API
+                        devControlCmd = InitDataState;
+                        mGetLossInterval = 1;
+                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                        cb(AlarmData, false);                // get last alarms
+                    else if(0 == getFwVersion())
+                        cb(InverterDevInform_All, false);    // get firmware version
+                    else if(0 == getHwVersion())
+                        cb(InverterDevInform_Simple, false); // get hardware version
+                    else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                        cb(GridOnProFilePara, false);
+                    } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
+                        mGetLossInterval = 1;
+                        cb(GetLossRate, false);
+                    } else
+                        cb(RealTimeRunData_Debug, false);    // get live data
+                }
+            } else { // MI
                 if(0 == getFwVersion())
                     cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
                 else {
@@ -319,10 +324,10 @@ class Inverter {
                                 rec->record[pos] = (REC_TYP)(val);
                         }
                     }
-                    rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
                 }
 
                 if(rec == &recordMeas) {
+                    mNextLive = false; // live data received
                     DPRINTLN(DBG_VERBOSE, "add real time");
                     // get last alarm message index and save it in the inverter object
                     if (getPosByChFld(0, FLD_EVT, rec) == pos) {
@@ -832,6 +837,7 @@ class Inverter {
         uint16_t mIvRxCnt  = 0;
         uint16_t mIvTxCnt  = 0;
         uint8_t mAlarmNxtWrPos = 0; // indicates the position in array (rolling buffer)
+        bool mNextLive = true; // first read live data after booting up then version etc.
 
     public:
         uint16_t mDtuRxCnt = 0;

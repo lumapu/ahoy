@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.44 - 2024-01-05
+* fix MqTT transmission of data #1326
+* live data is read much earlier / faster and more often
+
 ## 0.8.43 - 2024-01-04
 * fix display of sunrise in `/system` #1308
 * fix overflow of `getLossRate` calculation #1318
