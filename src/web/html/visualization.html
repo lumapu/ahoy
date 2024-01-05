@@ -92,10 +92,10 @@
             function ivHead(obj) {
                 if(0 != obj.status) { // only add totals if inverter is online
                     total[0] += obj.ch[0][2]; // P_AC
-                    total[3] += obj.ch[0][11]; // MAX P_AC
                     total[4] += obj.ch[0][8]; // P_DC
                     total[5] += obj.ch[0][10]; // Q_AC
                 }
+                total[3] += obj.ch[0][11]; // MAX P_AC
                 total[1] += obj.ch[0][7]; // YieldDay
                 total[2] += obj.ch[0][6]; // YieldTotal
 

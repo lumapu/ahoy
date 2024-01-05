@@ -6,6 +6,7 @@
 * improved MqTT by marking sent data and improved `last_success` resends #1319
 * added timestamp for `max ac power` as tooltip #1324 #1123 #1199
 * repaired Power-limit acknowledge #1322
+* fix `max_power` in `/visualization` was set to `0` after sunset
 
 ## 0.8.42 - 2024-01-02
 * add LED to display whether it's night time or not. Can be reused as output to control battery system #1308
