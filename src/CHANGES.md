@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.8.47 - 2024-01-06
+* reduce GxEPD2 lib to compile faster
+* upgraded GxEPD2 lib to `1.5.3`
+* updated espressif32 platform to `6.5.0`
+* updated U8g2 to `2.35.9`
+* started to convert deprecated functions of new ArduinoJson `7.0.0`
+
 ## 0.8.46 - 2024-01-06
 * improved communication
 

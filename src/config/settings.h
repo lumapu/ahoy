@@ -308,18 +308,18 @@ class settings {
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
             json[F("version")] = CONFIG_VERSION;
-            jsonNetwork(root.createNestedObject(F("wifi")), true);
-            jsonNrf(root.createNestedObject(F("nrf")), true);
+            jsonNetwork(root[F("wifi")].to<JsonObject>(), true);
+            jsonNrf(root[F("nrf")].to<JsonObject>(), true);
             #if defined(ESP32)
-            jsonCmt(root.createNestedObject(F("cmt")), true);
+            jsonCmt(root[F("cmt")].to<JsonObject>(), true);
             #endif
-            jsonNtp(root.createNestedObject(F("ntp")), true);
-            jsonSun(root.createNestedObject(F("sun")), true);
-            jsonSerial(root.createNestedObject(F("serial")), true);
-            jsonMqtt(root.createNestedObject(F("mqtt")), true);
-            jsonLed(root.createNestedObject(F("led")), true);
-            jsonPlugin(root.createNestedObject(F("plugin")), true);
-            jsonInst(root.createNestedObject(F("inst")), true);
+            jsonNtp(root[F("ntp")].to<JsonObject>(), true);
+            jsonSun(root[F("sun")].to<JsonObject>(), true);
+            jsonSerial(root[F("serial")].to<JsonObject>(), true);
+            jsonMqtt(root[F("mqtt")].to<JsonObject>(), true);
+            jsonLed(root[F("led")].to<JsonObject>(), true);
+            jsonPlugin(root[F("plugin")].to<JsonObject>(), true);
+            jsonInst(root[F("inst")].to<JsonObject>(), true);
 
             DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
