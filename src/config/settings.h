@@ -166,6 +166,7 @@ typedef struct {
     bool pwrSaveAtIvOffline;
     uint8_t screenSaver;
     uint8_t graph_ratio;
+    uint8_t graph_size;
     uint8_t rot;
     //uint16_t wakeUp;
     //uint16_t sleepAt;
@@ -463,6 +464,7 @@ class settings {
             mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
             mCfg.plugin.display.graph_ratio = 50;
+            mCfg.plugin.display.graph_size  = 2;
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
             mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
@@ -700,6 +702,7 @@ class settings {
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
                 disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
                 disp[F("graph_ratio")] = mCfg.plugin.display.graph_ratio;
+                disp[F("graph_size")] = mCfg.plugin.display.graph_size;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
@@ -717,6 +720,7 @@ class settings {
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
                 getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
                 getVal<uint8_t>(disp, F("graph_ratio"), &mCfg.plugin.display.graph_ratio);
+                getVal<uint8_t>(disp, F("graph_size"), &mCfg.plugin.display.graph_size);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];

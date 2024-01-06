@@ -12,11 +12,12 @@ class DisplayMono84X48 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio, uint8_t graph_size) {
             mEnPowerSave = enPowerSave;
             mScreenSaver = screenSaver;
             mLuminance = lum;
             mGraphRatio = graph_ratio;
+            mGraphSize  = graph_size;
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {
@@ -24,7 +25,31 @@ class DisplayMono84X48 : public DisplayMono {
             monoInit(new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, clock, data, cs, dc, reset), type, displayData);
             calcLinePositions();
 
-            initPowerGraph(mDispWidth - 16, mLineYOffsets[4] - mLineYOffsets[1] - 2);
+            switch(mGraphSize) { // var opts2 = [[0, "Line 1 - 2"], [1, "Line 2 - 3"], [2, "Line 1 - 3"], [3, "Line 2 - 4"], [4, "Line 1 - 4"]];
+                case 0:
+                    graph_first_line = 1;
+                    graph_last_line = 2;
+                    break;
+                case 1:
+                    graph_first_line = 2;
+                    graph_last_line = 3;
+                    break;
+                case 2:
+                    graph_first_line = 1;
+                    graph_last_line = 3;
+                    break;
+                case 3:
+                    graph_first_line = 2;
+                    graph_last_line = 4;
+                    break;
+                case 4:
+                default:
+                    graph_first_line = 1;
+                    graph_last_line = 4;
+                    break;
+            }
+
+            initPowerGraph(mDispWidth - 16, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
 
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
@@ -57,27 +82,28 @@ class DisplayMono84X48 : public DisplayMono {
             if (0 != mDisplayData->utcTs)
                 printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
 
-            // alternatively:
-            // print ip address
-            if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
-                printText(mFmtText, l_Status, 0xff);
-            }
-            // print status of inverters
-            else {
-                if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
-                else if (0 == mDisplayData->nrSleeping)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");      // sun symbol
-                else if (0 == mDisplayData->nrProducing)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");      // moon symbol
-                else
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d\x86 %d\x87", mDisplayData->nrProducing, mDisplayData->nrSleeping);
-                printText(mFmtText, l_Status, 0xff);
+            if (showLine(l_Status)) {
+                // alternatively:
+                // print ip address
+                if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
+                    printText(mFmtText, l_Status, 0xff);
+                }
+                // print status of inverters
+                else {
+                    if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                    else if (0 == mDisplayData->nrSleeping)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");      // sun symbol
+                    else if (0 == mDisplayData->nrProducing)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x87");      // moon symbol
+                    else
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d\x86 %d\x87", mDisplayData->nrProducing, mDisplayData->nrSleeping);
+                    printText(mFmtText, l_Status, 0xff);
+                }
             }
 
-            if (mDispSwitchState == d_POWER_TEXT) {
-
+            if (showLine(l_TotalPower)) {
                 // print total power
                 if (mDisplayData->nrProducing > 0) {
                     if (mDisplayData->totalPower > 9999.0)
@@ -89,7 +115,9 @@ class DisplayMono84X48 : public DisplayMono {
                 } else {
                     printText("offline", l_TotalPower, 0xff);
                 }
+            }
 
+            if (showLine(l_YieldDay)) {
                 // print day yield
                 printText("\x88", l_YieldDay,   10);        // day symbol
                 if (mDisplayData->totalYieldDay > 9999.0)
@@ -97,7 +125,9 @@ class DisplayMono84X48 : public DisplayMono {
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
                 printText(mFmtText, l_YieldDay, 0xff);
+            }
 
+            if (showLine(l_YieldTotal)) {
                 // print total yield
                 printText("\x83", l_YieldTotal, 10);        // total symbol
                 if (mDisplayData->totalYieldTotal > 9999.0)
@@ -105,10 +135,11 @@ class DisplayMono84X48 : public DisplayMono {
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
                 printText(mFmtText, l_YieldTotal, 0xff);
+            }
 
-            } else {
+            if (mDispSwitchState == d_POWER_GRAPH) {
                 // plot power graph
-                plotPowerGraph(8, mLineYOffsets[4] - 1);
+                plotPowerGraph(8, mLineYOffsets[graph_last_line] - 1);
             }
 
             // draw dynamic RSSI bars
@@ -155,6 +186,9 @@ class DisplayMono84X48 : public DisplayMono {
             l_MAX_LINES = 5,
         };
 
+        uint8_t graph_first_line;
+        uint8_t graph_last_line;
+
         void calcLinePositions() {
             uint8_t yOff = 0;
             uint8_t i = 0;
@@ -190,6 +224,10 @@ class DisplayMono84X48 : public DisplayMono {
             else
                 dispX = col;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
+        }
+
+        bool showLine(uint8_t line) {
+            return ((mDispSwitchState == d_POWER_TEXT) || ((line < graph_first_line) || (line > graph_last_line)));
         }
 };
 

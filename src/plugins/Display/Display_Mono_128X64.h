@@ -12,11 +12,12 @@ class DisplayMono128X64 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio, uint8_t graph_size) {
             mEnPowerSave = enPowerSave;
             mScreenSaver = screenSaver;
             mLuminance = lum;
             mGraphRatio = graph_ratio;
+            mGraphSize  = graph_size;
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {
@@ -35,7 +36,33 @@ class DisplayMono128X64 : public DisplayMono {
             }
             calcLinePositions();
 
-            initPowerGraph(mDispWidth - 20, mLineYOffsets[4] - mLineYOffsets[1]);
+            switch(mGraphSize) { // var opts2 = [[0, "Line 1 - 2"], [1, "Line 2 - 3"], [2, "Line 1 - 3"], [3, "Line 2 - 4"], [4, "Line 1 - 4"]];
+                case 0:
+                    graph_first_line = 1;
+                    graph_last_line = 2;
+                    break;
+                case 1:
+                    graph_first_line = 2;
+                    graph_last_line = 3;
+                    break;
+                case 2:
+                    graph_first_line = 1;
+                    graph_last_line = 3;
+                    break;
+                case 3:
+                    graph_first_line = 2;
+                    graph_last_line = 4;
+                    break;
+                case 4:
+                default:
+                    graph_first_line = 1;
+                    graph_last_line = 4;
+                    break;
+            }
+
+            widthShrink = (mScreenSaver == 1) ? pixelShiftRange : 0;  // shrink graphwidth for pixelshift screensaver
+
+            initPowerGraph(mDispWidth - 22 - widthShrink, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
 
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
@@ -73,46 +100,47 @@ class DisplayMono128X64 : public DisplayMono {
             if (0 != mDisplayData->utcTs)
                 printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
 
-            // alternatively:
-            // print ip address
-            if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
-                printText(mFmtText, l_Status, 0xff);
-            }
-            // print status of inverters
-            else {
-                sun_pos = -1;
-                moon_pos = -1;
-                setLineFont(l_Status);
-                if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
-                else if (0 == mDisplayData->nrSleeping) {
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "  ");
-                    sun_pos = 0;
+            if (showLine(l_Status)) {
+                // alternatively:
+                // print ip address
+                if (!(mExtra % 5) && (mDisplayData->ipAddress)) {
+                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s", (mDisplayData->ipAddress).toString().c_str());
+                    printText(mFmtText, l_Status, 0xff);
                 }
-                else if (0 == mDisplayData->nrProducing) {
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "  ");
-                    moon_pos = 0;
-                }
+                // print status of inverters
                 else {
-                    snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%2d", mDisplayData->nrProducing);
-                    sun_pos = mDisplay->getStrWidth(mFmtText) + 1;
-                    snprintf(mFmtText+2, DISP_FMT_TEXT_LEN, "   %2d", mDisplayData->nrSleeping);
-                    moon_pos = mDisplay->getStrWidth(mFmtText) + 1;
-                    snprintf(mFmtText+7, DISP_FMT_TEXT_LEN, " ");
-                }
-                printText(mFmtText, l_Status, 0xff);
+                    sun_pos = -1;
+                    moon_pos = -1;
+                    setLineFont(l_Status);
+                    if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                    else if (0 == mDisplayData->nrSleeping) {
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "  ");
+                        sun_pos = 0;
+                    }
+                    else if (0 == mDisplayData->nrProducing) {
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "  ");
+                        moon_pos = 0;
+                    }
+                    else {
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%2d", mDisplayData->nrProducing);
+                        sun_pos = mDisplay->getStrWidth(mFmtText) + 1;
+                        snprintf(mFmtText+2, DISP_FMT_TEXT_LEN, "   %2d", mDisplayData->nrSleeping);
+                        moon_pos = mDisplay->getStrWidth(mFmtText) + 1;
+                        snprintf(mFmtText+7, DISP_FMT_TEXT_LEN, " ");
+                    }
+                    printText(mFmtText, l_Status, 0xff);
 
-                pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
-                mDisplay->setFont(u8g2_font_ncenB08_symbols8_ahoy);
-                if (sun_pos!=-1)
-                    mDisplay->drawStr(pos + sun_pos + mPixelshift, mLineYOffsets[l_Status], "G");     // sun symbol
-                if (moon_pos!=-1)
-                    mDisplay->drawStr(pos + moon_pos + mPixelshift, mLineYOffsets[l_Status], "H");    // moon symbol
+                    pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
+                    mDisplay->setFont(u8g2_font_ncenB08_symbols8_ahoy);
+                    if (sun_pos!=-1)
+                        mDisplay->drawStr(pos + sun_pos + mPixelshift, mLineYOffsets[l_Status], "G");     // sun symbol
+                    if (moon_pos!=-1)
+                        mDisplay->drawStr(pos + moon_pos + mPixelshift, mLineYOffsets[l_Status], "H");    // moon symbol
+                }
             }
 
-            if (mDispSwitchState == d_POWER_TEXT) {
-
+            if (showLine(l_TotalPower)) {
                 // print total power
                 if (mDisplayData->nrProducing > 0) {
                     if (mDisplayData->totalPower > 9999.0)
@@ -124,8 +152,10 @@ class DisplayMono128X64 : public DisplayMono {
                 } else {
                     printText("offline", l_TotalPower, 0xff);
                 }
+            }
 
-                // print yields
+            if (showLine(l_YieldDay)) {
+                // print day yield
                 mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
                 mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldDay],   "I");    // day symbol
                 mDisplay->drawStr(16 + mPixelshift, mLineYOffsets[l_YieldTotal], "D");    // total symbol
@@ -135,45 +165,44 @@ class DisplayMono128X64 : public DisplayMono {
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f Wh", mDisplayData->totalYieldDay);
                 printText(mFmtText, l_YieldDay, 0xff);
+            }
 
+            if (showLine(l_YieldTotal)) {
+                // print total yield
                 if (mDisplayData->totalYieldTotal > 9999.0)
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.2f MWh", mDisplayData->totalYieldTotal / 1000.0);
                 else
                     snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%.0f kWh", mDisplayData->totalYieldTotal);
                 printText(mFmtText, l_YieldTotal, 0xff);
+            }
 
-            } else {
+            if (mDispSwitchState == d_POWER_GRAPH) {
                 // plot power graph
-                plotPowerGraph(10 + mPixelshift, mLineYOffsets[4] - 1);
+                plotPowerGraph((mDispWidth - mPgWidth) / 2 + mPixelshift, mLineYOffsets[graph_last_line] - 1);
             }
 
             // draw dynamic RSSI bars
-            int xoffs;
-            if (mScreenSaver == 1) // shrink screenwidth for pixelshift screensaver
-                xoffs = pixelShiftRange/2;
-            else
-                xoffs = 0;
             int rssi_bar_height = 9;
             for (int i = 0; i < 4; i++) {
                 int radio_rssi_threshold = -60 - i * 10;
                 int wifi_rssi_threshold = -60 - i * 10;
                 uint8_t barwidth = std::min(4 - i, 3);
                 if (mDisplayData->RadioRSSI > radio_rssi_threshold)
-                    mDisplay->drawBox(xoffs + mPixelshift,                         8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
+                    mDisplay->drawBox(widthShrink / 2 + mPixelshift,                         8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
                 if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
-                    mDisplay->drawBox(mDispWidth - barwidth - xoffs + mPixelshift, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
+                    mDisplay->drawBox(mDispWidth - barwidth - widthShrink / 2 + mPixelshift, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
             }
             // draw dynamic antenna and WiFi symbols
             mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
             char sym[]=" ";
             sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
-            mDisplay->drawStr(xoffs + mPixelshift, mLineYOffsets[l_RSSI], sym);
+            mDisplay->drawStr(widthShrink / 2 + mPixelshift, mLineYOffsets[l_RSSI], sym);
 
             if (mDisplayData->MQTTSymbol)
                 sym[0] = 'J'; // MQTT
             else
                 sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
-            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - xoffs + mPixelshift, mLineYOffsets[l_RSSI], sym);
+            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - widthShrink / 2 + mPixelshift, mLineYOffsets[l_RSSI], sym);
             mDisplay->sendBuffer();
 
             mExtra++;
@@ -197,7 +226,11 @@ class DisplayMono128X64 : public DisplayMono {
             l_MAX_LINES = 5,
         };
 
+        uint8_t graph_first_line;
+        uint8_t graph_last_line;
+
         const uint8_t pixelShiftRange = 11;  // number of pixels to shift from left to right (centered -> must be odd!)
+        uint8_t widthShrink;
 
         void calcLinePositions() {
             uint8_t yOff = 0;
@@ -238,5 +271,9 @@ class DisplayMono128X64 : public DisplayMono {
                 dispX = col;
             dispX += mPixelshift;
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
+        }
+
+        bool showLine(uint8_t line) {
+            return ((mDispSwitchState == d_POWER_TEXT) || ((line < graph_first_line) || (line > graph_last_line)));
         }
 };

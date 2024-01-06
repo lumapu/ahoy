@@ -295,10 +295,7 @@
                         <div id="dispPins"></div>
                         <div id="pirPin"></div>
                         <p class="des">Graph options</p>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Graph Size</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="graph_size" min="0" max="255"></select></div>
-                        </div>
+                        <div id="graphSize"></div>
                         <div class="row mb-3">
                             <div class="col-12 col-sm-3 my-2">Show ratio (0-100 %)</div>
                             <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
@@ -1097,6 +1094,16 @@
                 });
 
                 document.getElementsByName("disp_graph_ratio")[0].value = obj["disp_graph_ratio"];
+
+                var opts2 = [[0, "Line 1 - 2"], [1, "Line 2 - 3"], [2, "Line 1 - 3"], [3, "Line 2 - 4"], [4, "Line 1 - 4"]];
+                var graph_size_sel = sel("disp_graph_size", opts2, obj["disp_graph_size"]);
+                graph_size_sel.id = 'disp_graph_size';
+                document.getElementById("graphSize").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Graph size"),
+                        ml("div", {class: "col-12 col-sm-9"}, graph_size_sel)
+                    ])
+                );
 
                 hideDispPins(pins, obj.disp_typ);
             }
