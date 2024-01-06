@@ -671,18 +671,19 @@ class RestApi {
         }
 
         void getDisplay(JsonObject obj) {
-            obj[F("disp_typ")]     = (uint8_t)mConfig->plugin.display.type;
-            obj[F("disp_pwr")]     = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
-            obj[F("disp_screensaver")] = (uint8_t)mConfig->plugin.display.screenSaver;
-            obj[F("disp_rot")]     = (uint8_t)mConfig->plugin.display.rot;
-            obj[F("disp_cont")]    = (uint8_t)mConfig->plugin.display.contrast;
-            obj[F("disp_clk")]     = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
-            obj[F("disp_data")]    = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_data;
-            obj[F("disp_cs")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
-            obj[F("disp_dc")]      = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
-            obj[F("disp_rst")]     = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
-            obj[F("disp_bsy")]     = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
-            obj[F("pir_pin")]      =  mConfig->plugin.display.pirPin;
+            obj[F("disp_typ")]          = (uint8_t)mConfig->plugin.display.type;
+            obj[F("disp_pwr")]          = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
+            obj[F("disp_screensaver")]  = (uint8_t)mConfig->plugin.display.screenSaver;
+            obj[F("disp_rot")]          = (uint8_t)mConfig->plugin.display.rot;
+            obj[F("disp_cont")]         = (uint8_t)mConfig->plugin.display.contrast;
+            obj[F("disp_graph_ratio")]  = (uint8_t)mConfig->plugin.display.graph_ratio;
+            obj[F("disp_clk")]          = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
+            obj[F("disp_data")]         = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : mConfig->plugin.display.disp_data;
+            obj[F("disp_cs")]           = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]           = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]          = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]          = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
+            obj[F("pir_pin")]           =  mConfig->plugin.display.pirPin;
         }
 
         void getMqttInfo(JsonObject obj) {

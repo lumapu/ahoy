@@ -584,6 +584,7 @@ class Web {
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
             mConfig->plugin.display.screenSaver = request->arg("disp_screensaver").toInt();
+            mConfig->plugin.display.graph_ratio = request->arg("disp_graph_ratio").toInt();
             mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
             mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();

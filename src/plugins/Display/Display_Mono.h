@@ -26,12 +26,12 @@ class DisplayMono {
       DisplayMono() {};
 
       virtual void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) = 0;
-      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) = 0;
+      virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio) = 0;
       virtual void disp(void) = 0;
 
       // Common loop function, manages display on/off functions for powersave and screensaver with motionsensor
       // can be overridden by subclasses
-      virtual void loop(uint8_t lum, bool motion) {
+      virtual bool loop(uint8_t lum, bool motion) {
 
          bool dispConditions = (!mEnPowerSave || (mDisplayData->nrProducing > 0)) &&
                                ((mScreenSaver != 2) || motion); // screensaver 2 .. motionsensor
@@ -61,7 +61,7 @@ class DisplayMono {
             mDisplay->setContrast(mLuminance);
          }
 
-         monoMaintainDispSwitchState();
+         return(monoMaintainDispSwitchState());
       }
 
    protected:
@@ -84,6 +84,7 @@ class DisplayMono {
       bool mEnPowerSave;
       uint8_t mScreenSaver = 1;  // 0 .. off; 1 .. pixelShift; 2 .. motionsensor
       uint8_t mLuminance;
+      uint8_t mGraphRatio;
 
       uint8_t mLoopCnt;
       uint8_t mLineXOffsets[5] = {};
@@ -92,8 +93,8 @@ class DisplayMono {
       uint8_t mExtra;
       int8_t  mPixelshift=0;
       TimeMonitor mDisplayTime = TimeMonitor(1000 * DISP_DEFAULT_TIMEOUT, true);
-      TimeMonitor mDispSwitchTime = TimeMonitor(10000, true);
-      uint8_t mDispSwitchState = 0;
+      TimeMonitor mDispSwitchTime = TimeMonitor();
+      uint8_t mDispSwitchState;
       bool mDisplayActive = true;  // always start with display on
       char mFmtText[DISP_FMT_TEXT_LEN];
 
@@ -113,23 +114,33 @@ class DisplayMono {
          mDisplay->clearBuffer();
          mDispWidth = mDisplay->getDisplayWidth();
          mDispHeight = mDisplay->getDisplayHeight();
+         mDispSwitchTime.stopTimeMonitor();
+         mDispSwitchState = d_POWER_TEXT;
+         if (mGraphRatio == 100)           // if graph ratio is 100% start in graph mode
+            mDispSwitchState = d_POWER_GRAPH;
+         else if (mGraphRatio != 0)
+            mDispSwitchTime.startTimeMonitor(150 * (100 - mGraphRatio));  // start time monitor only if ratio is neither 0 nor 100
       }
 
-      void monoMaintainDispSwitchState(void) {
+      bool monoMaintainDispSwitchState(void) {
+        bool change = false;
          switch(mDispSwitchState) {
             case d_POWER_TEXT:
                if (mDispSwitchTime.isTimeout()) {
                   mDispSwitchState = d_POWER_GRAPH;
-                  mDispSwitchTime.startTimeMonitor(5000);
+                  mDispSwitchTime.startTimeMonitor(150 * mGraphRatio);  // mGraphRatio: 0-100 Gesamtperiode 15000 ms
+                  change = true;
                }
                break;
             case d_POWER_GRAPH:
                if (mDispSwitchTime.isTimeout()) {
                   mDispSwitchState = d_POWER_TEXT;
-                  mDispSwitchTime.startTimeMonitor(10000);
+                  mDispSwitchTime.startTimeMonitor(150 * (100 - mGraphRatio));
+                  change = true;
                }
                break;
          }
+         return change;
       }
 
       void initPowerGraph(uint8_t width, uint8_t height) {

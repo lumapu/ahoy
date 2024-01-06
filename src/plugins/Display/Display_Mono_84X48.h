@@ -12,10 +12,11 @@ class DisplayMono84X48 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum) {
+        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio) {
             mEnPowerSave = enPowerSave;
             mScreenSaver = screenSaver;
             mLuminance = lum;
+            mGraphRatio = graph_ratio;
         }
 
         void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {

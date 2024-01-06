@@ -294,6 +294,15 @@
                         <p class="des">{#DISP_PINOUT}</p>
                         <div id="dispPins"></div>
                         <div id="pirPin"></div>
+                        <p class="des">Graph options</p>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Graph Size</div>
+                            <div class="col-12 col-sm-9"><input type="number" name="graph_size" min="0" max="255"></select></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Show ratio (0-100 %)</div>
+                            <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                        </div>
                     </fieldset>
                     </div>
 
@@ -1086,6 +1095,8 @@
                 document.getElementById("disp_screensaver").addEventListener('change', function(e) {
                     hideDispPins(pins, parseInt(dtype_sel.value))
                 });
+
+                document.getElementsByName("disp_graph_ratio")[0].value = obj["disp_graph_ratio"];
 
                 hideDispPins(pins, obj.disp_typ);
             }
