@@ -118,7 +118,7 @@ class Communication : public CommQueue<> {
                         mIsRetransmit    = false;
                         setAttempt();
                         if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                            incrAttempt(q->cmd == AlarmData? 5 : 3);
+                            incrAttempt(15);
 
                         mState = States::WAIT;
                         break;

@@ -191,19 +191,18 @@ class Inverter {
                 if(mNextLive)
                     cb(RealTimeRunData_Debug, false);    // get live data
                 else {
-                    mNextLive = true;
                     if(actPowerLimit == 0xffff)
                         cb(SystemConfigPara, false);         // power limit info
                     else if(InitDataState != devControlCmd) {
                         cb(devControlCmd, false);            // custom command which was received by API
                         devControlCmd = InitDataState;
                         mGetLossInterval = 1;
-                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                        cb(AlarmData, false);                // get last alarms
-                    else if(0 == getFwVersion())
+                    } else if(0 == getFwVersion())
                         cb(InverterDevInform_All, false);    // get firmware version
                     else if(0 == getHwVersion())
                         cb(InverterDevInform_Simple, false); // get hardware version
+                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                        cb(AlarmData, false);                // get last alarms
                     else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                         cb(GridOnProFilePara, false);
                     } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
@@ -339,28 +338,27 @@ class Inverter {
                         }
                     }
                 }
-                else if (rec->assign == InfoAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add info");
-                    // eg. fw version ...
-                    isConnected = true;
+                else {
+                    mNextLive = true;
+                    if (rec->assign == InfoAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add info");
+                        // eg. fw version ...
+                        isConnected = true;
+                    } else if (rec->assign == SimpleInfoAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add simple info");
+                        // eg. hw version ...
+                    } else if (rec->assign == SystemConfigParaAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add config");
+                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
+                            actPowerLimit = rec->record[pos];
+                            DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
+                            DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
+                        }
+                    } else if (rec->assign == AlarmDataAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add alarm");
+                    } else
+                        DPRINTLN(DBG_WARN, F("add with unknown assignment"));
                 }
-                else if (rec->assign == SimpleInfoAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add simple info");
-                    // eg. hw version ...
-                }
-                else if (rec->assign == SystemConfigParaAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add config");
-                    if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
-                        actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
-                        DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
-                    }
-                }
-                else if (rec->assign == AlarmDataAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add alarm");
-                }
-                else
-                    DPRINTLN(DBG_WARN, F("add with unknown assignment"));
             }
             else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));

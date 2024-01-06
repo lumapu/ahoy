@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.46 - 2024-01-06
+* improved communication
+
 ## 0.8.45 - 2024-01-05
 * fix MqTT total values #1326
 * start implementing a wizard for initial (WiFi) configuration #1199
