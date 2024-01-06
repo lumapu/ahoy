@@ -838,13 +838,16 @@ class RestApi {
                 mTimezoneOffset = jsonIn[F("val")];
             else if(F("discovery_cfg") == jsonIn[F("cmd")])
                 mApp->setMqttDiscoveryFlag(); // for homeassistant
+            #if !defined(ETHERNET)
             else if(F("save_wifi") == jsonIn[F("cmd")]) {
                 snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", jsonIn[F("ssid")].as<const char*>());
                 snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", jsonIn[F("pwd")].as<const char*>());
                 mApp->saveSettings(false); // without reboot
                 mApp->setStopApAllowedMode(false);
                 mApp->setupStation();
-            } else if(F("save_iv") == jsonIn[F("cmd")]) {
+            }
+            #endif /* !defined(ETHERNET */
+            else if(F("save_iv") == jsonIn[F("cmd")]) {
                 Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")], false);
                 iv->config->enabled = jsonIn[F("en")];
                 iv->config->serial.u64 = jsonIn[F("ser")];
