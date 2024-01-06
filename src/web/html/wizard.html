@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Setup Wizard</title>
+        {#HTML_HEADER}
+    </head>
+    <body>
+        <div id="wrapper">
+            <div class="container d-flex aic jc">
+                <div id="con"></div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var v;
+            var found = false;
+            var c = document.getElementById("con");
+
+            function sect(e1, e2) {
+                return ml("div", {class: "row"}, [
+                    ml("div", {class: "col-12"}, ml("p", {}, e1)),
+                    ml("div", {class: "col-12"}, e2)
+                ])
+            }
+
+            function wifi() {
+                return ml("div", {}, [
+                    ml("div", {class: "row my-5"}, ml("div", {class: "col"}, ml("span", {class: "fs-1"}, "Welcome to AhoyDTU"))),
+                    ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "Network Setup"))),
+                    sect("Choose your WiFi Network", ml("select", {id: "net", onchange: () => {if(found) clearInterval(v)}}, ml("option", {value: "-1"}, "---"))),
+                    sect("... or name it manually", ml("input", {id: "man", type: "text"})),
+                    sect("WiFi Password", ml("input", {id: "pwd", type: "password"})),
+                    ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "next", onclick: () => {saveWifi()}}, null))),
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "stop wizard")))
+                ])
+            }
+
+            function checkWifi() {
+                c.replaceChildren(
+                    ml("div", {class: "row my-5"}, ml("div", {class: "col"}, ml("span", {class: "fs-1"}, "Welcome to AhoyDTU"))),
+                    ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "Test Connection"))),
+                    sect("AhoyDTU is trying to connect to your WiFi", ml("span", {id: "state"}, "connecting ...")),
+                    ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "Finish", onclick: () => {redirect()}}, null))),
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "stop wizard")))
+                )
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 2500);
+            }
+
+            function redirect() {
+                window.location.replace("http://192.168.4.1/")
+            }
+
+            function printIp(obj) {
+                if("0.0.0.0" != obj["ip"]) {
+                    clearInterval(v)
+                    setHide("btn", false)
+                    document.getElementById("state").innerHTML = "success, got following IP in your network: " + obj.ip
+                }
+            }
+
+            function saveWifi() {
+                var ssid = document.getElementById("net").value;
+                if(-1 == ssid)
+                    ssid = document.getElementById("man").value;
+                getAjax("/api/setup", ((o) => {if(!o.error) checkWifi()}), "POST", JSON.stringify({cmd: "save_wifi", ssid: ssid, pwd: document.getElementById("pwd").value}));
+            }
+
+            function nets(obj) {
+                var e = document.getElementById("net");
+                if(obj.networks.length > 0) {
+                    var a = []
+                    a.push(ml("option", {value: -1}, obj.networks.length + " Network(s) found"))
+                    for(n of obj.networks) {
+                        a.push(ml("option", {value: n.ssid}, n.ssid + " (" + n.rssi + "dBm)"))
+                        found = true;
+                    }
+                    e.replaceChildren(...a)
+                }
+                getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
+            }
+
+            getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
+            c.append(wifi())
+
+            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 2500);
+        </script>
+    </body>
+</html>

@@ -814,3 +814,20 @@ ul {
     background-color: var(--input-bg);
     color: var(--fg);
 }
+
+.d-flex {
+    display: flex !important;
+}
+
+.jc {
+    justify-content: center !important;
+}
+
+.aic {
+    align-items: center !important;
+}
+
+.container {
+    height: 100%;
+    overflow: auto;
+}

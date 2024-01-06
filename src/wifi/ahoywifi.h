@@ -28,6 +28,13 @@ class ahoywifi {
         bool getNtpTime(void);
         void scanAvailNetworks(void);
         bool getAvailNetworks(JsonObject obj);
+        void setStopApAllowedMode(bool allowed) {
+            mStopApAllowed = allowed;
+        }
+        String getStationIp(void) {
+            return WiFi.localIP().toString();
+        }
+        void setupStation(void);
 
     private:
         typedef enum WiFiStatus {
@@ -43,7 +50,6 @@ class ahoywifi {
 
         void setupWifi(bool startAP);
         void setupAp(void);
-        void setupStation(void);
         void sendNTPpacket(IPAddress& address);
         void sortRSSI(int *sort, int n);
         bool getBSSIDs(void);
@@ -78,6 +84,7 @@ class ahoywifi {
         bool mScanActive;
         bool mGotDisconnect;
         std::list<uint8_t> mBSSIDList;
+        bool mStopApAllowed;
 };
 
 #endif /*__AHOYWIFI_H__*/

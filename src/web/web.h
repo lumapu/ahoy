@@ -36,6 +36,7 @@
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
 #include "html/h/about_html.h"
+#include "html/h/wizard_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
@@ -77,6 +78,7 @@ class Web {
             mWeb.on("/factorytrue",    HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
+            mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
@@ -422,7 +424,7 @@ class Web {
 
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
-            request->redirect("/setup");
+            request->redirect("/wizard");
         }
 
         void onReboot(AsyncWebServerRequest *request) {
@@ -442,6 +444,13 @@ class Web {
 
         void onSetup(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_SETUP, setup_html, setup_html_len);
+        }
+
+        void onWizard(AsyncWebServerRequest *request) {
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), wizard_html, wizard_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            request->send(response);
         }
 
         void showSave(AsyncWebServerRequest *request) {

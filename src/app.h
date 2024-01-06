@@ -150,6 +150,18 @@ class app : public IApp, public ah::Scheduler {
             return mWifi.getAvailNetworks(obj);
         }
 
+        void setupStation(void) {
+            mWifi.setupStation();
+        }
+
+        void setStopApAllowedMode(bool allowed) {
+            mWifi.setStopApAllowedMode(allowed);
+        }
+
+        String getStationIp(void) {
+            return mWifi.getStationIp();
+        }
+
         #endif /* !defined(ETHERNET) */
 
         void setRebootFlag() {
