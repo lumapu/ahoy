@@ -34,10 +34,10 @@ Prometheus metrics provided at `/metrics`.
 | `ahoy_solar_inverter_radio_frame_cnt`        | Counter | NRF24 statistic of inverter                              | inverter  |
 | `ahoy_solar_inverter_radio_tx_cnt`           | Counter | NRF24 statistic of inverter                              | inverter  |
 | `ahoy_solar_inverter_radio_retransmits`      | Counter | NRF24 statistic of inverter                              | inverter  |
-| `ahoy_solar_inverter_radio_iv_rx_cnt`        | Counter | NRF24 statistic of inverter                              | inverter  |
-| `ahoy_solar_inverter_radio_iv_tx_cnt`        | Counter | NRF24 statistic of inverter                              | inverter  |
-| `ahoy_solar_inverter_radio_dtu_rx_cnt`       | Counter | NRF24 statistic of inverter                              | inverter  |
-| `ahoy_solar_inverter_radio_dtu_rx_cnt`       | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_iv_loss_cnt`      | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_iv_sent_cnt`      | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_dtu_loss_cnt`     | Counter | NRF24 statistic of inverter                              | inverter  |
+| `ahoy_solar_inverter_radio_dtu_sent_cnt`     | Counter | NRF24 statistic of inverter                              | inverter  |
 | `ahoy_solar_U_AC_volt`                       | Gauge   | AC voltage of inverter [V]                               | inverter  |
 | `ahoy_solar_I_AC_ampere`                     | Gauge   | AC current of inverter [A]                               | inverter  |
 | `ahoy_solar_P_AC_watt`                       | Gauge   | AC power of inverter [W]                                 | inverter  |
