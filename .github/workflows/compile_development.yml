@@ -65,6 +65,9 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Rename Firmware
+      run: python ../scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
+
     - name: Create Artifact
       uses: actions/upload-artifact@v3
       with:
@@ -123,12 +126,15 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Rename Firmware
+      run: python ../scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
+
     - name: Create Artifact
       uses: actions/upload-artifact@v3
       with:
         name: ahoydtu_dev
         path: |
-          src/firmware/*
+          firmware/*
 
   deploy:
     needs: [build-en, build-de]
@@ -141,19 +147,18 @@ jobs:
       uses: actions/download-artifact@master
       with:
         name: ahoydtu_dev
-        path: src/firmware/*
+        path: firmware/*
 
-    - name: Rename Binary files
-      id: rename-binary-files
-      working-directory: src
-      run: python ../scripts/getVersion.py >> $GITHUB_OUTPUT
+    - name: Get Version from code
+      id: version_name
+      run: python ../scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
       with:
         files: tools/esp8266/User_Manual.md
       env:
-          VERSION: ${{ steps.rename-binary-files.outputs.name }}
+          VERSION: ${{ steps.version_name.outputs.name }}
 
 #    - name: Create Manifest
 #      working-directory: src
@@ -169,12 +174,12 @@ jobs:
 #          src/install.html
 
     - name: Rename firmware directory
-      run: mv src/firmware src/${{ steps.rename-binary-files.outputs.name }}
+      run: mv src/firmware src/${{ steps.version_name.outputs.name }}
 
     - name: Deploy
       uses: nogsantos/scp-deploy@master
       with:
-        src: src/${{ steps.rename-binary-files.outputs.name }}/
+        src: src/${{ steps.version_name.outputs.name }}/
         host: ${{ secrets.FW_SSH_HOST }}
         remote: ${{ secrets.FW_SSH_DIR }}/dev
         port: ${{ secrets.FW_SSH_PORT }}
