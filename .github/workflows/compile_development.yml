@@ -71,7 +71,7 @@ jobs:
     - name: Create Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ahoydtu_dev
+        name: dev-${{ matrix.variant }}
         path: firmware/*
 
   build-de:
@@ -144,8 +144,11 @@ jobs:
 
     - name: Get Artifacts
       uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
+        path: firmware
     - name: Display structure of downloaded files
-      run: ls -R
+      run: ls -R firmware
 
     - name: Get Version from code
       id: version_name
