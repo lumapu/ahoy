@@ -76,7 +76,7 @@ namespace ah {
             sprintf(str, "n/a");
         else {
             t = (t + (millis() % 1000)) / 1000;
-            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), millis() % 1000);
+            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), (uint16_t)(millis() % 1000));
         }
         return String(str);
     }
