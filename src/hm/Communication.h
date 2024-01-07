@@ -119,7 +119,6 @@ class Communication : public CommQueue<> {
                         setAttempt();
                         if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
                             incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
-/// statt 5:3
                         mState = States::WAIT;
                         break;
 
