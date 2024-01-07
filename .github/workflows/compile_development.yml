@@ -69,11 +69,10 @@ jobs:
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
     - name: Create Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ahoydtu_dev
-        path: |
-          firmware/*
+        path: firmware/*
 
   build-de:
     needs: check
@@ -130,11 +129,10 @@ jobs:
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
     - name: Create Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ahoydtu_dev
-        path: |
-          firmware/*
+        path: firmware/*
 
   deploy:
     needs: [build-en, build-de]
