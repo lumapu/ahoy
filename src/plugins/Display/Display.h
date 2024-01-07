@@ -54,7 +54,7 @@ class Display {
             default: mMono = NULL; break;
         }
         if(mMono) {
-            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast);
+            mMono->config(mCfg->pwrSaveAtIvOffline, mCfg->screenSaver, mCfg->contrast, mCfg->graph_ratio, mCfg->graph_size);
             mMono->init(mCfg->type, mCfg->rot, mCfg->disp_cs, mCfg->disp_dc, 0xff, mCfg->disp_clk, mCfg->disp_data, &mDisplayData);
         }
 
@@ -75,10 +75,12 @@ class Display {
     }
 
     void tickerSecond() {
-        if (mMono != NULL)
-            mMono->loop(mCfg->contrast, motionSensorActive());
+        bool request_refresh = false;
 
-        if (mNewPayload || (((++mLoopCnt) % 5) == 0)) {
+        if (mMono != NULL)
+            request_refresh = mMono->loop(mCfg->contrast, motionSensorActive());
+
+        if (mNewPayload || (((++mLoopCnt) % 5) == 0) || request_refresh) {
             DataScreen();
             mNewPayload = false;
             mLoopCnt = 0;
@@ -164,6 +166,9 @@ class Display {
             mDisplayData.utcTs = utc;
         else
             mDisplayData.utcTs = 0;
+
+        mDisplayData.pGraphStartTime = mApp->getSunrise();
+        mDisplayData.pGraphEndTime = mApp->getSunset();
 
         if (mMono ) {
             mMono->disp();
