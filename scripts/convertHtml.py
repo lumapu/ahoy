@@ -3,6 +3,7 @@ import os
 import gzip
 import glob
 import shutil
+import json
 from datetime import date
 from pathlib import Path
 import subprocess
@@ -33,7 +34,7 @@ def readVersion(path):
                     ver += line[p+13:].rstrip() + "."
     return ver[:-1]
 
-def htmlParts(file, header, nav, footer, version):
+def htmlParts(file, header, nav, footer, version, lang):
     p = "";
     f = open(file, "r")
     lines = f.readlines()
@@ -64,6 +65,8 @@ def htmlParts(file, header, nav, footer, version):
 
     # remove if - endif ESP32
     p = checkIf(p)
+    p = translate(file, p, lang)
+    p = translate("general", p, lang) # menu / header / footer
 
     f = open("tmp/" + file, "w")
     f.write(p);
@@ -94,7 +97,30 @@ def checkIf(data):
 
     return data
 
-def convert2Header(inFile, version):
+def findLang(file):
+    with open('../lang.json') as j:
+        lang = json.load(j)
+
+        for l in lang["files"]:
+            if l["name"] == file:
+                return l
+
+    return None
+
+def translate(file, data, lang="de"):
+    json = findLang(file)
+
+    if None != json:
+        matches = re.findall(r'\{\#([A-Z0-9_]+)\}', data)
+        for x in matches:
+            for e in json["list"]:
+                if x == e["token"]:
+                    #print("replace " + "{#" + x + "}" + " with " + e[lang])
+                    data = data.replace("{#" + x + "}", e[lang])
+    return data
+
+
+def convert2Header(inFile, version, lang):
     fileType      = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
@@ -114,7 +140,7 @@ def convert2Header(inFile, version):
         f.close()
     else:
         if fileType == "html":
-            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", version)
+            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", version, lang)
         else:
             f = open(inFile, "r")
             data = f.read()
@@ -169,6 +195,11 @@ Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with a
 shutil.copyfile("style.css", "tmp/style.css")
 version = readVersion("../../defines.h")
 
+# get language from environment
+lang = "en"
+if env['PIOENV'][-3:] == "-de":
+    lang = "de"
+
 # go throw the array
 for val in files_grabbed:
-    convert2Header(val, version)
+    convert2Header(val, version, lang)

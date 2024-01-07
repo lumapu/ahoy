@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __CONFIG_H__

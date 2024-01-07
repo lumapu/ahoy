@@ -59,6 +59,7 @@ def readVersion(path, infile):
     os.mkdir(path + "firmware/ESP32-S3-ETH/")
     sha = os.getenv("SHA",default="sha")
 
+## ENGLISH VERSIONS
     versionout = version[:-1] + "_" + sha + "_esp8266.bin"
     src = path + ".pio/build/esp8266/firmware.bin"
     dst = path + "firmware/ESP8266/" + versionout
@@ -110,6 +111,59 @@ def readVersion(path, infile):
     dst = path + "firmware/ESP32-S3-ETH/" + versionout
     os.rename(src, dst)
 
+## GERMAN VERSIONS
+    versionout = version[:-1] + "_" + sha + "_esp8266-de.bin"
+    src = path + ".pio/build/esp8266-de/firmware.bin"
+    dst = path + "firmware/ESP8266/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp8266_prometheus-de.bin"
+    src = path + ".pio/build/esp8266-prometheus-de/firmware.bin"
+    dst = path + "firmware/ESP8266/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp8285-de.bin"
+    src = path + ".pio/build/esp8285-de/firmware.bin"
+    dst = path + "firmware/ESP8285/" + versionout
+    os.rename(src, dst)
+    gzip_bin(dst, dst + ".gz")
+
+    versionout = version[:-1] + "_" + sha + "_esp32-de.bin"
+    src = path + ".pio/build/esp32-wroom32-de/firmware.bin"
+    dst = path + "firmware/ESP32/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32_prometheus-de.bin"
+    src = path + ".pio/build/esp32-wroom32-prometheus-de/firmware.bin"
+    dst = path + "firmware/ESP32/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32_ethernet-de.bin"
+    src = path + ".pio/build/esp32-wroom32-ethernet-de/firmware.bin"
+    dst = path + "firmware/ESP32/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32s2-mini-de.bin"
+    src = path + ".pio/build/esp32-s2-mini-de/firmware.bin"
+    dst = path + "firmware/ESP32-S2/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32c3-mini-de.bin"
+    src = path + ".pio/build/esp32-c3-mini-de/firmware.bin"
+    dst = path + "firmware/ESP32-C3/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32s3-de.bin"
+    src = path + ".pio/build/opendtufusion-de/firmware.bin"
+    dst = path + "firmware/ESP32-S3/" + versionout
+    os.rename(src, dst)
+
+    versionout = version[:-1] + "_" + sha + "_esp32s3_ethernet-de.bin"
+    src = path + ".pio/build/opendtufusion-ethernet-de/firmware.bin"
+    dst = path + "firmware/ESP32-S3-ETH/" + versionout
+    os.rename(src, dst)
+
+## BOOTLOADER AND PARTITIONS
     # other ESP32 bin files
     src = path + ".pio/build/esp32-wroom32/"
     dst = path + "firmware/ESP32/"

@@ -10,7 +10,7 @@
         <div id="wrapper">
             <div id="content">
                 <div id="live"></div>
-                <p>Every <span id="refresh"></span> seconds the values are updated</p>
+                <p>{#EVERY} <span id="refresh"></span> {#UPDATE_SECS}</p>
             </div>
         </div>
         {#HTML_FOOTER}
@@ -70,20 +70,20 @@
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 total-h"},
                             ml("div", {class: "row"},
-                                ml("div", {class: "col mx-2 mx-md-1"}, "TOTAL")
+                                ml("div", {class: "col mx-2 mx-md-1"}, "{#TOTAL}")
                             ),
                         ),
                         ml("div", {class: "p-2 total-bg"}, [
                             ml("div", {class: "row"}, [
-                                numBig(total[0], "W", "AC Power"),
-                                numBig(total[1], "Wh", "Yield Day"),
-                                numBig(total[2], "kWh", "Yield Total")
+                                numBig(total[0], "W", "{#AC_POWER}"),
+                                numBig(total[1], "Wh", "{#YIELD_DAY}"),
+                                numBig(total[2], "kWh", "{#YIELD_TOTAL}")
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row"}, [
-                                numMid(total[3], "W", "Max Power"),
-                                numMid(total[4], "W", "DC Power"),
-                                numMid(total[5], "var", "Reactive Power")
+                                numMid(total[3], "W", "{#MAX_POWER}"),
+                                numMid(total[4], "W", "{#DC_POWER}"),
+                                numMid(total[5], "var", "{#REACTIVE_POWER}")
                             ])
                         ])
                     ])
@@ -119,31 +119,31 @@
                                     getAjax("/api/inverter/version/" + obj.id, parseIvVersion);
                                 }}, obj.name)),
                                 ml("div", {class: "col a-c", onclick: function() {limitModal(obj)}}, [
-                                    ml("span", {class: "d-none d-sm-block pointer"}, "Active Power Control: " + pwrLimit),
-                                    ml("span", {class: "d-block d-sm-none pointer"}, "APC: " + pwrLimit)
+                                    ml("span", {class: "d-none d-sm-block pointer"}, "{#ACTIVE_POWER_CONTROL}: " + pwrLimit),
+                                    ml("span", {class: "d-block d-sm-none pointer"}, "{#APC}: " + pwrLimit)
                                 ]),
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
-                                }}, ("Alarms: " + obj.alarm_cnt))),
+                                }}, ("{#ALARMS}: " + obj.alarm_cnt))),
                                 ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
                             ])
                         ),
                         ml("div", {class: "p-2 " + clbg}, [
                             ml("div", {class: "row"},[
-                                numBig(obj.ch[0][2], "W", "AC Power"),
-                                numBig(obj.ch[0][7], "Wh", "Yield Day"),
-                                numBig(obj.ch[0][6], "kWh", "Yield Total")
+                                numBig(obj.ch[0][2], "W", "{#AC_POWER}"),
+                                numBig(obj.ch[0][7], "Wh", "{#YIELD_DAY}"),
+                                numBig(obj.ch[0][6], "kWh", "{#YIELD_TOTAL}")
                             ]),
                             ml("div", {class: "hr"}),
                             ml("div", {class: "row mt-2"},[
-                                numMid(obj.ch[0][11], "W", "Max AC Power", {class: "fs-6 tooltip", data: maxAcPwr}),
-                                numMid(obj.ch[0][8], "W", "DC Power"),
-                                numMid(obj.ch[0][0], "V", "AC Voltage"),
-                                numMid(obj.ch[0][1], "A", "AC Current"),
-                                numMid(obj.ch[0][3], "Hz", "Frequency"),
-                                numMid(obj.ch[0][9], "%", "Efficiency"),
-                                numMid(obj.ch[0][10], "var", "Reactive Power"),
-                                numMid(obj.ch[0][4], "", "Power Factor")
+                                numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwr}),
+                                numMid(obj.ch[0][8], "W", "{#DC_POWER}"),
+                                numMid(obj.ch[0][0], "V", "{#DC_VOLTAGE}"),
+                                numMid(obj.ch[0][1], "A", "{#AC_CURRENT}"),
+                                numMid(obj.ch[0][3], "Hz", "{#FREQUENCY}"),
+                                numMid(obj.ch[0][9], "%", "{#EFFICIENCY}"),
+                                numMid(obj.ch[0][10], "var", "{#REACTIVE_POWER}"),
+                                numMid(obj.ch[0][4], "", "{#POWER_FACTOR}")
                             ])
                         ])
                     ])
@@ -172,26 +172,26 @@
                     ml("div", {class: "p-2 a-c " + clh}, name),
                     ml("div", {class: "p-2 " + clbg}, [
                         ml("div", {class: "row"}, [
-                            numCh(vals[2], units[2], "DC Power"),
-                            numCh(vals[6], units[2], "Max Power"),
-                            numCh(vals[5], units[5], "Irradiation"),
-                            numCh(vals[3], units[3], "Yield Day"),
-                            numCh(vals[4], units[4], "Yield Total"),
-                            numCh(vals[0], units[0], "DC Voltage"),
-                            numCh(vals[1], units[1], "DC Current")
+                            numCh(vals[2], units[2], "{#DC_POWER}"),
+                            numCh(vals[6], units[2], "{#MAX_POWER}"),
+                            numCh(vals[5], units[5], "{#IRRADIATION}"),
+                            numCh(vals[3], units[3], "{#YIELD_DAY}"),
+                            numCh(vals[4], units[4], "{#YIELD_TOTAL}"),
+                            numCh(vals[0], units[0], "{#DC_VOLTAGE}"),
+                            numCh(vals[1], units[1], "{#DC_CURRENT}")
                         ])
                     ])
                 ]);
             }
 
             function tsInfo(obj) {
-                var ageInfo = "Last received data requested at: ";
+                var ageInfo = "{#LAST_RECEIVED}: ";
                 if(obj.ts_last_success > 0) {
                     var date = new Date(obj.ts_last_success * 1000);
                     ageInfo += toIsoDateStr(date);
                 }
                 else
-                    ageInfo += "nothing received";
+                    ageInfo += "{#NOTHING_RECEIVED}";
 
                 if(obj.rssi > -127) {
                     if(obj.generation < 2)
@@ -252,10 +252,10 @@
                 var offs = new Date().getTimezoneOffset() * -60;
                 html.push(
                     ml("div", {class: "row"}, [
-                        ml("div", {class: "col"}, ml("strong", {}, "Event")),
+                        ml("div", {class: "col"}, ml("strong", {}, "{#EVENT}")),
                         ml("div", {class: "col"}, ml("strong", {}, "ID")),
                         ml("div", {class: "col"}, ml("strong", {}, "Start")),
-                        ml("div", {class: "col"}, ml("strong", {}, "End"))
+                        ml("div", {class: "col"}, ml("strong", {}, "{#END}"))
                     ])
                 );
 
@@ -271,7 +271,7 @@
                         );
                     }
                 }
-                modal("Alarms of inverter " + obj.iv_name, ml("div", {}, html));
+                modal("{#ALARMS_MODAL}: " + obj.iv_name, ml("div", {}, html));
             }
 
             function parseIvVersion(obj) {
@@ -283,7 +283,7 @@
                     case 3: model = "HMT-"; break;
                     default: model = "???-"; break;
                 }
-                model += String(obj.max_pwr) + " (Serial: " + obj.serial + ")";
+                model += String(obj.max_pwr) + " ({#SERIAL}: " + obj.serial + ")";
 
 
                 var html = ml("table", {class: "table"}, [
@@ -291,15 +291,15 @@
                         tr("Model", model),
                         tr("Firmware Version / Build", String(obj.fw_ver) + " (build: " + String(obj.fw_date) + " " + String(obj.fw_time) + ")"),
                         tr("Hardware Version / Build", (obj.hw_ver/100).toFixed(2) + " (build: " + String(obj.prod_cw) + "/" + String(obj.prod_year) + ")"),
-                        tr("Hardware Number", obj.part_num.toString(16)),
+                        tr("{#HW_NUMBER}", obj.part_num.toString(16)),
                         tr("Bootloader Version", (obj.boot_ver/100).toFixed(2)),
-                        tr("Grid Profile", ml("input", {type: "button", value: "show", class: "btn", onclick: function() {
+                        tr("Grid Profile", ml("input", {type: "button", value: "{#BTN_SHOW}", class: "btn", onclick: function() {
                             modalClose();
                             getAjax("/api/inverter/grid/" + obj.id, showGridProfile);
                         }}, null))
                     ])
                 ])
-                modal("Info for inverter " + obj.name, ml("div", {}, html))
+                modal("{#INV_INFO}: " + obj.name, ml("div", {}, html))
             }
 
             function getGridValue(g) {
@@ -332,9 +332,9 @@
                 ))
                 content.push(ml("div", {class: "row my-2"}, [
                     ml("div", {class: "col-4"}, ml("b", {}, "Name")),
-                    ml("div", {class: "col-3"}, ml("b", {}, "Value")),
-                    ml("div", {class: "col-3"}, ml("b", {}, "Range")),
-                    ml("div", {class: "col-2"}, ml("b", {}, "Default"))
+                    ml("div", {class: "col-3"}, ml("b", {}, "{#VALUE}")),
+                    ml("div", {class: "col-3"}, ml("b", {}, "{#RANGE}")),
+                    ml("div", {class: "col-2"}, ml("b", {}, "{#DEFAULT}"))
                 ]))
                 for(e of g.info.group) {
                     if(Array.isArray(e[id])) {
@@ -362,10 +362,10 @@
                     var v = getGridValue(glob);
                     if(null === g) {
                         if(0 == obj.grid.length) {
-                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Profile was not read until now, maybe turned off?"))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#PROFILE_NOT_READ}?"))))
                         } else {
-                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "Unknown Profile"))))
-                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "Please open a new issue at https://github.com/lumapu/ahoy and copy the raw data into it."))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "{#UNKNOWN_PROFILE}"))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#OPEN_ISSUE}."))))
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col my-2"}, ml("pre", {}, obj.grid))))
                         }
                     } else {
@@ -378,7 +378,7 @@
                         }
                     }
 
-                    modal("Grid Profile for inverter " + obj.name, ml("div", {}, ml("div", {class: "col mb-2"}, [...content])))
+                    modal("{#PROFILE_MODAL}: " + obj.name, ml("div", {}, ml("div", {class: "col mb-2"}, [...content])))
                 })
             }
 
@@ -386,56 +386,56 @@
             function parseIvRadioStats(obj) {
                 var html = ml("table", {class: "table"}, [
                     ml("tbody", {}, [
-                        tr2(["TX count", obj.tx_cnt, ""]),
-                        tr2(["RX success", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
-                        tr2(["RX fail", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
-                        tr2(["RX no answer", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
-                        tr2(["RX fragments", obj.frame_cnt, ""]),
-                        tr2(["TX retransmits", obj.retransmits, ""]),
-                        tr2(["Inverter loss rate", "lost " + obj.ivLoss + " of " + obj.ivSent, String(Math.round(obj.ivLoss / obj.ivSent * 10000) / 100) + "&nbsp;%"]),
-                        tr2(["DTU loss rate", "lost " + obj.dtuLoss + " of " + obj.dtuSent, String(Math.round(obj.dtuLoss / obj.dtuSent * 10000) / 100) + "&nbsp;%"])
+                        tr2(["{#TX_COUNT}", obj.tx_cnt, ""]),
+                        tr2(["{#RX_SUCCESS}", obj.rx_success, String(Math.round(obj.rx_success / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["{#RX_FAIL}", obj.rx_fail, String(Math.round(obj.rx_fail / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["{#RX_NO_ANSWER}", obj.rx_fail_answer, String(Math.round(obj.rx_fail_answer / obj.tx_cnt * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["{#RX_FRAGMENTS}", obj.frame_cnt, ""]),
+                        tr2(["{#TX_RETRANSMITS}", obj.retransmits, ""]),
+                        tr2(["{#INV_LOSS_RATE}", "{#LOST_1} " + obj.ivLoss + " {#LOST_2} " + obj.ivSent + " {#LOST_3}", String(Math.round(obj.ivLoss / obj.ivSent * 10000) / 100) + "&nbsp;%"]),
+                        tr2(["{#DTU_LOSS_RATE}", "{#LOST_1} " + obj.dtuLoss + " {#LOST_2} " + obj.dtuSent + " {#LOST_3}", String(Math.round(obj.dtuLoss / obj.dtuSent * 10000) / 100) + "&nbsp;%"])
                     ])
                 ])
-                modal("Radio statistics for inverter " + obj.name, ml("div", {}, html))
+                modal("{#RADIO_STAT_MODAL}: " + obj.name, ml("div", {}, html))
             }
 
             function limitModal(obj) {
                 var opt = [["pct", "%"], ["watt", "W"]];
                 var html = ml("div", {}, [
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Limit Value"),
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "{#LIMIT_VALUE}"),
                         ml("div", {class: "col-8 col-sm-5"}, ml("input", {name: "limit", type: "number", step: "0.1", min: 1}, "")),
                         ml("div", {class: "col-4 col-sm-2"}, sel("type", opt, "pct"))
                     ]),
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-8 col-sm-5"}, "Keep limit over inverter restart"),
+                        ml("div", {class: "col-8 col-sm-5"}, "{#KEEP_LIMIT}"),
                         ml("div", {class: "col-4 col-sm-7"}, ml("input", {type: "checkbox", name: "keep"}))
                     ]),
                     ml("div", {class: "row my-3"},
-                        ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "Apply", class: "btn", onclick: function() {
+                        ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "{#BTN_APPLY}", class: "btn", onclick: function() {
                             applyLimit(obj.id);
                         }}, null))
                     ),
                     ml("div", {class: "row my-4"}, [
-                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Control"),
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "{#CONTROL}"),
                         ml("div", {class: "col col-sm-7 a-r"}, [
-                            ml("input", {type: "button", value: "restart", class: "btn", onclick: function() {
+                            ml("input", {type: "button", value: "{#RESTART}", class: "btn", onclick: function() {
                                 applyCtrl(obj.id, "restart");
                             }}, null),
-                            ml("input", {type: "button", value: "turn off", class: "btn mx-1", onclick: function() {
+                            ml("input", {type: "button", value: "{#TURN_OFF}", class: "btn mx-1", onclick: function() {
                                 applyCtrl(obj.id, "power", 0);
                             }}, null),
-                            ml("input", {type: "button", value: "turn on", class: "btn", onclick: function() {
+                            ml("input", {type: "button", value: "{#TURN_ON}", class: "btn", onclick: function() {
                                 applyCtrl(obj.id, "power", 1);
                             }}, null)
                         ])
                     ]),
                     ml("div", {class: "row mt-1"}, [
-                        ml("div", {class: "col-12 col-sm-5 my-2"}, "Result"),
+                        ml("div", {class: "col-12 col-sm-5 my-2"}, "{#RESULT}"),
                         ml("div", {class: "col-sm-7 my-2"}, ml("span", {name: "pwrres"}, "-"))
                     ])
                 ]);
-                modal("Active Power Control for inverter " + obj.name, html);
+                modal("{#POWER_LIMIT_MODAL}: " + obj.name, html);
             }
 
             function applyLimit(id) {
@@ -470,19 +470,19 @@
             function ctrlCb(obj) {
                 var e = document.getElementsByName("pwrres")[0];
                 if(obj.success) {
-                    e.innerHTML = "received command, waiting for inverter acknowledge ...";
+                    e.innerHTML = "{#CMD_RECEIVED_WAIT_ACK}";
                     tPwrAck = window.setInterval("getAjax('/api/inverter/pwrack/" + obj.id + "', updatePwrAck)", 1000);
                 }
                 else
-                    e.innerHTML = "Error: " + obj["error"];
+                    e.innerHTML = "{#ERROR}: " + obj["error"];
             }
 
             function ctrlCb2(obj) {
                 var e = document.getElementsByName("pwrres")[0];
                 if(obj.success)
-                    e.innerHTML = "command received";
+                    e.innerHTML = "{#COMMAND_RECEIVED}";
                 else
-                    e.innerHTML = "Error: " + obj["error"];
+                    e.innerHTML = "{#ERROR}: " + obj["error"];
             }
 
             function updatePwrAck(obj) {
@@ -492,7 +492,7 @@
                 clearInterval(tPwrAck);
                 if(null == e)
                     return;
-                e.innerHTML = "inverter acknowledged active power control command";
+                e.innerHTML = "{#INV_ACK}";
             }
 
             function parse(obj) {

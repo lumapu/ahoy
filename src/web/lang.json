@@ -1,0 +1,1334 @@
+{
+    "files": [
+        {
+            "name": "general",
+            "list": [
+                {
+                    "token": "NAV_LIVE",
+                    "en": "Live",
+                    "de": "Daten"
+                },
+                {
+                    "token": "NAV_WEBSERIAL",
+                    "en": "Webserial",
+                    "de": "Web Konsole"
+                },
+                {
+                    "token": "NAV_SETTINGS",
+                    "en": "Settings",
+                    "de": "Einstellungen"
+                },
+                {
+                    "token": "NAV_DOCUMENTATION",
+                    "en": "Documentation",
+                    "de": "Dokumentation"
+                },
+                {
+                    "token": "NAV_ABOUT",
+                    "en": "About",
+                    "de": "&Uuml;ber"
+                }
+            ]
+        },
+        {
+            "name": "wizard.html",
+            "list": [
+                {
+                    "token": "WELCOME",
+                    "en": "Welcome to AhoyDTU",
+                    "de": "Willkommen zu AhoyDTU"
+                },
+                {
+                    "token": "NETWORK_SETUP",
+                    "en": "Network Setup",
+                    "de": "Netzwerkeinstellung"
+                },
+                {
+                    "token": "CHOOSE_WIFI",
+                    "en": "Choose your WiFi Network",
+                    "de": "W&auml;hle dein WiFi Netzwerk aus"
+                },
+                {
+                    "token": "WIFI_MANUAL",
+                    "en": "... or name it manually",
+                    "de": "... oder nenne es hier"
+                },
+                {
+                    "token": "WIFI_PASSWORD",
+                    "en": "WiFi Password",
+                    "de": "WiFi Passwort"
+                },
+                {
+                    "token": "STOP_WIZARD",
+                    "en": "stop wizard",
+                    "de": "Einrichtung beenden"
+                },
+                {
+                    "token": "BTN_NEXT",
+                    "en": "next >>",
+                    "de": "prüfen >>"
+                },
+                {
+                    "token": "TEST_CONNECTION",
+                    "en": "Test Connection",
+                    "de": "Verbindung wird überprüft"
+                },
+                {
+                    "token": "TRY_TO_CONNECT",
+                    "en": "AhoyDTU is trying to connect to your WiFi",
+                    "de": "AhoyDTU versucht eine Verindung mit deinem Netzwerk herzustellen"
+                },
+                {
+                    "token": "CONNECTING",
+                    "en": "connecting ...",
+                    "de": "verbinde ..."
+                },
+                {
+                    "token": "NETWORK_SUCCESS",
+                    "en": "success, got following IP in your network: ",
+                    "de": "Verindung erfolgreich. AhoyDTU hat die folgende IP bekommen: "
+                },
+                {
+                    "token": "BTN_FINISH",
+                    "en": "Finish >>",
+                    "de": "Fertig >>"
+                },
+                {
+                    "token": "NUM_NETWORKS_FOUND",
+                    "en": "Network(s) found",
+                    "de": "Netzwerk(e) gefunden"
+                }
+            ]
+        },
+        {
+            "name": "setup.html",
+            "list": [
+                {
+                    "token": "SETTINGS",
+                    "en": "Settings",
+                    "de": "Einstellungen"
+                },
+                {
+                    "token": "SYSTEM_CONFIG",
+                    "en": "System Config",
+                    "de": "Systemkonfiguration"
+                },
+                {
+                    "token": "DEVICE_NAME",
+                    "en": "Device Host Name",
+                    "de": "Name der DTU"
+                },
+                {
+                    "token": "REBOOT_AT_MIDNIGHT",
+                    "en": "Reboot Ahoy at midnight",
+                    "de": "um Mitternacht neu starten"
+                },
+                {
+                    "token": "DARK_MODE",
+                    "en": "Dark Mode",
+                    "de": "dunkler Modus"
+                },
+                {
+                    "token": "DARK_MODE_NOTE",
+                    "en": "(empty browser cache or use CTRL + F5 after reboot to apply this setting)",
+                    "de": "(der Browser-Cache muss geleert oder STRG + F5 gedr&uuml;ckt werden, um diese Einstellung zu aktivieren)"
+                },
+                {
+                    "token": "PINOUT_CONFIGURATION",
+                    "en": "Pinout Configuration",
+                    "de": "Anschlusseinstellungen"
+                },
+                {
+                    "token": "RADIO",
+                    "en": "Radio",
+                    "de": "Funkmodul"
+                },
+                {
+                    "token": "SERIAL_CONSOLE",
+                    "en": "Serial console",
+                    "de": "Serielle Konsole"
+                },
+                {
+                    "token": "LOG_PRINT_INVERTER_DATA",
+                    "en": "print inverter data",
+                    "de": "Livedaten ausgeben"
+                },
+                {
+                    "token": "LOG_SERIAL_DEBUG",
+                    "en": "Serial Debug",
+                    "de": "Entwicklerinformationen ausgeben"
+                },
+                {
+                    "token": "LOG_PRIVACY_MODE",
+                    "en": "Privacy Mode",
+                    "de": "Privatsph&auml;renmodus"
+                },
+                {
+                    "token": "LOG_PRINT_TRACES",
+                    "en": "Print whole traces in Log",
+                    "de": "alle Informationen in Log schreiben"
+                },
+                {
+                    "token": "NETWORK",
+                    "en": "Network",
+                    "de": "Netzwerk"
+                },
+                {
+                    "token": "AP_PWD",
+                    "en": "AP Password (min. length: 8)",
+                    "de": "AP Passwort (min. L&auml;nge: 8 Zeichen)"
+                },
+                {
+                    "token": "SEARCH_NETWORKS",
+                    "en": "Search Networks",
+                    "de": "Netzwerke suchen"
+                },
+                {
+                    "token": "BTN_SCAN",
+                    "en": "scan",
+                    "de": "Suche starten"
+                },
+                {
+                    "token": "AVAIL_NETWORKS",
+                    "en": "Avail Networks",
+                    "de": "Verf&uuml;gbare Netzwerke"
+                },
+                {
+                    "token": "NETWORK_NOT_SCANNED",
+                    "en": "not scanned",
+                    "de": "nicht gesucht"
+                },
+                {
+                    "token": "SSID_HIDDEN",
+                    "en": "SSID is hidden",
+                    "de": "SSID ist versteckt"
+                },
+                {
+                    "token": "PASSWORD",
+                    "en": "Password",
+                    "de": "Passwort"
+                },
+                {
+                    "token": "STATIC_IP",
+                    "en": "Static IP (optional)",
+                    "de": "Statische IP (optional)"
+                },
+                {
+                    "token": "NETWORK_HINT_BLANK",
+                    "en": "Leave fields blank for DHCP<br/>The following fields are parsed in this format: 192.168.4.1",
+                    "de": "Felder leer lassen um in den DHCP Modus zu wechseln.<br/>Das Format der IP Adressen ist: 192.168.4.1"
+                },
+                {
+                    "token": "IP_ADDRESS",
+                    "en": "IP Address",
+                    "de": "IP Adresse"
+                },
+                {
+                    "token": "SUBMASK",
+                    "en": "Submask",
+                    "de": "Subnetzmaske"
+                },
+                {
+                    "token": "PROTECTION",
+                    "en": "Protection",
+                    "de": "Zugriffsschutz"
+                },
+                {
+                    "token": "ADMIN_PASSWORD",
+                    "en": "Admin Password",
+                    "de": "Administratorpasswort"
+                },
+                {
+                    "token": "PROTECTION_NOTE",
+                    "en": "Select pages which should be protected by password",
+                    "de": "Ausw&auml;hlen, welche Bereiche passwortgesch&uuml;tzt werden sollen"
+                },
+                {
+                    "token": "INVERTER",
+                    "en": "Inverter",
+                    "de": "Wechselrichter"
+                },
+                {
+                    "token": "INTERVAL",
+                    "en": "Interval [s]",
+                    "de": "Intervall [s]"
+                },
+                {
+                    "token": "INV_GAP",
+                    "en": "Communication Gap [ms]",
+                    "de": "Kommunikationsl&uuml;cke"
+                },
+                {
+                    "token": "INV_RESET_MIDNIGHT",
+                    "en": "Reset values and YieldDay at midnight",
+                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
+                },
+                {
+                    "token": "INV_PAUSE_SUNSET",
+                    "en": "Reset values at sunset",
+                    "de": "Werte bei Sonnenuntergang zur&uuml;cksetzen"
+                },
+                {
+                    "token": "INV_RESET_NOT_AVAIL",
+                    "en": "Reset values when inverter status is 'not available'",
+                    "de": "Werte zur&uuml;cksetzen, sobald der Wechselrichter nicht erreichbar ist"
+                },
+                {
+                    "token": "INV_RESET_MAX_MIDNIGHT",
+                    "en": "Reset 'max' values at midnight",
+                    "de": "Maximalwerte bei Sonnenuntergang zur&uuml;cksetzen"
+                },
+                {
+                    "token": "INV_START_WITHOUT_TIME",
+                    "en": "Start without time sync (useful in AP-Only-Mode)",
+                    "de": "Kommunikation starten ohne g&uuml;ltige Zeit (sinnvoll im AP Modus)"
+                },
+                {
+                    "token": "INV_READ_GRID_PROFILE",
+                    "en": "Read Grid Profile",
+                    "de": "Grid-Profil auslesen"
+                },
+                {
+                    "token": "INV_YIELD_EFF",
+                    "en": "Yield Efficiency (default 1.0)",
+                    "de": "Ertragseffizienz (Standard 1.0)"
+                },
+                {
+                    "token": "NTP_INTERVAL",
+                    "en": "NTP Interval (in minutes, min. 5 minutes)",
+                    "de": "NTP Intervall (in Minuten, min. 5 Minuten)"
+                },
+                {
+                    "token": "NTP_SET_SYS_TIME",
+                    "en": "set system time",
+                    "de": "Systemzeit setzten"
+                },
+                {
+                    "token": "BTN_FROM_BROWSER",
+                    "en": "from browser",
+                    "de": "vom Browser &uuml;bernehmen"
+                },
+                {
+                    "token": "BTN_SYNC_NTP",
+                    "en": "sync NTP",
+                    "de": "NTP syncchronisieren"
+                },
+                {
+                    "token": "NTP_SYS_TIME",
+                    "en": "System Time",
+                    "de": "Systemzeit"
+                },
+                {
+                    "token": "SUNRISE_SUNSET",
+                    "en": "Sunrise & Sunset",
+                    "de": "Sonnenaufgang & -untergang"
+                },
+                {
+                    "token": "LATITUDE",
+                    "en": "Latitude (decimal)",
+                    "de": "Breitengrad (dezimal)"
+                },
+                {
+                    "token": "LONGITUDE",
+                    "en": "Longitude (decimal)",
+                    "de": "L&auml;ngengrad (dezimal)"
+                },
+                {
+                    "token": "OFFSET_SUNRISE",
+                    "en": "Offset (sunrise)",
+                    "de": "Zeitversatz (Sonnenaufgang)"
+                },
+                {
+                    "token": "OFFSET_SUNSET",
+                    "en": "Offset (sunset)",
+                    "de": "Zeitversatz (Sonnenuntergang)"
+                },
+                {
+                    "token": "MQTT_USER",
+                    "en": "Username (optional)",
+                    "de": "Benutzername (optional)"
+                },
+                {
+                    "token": "MQTT_PASSWORD",
+                    "en": "Password (optional)",
+                    "de": "Passwort (optional)"
+                },
+                {
+                    "token": "MQTT_NOTE",
+                    "en": "Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)",
+                    "de": "Wechselrichterdaten in fixem Intervall schicken, auch wenn es keine &Auml;nderung gab. Ein Wert von '0' deaktiviert das fixe Intervall, die Wechselrichterdaten werden &uuml;bertragen, sobald neue zur Verf&uuml;gung stehen. (Standard: 0)"
+                },
+                {
+                    "token": "DISPLAY_CONFIG",
+                    "en": "Display Config",
+                    "de": "Display Konfiguration"
+                },
+                {
+                    "token": "DISP_OFF_INV",
+                    "en": "Turn off while inverters are offline",
+                    "de": "schalte das Display aus, w&auml;hrend die Wechselrichter aus sind"
+                },
+                {
+                    "token": "DISP_LUMINANCE",
+                    "en": "Luminance",
+                    "de": "Helligkeit"
+                },
+                {
+                    "token": "DISP_PINOUT",
+                    "en": "Pinout",
+                    "de": "Anschlusseinstellungen"
+                },
+                {
+                    "token": "BTN_REBOOT_SUCCESSFUL_SAVE",
+                    "en": "Reboot device after successful save",
+                    "de": "Nach erfolgreichem Speichern AhoyDTU neu starten"
+                },
+                {
+                    "token": "BTN_ERASE",
+                    "en": "ERASE SETTINGS (not WiFi)",
+                    "de": "Einstellungen zur&uuml;cksetzen (nicht WiFi)"
+                },
+                {
+                    "token": "IM_EXPORT",
+                    "en": "Import / Export JSON Settings",
+                    "de": "Import / Export JSON Einstellungen"
+                },
+                {
+                    "token": "IMPORT",
+                    "en": "Import",
+                    "de": "Import"
+                },
+                {
+                    "token": "EXPORT",
+                    "en": "Export",
+                    "de": "Export"
+                },
+                {
+                    "token": "BTN_EXPORT",
+                    "en": "Export settings (JSON file)",
+                    "de": "Einstellungen exportieren (JSON Datei)"
+                },
+                {
+                    "token": "EXPORT_NOTE",
+                    "en": "(only values, passwords will be skipped!)",
+                    "de": "(nur Werte, Passw&ouml;rter werden nicht mit exportiert!)"
+                },
+                {
+                    "token": "PIN_OFF",
+                    "en": "off / default",
+                    "de": "aus / Standard"
+                },
+                {
+                    "token": "PIN_NO_IRQ",
+                    "en": "no IRQ!",
+                    "de": "kein Interrupt!"
+                },
+                {
+                    "token": "PIN_INPUT_ONLY",
+                    "en": "in only",
+                    "de": "nur Eingang"
+                },
+                {
+                    "token": "PIN_DONT_USE",
+                    "en": "DONT USE",
+                    "de": "nicht benutzen"
+                },
+                {
+                    "token": "PIN_NOT_AVAIL",
+                    "en": "not available",
+                    "de": "nicht verf&uuml;gbar"
+                },
+                {
+                    "token": "PIN_RECOMMENDED",
+                    "en": "recommended",
+                    "de": "empfohlen"
+                },
+                {
+                    "token": "PIN_EXPERIMENTAL",
+                    "en": "experimental",
+                    "de": "experimentell"
+                },
+                {
+                    "token": "PIN_LOW_ACTIVE",
+                    "en": "low active",
+                    "de": "low aktiv"
+                },
+                {
+                    "token": "PIN_HIGH_ACTIVE",
+                    "en": "high active",
+                    "de": "high aktiv"
+                },
+                {
+                    "token": "NETWORK_SCANNING",
+                    "en": "scanning ...",
+                    "de": "suche ..."
+                },
+                {
+                    "token": "ERROR",
+                    "en": "Error:",
+                    "de": "Fehler:"
+                },
+                {
+                    "token": "NTP_COMMAND_EXE",
+                    "en": "command executed, set new time ...",
+                    "de": "Befehl ausgef&uuml;hrt, setze neue Zeit ..."
+                },
+                {
+                    "token": "NTP_SYNCED_AT",
+                    "en": "synced at",
+                    "de": "syncchronisiert um"
+                },
+                {
+                    "token": "NTP_DIFF",
+                    "en": "difference",
+                    "de": "Unterschied"
+                },
+                {
+                    "token": "MQTT_EXE",
+                    "en": "command executed",
+                    "de": "Befehl ausgef&uuml;hrt"
+                },
+                {
+                    "token": "IMPORT_UPLOAD_STARTED",
+                    "en": "upload started",
+                    "de": "hochladen gestartet"
+                },
+                {
+                    "token": "INV_EDIT",
+                    "en": "Edit",
+                    "de": "Bearbeiten"
+                },
+                {
+                    "token": "INV_DELETE",
+                    "en": "Delete",
+                    "de": "L&ouml;schen"
+                },
+                {
+                    "token": "ENABLED",
+                    "en": "enabled",
+                    "de": "aktiviert"
+                },
+                {
+                    "token": "DISABLED",
+                    "en": "disabled",
+                    "de": "deaktiviert"
+                },
+                {
+                    "token": "BTN_INV_ADD",
+                    "en": "add Inverter",
+                    "de": "Wechselrichter hinzufuegen"
+                },
+                {
+                    "token": "INV_INPUT",
+                    "en": "Input",
+                    "de": "Eingang"
+                },
+                {
+                    "token": "INV_MAX_MODULE_POWER",
+                    "en": "Max Module Power",
+                    "de": "Maximale Panelleistung"
+                },
+                {
+                    "token": "INV_YIELD_CORR",
+                    "en": "Yield Correction",
+                    "de": "Ertragskorrektur"
+                },
+                {
+                    "token": "TAB_GENERAL",
+                    "en": "General",
+                    "de": "Allgemein"
+                },
+                {
+                    "token": "TAB_INPUTS",
+                    "en": "Inputs",
+                    "de": "Eingaenge"
+                },
+                {
+                    "token": "TAB_RADIO",
+                    "en": "Radio",
+                    "de": "Funkmodul"
+                },
+                {
+                    "token": "TAB_ADVANCED",
+                    "en": "Advanced",
+                    "de": "Erweitert"
+                },
+                {
+                    "token": "INV_ENABLE",
+                    "en": "Enabled",
+                    "de": "aktiviert"
+                },
+                {
+                    "token": "INV_SERIAL",
+                    "en": "Serial",
+                    "de": "Seriennummer"
+                },
+                {
+                    "token": "INV_FREQUENCY",
+                    "en": "Frequency",
+                    "de": "Frequenz"
+                },
+                {
+                    "token": "INV_POWER_LEVEL",
+                    "en": "Power Level",
+                    "de": "Sendeleistung"
+                },
+                {
+                    "token": "INV_PAUSE_DURING_NIGHT",
+                    "en": "Pause communication during night (lat. and lon. need to be set)",
+                    "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"
+                },
+                {
+                    "token": "INV_INCLUDE_MQTT_SUM",
+                    "en": "Include inverter to sum of total (should be checked by default, MqTT only)",
+                    "de": "Wechselrichter in Liste der aufzuaddierenden Wechselrichter aufnehmen (nur MqTT)"
+                },
+                {
+                    "token": "BTN_SAVE",
+                    "en": "save",
+                    "de": "speichern"
+                },
+                {
+                    "token": "INV_EDIT_MODAL",
+                    "en": "Edit inverter",
+                    "de": "Wechselrichter editieren"
+                },
+                {
+                    "token": "INV_DELETE_SURE",
+                    "en": "do you realy want to delete inverter?",
+                    "de": "Willst du den Wechselrichter wirklich l&ouml;schen?"
+                },
+                {
+                    "token": "BTN_YES",
+                    "en": "yes",
+                    "de": "ja"
+                },
+                {
+                    "token": "INV_DELETE_MODAL",
+                    "en": "Delete inverter",
+                    "de": "Wechselrichter l&ouml;schen "
+                },
+                {
+                    "token": "NTP_MINUTES",
+                    "en": "minutes",
+                    "de": "Minuten"
+                },
+                {
+                    "token": "LED_AT_LEAST_ONE_PRODUCING",
+                    "en": "At least one inverter is producing",
+                    "de": "mindestens ein Wechselrichter produziert"
+                },
+                {
+                    "token": "LED_MQTT_CONNECTED",
+                    "en": "MqTT connected",
+                    "de": "MqTT verbunden"
+                },
+                {
+                    "token": "LED_NIGHT_TIME",
+                    "en": "Night time",
+                    "de": "Nachtschaltung"
+                },
+                {
+                    "token": "LED_POLARITY",
+                    "en": "LED polarity",
+                    "de": "LED Polarit&auml;t"
+                },
+                {
+                    "token": "LED_LUMINANCE",
+                    "en": "LED luminance",
+                    "de": "LED Helligkeit"
+                },
+                {
+                    "token": "NRF24_ENABLE",
+                    "en": "NRF24 radio enable",
+                    "de": "NRF24 Funkmodul aktivieren"
+                },
+                {
+                    "token": "CMT_ENABLE",
+                    "en": "CMT2300A radio enable",
+                    "de": "CMT2300A Funkmodul aktivieren"
+                },
+                {
+                    "token": "DISP_NONE",
+                    "en": "None",
+                    "de": "keins"
+                },
+                {
+                    "token": "DISP_TYPE",
+                    "en": "Type",
+                    "de": "Typ"
+                },
+                {
+                    "token": "DISP_ROTATION",
+                    "en": "Rotation",
+                    "de": "Drehung"
+                },
+                {
+                    "token": "DISP_SCREENSAVER_OFF",
+                    "en": "off",
+                    "de": "aus"
+                },
+                {
+                    "token": "DISP_PIXEL_SHIFT",
+                    "en": "pixel shift",
+                    "de": "Bildversatz"
+                },
+                {
+                    "token": "DISP_MOTION_SENS",
+                    "en": "motion sensor",
+                    "de": "Bewegungssensor"
+                },
+                {
+                    "token": "DISP_SCREENSAVER",
+                    "en": "Screensaver (OLED only)",
+                    "de": "Bildschrimschoner (nur OLED)"
+                },
+                {
+                    "token": "NETWORK_PLEASE_SELECT",
+                    "en": "please select network",
+                    "de": "bitte Netzwerk ausw&auml;hlen"
+                },
+                {
+                    "token": "NO_NETWORK_FOUND",
+                    "en": "no network found",
+                    "de": "kein Netzwerk gefunden"
+                }
+            ]
+        },
+        {
+            "name": "system.html",
+            "list": [
+                {
+                    "token": "UNKNOWN",
+                    "en": "unknown",
+                    "de": "unbekannt"
+                },
+                {
+                    "token": "CONNECTED",
+                    "en": "connected",
+                    "de": "verbunden"
+                },
+                {
+                    "token": "NOT",
+                    "en": "not",
+                    "de": "nicht"
+                },
+                {
+                    "token": "IRQ_WORKING",
+                    "en": "Interrupt Pin working",
+                    "de": "Interrupt Pin funktoniert"
+                },
+                {
+                    "token": "NRF24_DATA_RATE",
+                    "en": "NRF24 Data Rate",
+                    "de": "NRF24 Geschwindigkeit"
+                },
+                {
+                    "token": "NOT_ENABLED",
+                    "en": "not enabled",
+                    "de": "nicht aktiviert"
+                },
+                {
+                    "token": "NRF24_RADIO",
+                    "en": "Radio NRF24",
+                    "de": "NRF24 Funkmodul"
+                },
+                {
+                    "token": "CMT_RADIO",
+                    "en": "Radio CMT",
+                    "de": "CMT2300A Funkmodul"
+                },
+                {
+                    "token": "TRUE",
+                    "en": "true",
+                    "de": "ja"
+                },
+                {
+                    "token": "FALSE",
+                    "en": "false",
+                    "de": "nein"
+                },
+                {
+                    "token": "ENABLED",
+                    "en": "enabled",
+                    "de": "aktiviert"
+                },
+                {
+                    "token": "SUN",
+                    "en": "Sun",
+                    "de": "Sonne"
+                },
+                {
+                    "token": "SUNRISE",
+                    "en": "sunrise",
+                    "de": "Sonnenaufgang"
+                },
+                {
+                    "token": "SUNSET",
+                    "en": "sunset",
+                    "de": "Sonnenuntergang"
+                },
+                {
+                    "token": "COMMUNICATION_START",
+                    "en": "Communication start",
+                    "de": "Start der Kommunikation"
+                },
+                {
+                    "token": "COMMUNICATION_STOP",
+                    "en": "Communication stop",
+                    "de": "Ende der Kommunikation"
+                },
+                {
+                    "token": "NIGHT_BEHAVE",
+                    "en": "Night behaviour",
+                    "de": "Verhalten bei Nacht"
+                },
+                {
+                    "token": "COMMUNICATING",
+                    "en": "communicating",
+                    "de": "aktiv"
+                }
+            ]
+        },
+        {
+            "name": "index.html",
+            "list": [
+                {
+                    "token": "SUPPORT",
+                    "en": "Support this project",
+                    "de": "Dieses Projekt unterst&uuml;tzen"
+                },
+                {
+                    "token": "CHANGELOG",
+                    "en": "Changelog",
+                    "de": "&Auml;nderungshistorie"
+                },
+                {
+                    "token": "DISCUSS",
+                    "en": "Discuss with us on",
+                    "de": "Diskutiere mit uns bei"
+                },
+                {
+                    "token": "REPORT",
+                    "en": "Report",
+                    "de": "Melde "
+                },
+                {
+                    "token": "ISSUES",
+                    "en": "Issues",
+                    "de": "Fehler "
+                },
+                {
+                    "token": "CONTRIBUTE",
+                    "en": "Contribute to",
+                    "de": "Unterst&uuml;tze bei"
+                },
+                {
+                    "token": "DOCUMENTATION",
+                    "en": "documentation",
+                    "de": "der Dokumentation"
+                },
+                {
+                    "token": "DEV_FIRMWARE",
+                    "en": "development firmware",
+                    "de": "Entwicklerversionen der Firmware"
+                },
+                {
+                    "token": "DEV_CHANGELOG",
+                    "en": "Development Changelog",
+                    "de": "&Auml;nderungshistorie der Entwicklerversionen"
+                },
+                {
+                    "token": "DON_MAKE",
+                    "en": "make a",
+                    "de": "Unterst&uuml;ze mit"
+                },
+                {
+                    "token": "DON_MAKE",
+                    "en": "make a",
+                    "de": "Unterst&uuml;ze z.B. mit"
+                },
+                {
+                    "token": "DONATION",
+                    "en": "donation",
+                    "de": "Paypal"
+                },
+                {
+                    "token": "COMMAND_EXE",
+                    "en": "command executed",
+                    "de": "Befehl ausgef&uuml;hrt"
+                },
+                {
+                    "token": "ERROR",
+                    "en": "Error",
+                    "de": "Fehler"
+                },
+                {
+                    "token": "NTP_UNREACH",
+                    "en": "NTP timeserver unreachable",
+                    "de": "NTP Zeitserver nicht erreichbar"
+                },
+                {
+                    "token": "POLLING_STOP",
+                    "en": "Polling inverter(s), will pause at sunset",
+                    "de": "Abfrage der Wechselrichter wird zum Sonnenuntergang stoppen"
+                },
+                {
+                    "token": "NIGHT_TIME",
+                    "en": "Night time, inverter polling disabled",
+                    "de": "Nacht, Wechselrichterabfrage deaktivert"
+                },
+                {
+                    "token": "PAUSED_AT",
+                    "en": "paused at",
+                    "de": "pausiert um"
+                },
+                {
+                    "token": "START_AT",
+                    "en": "will start polling at",
+                    "de": "wird starten um"
+                },
+                {
+                    "token": "DISABLED",
+                    "en": "disabled",
+                    "de": "deaktiviert"
+                },
+                {
+                    "token": "NOT_YET_AVAIL",
+                    "en": "not yet available",
+                    "de": "gerade nicht verf&uuml;gbar"
+                },
+                {
+                    "token": "AVAIL",
+                    "en": "available and is",
+                    "de": "verf&uuml;gbar und ist"
+                },
+                {
+                    "token": "AVAIL_NO_DATA",
+                    "en": "available but no data was received until now",
+                    "de": "verf&uuml;gbar, aber bis jetzt keine Daten empfangen"
+                },
+                {
+                    "token": "NOT_PRODUCING",
+                    "en": "not producing",
+                    "de": "produziert nicht"
+                },
+                {
+                    "token": "PRODUCING",
+                    "en": "producing",
+                    "de": "produziert"
+                },
+                {
+                    "token": "INVERTER",
+                    "en": "Inverter",
+                    "de": "Wechselrichter"
+                },
+                {
+                    "token": "IS",
+                    "en": "is",
+                    "de": "ist"
+                },
+                {
+                    "token": "LAST_SUCCESS",
+                    "en": "last successful transmission",
+                    "de": "letzte erfolgreiche &Uuml;bertragung"
+                },
+                {
+                    "token": "UPDATE_AVAIL",
+                    "en": "Update available, current released version",
+                    "de": "Update verf&uuml;gbar, aktuell ver&ouml;ffentlichte Version"
+                },
+                {
+                    "token": "USING_DEV_VERSION",
+                    "en": "You are using development version",
+                    "de": "Du verwendest eine Entwicklerversion"
+                },
+                {
+                    "token": "DEV_ISSUE_RELEASE_VERSION",
+                    "en": "In case of issues you may want to try the current stable release",
+                    "de": "Wenn du Fehler feststellst solltest du die aktuelle Releaseversion verwenden"
+                },
+                {
+                    "token": "RELEASE_INSTALLED",
+                    "en": "You are using the current stable release",
+                    "de": "Du verwendest das aktuelle Release"
+                }
+            ]
+        },
+        {
+            "name": "update.html",
+            "list": [
+                {
+                    "token": "SELECT_FILE",
+                    "en": "Select firmware file",
+                    "de": "Firmware Datei ausw&auml;hlen"
+                },
+                {
+                    "token": "BTN_UPDATE",
+                    "en": "Update",
+                    "de": "aktualisieren"
+                },
+                {
+                    "token": "BTN_UPDATE",
+                    "en": "Update",
+                    "de": "aktualisieren"
+                },
+                {
+                    "token": "DOWNLOADS",
+                    "en": "Download latest Release and Development versions (without login)",
+                    "de": "Lade die letzte Releaseversion oder Entwicklerversion herunter (ohne Login)"
+                },
+                {
+                    "token": "UPDATE_STARTED",
+                    "en": "update started",
+                    "de": "Aktualisierung gestartet"
+                }
+            ]
+        },
+        {
+            "name": "visualization.html",
+            "list": [
+                {
+                    "token": "EVERY",
+                    "en": "Every",
+                    "de": "Alle"
+                },
+                {
+                    "token": "UPDATE_SECS",
+                    "en": "seconds the values are updated",
+                    "de": "Sekunden werden die Daten aktualisiert"
+                },
+                {
+                    "token": "TOTAL",
+                    "en": "TOTAL",
+                    "de": "GESAMT"
+                },
+                {
+                    "token": "AC_POWER",
+                    "en": "AC Power",
+                    "de": "AC Leistung"
+                },
+                {
+                    "token": "YIELD_DAY",
+                    "en": "Yield Day",
+                    "de": "Tagesertrag"
+                },
+                {
+                    "token": "YIELD_TOTAL",
+                    "en": "Yield Total",
+                    "de": "Gesamtertrag"
+                },
+                {
+                    "token": "MAX_POWER",
+                    "en": "Max Power",
+                    "de": "Maximale Leistung"
+                },
+                {
+                    "token": "DC_POWER",
+                    "en": "DC Power",
+                    "de": "DC Leistung"
+                },
+                {
+                    "token": "REACTIVE_POWER",
+                    "en": "Reactive Power",
+                    "de": "Blindleistung"
+                },
+                {
+                    "token": "ACTIVE_POWER_CONTROL",
+                    "en": "Active Power Control",
+                    "de": "Leistungsbegrenzung"
+                },
+                {
+                    "token": "APC",
+                    "en": "APC",
+                    "de": "Begr."
+                },
+                {
+                    "token": "ALARMS",
+                    "en": "Alarms",
+                    "de": "Meldungen"
+                },
+                {
+                    "token": "MAX_AC_POWER",
+                    "en": "Max AC Power",
+                    "de": "Max AC Leistung"
+                },
+                {
+                    "token": "DC_POWER",
+                    "en": "DC Power",
+                    "de": "DC Leistung"
+                },
+                {
+                    "token": "DC_VOLTAGE",
+                    "en": "DC Voltage",
+                    "de": "DC Spannung"
+                },
+                {
+                    "token": "AC_CURRENT",
+                    "en": "AC Current",
+                    "de": "AC Strom"
+                },
+                {
+                    "token": "FREQUENCY",
+                    "en": "Frequency",
+                    "de": "Frequenz"
+                },
+                {
+                    "token": "EFFICIENCY",
+                    "en": "Efficiency",
+                    "de": "Effizienz"
+                },
+                {
+                    "token": "POWER_FACTOR",
+                    "en": "Power Factor",
+                    "de": "Leistungsfaktor"
+                },
+                {
+                    "token": "IRRADIATION",
+                    "en": "Irradiation",
+                    "de": "Einstrahlung"
+                },
+                {
+                    "token": "DC_CURRENT",
+                    "en": "DC Current",
+                    "de": "DC Strom"
+                },
+                {
+                    "token": "LAST_RECEIVED",
+                    "en": "Last received data requested at",
+                    "de": "Zuletzt empfangene Daten wurden angefragt um"
+                },
+                {
+                    "token": "NOTHING_RECEIVED",
+                    "en": "nothing received",
+                    "de": "nichts empfangen"
+                },
+                {
+                    "token": "ALARMS_MODAL",
+                    "en": "Alarms of inverter",
+                    "de": "Meldungen von Wechselrichter"
+                },
+                {
+                    "token": "SERIAL",
+                    "en": "Serial",
+                    "de": "Seriennummer"
+                },
+                {
+                    "token": "BTN_SHOW",
+                    "en": "show",
+                    "de": "anzeigen"
+                },
+                {
+                    "token": "EVENT",
+                    "en": "Event",
+                    "de": "Ereignis"
+                },
+                {
+                    "token": "END",
+                    "en": "End",
+                    "de": "Ende"
+                },
+                {
+                    "token": "HW_NUMBER",
+                    "en": "Hardware Number",
+                    "de": "Hardware Nummer"
+                },
+                {
+                    "token": "INV_INFO",
+                    "en": "Info for inverter",
+                    "de": "Info f&uuml;r Wechselrichter"
+                },
+                {
+                    "token": "VALUE",
+                    "en": "Value",
+                    "de": "Wert"
+                },
+                {
+                    "token": "RANGE",
+                    "en": "Range",
+                    "de": "Bereich"
+                },
+                {
+                    "token": "DEFAULT",
+                    "en": "Default",
+                    "de": "Standard"
+                },
+                {
+                    "token": "PROFILE_NOT_READ",
+                    "en": "Profile was not read until now, maybe turned off",
+                    "de": "Grid-Profil wurde bis jetzt noch nicht gelesen oder das Auslesen ist nicht aktiv"
+                },
+                {
+                    "token": "UNKNOWN_PROFILE",
+                    "en": "Unknown Profile",
+                    "de": "Unbekanntes Profil"
+                },
+                {
+                    "token": "OPEN_ISSUE",
+                    "en": "Please open a new issue at https://github.com/lumapu/ahoy and copy the raw data into it",
+                    "de": "Bitte erstelle einen neuen Issue auf https://github.com/lumapu/ahoy und kopiere die Rohdaten hinein"
+                },
+                {
+                    "token": "PROFILE_MODAL",
+                    "en": "Grid Profile for inverter",
+                    "de": "Grid-Profil f&uuml;r Wechselrichter"
+                },
+                {
+                    "token": "TX_COUNT",
+                    "en": "TX count",
+                    "de": "Sendez&auml;hler"
+                },
+                {
+                    "token": "RX_SUCCESS",
+                    "en": "RX success",
+                    "de": "erfolgreicher Empfang"
+                },
+                {
+                    "token": "RX_FAIL",
+                    "en": "RX fail",
+                    "de": "fehlgeschlagener Empfang"
+                },
+                {
+                    "token": "RX_NO_ANSWER",
+                    "en": "RX no answer",
+                    "de": "keine Antwort"
+                },
+                {
+                    "token": "RX_FRAGMENTS",
+                    "en": "RX fragments",
+                    "de": "empfangene Fragmente"
+                },
+                {
+                    "token": "TX_RETRANSMITS",
+                    "en": "TX retransmits",
+                    "de": "erneute Sendeversuche"
+                },
+                {
+                    "token": "INV_LOSS_RATE",
+                    "en": "Inverter loss rate",
+                    "de": "Wechselrichter Empfangsqualit&auml;t"
+                },
+                {
+                    "token": "DTU_LOSS_RATE",
+                    "en": "DTU loss rate",
+                    "de": "DTU Empfangsqualit&auml;t"
+                },
+                {
+                    "token": "RADIO_STAT_MODAL",
+                    "en": "Radio statistics for inverter",
+                    "de": "Funkstatistik f&uuml;r Wechselrichter"
+                },
+                {
+                    "token": "LOST_1",
+                    "en": "lost",
+                    "de": ""
+                },
+                {
+                    "token": "LOST_2",
+                    "en": "of",
+                    "de": "von"
+                },
+                {
+                    "token": "LOST_3",
+                    "en": "",
+                    "de": "verloren"
+                },
+                {
+                    "token": "LIMIT_VALUE",
+                    "en": "Limit Value",
+                    "de": "Wert der Leistungsbegrenzung"
+                },
+                {
+                    "token": "KEEP_LIMIT",
+                    "en": "Keep limit over inverter restart",
+                    "de": "Leistungsbegrenzung dauerhaft speichern (im Wechselrichter)"
+                },
+                {
+                    "token": "BTN_APPLY",
+                    "en": "Apply",
+                    "de": "anwenden"
+                },
+                {
+                    "token": "CONTROL",
+                    "en": "Control",
+                    "de": "Ansteuern"
+                },
+                {
+                    "token": "RESTART",
+                    "en": "restart",
+                    "de": "neustarten"
+                },
+                {
+                    "token": "TURN_OFF",
+                    "en": "turn off",
+                    "de": "ausschalten"
+                },
+                {
+                    "token": "TURN_ON",
+                    "en": "turn on",
+                    "de": "anschalten"
+                },
+                {
+                    "token": "RESULT",
+                    "en": "Result",
+                    "de": "Status"
+                },
+                {
+                    "token": "POWER_LIMIT_MODAL",
+                    "en": "Active Power Control for inverter",
+                    "de": "Leistungsbegrenzung f&uuml;r Wechselrichter"
+                },
+                {
+                    "token": "CMD_RECEIVED_WAIT_ACK",
+                    "en": "received command, waiting for inverter acknowledge ...",
+                    "de": "Befehl erhalten, warte auf Best&auml;igung von Wechselrichter ..."
+                },
+                {
+                    "token": "COMMAND_RECEIVED",
+                    "en": "command received",
+                    "de": "Befehl erhalten"
+                },
+                {
+                    "token": "ERROR",
+                    "en": "Error",
+                    "de": "Fehler"
+                },
+                {
+                    "token": "INV_ACK",
+                    "en": "inverter acknowledged active power control command",
+                    "de": "Wechselrichter hat die Leistungsbegrenzung akzeptiert"
+                }
+            ]
+        },
+        {
+            "name": "save.html",
+            "list": [
+                {
+                    "token": "SAVE_SETTINGS",
+                    "en": "Saving settings...",
+                    "de": "Einstellungen werden gespeichert ..."
+                },
+                {
+                    "token": "SUCCESS_SAVED_RELOAD",
+                    "en": "Settings successfully saved. Automatic page reload in 3 seconds.",
+                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung in 3 Sekunden"
+                },
+                {
+                    "token": "SUCCESS_SAVED_REBOOT",
+                    "en": "Settings successfully saved. Rebooting. Automatic redirect in",
+                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung nach Reboot in"
+                },
+                {
+                    "token": "SECONDS",
+                    "en": "seconds",
+                    "de": "Sekunden"
+                },
+                {
+                    "token": "FAILED_SAVE",
+                    "en": "Failed saving settings",
+                    "de": "Fehler beim Speichern"
+                }
+            ]
+        }
+    ]
+}

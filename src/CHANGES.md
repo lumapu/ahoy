@@ -6,6 +6,7 @@
 * updated espressif32 platform to `6.5.0`
 * updated U8g2 to `2.35.9`
 * started to convert deprecated functions of new ArduinoJson `7.0.0`
+* started to have german translations of all variants (environments) #925 #1199
 
 ## 0.8.46 - 2024-01-06
 * improved communication

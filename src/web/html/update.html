@@ -9,14 +9,14 @@
         <div id="wrapper">
             <div id="content">
                 <fieldset>
-                    <legend class="des">Select firmware file (*.bin)</legend>
+                    <legend class="des">{#SELECT_FILE} (*.bin)</legend>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
                         <input type="file" name="update">
-                        <input type="button" class="btn my-4" value="Update" onclick="hide()">
+                        <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
                     </form>
                 </fieldset>
                 <div class="row mt-4">
-                    <a href="https://fw.ahoydtu.de" target="_blank">Download latest Release and Development versions<a/>
+                    <a href="https://fw.ahoydtu.de" target="_blank">{#DOWNLOADS}<a/>
                 </div>
             </div>
         </div>
@@ -31,7 +31,7 @@
             function hide() {
                 document.getElementById("form").submit();
                 var e = document.getElementById("content");
-                e.replaceChildren(span("update started"));
+                e.replaceChildren(span("{#UPDATE_STARTED}"));
             }
 
             getAjax("/api/generic", parseGeneric);

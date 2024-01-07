@@ -8,7 +8,7 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <div id="html" class="mt-3 mb-3">Saving settings...</div>
+                <div id="html" class="mt-3 mb-3">{#SAVE_SETTINGS}</div>
             </div>
         </div>
         {#HTML_FOOTER}
@@ -31,15 +31,15 @@
                         var meta = document.createElement('meta');
                         meta.httpEquiv = "refresh"
                         if(!obj.reboot) {
-                            html = "Settings successfully saved. Automatic page reload in 3 seconds.";
+                            html = "{#SUCCESS_SAVED_RELOAD}";
                             meta.content = 3;
                         } else {
-                            html = "Settings successfully saved. Rebooting. Automatic redirect in " + obj.reload + " seconds.";
+                            html = "{#SUCCESS_SAVED_REBOOT} " + obj.reload + " {#SECONDS}.";
                             meta.content = obj.reload + "; URL=/";
                         }
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     } else {
-                        html = "Failed saving settings.";
+                        html = "{#FAILED_SAVE}.";
                     }
                 }
                 document.getElementById("html").innerHTML = html;
