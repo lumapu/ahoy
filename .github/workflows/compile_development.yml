@@ -145,9 +145,6 @@ jobs:
 
     - name: Get Artifacts
       uses: actions/download-artifact@master
-      with:
-        name: ahoydtu_dev
-        path: firmware/*
 
     - name: Get Version from code
       id: version_name
@@ -174,12 +171,12 @@ jobs:
 #          src/install.html
 
     - name: Rename firmware directory
-      run: mv src/firmware src/${{ steps.version_name.outputs.name }}
+      run: mv firmware ${{ steps.version_name.outputs.name }}
 
     - name: Deploy
       uses: nogsantos/scp-deploy@master
       with:
-        src: src/${{ steps.version_name.outputs.name }}/
+        src: ${{ steps.version_name.outputs.name }}/
         host: ${{ secrets.FW_SSH_HOST }}
         remote: ${{ secrets.FW_SSH_DIR }}/dev
         port: ${{ secrets.FW_SSH_PORT }}
