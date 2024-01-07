@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.48 - 2024-01-07
+* merge PR: pin selection for ESP-32 S2 #1334
+* merge PR: enhancement: power graph display option #1330
+
 ## 0.8.47 - 2024-01-06
 * reduce GxEPD2 lib to compile faster
 * upgraded GxEPD2 lib to `1.5.3`

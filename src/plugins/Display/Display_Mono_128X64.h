@@ -176,7 +176,7 @@ class DisplayMono128X64 : public DisplayMono {
                 printText(mFmtText, l_YieldTotal, 0xff);
             }
 
-            if (mDispSwitchState == d_POWER_GRAPH) {
+            if (mDispSwitchState == DispSwitchState::GRAPH) {
                 // plot power graph
                 plotPowerGraph((mDispWidth - mPgWidth) / 2 + mPixelshift, mLineYOffsets[graph_last_line] - 1);
             }
@@ -274,6 +274,6 @@ class DisplayMono128X64 : public DisplayMono {
         }
 
         bool showLine(uint8_t line) {
-            return ((mDispSwitchState == d_POWER_TEXT) || ((line < graph_first_line) || (line > graph_last_line)));
+            return ((mDispSwitchState == DispSwitchState::TEXT) || ((line < graph_first_line) || (line > graph_last_line)));
         }
 };

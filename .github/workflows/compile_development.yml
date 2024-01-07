@@ -147,8 +147,6 @@ jobs:
       with:
         merge-multiple: true
         path: firmware
-    - name: Display structure of downloaded files
-      run: ls -R firmware
 
     - name: Get Version from code
       id: version_name
@@ -160,19 +158,6 @@ jobs:
         files: tools/esp8266/User_Manual.md
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
-
-#    - name: Create Manifest
-#      working-directory: src
-#      run: python ../scripts/buildManifest.py
-#
-#    - name: Create Artifact
-#      uses: actions/upload-artifact@v3
-#      with:
-#        name: ahoydtu_dev
-#        path: |
-#          src/firmware/*
-#          src/User_Manual.md
-#          src/install.html
 
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
