@@ -146,9 +146,9 @@ jobs:
 
     - name: Get Artifacts
       uses: actions/download-artifact@v4
-      path: firmware
       with:
         name: ahoydtu_dev
+        path: firmware
     - name: Display structure of downloaded files
       run: ls -R
 
