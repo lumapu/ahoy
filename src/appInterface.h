@@ -14,6 +14,8 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
+class TotalPowerHistory;
+class YieldDayHistory;
 //#include "hms/hmsRadio.h"
 #if defined(ESP32)
 //typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
@@ -63,6 +65,8 @@ class IApp {
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
+        virtual TotalPowerHistory *getTotalPowerHistoryPtr() = 0;
+        virtual YieldDayHistory   *getYieldDayHistoryPtr() = 0;
         virtual void* getRadioObj(bool nrf) = 0;
 
 };

@@ -99,7 +99,8 @@ class Display {
 
         uint8_t nrprod = 0;
         uint8_t nrsleep = 0;
-        int8_t  minQAllInv = 4;
+        uint8_t nrAvailable = 0;
+        int8_t minQAllInv = 4;
 
         Inverter<> *iv;
         record_t<> *rec;
@@ -114,6 +115,8 @@ class Display {
                 nrprod++;
             else
                 nrsleep++;
+            if (iv->isAvailable())
+                nrAvailable++;
 
             rec = iv->getRecordStruct(RealTimeRunData_Debug);
 
@@ -141,6 +144,7 @@ class Display {
         // prepare display data
         mDisplayData.nrProducing = nrprod;
         mDisplayData.nrSleeping = nrsleep;
+        mDisplayData.nrAvailable = nrAvailable;
         mDisplayData.totalPower = totalPower;
         mDisplayData.totalYieldDay = totalYieldDay;
         mDisplayData.totalYieldTotal = totalYieldTotal;
@@ -165,7 +169,17 @@ class Display {
         else
             mDisplayData.utcTs = 0;
 
-        if (mMono ) {
+        const uint32_t sunriseTime = mApp->getSunrise();
+        if (mDisplayData.utcTs == 0)
+            mDisplayData.sunIsShining = true; // Start with sunshine :-)
+        else {
+            mDisplayData.sunIsShining = false;
+            // new sunrise is calculated after sunset + user-offset
+            if (utc > sunriseTime)
+                mDisplayData.sunIsShining = true;
+        }
+
+        if (mMono) {
             mMono->disp();
         }
 #if defined(ESP32) && !defined(ETHERNET)

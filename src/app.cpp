@@ -7,7 +7,7 @@
 #include "app.h"
 #include "utils/sun.h"
 
-
+#include "plugins/history.h"
 //-----------------------------------------------------------------------------
 app::app() : ah::Scheduler {} {}
 
@@ -91,6 +91,11 @@ void app::setup() {
         #endif
     #endif
 
+    mTotalPowerHistory = new TotalPowerHistory();
+    mTotalPowerHistory->setup(this, &mSys, mConfig);
+    mYieldDayHistory = new YieldDayHistory();
+    mYieldDayHistory->setup(this, &mSys, mConfig);
+
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     #if !defined(ETHERNET)
@@ -148,6 +153,9 @@ void app::regularTickers(void) {
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
+
+    everySec(std::bind(&TotalPowerHistory::tickerSecond, mTotalPowerHistory), "totalPowerHistory");
+    everySec(std::bind(&YieldDayHistory::tickerSecond,   mYieldDayHistory),   "yieldDayHistory");
 }
 
 #if defined(ETHERNET)

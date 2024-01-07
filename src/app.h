@@ -55,6 +55,7 @@ typedef PubSerial<HmSystemType> PubSerialType;
 #include "plugins/Display/Display_data.h"
 typedef Display<HmSystemType, Radio> DisplayType;
 #endif
+#include "plugins/history.h"
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -243,6 +244,9 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
+        TotalPowerHistory *getTotalPowerHistoryPtr() { return mTotalPowerHistory; };
+        YieldDayHistory   *getYieldDayHistoryPtr()   { return mYieldDayHistory; };
+
     private:
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
@@ -350,6 +354,8 @@ class app : public IApp, public ah::Scheduler {
         DisplayType mDisplay;
         DisplayData mDispData;
         #endif
+        TotalPowerHistory *mTotalPowerHistory;
+        YieldDayHistory   *mYieldDayHistory;
 };
 
 #endif /*__APP_H__*/

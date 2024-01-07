@@ -41,6 +41,7 @@
 #define PROT_MASK_SYSTEM    0x0020
 #define PROT_MASK_API       0x0040
 #define PROT_MASK_MQTT      0x0080
+#define PROT_MASK_HISTORY   0x0100
 
 #define DEF_PROT_INDEX      0x0001
 #define DEF_PROT_LIVE       0x0000
@@ -50,7 +51,7 @@
 #define DEF_PROT_SYSTEM     0x0020
 #define DEF_PROT_API        0x0000
 #define DEF_PROT_MQTT       0x0000
-
+#define DEF_PROT_HISTORY    0x0000
 
 typedef struct {
     uint8_t ip[4];      // ip address
@@ -373,7 +374,7 @@ class settings {
             // erase all settings and reset to default
             memset(&mCfg, 0, sizeof(settings_t));
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
-                                    | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
+                                    | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
@@ -546,7 +547,7 @@ class settings {
 
                 if(mCfg.sys.protectionMask == 0)
                     mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
-                                            | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
+                                            | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             }
         }
 
