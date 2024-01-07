@@ -118,8 +118,8 @@ class Communication : public CommQueue<> {
                         mIsRetransmit    = false;
                         setAttempt();
                         if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                            incrAttempt(15);
-
+                            incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
+/// statt 5:3
                         mState = States::WAIT;
                         break;
 
@@ -194,7 +194,7 @@ class Communication : public CommQueue<> {
                                         return;
                                     }
                                 } else {
-                                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
+                                    mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
                                     if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
                                         || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                         || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
@@ -529,7 +529,7 @@ class Communication : public CommQueue<> {
 
     private:
         void closeRequest(const queue_s *q, bool crcPass) {
-            mHeu.evalTxChQuality(q->iv, crcPass, (4 - q->attempts), q->iv->curFrmCnt);
+            mHeu.evalTxChQuality(q->iv, crcPass, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
             if(crcPass)
                 q->iv->radioStatistics.rxSuccess++;
             else if(q->iv->mGotFragment)
@@ -730,7 +730,7 @@ class Communication : public CommQueue<> {
                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), 1);
+                    mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), 1);
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
                 } else {
                     q->iv->miMultiParts = 7; // indicate we are ready
@@ -739,7 +739,7 @@ class Communication : public CommQueue<> {
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
-                mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
+                mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
                 //use also miMultiParts here for better statistics?
                 //mHeu.setGotFragment(q->iv);
             } else {                                    // first data msg for 1ch, 2nd for 2ch
