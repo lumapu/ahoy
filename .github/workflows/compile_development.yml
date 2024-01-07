@@ -138,10 +138,10 @@ jobs:
     #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
     - name: Get Artifacts
-      - uses: actions/download-artifact@master
-        with:
-          name: ahoydtu_dev
-          path: src/firmware/*
+      uses: actions/download-artifact@master
+      with:
+        name: ahoydtu_dev
+        path: src/firmware/*
 
     - name: Rename Binary files
       id: rename-binary-files
