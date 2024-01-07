@@ -140,6 +140,7 @@ jobs:
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     #- name: Copy boot_app0.bin
     #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
