@@ -73,7 +73,7 @@ jobs:
       with:
         name: ahoydtu_dev
         path: |
-          src/firmware/*
+          firmware/*
 
   build-de:
     needs: check
