@@ -145,7 +145,12 @@ jobs:
     #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
     - name: Get Artifacts
-      uses: actions/download-artifact@master
+      uses: actions/download-artifact@v4
+      path: firmware
+      with:
+        name: ahoydtu_dev
+    - name: Display structure of downloaded files
+      run: ls -R
 
     - name: Get Version from code
       id: version_name
