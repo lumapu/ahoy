@@ -65,6 +65,13 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Create Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ahoydtu_dev
+        path: |
+          src/firmware/*
+
   build-de:
     needs: check
     runs-on: ubuntu-latest
@@ -116,12 +123,25 @@ jobs:
     - name: Run PlatformIO
       run:  pio run -d src -e ${{ matrix.variant }}
 
+    - name: Create Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ahoydtu_dev
+        path: |
+          src/firmware/*
+
   deploy:
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     steps:
-    - name: Copy boot_app0.bin
-      run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
+    #- name: Copy boot_app0.bin
+    #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
+
+    - name: Get Artifacts
+      - uses: actions/download-artifact@master
+        with:
+          name: ahoydtu_dev
+          path: src/firmware/*
 
     - name: Rename Binary files
       id: rename-binary-files
@@ -135,18 +155,18 @@ jobs:
       env:
           VERSION: ${{ steps.rename-binary-files.outputs.name }}
 
-    - name: Create Manifest
-      working-directory: src
-      run: python ../scripts/buildManifest.py
-
-    - name: Create Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: ahoydtu_dev
-        path: |
-          src/firmware/*
-          src/User_Manual.md
-          src/install.html
+#    - name: Create Manifest
+#      working-directory: src
+#      run: python ../scripts/buildManifest.py
+#
+#    - name: Create Artifact
+#      uses: actions/upload-artifact@v3
+#      with:
+#        name: ahoydtu_dev
+#        path: |
+#          src/firmware/*
+#          src/User_Manual.md
+#          src/install.html
 
     - name: Rename firmware directory
       run: mv src/firmware src/${{ steps.rename-binary-files.outputs.name }}
