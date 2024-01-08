@@ -53,6 +53,7 @@
 #define DEF_PROT_MQTT       0x0000
 #define DEF_PROT_HISTORY    0x0000
 
+
 typedef struct {
     uint8_t ip[4];      // ip address
     uint8_t mask[4];    // sub mask

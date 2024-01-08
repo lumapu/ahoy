@@ -36,9 +36,6 @@
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
 
-// Draw power chart in MONO-Display
-#define DISPLAY_CHART 1
-
 // ethernet
 
 #if defined(ETHERNET)

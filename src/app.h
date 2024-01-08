@@ -24,6 +24,7 @@
 #include "utils/scheduler.h"
 #include "utils/syslog.h"
 #include "web/RestApi.h"
+#include "plugins/history.h"
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
@@ -35,6 +36,7 @@
 
 #include <RF24.h> // position is relevant since version 1.4.7 of this library
 
+
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
 #define COS(x) (cos(radians(x)))
@@ -42,12 +44,11 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-#ifdef ESP32
-#endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
+typedef HistoryData<HmSystemType> HistoryType;
 
 // PLUGINS
 #if defined(PLUGIN_DISPLAY)
@@ -55,7 +56,6 @@ typedef PubSerial<HmSystemType> PubSerialType;
 #include "plugins/Display/Display_data.h"
 typedef Display<HmSystemType, Radio> DisplayType;
 #endif
-#include "plugins/history.h"
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -244,8 +244,13 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        TotalPowerHistory *getTotalPowerHistoryPtr() { return mTotalPowerHistory; };
-        YieldDayHistory   *getYieldDayHistoryPtr()   { return mYieldDayHistory; };
+        uint16_t getHistoryValue(HistoryType type, uint16_t i) {
+            return mHistory.valueAt(type, i);
+        }
+
+        uint16_t getHistoryMaxDay() {
+            return mHistory.getMaximumDay();
+        }
 
     private:
         #define CHECK_AVAIL     true
@@ -354,8 +359,7 @@ class app : public IApp, public ah::Scheduler {
         DisplayType mDisplay;
         DisplayData mDispData;
         #endif
-        TotalPowerHistory *mTotalPowerHistory;
-        YieldDayHistory   *mYieldDayHistory;
+        HistoryType mHistory;
 };
 
 #endif /*__APP_H__*/

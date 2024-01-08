@@ -52,10 +52,8 @@ class RestApi {
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
-            mSrv->on("/api/insertYieldDayHistory",  HTTP_POST, std::bind(&RestApi::onApiPost,              this, std::placeholders::_1),
-                                                               std::bind(&RestApi::onApiPostYieldDHistory, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
-            mSrv->on("/api",                        HTTP_POST, std::bind(&RestApi::onApiPost,              this, std::placeholders::_1))
-                                                       .onBody(std::bind(&RestApi::onApiPostBody,          this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+            mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
+                                        std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
 
             mSrv->on("/get_setup", HTTP_GET,  std::bind(&RestApi::onDwnldSetup, this, std::placeholders::_1));
@@ -140,83 +138,6 @@ class RestApi {
             if(request->method() == HTTP_GET)
                 onApi(request);
             #endif
-        }
-
-        void onApiPostYieldDHistory(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, size_t final)
-        {
-            uint32_t total = request->contentLength();
-            DPRINTLN(DBG_DEBUG, "[onApiPostYieldDHistory ] " + filename + " index:" + index + " len:" + len + " total:" + total + " final:" + final);
-
-            if (0 == index) {
-                if (NULL != mTmpBuf)
-                    delete[] mTmpBuf;
-                mTmpBuf = new uint8_t[total + 1];
-                mTmpSize = total;
-            }
-            if (mTmpSize >= (len + index))
-                memcpy(&mTmpBuf[index], data, len);
-
-            if (!final)
-                return;  // not last frame - nothing to do
-
-            mTmpSize = len + index ;  // correct the total size
-            mTmpBuf[mTmpSize] = 0;
-
-#ifndef ESP32
-			DynamicJsonDocument json(ESP.getMaxFreeBlockSize() - 512); // need some memory on heap
-#else
-			DynamicJsonDocument json(12000));  // does this work? I have no ESP32 :-(
-#endif
-			DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
-			json.shrinkToFit();
-            JsonObject obj = json.as<JsonObject>();
-
-
-            // Debugging
-            // mTmpBuf[mTmpSize] = 0;
-            // DPRINTLN(DBG_DEBUG, (const char *)mTmpBuf);
-
-            if (!err && obj)
-            {
-                // insert data into yieldDayHistory object
-                HistoryData *p;
-                if (obj["maximumDay"]>0)  // this is power history data
-                    p = mApp->getTotalPowerHistoryPtr();
-                else
-                    p = mApp->getYieldDayHistoryPtr();
-
-                size_t cnt = obj[F("value")].size();
-                DPRINTLN(DBG_DEBUG, "ArraySize: " + String(cnt));
-
-                for (uint16_t i = 0; i < cnt; i++) {
-                    uint16_t val = obj[F("value")][i];
-                    p->addValue(val);
-                    // DPRINT(DBG_VERBOSE, "value " + String(i) + ": " + String(val) + ", ");
-                }
-            }
-            else
-            {
-                switch (err.code()) {
-                    case DeserializationError::Ok:
-                        break;
-                    case DeserializationError::IncompleteInput:
-                        DPRINTLN(DBG_DEBUG, F("Incomplete input"));
-                        break;
-                    case DeserializationError::InvalidInput:
-                        DPRINTLN(DBG_DEBUG, F("Invalid input"));
-                        break;
-                    case DeserializationError::NoMemory:
-                        DPRINTLN(DBG_DEBUG, F("Not enough memory ") + String(json.capacity()) + " bytes");
-                        break;
-                    default:
-                        DPRINTLN(DBG_DEBUG, F("Deserialization failed"));
-                        break;
-                }
-            }
-
-            request->send(204);  // Success with no page load
-            delete[] mTmpBuf;
-            mTmpBuf = NULL;
         }
 
         void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
@@ -858,31 +779,29 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->inst.sendInterval;
             obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
-            uint16_t maximum = 0;
-            TotalPowerHistory *p = mApp->getTotalPowerHistoryPtr();
+            uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = p->valueAt(fld);
+                uint16_t value = mApp->getHistoryValue(HistoryStorageType::POWER, fld);
                 obj[F("value")][fld] = value;
-                if (value > maximum)
-                    maximum = value;
+                if (value > max)
+                    max = value;
             }
-            obj[F("maximum")] = maximum;
-            obj[F("maximumDay")] = p->getMaximumDay();
+            obj[F("max")] = max;
+            obj[F("maxDay")] = mApp->getHistoryMaxDay();
         }
 
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 86400;  // 1 day
             obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
-            uint16_t maximum = 0;
-            YieldDayHistory *p = mApp->getYieldDayHistoryPtr();
+            uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = p->valueAt(fld);
+                uint16_t value = mApp->getHistoryValue(HistoryStorageType::YIELD, fld);
                 obj[F("value")][fld] = value;
-                if (value > maximum)
-                    maximum = value;
-                }
-                obj[F("maximum")] = maximum;
+                if (value > max)
+                    max = value;
+            }
+            obj[F("max")] = max;
         }
 
 

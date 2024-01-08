@@ -8,17 +8,11 @@
 
 #include "defines.h"
 #include "hm/hmSystem.h"
+#include "plugins/history.h"
 #if defined(ETHERNET)
 #include "AsyncWebServer_ESP32_W5500.h"
 #else
 #include "ESPAsyncWebServer.h"
-#endif
-
-class TotalPowerHistory;
-class YieldDayHistory;
-//#include "hms/hmsRadio.h"
-#if defined(ESP32)
-//typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
 #endif
 
 // abstract interface to App. Make members of App accessible from child class
@@ -65,10 +59,10 @@ class IApp {
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
-        virtual TotalPowerHistory *getTotalPowerHistoryPtr() = 0;
-        virtual YieldDayHistory   *getYieldDayHistoryPtr() = 0;
-        virtual void* getRadioObj(bool nrf) = 0;
+        virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
+        virtual uint16_t getHistoryMaxDay() = 0;
 
+        virtual void* getRadioObj(bool nrf) = 0;
 };
 
 #endif /*__IAPP_H__*/
