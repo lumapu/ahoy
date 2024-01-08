@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.49 - 2024-01-08
+* fix send total values if inverter state is different from `OFF` #1331
+* fix german language issues #1335
+
 ## 0.8.48 - 2024-01-07
 * merge PR: pin selection for ESP-32 S2 #1334
 * merge PR: enhancement: power graph display option #1330

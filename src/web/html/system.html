@@ -47,8 +47,8 @@
             function irqBadge(state) {
                 switch(state) {
                     case 0: return badge(false, "{#UNKNOWN}", "warning"); break;
-                    case 1: return badge(true, "true"); break;
-                    default: return badge(false, "false"); break;
+                    case 1: return badge(true, "{#TRUE}"); break;
+                    default: return badge(false, "{#FALSE}"); break;
                 }                    
             }
 
@@ -119,7 +119,7 @@
                                 tr("{#SUNRISE}", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
                                 tr("{#SUNSET}", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
                                 tr("{#COMMUNICATION_START}", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
-                                tr("{#COMMUNICATION_STTOP}", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
+                                tr("{#COMMUNICATION_STOP}", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
                                 tr("{#NIGHT_BEHAVE}", badge(obj.disNightComm, ((obj.disNightComm) ? "{#NOT}" : "") + " {#COMMUNICATING}", "warning"))
                             ])
                         )

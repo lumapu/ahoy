@@ -876,7 +876,7 @@
                 {
                     "token": "NIGHT_TIME",
                     "en": "Night time, inverter polling disabled",
-                    "de": "Nacht, Wechselrichterabfrage deaktivert"
+                    "de": "Wechselrichterabfrage deaktivert (Nacht)"
                 },
                 {
                     "token": "PAUSED_AT",
@@ -886,7 +886,7 @@
                 {
                     "token": "START_AT",
                     "en": "will start polling at",
-                    "de": "wird starten um"
+                    "de": "Abfrage startet am"
                 },
                 {
                     "token": "DISABLED",
@@ -901,7 +901,7 @@
                 {
                     "token": "AVAIL",
                     "en": "available and is",
-                    "de": "verf&uuml;gbar und ist"
+                    "de": "verf&uuml;gbar und"
                 },
                 {
                     "token": "AVAIL_NO_DATA",
