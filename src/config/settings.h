@@ -463,7 +463,7 @@ class settings {
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 60;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
-            mCfg.plugin.display.graph_ratio = 50;
+            mCfg.plugin.display.graph_ratio = 0;
             mCfg.plugin.display.graph_size  = 2;
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
