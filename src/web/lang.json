@@ -301,7 +301,7 @@
                 {
                     "token": "NTP_SET_SYS_TIME",
                     "en": "set system time",
-                    "de": "Systemzeit setzten"
+                    "de": "Systemzeit setzen"
                 },
                 {
                     "token": "BTN_FROM_BROWSER",
@@ -311,7 +311,7 @@
                 {
                     "token": "BTN_SYNC_NTP",
                     "en": "sync NTP",
-                    "de": "NTP syncchronisieren"
+                    "de": "NTP synchronisieren"
                 },
                 {
                     "token": "NTP_SYS_TIME",
@@ -366,7 +366,7 @@
                 {
                     "token": "DISP_OFF_INV",
                     "en": "Turn off while inverters are offline",
-                    "de": "schalte das Display aus, w&auml;hrend die Wechselrichter aus sind"
+                    "de": "Schalte das Display aus, w&auml;hrend die Wechselrichter aus sind"
                 },
                 {
                     "token": "DISP_LUMINANCE",
@@ -377,6 +377,46 @@
                     "token": "DISP_PINOUT",
                     "en": "Pinout",
                     "de": "Anschlusseinstellungen"
+                },
+                {
+                    "token": "GRAPH_OPTIONS",
+                    "en": "Graph options",
+                    "de": "Graph Einstellungen"
+                },
+                {
+                    "token": "GRAPH_SHOW_RATIO",
+                    "en": "Graph show ratio (0-100%)",
+                    "de": "Graph Anzeigeverh&auml;ltnis (0-100%)"
+                },
+                {
+                    "token": "GRAPH_POSITION",
+                    "en": "Graph pos (from/to)",
+                    "de": "Graph Position (von/bis)"
+                },
+                {
+                    "token": "GRAPH_LINES_1_2",
+                    "en": "Line 1-2",
+                    "de": "Zeile 1-2"
+                },
+                {
+                    "token": "GRAPH_LINES_2_3",
+                    "en": "Line 2-3",
+                    "de": "Zeile 2-3"
+                },
+                {
+                    "token": "GRAPH_LINES_1_3",
+                    "en": "Line 1-3",
+                    "de": "Zeile 1-3"
+                },
+                {
+                    "token": "GRAPH_LINES_2_4",
+                    "en": "Line 2-4",
+                    "de": "Zeile 2-4"
+                },
+                {
+                    "token": "GRAPH_LINES_1_4",
+                    "en": "Line 1-4",
+                    "de": "Zeile 1-4"
                 },
                 {
                     "token": "BTN_REBOOT_SUCCESSFUL_SAVE",
@@ -476,7 +516,7 @@
                 {
                     "token": "NTP_SYNCED_AT",
                     "en": "synced at",
-                    "de": "syncchronisiert um"
+                    "de": "synchronisiert um"
                 },
                 {
                     "token": "NTP_DIFF",
@@ -491,7 +531,7 @@
                 {
                     "token": "IMPORT_UPLOAD_STARTED",
                     "en": "upload started",
-                    "de": "hochladen gestartet"
+                    "de": "Hochladen gestartet"
                 },
                 {
                     "token": "INV_EDIT",
@@ -681,7 +721,7 @@
                 {
                     "token": "DISP_SCREENSAVER",
                     "en": "Screensaver (OLED only)",
-                    "de": "Bildschrimschoner (nur OLED)"
+                    "de": "Bildschirmschoner (nur OLED)"
                 },
                 {
                     "token": "NETWORK_PLEASE_SELECT",
