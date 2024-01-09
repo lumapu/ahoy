@@ -22,6 +22,8 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
+#include "plugins/history.h"
+
 #if defined(F) && defined(ESP32)
 #undef F
 #define F(sl) (sl)
@@ -103,6 +105,8 @@ class RestApi {
             else if(path == "setup/getip")    getWifiIp(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
+            else if (path == "powerHistory")  getPowerHistory(request, root);
+            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -197,6 +201,8 @@ class RestApi {
             ep[F("setup")]            = url + F("setup");
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
+            ep[F("powerHistory")]     = url + F("powerHistory");
+            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
         }
 
 
@@ -784,6 +790,36 @@ class RestApi {
                 obj[F("iv")][i] = parse;
             }
         }
+
+        void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("refresh")] = mConfig->inst.sendInterval;
+            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
+            uint16_t max = 0;
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
+                obj[F("value")][fld] = value;
+                if (value > max)
+                    max = value;
+            }
+            obj[F("max")] = max;
+            obj[F("maxDay")] = mApp->getHistoryMaxDay();
+        }
+
+        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
+            getGeneric(request, obj.createNestedObject(F("generic")));
+            obj[F("refresh")] = 86400;  // 1 day
+            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
+            uint16_t max = 0;
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);
+                obj[F("value")][fld] = value;
+                if (value > max)
+                    max = value;
+            }
+            obj[F("max")] = max;
+        }
+
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);

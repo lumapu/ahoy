@@ -9,6 +9,11 @@
                     "de": "Daten"
                 },
                 {
+                    "token": "{#NAV_HISTORY}",
+                    "en": "History",
+                    "de": "Verlauf"
+                },
+                {
                     "token": "NAV_WEBSERIAL",
                     "en": "Webserial",
                     "de": "Web Konsole"

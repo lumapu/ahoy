@@ -24,6 +24,7 @@
 #include "utils/scheduler.h"
 #include "utils/syslog.h"
 #include "web/RestApi.h"
+#include "plugins/history.h"
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
@@ -35,6 +36,7 @@
 
 #include <RF24.h> // position is relevant since version 1.4.7 of this library
 
+
 // convert degrees and radians for sun calculation
 #define SIN(x) (sin(radians(x)))
 #define COS(x) (cos(radians(x)))
@@ -42,12 +44,11 @@
 #define ACOS(x) (degrees(acos(x)))
 
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
-#ifdef ESP32
-#endif
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
 typedef PubMqtt<HmSystemType> PubMqttType;
 typedef PubSerial<HmSystemType> PubSerialType;
+typedef HistoryData<HmSystemType> HistoryType;
 
 // PLUGINS
 #if defined(PLUGIN_DISPLAY)
@@ -251,6 +252,14 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
+        uint16_t getHistoryValue(uint8_t type, uint16_t i) {
+            return mHistory.valueAt((HistoryStorageType)type, i);
+        }
+
+        uint16_t getHistoryMaxDay() {
+            return mHistory.getMaximumDay();
+        }
+
     private:
         #define CHECK_AVAIL     true
         #define SKIP_YIELD_DAY  true
@@ -358,6 +367,7 @@ class app : public IApp, public ah::Scheduler {
         DisplayType mDisplay;
         DisplayData mDispData;
         #endif
+        HistoryType mHistory;
 };
 
 #endif /*__APP_H__*/

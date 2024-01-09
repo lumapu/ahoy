@@ -37,6 +37,7 @@
 #include "html/h/visualization_html.h"
 #include "html/h/about_html.h"
 #include "html/h/wizard_html.h"
+#include "html/h/history_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
@@ -82,6 +83,7 @@ class Web {
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
+            mWeb.on("/history",        HTTP_ANY, std::bind(&Web::onHistory,       this, std::placeholders::_1));
 
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
@@ -251,6 +253,8 @@ class Web {
                 request->redirect(F("/index"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
                 request->redirect(F("/live"));
+            else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY)
+                request->redirect(F("/history"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
                 request->redirect(F("/serial"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
@@ -266,7 +270,7 @@ class Web {
             }
         }
 
-        void getPage(AsyncWebServerRequest *request, uint8_t mask, const uint8_t *zippedHtml, uint32_t len) {
+        void getPage(AsyncWebServerRequest *request, uint16_t mask, const uint8_t *zippedHtml, uint32_t len) {
             if (CHECK_MASK(mConfig->sys.protectionMask, mask))
                 checkProtection(request);
 
@@ -606,6 +610,10 @@ class Web {
 
         void onLive(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_LIVE, visualization_html, visualization_html_len);
+        }
+
+        void onHistory(AsyncWebServerRequest *request) {
+            getPage(request, PROT_MASK_HISTORY, history_html, history_html_len);
         }
 
         void onAbout(AsyncWebServerRequest *request) {

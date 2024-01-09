@@ -14,11 +14,6 @@
 #include "ESPAsyncWebServer.h"
 #endif
 
-//#include "hms/hmsRadio.h"
-#if defined(ESP32)
-//typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
-#endif
-
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
 class IApp {
@@ -65,8 +60,10 @@ class IApp {
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
-        virtual void* getRadioObj(bool nrf) = 0;
+        virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
+        virtual uint16_t getHistoryMaxDay() = 0;
 
+        virtual void* getRadioObj(bool nrf) = 0;
 };
 
 #endif /*__IAPP_H__*/

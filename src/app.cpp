@@ -92,6 +92,8 @@ void app::setup() {
         #endif
     #endif
 
+    mHistory.setup(this, &mSys, mConfig, &mTimestamp);
+
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     #if !defined(ETHERNET)
@@ -149,6 +151,8 @@ void app::regularTickers(void) {
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
+
+    everySec(std::bind(&HistoryType::tickerSecond, mHistory), "hist");
 }
 
 #if defined(ETHERNET)

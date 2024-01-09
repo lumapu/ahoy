@@ -33,6 +33,26 @@ textarea {
     color: var(--fg2);
 }
 
+svg rect {fill: #0000AA;}
+svg.chart {
+    background: #f2f2f2;
+	border: 2px solid gray;
+	padding: 1px;
+}
+
+div.chartDivContainer {
+	padding: 1px;
+	margin: 1px;
+}
+div.chartdivContainer span {
+    color: var(--fg2);
+}
+div.chartDiv {
+	padding: 0px;
+	margin: 0px;
+}
+
+
 .topnav {
     background-color: var(--nav-bg);
     position: fixed;
