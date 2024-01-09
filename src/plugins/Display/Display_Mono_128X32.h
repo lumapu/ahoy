@@ -12,17 +12,13 @@ class DisplayMono128X32 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio, uint8_t graph_size) {
-            mEnPowerSave = enPowerSave;
-            mScreenSaver = screenSaver;
-            mLuminance = lum;
-            mGraphRatio = graph_ratio;
-            mGraphSize  = graph_size;
+        void config(display_t *cfg) {
+            mCfg = cfg;
         }
 
-        void init(uint8_t type, uint8_t rotation, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) {
-            u8g2_cb_t *rot = (u8g2_cb_t *)((rotation != 0x00) ? U8G2_R2 : U8G2_R0);
-            monoInit(new U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C(rot, reset, clock, data), type, displayData);
+        void init(DisplayData *displayData) {
+            u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
+            monoInit(new U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
             calcLinePositions();
             printText("Ahoy!", 0);
             printText("ahoydtu.de", 2);
