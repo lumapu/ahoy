@@ -155,16 +155,17 @@ class DisplayMono {
         }
 
         void resetPowerGraph() {
-          if (mPgData != nullptr) {
-              mPgMaxPwr = 0.0;
-              mPgLastPos = 0;
-              for (uint8_t i = 0; i < mPgWidth; i++)
-                  mPgData[i] = 0.0;
-          }
+            if (mPgData != nullptr) {
+                mPgMaxPwr = 0.0;
+                mPgLastPos = 0;
+                for (uint8_t i = 0; i < mPgWidth; i++) {
+                    mPgData[i] = 0.0;
+                }
+            }
         }
 
         uint8_t sss2pgpos(uint seconds_since_start) {
-          return(seconds_since_start * (mPgWidth - 1) / (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime));
+            return(seconds_since_start * (mPgWidth - 1) / (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime));
         }
 
         void calcPowerGraphValues() {
@@ -186,60 +187,60 @@ class DisplayMono {
         }
 
         uint8_t getPowerGraphXpos(uint8_t p) {
-          if ((p <= mPgLastPos) && (mPgLastPos > 0))
+            if ((p <= mPgLastPos) && (mPgLastPos > 0))
                 return((p * (mPgWidth - 1)) / mPgLastPos);  // scaling of x-axis
-          else
+            else
                 return(0);
         }
 
         uint8_t getPowerGraphYpos(uint8_t p) {
-          if (p < mPgWidth)
-                //return(((uint32_t) mPgData[p] * (uint32_t) mPgMaxAvailPower) * (uint32_t) mPgHeight / mPgMaxPwr / 255); // scaling of normalized data (0-255) to graph height
+            if (p < mPgWidth)
                 return((mPgData[p] * (uint32_t) mPgHeight / mPgMaxPwr)); // scaling of data to graph height
-          else
+            else
                 return(0);
         }
 
         void plotPowerGraph(uint8_t xoff, uint8_t yoff) {
-          // draw axes
-          mDisplay->drawLine(xoff, yoff, xoff,            yoff - mPgHeight);  // vertical axis
-          mDisplay->drawLine(xoff, yoff, xoff + mPgWidth, yoff);              // horizontal axis
+            // draw axes
+            mDisplay->drawLine(xoff, yoff, xoff,            yoff - mPgHeight);  // vertical axis
+            mDisplay->drawLine(xoff, yoff, xoff + mPgWidth, yoff);              // horizontal axis
 
-          // draw X scale
-          tmElements_t tm;
-          breakTime(mDisplayData->pGraphEndTime, tm);
-          uint8_t endHourPg = tm.Hour;
-          breakTime(mDisplayData->utcTs, tm);
-          uint8_t endHour = std::min(endHourPg, tm.Hour);
-          breakTime(mDisplayData->pGraphStartTime, tm);
-          tm.Hour += 1;
-          tm.Minute = 0;
-          tm.Second = 0;
-          for (; tm.Hour <= endHour; tm.Hour++) {
+            // draw X scale
+            tmElements_t tm;
+            breakTime(mDisplayData->pGraphEndTime, tm);
+            uint8_t endHourPg = tm.Hour;
+            breakTime(mDisplayData->utcTs, tm);
+            uint8_t endHour = std::min(endHourPg, tm.Hour);
+            breakTime(mDisplayData->pGraphStartTime, tm);
+            tm.Hour += 1;
+            tm.Minute = 0;
+            tm.Second = 0;
+            for (; tm.Hour <= endHour; tm.Hour++) {
                 uint8_t x_pos_screen = getPowerGraphXpos(sss2pgpos((uint32_t) makeTime(tm) - mDisplayData->pGraphStartTime)); // scale horizontal axis
                 mDisplay->drawPixel(xoff + x_pos_screen, yoff - 1);
-          }
+            }
 
-          // draw Y scale
-          uint16_t scale_y = 10;
-          uint32_t maxpwr_int = static_cast<uint8_t>(std::round(mPgMaxPwr));
-          if (maxpwr_int > 100)
+            // draw Y scale
+            uint16_t scale_y = 10;
+            uint32_t maxpwr_int = static_cast<uint8_t>(std::round(mPgMaxPwr));
+            if (maxpwr_int > 100)
                 scale_y = 100;
-          for (uint32_t i = scale_y; i <= maxpwr_int; i += scale_y) {
+
+            for (uint32_t i = scale_y; i <= maxpwr_int; i += scale_y) {
                 uint8_t ypos = yoff - static_cast<uint8_t>(std::round(i * (float) mPgHeight / mPgMaxPwr)); // scale vertical axis
                 mDisplay->drawPixel(xoff + 1, ypos);
-          }
+            }
 
-          // draw curve
-          for (uint8_t i = 1; i <= mPgLastPos; i++) {
+            // draw curve
+            for (uint8_t i = 1; i <= mPgLastPos; i++) {
                 mDisplay->drawLine(xoff + getPowerGraphXpos(i - 1), yoff - getPowerGraphYpos(i - 1),
                                          xoff + getPowerGraphXpos(i),     yoff - getPowerGraphYpos(i));
-          }
+            }
 
-          // print max power value
-          mDisplay->setFont(u8g2_font_4x6_tr);
-          snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%dW", static_cast<uint16_t>(std::round(mPgMaxPwr)));
-          mDisplay->drawStr(xoff + 3, yoff - mPgHeight + 5, mFmtText);
+            // print max power value
+            mDisplay->setFont(u8g2_font_4x6_tr);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%dW", static_cast<uint16_t>(std::round(mPgMaxPwr)));
+            mDisplay->drawStr(xoff + 3, yoff - mPgHeight + 5, mFmtText);
         }
 
         // pixelshift screensaver with wipe effect

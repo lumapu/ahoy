@@ -1261,12 +1261,12 @@
                 {
                     "token": "INV_LOSS_RATE",
                     "en": "Inverter loss rate",
-                    "de": "Wechselrichter Empfangsqualit&auml;t"
+                    "de": "Wechselrichter Verlustrate"
                 },
                 {
                     "token": "DTU_LOSS_RATE",
                     "en": "DTU loss rate",
-                    "de": "DTU Empfangsqualit&auml;t"
+                    "de": "DTU Verlustrate"
                 },
                 {
                     "token": "RADIO_STAT_MODAL",
