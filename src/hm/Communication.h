@@ -140,7 +140,8 @@ class Communication : public CommQueue<> {
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTime.startTimeMonitor(1000);
-                                }
+                                } else if(IV_MI == q->iv->ivGen)
+                                    q->iv->mIvTxCnt++;
                             }
                             closeRequest(q, false);
                             break;
@@ -733,17 +734,16 @@ class Communication : public CommQueue<> {
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
                 } else {
                     q->iv->miMultiParts = 7; // indicate we are ready
-                    //miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
                 mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
-                //use also miMultiParts here for better statistics?
-                //mHeu.setGotFragment(q->iv);
-            } else {                                    // first data msg for 1ch, 2nd for 2ch
+                q->iv->mIvRxCnt++;           // statistics workaround...
+
+            } else {                      // first data msg for 1ch, 2nd for 2ch
                 q->iv->miMultiParts += 6; // indicate we are ready
-                //miComplete(q->iv);
+
             }
         }
 
@@ -757,13 +757,9 @@ class Communication : public CommQueue<> {
                 DBGHEXLN(cmd);
             }
 
-            if(q->iv->miMultiParts == 7) {
-                //mHeu.setGotAll(q->iv);
+            if(q->iv->miMultiParts == 7)
                 q->iv->radioStatistics.rxSuccess++;
-            } else
-                //mHeu.setGotFragment(q->iv);
-                /*iv->radioStatistics.rxFail++; // got no complete payload*/
-            //q->iv->radioStatistics.retransmits++;
+
             q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
 
             mWaitTime.startTimeMonitor(MI_TIMEOUT);
@@ -871,6 +867,26 @@ class Communication : public CommQueue<> {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINTLN(F("got all data msgs"));
             }
+
+            if (iv->mGetLossInterval >= AHOY_GET_LOSS_INTERVAL) { // initially mIvRxCnt = mIvTxCnt = 0
+                iv->mGetLossInterval = 1;
+                iv->radioStatistics.ivSent  = iv->mIvRxCnt + iv->mDtuTxCnt; // iv->mIvRxCnt is the nr. of additional answer frames, default we expect one frame per request
+                iv->radioStatistics.ivLoss  = iv->radioStatistics.ivSent - iv->mDtuRxCnt; // this is what we didn't receive
+                iv->radioStatistics.dtuLoss = iv->mIvTxCnt; // this is somehow the requests w/o answers in that periode
+                iv->radioStatistics.dtuSent = iv->mDtuTxCnt;
+                if (mSerialDebug) {
+                    DPRINT_IVID(DBG_INFO, iv->id);
+                    DBGPRINTLN("DTU loss: " +
+                        String (iv->radioStatistics.ivLoss) + "/" +
+                        String (iv->radioStatistics.ivSent) + " frames for " +
+                        String (iv->radioStatistics.dtuSent) + " requests");
+                }
+                iv->mIvRxCnt  = 0;  // start new interval, iVRxCnt is abused to collect additional possible frames
+                iv->mIvTxCnt  = 0;  // start new interval, iVTxCnt is abused to collect nr. of unanswered requests
+                iv->mDtuRxCnt = 0;  // start new interval
+                iv->mDtuTxCnt = 0;  // start new interval
+            }
+
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
 
