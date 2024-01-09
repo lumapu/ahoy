@@ -9,13 +9,13 @@
 #ifdef LANG_DE
     #define REBOOT_ESP_APPLY_CHANGES "starte AhoyDTU neu, um die Änderungen zu speichern"
 #else /*LANG_EN*/
-    #define REBOOT_ESP_APPLY_CHANGES "reboot AhoyDTU to apply all your configuration changes";
+    #define REBOOT_ESP_APPLY_CHANGES "reboot AhoyDTU to apply all your configuration changes"
 #endif
 
 #ifdef LANG_DE
     #define TIME_NOT_SET "keine gültige Zeit, daher keine Kommunikation zum Wechselrichter möglich"
 #else /*LANG_EN*/
-    #define TIME_NOT_SET "time not set. No communication to inverter possible";
+    #define TIME_NOT_SET "time not set. No communication to inverter possible"
 #endif
 
 #ifdef LANG_DE
