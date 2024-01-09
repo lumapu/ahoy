@@ -6,6 +6,7 @@
 * merge PR: MI - add "get loss logic" #1341
 * translated `/history`
 * fix translations in title of documents
+* added translations for error messages #1343
 
 ## 0.8.49 - 2024-01-08
 * fix send total values if inverter state is different from `OFF` #1331

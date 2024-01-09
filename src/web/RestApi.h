@@ -15,6 +15,7 @@
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
+#include "lang.h"
 #include "AsyncJson.h"
 #if defined(ETHERNET)
 #include "AsyncWebServer_ESP32_W5500.h"
@@ -172,15 +173,15 @@ class RestApi {
                     root[F("success")] = setSetup(obj, root);
                 else {
                     root[F("success")] = false;
-                    root[F("error")]   = "Path not found: " + path;
+                    root[F("error")]   = F(PATH_NOT_FOUND) + path;
                 }
             } else {
                 switch (err.code()) {
                     case DeserializationError::Ok: break;
-                    case DeserializationError::IncompleteInput: root[F("error")] = F("Incomplete input");       break;
-                    case DeserializationError::InvalidInput:    root[F("error")] = F("Invalid input");          break;
-                    case DeserializationError::NoMemory:        root[F("error")] = F("Not enough memory");      break;
-                    default:                                    root[F("error")] = F("Deserialization failed"); break;
+                    case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
+                    case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
+                    case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
+                    default:                                    root[F("error")] = F(DESER_FAILED);     break;
                 }
             }
 
@@ -402,7 +403,7 @@ class RestApi {
         void getIvStatistis(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
-                obj[F("error")] = F("inverter not found!");
+                obj[F("error")] = F(INV_NOT_FOUND);
                 return;
             }
             obj[F("name")]           = String(iv->config->name);
@@ -421,7 +422,7 @@ class RestApi {
         void getIvPowerLimitAck(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
-                obj[F("error")] = F("inverter not found!");
+                obj[F("error")] = F(INV_NOT_FOUND);
                 return;
             }
             obj["ack"] = (bool)iv->powerLimitAck;
@@ -474,7 +475,7 @@ class RestApi {
         void getInverter(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
-                obj[F("error")] = F("inverter not found!");
+                obj[F("error")] = F(INV_NOT_FOUND);
                 return;
             }
 
@@ -537,7 +538,7 @@ class RestApi {
         void getIvAlarms(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
-                obj[F("error")] = F("inverter not found!");
+                obj[F("error")] = F(INV_NOT_FOUND);
                 return;
             }
 
@@ -560,7 +561,7 @@ class RestApi {
         void getIvVersion(JsonObject obj, uint8_t id) {
             Inverter<> *iv = mSys->getInverterByPos(id);
             if(NULL == iv) {
-                obj[F("error")] = F("inverter not found!");
+                obj[F("error")] = F(INV_NOT_FOUND);
                 return;
             }
 
@@ -732,14 +733,10 @@ class RestApi {
             obj[F("disNightComm")] = disNightCom;
 
             JsonArray warn = obj.createNestedArray(F("warnings"));
-            if(!mRadioNrf->isChipConnected() && mConfig->nrf.enabled)
-                warn.add(F("your NRF24 module can't be reached, check the wiring, pinout and enable"));
-            if(!mApp->getSettingsValid())
-                warn.add(F("your settings are invalid"));
             if(mApp->getRebootRequestState())
-                warn.add(F("reboot your ESP to apply all your configuration changes"));
+                warn.add(F(REBOOT_ESP_APPLY_CHANGES));
             if(0 == mApp->getTimestamp())
-                warn.add(F("time not set. No communication to inverter possible"));
+                warn.add(F(TIME_NOT_SET));
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
@@ -823,7 +820,7 @@ class RestApi {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
             if(NULL == iv) {
-                jsonOut[F("error")] = F("inverter index invalid: ") + jsonIn[F("id")].as<String>();
+                jsonOut[F("error")] = F(INV_INDEX_INVALID) + jsonIn[F("id")].as<String>();
                 return false;
             }
             jsonOut[F("id")] = jsonIn[F("id")];
@@ -848,12 +845,12 @@ class RestApi {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
             } else {
-                jsonOut[F("error")] = F("unknown cmd: '") + jsonIn["cmd"].as<String>() + "'";
+                jsonOut[F("error")] = F(UNKNOWN_CMD) + jsonIn["cmd"].as<String>() + "'";
                 return false;
             }
 
             if(!accepted) {
-                jsonOut[F("error")] = F("inverter does not accept dev control request at this moment");
+                jsonOut[F("error")] = F(INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT);
                 return false;
             }
 
@@ -902,7 +899,7 @@ class RestApi {
                 iv->config->add2Total   = jsonIn[F("add2total")];
                 mApp->saveSettings(false); // without reboot
             } else {
-                jsonOut[F("error")] = F("unknown cmd");
+                jsonOut[F("error")] = F(UNKNOWN_CMD);
                 return false;
             }
 
