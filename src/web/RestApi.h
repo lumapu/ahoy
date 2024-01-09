@@ -794,7 +794,6 @@ class RestApi {
         void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = mConfig->inst.sendInterval;
-            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
@@ -809,7 +808,6 @@ class RestApi {
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             obj[F("refresh")] = 86400;  // 1 day
-            obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);

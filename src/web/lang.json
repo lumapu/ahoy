@@ -4,12 +4,17 @@
             "name": "general",
             "list": [
                 {
+                    "token": "NAV_WIZARD",
+                    "en": "Setup Wizard",
+                    "de": "Daten"
+                },
+                {
                     "token": "NAV_LIVE",
                     "en": "Live",
                     "de": "Daten"
                 },
                 {
-                    "token": "{#NAV_HISTORY}",
+                    "token": "NAV_HISTORY",
                     "en": "History",
                     "de": "Verlauf"
                 },
@@ -27,6 +32,11 @@
                     "token": "NAV_DOCUMENTATION",
                     "en": "Documentation",
                     "de": "Dokumentation"
+                },
+                {
+                    "token": "NAV_SAVE",
+                    "en": "save",
+                    "de": "speichern"
                 },
                 {
                     "token": "NAV_ABOUT",
@@ -1332,6 +1342,46 @@
                     "token": "FAILED_SAVE",
                     "en": "Failed saving settings",
                     "de": "Fehler beim Speichern"
+                }
+            ]
+        },
+        {
+            "name": "history.html",
+            "list": [
+                {
+                    "token": "TOTAL_POWER",
+                    "en": "Total Power",
+                    "de": "Gesamtleistung"
+                },
+                {
+                    "token": "TOTAL_YIELD_PER_DAY",
+                    "en": "Total Yield per day",
+                    "de": "Gesamtertrag pro Tag"
+                },
+                {
+                    "token": "MAX_DAY",
+                    "en": "maximum day",
+                    "de": "Tagesmaximum"
+                },
+                {
+                    "token": "LAST_VALUE",
+                    "en": "last value",
+                    "de": "letzter Wert"
+                },
+                {
+                    "token": "MAXIMUM",
+                    "en": "maximum value",
+                    "de": "Maximalwert"
+                },
+                {
+                    "token": "UPDATED",
+                    "en": "Updated every",
+                    "de": "aktualisiert alle"
+                },
+                {
+                    "token": "SECONDS",
+                    "en": "seconds",
+                    "de": "Sekunden"
                 }
             ]
         }

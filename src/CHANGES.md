@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.50 - 2024-01-09
+* merge PR: added history charts to web #1336
+
 ## 0.8.49 - 2024-01-08
 * fix send total values if inverter state is different from `OFF` #1331
 * fix german language issues #1335
