@@ -140,8 +140,7 @@ class Communication : public CommQueue<> {
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTime.startTimeMonitor(1000);
-                                }
-                                if(IV_MI == q->iv->ivGen)
+                                } else if(IV_MI == q->iv->ivGen)
                                     q->iv->mIvTxCnt++;
                             }
                             closeRequest(q, false);
