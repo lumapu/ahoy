@@ -212,16 +212,22 @@ class Inverter {
                         cb(RealTimeRunData_Debug, false);    // get live data
                 }
             } else { // MI
-                if(0 == getFwVersion())
+                if(0 == getFwVersion()) {
+                    mIvRxCnt +=2;
                     cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
-                else {
+                } else {
                     record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
+                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
                         cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
-                    else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                        mIvRxCnt +=2;
+                    } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
                         cb(0x10, false); // legacy GPF command
-                    else
+                    else {
                         cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
+                        mGetLossInterval++;
+                        if (type != INV_TYPE_4CH)
+                            mIvRxCnt++;  // statistics workaround...
+                    }
                 }
             }
         }
@@ -619,7 +625,7 @@ class Inverter {
                         radioStatistics.dtuSent = txCnt + ((uint16_t)65535 - mIvTxCnt) + 1;
                     else
                         radioStatistics.dtuSent = txCnt - mIvTxCnt;
-                    
+
                     radioStatistics.dtuLoss = radioStatistics.dtuSent - mDtuRxCnt;
 
                     DPRINT_IVID(DBG_INFO, id);
@@ -831,15 +837,16 @@ class Inverter {
         bool mDevControlRequest; // true if change needed
         uint8_t mGridLen = 0;
         uint8_t mGridProfile[MAX_GRID_LENGTH];
-        uint8_t mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
-        uint16_t mIvRxCnt  = 0;
-        uint16_t mIvTxCnt  = 0;
         uint8_t mAlarmNxtWrPos = 0; // indicates the position in array (rolling buffer)
         bool mNextLive = true; // first read live data after booting up then version etc.
 
     public:
         uint16_t mDtuRxCnt = 0;
         uint16_t mDtuTxCnt = 0;
+        uint8_t  mGetLossInterval = 0;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
+        uint16_t mIvRxCnt  = 0;
+        uint16_t mIvTxCnt  = 0;
+
 };
 
 template <class REC_TYP>

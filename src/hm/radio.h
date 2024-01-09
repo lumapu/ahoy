@@ -42,8 +42,10 @@ class Radio {
 
         void prepareDevInformCmd(Inverter<> *iv, uint8_t cmd, uint32_t ts, uint16_t alarmMesId, bool isRetransmit, uint8_t reqfld=TX_REQ_INFO) { // might not be necessary to add additional arg.
             if(IV_MI == getIvGen(iv)) {
-                DPRINT(DBG_DEBUG, F("legacy cmd 0x"));
-                DPRINTLN(DBG_DEBUG,String(cmd, HEX));
+                if(*mSerialDebug) {
+                    DPRINT(DBG_DEBUG, F("legacy cmd 0x"));
+                    DPRINTLN(DBG_DEBUG,String(cmd, HEX));
+                }
                 sendCmdPacket(iv, cmd, cmd, false, false);
                 return;
             }
