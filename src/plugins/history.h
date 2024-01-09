@@ -88,7 +88,7 @@ class HistoryData {
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {
-            settings_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
+            storage_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
             uint16_t idx = (s->dispIdx + i) % HISTORY_DATA_ARR_LENGTH;
             return s->data[idx];
         }

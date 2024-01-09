@@ -781,7 +781,7 @@ class RestApi {
             obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue(HistoryStorageType::POWER, fld);
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
                 obj[F("value")][fld] = value;
                 if (value > max)
                     max = value;
@@ -796,7 +796,7 @@ class RestApi {
             obj[F("datapoints")] = HISTORY_DATA_ARR_LENGTH;
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue(HistoryStorageType::YIELD, fld);
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);
                 obj[F("value")][fld] = value;
                 if (value > max)
                     max = value;

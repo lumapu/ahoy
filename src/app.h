@@ -244,8 +244,8 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        uint16_t getHistoryValue(HistoryType type, uint16_t i) {
-            return mHistory.valueAt(type, i);
+        uint16_t getHistoryValue(uint8_t type, uint16_t i) {
+            return mHistory.valueAt((HistoryStorageType)type, i);
         }
 
         uint16_t getHistoryMaxDay() {
