@@ -25,23 +25,22 @@ class DisplayMono {
     public:
         DisplayMono() {};
 
-        virtual void init(uint8_t type, uint8_t rot, uint8_t cs, uint8_t dc, uint8_t reset, uint8_t clock, uint8_t data, DisplayData *displayData) = 0;
-        virtual void config(bool enPowerSave, uint8_t screenSaver, uint8_t lum, uint8_t graph_ratio, uint8_t graph_size) = 0;
+        virtual void init(DisplayData *displayData) = 0;
+        virtual void config(display_t *cfg) = 0;
         virtual void disp(void) = 0;
 
         // Common loop function, manages display on/off functions for powersave and screensaver with motionsensor
         // can be overridden by subclasses
-        virtual bool loop(uint8_t lum, bool motion) {
+        virtual bool loop(bool motion) {
 
-            bool dispConditions = (!mEnPowerSave || (mDisplayData->nrProducing > 0)) &&
-                                         ((mScreenSaver != 2) || motion); // screensaver 2 .. motionsensor
+            bool dispConditions = (!mCfg->pwrSaveAtIvOffline || (mDisplayData->nrProducing > 0)) &&
+                                         ((mCfg->screenSaver != 2) || motion); // screensaver 2 .. motionsensor
 
             if (mDisplayActive) {
                 if (!dispConditions) {
                      if (mDisplayTime.isTimeout()) { // switch display off after timeout
                           mDisplayActive = false;
                           mDisplay->setPowerSave(true);
-                          DBGPRINTLN("**** Display off ****");
                      }
                 }
                 else
@@ -52,16 +51,15 @@ class DisplayMono {
                      mDisplayActive = true;
                      mDisplayTime.reStartTimeMonitor(); // switch display on
                      mDisplay->setPowerSave(false);
-                     DBGPRINTLN("**** Display on ****");
                 }
             }
 
-            if(mLuminance != lum) {
-                mLuminance = lum;
+            if(mLuminance != mCfg->contrast) {
+                mLuminance = mCfg->contrast;
                 mDisplay->setContrast(mLuminance);
             }
 
-            return(monoMaintainDispSwitchState());
+            return(monoMaintainDispSwitchState());  // return flag, if display content should be updated immediately
         }
 
     protected:
@@ -71,7 +69,8 @@ class DisplayMono {
         };
 
     protected:
-        U8G2* mDisplay;
+        display_t *mCfg;
+        U8G2 *mDisplay;
         DisplayData *mDisplayData;
 
         float  *mPgData = nullptr;
@@ -82,17 +81,10 @@ class DisplayMono {
         uint32_t mPgTimeOfDay = 0;
         uint8_t  mPgLastPos = 0;
 
-        uint8_t mType;
         uint16_t mDispWidth;
         uint16_t mDispHeight;
-
-        bool mEnPowerSave;
-        uint8_t mScreenSaver = 1;  // 0 .. off; 1 .. pixelShift; 2 .. motionsensor
         uint8_t mLuminance;
-        uint8_t mGraphRatio;
-        uint8_t mGraphSize;
 
-        uint8_t mLoopCnt;
         uint8_t mLineXOffsets[5] = {};
         uint8_t mLineYOffsets[5] = {};
 
@@ -105,9 +97,8 @@ class DisplayMono {
         char mFmtText[DISP_FMT_TEXT_LEN];
 
         // Common initialization function to be called by subclasses
-        void monoInit(U8G2* display, uint8_t type, DisplayData *displayData) {
+        void monoInit(U8G2* display, DisplayData *displayData) {
             mDisplay = display;
-            mType = type;
             mDisplayData = displayData;
             mDisplay->begin();
             mDisplay->setPowerSave(false);  // always start with display on
@@ -116,10 +107,10 @@ class DisplayMono {
             mDispWidth = mDisplay->getDisplayWidth();
             mDispHeight = mDisplay->getDisplayHeight();
             mDispSwitchTime.stopTimeMonitor();
-            if (mGraphRatio == 100)           // if graph ratio is 100% start in graph mode
+            if (mCfg->graph_ratio == 100)           // if graph ratio is 100% start in graph mode
                 mDispSwitchState = DispSwitchState::GRAPH;
-            else if (mGraphRatio != 0)
-                mDispSwitchTime.startTimeMonitor(150 * (100 - mGraphRatio));  // start display mode change only if ratio is neither 0 nor 100
+            else if (mCfg->graph_ratio != 0)
+                mDispSwitchTime.startTimeMonitor(150 * (100 - mCfg->graph_ratio));  // start display mode change only if ratio is neither 0 nor 100
         }
 
         bool monoMaintainDispSwitchState(void) {
@@ -128,14 +119,14 @@ class DisplayMono {
                 case DispSwitchState::TEXT:
                     if (mDispSwitchTime.isTimeout()) {
                         mDispSwitchState = DispSwitchState::GRAPH;
-                        mDispSwitchTime.startTimeMonitor(150 * mGraphRatio);  // mGraphRatio: 0-100 Gesamtperiode 15000 ms
+                        mDispSwitchTime.startTimeMonitor(150 * mCfg->graph_ratio);  // mGraphRatio: 0-100 Gesamtperiode 15000 ms
                         change = true;
                     }
                     break;
                 case DispSwitchState::GRAPH:
                     if (mDispSwitchTime.isTimeout()) {
                         mDispSwitchState = DispSwitchState::TEXT;
-                        mDispSwitchTime.startTimeMonitor(150 * (100 - mGraphRatio));
+                        mDispSwitchTime.startTimeMonitor(150 * (100 - mCfg->graph_ratio));
                         change = true;
                     }
                     break;
@@ -147,7 +138,6 @@ class DisplayMono {
             mPgWidth = width;
             mPgHeight = height;
             mPgData = new float[mPgWidth];
-            //memset(mPgData, 0, mPgWidth);
             resetPowerGraph();
 /*
             Inverter<> *iv;
@@ -195,7 +185,7 @@ class DisplayMono {
             }
         }
 
-        uint8_t getPowerGraphXpos(uint8_t p) {  //
+        uint8_t getPowerGraphXpos(uint8_t p) {
           if ((p <= mPgLastPos) && (mPgLastPos > 0))
                 return((p * (mPgWidth - 1)) / mPgLastPos);  // scaling of x-axis
           else
@@ -255,7 +245,7 @@ class DisplayMono {
         // pixelshift screensaver with wipe effect
         void calcPixelShift(int range) {
             int8_t mod = (millis() / 10000) % ((range >> 1) << 2);
-            mPixelshift = mScreenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
+            mPixelshift = mCfg->screenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
         }
 };
 
