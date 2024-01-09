@@ -2,6 +2,10 @@
 
 ## 0.8.50 - 2024-01-09
 * merge PR: added history charts to web #1336
+* merge PR: small display changes #1339
+* merge PR: MI - add "get loss logic" #1341
+* translated `/history`
+* fix translations in title of documents
 
 ## 0.8.49 - 2024-01-08
 * fix send total values if inverter state is different from `OFF` #1331
