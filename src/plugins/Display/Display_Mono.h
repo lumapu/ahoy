@@ -135,7 +135,7 @@ class DisplayMono {
         }
 
         void initPowerGraph(uint8_t width, uint8_t height) {
-            DBGPRINTLN("---- Init Power Graph ----");
+            DBGPRINTLN(F("---- Init Power Graph ----"));
             mPgWidth = width;
             mPgHeight = height;
             mPgData = new float[mPgWidth];
@@ -207,7 +207,7 @@ class DisplayMono {
             mDisplay->drawLine(xoff, yoff, xoff + mPgWidth, yoff);              // horizontal axis
 
             // do not draw as long as time is not set correctly and no data was received
-            if ((mDisplayData->pGraphStartTime == 0) || (mDisplayData->pGraphEndTime == 0) || (mDisplayData->utcTs < 1) || (mPgMaxPwr < 1) || (mPgLastPos < 1))
+            if ((mDisplayData->pGraphStartTime == 0) || (mDisplayData->pGraphEndTime == 0) || (mDisplayData->utcTs != 0) || (mPgMaxPwr != 0) || (mPgLastPos != 0))
                 return;
 
             // draw X scale

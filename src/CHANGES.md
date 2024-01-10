@@ -4,6 +4,7 @@
 * fix translation #1346
 * further improve sending active power control command faster #1332
 * added history protection mask
+* merge PR: display graph improvements #1347
 
 ## 0.8.50 - 2024-01-09
 * merge PR: added history charts to web #1336

@@ -18,7 +18,7 @@ class HmSystem {
         void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
             mInverter[0].timestamp     = timestamp;
             mInverter[0].generalConfig = config;
-            mInverter[0].app           = app;
+            //mInverter[0].app           = app;
         }
 
         void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {

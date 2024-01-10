@@ -151,7 +151,7 @@ class Inverter {
 
         static uint32_t  *timestamp;     // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
-        static IApp      *app;           // pointer to app interface
+        //static IApp      *app;           // pointer to app interface
 
     public:
 
@@ -288,7 +288,7 @@ class Inverter {
             if(isConnected) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
-                app->triggerTickSend();
+                //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
             }
             return isConnected;
         }
