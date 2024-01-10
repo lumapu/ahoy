@@ -119,7 +119,7 @@ class DisplayMono {
                 case DispSwitchState::TEXT:
                     if (mDispSwitchTime.isTimeout()) {
                         mDispSwitchState = DispSwitchState::GRAPH;
-                        mDispSwitchTime.startTimeMonitor(150 * mCfg->graph_ratio);  // mGraphRatio: 0-100 Gesamtperiode 15000 ms
+                        mDispSwitchTime.startTimeMonitor(150 * mCfg->graph_ratio);  // graph_ratio: 0-100 Gesamtperiode 15000 ms
                         change = true;
                     }
                     break;
@@ -135,6 +135,7 @@ class DisplayMono {
         }
 
         void initPowerGraph(uint8_t width, uint8_t height) {
+            DBGPRINTLN("---- Init Power Graph ----");
             mPgWidth = width;
             mPgHeight = height;
             mPgData = new float[mPgWidth];
@@ -205,6 +206,10 @@ class DisplayMono {
             mDisplay->drawLine(xoff, yoff, xoff,            yoff - mPgHeight);  // vertical axis
             mDisplay->drawLine(xoff, yoff, xoff + mPgWidth, yoff);              // horizontal axis
 
+            // do not draw as long as time is not set correctly and no data was received
+            if ((mDisplayData->pGraphStartTime == 0) || (mDisplayData->pGraphEndTime == 0) || (mDisplayData->utcTs < 1) || (mPgMaxPwr < 1) || (mPgLastPos < 1))
+                return;
+
             // draw X scale
             tmElements_t tm;
             breakTime(mDisplayData->pGraphEndTime, tm);
@@ -234,7 +239,7 @@ class DisplayMono {
             // draw curve
             for (uint8_t i = 1; i <= mPgLastPos; i++) {
                 mDisplay->drawLine(xoff + getPowerGraphXpos(i - 1), yoff - getPowerGraphYpos(i - 1),
-                                         xoff + getPowerGraphXpos(i),     yoff - getPowerGraphYpos(i));
+                                   xoff + getPowerGraphXpos(i),     yoff - getPowerGraphYpos(i));
             }
 
             // print max power value
