@@ -46,7 +46,8 @@ class DisplayMono84X48 : public DisplayMono {
                     break;
             }
 
-            initPowerGraph(mDispWidth - 16, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
+            if (mCfg->graph_ratio > 0)
+                initPowerGraph(mDispWidth - 16, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
 
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
@@ -134,7 +135,7 @@ class DisplayMono84X48 : public DisplayMono {
                 printText(mFmtText, l_YieldTotal, 0xff);
             }
 
-            if (mDispSwitchState == DispSwitchState::GRAPH) {
+            if ((mCfg->graph_ratio > 0) && (mDispSwitchState == DispSwitchState::GRAPH)) {
                 // plot power graph
                 plotPowerGraph(8, mLineYOffsets[graph_last_line] - 1);
             }
