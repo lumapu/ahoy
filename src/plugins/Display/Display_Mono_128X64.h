@@ -58,7 +58,8 @@ class DisplayMono128X64 : public DisplayMono {
 
             widthShrink = (mCfg->screenSaver == 1) ? pixelShiftRange : 0;  // shrink graphwidth for pixelshift screensaver
 
-            initPowerGraph(mDispWidth - 22 - widthShrink, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
+            if (mCfg->graph_ratio > 0)
+                initPowerGraph(mDispWidth - 22 - widthShrink, mLineYOffsets[graph_last_line] - mLineYOffsets[graph_first_line - 1] - 2);
 
             printText("Ahoy!", l_Ahoy, 0xff);
             printText("ahoydtu.de", l_Website, 0xff);
@@ -172,7 +173,7 @@ class DisplayMono128X64 : public DisplayMono {
                 printText(mFmtText, l_YieldTotal, 0xff);
             }
 
-            if (mDispSwitchState == DispSwitchState::GRAPH) {
+            if ((mCfg->graph_ratio > 0) && (mDispSwitchState == DispSwitchState::GRAPH)) {
                 // plot power graph
                 plotPowerGraph((mDispWidth - mPgWidth) / 2 + mPixelshift, mLineYOffsets[graph_last_line] - 1);
             }
