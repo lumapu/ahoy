@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -7,7 +7,6 @@
 #define __IAPP_H__
 
 #include "defines.h"
-#include "hm/hmSystem.h"
 #if defined(ETHERNET)
 #include "AsyncWebServer_ESP32_W5500.h"
 #else
@@ -46,6 +45,8 @@ class IApp {
         virtual uint32_t getTimezoneOffset() = 0;
         virtual void getSchedulerInfo(uint8_t *max) = 0;
         virtual void getSchedulerNames() = 0;
+
+        virtual void triggerTickSend() = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;

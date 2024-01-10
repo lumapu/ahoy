@@ -1,11 +1,12 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_SYSTEM_H__
 #define __HM_SYSTEM_H__
 
+#include "../appInterface.h"
 #include "hmInverter.h"
 #include <functional>
 
@@ -14,9 +15,10 @@ class HmSystem {
     public:
         HmSystem() {}
 
-        void setup(uint32_t *timestamp, cfgInst_t *config) {
-            mInverter[0].timestamp = timestamp;
+        void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
+            mInverter[0].timestamp     = timestamp;
             mInverter[0].generalConfig = config;
+            mInverter[0].app           = app;
         }
 
         void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {

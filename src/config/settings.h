@@ -39,9 +39,9 @@
 #define PROT_MASK_SETUP     0x0008
 #define PROT_MASK_UPDATE    0x0010
 #define PROT_MASK_SYSTEM    0x0020
-#define PROT_MASK_API       0x0040
-#define PROT_MASK_MQTT      0x0080
-#define PROT_MASK_HISTORY   0x0100
+#define PROT_MASK_HISTORY   0x0040
+#define PROT_MASK_API       0x0080
+#define PROT_MASK_MQTT      0x0100
 
 #define DEF_PROT_INDEX      0x0001
 #define DEF_PROT_LIVE       0x0000
@@ -49,9 +49,9 @@
 #define DEF_PROT_SETUP      0x0008
 #define DEF_PROT_UPDATE     0x0010
 #define DEF_PROT_SYSTEM     0x0020
+#define DEF_PROT_HISTORY    0x0000
 #define DEF_PROT_API        0x0000
 #define DEF_PROT_MQTT       0x0000
-#define DEF_PROT_HISTORY    0x0000
 
 
 typedef struct {

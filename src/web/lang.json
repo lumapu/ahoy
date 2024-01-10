@@ -136,7 +136,7 @@
                 {
                     "token": "REBOOT_AT_MIDNIGHT",
                     "en": "Reboot Ahoy at midnight",
-                    "de": "um Mitternacht neu starten"
+                    "de": "mitternachts neu starten"
                 },
                 {
                     "token": "DARK_MODE",
@@ -291,7 +291,7 @@
                 {
                     "token": "INV_RESET_MAX_MIDNIGHT",
                     "en": "Reset 'max' values at midnight",
-                    "de": "Maximalwerte bei Sonnenuntergang zur&uuml;cksetzen"
+                    "de": "Maximalwerte mitternachts zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_START_WITHOUT_TIME",
@@ -1096,7 +1096,7 @@
                 {
                     "token": "APC",
                     "en": "APC",
-                    "de": "Begr."
+                    "de": "Limit"
                 },
                 {
                     "token": "ALARMS",

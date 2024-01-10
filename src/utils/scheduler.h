@@ -121,7 +121,7 @@ namespace ah {
             uint16_t mTsMillis;
 
         private:
-            inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
+            uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
                 for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
                     if (!mTickerInUse[i]) {
                         mTickerInUse[i] = true;

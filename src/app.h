@@ -307,6 +307,10 @@ class app : public IApp, public ah::Scheduler {
         #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
+        void triggerTickSend() {
+            once(std::bind(&app::tickSend, this), 0, "tSend");
+        }
+
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
         void tickSun(void);

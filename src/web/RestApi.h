@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // 2024 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __WEB_API_H__
@@ -255,6 +255,7 @@ class RestApi {
             obj[F("ts_now")]      = mApp->getTimestamp();
             obj[F("version")]     = String(mApp->getVersion());
             obj[F("build")]       = String(AUTO_GIT_HASH);
+            obj[F("env")]         = String(ENV_NAME);
             obj[F("menu_prot")]   = mApp->getProtection(request);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);

@@ -254,7 +254,7 @@
                             <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{MQTT_PASSWORD}</div>
+                            <div class="col-12 col-sm-3 my-2">{#MQTT_PASSWORD}</div>
                             <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
                         </div>
                         <div class="row mb-3">
@@ -630,9 +630,9 @@
                 if(!obj["pwd_set"])
                     e.value = "";
                 var d = document.getElementById("prot_mask");
-                var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System"];
+                var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System", "{#NAV_HISTORY}"];
                 var el = [];
-                for(var i = 0; i < 6; i++) {
+                for(var i = 0; i < 7; i++) {
                     var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }

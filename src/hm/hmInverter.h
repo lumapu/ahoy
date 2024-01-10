@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -14,6 +14,7 @@
 #define MAX_GRID_LENGTH     150
 
 #include "hmDefines.h"
+#include "../appInterface.h"
 #include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
 #include <memory>
@@ -148,8 +149,9 @@ class Inverter {
         bool          commEnabled;       // 'pause night communication' sets this field to false
         uint32_t      tsMaxAcPower;      // holds the timestamp when the MaxAC power was seen
 
-        static uint32_t *timestamp;      // system timestamp
+        static uint32_t  *timestamp;     // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
+        static IApp      *app;           // pointer to app interface
 
     public:
 
@@ -286,6 +288,7 @@ class Inverter {
             if(isConnected) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
+                app->triggerTickSend();
             }
             return isConnected;
         }
