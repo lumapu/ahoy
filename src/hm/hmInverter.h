@@ -961,8 +961,10 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
                 acMaxPower = iv->getValue(i, rec);
             }
         }
-        if(acPower > acMaxPower)
+        if(acPower > acMaxPower) {
+            iv->tsMaxAcPower = *iv->timestamp;
             return acPower;
+        }
     }
     return acMaxPower;
 }
@@ -981,10 +983,8 @@ static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {
                 dcMaxPower = iv->getValue(i, rec);
             }
         }
-        if(dcPower > dcMaxPower) {
-            iv->tsMaxAcPower = *iv->timestamp;
+        if(dcPower > dcMaxPower)
             return dcPower;
-        }
     }
     return dcMaxPower;
 }

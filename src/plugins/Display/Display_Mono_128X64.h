@@ -193,13 +193,13 @@ class DisplayMono128X64 : public DisplayMono {
             mDisplay->setFont(u8g2_font_ncenB10_symbols10_ahoy);
             char sym[]=" ";
             sym[0] = mDisplayData->RadioSymbol?'A':'E';                 // NRF
-            mDisplay->drawStr(widthShrink / 2 + mPixelshift, mLineYOffsets[l_RSSI], sym);
+            mDisplay->drawStr((widthShrink / 2) + mPixelshift, mLineYOffsets[l_RSSI], sym);
 
             if (mDisplayData->MQTTSymbol)
                 sym[0] = 'J'; // MQTT
             else
                 sym[0] = mDisplayData->WifiSymbol?'B':'F';              // Wifi
-            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - widthShrink / 2 + mPixelshift, mLineYOffsets[l_RSSI], sym);
+            mDisplay->drawStr(mDispWidth - mDisplay->getStrWidth(sym) - (widthShrink / 2) + mPixelshift, mLineYOffsets[l_RSSI], sym);
             mDisplay->sendBuffer();
 
             mExtra++;
@@ -241,8 +241,8 @@ class DisplayMono128X64 : public DisplayMono {
                 mLineYOffsets[i] = yOff;
                 dsc = mDisplay->getDescent();
                 yOff -= dsc;
-                if (l_Time == i)   // prevent time and status line to touch
-                    yOff++;     // -> one pixels space
+                if (l_Time == i) // prevent time and status line to touch
+                    yOff++;      // -> one pixels space
                 i++;
             } while(l_MAX_LINES>i);
         }

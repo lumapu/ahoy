@@ -666,7 +666,7 @@ div.hr {
 }
 
 
-.tooltip{
+.tooltip:hover {
     position: relative;
 }
 .tooltip:hover:after {

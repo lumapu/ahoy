@@ -434,6 +434,16 @@
                     "de": "Zeile 1-4"
                 },
                 {
+                    "token": "BTN_SAVE",
+                    "en": "save",
+                    "de": "speichern"
+                },
+                {
+                    "token": "BTN_SEND",
+                    "en": "send",
+                    "de": "senden"
+                },
+                {
                     "token": "BTN_REBOOT_SUCCESSFUL_SAVE",
                     "en": "Reboot device after successful save",
                     "de": "Nach erfolgreichem Speichern AhoyDTU neu starten"
@@ -1117,6 +1127,11 @@
                     "token": "DC_VOLTAGE",
                     "en": "DC Voltage",
                     "de": "DC Spannung"
+                },
+                {
+                    "token": "AC_VOLTAGE",
+                    "en": "AC Voltage",
+                    "de": "Netzspannung"
                 },
                 {
                     "token": "AC_CURRENT",

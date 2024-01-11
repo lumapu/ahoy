@@ -44,19 +44,23 @@
             function parseHistory(obj, namePrefix, execOnce) {
                 mRefresh = obj.refresh
                 var data = Object.assign({}, obj.value)
-                var numDataPts = data.length
+                numDataPts = Object.keys(data).length
 
                 if (true == execOnce) {
-                    let s = svg(null, (numDataPts + 2) * 2, mChartHeight, "chart");
+                    let s = document.createElementNS(svgns, "svg");
+                    s.setAttribute("class", "chart");
+                    s.setAttribute("width", (numDataPts + 2) * 2);
+                    s.setAttribute("height", mChartHeight);
                     s.setAttribute("role", "img");
+
                     let g = document.createElementNS(svgns, "g");
                     s.appendChild(g);
                     for (var i = 0; i < numDataPts; i++) {
                         val = data[i];
                         let rect = document.createElementNS(svgns, "rect");
                         rect.setAttribute("id", namePrefix+"Rect" + i);
-                        rect.setAttribute("x", String(i * 2) + "");
-                        rect.setAttribute("width", String(2) + "");
+                        rect.setAttribute("x", i * 2);
+                        rect.setAttribute("width", 2);
                         g.appendChild(rect);
                     }
                     document.getElementById(namePrefix+"Chart").appendChild(s);

@@ -141,7 +141,7 @@ class PubMqttIvData {
 
                     // calculate total values for RealTimeRunData_Debug
                     if (CH0 == rec->assign[mPos].ch) {
-                        if(mIv->getStatus() != InverterStatus::OFF) {
+                        if(mIv->getStatus() > InverterStatus::OFF) {
                             if(mIv->config->add2Total) {
                                 mTotalFound = true;
                                 switch (rec->assign[mPos].fieldId) {

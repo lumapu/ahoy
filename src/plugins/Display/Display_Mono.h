@@ -166,7 +166,10 @@ class DisplayMono {
         }
 
         uint8_t sss2pgpos(uint seconds_since_start) {
-            return(seconds_since_start * (mPgWidth - 1) / (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime));
+            uint32_t diff = (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime);
+            if(diff)
+                return (seconds_since_start * (mPgWidth - 1) / diff);
+            return 0;
         }
 
         void calcPowerGraphValues() {
@@ -175,6 +178,8 @@ class DisplayMono {
             mPgTimeOfDay = (mDisplayData->utcTs > mDisplayData->pGraphStartTime) ? mDisplayData->utcTs - mDisplayData->pGraphStartTime : 0; // current time of day with respect to current sunrise time
             if (oldTimeOfDay > mPgTimeOfDay) // new day -> reset old data
                 resetPowerGraph();
+            if(0 == mPgPeriod)
+                mPgPeriod = 1;
             mPgLastPos = std::min((uint8_t) (mPgTimeOfDay * (mPgWidth - 1) / mPgPeriod), (uint8_t) (mPgWidth - 1));  // current datapoint based on currenct time of day
         }
 
@@ -190,15 +195,13 @@ class DisplayMono {
         uint8_t getPowerGraphXpos(uint8_t p) {
             if ((p <= mPgLastPos) && (mPgLastPos > 0))
                 return((p * (mPgWidth - 1)) / mPgLastPos);  // scaling of x-axis
-            else
-                return(0);
+            return 0;
         }
 
         uint8_t getPowerGraphYpos(uint8_t p) {
-            if (p < mPgWidth)
+            if ((p < mPgWidth) && (mPgMaxPwr > 0))
                 return((mPgData[p] * (uint32_t) mPgHeight / mPgMaxPwr)); // scaling of data to graph height
-            else
-                return(0);
+            return 0;
         }
 
         void plotPowerGraph(uint8_t xoff, uint8_t yoff) {

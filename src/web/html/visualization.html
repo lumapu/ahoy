@@ -138,7 +138,7 @@
                             ml("div", {class: "row mt-2"},[
                                 numMid(obj.ch[0][11], "W", "{#MAX_AC_POWER}", {class: "fs-6 tooltip", data: maxAcPwr}),
                                 numMid(obj.ch[0][8], "W", "{#DC_POWER}"),
-                                numMid(obj.ch[0][0], "V", "{#DC_VOLTAGE}"),
+                                numMid(obj.ch[0][0], "V", "{#AC_VOLTAGE}"),
                                 numMid(obj.ch[0][1], "A", "{#AC_CURRENT}"),
                                 numMid(obj.ch[0][3], "Hz", "{#FREQUENCY}"),
                                 numMid(obj.ch[0][9], "%", "{#EFFICIENCY}"),
@@ -362,7 +362,7 @@
                     var v = getGridValue(glob);
                     if(null === g) {
                         if(0 == obj.grid.length) {
-                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#PROFILE_NOT_READ}?"))))
+                            content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#PROFILE_NOT_READ}"))))
                         } else {
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "{#UNKNOWN_PROFILE}"))))
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#OPEN_ISSUE}."))))

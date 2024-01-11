@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ class DisplayMono128X32 : public DisplayMono {
         void printText(const char *text, uint8_t line) {
             setFont(line);
 
-            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange / 2 + mPixelshift;
+            uint8_t dispX = mLineXOffsets[line] + (pixelShiftRange / 2) + mPixelshift;
 
             if (isTwoRowLine(line)) {
                 String stringText = String(text);

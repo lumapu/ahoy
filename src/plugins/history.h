@@ -28,7 +28,7 @@ class HistoryData {
             uint16_t dispIdx; // index for 1st Element to display from WattArr
             bool wrapped;
             // ring buffer for watt history
-            std::array<uint16_t, HISTORY_DATA_ARR_LENGTH + 1> data;
+            std::array<uint16_t, (HISTORY_DATA_ARR_LENGTH + 1)> data;
 
             void reset() {
                 loopCnt = 0;
@@ -78,13 +78,15 @@ class HistoryData {
                     mMaximumDay = roundf(maxPwr);
             }
 
-            if (*mTs > mApp->getSunset()) {
-                if ((!mDayStored) && (yldDay > 0)) {
-                    addValue(&mYieldDay, roundf(yldDay));
-                    mDayStored = true;
-                }
-            } else if (*mTs > mApp->getSunrise())
-                mDayStored = false;
+            if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
+                if (*mTs > mApp->getSunset()) {
+                    if ((!mDayStored) && (yldDay > 0)) {
+                        addValue(&mYieldDay, roundf(yldDay));
+                        mDayStored = true;
+                    }
+                } else if (*mTs > mApp->getSunrise())
+                    mDayStored = false;
+            }
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {

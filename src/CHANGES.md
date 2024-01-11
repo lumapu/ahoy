@@ -1,5 +1,14 @@
 # Development Changes
 
+## 0.8.52 - 2024-01-11
+* possible fix of 'division by zero' #1345
+* fix lang #1348 #1346
+* fix timestamp `max AC power` #1324
+* fix stylesheet overlay `max AC power` #1324
+* fix download link #1340
+* fix history graph
+* try to fix #1331
+
 ## 0.8.51 - 2024-01-10
 * fix translation #1346
 * further improve sending active power control command faster #1332

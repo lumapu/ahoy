@@ -96,7 +96,7 @@ class DisplayMono64X48 : public DisplayMono {
         }
 
         void printText(const char *text, uint8_t line) {
-            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange/2 + mPixelshift;
+            uint8_t dispX = mLineXOffsets[line] + pixelShiftRange / 2 + mPixelshift;
 
             setFont(line);
             mDisplay->drawStr(dispX, mLineYOffsets[line], text);
