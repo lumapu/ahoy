@@ -22,11 +22,11 @@ template<class HMSYSTEM>
 class PubMqttIvData {
     public:
         void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
-            mSys          = sys;
-            mUtcTimestamp = utcTs;
-            mSendList     = sendList;
-            mState        = IDLE;
-            mZeroValues   = false;
+            mSys           = sys;
+            mUtcTimestamp  = utcTs;
+            mSendList      = sendList;
+            mState         = IDLE;
+            mYldTotalStore = 0;
 
             mRTRDataHasBeenSent = false;
 
@@ -42,11 +42,14 @@ class PubMqttIvData {
             yield();
         }
 
-        bool start(bool zeroValues = false) {
+        void resetYieldDay() {
+            mYldTotalStore = 0;
+        }
+
+        bool start() {
             if(IDLE != mState)
                 return false;
 
-            mZeroValues = zeroValues;
             mRTRDataHasBeenSent = false;
             mState = START;
             return true;
@@ -117,10 +120,14 @@ class PubMqttIvData {
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
             } else if(mSendTotals && mTotalFound) {
+                if(mYldTotalStore > mTotal[2])
+                    mSendTotalYd = false; // don't send yield total if last value was greater
+                else
+                    mYldTotalStore = mTotal[2];
+
                 mState = SEND_TOTALS;
             } else {
                 mSendList->pop();
-                mZeroValues = false;
                 mState = START;
             }
         }
@@ -141,7 +148,7 @@ class PubMqttIvData {
 
                     // calculate total values for RealTimeRunData_Debug
                     if (CH0 == rec->assign[mPos].ch) {
-                        if(mIv->getStatus() > InverterStatus::OFF) {
+                        if(mIv->getStatus() != InverterStatus::OFF) {
                             if(mIv->config->add2Total) {
                                 mTotalFound = true;
                                 switch (rec->assign[mPos].fieldId) {
@@ -152,11 +159,7 @@ class PubMqttIvData {
                                         mTotal[1] += mIv->getValue(mPos, rec);
                                         break;
                                     case FLD_YD: {
-                                        float val = mIv->getValue(mPos, rec);
-                                        if(0 == val) // inverter restarted during day
-                                            mSendTotalYd = false;
-                                        else
-                                            mTotal[2] += val;
+                                        mTotal[2] += mIv->getValue(mPos, rec);
                                         break;
                                     }
                                     case FLD_PDC:
@@ -236,7 +239,6 @@ class PubMqttIvData {
                 mPos++;
             } else {
                 mSendList->pop();
-                mZeroValues = false;
                 mPos = 0;
                 mState = IDLE;
             }
@@ -251,7 +253,7 @@ class PubMqttIvData {
         uint8_t mCmd;
         uint8_t mLastIvId;
         bool mSendTotals, mTotalFound, mAllTotalFound, mSendTotalYd;
-        float mTotal[4];
+        float mTotal[4], mYldTotalStore;
 
         Inverter<> *mIv, *mIvSend;
         uint8_t mPos;
@@ -259,7 +261,6 @@ class PubMqttIvData {
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[140];
-        bool mZeroValues; // makes sure that yield day is sent even if no inverter is online
 
         std::queue<sendListCmdIv> *mSendList;
 };

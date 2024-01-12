@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.53 - 2024-01-12
+* fix history graph
+* fix MqTT yield day #1331
+
 ## 0.8.52 - 2024-01-11
 * possible fix of 'division by zero' #1345
 * fix lang #1348 #1346

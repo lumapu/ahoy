@@ -314,6 +314,7 @@ class app : public IApp, public ah::Scheduler {
         void tickCalcSunrise(void);
         void tickIVCommunication(void);
         void tickSun(void);
+        void tickSunrise(void);
         void tickComm(void);
         void tickSend(void);
         void tickMinute(void);

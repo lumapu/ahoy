@@ -152,7 +152,7 @@ void app::regularTickers(void) {
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
 
-    everySec(std::bind(&HistoryType::tickerSecond, mHistory), "hist");
+    everySec(std::bind(&HistoryType::tickerSecond, &mHistory), "hist");
 }
 
 #if defined(ETHERNET)
@@ -241,7 +241,7 @@ void app::tickCalcSunrise(void) {
     if (mMqttEnabled) {
         tickSun();
         nxtTrig = mSunrise + mConfig->sun.offsetSecMorning + 1;         // one second safety to trigger correctly
-        onceAt(std::bind(&app::tickSun, this), nxtTrig, "mqSr"); // trigger on sunrise to update 'dis_night_comm'
+        onceAt(std::bind(&app::tickSunrise, this), nxtTrig, "mqSr");    // trigger on sunrise to update 'dis_night_comm'
     }
 }
 
@@ -288,6 +288,13 @@ void app::tickIVCommunication(void) {
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening))
+        once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
+}
+
+//-----------------------------------------------------------------------------
+void app::tickSunrise(void) {
+    // only used and enabled by MQTT (see setup())
+    if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening, true))
         once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
 }
 
@@ -423,11 +430,8 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
         changed = true;
     }
 
-    if(changed) {
-        if(mMqttEnabled && !skipYieldDay)
-            mMqtt.setZeroValuesEnable();
+    if(changed)
         payloadEventListener(RealTimeRunData_Debug, NULL);
-    }
 }
 
 //-----------------------------------------------------------------------------
