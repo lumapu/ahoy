@@ -93,6 +93,16 @@
         #define DEF_NRF_SCLK_PIN        18
     #endif
 
+#if defined(ETHERNET)
+    #ifndef DEF_CMT_SPI_HOST
+        #define DEF_CMT_SPI_HOST        SPI3_HOST
+    #endif
+#else
+    #ifndef DEF_CMT_SPI_HOST
+        #define DEF_CMT_SPI_HOST        SPI2_HOST
+    #endif
+#endif /* defined(ETHERNET) */
+
     #ifndef DEF_CMT_SCLK
         #define DEF_CMT_SCLK            12
     #endif

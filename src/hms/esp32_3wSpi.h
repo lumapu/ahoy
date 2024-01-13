@@ -21,7 +21,7 @@
 // for ESP32 this is the so-called HSPI
 // for ESP32-S2/S3/C3 this nomenclature does not really exist anymore,
 // it is simply the first externally usable hardware SPI master controller
-#define SPI_CMT SPI2_HOST
+//#define SPI_CMT SPI2_HOST
 
 class esp32_3wSpi {
     public:
@@ -54,8 +54,8 @@ class esp32_3wSpi {
                 .post_cb = NULL,
             };
 
-            ESP_ERROR_CHECK(spi_bus_initialize(SPI_CMT, &buscfg, SPI_DMA_DISABLED));
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg, &spi_reg));
+            ESP_ERROR_CHECK(spi_bus_initialize(DEF_CMT_SPI_HOST, &buscfg, SPI_DMA_DISABLED));
+            ESP_ERROR_CHECK(spi_bus_add_device(DEF_CMT_SPI_HOST, &devcfg, &spi_reg));
 
             // FiFo
             spi_device_interface_config_t devcfg2 = {
@@ -72,9 +72,9 @@ class esp32_3wSpi {
                 .pre_cb = NULL,
                 .post_cb = NULL,
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg2, &spi_fifo));
+            ESP_ERROR_CHECK(spi_bus_add_device(DEF_CMT_SPI_HOST, &devcfg2, &spi_fifo));
 
-            esp_rom_gpio_connect_out_signal(pinSdio, spi_periph_signal[SPI_CMT].spid_out, true, false);
+            esp_rom_gpio_connect_out_signal(pinSdio, spi_periph_signal[DEF_CMT_SPI_HOST].spid_out, true, false);
             delay(100);
 
             //pinMode(pinGpio3, INPUT);
