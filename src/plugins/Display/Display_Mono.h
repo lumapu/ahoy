@@ -18,6 +18,7 @@
 #endif
 #include "../../utils/helper.h"
 #include "Display_data.h"
+#include "config/settings.h"
 #include "../../utils/dbg.h"
 #include "../../utils/timemonitor.h"
 
@@ -184,7 +185,7 @@ class DisplayMono {
         }
 
         void addPowerGraphEntry(float val) {
-            if (mDisplayData->utcTs > 0) {  // precondition: utc time available
+            if ((mPgData != nullptr) && (mDisplayData->utcTs > 0)) {  // precondition: power graph initialized and utc time available
                 calcPowerGraphValues();
                 //mPgData[mPgLastPos] = std::max(mPgData[mPgLastPos], (uint8_t) (val * 255.0 / mPgMaxAvailPower));  // normalizing of data to 0-255
                 mPgData[mPgLastPos] = std::max(mPgData[mPgLastPos], val);
@@ -205,12 +206,15 @@ class DisplayMono {
         }
 
         void plotPowerGraph(uint8_t xoff, uint8_t yoff) {
+            if (mPgData == nullptr)  // power graph not initialized
+                return;
+
             // draw axes
             mDisplay->drawLine(xoff, yoff, xoff,            yoff - mPgHeight);  // vertical axis
             mDisplay->drawLine(xoff, yoff, xoff + mPgWidth, yoff);              // horizontal axis
 
             // do not draw as long as time is not set correctly and no data was received
-            if ((mDisplayData->pGraphStartTime == 0) || (mDisplayData->pGraphEndTime == 0) || (mDisplayData->utcTs < 1) || (mPgMaxPwr < 1) || (mPgLastPos < 1))
+            if ((mDisplayData->pGraphStartTime == 0) || (mDisplayData->pGraphEndTime == 0) || (mDisplayData->utcTs == 0) || (mPgMaxPwr < 1) || (mPgLastPos == 0))
                 return;
 
             // draw X scale
