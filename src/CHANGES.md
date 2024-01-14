@@ -4,6 +4,7 @@
 * merge PR: fix reboot problem with deactivated power graph #1360
 * changed scope of variables and member functions inside display classes
 * removed automatically "minimal" builds
+* fix include of "settings.h" (was already done in #1360)
 
 ## 0.8.54 - 2024-01-13
 * added minimal version (without: MqTT, Display, History), WebUI is not changed!

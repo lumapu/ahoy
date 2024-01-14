@@ -20,6 +20,7 @@
 #include "Display_data.h"
 #include "../../utils/dbg.h"
 #include "../../utils/timemonitor.h"
+#include "../../config/settings.h"
 
 class DisplayMono {
     public:
