@@ -465,42 +465,42 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
-    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d%s", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
-    "-"
-#ifdef ENABLE_PROMETHEUS_EP
-    "P"
-#endif
+    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    snprintf(mVersionModules, sizeof(mVersionModules), "%s",
+    #ifdef ENABLE_PROMETHEUS_EP
+        "P"
+    #endif
 
-#ifdef ENABLE_MQTT
-    "M"
-#endif
+    #ifdef ENABLE_MQTT
+        "M"
+    #endif
 
-#ifdef PLUGIN_DISPLAY
-    "D"
-#endif
+    #ifdef PLUGIN_DISPLAY
+        "D"
+    #endif
 
-#ifdef ENABLE_HISTORY
-    "H"
-#endif
+    #ifdef ENABLE_HISTORY
+        "H"
+    #endif
 
-#ifdef AP_ONLY
-    "A"
-#endif
+    #ifdef AP_ONLY
+        "A"
+    #endif
 
-#ifdef ENABLE_SYSLOG
-    "Y"
-#endif
+    #ifdef ENABLE_SYSLOG
+        "Y"
+    #endif
 
-#ifdef ENABLE_SIMULATOR
-    "S"
-#endif
+    #ifdef ENABLE_SIMULATOR
+        "S"
+    #endif
 
-    "-"
-#ifdef LANG_DE
-    "de"
-#else
-    "en"
-#endif
+        "-"
+    #ifdef LANG_DE
+        "de"
+    #else
+        "en"
+    #endif
     );
 
 #ifdef AP_ONLY

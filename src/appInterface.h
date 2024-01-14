@@ -27,6 +27,7 @@ class IApp {
         virtual bool getShouldReboot() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
+        virtual const char *getVersionModules() = 0;
 
         #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;

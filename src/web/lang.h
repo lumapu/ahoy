@@ -72,4 +72,16 @@
     #define INV_NOT_FOUND "inverter not found!"
 #endif
 
+#ifdef LANG_DE
+    #define FACTORY_RESET "Ahoy Factory Reset"
+#else /*LANG_EN*/
+    #define FACTORY_RESET "Ahoy auf Werkseinstellungen zurücksetzen"
+#endif
+
+#ifdef LANG_DE
+    #define BTN_REBOOT "Reboot"
+#else /*LANG_EN*/
+    #define BTN_REBOOT "Ahoy neustarten"
+#endif
+
 #endif /*__LANG_H__*/

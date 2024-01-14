@@ -5,6 +5,9 @@
 * changed scope of variables and member functions inside display classes
 * removed automatically "minimal" builds
 * fix include of "settings.h" (was already done in #1360)
+* merge PR: Enhancement: Add info about compiled modules to version string #1357
+* add info about installed binary to `/update` #1353
+* fix lang in `/system` #1346
 
 ## 0.8.54 - 2024-01-13
 * added minimal version (without: MqTT, Display, History), WebUI is not changed!

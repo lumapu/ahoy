@@ -51,7 +51,7 @@
                 {
                     "token": "WELCOME",
                     "en": "Welcome to AhoyDTU",
-                    "de": "Willkommen zu AhoyDTU"
+                    "de": "Willkommen bei AhoyDTU"
                 },
                 {
                     "token": "NETWORK_SETUP",
@@ -1042,6 +1042,11 @@
                     "token": "DOWNLOADS",
                     "en": "Download latest Release and Development versions (without login)",
                     "de": "Lade die letzte Releaseversion oder Entwicklerversion herunter (ohne Login)"
+                },
+                {
+                    "token": "INSTALLED_VERSION",
+                    "en": "installed version (original filename)",
+                    "de": "aktuell installierte Version"
                 },
                 {
                     "token": "UPDATE_STARTED",

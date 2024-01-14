@@ -23,18 +23,33 @@ def readVersion(path):
 
     today = date.today()
     search = ["_MAJOR", "_MINOR", "_PATCH"]
-    version = today.strftime("%y%m%d") + "_ahoy_"
     ver = ""
     for line in lines:
         if(line.find("VERSION_") != -1):
             for s in search:
                 p = line.find(s)
                 if(p != -1):
-                    version += line[p+13:].rstrip() + "."
                     ver += line[p+13:].rstrip() + "."
     return ver[:-1]
 
-def htmlParts(file, header, nav, footer, version, lang):
+def readVersionFull(path):
+    f = open(path, "r")
+    lines = f.readlines()
+    f.close()
+
+    today = date.today()
+    search = ["_MAJOR", "_MINOR", "_PATCH"]
+    version = today.strftime("%y%m%d") + "_ahoy_"
+    for line in lines:
+        if(line.find("VERSION_") != -1):
+            for s in search:
+                p = line.find(s)
+                if(p != -1):
+                    version += line[p+13:].rstrip() + "."
+    version = version[:-1] + "_" + get_git_sha()
+    return version
+
+def htmlParts(file, header, nav, footer, versionPath, lang):
     p = "";
     f = open(file, "r")
     lines = f.readlines()
@@ -59,8 +74,10 @@ def htmlParts(file, header, nav, footer, version, lang):
         p += line
 
     #placeholders
+    version = readVersion(versionPath);
     link = '<a target="_blank" href="https://github.com/lumapu/ahoy/commits/' + get_git_sha() + '">GIT SHA: ' + get_git_sha() + ' :: ' + version + '</a>'
     p = p.replace("{#VERSION}", version)
+    p = p.replace("{#VERSION_FULL}", readVersionFull(versionPath))
     p = p.replace("{#VERSION_GIT}", link)
 
     # remove if - endif ESP32
@@ -120,7 +137,7 @@ def translate(file, data, lang="de"):
     return data
 
 
-def convert2Header(inFile, version, lang):
+def convert2Header(inFile, versionPath, lang):
     fileType      = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
@@ -140,7 +157,7 @@ def convert2Header(inFile, version, lang):
         f.close()
     else:
         if fileType == "html":
-            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", version, lang)
+            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", versionPath, lang)
         else:
             f = open(inFile, "r")
             data = f.read()
@@ -193,7 +210,6 @@ for files in types:
 Path("h").mkdir(exist_ok=True)
 Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with all replacements
 shutil.copyfile("style.css", "tmp/style.css")
-version = readVersion("../../defines.h")
 
 # get language from environment
 lang = "en"
@@ -202,4 +218,4 @@ if env['PIOENV'][-3:] == "-de":
 
 # go throw the array
 for val in files_grabbed:
-    convert2Header(val, version, lang)
+    convert2Header(val, "../../defines.h", lang)

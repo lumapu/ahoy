@@ -188,6 +188,10 @@ class app : public IApp, public ah::Scheduler {
             return mVersion;
         }
 
+        const char *getVersionModules() {
+            return mVersionModules;
+        }
+
         uint32_t getSunrise() {
             return mSunrise;
         }
@@ -386,7 +390,8 @@ class app : public IApp, public ah::Scheduler {
         CmtRadio<> mCmtRadio;
         #endif
 
-        char mVersion[23];
+        char mVersion[12];
+        char mVersionModules[12];
         settings mSettings;
         settings_t *mConfig;
         bool mSavePending;

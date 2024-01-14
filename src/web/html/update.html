@@ -10,6 +10,7 @@
             <div id="content">
                 <fieldset>
                     <legend class="des">{#SELECT_FILE} (*.bin)</legend>
+                    <p>{#INSTALLED_VERSION}: <span id="version" style="background-color: var(--input-bg); padding: 7px;"></span></p>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
                         <input type="file" name="update">
                         <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
@@ -26,6 +27,7 @@
                 parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
+                document.getElementById("version").innerHTML = "{#VERSION_FULL}_" + obj.env + ".bin"
             }
 
             function hide() {
