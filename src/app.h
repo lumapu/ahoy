@@ -17,14 +17,18 @@
 #if defined(ESP32)
 #include "hms/hmsRadio.h"
 #endif
+#if defined(ENABLE_MQTT)
 #include "publisher/pubMqtt.h"
+#endif /*ENABLE_MQTT*/
 #include "publisher/pubSerial.h"
 #include "utils/crc.h"
 #include "utils/dbg.h"
 #include "utils/scheduler.h"
 #include "utils/syslog.h"
 #include "web/RestApi.h"
+#if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
+#endif /*ENABLE_HISTORY*/
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
@@ -33,6 +37,10 @@
     #include "wifi/ahoywifi.h"
     #include "utils/improv.h"
 #endif /* defined(ETHERNET) */
+
+#if defined(ENABLE_SIMULATOR)
+    #include "hm/simulator.h"
+#endif /*ENABLE_SIMULATOR*/
 
 #include <RF24.h> // position is relevant since version 1.4.7 of this library
 
@@ -46,9 +54,16 @@
 typedef HmSystem<MAX_NUM_INVERTERS> HmSystemType;
 typedef Web<HmSystemType> WebType;
 typedef RestApi<HmSystemType> RestApiType;
+#if defined(ENABLE_MQTT)
 typedef PubMqtt<HmSystemType> PubMqttType;
+#endif /*ENABLE_MQTT*/
 typedef PubSerial<HmSystemType> PubSerialType;
+#if defined(ENABLE_HISTORY)
 typedef HistoryData<HmSystemType> HistoryType;
+#endif /*ENABLE_HISTORY*/
+#if defined (ENABLE_SIMULATOR)
+typedef Simulator<HmSystemType> SimulatorType;
+#endif /*ENABLE_SIMULATOR*/
 
 // PLUGINS
 #if defined(PLUGIN_DISPLAY)
@@ -190,19 +205,33 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void setMqttDiscoveryFlag() {
+            #if defined(ENABLE_MQTT)
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1, "disCf");
+            #endif
         }
 
         bool getMqttIsConnected() {
-            return mMqtt.isConnected();
+            #if defined(ENABLE_MQTT)
+                return mMqtt.isConnected();
+            #else
+                return false;
+            #endif
         }
 
         uint32_t getMqttTxCnt() {
-            return mMqtt.getTxCnt();
+            #if defined(ENABLE_MQTT)
+                return mMqtt.getTxCnt();
+            #else
+                return 0;
+            #endif
         }
 
         uint32_t getMqttRxCnt() {
-            return mMqtt.getRxCnt();
+            #if defined(ENABLE_MQTT)
+                return mMqtt.getRxCnt();
+            #else
+                return 0;
+            #endif
         }
 
         bool getProtection(AsyncWebServerRequest *request) {
@@ -253,11 +282,19 @@ class app : public IApp, public ah::Scheduler {
         }
 
         uint16_t getHistoryValue(uint8_t type, uint16_t i) {
-            return mHistory.valueAt((HistoryStorageType)type, i);
+            #if defined(ENABLE_HISTORY)
+                return mHistory.valueAt((HistoryStorageType)type, i);
+            #else
+                return 0;
+            #endif
         }
 
         uint16_t getHistoryMaxDay() {
-            return mHistory.getMaximumDay();
+            #if defined(ENABLE_HISTORY)
+                return mHistory.getMaximumDay();
+            #else
+                return 0;
+            #endif
         }
 
     private:
@@ -269,8 +306,10 @@ class app : public IApp, public ah::Scheduler {
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
             #if !defined(AP_ONLY)
-            if (mMqttEnabled)
-                mMqtt.payloadEventListener(cmd, iv);
+            #if defined(ENABLE_MQTT)
+                if (mMqttEnabled)
+                    mMqtt.payloadEventListener(cmd, iv);
+            #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
             if(mConfig->plugin.display.type != 0)
@@ -359,7 +398,9 @@ class app : public IApp, public ah::Scheduler {
         bool mNetworkConnected;
 
         // mqtt
+        #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
+        #endif /*ENABLE_MQTT*/
         bool mMqttReconnect;
         bool mMqttEnabled;
 
@@ -372,7 +413,13 @@ class app : public IApp, public ah::Scheduler {
         DisplayType mDisplay;
         DisplayData mDispData;
         #endif
+        #if defined(ENABLE_HISTORY)
         HistoryType mHistory;
+        #endif /*ENABLE_HISTORY*/
+
+        #if defined(ENABLE_SIMULATOR)
+        SimulatorType mSimulator;
+        #endif /*ENABLE_SIMULATOR*/
 };
 
 #endif /*__APP_H__*/

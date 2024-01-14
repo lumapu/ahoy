@@ -265,8 +265,8 @@
                 },
                 {
                     "token": "INTERVAL",
-                    "en": "Interval [s]",
-                    "de": "Intervall [s]"
+                    "en": "Interval",
+                    "de": "Intervall"
                 },
                 {
                     "token": "INV_GAP",

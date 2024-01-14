@@ -52,7 +52,9 @@ void app::setup() {
 
     mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->inst.gapMs);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
+    #if defined(ENABLE_MQTT)
     mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
+    #endif
     mSys.setup(&mTimestamp, &mConfig->inst, this);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         initInverter(i);
@@ -65,12 +67,14 @@ void app::setup() {
 
     // when WiFi is in client mode, then enable mqtt broker
     #if !defined(AP_ONLY)
+    #if defined(ENABLE_MQTT)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
         mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
+    #endif
     #endif
     setupLed();
 
@@ -92,13 +96,22 @@ void app::setup() {
         #endif
     #endif
 
+    #if defined(ENABLE_HISTORY)
     mHistory.setup(this, &mSys, mConfig, &mTimestamp);
+    #endif /*ENABLE_HISTORY*/
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
     #if !defined(ETHERNET)
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
     #endif
+
+    #if defined(ENABLE_SIMULATOR)
+    mSimulator.setup(&mSys, &mTimestamp, 0);
+    mSimulator.addPayloadListener([this](uint8_t cmd, Inverter<> *iv) {
+        payloadEventListener(cmd, iv);
+    });
+    #endif /*ENABLE_SIMULATOR*/
 
     regularTickers();
 }
@@ -115,8 +128,10 @@ void app::loop(void) {
     ah::Scheduler::loop();
     mCommunication.loop();
 
+    #if defined(ENABLE_MQTT)
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
+    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -152,7 +167,13 @@ void app::regularTickers(void) {
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
     #endif
 
+    #if defined(ENABLE_HISTORY)
     everySec(std::bind(&HistoryType::tickerSecond, &mHistory), "hist");
+    #endif /*ENABLE_HISTORY*/
+
+    #if defined(ENABLE_SIMULATOR)
+    every(std::bind(&SimulatorType::tick, &mSimulator), 5, "sim");
+    #endif /*ENABLE_SIMULATOR*/
 }
 
 #if defined(ETHERNET)
@@ -168,11 +189,13 @@ void app::onNtpUpdate(bool gotTime) {
 
 //-----------------------------------------------------------------------------
 void app::updateNtp(void) {
+    #if defined(ENABLE_MQTT)
     if (mMqttReconnect && mMqttEnabled) {
         mMqtt.tickerSecond();
         everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
         everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
     }
+    #endif /*ENABLE_MQTT*/
 
     // only install schedulers once even if NTP wasn't successful in first loop
     if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
@@ -287,15 +310,19 @@ void app::tickIVCommunication(void) {
 //-----------------------------------------------------------------------------
 void app::tickSun(void) {
     // only used and enabled by MQTT (see setup())
+    #if defined(ENABLE_MQTT)
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening))
         once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
+    #endif
 }
 
 //-----------------------------------------------------------------------------
 void app::tickSunrise(void) {
     // only used and enabled by MQTT (see setup())
+    #if defined(ENABLE_MQTT)
     if (!mMqtt.tickerSun(mSunrise, mSunset, mConfig->sun.offsetSecMorning, mConfig->sun.offsetSecEvening, true))
         once(std::bind(&app::tickSun, this), 1, "mqSun");  // MQTT not connected, retry
+    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -340,8 +367,10 @@ void app::tickMidnight(void) {
     if (mConfig->inst.rstYieldMidNight) {
         zeroIvValues(!CHECK_AVAIL, !SKIP_YIELD_DAY);
 
+        #if defined(ENABLE_MQTT)
         if (mMqttEnabled)
             mMqtt.tickerMidnight();
+        #endif
     }
 }
 

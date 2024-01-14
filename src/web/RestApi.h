@@ -202,8 +202,6 @@ class RestApi {
             ep[F("setup")]            = url + F("setup");
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
-            ep[F("powerHistory")]     = url + F("powerHistory");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
         }
 
 
@@ -791,6 +789,7 @@ class RestApi {
 
         void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ENABLE_HISTORY)
             obj[F("refresh")] = mConfig->inst.sendInterval;
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
@@ -801,10 +800,12 @@ class RestApi {
             }
             obj[F("max")] = max;
             obj[F("maxDay")] = mApp->getHistoryMaxDay();
+            #endif /*ENABLE_HISTORY*/
         }
 
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ENABLE_HISTORY)
             obj[F("refresh")] = 86400;  // 1 day
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
@@ -814,6 +815,7 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
+            #endif /*ENABLE_HISTORY*/
         }
 
 

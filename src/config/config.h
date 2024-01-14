@@ -32,12 +32,33 @@
 // timeout for automatic logoff (20 minutes)
 #define LOGOUT_TIMEOUT      (20 * 60)
 
+
+//-------------------------------------
+// MODULE SELECTOR - done by platform.ini
+//-------------------------------------
+
+// MqTT connection
+//#define ENABLE_MQTT
+
+// display plugin
+//#define PLUGIN_DISPLAY
+
+// history graph (WebUI)
+//#define ENABLE_HISTORY
+
+// inverter simulation
+//#define ENABLE_SIMULATOR
+
+// to enable the syslog logging (will disable web-serial)
+//#define ENABLE_SYSLOG
+
+
+
 //-------------------------------------
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
 
 // ethernet
-
 #if defined(ETHERNET)
     #define ETH_SPI_HOST            SPI2_HOST
     #define ETH_SPI_CLOCK_MHZ       25
@@ -184,7 +205,7 @@
 #define INVERTER_OFF_THRES_SEC      15*60
 
 // threshold of minimum power on which the inverter is marked as inactive
-#define INACT_PWR_THRESH        3
+#define INACT_PWR_THRESH        1
 
 // Timezone
 #define TIMEZONE                1
@@ -221,6 +242,15 @@
 
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
+
+
+// syslog settings
+#ifdef ENABLE_SYSLOG
+#define SYSLOG_HOST "<hostname-or-ip-address-of-syslog-server>"
+#define SYSLOG_APP  "ahoy"
+#define SYSLOG_FACILITY FAC_USER
+#define SYSLOG_PORT 514
+#endif
 
 #if __has_include("config_override.h")
     #include "config_override.h"

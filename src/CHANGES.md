@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.54 - 2024-01-13
+* added minimal version (without: MqTT, Display, History), WebUI is not changed!
+* added simulator (must be activated before compile, standard: off)
+* changed communication attempts back to 5
+
 ## 0.8.53 - 2024-01-12
 * fix history graph
 * fix MqTT yield day #1331

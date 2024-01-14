@@ -152,9 +152,9 @@ class Communication : public CommQueue<> {
 
                         while(!q->iv->radio->mBufCtrl.empty()) {
                             packet_t *p = &q->iv->radio->mBufCtrl.front();
-                            printRxInfo(q, p);
 
                             if(validateIvSerial(&p->packet[1], q->iv)) {
+                                printRxInfo(q, p);
                                 q->iv->radioStatistics.frmCnt++;
                                 q->iv->mDtuRxCnt++;
 
@@ -302,11 +302,11 @@ class Communication : public CommQueue<> {
             CP_U32_BigEndian(tmp, iv->radioId.u64 >> 8);
             for(uint8_t i = 0; i < 4; i++) {
                 if(tmp[i] != buf[i]) {
-                    DPRINT(DBG_WARN, F("Inverter serial does not match, got: 0x"));
+                    /*DPRINT(DBG_WARN, F("Inverter serial does not match, got: 0x"));
                     DHEX(buf[0]);DHEX(buf[1]);DHEX(buf[2]);DHEX(buf[3]);
                     DBGPRINT(F(", expected: 0x"));
                     DHEX(tmp[0]);DHEX(tmp[1]);DHEX(tmp[2]);DHEX(tmp[3]);
-                    DBGPRINTLN("");
+                    DBGPRINTLN("");*/
                     return false;
                 }
             }

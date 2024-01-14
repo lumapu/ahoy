@@ -8,6 +8,7 @@
 #ifndef __PUB_MQTT_H__
 #define __PUB_MQTT_H__
 
+#if defined(ENABLE_MQTT)
 #ifdef ESP8266
     #include <ESP8266WiFi.h>
 #elif defined(ESP32)
@@ -623,4 +624,5 @@ class PubMqtt {
         discovery_t mDiscovery;
 };
 
+#endif /*ENABLE_MQTT*/
 #endif /*__PUB_MQTT_H__*/

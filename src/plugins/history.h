@@ -6,6 +6,8 @@
 #ifndef __HISTORY_DATA_H__
 #define __HISTORY_DATA_H__
 
+#if defined(ENABLE_HISTORY)
+
 #include <array>
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
@@ -122,4 +124,5 @@ class HistoryData {
         uint16_t mMaximumDay = 0;
 };
 
-#endif
+#endif /*ENABLE_HISTORY*/
+#endif /*__HISTORY_DATA_H__*/

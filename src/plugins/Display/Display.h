@@ -1,6 +1,8 @@
 #ifndef __DISPLAY__
 #define __DISPLAY__
 
+#if defined(PLUGIN_DISPLAY)
+
 #include <Timezone.h>
 #include <U8g2lib.h>
 
@@ -237,5 +239,7 @@ class Display {
 #endif
     DisplayMono *mMono;
 };
+
+#endif /*PLUGIN_DISPLAY*/
 
 #endif /*__DISPLAY__*/
