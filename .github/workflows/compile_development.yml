@@ -25,13 +25,11 @@ jobs:
           - esp8266-prometheus
           - esp8285
           - esp32-wroom32
-          - esp32-wroom32-minimal
           - esp32-wroom32-prometheus
           - esp32-wroom32-ethernet
           - esp32-s2-mini
           - esp32-c3-mini
           - opendtufusion
-          - opendtufusion-minimal
           - opendtufusion-ethernet
     steps:
     - uses: actions/checkout@v3
