@@ -69,33 +69,6 @@ class DisplayMono {
         };
 
     protected:
-        display_t *mCfg;
-        U8G2 *mDisplay;
-        DisplayData *mDisplayData;
-
-        float  *mPgData = nullptr;
-        uint8_t mPgWidth = 0;
-        uint8_t mPgHeight = 0;
-        float   mPgMaxPwr = 0.0;
-        uint32_t mPgPeriod = 0; // seconds
-        uint32_t mPgTimeOfDay = 0;
-        uint8_t  mPgLastPos = 0;
-
-        uint16_t mDispWidth;
-        uint16_t mDispHeight;
-        uint8_t mLuminance;
-
-        uint8_t mLineXOffsets[5] = {};
-        uint8_t mLineYOffsets[5] = {};
-
-        uint8_t mExtra;
-        int8_t  mPixelshift=0;
-        TimeMonitor mDisplayTime = TimeMonitor(1000 * DISP_DEFAULT_TIMEOUT, true);
-        TimeMonitor mDispSwitchTime = TimeMonitor();
-        DispSwitchState mDispSwitchState = DispSwitchState::TEXT;
-        bool mDisplayActive = true;  // always start with display on
-        char mFmtText[DISP_FMT_TEXT_LEN];
-
         // Common initialization function to be called by subclasses
         void monoInit(U8G2* display, DisplayData *displayData) {
             mDisplay = display;
@@ -113,25 +86,10 @@ class DisplayMono {
                 mDispSwitchTime.startTimeMonitor(150 * (100 - mCfg->graph_ratio));  // start display mode change only if ratio is neither 0 nor 100
         }
 
-        bool monoMaintainDispSwitchState(void) {
-          bool change = false;
-            switch(mDispSwitchState) {
-                case DispSwitchState::TEXT:
-                    if (mDispSwitchTime.isTimeout()) {
-                        mDispSwitchState = DispSwitchState::GRAPH;
-                        mDispSwitchTime.startTimeMonitor(150 * mCfg->graph_ratio);  // graph_ratio: 0-100 Gesamtperiode 15000 ms
-                        change = true;
-                    }
-                    break;
-                case DispSwitchState::GRAPH:
-                    if (mDispSwitchTime.isTimeout()) {
-                        mDispSwitchState = DispSwitchState::TEXT;
-                        mDispSwitchTime.startTimeMonitor(150 * (100 - mCfg->graph_ratio));
-                        change = true;
-                    }
-                    break;
-            }
-            return change;
+        // pixelshift screensaver with wipe effect
+        void calcPixelShift(int range) {
+            int8_t mod = (millis() / 10000) % ((range >> 1) << 2);
+            mPixelshift = mCfg->screenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
         }
 
         void initPowerGraph(uint8_t width, uint8_t height) {
@@ -155,34 +113,6 @@ class DisplayMono {
             DBGPRINTLN("max. Power = " + String(mPgMaxAvailPower));*/
         }
 
-        void resetPowerGraph() {
-            if (mPgData != nullptr) {
-                mPgMaxPwr = 0.0;
-                mPgLastPos = 0;
-                for (uint8_t i = 0; i < mPgWidth; i++) {
-                    mPgData[i] = 0.0;
-                }
-            }
-        }
-
-        uint8_t sss2pgpos(uint seconds_since_start) {
-            uint32_t diff = (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime);
-            if(diff)
-                return (seconds_since_start * (mPgWidth - 1) / diff);
-            return 0;
-        }
-
-        void calcPowerGraphValues() {
-            mPgPeriod = mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime;  // length of power graph for scaling of x-axis
-            uint32_t oldTimeOfDay = mPgTimeOfDay;
-            mPgTimeOfDay = (mDisplayData->utcTs > mDisplayData->pGraphStartTime) ? mDisplayData->utcTs - mDisplayData->pGraphStartTime : 0; // current time of day with respect to current sunrise time
-            if (oldTimeOfDay > mPgTimeOfDay) // new day -> reset old data
-                resetPowerGraph();
-            if(0 == mPgPeriod)
-                mPgPeriod = 1;
-            mPgLastPos = std::min((uint8_t) (mPgTimeOfDay * (mPgWidth - 1) / mPgPeriod), (uint8_t) (mPgWidth - 1));  // current datapoint based on currenct time of day
-        }
-
         void addPowerGraphEntry(float val) {
             if ((nullptr != mPgData) && (mDisplayData->utcTs > 0)) {  // precondition: power graph initialized and utc time available
                 calcPowerGraphValues();
@@ -190,18 +120,6 @@ class DisplayMono {
                 mPgData[mPgLastPos] = std::max(mPgData[mPgLastPos], val);
                 mPgMaxPwr = std::max(mPgMaxPwr, val);  // max value of stored data for scaling of y-axis
             }
-        }
-
-        uint8_t getPowerGraphXpos(uint8_t p) {
-            if ((p <= mPgLastPos) && (mPgLastPos > 0))
-                return((p * (mPgWidth - 1)) / mPgLastPos);  // scaling of x-axis
-            return 0;
-        }
-
-        uint8_t getPowerGraphYpos(uint8_t p) {
-            if ((p < mPgWidth) && (mPgMaxPwr > 0))
-                return((mPgData[p] * (uint32_t) mPgHeight / mPgMaxPwr)); // scaling of data to graph height
-            return 0;
         }
 
         void plotPowerGraph(uint8_t xoff, uint8_t yoff) {
@@ -254,11 +172,97 @@ class DisplayMono {
             mDisplay->drawStr(xoff + 3, yoff - mPgHeight + 5, mFmtText);
         }
 
-        // pixelshift screensaver with wipe effect
-        void calcPixelShift(int range) {
-            int8_t mod = (millis() / 10000) % ((range >> 1) << 2);
-            mPixelshift = mCfg->screenSaver == 1 ? ((mod < range) ? mod - (range >> 1) : -(mod - range - (range >> 1) + 1)) : 0;
+    private:
+        bool monoMaintainDispSwitchState(void) {
+          bool change = false;
+            switch(mDispSwitchState) {
+                case DispSwitchState::TEXT:
+                    if (mDispSwitchTime.isTimeout()) {
+                        mDispSwitchState = DispSwitchState::GRAPH;
+                        mDispSwitchTime.startTimeMonitor(150 * mCfg->graph_ratio);  // graph_ratio: 0-100 Gesamtperiode 15000 ms
+                        change = true;
+                    }
+                    break;
+                case DispSwitchState::GRAPH:
+                    if (mDispSwitchTime.isTimeout()) {
+                        mDispSwitchState = DispSwitchState::TEXT;
+                        mDispSwitchTime.startTimeMonitor(150 * (100 - mCfg->graph_ratio));
+                        change = true;
+                    }
+                    break;
+            }
+            return change;
         }
+
+        void resetPowerGraph() {
+            if (mPgData != nullptr) {
+                mPgMaxPwr = 0.0;
+                mPgLastPos = 0;
+                for (uint8_t i = 0; i < mPgWidth; i++) {
+                    mPgData[i] = 0.0;
+                }
+            }
+        }
+
+        uint8_t sss2pgpos(uint seconds_since_start) {
+            uint32_t diff = (mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime);
+            if(diff)
+                return (seconds_since_start * (mPgWidth - 1) / diff);
+            return 0;
+        }
+
+        void calcPowerGraphValues() {
+            mPgPeriod = mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime;  // length of power graph for scaling of x-axis
+            uint32_t oldTimeOfDay = mPgTimeOfDay;
+            mPgTimeOfDay = (mDisplayData->utcTs > mDisplayData->pGraphStartTime) ? mDisplayData->utcTs - mDisplayData->pGraphStartTime : 0; // current time of day with respect to current sunrise time
+            if (oldTimeOfDay > mPgTimeOfDay) // new day -> reset old data
+                resetPowerGraph();
+            if(0 == mPgPeriod)
+                mPgPeriod = 1;
+            mPgLastPos = std::min((uint8_t) (mPgTimeOfDay * (mPgWidth - 1) / mPgPeriod), (uint8_t) (mPgWidth - 1));  // current datapoint based on currenct time of day
+        }
+
+        uint8_t getPowerGraphXpos(uint8_t p) {
+            if ((p <= mPgLastPos) && (mPgLastPos > 0))
+                return((p * (mPgWidth - 1)) / mPgLastPos);  // scaling of x-axis
+            return 0;
+        }
+
+        uint8_t getPowerGraphYpos(uint8_t p) {
+            if ((p < mPgWidth) && (mPgMaxPwr > 0))
+                return((mPgData[p] * (uint32_t) mPgHeight / mPgMaxPwr)); // scaling of data to graph height
+            return 0;
+        }
+
+    protected:
+        display_t *mCfg;
+        U8G2 *mDisplay;
+        DisplayData *mDisplayData;
+        DispSwitchState mDispSwitchState = DispSwitchState::TEXT;
+
+        uint16_t mDispWidth;
+        uint8_t mExtra;
+        int8_t  mPixelshift=0;
+        char mFmtText[DISP_FMT_TEXT_LEN];
+        uint8_t mLineXOffsets[5] = {};
+        uint8_t mLineYOffsets[5] = {};
+
+        uint8_t mPgWidth = 0;
+
+    private:
+        float  *mPgData = nullptr;
+        uint8_t mPgHeight = 0;
+        float   mPgMaxPwr = 0.0;
+        uint32_t mPgPeriod = 0; // seconds
+        uint32_t mPgTimeOfDay = 0;
+        uint8_t  mPgLastPos = 0;
+
+        uint16_t mDispHeight;
+        uint8_t mLuminance;
+
+        TimeMonitor mDisplayTime = TimeMonitor(1000 * DISP_DEFAULT_TIMEOUT, true);
+        TimeMonitor mDispSwitchTime = TimeMonitor();
+        bool mDisplayActive = true;  // always start with display on
 };
 
 /* adapted 5x8 Font for low-res displays with symbols
