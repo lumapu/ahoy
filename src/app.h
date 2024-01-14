@@ -386,7 +386,7 @@ class app : public IApp, public ah::Scheduler {
         CmtRadio<> mCmtRadio;
         #endif
 
-        char mVersion[12];
+        char mVersion[18];
         settings mSettings;
         settings_t *mConfig;
         bool mSavePending;

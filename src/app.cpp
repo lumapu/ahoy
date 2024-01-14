@@ -465,7 +465,28 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
-    snprintf(mVersion, 12, "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d%s", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
+    "-"
+#ifdef ENABLE_PROMETHEUS_EP
+    "P"
+#endif
+
+#ifdef ENABLE_MQTT
+    "M"
+#endif
+
+#ifdef PLUGIN_DISPLAY
+    "D"
+#endif
+
+#ifdef ENABLE_HISTORY
+    "H"
+#endif
+
+#ifdef AP_ONLY
+    "A"
+#endif
+    );
 
 #ifdef AP_ONLY
     mTimestamp = 1;
