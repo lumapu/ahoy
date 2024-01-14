@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.55 - 2024-01-14
+* merge PR: fix reboot problem with deactivated power graph #1360
+
 ## 0.8.54 - 2024-01-13
 * added minimal version (without: MqTT, Display, History), WebUI is not changed!
 * added simulator (must be activated before compile, standard: off)
