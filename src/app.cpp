@@ -486,6 +486,21 @@ void app::resetSystem(void) {
 #ifdef AP_ONLY
     "A"
 #endif
+
+#ifdef ENABLE_SYSLOG
+    "Y"
+#endif
+
+#ifdef ENABLE_SIMULATOR
+    "S"
+#endif
+
+    "-"
+#ifdef LANG_DE
+    "de"
+#else
+    "en"
+#endif
     );
 
 #ifdef AP_ONLY
