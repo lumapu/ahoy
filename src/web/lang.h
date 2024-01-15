@@ -73,15 +73,15 @@
 #endif
 
 #ifdef LANG_DE
-    #define FACTORY_RESET "Ahoy Factory Reset"
-#else /*LANG_EN*/
     #define FACTORY_RESET "Ahoy auf Werkseinstellungen zurücksetzen"
+#else /*LANG_EN*/
+    #define FACTORY_RESET "Ahoy Factory Reset"
 #endif
 
 #ifdef LANG_DE
-    #define BTN_REBOOT "Reboot"
-#else /*LANG_EN*/
     #define BTN_REBOOT "Ahoy neustarten"
+#else /*LANG_EN*/
+    #define BTN_REBOOT "Reboot"
 #endif
 
 #endif /*__LANG_H__*/

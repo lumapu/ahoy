@@ -10,7 +10,7 @@
             <div id="content">
                 <fieldset>
                     <legend class="des">{#SELECT_FILE} (*.bin)</legend>
-                    <p>{#INSTALLED_VERSION}: <span id="version" style="background-color: var(--input-bg); padding: 7px;"></span></p>
+                    <p>{#INSTALLED_VERSION}:<br/><span id="version" style="background-color: var(--input-bg); padding: 7px; display: block; margin: 3px;"></span></p>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
                         <input type="file" name="update">
                         <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">

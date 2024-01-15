@@ -144,14 +144,14 @@ class Communication : public CommQueue<> {
                                 } else {
                                     if(IV_MI == q->iv->ivGen)
                                         q->iv->mIvTxCnt++;
-                                    if(mFirstTry){
+                                    if(mFirstTry) {
                                         mFirstTry     = false;
-                                        mState = States::START;
                                         setAttempt();
                                         mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                         //q->iv->radioStatistics.rxFailNoAnser++;
                                         q->iv->radioStatistics.retransmits++;
                                         mWaitTime.stopTimeMonitor();
+                                        mState = States::START;
 
                                         /*if(*mSerialDebug) {
                                             DPRINT_IVID(DBG_INFO, q->iv->id);
