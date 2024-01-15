@@ -132,6 +132,7 @@ void app::loop(void) {
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
     #endif
+    yield();
 }
 
 //-----------------------------------------------------------------------------

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.56 - 2024-01-15
+* potential fix of update problems and random reboots #1359 #1354
+
 ## 0.8.55 - 2024-01-14
 * merge PR: fix reboot problem with deactivated power graph #1360
 * changed scope of variables and member functions inside display classes
