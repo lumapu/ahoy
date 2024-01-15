@@ -116,12 +116,16 @@ class DisplayMono {
             if (nullptr == mPgData)  // power graph not initialized
                 return;
 
+            bool storeStartEndTimes = false;
             bool store_entry = false;
             switch(mPgState) {
                 case PowerGraphState::NO_TIME_SYNC:  
-                    if ((mDisplayData->pGraphStartTime > 0) && (mDisplayData->pGraphEndTime > 0) &&                                         // wait until period data is available ...
-                        (mDisplayData->utcTs >= mDisplayData->pGraphStartTime) && (mDisplayData->utcTs < mDisplayData->pGraphEndTime)) {    // and current time is in period
-                        storeStartEndTimes();  // period was received -> store
+                    if ((mDisplayData->pGraphStartTime > 0)
+                        && (mDisplayData->pGraphEndTime > 0)                      // wait until period data is available ...
+                        && (mDisplayData->utcTs >= mDisplayData->pGraphStartTime)
+                        && (mDisplayData->utcTs < mDisplayData->pGraphEndTime)) // and current time is in period
+                    {
+                        storeStartEndTimes = true;                                     // period was received -> store
                         store_entry = true;
                         mPgState = PowerGraphState::IN_PERIOD;
                     }
@@ -134,7 +138,7 @@ class DisplayMono {
                     break;
                 case PowerGraphState::WAIT_4_NEW_PERIOD:
                     if ((mPgStartTime != mDisplayData->pGraphStartTime) || (mPgEndTime != mDisplayData->pGraphEndTime)) { // wait until new time period was received ...
-                        storeStartEndTimes();                                                                             // and store it for next period
+                        storeStartEndTimes = true;                                                                             // and store it for next period
                         mPgState = PowerGraphState::WAIT_4_RESTART;
                     }
                     break;
@@ -146,6 +150,14 @@ class DisplayMono {
                     }
                     break;
             }
+
+            // store start and end times of current time period and calculate period length
+            if (storeStartEndTimes) {
+                mPgStartTime = mDisplayData->pGraphStartTime;
+                mPgEndTime = mDisplayData->pGraphEndTime;
+                mPgPeriod = mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime;  // time period of power graph in sec for scaling of x-axis
+            }
+
             if (store_entry) {
                 mPgLastPos = std::min((uint8_t) sss2PgPos(mDisplayData->utcTs - mPgStartTime), (uint8_t) (mPgWidth - 1));  // current datapoint based on seconds since start
                 mPgData[mPgLastPos] = std::max(mPgData[mPgLastPos], val); // update current datapoint to maximum of all seen values
@@ -235,13 +247,6 @@ class DisplayMono {
                     mPgData[i] = 0.0;
                 }
             }
-        }
-
-        // store start and end times of current time period and calculate period length
-        void storeStartEndTimes() {
-            mPgStartTime = mDisplayData->pGraphStartTime;
-            mPgEndTime = mDisplayData->pGraphEndTime;
-            mPgPeriod = mDisplayData->pGraphEndTime - mDisplayData->pGraphStartTime;  // time period of power graph in sec for scaling of x-axis
         }
 
         // get power graph datapoint index, scaled to current time period, by seconds since start

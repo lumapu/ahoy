@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.57 - 2024-01-15
+* merge PR: fix immediate clearing of display after sunset #1364
+
 ## 0.8.56 - 2024-01-15
 * potential fix of update problems and random reboots #1359 #1354
 
