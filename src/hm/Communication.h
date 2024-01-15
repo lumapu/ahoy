@@ -91,6 +91,7 @@ class Communication : public CommQueue<> {
                         mIsRetransmit = false;
                         if(NULL == q->iv->radio)
                             cmdDone(false); // can't communicate while radio is not defined!
+                        mFirstTry = q->iv->isAvailable();
                         q->iv->mCmd = q->cmd;
                         q->iv->mIsSingleframeReq = false;
                         mState = States::START;
@@ -140,8 +141,25 @@ class Communication : public CommQueue<> {
                                 if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTime.startTimeMonitor(1000);
-                                } else if(IV_MI == q->iv->ivGen)
-                                    q->iv->mIvTxCnt++;
+                                } else {
+                                    if(IV_MI == q->iv->ivGen)
+                                        q->iv->mIvTxCnt++;
+                                    if(mFirstTry){
+                                        mFirstTry     = false;
+                                        mState = States::START;
+                                        setAttempt();
+                                        mHeu.evalTxChQuality(q->iv, false, 0, 0);
+                                        //q->iv->radioStatistics.rxFailNoAnser++;
+                                        q->iv->radioStatistics.retransmits++;
+                                        mWaitTime.stopTimeMonitor();
+
+                                        /*if(*mSerialDebug) {
+                                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                                            DBGPRINTLN(F("second try"));
+                                        }*/
+                                       return;
+                                    }
+                                }
                             }
                             closeRequest(q, false);
                             break;
@@ -553,7 +571,6 @@ class Communication : public CommQueue<> {
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
             mIsRetransmit       = false;
-            mFirstTry           = false; // for correct reset
             mState              = States::RESET;
             DBGPRINTLN(F("-----"));
         }
