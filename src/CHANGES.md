@@ -5,6 +5,7 @@
 * merge PR: MI-MQTT and last retransmit #1363
 * fixed DTU-ID, now built from the unique part of the MAC
 * fix lang in `/system` #1346
+* added protection to prevent update to wrong firmware (environment check)
 
 ## 0.8.56 - 2024-01-15
 * potential fix of update problems and random reboots #1359 #1354
