@@ -12,9 +12,9 @@
 #include "../utils/dbg.h"
 
 // needs a '+1' because the comparison does not send if attempts is equal 0
-#define DEFAULT_ATTEMPS                 5 + 1
-#define MORE_ATTEMPS_ALARMDATA          15 + 1
-#define MORE_ATTEMPS_GRIDONPROFILEPARA  15 + 1
+#define DEFAULT_ATTEMPS                 5
+#define MORE_ATTEMPS_ALARMDATA          15
+#define MORE_ATTEMPS_GRIDONPROFILEPARA  15
 
 template <uint8_t N=100>
 class CommQueue {
