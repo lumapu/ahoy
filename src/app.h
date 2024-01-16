@@ -8,6 +8,9 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
 
 #include "config/settings.h"
 #include "defines.h"
