@@ -717,7 +717,7 @@
                 },
                 {
                     "name": "Recovery High Frequency",
-                    "div": 10,
+                    "div": 100,
                     "min": 50.1,
                     "max": 52,
                     "def": 50.2,
@@ -967,7 +967,7 @@
                     "unit": "%Pn"
                 },
                 {
-                    "name": "Power Factor ar Rated Power",
+                    "name": "Power Factor of Rated Power",
                     "div": 100,
                     "min": 0.8,
                     "max": 1,

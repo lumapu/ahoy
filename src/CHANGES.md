@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.58 - 2024-01-17
+* fix missing refresh URL #1366
+* fix view of grid profile #1365
+* fix webUI translation #1346
+* fix protection mask #1352
+
 ## 0.8.57 - 2024-01-15
 * merge PR: fix immediate clearing of display after sunset #1364
 * merge PR: MI-MQTT and last retransmit #1363

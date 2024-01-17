@@ -354,6 +354,7 @@ class RestApi {
             obj[F("pending")] = (bool)mApp->getSavePending();
             obj[F("success")] = (bool)mApp->getLastSaveSucceed();
             obj[F("reboot")] = (bool)mApp->getShouldReboot();
+            obj[F("refresh_url")] = "/";
             #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
             obj[F("reload")] = 5;
             #else

@@ -1191,7 +1191,7 @@
                 {
                     "token": "LAST_RECEIVED",
                     "en": "Last received data requested at",
-                    "de": "Zuletzt empfangene Daten wurden angefragt um"
+                    "de": "Zuletzt empfangene Daten wurden angefragt am"
                 },
                 {
                     "token": "NOTHING_RECEIVED",

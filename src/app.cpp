@@ -19,6 +19,7 @@ void app::setup() {
         yield();
 
     resetSystem();
+    esp_task_wdt_reset();
 
     mSettings.setup();
     mSettings.getPtr(mConfig);

@@ -488,7 +488,7 @@ class Web {
                 mProtected = (strlen(mConfig->sys.adminPwd) > 0);
             }
             mConfig->sys.protectionMask = 0x0000;
-            for (uint8_t i = 0; i < 6; i++) {
+            for (uint8_t i = 0; i < 7; i++) {
                 if (request->arg("protMask" + String(i)) == "on")
                     mConfig->sys.protectionMask |= (1 << i);
             }
