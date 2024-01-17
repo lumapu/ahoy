@@ -465,7 +465,7 @@ class settings {
             mCfg.led.luminance   = 255;
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
-            mCfg.plugin.display.contrast = 60;
+            mCfg.plugin.display.contrast = 140;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
             mCfg.plugin.display.graph_ratio = 0;
             mCfg.plugin.display.graph_size  = 2;
@@ -476,7 +476,7 @@ class settings {
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
-            mCfg.plugin.display.pirPin     = DEF_MOTION_SENSOR_PIN;
+            mCfg.plugin.display.pirPin     = DEF_PIN_OFF;
         }
 
         void loadAddedDefaults() {

@@ -600,7 +600,7 @@ class Web {
             mConfig->plugin.display.rot         = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type        = request->arg("disp_typ").toInt();
             mConfig->plugin.display.contrast    = (mConfig->plugin.display.type == 0) ||   // contrast available only according optionsMap in setup.html, otherwise default value
-                                                  (mConfig->plugin.display.type == 10) ? 60 : request->arg("disp_cont").toInt();
+                                                  (mConfig->plugin.display.type == 10) ? 140 : request->arg("disp_cont").toInt();
             mConfig->plugin.display.screenSaver = ((mConfig->plugin.display.type == 1) ||  // screensaver available only according optionsMap in setup.html, otherwise default value
                                                    (mConfig->plugin.display.type == 2) ||
                                                    (mConfig->plugin.display.type == 4) ||
