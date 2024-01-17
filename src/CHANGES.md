@@ -5,6 +5,7 @@
 * fix view of grid profile #1365
 * fix webUI translation #1346
 * fix protection mask #1352
+* merge PR: Add Watchdog for ESP32 #1367
 
 ## 0.8.57 - 2024-01-15
 * merge PR: fix immediate clearing of display after sunset #1364
