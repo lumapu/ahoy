@@ -10,7 +10,7 @@
             <div id="content">
                 <fieldset>
                     <legend class="des">{#SELECT_FILE} (*.bin)</legend>
-                    <p>{#INSTALLED_VERSION}: <span id="version" style="background-color: var(--input-bg); padding: 7px;"></span></p>
+                    <p>{#INSTALLED_VERSION}:<br/><span id="version" style="background-color: var(--input-bg); padding: 7px; display: block; margin: 3px;"></span></p>
                     <form id="form" method="POST" action="/update" enctype="multipart/form-data" accept-charset="utf-8">
                         <input type="file" name="update">
                         <input type="button" class="btn my-4" value="{#BTN_UPDATE}" onclick="hide()">
@@ -23,17 +23,34 @@
         </div>
         {#HTML_FOOTER}
         <script type="text/javascript">
+            var env;
             function parseGeneric(obj) {
-                parseNav(obj);
-                parseESP(obj);
-                parseRssi(obj);
+                parseNav(obj)
+                parseESP(obj)
+                parseRssi(obj)
+                env = obj.env
                 document.getElementById("version").innerHTML = "{#VERSION_FULL}_" + obj.env + ".bin"
             }
 
             function hide() {
-                document.getElementById("form").submit();
-                var e = document.getElementById("content");
-                e.replaceChildren(span("{#UPDATE_STARTED}"));
+                var bin = document.getElementsByName("update")[0].value.slice(-env.length-4, -4)
+                if (bin !== env) {
+                    var html = ml("div", {class: "row"}, [
+                        ml("div", {class: "row my-3"}, "{#WARN_DIFF_ENV}"),
+                        ml("div", {class: "row"}, [
+                            ml("div", {class: "col-6"}, ml("input", {type: "button", class: "btn", value: "{#CANCEL}", onclick: function() { modalClose(); }}, null)),
+                            ml("div", {class: "col-6"}, ml("input", {type: "button", class: "btn", value: "{#CONTIUE}", onclick: function() { start(); modalClose(); }}, null))
+                        ])
+                    ])
+                    modal("{#UPDATE_MODAL}", html)
+                } else
+                    start()
+            }
+
+            function start() {
+                document.getElementById("form").submit()
+                var e = document.getElementById("content")
+                e.replaceChildren(span("{#UPDATE_STARTED}"))
             }
 
             getAjax("/api/generic", parseGeneric);

@@ -89,9 +89,8 @@ class DisplayMono128X64 : public DisplayMono {
             calcPixelShift(pixelShiftRange);
 
             // add new power data to power graph
-            if (mDisplayData->nrProducing > 0) {
+            if (mDisplayData->nrProducing > 0)
                 addPowerGraphEntry(mDisplayData->totalPower);
-            }
 
             // print Date and time
             if (0 != mDisplayData->utcTs)

@@ -781,7 +781,7 @@
                 {
                     "token": "IRQ_WORKING",
                     "en": "Interrupt Pin working",
-                    "de": "Interrupt Pin funktoniert"
+                    "de": "Interrupt Pin funktioniert"
                 },
                 {
                     "token": "NRF24_DATA_RATE",
@@ -1052,6 +1052,26 @@
                     "token": "UPDATE_STARTED",
                     "en": "update started",
                     "de": "Aktualisierung gestartet"
+                },
+                {
+                    "token": "UPDATE_MODAL",
+                    "en": "Warning",
+                    "de": "Warnung"
+                },
+                {
+                    "token": "WARN_DIFF_ENV",
+                    "en": "your environment does not match the update file!",
+                    "de": "Die ausgew&auml;hlte Firmware passt uU. nicht zum Chipsatz!"
+                },
+                {
+                    "token": "CONTIUE",
+                    "en": "continue",
+                    "de": "fortfahren"
+                },
+                {
+                    "token": "CANCEL",
+                    "en": "cancel",
+                    "de": "abbrechen"
                 }
             ]
         },
