@@ -366,7 +366,6 @@
                         } else {
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("h5", {}, "{#UNKNOWN_PROFILE}"))))
                             content.push(ml("div", {class: "row"}, ml("div", {class: "col"}, ml("p", {}, "{#OPEN_ISSUE}."))))
-                            content.push(ml("div", {class: "row"}, ml("div", {class: "col my-2"}, ml("pre", {}, obj.grid))))
                         }
                     } else {
                         content.push(ml("div", {class: "row"},
@@ -377,6 +376,8 @@
                             content.push(parseGridGroup(glob))
                         }
                     }
+                    if(0 != obj.grid.length)
+                        content.push(ml("div", {class: "row"}, ml("div", {class: "col my-2"}, ml("pre", {}, obj.grid))))
 
                     modal("{#PROFILE_MODAL}: " + obj.name, ml("div", {}, ml("div", {class: "col mb-2"}, [...content])))
                 })

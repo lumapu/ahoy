@@ -84,10 +84,18 @@ function topnav() {
 }
 
 function parseNav(obj) {
-    for(i = 0; i < 12; i++) {
+    for(i = 0; i < 13; i++) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
+        if(12 == i) {
+            if(obj.cst_lnk.length > 0) {
+                l.href = obj.cst_lnk
+                l.innerHTML = obj.cst_lnk_txt
+                l.classList.remove("hide");
+            }
+            continue;
+        }
         if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
             if((i != 8 )&& (i != 9))
                 l.classList.add("active");

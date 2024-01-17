@@ -9,54 +9,51 @@
         <div id="wrapper">
             <div id="content">
                 <form method="post" action="/save" id="settings">
-                    <fieldset>
                     <button type="button" class="s_collapsible mt-4">{#SYSTEM_CONFIG}</button>
                     <div class="s_content">
-                    <fieldset class="mb-2">
-                        <legend class="des">{#DEVICE_NAME}</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3">{#DEVICE_NAME}</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#REBOOT_AT_MIDNIGHT}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="schedReboot"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#DARK_MODE}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
-                            <div class="col-12">{#DARK_MODE_NOTE}</div>
-                        </div>
-                    </fieldset>
-                    <fieldset class="mb-4">
-                        <legend class="des">{#PINOUT_CONFIGURATION}</legend>
-                        <p class="des">Status LEDs</p>
-                        <div id="pinout"></div>
-
-                        <p class="des">{#RADIO} (NRF24L01+)</p>
-                        <div id="rf24"></div>
-                        <!--IF_ESP32-->
-                        <p class="des">{#RADIO} (CMT2300A)</p>
-                        <div id="cmt"></div>
-                        <!--ENDIF_ESP32-->
-                        <p class="des">{#SERIAL_CONSOLE}</p>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#LOG_PRINT_INVERTER_DATA}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#LOG_SERIAL_DEBUG}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#LOG_PRIVACY_MODE}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#LOG_PRINT_TRACES}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="wholeTrace"/></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-2">
+                            <legend class="des">{#SYSTEM_CONFIG}</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3">{#DEVICE_NAME}</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#REBOOT_AT_MIDNIGHT}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="schedReboot"/></div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-8 col-sm-3">{#DARK_MODE}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
+                                <div class="col-12">{#DARK_MODE_NOTE}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#CUSTOM_LINK}</div>
+                                <div class="col-4 col-sm-9"><input type="text" name="cstLnk"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#CUSTOM_LINK_TEXT}</div>
+                                <div class="col-4 col-sm-9"><input type="text" name="cstLnkTxt"/></div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">{#SERIAL_CONSOLE}</legend>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#LOG_PRINT_INVERTER_DATA}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#LOG_SERIAL_DEBUG}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#LOG_PRIVACY_MODE}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#LOG_PRINT_TRACES}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="wholeTrace"/></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">{#NETWORK}</button>
@@ -137,172 +134,188 @@
 
                     <button type="button" class="s_collapsible">{#INVERTER}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                    <legend class="des">{#INVERTER}</legend>
-                        <div id="inverter"></div>
-                        <div class="row mb-3">
-                            <div class="col-8 my-2">{#INTERVAL} [s]</div>
-                            <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 my-2">{#INV_GAP} [ms]</div>
-                            <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 mb-2">{#INV_RESET_MIDNIGHT}</div>
-                            <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
-                            <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">{#INV_RESET_NOT_AVAIL}</div>
-                            <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">{#INV_RESET_MAX_MIDNIGHT}</div>
-                            <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">{#INV_START_WITHOUT_TIME}</div>
-                            <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
-                            <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">{#INV_YIELD_EFF}</div>
-                            <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-4">
+                        <legend class="des">{#INVERTER}</legend>
+                            <div id="inverter"></div>
+                            <div class="row mb-3">
+                                <div class="col-8 my-2">{#INTERVAL} [s]</div>
+                                <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 my-2">{#INV_GAP} [ms]</div>
+                                <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_RESET_MIDNIGHT}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_RESET_NOT_AVAIL}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_RESET_MAX_MIDNIGHT}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_START_WITHOUT_TIME}</div>
+                                <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
+                                <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_YIELD_EFF}</div>
+                                <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">NTP Server</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">NTP Server</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Port</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#NTP_INTERVAL}</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#NTP_SET_SYS_TIME}</div>
-                            <div class="col-12 col-sm-9">
-                                <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="{#BTN_FROM_BROWSER}" onclick="setTime()"/>
-                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="{#BTN_SYNC_NTP}" onclick="syncTime()"/><br/>
-                                <span id="apiResultNtp"></span>
+                        <fieldset class="mb-4">
+                            <legend class="des">NTP Server</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
                             </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#NTP_SYS_TIME}</div>
-                            <div class="col-12 col-sm-9 my-2"><span id="date"></span></div>
-                        </div>
-                    </fieldset>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">NTP Port</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_INTERVAL}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_SET_SYS_TIME}</div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="{#BTN_FROM_BROWSER}" onclick="setTime()"/>
+                                    <input type="button" name="ntpSync" id="ntpSync" class="btn" value="{#BTN_SYNC_NTP}" onclick="syncTime()"/><br/>
+                                    <span id="apiResultNtp"></span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_SYS_TIME}</div>
+                                <div class="col-12 col-sm-9 my-2"><span id="date"></span></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">{#SUNRISE_SUNSET}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">{#SUNRISE_SUNSET}</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#LATITUDE}</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="sunLat" step="any"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#LONGITUDE}</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNRISE}</div>
-                            <div class="col-12 col-sm-9"><select name="sunOffsSr"></select></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNSET}</div>
-                            <div class="col-12 col-sm-9"><select name="sunOffsSs"></select></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">{#SUNRISE_SUNSET}</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#LATITUDE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="sunLat" step="any"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#LONGITUDE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNRISE}</div>
+                                <div class="col-12 col-sm-9"><select name="sunOffsSr"></select></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNSET}</div>
+                                <div class="col-12 col-sm-9"><select name="sunOffsSs"></select></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">MQTT</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Port</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="mqttPort"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Client Id (optional)</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttClientId"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#MQTT_USER}</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#MQTT_PASSWORD}</div>
-                            <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Topic</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
-                        </div>
-                        <p class="des">{#MQTT_NOTE}</p>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
-                            <div class="col-12 col-sm-9">
-                                <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="{#BTN_SEND}" onclick="sendDiscoveryConfig()"/>
-                                <span id="apiResultMqtt"></span>
+                        <fieldset class="mb-4">
+                            <legend class="des">MQTT</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
                             </div>
-                        </div>
-                    </fieldset>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Port</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="mqttPort"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Client Id (optional)</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttClientId"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_USER}</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_PASSWORD}</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Topic</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
+                            </div>
+                            <p class="des">{#MQTT_NOTE}</p>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="{#BTN_SEND}" onclick="sendDiscoveryConfig()"/>
+                                    <span id="apiResultMqtt"></span>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">{#PINOUT_CONFIG}</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des">{#PINOUT_CONFIG}</legend>
+                            <p class="des">Status LEDs</p>
+                            <div id="pinout"></div>
+
+                            <p class="des">{#RADIO} (NRF24L01+)</p>
+                            <div id="rf24"></div>
+                            <!--IF_ESP32-->
+                            <p class="des">{#RADIO} (CMT2300A)</p>
+                            <div id="cmt"></div>
+                            <!--ENDIF_ESP32-->
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">{#DISPLAY_CONFIG}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">{#DISPLAY_CONFIG}</legend>
-                        <div id="dispType"></div>
-                        <div id="dispRot"></div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">{#DISP_OFF_INV}</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
-                        </div>
-                        <div id="screenSaver"></div>
-                        <div class="row mb-3" id="luminanceOption">
-                            <div class="col-12 col-sm-3 my-2">{#DISP_LUMINANCE}</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
-                        </div>
-                        <p class="des">{#DISP_PINOUT}</p>
-                        <div id="dispPins"></div>
-                        <div id="pirPin"></div>
-                        <div id="graphOptions">
-                            <p class="des">{#GRAPH_OPTIONS}</p>
-                            <div id="graphSize"></div>
+                        <fieldset class="mb-4">
+                            <legend class="des">{#DISPLAY_CONFIG}</legend>
+                            <div id="dispType"></div>
+                            <div id="dispRot"></div>
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
-                                <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                                <div class="col-8 col-sm-3">{#DISP_OFF_INV}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
                             </div>
-                        </div>
-                    </fieldset>
+                            <div id="screenSaver"></div>
+                            <div class="row mb-3" id="luminanceOption">
+                                <div class="col-12 col-sm-3 my-2">{#DISP_LUMINANCE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
+                            </div>
+                            <p class="des">{#DISP_PINOUT}</p>
+                            <div id="dispPins"></div>
+                            <div id="pirPin"></div>
+                            <div id="graphOptions">
+                                <p class="des">{#GRAPH_OPTIONS}</p>
+                                <div id="graphSize"></div>
+                                <div class="row mb-3">
+                                    <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
+                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                                </div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <div class="row mb-4 mt-4">
@@ -643,6 +656,11 @@
                 parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
+
+                if(0 != obj.cst_lnk.length) {
+                    document.getElementsByName("cstLnk")[0].value = obj.cst_lnk
+                    document.getElementsByName("cstLnkTxt")[0].value = obj.cst_lnk_txt
+                }
 
                 ts = obj["ts_now"];
                 window.setInterval("tick()", 1000);

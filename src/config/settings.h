@@ -184,6 +184,8 @@ typedef struct {
 
 typedef struct {
     display_t display;
+    char customLink[MAX_CUSTOM_LINK_LEN];
+    char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
 } plugins_t;
 
 typedef struct {
@@ -716,6 +718,8 @@ class settings {
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
                 disp[F("pirPin")] = mCfg.plugin.display.pirPin;
+                obj[F("cst_lnk")] = mCfg.plugin.customLink;
+                obj[F("cst_lnk_txt")] = mCfg.plugin.customLinkText;
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
@@ -734,6 +738,8 @@ class settings {
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
                 getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
+                getChar(obj, F("cst_lnk"), mCfg.plugin.customLink, MAX_CUSTOM_LINK_LEN);
+                getChar(obj, F("cst_lnk_txt"), mCfg.plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
             }
         }
 

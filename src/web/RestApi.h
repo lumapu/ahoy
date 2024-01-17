@@ -258,6 +258,8 @@ class RestApi {
             obj[F("menu_prot")]   = mApp->getProtection(request);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
+            obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
+            obj[F("cst_lnk_txt")] = String(mConfig->plugin.customLinkText);
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -354,7 +356,6 @@ class RestApi {
             obj[F("pending")] = (bool)mApp->getSavePending();
             obj[F("success")] = (bool)mApp->getLastSaveSucceed();
             obj[F("reboot")] = (bool)mApp->getShouldReboot();
-            obj[F("refresh_url")] = "/";
             #if defined(ETHERNET) && defined(CONFIG_IDF_TARGET_ESP32S3)
             obj[F("reload")] = 5;
             #else

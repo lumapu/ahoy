@@ -7,6 +7,10 @@
 * fix protection mask #1352
 * merge PR: Add Watchdog for ESP32 #1367
 * merge PR: ETH support for CMT2300A - HMS/HMT #1356
+* full refresh of ePaper after booting #1107
+* add optional custom link #1199
+* pinout has an own subgroup in `/settings`
+* grid profile will be displayed as hex in every case #1199
 
 ## 0.8.57 - 2024-01-15
 * merge PR: fix immediate clearing of display after sunset #1364

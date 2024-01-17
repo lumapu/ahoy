@@ -482,6 +482,15 @@ class Web {
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
             mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
 
+
+            if (request->arg("cstLnk") != "") {
+                request->arg("cstLnk").toCharArray(mConfig->plugin.customLink, MAX_CUSTOM_LINK_LEN);
+                request->arg("cstLnkTxt").toCharArray(mConfig->plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
+            } else {
+                mConfig->plugin.customLink[0] = '\0';
+                mConfig->plugin.customLinkText[0] = '\0';
+            }
+
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);

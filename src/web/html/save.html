@@ -32,10 +32,10 @@
                         meta.httpEquiv = "refresh"
                         if(!obj.reboot) {
                             html = "{#SUCCESS_SAVED_RELOAD}";
-                            meta.content = 3;
+                            meta.content = "2; URL=/setup"
                         } else {
                             html = "{#SUCCESS_SAVED_REBOOT} " + obj.reload + " {#SECONDS}.";
-                            meta.content = obj.reload + "; URL=/";
+                            meta.content = obj.reload + "; URL=/"
                         }
                         document.getElementsByTagName('head')[0].appendChild(meta);
                     } else {

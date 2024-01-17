@@ -253,7 +253,9 @@
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
 
-
+// maximum custom link length
+#define MAX_CUSTOM_LINK_LEN         100
+#define MAX_CUSTOM_LINK_TEXT_LEN    32
 // syslog settings
 #ifdef ENABLE_SYSLOG
 #define SYSLOG_HOST "<hostname-or-ip-address-of-syslog-server>"
