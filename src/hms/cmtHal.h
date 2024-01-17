@@ -17,7 +17,7 @@
 class cmtHal : public SpiPatcherHandle {
     public:
         cmtHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
+            mSpiPatcher = SpiPatcher::getInstance(DEF_CMT_SPI_HOST);
         }
 
         void patch() override {
