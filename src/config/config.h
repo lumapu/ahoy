@@ -114,7 +114,7 @@
         #define DEF_NRF_SCLK_PIN        18
     #endif
 
-#if defined(ETHERNET)
+#if defined(ETHERNET) && !defined(SPI_HAL)
     #ifndef DEF_CMT_SPI_HOST
         #define DEF_CMT_SPI_HOST        SPI3_HOST
     #endif
