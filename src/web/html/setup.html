@@ -309,11 +309,11 @@
                             <div id="pirPin"></div>
                             <div id="graphOptions">
                                 <p class="des">{#GRAPH_OPTIONS}</p>
-                                <div id="graphSize"></div>
                                 <div class="row mb-3">
                                     <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
                                     <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
                                 </div>
+                                <div id="graphSize"></div>
                             </div>
                         </fieldset>
                     </div>
@@ -1060,8 +1060,8 @@
                             [5, "SSD1306 64x48 (0.66\" Wemos OLED Shield)"],
                             [4, "SSD1306 128x32 (0.91\")"],
                             [1, "SSD1306 128x64 (0.96\", 1.54\")"],
-                            [6, "SSD1309 128X64 (2.42\")"],
-                            [3, "PCD8544 84X48 (1.6\" Nokia 5110)"]];
+                            [6, "SSD1309 128x64 (2.42\")"],
+                            [3, "PCD8544 84x48 (1.6\" Nokia 5110)"]];
                 /*IF_ESP32*/
                 opts.push([10, "ePaper"]);
                 /*ENDIF_ESP32*/
@@ -1130,8 +1130,7 @@
 
             function hideDispPins(pins, dispType) {
                 // create pin map for each display type.
-                // It depends on fix pin array (see var pins)
-                // var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
+                // It depends on fix pin array, see var pins: ['clock', 'data', 'cs', 'dc', 'reset', 'busy']
                 const pinMap = new Map([
                     [0,  [0,0,0,0,0,0]], //none
                     [1,  [1,1,0,0,0,0]], //SSD1306_128X64
