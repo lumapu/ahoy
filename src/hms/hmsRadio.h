@@ -163,8 +163,8 @@ class CmtRadio : public Radio {
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
-            if(p.packet[9] > ALL_FRAMES)          // indicates last frame
-                mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
+            //if(p.packet[9] > ALL_FRAMES)          // indicates last frame
+            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
                 //optionally instead: mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
         }
 
