@@ -156,10 +156,12 @@ class PubMqtt {
             snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
             publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
-            if(isSunrise)
-                mSendIvData.resetYieldDay();
-
             return true;
+        }
+
+        void notAvailChanged(bool allNotAvail) {
+            if(!allNotAvail)
+                mSendIvData.resetYieldDay();
         }
 
         bool tickerComm(bool disabled) {

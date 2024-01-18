@@ -1071,7 +1071,7 @@
                 {
                     "token": "WARN_DIFF_ENV",
                     "en": "your environment does not match the update file!",
-                    "de": "Die ausgew&auml;hlte Firmware passt uU. nicht zum Chipsatz!"
+                    "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
                 },
                 {
                     "token": "CONTIUE",

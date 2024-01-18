@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.59 - 2024-01-18
+* merge PR: solve display settings dependencies #1369
+* fix language typos #1346
+* full update of ePaper after booting #1107
+* fix MqTT yield day reset even if `pause inverter during nighttime` isn't active #1368
+
 ## 0.8.58 - 2024-01-17
 * fix missing refresh URL #1366
 * fix view of grid profile #1365

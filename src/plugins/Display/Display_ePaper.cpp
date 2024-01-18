@@ -27,10 +27,10 @@ DisplayEPaper::DisplayEPaper() {
 void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, uint8_t _BUSY, uint8_t _SCK, uint8_t _MOSI, uint32_t *utcTs, const char *version) {
     mUtcTs = utcTs;
 
-    mRefreshState = RefreshStatus::BLACK;
-    mSecondCnt = 2;
+    mRefreshState = RefreshStatus::LOGO;
+    mSecondCnt = 0;
 
-    if (type == DISP_TYPE_T10_EPAPER) {
+    if (DISP_TYPE_T10_EPAPER == type) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
 
@@ -64,9 +64,9 @@ void DisplayEPaper::fullRefresh() {
 void DisplayEPaper::refreshLoop() {
     switch(mRefreshState) {
         case RefreshStatus::LOGO:
-            mFirst = false;
             _display->fillScreen(GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+            _display->display(false); // full update
             mNextRefreshState = RefreshStatus::PARTITIALS;
             mRefreshState = RefreshStatus::WAIT;
             break;
@@ -81,7 +81,7 @@ void DisplayEPaper::refreshLoop() {
             if(mSecondCnt == 0) {
                 _display->fillScreen(GxEPD_WHITE);
                 mNextRefreshState = RefreshStatus::PARTITIALS;
-                mRefreshState = (mFirst) ? RefreshStatus::LOGO : RefreshStatus::WAIT;
+                mRefreshState = RefreshStatus::WAIT;
             }
             break;
 

@@ -108,7 +108,7 @@ void app::setup() {
     #endif
     // Plugins
     #if defined(PLUGIN_DISPLAY)
-    if (mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
+    if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
         #if defined(ESP32)
         mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mCmtRadio, &mTimestamp);
         #else
@@ -186,7 +186,7 @@ void app::regularTickers(void) {
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
     #if defined(PLUGIN_DISPLAY)
-    if (mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
+    if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     #endif
     every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
@@ -353,6 +353,14 @@ void app::tickSunrise(void) {
 }
 
 //-----------------------------------------------------------------------------
+void app::notAvailChanged(void) {
+    #if defined(ENABLE_MQTT)
+    if (mMqttEnabled)
+        mMqtt.notAvailChanged(mAllIvNotAvail);
+    #endif
+}
+
+//-----------------------------------------------------------------------------
 void app::tickZeroValues(void) {
     zeroIvValues(!CHECK_AVAIL, SKIP_YIELD_DAY);
 }
@@ -403,6 +411,7 @@ void app::tickMidnight(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickSend(void) {
+    bool notAvail = true;
     uint8_t fill = mCommunication.getFillState();
     uint8_t max = mCommunication.getMaxFill();
     if((max-MAX_NUM_INVERTERS) <= fill) {
@@ -428,6 +437,9 @@ void app::tickSend(void) {
             if(!iv->radio->isChipConnected())
                 continue;
 
+            if(InverterStatus::OFF != iv->status)
+                notAvail = false;
+
             iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
                 if(isDevControl)
                     mCommunication.addImportant(iv, cmd);
@@ -436,6 +448,10 @@ void app::tickSend(void) {
             });
         }
     }
+
+    if(mAllIvNotAvail != notAvail)
+        once(std::bind(&app::notAvailChanged, this), 1, "avail");
+    mAllIvNotAvail = notAvail;
 
     updateLed();
 }
@@ -535,6 +551,7 @@ void app::resetSystem(void) {
 #endif
 
     mSendFirst = true;
+    mAllIvNotAvail = true;
 
     mSunrise = 0;
     mSunset  = 0;

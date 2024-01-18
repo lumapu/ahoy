@@ -689,13 +689,13 @@ class RestApi {
             obj[F("disp_cont")]         = (uint8_t)mConfig->plugin.display.contrast;
             obj[F("disp_graph_ratio")]  = (uint8_t)mConfig->plugin.display.graph_ratio;
             obj[F("disp_graph_size")]   = (uint8_t)mConfig->plugin.display.graph_size;
-            obj[F("disp_clk")]          = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : mConfig->plugin.display.disp_clk;
-            obj[F("disp_data")]         = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : mConfig->plugin.display.disp_data;
-            obj[F("disp_cs")]           = (mConfig->plugin.display.type < DISP_TYPE_T3_PCD8544_84X48) ? DEF_PIN_OFF : mConfig->plugin.display.disp_cs;
-            obj[F("disp_dc")]           = (mConfig->plugin.display.type < DISP_TYPE_T3_PCD8544_84X48) ? DEF_PIN_OFF : mConfig->plugin.display.disp_dc;
-            obj[F("disp_rst")]          = (mConfig->plugin.display.type < DISP_TYPE_T3_PCD8544_84X48) ? DEF_PIN_OFF : mConfig->plugin.display.disp_reset;
-            obj[F("disp_bsy")]          = (mConfig->plugin.display.type < DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : mConfig->plugin.display.disp_busy;
-            obj[F("pir_pin")]           =  mConfig->plugin.display.pirPin;
+            obj[F("disp_clk")]          = mConfig->plugin.display.disp_clk;
+            obj[F("disp_data")]         = mConfig->plugin.display.disp_data;
+            obj[F("disp_cs")]           = mConfig->plugin.display.disp_cs;
+            obj[F("disp_dc")]           = mConfig->plugin.display.disp_dc;
+            obj[F("disp_rst")]          = mConfig->plugin.display.disp_reset;
+            obj[F("disp_bsy")]          = mConfig->plugin.display.disp_busy;
+            obj[F("pir_pin")]           = mConfig->plugin.display.pirPin;
         }
 
         void getMqttInfo(JsonObject obj) {

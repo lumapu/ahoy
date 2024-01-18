@@ -58,7 +58,6 @@ class DisplayEPaper {
         const char* _version;
         RefreshStatus mRefreshState, mNextRefreshState;
         uint8_t mSecondCnt;
-        bool mFirst = true;
 };
 
 #endif  // ESP32

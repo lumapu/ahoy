@@ -319,7 +319,7 @@ class app : public IApp, public ah::Scheduler {
             #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
-            if(mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
+            if(DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
                mDisplay.payloadEventListener(cmd);
             #endif
            updateLed();
@@ -366,6 +366,7 @@ class app : public IApp, public ah::Scheduler {
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);
+        void notAvailChanged(void);
 
         HmSystemType mSys;
         HmRadio<> mNrfRadio;
@@ -402,6 +403,7 @@ class app : public IApp, public ah::Scheduler {
 
         uint8_t mSendLastIvId;
         bool mSendFirst;
+        bool mAllIvNotAvail;
 
         bool mNetworkConnected;
 

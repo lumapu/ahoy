@@ -30,11 +30,11 @@ class PubMqttIvData {
 
             mRTRDataHasBeenSent = false;
 
-            mTable[IDLE]            = &PubMqttIvData::stateIdle;
-            mTable[START]           = &PubMqttIvData::stateStart;
-            mTable[FIND_NXT_IV]     = &PubMqttIvData::stateFindNxtIv;
-            mTable[SEND_DATA]       = &PubMqttIvData::stateSend;
-            mTable[SEND_TOTALS]     = &PubMqttIvData::stateSendTotals;
+            mTable[IDLE]        = &PubMqttIvData::stateIdle;
+            mTable[START]       = &PubMqttIvData::stateStart;
+            mTable[FIND_NXT_IV] = &PubMqttIvData::stateFindNxtIv;
+            mTable[SEND_DATA]   = &PubMqttIvData::stateSend;
+            mTable[SEND_TOTALS] = &PubMqttIvData::stateSendTotals;
         }
 
         void loop() {

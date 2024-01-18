@@ -93,7 +93,7 @@ class Display {
 
     private:
     void DataScreen() {
-        if (mCfg->type == DISP_TYPE_T0_NONE)
+        if (DISP_TYPE_T0_NONE == mCfg->type)
             return;
 
         float totalPower = 0.0;
@@ -175,7 +175,7 @@ class Display {
             mMono->disp();
         }
 #if defined(ESP32) && !defined(ETHERNET)
-        else if (mCfg->type == DISP_TYPE_T10_EPAPER) {
+        else if (DISP_TYPE_T10_EPAPER == mCfg->type) {
             mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
