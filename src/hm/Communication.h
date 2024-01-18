@@ -12,10 +12,6 @@
 #include "../utils/timemonitor.h"
 #include "Heuristic.h"
 
-#define MI_TIMEOUT          250 // timeout for MI type requests
-#define FRSTMSG_TIMEOUT     150 // how long to wait for first msg to be received
-#define DEFAULT_TIMEOUT     500 // timeout for regular requests
-#define SINGLEFR_TIMEOUT    100 // timeout for single frame requests
 #define MAX_BUFFER          250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
@@ -65,8 +61,6 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) && (q->cmd != GridOnProFilePara) ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
-
                 /*if(mDebugState != mState) {
                     DPRINT(DBG_INFO, F("State: "));
                     DBGHEXLN((uint8_t)(mState));
@@ -94,6 +88,9 @@ class Communication : public CommQueue<> {
                         mFirstTry = q->iv->isAvailable();
                         q->iv->mCmd = q->cmd;
                         q->iv->mIsSingleframeReq = false;
+                        mFramesExpected = getFramesExpected(q); // function to get expected frame count.
+                        mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + DURATION_RESERVE;
+
                         mState = States::START;
                         break;
 
@@ -115,7 +112,8 @@ class Communication : public CommQueue<> {
                             q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
 
                         q->iv->radioStatistics.txCnt++;
-                        mWaitTime.startTimeMonitor(timeout);
+                        q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
+
                         mIsRetransmit    = false;
                         setAttempt();
                         if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
@@ -124,7 +122,7 @@ class Communication : public CommQueue<> {
                         break;
 
                     case States::WAIT:
-                        if (!mWaitTime.isTimeout())
+                        if (!q->iv->radio->mRadioWaitTime.isTimeout())
                             return;
                         mState = States::CHECK_FRAMES;
                         break;
@@ -134,7 +132,7 @@ class Communication : public CommQueue<> {
                             if(*mSerialDebug) {
                                 DPRINT_IVID(DBG_INFO, q->iv->id);
                                 DBGPRINT(F("request timeout: "));
-                                DBGPRINT(String(mWaitTime.getRunTime()));
+                                DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
                                 DBGPRINTLN(F("ms"));
                             }
                             if(!q->iv->mGotFragment) {
@@ -150,13 +148,9 @@ class Communication : public CommQueue<> {
                                         mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                         //q->iv->radioStatistics.rxFailNoAnser++;
                                         q->iv->radioStatistics.retransmits++;
-                                        mWaitTime.stopTimeMonitor();
+                                        q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                         mState = States::START;
 
-                                        /*if(*mSerialDebug) {
-                                            DPRINT_IVID(DBG_INFO, q->iv->id);
-                                            DBGPRINTLN(F("second try"));
-                                        }*/
                                        return;
                                     }
                                 }
@@ -196,36 +190,30 @@ class Communication : public CommQueue<> {
                             yield();
                         }
 
-                        /*if(0 == q->attempts) {
-                            DPRINT_IVID(DBG_INFO, q->iv->id);
-                            DBGPRINT(F("no attempts left"));
-                            closeRequest(q, false);
-                        } else {*/
-                            if(q->iv->ivGen != IV_MI) {
-                                mState = States::CHECK_PACKAGE;
-                            } else {
-                                bool fastNext = true;
-                                if(q->iv->miMultiParts < 6) {
-                                    mState = States::WAIT;
-                                    if((mWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
-                                        miRepeatRequest(q);
-                                        return;
-                                    }
-                                } else {
-                                    mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
-                                    if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
-                                        || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
-                                        || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
-                                        miComplete(q->iv);
-                                        fastNext = false;
-                                    }
-                                    if(fastNext)
-                                        miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
-                                    else
-                                        closeRequest(q, true);
+                        if(q->iv->ivGen != IV_MI) {
+                            mState = States::CHECK_PACKAGE;
+                        } else {
+                            bool fastNext = true;
+                            if(q->iv->miMultiParts < 6) {
+                                mState = States::WAIT;
+                                if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
+                                    miRepeatRequest(q);
+                                    return;
                                 }
+                            } else {
+                                mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+                                if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
+                                    || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
+                                    || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
+                                    miComplete(q->iv);
+                                    fastNext = false;
+                                }
+                                if(fastNext)
+                                    miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
+                                else
+                                    closeRequest(q, true);
                             }
-                        //}
+                        }
 
                         }
                         break;
@@ -318,6 +306,56 @@ class Communication : public CommQueue<> {
                 DHEX(p->packet[0]);
                 DBGPRINT(F(" "));
                 DBGHEXLN(p->packet[9]);
+            }
+        }
+
+
+        inline uint8_t getFramesExpected(const queue_s *q) {
+            if(q->isDevControl)
+                return 1;
+
+            if(q->iv->ivGen != IV_MI) {
+                if (q->cmd == RealTimeRunData_Debug) {
+                    switch (q->iv->type) { // breaks are intentionally missing!
+                        case INV_TYPE_1CH: return 2;
+                        case INV_TYPE_2CH: return 3;
+                        case INV_TYPE_4CH: return 4;
+                        case INV_TYPE_6CH: return 7;
+                        default:   return 7;
+                    }
+                }
+
+                switch (q->cmd) {
+                    case InverterDevInform_All:
+                    case GetLossRate:
+                    case SystemConfigPara:
+                        return 1;
+                    case AlarmData:          return 0x0c;
+                    case GridOnProFilePara:  return 6;
+
+                    /*HardWareConfig           = 3,  // 0x03
+                    SimpleCalibrationPara    = 4,  // 0x04
+                    RealTimeRunData_Reality  = 12, // 0x0c
+                    RealTimeRunData_A_Phase  = 13, // 0x0d
+                    RealTimeRunData_B_Phase  = 14, // 0x0e
+                    RealTimeRunData_C_Phase  = 15, // 0x0f
+                    AlarmUpdate              = 18, // 0x12, Alarm data - all pending alarms
+                    RecordData               = 19, // 0x13
+                    InternalData             = 20, // 0x14
+                    GetSelfCheckState        = 30, // 0x1e
+                    */
+
+                    default:   return 8; // for the moment, this should result in sth. like a default timeout of 500ms
+                }
+
+            } else {  //MI
+                switch (q->cmd) {
+                    case 0x09:
+                    case 0x11:
+                        return 2;
+                    case 0x0f: return 3;
+                    default:   return 1;
+                }
             }
         }
 
@@ -540,15 +578,13 @@ class Communication : public CommQueue<> {
         }
 
         void sendRetransmit(const queue_s *q, uint8_t i) {
-            //if(q->attempts) {
-                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
-                q->iv->radioStatistics.retransmits++;
-                mWaitTime.startTimeMonitor(SINGLEFR_TIMEOUT); // timeout
-                mState = States::WAIT;
-            /*} else {
-                //add(q, true);
-                closeRequest(q, false);
-            }*/
+            mFramesExpected = 1;
+            q->iv->radio->setExpectedFrames(mFramesExpected);
+            q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+            q->iv->radioStatistics.retransmits++;
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
+
+            mState = States::WAIT;
         }
 
     private:
@@ -787,9 +823,11 @@ class Communication : public CommQueue<> {
             if(q->iv->miMultiParts == 7)
                 q->iv->radioStatistics.rxSuccess++;
 
+            mFramesExpected = getFramesExpected(q);
+            q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
 
-            mWaitTime.startTimeMonitor(MI_TIMEOUT);
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
             q->iv->miMultiParts = 0;
             q->iv->mGotFragment = 0;
             mIsRetransmit = true;
@@ -809,8 +847,7 @@ class Communication : public CommQueue<> {
 
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
 
-            mWaitTime.startTimeMonitor(MI_TIMEOUT);
-            //mState = States::WAIT;
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
             mIsRetransmit = false;
         }
 
@@ -965,6 +1002,8 @@ class Communication : public CommQueue<> {
         bool mFirstTry = false;     // see, if we should do a second try
         bool mIsRetransmit = false; // we already had waited one complete cycle
         uint8_t mMaxFrameId;
+        uint8_t mFramesExpected = 12; // 0x8c was highest last frame for alarm data
+        uint16_t mTimeout = 0;       // calculating that once should be ok
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
         powerLimitAckListenerType mCbPwrAck = NULL;

@@ -639,7 +639,13 @@ class Inverter {
                     DBGPRINT(F(", DTU loss: "));
                     DBGPRINT(String(radioStatistics.dtuLoss));
                     DBGPRINT(F(" of "));
-                    DBGPRINTLN(String(radioStatistics.dtuSent));
+                    if(mAckCount) {
+                        DBGPRINT(String(radioStatistics.dtuSent));
+                        DBGPRINT(F(". ACKs: "));
+                        DBGPRINTLN(String(mAckCount));
+                        mAckCount = 0;
+                    } else
+                        DBGPRINTLN(String(radioStatistics.dtuSent));
                 }
 
                 mIvRxCnt  = rxCnt;
@@ -849,7 +855,7 @@ class Inverter {
         uint8_t  mGetLossInterval = 0;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
         uint16_t mIvRxCnt  = 0;
         uint16_t mIvTxCnt  = 0;
-
+        uint16_t mAckCount = 0;
 };
 
 template <class REC_TYP>

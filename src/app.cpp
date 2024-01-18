@@ -7,8 +7,6 @@
 #include "app.h"
 #include "utils/sun.h"
 
-#define WDT_TIMEOUT_SECONDS 8   // Watchdog Timeout 8s
-
 #if !defined(ESP32)
     void esp_task_wdt_reset() {}
 #endif

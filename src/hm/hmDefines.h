@@ -86,6 +86,12 @@ enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
 #define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
 #define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
 
+#define DURATION_ONEFRAME       50 // timeout parameter for each expected frame (ms)
+#define DURATION_RESERVE        90 // timeout parameter to still wait after last expected frame (ms)
+#define DURATION_TXFRAME        60 // timeout parameter for first transmission and first expected frame (time to first channel switch from tx start!) (ms)
+#define DURATION_LISTEN_MIN      5 // time to stay at least on a listening channel (ms)
+#define DURATION_PAUSE_LASTFR   45 // how long to pause after last frame (ms)
+
 
 typedef struct {
     uint8_t    fieldId; // field id

@@ -10,6 +10,7 @@
 #include <ArduinoJson.h>
 #if defined(ESP32)
 #include <esp_task_wdt.h>
+#define WDT_TIMEOUT_SECONDS 8   // Watchdog Timeout 8s
 #endif
 
 #include "config/settings.h"
