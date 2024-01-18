@@ -599,28 +599,28 @@ class Web {
             mConfig->plugin.display.graph_size  = request->arg("disp_graph_size").toInt();
             mConfig->plugin.display.rot         = request->arg("disp_rot").toInt();
             mConfig->plugin.display.type        = request->arg("disp_typ").toInt();
-            mConfig->plugin.display.contrast    = (mConfig->plugin.display.type == 0) ||   // contrast available only according optionsMap in setup.html, otherwise default value
-                                                  (mConfig->plugin.display.type == 10) ? 140 : request->arg("disp_cont").toInt();
-            mConfig->plugin.display.screenSaver = ((mConfig->plugin.display.type == 1) ||  // screensaver available only according optionsMap in setup.html, otherwise default value
-                                                   (mConfig->plugin.display.type == 2) ||
-                                                   (mConfig->plugin.display.type == 4) ||
-                                                   (mConfig->plugin.display.type == 5) ||
-                                                   (mConfig->plugin.display.type == 6)) ? request->arg("disp_screensaver").toInt() : 1;
-            mConfig->plugin.display.graph_ratio = ((mConfig->plugin.display.type == 1) ||  // display graph available only according optionsMap in setup.html, otherwise has to be 0
-                                                   (mConfig->plugin.display.type == 2) ||
-                                                   (mConfig->plugin.display.type == 3) ||
-                                                   (mConfig->plugin.display.type == 6)) ? request->arg("disp_graph_ratio").toInt() : 0;
+            mConfig->plugin.display.contrast    = (mConfig->plugin.display.type  == DISP_TYPE_T0_NONE) ||   // contrast available only according optionsMap in setup.html, otherwise default value
+                                                  (mConfig->plugin.display.type  == DISP_TYPE_T10_EPAPER) ? 140 : request->arg("disp_cont").toInt();
+            mConfig->plugin.display.screenSaver = ((mConfig->plugin.display.type == DISP_TYPE_T1_SSD1306_128X64) ||  // screensaver available only according optionsMap in setup.html, otherwise default value
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T2_SH1106_128X64) ||
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T4_SSD1306_128X32) ||
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T5_SSD1306_64X48) ||
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T6_SSD1309_128X64)) ? request->arg("disp_screensaver").toInt() : 1;
+            mConfig->plugin.display.graph_ratio = ((mConfig->plugin.display.type == DISP_TYPE_T1_SSD1306_128X64) ||  // display graph available only according optionsMap in setup.html, otherwise has to be 0
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T2_SH1106_128X64) ||
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T3_PCD8544_84X48) ||
+                                                   (mConfig->plugin.display.type == DISP_TYPE_T6_SSD1309_128X64)) ? request->arg("disp_graph_ratio").toInt() : 0;
 
                                                                                            // available pins according pinMap in setup.html, otherwise default value
-            mConfig->plugin.display.disp_data   = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
-            mConfig->plugin.display.disp_clk    = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
-            mConfig->plugin.display.disp_cs     = (mConfig->plugin.display.type != 3) &&
-                                                  (mConfig->plugin.display.type != 10) ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
-            mConfig->plugin.display.disp_dc     = (mConfig->plugin.display.type != 3) &&
-                                                  (mConfig->plugin.display.type != 10) ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
-            mConfig->plugin.display.disp_reset  = (mConfig->plugin.display.type != 10) ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
-            mConfig->plugin.display.disp_busy   = (mConfig->plugin.display.type != 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
-            mConfig->plugin.display.pirPin      = (mConfig->plugin.display.screenSaver != 2) ? DEF_PIN_OFF : request->arg("pir_pin").toInt(); // pir pin only for motion screensaver
+            mConfig->plugin.display.disp_data   = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
+            mConfig->plugin.display.disp_clk    = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
+            mConfig->plugin.display.disp_cs     = (mConfig->plugin.display.type != DISP_TYPE_T3_PCD8544_84X48) &&
+                                                  (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_dc     = (mConfig->plugin.display.type != DISP_TYPE_T3_PCD8544_84X48) &&
+                                                  (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
+            mConfig->plugin.display.disp_reset  = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_busy   = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.pirPin      = (mConfig->plugin.display.screenSaver != DISP_TYPE_T2_SH1106_128X64) ? DEF_PIN_OFF : request->arg("pir_pin").toInt(); // pir pin only for motion screensaver
                                                                                                                                               // otherweise default value
 
             mApp->saveSettings((request->arg("reboot") == "on"));

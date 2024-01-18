@@ -319,7 +319,7 @@ class app : public IApp, public ah::Scheduler {
             #endif /*ENABLE_MQTT*/
             #endif
             #if defined(PLUGIN_DISPLAY)
-            if(mConfig->plugin.display.type != 0)
+            if(mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
                mDisplay.payloadEventListener(cmd);
             #endif
            updateLed();

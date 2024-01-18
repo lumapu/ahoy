@@ -4,6 +4,7 @@
 //-----------------------------------------------------------------------------
 
 #pragma once
+#include "Display.h"
 #include "Display_Mono.h"
 
 class DisplayMono128X64 : public DisplayMono {
@@ -19,13 +20,13 @@ class DisplayMono128X64 : public DisplayMono {
         void init(DisplayData *displayData) {
             u8g2_cb_t *rot = (u8g2_cb_t *)(( mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
             switch (mCfg->type) {
-                case 1:
+                case DISP_TYPE_T1_SSD1306_128X64:
                     monoInit(new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
                     break;
-                case 2:
+                case DISP_TYPE_T2_SH1106_128X64:
                     monoInit(new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
                     break;
-                case 6:
+                case DISP_TYPE_T6_SSD1309_128X64:
                 default:
                     monoInit(new U8G2_SSD1309_128X64_NONAME0_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
                     break;

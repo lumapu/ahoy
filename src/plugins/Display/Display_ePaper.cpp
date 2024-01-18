@@ -7,6 +7,7 @@
 #endif
 #include "../../utils/helper.h"
 #include "imagedata.h"
+#include "defines.h"
 
 #if defined(ESP32)
 
@@ -29,7 +30,7 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     mRefreshState = RefreshStatus::BLACK;
     mSecondCnt = 2;
 
-    if (type == 10) {
+    if (type == DISP_TYPE_T10_EPAPER) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
 

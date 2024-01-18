@@ -78,6 +78,18 @@ union serial_u {
 
 enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
+enum {
+    DISP_TYPE_T0_NONE           = 0,
+    DISP_TYPE_T1_SSD1306_128X64 = 1,
+    DISP_TYPE_T2_SH1106_128X64  = 2,
+    DISP_TYPE_T3_PCD8544_84X48  = 3,
+    DISP_TYPE_T4_SSD1306_128X32 = 4,
+    DISP_TYPE_T5_SSD1306_64X48  = 5,
+    DISP_TYPE_T6_SSD1309_128X64 = 6,
+    DISP_TYPE_T10_EPAPER        = 10
+};
+
+
 //-------------------------------------
 // EEPROM
 //-------------------------------------

@@ -108,7 +108,7 @@ void app::setup() {
     #endif
     // Plugins
     #if defined(PLUGIN_DISPLAY)
-    if (mConfig->plugin.display.type != 0)
+    if (mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
         #if defined(ESP32)
         mDisplay.setup(this, &mConfig->plugin.display, &mSys, &mNrfRadio, &mCmtRadio, &mTimestamp);
         #else
@@ -186,7 +186,7 @@ void app::regularTickers(void) {
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     // Plugins
     #if defined(PLUGIN_DISPLAY)
-    if (mConfig->plugin.display.type != 0)
+    if (mConfig->plugin.display.type != DISP_TYPE_T0_NONE)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     #endif
     every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");

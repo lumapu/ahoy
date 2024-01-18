@@ -37,15 +37,15 @@ class Display {
         mDisplayData.version = app->getVersion();  // version never changes, so only set once
 
         switch (mCfg->type) {
-            case 0: mMono = NULL; break;                    // None
-            case 1: mMono = new DisplayMono128X64(); break; // SSD1306_128X64 (0.96", 1.54")
-            case 2: mMono = new DisplayMono128X64(); break; // SH1106_128X64 (1.3")
-            case 3: mMono = new DisplayMono84X48(); break;  // PCD8544_84X48 (1.6" - Nokia 5110)
-            case 4: mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
-            case 5: mMono = new DisplayMono64X48(); break;  // SSD1306_64X48 (0.66" - Wemos OLED Shield)
-            case 6: mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
+            case DISP_TYPE_T0_NONE:             mMono = NULL; break;                    // None
+            case DISP_TYPE_T1_SSD1306_128X64:   mMono = new DisplayMono128X64(); break; // SSD1306_128X64 (0.96", 1.54")
+            case DISP_TYPE_T2_SH1106_128X64:    mMono = new DisplayMono128X64(); break; // SH1106_128X64 (1.3")
+            case DISP_TYPE_T3_PCD8544_84X48:    mMono = new DisplayMono84X48();  break; // PCD8544_84X48 (1.6" - Nokia 5110)
+            case DISP_TYPE_T4_SSD1306_128X32:   mMono = new DisplayMono128X32(); break; // SSD1306_128X32 (0.91")
+            case DISP_TYPE_T5_SSD1306_64X48:    mMono = new DisplayMono64X48();  break; // SSD1306_64X48 (0.66" - Wemos OLED Shield)
+            case DISP_TYPE_T6_SSD1309_128X64:   mMono = new DisplayMono128X64(); break; // SSD1309_128X64 (2.42")
 #if defined(ESP32) && !defined(ETHERNET)
-            case 10:
+            case DISP_TYPE_T10_EPAPER:
                 mMono = NULL;   // ePaper does not use this
                 mRefreshCycle = 0;
                 mEpaper.config(mCfg->rot, mCfg->pwrSaveAtIvOffline);
@@ -93,7 +93,7 @@ class Display {
 
     private:
     void DataScreen() {
-        if (mCfg->type == 0)
+        if (mCfg->type == DISP_TYPE_T0_NONE)
             return;
 
         float totalPower = 0.0;
@@ -175,7 +175,7 @@ class Display {
             mMono->disp();
         }
 #if defined(ESP32) && !defined(ETHERNET)
-        else if (mCfg->type == 10) {
+        else if (mCfg->type == DISP_TYPE_T10_EPAPER) {
             mEpaper.loop((totalPower), totalYieldDay, totalYieldTotal, nrprod);
             mRefreshCycle++;
         }
