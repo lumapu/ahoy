@@ -34,9 +34,9 @@ namespace ah {
             void setup(bool directStart) {
                 mUptime     = 0;
                 mTimestamp  = (directStart) ? 1 : 0;
-                mTsMillis   = 0;
                 mMax        = 0;
                 mPrevMillis = millis();
+                mTsMillis   = mPrevMillis % 1000;
                 resetTicker();
             }
 
@@ -62,7 +62,7 @@ namespace ah {
                 mUptime += mDiffSeconds;
                 if(0 != mTimestamp) {
                     mTimestamp += mDiffSeconds;
-                    mTsMillis  = mMillis % 1000;
+                    mTsMillis  = mPrevMillis % 1000;
                 }
                 checkTicker();
 
@@ -80,7 +80,6 @@ namespace ah {
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
-                mTsMillis  = millis() % 1000;
             }
 
             bool resetEveryById(uint8_t id) {
