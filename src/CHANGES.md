@@ -2,6 +2,9 @@
 
 ## 0.8.60 - 2024-01-20
 * merge PR: non blocking nRF loop #1371
+* merge PR: fixed millis in serial log #1373
+* merge PR: fix powergraph scale #1374
+* changed inverter gap to `1` as default (old settings will be overridden)
 
 ## 0.8.59 - 2024-01-18
 * merge PR: solve display settings dependencies #1369

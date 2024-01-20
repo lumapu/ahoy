@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      8
+#define CONFIG_VERSION      9
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -448,7 +448,7 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 500;
+            mCfg.inst.gapMs            = 1;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -508,6 +508,9 @@ class settings {
                 }
                 if(mCfg.configVersion < 8) {
                     mCfg.sun.offsetSecEvening = mCfg.sun.offsetSecMorning;
+                }
+                if(mCfg.configVersion < 9) {
+                    mCfg.inst.gapMs = 1;
                 }
             }
         }
