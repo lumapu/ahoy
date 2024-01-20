@@ -133,7 +133,7 @@ class HmRadio : public Radio {
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
-                    tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS
+                    tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS;
                 else
                     tempRxChIdx = (mRxChIdx + rxPendular*4) % RF_CHANNELS;
 
