@@ -120,21 +120,23 @@ class HmRadio : public Radio {
 
                 yield();
 
-                if (millis() - mTimeslotStart < innerLoopTimeout)
+                if ((millis() - mTimeslotStart) < innerLoopTimeout)
                     return; // nothing to do
 
                 // otherwise switch to next RX channel
                 mTimeslotStart = millis();
-                if(!mNRFloopChannels && (mTimeslotStart - mLastIrqTime > (DURATION_TXFRAME+DURATION_ONEFRAME)))
+                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME+DURATION_ONEFRAME)))
                     mNRFloopChannels = true;
 
                 rxPendular = !rxPendular;
                 //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
-                tempRxChIdx = mNRFloopChannels ?
-                    (tempRxChIdx + 4) % RF_CHANNELS :
-                    (mRxChIdx + rxPendular*4) % RF_CHANNELS;
+                if(mNRFloopChannels)
+                    tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS
+                else
+                    tempRxChIdx = (mRxChIdx + rxPendular*4) % RF_CHANNELS;
+
                 mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                 isRxInit = false;
 
@@ -144,7 +146,7 @@ class HmRadio : public Radio {
             // here we got news from the nRF
 
             mNrf24->whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
-            mIrqRcvd   = false;
+            mIrqRcvd     = false;
             mLastIrqTime = millis();
 
             if(tx_ok || tx_fail) {                          // tx related interrupt, basically we should start listening
@@ -172,7 +174,6 @@ class HmRadio : public Radio {
             }
 
             if(rx_ready) {
-
                 if (getReceived()) { // check what we got, returns true for last package
                     mNRFisInRX = false;
                     mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
@@ -188,7 +189,6 @@ class HmRadio : public Radio {
                             mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                         } else
                             mRxChIdx = tempRxChIdx;
-
                     }
                 }
                 return;
@@ -405,9 +405,9 @@ class HmRadio : public Radio {
         bool tx_ok, tx_fail, rx_ready = false;
         unsigned long mTimeslotStart = 0;
         unsigned long mLastIrqTime = 0;
-        bool mNRFloopChannels    = false;
-        bool mNRFisInRX    = false;
-        bool isRxInit      = true;
+        bool mNRFloopChannels = false;
+        bool mNRFisInRX = false;
+        bool isRxInit = true;
         bool rxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
 

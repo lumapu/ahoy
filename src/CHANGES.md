@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.60 - 2024-01-20
+* merge PR: non blocking nRF loop #1371
+
 ## 0.8.59 - 2024-01-18
 * merge PR: solve display settings dependencies #1369
 * fix language typos #1346

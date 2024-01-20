@@ -96,7 +96,7 @@ class Communication : public CommQueue<> {
 
                     case States::START:
                         setTs(mTimestamp);
-                        if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
+                        if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                             // frequency was changed during runtime
                             if(q->iv->curCmtFreq != q->iv->config->frequency) {
                                 if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
@@ -284,7 +284,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            if(q->iv->ivRadioType == INV_RADIO_TYPE_NRF) {
+            if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)
                     DBGPRINT(F("0"));
