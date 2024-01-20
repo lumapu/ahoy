@@ -162,14 +162,15 @@ class Display {
         mDisplayData.RadioRSSI = ivQuality2RadioRSSI(minQAllInv); // Workaround as NRF24 has no RSSI. Approximation by quality levels from heuristic function
         mDisplayData.WifiRSSI = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : SCHAR_MIN;
         mDisplayData.ipAddress = WiFi.localIP();
+
+        // provide localized times to display classes
         time_t utc= mApp->getTimestamp();
         if (year(utc) > 2020)
-            mDisplayData.utcTs = utc;
+            mDisplayData.utcTs = gTimezone.toLocal(utc);
         else
             mDisplayData.utcTs = 0;
-
-        mDisplayData.pGraphStartTime = mApp->getSunrise();
-        mDisplayData.pGraphEndTime = mApp->getSunset();
+        mDisplayData.pGraphStartTime = gTimezone.toLocal(mApp->getSunrise());
+        mDisplayData.pGraphEndTime = gTimezone.toLocal(mApp->getSunset());
 
         if (mMono ) {
             mMono->disp();

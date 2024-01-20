@@ -78,7 +78,7 @@ class DisplayMono84X48 : public DisplayMono {
 
             // print Date and time
             if (0 != mDisplayData->utcTs)
-                printText(ah::getDateTimeStrShort(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), l_Time, 0xff);
+                printText(ah::getDateTimeStrShort(mDisplayData->utcTs).c_str(), l_Time, 0xff);
 
             if (showLine(l_Status)) {
                 // alternatively:
