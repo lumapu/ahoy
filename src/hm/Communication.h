@@ -89,14 +89,14 @@ class Communication : public CommQueue<> {
                         q->iv->mCmd = q->cmd;
                         q->iv->mIsSingleframeReq = false;
                         mFramesExpected = getFramesExpected(q); // function to get expected frame count.
-                        mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + DURATION_RESERVE;
+                        mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
 
                         mState = States::START;
                         break;
 
                     case States::START:
                         setTs(mTimestamp);
-                        if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
+                        if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
                             // frequency was changed during runtime
                             if(q->iv->curCmtFreq != q->iv->config->frequency) {
                                 if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
@@ -136,7 +136,7 @@ class Communication : public CommQueue<> {
                                 DBGPRINTLN(F("ms"));
                             }
                             if(!q->iv->mGotFragment) {
-                                if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
+                                if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
                                     q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                     mWaitTime.startTimeMonitor(1000);
                                 } else {
@@ -284,7 +284,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            if((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen)) {
+            if(q->iv->ivRadioType == INV_RADIO_TYPE_NRF) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)
                     DBGPRINT(F("0"));
@@ -316,13 +316,8 @@ class Communication : public CommQueue<> {
 
             if(q->iv->ivGen != IV_MI) {
                 if (q->cmd == RealTimeRunData_Debug) {
-                    switch (q->iv->type) { // breaks are intentionally missing!
-                        case INV_TYPE_1CH: return 2;
-                        case INV_TYPE_2CH: return 3;
-                        case INV_TYPE_4CH: return 4;
-                        case INV_TYPE_6CH: return 7;
-                        default:   return 7;
-                    }
+                    uint8_t framecnt[4] = {2, 3, 4, 7};
+                    return framecnt[q->iv->type];
                 }
 
                 switch (q->cmd) {
@@ -350,8 +345,8 @@ class Communication : public CommQueue<> {
 
             } else {  //MI
                 switch (q->cmd) {
-                    case 0x09:
-                    case 0x11:
+                    case MI_REQ_CH1:
+                    case MI_REQ_CH2:
                         return 2;
                     case 0x0f: return 3;
                     default:   return 1;
@@ -582,7 +577,7 @@ class Communication : public CommQueue<> {
             q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
             q->iv->radioStatistics.retransmits++;
-            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
 
             mState = States::WAIT;
         }
@@ -827,7 +822,7 @@ class Communication : public CommQueue<> {
             q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
 
-            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             q->iv->miMultiParts = 0;
             q->iv->mGotFragment = 0;
             mIsRetransmit = true;
@@ -847,7 +842,7 @@ class Communication : public CommQueue<> {
 
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
 
-            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + DURATION_RESERVE);
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             mIsRetransmit = false;
         }
 

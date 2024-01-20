@@ -76,6 +76,7 @@ enum {CMD_CALC = 0xffff};
 enum {CH0 = 0, CH1, CH2, CH3, CH4, CH5, CH6};
 
 enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
+enum {INV_RADIO_TYPE_NRF = 0, INV_RADIO_TYPE_CMT};
 
 #define WORK_FREQ_KHZ       865000 // desired work frequency between DTU and
                                    // inverter in kHz
@@ -87,11 +88,11 @@ enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
 #define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
 
 #define DURATION_ONEFRAME       50 // timeout parameter for each expected frame (ms)
-#define DURATION_RESERVE        90 // timeout parameter to still wait after last expected frame (ms)
-#define DURATION_TXFRAME        60 // timeout parameter for first transmission and first expected frame (time to first channel switch from tx start!) (ms)
+//#define DURATION_RESERVE  {90,120} // timeout parameter to still wait after last expected frame (ms)
+#define DURATION_TXFRAME        85 // timeout parameter for first transmission and first expected frame (time to first channel switch from tx start!) (ms)
 #define DURATION_LISTEN_MIN      5 // time to stay at least on a listening channel (ms)
 #define DURATION_PAUSE_LASTFR   45 // how long to pause after last frame (ms)
-
+const uint8_t duration_reserve[2] = {115,115};
 
 typedef struct {
     uint8_t    fieldId; // field id

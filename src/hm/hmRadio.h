@@ -125,11 +125,16 @@ class HmRadio : public Radio {
 
                 // otherwise switch to next RX channel
                 mTimeslotStart = millis();
+                if(!mNRFloopChannels && (mTimeslotStart - mLastIrqTime > (DURATION_TXFRAME+DURATION_ONEFRAME)))
+                    mNRFloopChannels = true;
+
                 rxPendular = !rxPendular;
                 //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
-                tempRxChIdx = (mRxChIdx + rxPendular*chOffset2) % RF_CHANNELS;
+                tempRxChIdx = mNRFloopChannels ?
+                    (tempRxChIdx + 4) % RF_CHANNELS :
+                    (mRxChIdx + rxPendular*4) % RF_CHANNELS;
                 mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                 isRxInit = false;
 
@@ -140,6 +145,7 @@ class HmRadio : public Radio {
 
             mNrf24->whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
             mIrqRcvd   = false;
+            mLastIrqTime = millis();
 
             if(tx_ok || tx_fail) {                          // tx related interrupt, basically we should start listening
                 mNrf24->flush_tx();                         // empty TX FIFO
@@ -154,13 +160,13 @@ class HmRadio : public Radio {
                     mLastIv->mAckCount++;
 
                 // start listening
-                mRxChIdx = (mTxChIdx + chOffset) % RF_CHANNELS;
+                mRxChIdx = (mTxChIdx + 2    ) % RF_CHANNELS;
                 mNrf24->setChannel(mRfChLst[mRxChIdx]);
                 mNrf24->startListening();
                 mTimeslotStart = millis();
                 tempRxChIdx = mRxChIdx;
-                chOffset2 = mLastIv->ivGen == IV_HM ? 4 : (mLastIv->mCmd == MI_REQ_CH1 || mLastIv->mCmd == MI_REQ_CH2) ? 1 :4; // reversed channel order for everything apart from 1/2ch MI Data requests
                 rxPendular = false;
+                mNRFloopChannels = mLastIv->ivGen == IV_MI;
 
                 innerLoopTimeout = DURATION_TXFRAME;
             }
@@ -172,17 +178,18 @@ class HmRadio : public Radio {
                     mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
                     // add stop listening?
                 } else {
-                    //rxPendular = true; // stay longer on the next rx channel
-
-                    if (isRxInit) {
-                        isRxInit = false;
-                        tempRxChIdx = (mRxChIdx + chOffset2) % RF_CHANNELS;
-                        mNrf24->setChannel(mRfChLst[tempRxChIdx]);
-                    } else {
-                        mRxChIdx = tempRxChIdx;
-                    }
                     innerLoopTimeout = DURATION_LISTEN_MIN;
                     mTimeslotStart = millis();
+                    if (!mNRFloopChannels) {
+                        //rxPendular = true; // stay longer on the next rx channel
+                        if (isRxInit) {
+                            isRxInit = false;
+                            tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
+                            mNrf24->setChannel(mRfChLst[tempRxChIdx]);
+                        } else
+                            mRxChIdx = tempRxChIdx;
+
+                    }
                 }
                 return;
             }
@@ -396,14 +403,13 @@ class HmRadio : public Radio {
         bool    mGotLastMsg = false;
         uint32_t mMillis;
         bool tx_ok, tx_fail, rx_ready = false;
-        uint8_t chOffset = 2;
-        uint8_t chOffset2 = 4;
         unsigned long mTimeslotStart = 0;
+        unsigned long mLastIrqTime = 0;
+        bool mNRFloopChannels    = false;
         bool mNRFisInRX    = false;
         bool isRxInit      = true;
         bool rxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
-        //uint32_t outerLoopTimeout = 400;
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

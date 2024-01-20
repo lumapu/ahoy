@@ -114,6 +114,7 @@ template <class REC_TYP>
 class Inverter {
     public:
         uint8_t       ivGen;             // generation of inverter (HM / MI)
+        uint8_t       ivRadioType;       // refers to used radio (nRF24 / CMT)
         cfgIv_t       *config;           // stored settings
         uint8_t       id;                // unique id
         uint8_t       type;              // integer which refers to inverter type
