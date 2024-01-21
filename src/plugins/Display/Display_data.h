@@ -8,9 +8,9 @@ struct DisplayData {
     float totalPower=0.0f;      // indicate current power (W)
     float totalYieldDay=0.0f;   // indicate day yield (Wh)
     float totalYieldTotal=0.0f; // indicate total yield (kWh)
-    uint32_t utcTs=0;           // indicate absolute timestamp (utc unix time). 0 = time is not synchonized
-    uint32_t pGraphStartTime=0; // starttime for power graph (e.g. sunRise)
-    uint32_t pGraphEndTime=0;   // starttime for power graph (e.g. sunSet)
+    uint32_t utcTs=0;           // indicate absolute timestamp (localized utc unix time). 0 = time is not synchonized
+    uint32_t pGraphStartTime=0; // localized starttime for power graph (e.g. sunRise)
+    uint32_t pGraphEndTime=0;   // localized endttime for power graph (e.g. sunSet)
     uint8_t nrProducing=0;      // indicate number of producing inverters
     uint8_t nrSleeping=0;       // indicate number of sleeping inverters
     bool WifiSymbol = false;    // indicate if WiFi is connected
