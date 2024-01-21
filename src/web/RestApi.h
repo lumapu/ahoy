@@ -206,8 +206,10 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
+            #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
             ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
+            #endif
         }
 
 

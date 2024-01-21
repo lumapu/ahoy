@@ -3,6 +3,9 @@
 ## 0.8.61 - 2024-01-21
 * add favicon to header
 * improved NRF communication
+* merge PR: provide localized times to display mono classes #1376
+* merge PR: Bypass OOM-Crash on minimal version & history access #1378
+* merge PR: Add some REST Api Endpoints to avail_endpoints #1380
 
 ## 0.8.60 - 2024-01-20
 * merge PR: non blocking nRF loop #1371
