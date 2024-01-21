@@ -143,16 +143,17 @@ class Communication : public CommQueue<> {
                             } else {
                                 if(IV_MI == q->iv->ivGen)
                                     q->iv->mIvTxCnt++;
+
                                 if(mFirstTry) {
-                                    mFirstTry     = false;
+                                    mFirstTry = false;
                                     setAttempt();
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
-                                    //q->iv->radioStatistics.rxFailNoAnser++;
+                                    q->iv->radioStatistics.rxFailNoAnser++;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;
 
-                                   return;
+                                    return;
                                 }
                             }
                         }

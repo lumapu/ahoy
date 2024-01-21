@@ -78,13 +78,11 @@ class HmRadio : public Radio {
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
             #endif
-            mNrf24->setRetries(3, 15); // 3*250us + 250us and 16 loops -> 15.25ms
+            mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
-            mNrf24->setChannel(mRfChLst[mRxChIdx]);
-            mNrf24->startListening();
             mNrf24->setDataRate(RF24_250KBPS);
-            mNrf24->setAutoAck(true);
-            mNrf24->enableDynamicAck();
+            //mNrf24->setAutoAck(true); // enabled by default
+            //mNrf24->enableDynamicAck();
             mNrf24->enableDynamicPayloads();
             mNrf24->setCRCLength(RF24_CRC_16);
             mNrf24->setAddressWidth(5);
@@ -155,21 +153,6 @@ class HmRadio : public Radio {
                     if(tx_ok)
                         mLastIv->mAckCount++;
 
-                    // start listening
-                    if(!mIsRetransmit) {
-                        if(mTxSetupTime < 30) {
-                            mRxChIdx = (mTxChIdx + 4) % RF_CHANNELS;
-                            mNrf24->setChannel(mRfChLst[mRxChIdx]);
-                            mNrf24->startListening();
-
-                            do {
-                                yield();
-                            } while((millis() - mMillis) < 37);
-                        }
-                    }
-                    mIsRetransmit = false;
-
-
                     mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
                     mNrf24->setChannel(mRfChLst[mRxChIdx]);
                     mNrf24->startListening();
@@ -185,7 +168,7 @@ class HmRadio : public Radio {
                     if (getReceived()) { // check what we got, returns true for last package
                         mNRFisInRX = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
-                        // add stop listening?
+                        mNrf24->stopListening();
                     } else {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
@@ -398,7 +381,6 @@ class HmRadio : public Radio {
             mLastIv = iv;
             iv->mDtuTxCnt++;
             mNRFisInRX = false;
-            mIsRetransmit = isRetransmit;
         }
 
         uint64_t getIvId(Inverter<> *iv) {
@@ -433,7 +415,6 @@ class HmRadio : public Radio {
         bool rxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
         uint8_t mTxSetupTime = 0;
-        bool mIsRetransmit = false;
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.62 - 2024-01-21
+* updated version in footer #1381
+* repaired radio statistics #1382
+
 ## 0.8.61 - 2024-01-21
 * add favicon to header
 * improved NRF communication

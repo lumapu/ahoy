@@ -210,9 +210,10 @@ class Inverter {
                         cb(GridOnProFilePara, false);
                     } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                         mGetLossInterval = 1;
+                        cb(RealTimeRunData_Debug, false); // get live data
                         cb(GetLossRate, false);
                     } else
-                        cb(RealTimeRunData_Debug, false);    // get live data
+                        cb(RealTimeRunData_Debug, false); // get live data
                 }
             } else { // MI
                 if(0 == getFwVersion()) {
