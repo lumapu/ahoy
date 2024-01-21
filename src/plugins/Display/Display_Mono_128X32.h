@@ -56,7 +56,7 @@ class DisplayMono128X32 : public DisplayMono {
                 snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", mDisplayData->nrProducing);
                 printText(mFmtText, 3);
             } else if (0 != mDisplayData->utcTs)
-                printText(ah::getTimeStr(gTimezone.toLocal(mDisplayData->utcTs)).c_str(), 3);
+                printText(ah::getTimeStr(mDisplayData->utcTs).c_str(), 3);
 
             mDisplay->sendBuffer();
 
