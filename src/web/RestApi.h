@@ -805,6 +805,8 @@ class RestApi {
             }
             obj[F("max")] = max;
             obj[F("maxDay")] = mApp->getHistoryMaxDay();
+            #else
+            obj[F("refresh")] = 86400;  // 1 day;
             #endif /*ENABLE_HISTORY*/
         }
 
@@ -820,6 +822,8 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
+            #else
+            obj[F("refresh")] = 86400;  // 1 day
             #endif /*ENABLE_HISTORY*/
         }
 
