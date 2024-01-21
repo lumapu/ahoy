@@ -42,6 +42,7 @@ namespace ah {
     double round3(double value);
     String getDateTimeStr(time_t t);
     String getDateTimeStrShort(time_t t);
+    String getDateTimeStrShort_i18n(time_t t);
     String getDateTimeStrFile(time_t t);
     String getTimeStr(time_t t);
     String getTimeStrMs(uint64_t t);

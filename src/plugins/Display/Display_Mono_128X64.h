@@ -93,7 +93,7 @@ class DisplayMono128X64 : public DisplayMono {
 
             // print Date and time
             if (0 != mDisplayData->utcTs)
-                printText(ah::getDateTimeStrShort(mDisplayData->utcTs).c_str(), l_Time, 0xff);
+                printText(ah::getDateTimeStrShort_i18n(mDisplayData->utcTs).c_str(), l_Time, 0xff);
 
             if (showLine(l_Status)) {
                 // alternatively:
@@ -145,7 +145,7 @@ class DisplayMono128X64 : public DisplayMono {
 
                     printText(mFmtText, l_TotalPower, 0xff);
                 } else {
-                    printText("offline", l_TotalPower, 0xff);
+                    printText(STR_OFFLINE, l_TotalPower, 0xff);
                 }
             }
 
