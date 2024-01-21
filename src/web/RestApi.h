@@ -200,8 +200,14 @@ class RestApi {
             ep[F("generic")]          = url + F("generic");
             ep[F("index")]            = url + F("index");
             ep[F("setup")]            = url + F("setup");
+            #if !defined(ETHERNET)
+            ep[F("setup/networks")]   = url + F("setup/networks");
+            ep[F("setup/getip")]      = url + F("setup/getip");
+            #endif /* !defined(ETHERNET) */
             ep[F("system")]           = url + F("system");
             ep[F("live")]             = url + F("live");
+            ep[F("powerHistory")]     = url + F("powerHistory");
+            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
         }
 
 
