@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.61 - 2024-01-21
+* add favicon to header
+* improved NRF communication
+
 ## 0.8.60 - 2024-01-20
 * merge PR: non blocking nRF loop #1371
 * merge PR: fixed millis in serial log #1373

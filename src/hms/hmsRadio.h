@@ -26,15 +26,16 @@ class CmtRadio : public Radio {
             mPrintWholeTrace = printWholeTrace;
         }
 
-        void loop() {
+        bool loop() {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return;
+                return false;
             getRx();
             if(CMT_SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
+            return false;
         }
 
         bool isChipConnected(void) {
@@ -134,8 +135,8 @@ class CmtRadio : public Radio {
                 mCmt.goRx();
             }
 
-            mIrqRcvd        = false;
-            mRqstGetRx      = false;
+            mIrqRcvd   = false;
+            mRqstGetRx = false;
         }
 
         inline void sendSwitchChCmd(Inverter<> *iv, uint8_t ch) {
@@ -163,11 +164,16 @@ class CmtRadio : public Radio {
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
+
+            // this code completly stops communication!
+            //if(p.packet[9] > ALL_FRAMES)          // indicates last frame
+            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
+            //optionally instead: mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
         }
 
         CmtType mCmt;
-        //bool mRqstGetRx;
         bool mCmtAvail;
+        bool mRqstGetRx = false;
         uint32_t mMillis;
 };
 

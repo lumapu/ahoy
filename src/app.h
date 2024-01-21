@@ -405,6 +405,7 @@ class app : public IApp, public ah::Scheduler {
         uint8_t mSendLastIvId;
         bool mSendFirst;
         bool mAllIvNotAvail;
+        bool mNrfActive = false;
 
         bool mNetworkConnected;
 

@@ -28,8 +28,7 @@ class Radio {
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
         virtual bool isChipConnected(void) { return false; }
-
-        virtual void loop(void) {};
+        virtual bool loop(void) = 0;
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -126,7 +125,6 @@ class Radio {
 
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;
-        bool mRqstGetRx;
         bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
         uint8_t mFramesExpected = 0x0c;

@@ -61,221 +61,220 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                /*if(mDebugState != mState) {
-                    DPRINT(DBG_INFO, F("State: "));
-                    DBGHEXLN((uint8_t)(mState));
-                    mDebugState = mState;
-                }*/
-                switch(mState) {
-                    case States::RESET:
-                        if (!mWaitTime.isTimeout())
-                            return;
-
-                        mMaxFrameId = 0;
-                        for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
-                            mLocalBuf[i].len = 0;
-                        }
-
-                        if(*mSerialDebug)
-                            mHeu.printStatus(q->iv);
-                        mHeu.getTxCh(q->iv);
-                        q->iv->mGotFragment = false;
-                        q->iv->mGotLastMsg  = false;
-                        q->iv->curFrmCnt    = 0;
-                        mIsRetransmit = false;
-                        if(NULL == q->iv->radio)
-                            cmdDone(false); // can't communicate while radio is not defined!
-                        mFirstTry = q->iv->isAvailable();
-                        q->iv->mCmd = q->cmd;
-                        q->iv->mIsSingleframeReq = false;
-                        mFramesExpected = getFramesExpected(q); // function to get expected frame count.
-                        mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
-
-                        mState = States::START;
-                        break;
-
-                    case States::START:
-                        setTs(mTimestamp);
-                        if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
-                            // frequency was changed during runtime
-                            if(q->iv->curCmtFreq != q->iv->config->frequency) {
-                                if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
-                                    q->iv->curCmtFreq = q->iv->config->frequency;
-                            }
-                        }
-
-                        if(q->isDevControl) {
-                            if(ActivePowerContr == q->cmd)
-                                q->iv->powerLimitAck = false;
-                            q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
-                        } else
-                            q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
-
-                        q->iv->radioStatistics.txCnt++;
-                        q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
-
-                        mIsRetransmit    = false;
-                        setAttempt();
-                        if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                            incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
-                        mState = States::WAIT;
-                        break;
-
-                    case States::WAIT:
-                        if (!q->iv->radio->mRadioWaitTime.isTimeout())
-                            return;
-                        mState = States::CHECK_FRAMES;
-                        break;
-
-                    case States::CHECK_FRAMES: {
-                        if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) || (0 == q->attempts)) { // radio buffer empty or no more answers
-                            if(*mSerialDebug) {
-                                DPRINT_IVID(DBG_INFO, q->iv->id);
-                                DBGPRINT(F("request timeout: "));
-                                DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
-                                DBGPRINTLN(F("ms"));
-                            }
-                            if(!q->iv->mGotFragment) {
-                                if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
-                                    q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
-                                    mWaitTime.startTimeMonitor(1000);
-                                } else {
-                                    if(IV_MI == q->iv->ivGen)
-                                        q->iv->mIvTxCnt++;
-                                    if(mFirstTry) {
-                                        mFirstTry     = false;
-                                        setAttempt();
-                                        mHeu.evalTxChQuality(q->iv, false, 0, 0);
-                                        //q->iv->radioStatistics.rxFailNoAnser++;
-                                        q->iv->radioStatistics.retransmits++;
-                                        q->iv->radio->mRadioWaitTime.stopTimeMonitor();
-                                        mState = States::START;
-
-                                       return;
-                                    }
-                                }
-                            }
-                            closeRequest(q, false);
-                            break;
-                        }
-                        mFirstTry = false; // for correct reset
-                        if((IV_MI != q->iv->ivGen) || (0 == q->attempts))
-                            mIsRetransmit = false;
-
-                        while(!q->iv->radio->mBufCtrl.empty()) {
-                            packet_t *p = &q->iv->radio->mBufCtrl.front();
-
-                            if(validateIvSerial(&p->packet[1], q->iv)) {
-                                printRxInfo(q, p);
-                                q->iv->radioStatistics.frmCnt++;
-                                q->iv->mDtuRxCnt++;
-
-                                if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                    if(parseFrame(p))
-                                        q->iv->curFrmCnt++;
-                                } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
-                                    if(parseDevCtrl(p, q))
-                                        closeRequest(q, true);
-                                    else
-                                        closeRequest(q, false);
-                                    q->iv->radio->mBufCtrl.pop();
-                                    return; // don't wait for empty buffer
-                                } else if(IV_MI == q->iv->ivGen) {
-                                    if(parseMiFrame(p, q))
-                                        q->iv->curFrmCnt++;
-                                }
-                            } //else -> serial does not match
-
-                            q->iv->radio->mBufCtrl.pop();
-                            yield();
-                        }
-
-                        if(q->iv->ivGen != IV_MI) {
-                            mState = States::CHECK_PACKAGE;
-                        } else {
-                            bool fastNext = true;
-                            if(q->iv->miMultiParts < 6) {
-                                mState = States::WAIT;
-                                if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
-                                    miRepeatRequest(q);
-                                    return;
-                                }
-                            } else {
-                                mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
-                                if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
-                                    || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
-                                    || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
-                                    miComplete(q->iv);
-                                    fastNext = false;
-                                }
-                                if(fastNext)
-                                    miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
-                                else
-                                    closeRequest(q, true);
-                            }
-                        }
-
-                        }
-                        break;
-
-                    case States::CHECK_PACKAGE:
-                        uint8_t framnr = 0;
-                        if(0 == mMaxFrameId) {
-                            uint8_t i = 0;
-                            while(i < MAX_PAYLOAD_ENTRIES) {
-                                if(mLocalBuf[i].len == 0) {
-                                    framnr = i+1;
-                                    break;
-                                }
-                                i++;
-                            }
-                        }
-
-                        if(!framnr) {
-                            for(uint8_t i = 0; i < mMaxFrameId; i++) {
-                                if(mLocalBuf[i].len == 0) {
-                                    framnr = i+1;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if(framnr) {
-                            if(0 == q->attempts) {
-                                DPRINT_IVID(DBG_INFO, q->iv->id);
-                                DBGPRINT(F("no attempts left"));
-                                closeRequest(q, false);
-                                return;
-                            }
-                            setAttempt();
-
-                            if(*mSerialDebug) {
-                                DPRINT_IVID(DBG_WARN, q->iv->id);
-                                DBGPRINT(F("frame "));
-                                DBGPRINT(String(framnr));
-                                DBGPRINT(F(" missing: request retransmit ("));
-                                DBGPRINT(String(q->attempts));
-                                DBGPRINTLN(F(" attempts left)"));
-                            }
-                            if (!mIsRetransmit)
-                                q->iv->mIsSingleframeReq = true;
-                            sendRetransmit(q, (framnr-1));
-                            mIsRetransmit = true;
-                            return;
-                        }
-
-                        compilePayload(q);
-
-                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
-                            (mCbPayload)(q->cmd, q->iv);
-
-                        closeRequest(q, true);
-                        break;
-                }
+                innerLoop(q);
             });
         }
 
     private:
+        inline void innerLoop(const queue_s *q) {
+            switch(mState) {
+                case States::RESET:
+                    if (!mWaitTime.isTimeout())
+                        return;
+
+                    mMaxFrameId = 0;
+                    for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
+                        mLocalBuf[i].len = 0;
+                    }
+
+                    if(*mSerialDebug)
+                        mHeu.printStatus(q->iv);
+                    mHeu.getTxCh(q->iv);
+                    q->iv->mGotFragment = false;
+                    q->iv->mGotLastMsg  = false;
+                    q->iv->curFrmCnt    = 0;
+                    mIsRetransmit = false;
+                    if(NULL == q->iv->radio)
+                        cmdDone(false); // can't communicate while radio is not defined!
+                    mFirstTry = q->iv->isAvailable();
+                    q->iv->mCmd = q->cmd;
+                    q->iv->mIsSingleframeReq = false;
+                    mFramesExpected = getFramesExpected(q); // function to get expected frame count.
+                    mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
+
+                    mState = States::START;
+                    break;
+
+                case States::START:
+                    setTs(mTimestamp);
+                    if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
+                        // frequency was changed during runtime
+                        if(q->iv->curCmtFreq != q->iv->config->frequency) {
+                            if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
+                                q->iv->curCmtFreq = q->iv->config->frequency;
+                        }
+                    }
+
+                    if(q->isDevControl) {
+                        if(ActivePowerContr == q->cmd)
+                            q->iv->powerLimitAck = false;
+                        q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
+                    } else
+                        q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
+
+                    q->iv->radioStatistics.txCnt++;
+                    q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
+
+                    mIsRetransmit    = false;
+                    setAttempt();
+                    if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                        incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
+                    mState = States::WAIT;
+                    break;
+
+                case States::WAIT:
+                    if (!q->iv->radio->mRadioWaitTime.isTimeout())
+                        return;
+                    mState = States::CHECK_FRAMES;
+                    break;
+
+                case States::CHECK_FRAMES: {
+                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) || (0 == q->attempts)) { // radio buffer empty or no more answers
+                        if(*mSerialDebug) {
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("request timeout: "));
+                            DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
+                            DBGPRINTLN(F("ms"));
+                        }
+                        if(!q->iv->mGotFragment) {
+                            if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
+                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
+                                mWaitTime.startTimeMonitor(1000);
+                            } else {
+                                if(IV_MI == q->iv->ivGen)
+                                    q->iv->mIvTxCnt++;
+                                if(mFirstTry) {
+                                    mFirstTry     = false;
+                                    setAttempt();
+                                    mHeu.evalTxChQuality(q->iv, false, 0, 0);
+                                    //q->iv->radioStatistics.rxFailNoAnser++;
+                                    q->iv->radioStatistics.retransmits++;
+                                    q->iv->radio->mRadioWaitTime.stopTimeMonitor();
+                                    mState = States::START;
+
+                                   return;
+                                }
+                            }
+                        }
+                        closeRequest(q, false);
+                        break;
+                    }
+                    mFirstTry = false; // for correct reset
+                    if((IV_MI != q->iv->ivGen) || (0 == q->attempts))
+                        mIsRetransmit = false;
+
+                    while(!q->iv->radio->mBufCtrl.empty()) {
+                        packet_t *p = &q->iv->radio->mBufCtrl.front();
+
+                        if(validateIvSerial(&p->packet[1], q->iv)) {
+                            printRxInfo(q, p);
+                            q->iv->radioStatistics.frmCnt++;
+                            q->iv->mDtuRxCnt++;
+
+                            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+                                if(parseFrame(p))
+                                    q->iv->curFrmCnt++;
+                            } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
+                                if(parseDevCtrl(p, q))
+                                    closeRequest(q, true);
+                                else
+                                    closeRequest(q, false);
+                                q->iv->radio->mBufCtrl.pop();
+                                return; // don't wait for empty buffer
+                            } else if(IV_MI == q->iv->ivGen) {
+                                if(parseMiFrame(p, q))
+                                    q->iv->curFrmCnt++;
+                            }
+                        } //else -> serial does not match
+
+                        q->iv->radio->mBufCtrl.pop();
+                        yield();
+                    }
+
+                    if(q->iv->ivGen != IV_MI) {
+                        mState = States::CHECK_PACKAGE;
+                    } else {
+                        bool fastNext = true;
+                        if(q->iv->miMultiParts < 6) {
+                            mState = States::WAIT;
+                            if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
+                                miRepeatRequest(q);
+                                return;
+                            }
+                        } else {
+                            mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+                            if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
+                                || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
+                                || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
+                                miComplete(q->iv);
+                                fastNext = false;
+                            }
+                            if(fastNext)
+                                miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
+                            else
+                                closeRequest(q, true);
+                        }
+                    }
+
+                    }
+                    break;
+
+                case States::CHECK_PACKAGE:
+                    uint8_t framnr = 0;
+                    if(0 == mMaxFrameId) {
+                        uint8_t i = 0;
+                        while(i < MAX_PAYLOAD_ENTRIES) {
+                            if(mLocalBuf[i].len == 0) {
+                                framnr = i+1;
+                                break;
+                            }
+                            i++;
+                        }
+                    }
+
+                    if(!framnr) {
+                        for(uint8_t i = 0; i < mMaxFrameId; i++) {
+                            if(mLocalBuf[i].len == 0) {
+                                framnr = i+1;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(framnr) {
+                        if(0 == q->attempts) {
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("no attempts left"));
+                            closeRequest(q, false);
+                            return;
+                        }
+                        setAttempt();
+
+                        if(*mSerialDebug) {
+                            DPRINT_IVID(DBG_WARN, q->iv->id);
+                            DBGPRINT(F("frame "));
+                            DBGPRINT(String(framnr));
+                            DBGPRINT(F(" missing: request retransmit ("));
+                            DBGPRINT(String(q->attempts));
+                            DBGPRINTLN(F(" attempts left)"));
+                        }
+                        if (!mIsRetransmit)
+                            q->iv->mIsSingleframeReq = true;
+                        sendRetransmit(q, (framnr-1));
+                        mIsRetransmit = true;
+                        return;
+                    }
+
+                    compilePayload(q);
+
+                    if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
+                        (mCbPayload)(q->cmd, q->iv);
+
+                    closeRequest(q, true);
+                    break;
+            }
+        }
+
         inline void printRxInfo(const queue_s *q, packet_t *p) {
             DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("RX "));
@@ -1006,8 +1005,6 @@ class Communication : public CommQueue<> {
         Heuristic mHeu;
         uint32_t mLastEmptyQueueMillis = 0;
         bool mPrintSequenceDuration = false;
-
-        //States mDebugState = States::START;
 };
 
 #endif /*__COMMUNICATION_H__*/
