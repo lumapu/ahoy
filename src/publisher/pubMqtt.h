@@ -70,8 +70,8 @@ class PubMqtt {
 
             if(strlen(mCfgMqtt->clientId) > 0)
                 snprintf(mClientId, 23, "%s", mCfgMqtt->clientId);
-            else{
-                snprintf(mClientId, 24, "%s-", mDevName);
+            else {
+                snprintf(mClientId, 23, "%s-", mDevName);
                 uint8_t pos = strlen(mClientId);
                 mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
                 mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
@@ -308,7 +308,7 @@ class PubMqtt {
             bool limitAbs = false;
             if(len > 0) {
                 char *pyld = new char[len + 1];
-                strncpy(pyld, (const char*)payload, len);
+                memcpy(pyld, payload, len);
                 pyld[len] = '\0';
                 if(NULL == strstr(topic, "limit"))
                     root[F("val")] = atoi(pyld);
@@ -326,7 +326,7 @@ class PubMqtt {
 
             while(1) {
                 if(('/' == p[pos]) || ('\0' == p[pos])) {
-                    strncpy(tmp, p, pos);
+                    memcpy(tmp, p, pos);
                     tmp[pos] = '\0';
                     switch(elm++) {
                         case 1: root[F("path")] = String(tmp); break;

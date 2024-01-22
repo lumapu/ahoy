@@ -84,5 +84,5 @@
     },
     "cmake.configureOnOpen": false,
     "editor.formatOnSave": false,
-    "cmake.sourceDirectory": "C:/lpusch/github/ahoy/src/.pio/libdeps/esp32-wroom32-release-prometheus/Adafruit BusIO",
+    "cmake.sourceDirectory": "C:/lpusch/github/ahoy/src/.pio/libdeps/esp32-wroom32-release-prometheus/Adafruit BusIO"
 }

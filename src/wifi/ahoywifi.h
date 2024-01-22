@@ -1,7 +1,8 @@
+//------------------------------------//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
-//-----------------------------------------------------------------------------
+
 #if !defined(ETHERNET)
 #ifndef __AHOYWIFI_H__
 #define __AHOYWIFI_H__
@@ -66,7 +67,7 @@ class ahoywifi {
         void welcome(String ip, String mode);
 
 
-        settings_t *mConfig;
+        settings_t *mConfig = NULL;
         appWifiCb mAppWifiCb;
 
         DNSServer mDns;

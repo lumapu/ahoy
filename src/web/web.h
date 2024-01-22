@@ -828,10 +828,9 @@ class Web {
                                             if (0 == channel) {
                                                 // Report a _total value if also channel values were reported. Otherwise report without _total
                                                 char total[7];
-                                                total[0] = 0;
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
-                                                    strncpy(total,"_total",sizeof(total));
+                                                    strncpy(total, "_total", 6);
                                                 }
                                                 if (!metricTotalDeclard) {
                                                     snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());

@@ -1,7 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
-// Lukas Pusch, lukas@lpusch.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SCHEDULER_H__
@@ -40,7 +39,7 @@ namespace ah {
                 resetTicker();
             }
 
-            void loop(void) {
+            virtual void loop(void) {
                 mMillis = millis();
                 mDiff = mMillis - mPrevMillis;
                 if (mDiff < 1000)

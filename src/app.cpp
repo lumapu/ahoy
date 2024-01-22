@@ -143,22 +143,20 @@ void app::loop(void) {
     esp_task_wdt_reset();
 
     if(mConfig->nrf.enabled)
-        mNrfActive = mNrfRadio.loop();
+        mNrfRadio.loop();
 
-    if(!mNrfActive) {
-        #if defined(ESP32)
-        if(mConfig->cmt.enabled)
-            mNrfActive = mCmtRadio.loop();
-        #endif
+    #if defined(ESP32)
+    if(mConfig->cmt.enabled)
+        mCmtRadio.loop();
+    #endif
 
-        ah::Scheduler::loop();
-        mCommunication.loop();
+    ah::Scheduler::loop();
+    mCommunication.loop();
 
-        #if defined(ENABLE_MQTT)
-        if (mMqttEnabled && mNetworkConnected)
-            mMqtt.loop();
-        #endif
-    }
+    #if defined(ENABLE_MQTT)
+    if (mMqttEnabled && mNetworkConnected)
+        mMqtt.loop();
+    #endif
     yield();
 }
 

@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
+//-----------------------------------------------------------------------------
+
 #include <algorithm>
 #include "syslog.h"
 
@@ -87,7 +92,7 @@ void DbgSyslog::log(const char *hostname, uint8_t facility, uint8_t severity, ch
 
     // This is a unit8 instead of a char because that's what udp.write() wants
     uint8_t buffer[SYSLOG_MAX_PACKET_SIZE];
-    int len = snprintf((char*)buffer, SYSLOG_MAX_PACKET_SIZE, "<%d>%s %s: %s", priority, hostname, SYSLOG_APP, msg);
+    int len = snprintf(static_cast<char*>(buffer), SYSLOG_MAX_PACKET_SIZE, "<%d>%s %s: %s", priority, hostname, SYSLOG_APP, msg);
     //printf("syslog::log %s\n",mSyslogIP.toString().c_str());
     //printf("syslog::log %d %s\n",len,buffer);
     // Send the raw UDP packet

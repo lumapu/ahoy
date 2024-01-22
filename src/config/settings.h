@@ -824,8 +824,10 @@ class settings {
 
     #if defined(ESP32)
         void getChar(JsonObject obj, const char *key, char *dst, int maxLen) {
-            if(obj.containsKey(key))
+            if(obj.containsKey(key)) {
                 snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+                dst[maxLen-1] = '\0';
+            }
         }
 
         template<typename T=uint8_t>
@@ -835,8 +837,10 @@ class settings {
         }
     #else
         void getChar(JsonObject obj, const __FlashStringHelper *key, char *dst, int maxLen) {
-            if(obj.containsKey(key))
+            if(obj.containsKey(key)) {
                 snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+                dst[maxLen-1] = '\0';
+            }
         }
 
         template<typename T=uint8_t>

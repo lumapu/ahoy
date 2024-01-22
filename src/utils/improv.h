@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -72,10 +72,10 @@ class Improv {
 
         void dumpBuf(uint8_t buf[], uint8_t len) {
             for(uint8_t i = 0; i < len; i++) {
-                DHEX(buf[i], false);
-                DBGPRINT(" ", false);
+                DHEX(buf[i]);
+                DBGPRINT(F(" "));
             }
-            DBGPRINTLN("", false);
+            DBGPRINTLN("");
         }
 
         inline uint8_t buildChecksum(uint8_t buf[], uint8_t len) {

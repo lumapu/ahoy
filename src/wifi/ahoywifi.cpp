@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -293,7 +293,7 @@ bool ahoywifi::getNtpTime(void) {
             if(NTP_PACKET_SIZE <= mUdp.parsePacket()) {
                 uint64_t secsSince1900;
                 mUdp.read(buf, NTP_PACKET_SIZE);
-                secsSince1900  = (buf[40] << 24);
+                secsSince1900  = ((uint64_t)buf[40] << 24);
                 secsSince1900 |= (buf[41] << 16);
                 secsSince1900 |= (buf[42] <<  8);
                 secsSince1900 |= (buf[43]      );

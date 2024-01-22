@@ -82,7 +82,7 @@ class app : public IApp, public ah::Scheduler {
         ~app() {}
 
         void setup(void);
-        void loop(void);
+        void loop(void) override;
         void onNetwork(bool gotIp);
         void regularTickers(void);
 
@@ -405,7 +405,6 @@ class app : public IApp, public ah::Scheduler {
         uint8_t mSendLastIvId;
         bool mSendFirst;
         bool mAllIvNotAvail;
-        bool mNrfActive = false;
 
         bool mNetworkConnected;
 

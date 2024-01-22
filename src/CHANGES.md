@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.63 - 2024-01-22
+* made code review
+* fixed endless loop #1387
+
 ## 0.8.62 - 2024-01-21
 * updated version in footer #1381
 * repaired radio statistics #1382

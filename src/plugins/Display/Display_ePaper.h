@@ -9,6 +9,8 @@
 // enable GxEPD2_GFX base class
 #define ENABLE_GxEPD2_GFX 1
 
+#define EPAPER_MAX_TEXT_LEN     35
+
 #include <GxEPD2_BW.h>
 #include <SPI.h>
 
@@ -49,7 +51,7 @@ class DisplayEPaper {
 
         uint8_t mDisplayRotation;
         bool _changed = false;
-        char _fmtText[35];
+        char _fmtText[EPAPER_MAX_TEXT_LEN];
         String _settedIP;
         uint8_t mHeadFootPadding;
         GxEPD2_GFX* _display;
