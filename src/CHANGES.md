@@ -2,6 +2,7 @@
 
 ## 0.8.64 - 2024-01-22
 * add `ARC` to log (NRF24 Debug)
+* merge PR: ETH NTP update bugfix #1385
 
 ## 0.8.63 - 2024-01-22
 * made code review

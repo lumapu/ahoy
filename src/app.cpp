@@ -251,11 +251,8 @@ void app::tickNtpUpdate(void) {
 
     #if defined(ETHERNET)
     if (!mNtpReceived)
-    {
         mEth.updateNtpTime();
-    }
-    else
-    {
+    else {
         mNtpReceived = false;
         isOK = true;
     }
