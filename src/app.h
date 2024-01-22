@@ -351,6 +351,7 @@ class app : public IApp, public ah::Scheduler {
         void tickNtpUpdate(void);
         #if defined(ETHERNET)
         void onNtpUpdate(bool gotTime);
+        bool mNtpReceived;
         #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
