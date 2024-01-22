@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.64 - 2024-01-22
+* add `ARC` to log (NRF24 Debug)
+
 ## 0.8.63 - 2024-01-22
 * made code review
 * fixed endless loop #1387

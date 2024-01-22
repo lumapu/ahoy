@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       63
+#define VERSION_PATCH       64
 
 //-------------------------------------
 typedef struct {
@@ -22,6 +22,7 @@ typedef struct {
     int8_t rssi;
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
     uint16_t millis;
+    uint8_t arc;
 } packet_t;
 
 typedef enum {

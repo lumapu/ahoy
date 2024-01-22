@@ -307,6 +307,7 @@ class HmRadio : public Radio {
                     p.len  = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24->testRPD() ? -64 : -75;
                     p.millis = millis() - mMillis;
+                    p.arc  = mNrf24->getARC();
                     mNrf24->read(p.packet, p.len);
 
                     if (p.packet[0] != 0x00) {

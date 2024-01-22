@@ -284,6 +284,9 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
+            DBGPRINT(F(", ARC "));
+            DBGPRINT(String(p->arc));
+            DBGPRINT(F(" |"));
             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)
@@ -500,6 +503,7 @@ class Communication : public CommQueue<> {
             int8_t rssi = -127;
             uint8_t len = 0;
 
+            DPRINT_IVID(DBG_INFO, q->iv->id);
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(mLocalBuf[i].len + len > MAX_BUFFER) {
                     DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
