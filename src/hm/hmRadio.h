@@ -293,6 +293,14 @@ class HmRadio : public Radio {
             return mNrf24->isPVariant();
         }
 
+        uint8_t getARC(void) {
+            return mNrf24->getARC();
+        }
+
+        uint8_t getPLOS(void) {
+            return mNrf24->getPLOS();
+        }
+
     private:
         inline bool getReceived(void) {
             bool isLastPackage = false;
@@ -307,6 +315,8 @@ class HmRadio : public Radio {
                     p.len  = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24->testRPD() ? -64 : -75;
                     p.millis = millis() - mMillis;
+                    p.arc  = mNrf24->getARC();
+                    p.plos = mNrf24->getPLOS();
                     mNrf24->read(p.packet, p.len);
 
                     if (p.packet[0] != 0x00) {
