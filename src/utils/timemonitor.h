@@ -20,16 +20,14 @@
 class TimeMonitor {
     public:
         /**
-         * A constructor for initializing a TimeMonitor
-         * @note TimeMonitor witch default constructor is stopped
+         * A constructor for creating a TimeMonitor object
          */
         TimeMonitor(void) {}
 
         /**
-         * A constructor for initializing a TimeMonitor
+         * A constructor for initializing a TimeMonitor object
          * @param timeout timeout in ms
          * @param start   (optional) if true, start TimeMonitor immediately
-         * @note TimeMonitor witch default constructor is stopped
          */
         TimeMonitor(uint32_t timeout, bool start = false) {
             if (start)
@@ -50,7 +48,8 @@ class TimeMonitor {
 
         /**
          * Restart the TimeMonitor with already set timeout configuration
-         * @note returns nothing
+         * @note a timeout has to be set before, no need to call
+         *       'startTimeMonitor' before
          */
         void reStartTimeMonitor(void) {
             mStartTime = millis();
@@ -82,7 +81,7 @@ class TimeMonitor {
          *         false: TimeMonitor still in time or TimeMonitor was stopped
          */
         bool isTimeout(void) {
-            if ((mStarted) && (millis() - mStartTime >= mTimeout))
+            if ((mStarted) && ((millis() - mStartTime) >= mTimeout))
                 return true;
             else
                 return false;
@@ -104,7 +103,7 @@ class TimeMonitor {
          */
         uint32_t getResidualTime(void) const {
             uint32_t delayed =  millis() - mStartTime;
-            return(mStarted ? (delayed < mTimeout ? mTimeout - delayed : 0UL) : 0xFFFFFFFFUL);
+            return(mStarted ? (delayed < mTimeout ? (mTimeout - delayed) : 0UL) : 0xFFFFFFFFUL);
         }
 
         /**

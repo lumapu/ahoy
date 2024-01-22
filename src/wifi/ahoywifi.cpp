@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
     mCnt        = 0;
     mScanActive = false;
     mScanCnt    = 0;
+    mStopApAllowed = true;
 
     #if defined(ESP8266)
     wifiConnectHandler = WiFi.onStationModeConnected(std::bind(&ahoywifi::onConnect, this, std::placeholders::_1));
@@ -94,7 +95,7 @@ void ahoywifi::tickWifiLoop() {
             #endif
             return;
         case IN_AP_MODE:
-            if (WiFi.softAPgetStationNum() == 0) {
+            if ((WiFi.softAPgetStationNum() == 0) || (!mStopApAllowed)) {
                 mCnt = 0;
                 mDns.stop();
                 WiFi.mode(WIFI_AP_STA);
@@ -105,7 +106,7 @@ void ahoywifi::tickWifiLoop() {
             }
             break;
         case DISCONNECTED:
-            if (WiFi.softAPgetStationNum() > 0) {
+            if ((WiFi.softAPgetStationNum() > 0) && (mStopApAllowed)) {
                 mStaConn = IN_AP_MODE;
                 // first time switch to AP Mode
                 if (mScanActive) {
@@ -182,10 +183,12 @@ void ahoywifi::tickWifiLoop() {
             break;
         case GOT_IP:
             welcome(WiFi.localIP().toString(), F(" (Station)"));
-            WiFi.softAPdisconnect();
-            WiFi.mode(WIFI_STA);
-            DBGPRINTLN(F("[WiFi] AP disabled"));
-            delay(100);
+            if(mStopApAllowed) {
+                WiFi.softAPdisconnect();
+                WiFi.mode(WIFI_STA);
+                DBGPRINTLN(F("[WiFi] AP disabled"));
+                delay(100);
+            }
             mAppWifiCb(true);
             mGotDisconnect = false;
             mStaConn = IN_STA_MODE;
@@ -290,7 +293,7 @@ bool ahoywifi::getNtpTime(void) {
             if(NTP_PACKET_SIZE <= mUdp.parsePacket()) {
                 uint64_t secsSince1900;
                 mUdp.read(buf, NTP_PACKET_SIZE);
-                secsSince1900  = (buf[40] << 24);
+                secsSince1900  = ((uint64_t)buf[40] << 24);
                 secsSince1900 |= (buf[41] << 16);
                 secsSince1900 |= (buf[42] <<  8);
                 secsSince1900 |= (buf[43]      );

@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -7,13 +7,7 @@
 #define __IAPP_H__
 
 #include "defines.h"
-#include "hm/hmSystem.h"
 #include "ESPAsyncWebServer.h"
-
-//#include "hms/hmsRadio.h"
-#if defined(ESP32)
-//typedef CmtRadio<esp32_3wSpi<>> CmtRadioType;
-#endif
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -29,10 +23,14 @@ class IApp {
         virtual bool getShouldReboot() = 0;
         virtual void setRebootFlag() = 0;
         virtual const char *getVersion() = 0;
+        virtual const char *getVersionModules() = 0;
 
         #if !defined(ETHERNET)
         virtual void scanAvailNetworks() = 0;
         virtual bool getAvailNetworks(JsonObject obj) = 0;
+        virtual void setupStation(void) = 0;
+        virtual void setStopApAllowedMode(bool allowed) = 0;
+        virtual String getStationIp(void) = 0;
         #endif /* defined(ETHERNET) */
 
         virtual uint32_t getUptime() = 0;
@@ -45,10 +43,11 @@ class IApp {
         virtual void getSchedulerInfo(uint8_t *max) = 0;
         virtual void getSchedulerNames() = 0;
 
+        virtual void triggerTickSend() = 0;
+
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;
         virtual void setMqttDiscoveryFlag() = 0;
-        virtual void setMqttPowerLimitAck(Inverter<> *iv) = 0;
         virtual bool getMqttIsConnected() = 0;
 
         virtual bool getNrfEnabled() = 0;
@@ -59,8 +58,10 @@ class IApp {
 
         virtual bool getProtection(AsyncWebServerRequest *request) = 0;
 
-        virtual void* getRadioObj(bool nrf) = 0;
+        virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
+        virtual uint16_t getHistoryMaxDay() = 0;
 
+        virtual void* getRadioObj(bool nrf) = 0;
 };
 
 #endif /*__IAPP_H__*/

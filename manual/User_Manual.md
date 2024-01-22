@@ -195,8 +195,9 @@ The `<VALUE>` should be set to `1` = `ON` and `0` = `OFF`
 }
 ```
 
+**beginning from verson `0.8.39` the wattage and percentage has one decimal place!**
 
-### Power Limit relative persistent [%]
+### Power Limit (active power control) relative persistent [%]
 
 ```json
 {
@@ -205,10 +206,10 @@ The `<VALUE>` should be set to `1` = `ON` and `0` = `OFF`
     "val": <VALUE>
 }
 ```
-The `VALUE` represents a percent number in a range of `[2 .. 100]`
+The `VALUE` represents a percent number in a range of `[2.0 .. 100.0]`
 
 
-### Power Limit absolute persistent [Watts]
+### Power Limit (active power control) absolute persistent [Watts]
 
 ```json
 {
@@ -217,10 +218,10 @@ The `VALUE` represents a percent number in a range of `[2 .. 100]`
     "val": <VALUE>
 }
 ```
-The `VALUE` represents watts in a range of `[0 .. 65535]`
+The `VALUE` represents watts in a range of `[1.0 .. 6553.5]`
 
 
-### Power Limit relative non persistent [%]
+### Power Limit (active power control) relative non persistent [%]
 
 ```json
 {
@@ -229,10 +230,10 @@ The `VALUE` represents watts in a range of `[0 .. 65535]`
     "val": <VALUE>
 }
 ```
-The `VALUE` represents a percent number in a range of `[2 .. 100]`
+The `VALUE` represents a percent number in a range of `[2.0 .. 100.0]`
 
 
-### Power Limit absolute non persistent [Watts]
+### Power Limit (active power control) absolute non persistent [Watts]
 
 ```json
 {
@@ -241,7 +242,7 @@ The `VALUE` represents a percent number in a range of `[2 .. 100]`
     "val": <VALUE>
 }
 ```
-The `VALUE` represents watts in a range of `[0 .. 65535]`
+The `VALUE` represents watts in a range of `[1.0 .. 6553.5]`
 
 
 
@@ -328,7 +329,7 @@ Send Power Limit:
 - If the DC voltage is missing for a few seconds, the microcontroller in the inverter goes off and forgets everything that was temporary/non-persistent in the RAM: YieldDay, error memory, non-persistent limit.
 ### Update your AHOY-DTU Firmware
 To update your AHOY-DTU, you have to download the latest firmware package.
-Here are the [latest stable releases](https://github.com/lumapu/ahoy/releases/) and [latest development builds](https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip) available for download.
+Here are the [latest stable releases](https://github.com/lumapu/ahoy/releases/) and [latest development builds](https://fw.ahoydtu.de/dev) available for download.
 As soon as you have downloaded the firmware package, unzip it. On the WebUI, navigate to Update and press on select firmware file.
 From the unzipped files, select the right .bin file for your hardware and needs.
 - If you use an ESP8266, select the file ending with esp8266.bin 

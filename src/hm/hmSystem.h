@@ -1,11 +1,12 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_SYSTEM_H__
 #define __HM_SYSTEM_H__
 
+#include "../appInterface.h"
 #include "hmInverter.h"
 #include <functional>
 
@@ -14,9 +15,10 @@ class HmSystem {
     public:
         HmSystem() {}
 
-        void setup(uint32_t *timestamp, cfgInst_t *config) {
-            mInverter[0].timestamp = timestamp;
+        void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
+            mInverter[0].timestamp     = timestamp;
             mInverter[0].generalConfig = config;
+            //mInverter[0].app           = app;
         }
 
         void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {
@@ -49,15 +51,21 @@ class HmSystem {
                 }
 
                 if(iv->config->serial.b[5] == 0x11) {
-                    if((iv->config->serial.b[4] & 0x0f) == 0x04)
+                    if((iv->config->serial.b[4] & 0x0f) == 0x04) {
                         iv->ivGen = IV_HMS;
-                    else
+                        iv->ivRadioType = INV_RADIO_TYPE_CMT;
+                    } else {
                         iv->ivGen = IV_HM;
+                        iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                    }
                 }
-                else if((iv->config->serial.b[4] & 0x03) == 0x02) // MI 3rd Gen -> same as HM
+                else if((iv->config->serial.b[4] & 0x03) == 0x02) { // MI 3rd Gen -> same as HM
                     iv->ivGen = IV_HM;
-                else // MI 2nd Gen
+                    iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                } else {  // MI 2nd Gen
                     iv->ivGen = IV_MI;
+                    iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                }
             } else if(iv->config->serial.b[5] == 0x13) {
                     iv->ivGen = IV_HMT;
                     iv->type = INV_TYPE_6CH;
@@ -85,7 +93,7 @@ class HmSystem {
             DBGPRINTLN(String(iv->config->serial.u64, HEX));
 
             if((iv->config->serial.b[5] == 0x10) && ((iv->config->serial.b[4] & 0x03) == 0x01))
-                DPRINTLN(DBG_WARN, F("MI Inverter are not fully supported now!!!"));
+                DPRINTLN(DBG_WARN, F("MI Inverter, has some restrictions!"));
 
             cb(iv);
         }

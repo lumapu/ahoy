@@ -20,18 +20,15 @@
                 </p>
 
                 <div id="note">
-                    <h3>Support this project:</h3>
+                    <h3>{#SUPPORT}:</h3>
                     <ul>
-                        <li><a href="https://github.com/lumapu/ahoy/blob/main/src/CHANGES.md" target="_blank">Changelog</a></li>
-                        <li>Discuss with us on <a href="https://discord.gg/WzhxEY62mB">Discord</a></li>
-                        <li>Report <a href="https://github.com/lumapu/ahoy/issues" target="_blank">issues</a></li>
-                        <li>Contribute to <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">documentation</a></li>
-                        <li><a href="https://nightly.link/lumapu/ahoy/workflows/compile_development/development03/ahoydtu_dev.zip" target="_blank">Download</a> & Test development firmware, <a href="https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md" target="_blank">Development Changelog</a></li>
-                        <li>make a <a href="https://paypal.me/lupusch"  target="_blank">donation</a></li>
+                        <li><a href="https://github.com/lumapu/ahoy/blob/main/src/CHANGES.md" target="_blank">{#CHANGELOG}</a></li>
+                        <li>{#DISCUSS} <a href="https://discord.gg/WzhxEY62mB">Discord</a></li>
+                        <li>{#REPORT} <a href="https://github.com/lumapu/ahoy/issues" target="_blank">{#ISSUES}</a></li>
+                        <li>{#CONTRIBUTE} <a href="https://github.com/lumapu/ahoy/blob/main/User_Manual.md"  target="_blank">{#DOCUMENTATION}</a></li>
+                        <li><a href="https://fw.ahoydtu.de/fw/dev/" target="_blank">Download</a> & Test {#DEV_FIRMWARE}, <a href="https://github.com/lumapu/ahoy/blob/development03/src/CHANGES.md" target="_blank">{#DEV_CHANGELOG}</a></li>
+                        <li>{#DON_MAKE} <a href="https://paypal.me/lupusch"  target="_blank">{#DONATION}</a></li>
                     </ul>
-                    <p class="lic">
-                        This project was started from <a href="https://www.mikrocontroller.net/topic/525778" target="_blank">this discussion. (Mikrocontroller.net)</a>
-                    </p>
                 </div>
             </div>
         </div>
@@ -45,12 +42,12 @@
 
             function apiCb(obj) {
                 var e = document.getElementById("apiResult");
-                if(obj["success"]) {
-                    e.innerHTML = " command executed";
+                if(obj.success) {
+                    e.innerHTML = " {#COMMAND_EXE}";
                     getAjax("/api/index", parse);
                 }
                 else
-                    e.innerHTML = " Error: " + obj["error"];
+                    e.innerHTML = " {#ERROR}: " + obj.error;
             }
 
             function setTime() {
@@ -68,9 +65,9 @@
             }
 
             function parseSys(obj) {
-                ts = obj["ts_now"];
-                var date = new Date(obj["ts_now"] * 1000);
-                var up = obj["generic"]["ts_uptime"];
+                ts = obj.ts_now;
+                var date = new Date(obj.ts_now * 1000);
+                var up = obj.generic["ts_uptime"];
                 var days = parseInt(up / 86400) % 365;
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
@@ -83,8 +80,8 @@
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);
                 var dSpan = document.getElementById("date");
-                if(0 != obj["ts_now"]) {
-                    if(obj["ts_now"] < 1680000000)
+                if(0 != obj.ts_now) {
+                    if(obj.ts_now < 1680000000)
                         setTime();
                     else
                         dSpan.innerHTML = toIsoDateStr(date);
@@ -92,24 +89,24 @@
                 else {
                     dSpan.innerHTML = "";
                     var e = inp("set", "sync from browser", 0, ["btn"], "set", "button");
-                    dSpan.appendChild(span("NTP timeserver unreachable. "));
+                    dSpan.appendChild(span("{#NTP_UNREACH}. "));
                     dSpan.appendChild(e);
                     dSpan.appendChild(span("", ["span"], "apiResult"));
                     e.addEventListener("click", setTime);
                 }
 
-                if(obj["disNightComm"]) {
-                    if(((obj["ts_sunrise"] - obj["ts_offset"]) < obj["ts_now"])
-                        && ((obj["ts_sunset"] + obj["ts_offset"]) > obj["ts_now"])) {
-                        commInfo = "Polling inverter(s), will pause at sunset " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                if(obj.disNightComm) {
+                    if(((obj.ts_sunrise + obj.ts_offsSr) < obj.ts_now)
+                        && ((obj.ts_sunset + obj.ts_offsSs) > obj.ts_now)) {
+                        commInfo = "{#POLLING_STOP} " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                     }
                     else {
-                        commInfo = "Night time, inverter polling disabled, ";
-                        if(obj["ts_now"] > (obj["ts_sunrise"] - obj["ts_offset"])) {
-                            commInfo += "paused at " + (new Date((obj["ts_sunset"] + obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                        commInfo = "{#NIGHT_TIME}, ";
+                        if(obj.ts_now > (obj.ts_sunrise + obj.ts_offsSr)) {
+                            commInfo += "{#PAUSED_AT} " + (new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE'));
                         }
                         else {
-                            commInfo += "will start polling at " + (new Date((obj["ts_sunrise"] - obj["ts_offset"]) * 1000).toLocaleString('de-DE'));
+                            commInfo += "{#START_AT} " + (new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE'));
                         }
                     }
                 }
@@ -124,33 +121,33 @@
                     if(false == i["enabled"]) {
                         icon = iconWarn;
                         cl = "icon-warn";
-                        avail = "disabled";
+                        avail = "{#DISABLED}";
                     } else if((false == i["is_avail"]) || (0 == ts)) {
                         icon = iconInfo;
                         cl = "icon-info";
-                        avail = "not yet available";
+                        avail = "{#NOT_YET_AVAIL}";
                     } else if(0 == i["ts_last_success"]) {
-                        avail = "available but no data was received until now";
+                        avail = "{#AVAIL_NO_DATA}";
                     } else {
-                        avail = "available and is ";
+                        avail = "{#AVAIL} ";
                         if(false == i["is_producing"])
-                            avail += "not producing";
+                            avail += "{#NOT_PRODUCING}";
                         else {
                             icon = iconSuccessFull;
-                            avail += "producing " + i.cur_pwr + "W";
+                            avail += "{#PRODUCING} " + i.cur_pwr + "W";
                         }
                     }
 
                     p.append(
                         svg(icon, 30, 30, "icon " + cl),
-                        span("Inverter #" + i["id"] + ": " + i["name"] + " is " + avail),
+                        span("{#INVERTER} #" + i["id"] + ": " + i["name"] + " {#IS} " + avail),
                         br()
                     );
 
                     if(false == i["is_avail"]) {
                         if(i["ts_last_success"] > 0) {
                             var date = new Date(i["ts_last_success"] * 1000);
-                            p.append(span("-> last successful transmission: " + toIsoDateStr(date)), br());
+                            p.append(span("-> {#LAST_SUCCESS}: " + toIsoDateStr(date)), br());
                         }
                     }
                 }
@@ -168,11 +165,11 @@
 
                 if(null != release) {
                     if(getVerInt("{#VERSION}") < getVerInt(release))
-                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("Update available, current released version: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#UPDATE_AVAIL}: " + release), br());
                     else if(getVerInt("{#VERSION}") > getVerInt(release))
-                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using development version {#VERSION}. In case of issues you may want to try the current stable release: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#USING_DEV_VERSION} {#VERSION}. {#DEV_ISSUE_RELEASE_VERSION}: " + release), br());
                                        else 
-                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("You are using the current stable release: " + release), br());
+                        p.append(svg(iconInfo, 30, 30, "icon icon-info"), span("{#RELEASE_INSTALLED}: " + release), br());
                 }
 
                 document.getElementById("warn_info").replaceChildren(p);
@@ -190,11 +187,11 @@
             function parse(obj) {
                 if(null != obj) {
                     if(exeOnce)
-                        parseNav(obj["generic"]);
-                    parseGeneric(obj["generic"]);
+                        parseNav(obj.generic);
+                    parseGeneric(obj.generic);
                     parseSys(obj);
-                    parseIv(obj["inverter"], obj.ts_now);
-                    parseWarn(obj["warnings"]);
+                    parseIv(obj.inverter, obj.ts_now);
+                    parseWarn(obj.warnings);
                     if(exeOnce) {
                         window.setInterval("tick()", 1000);
                         exeOnce = false;
@@ -210,7 +207,7 @@
             }
 
             function parseRelease(obj) {
-                release = obj["name"].substring(6);
+                release = obj.name.substring(6);
                 getAjax("/api/index", parse);
             }
 

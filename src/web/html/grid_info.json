@@ -1,13 +1,24 @@
 {
     "type": [
-        {"0x0100": "?"},
+        {"0x0100": "CN_NBT32004_2018"},
+        {"0x0200": "US_Rule21_240V"},
         {"0x0300": "DE_VDE4105_2018"},
         {"0x0301": "DE_VDE4105_2011"},
+        {"0x0604": "Germany_VDE4105"},
+        {"0x0800": "IT_CEI0-21"},
+        {"0x0807": "Netherland_EN50438"},
+        {"0x0908": "France_VFR2014"},
         {"0x0a00": "DE NF_EN_50549-1:2019"},
         {"0x0c00": "AT_TOR_Erzeuger_default"},
-        {"0x0d04": "France NF_EN_50549-1:2019"},
-        {"0x1200": "2.0.4 (EU_EN50438)"},
-        {"0x3700": "2.0.0 (CH_NA EEA-NE7–CH2020)"}
+        {"0x0d00": "FR_VFR2019"},
+        {"0x0d04": "NF_EN_50549-1:2019"},
+        {"0x1000": "ES_RD1699"},
+        {"0x1200": "EU_EN50438"},
+        {"0x2600": "BE_C10_26"},
+        {"0x2900": "NL_NEN-EN50549-1_2019"},
+        {"0x2a00": "PL_PN-EN 50549-1:2019"},
+        {"0x3700": "CH_NA EEA-NE7–CH2020"},
+        {"0xe100": "LN_50Hz"}
     ],
     "grp_codes": [
         {"0x00": "Voltage H/LVRT"},
@@ -345,39 +356,43 @@
                 {
                     "name": "Low Frequency 1",
                     "div": 100,
+                    "min": 49.5,
+                    "max": 49.9,
+                    "def": 49.5,
                     "unit": "Hz"
                 },
                 {
-                    "name": "?",
-                    "div": 10
-                },
-                {
-                    "name": "?",
-                    "div": 100,
-                    "unit": "Hz"
-                },
-                {
-                    "name": "?",
+                    "name": "LF1 Maximum Trip Time",
                     "div": 10,
+                    "def": 700,
                     "unit": "s"
                 },
                 {
-                    "name": "?",
+                    "name": "High Frequency 1",
                     "div": 100,
+                    "max": 51,
+                    "min": 50.1,
+                    "def": 50.2,
                     "unit": "Hz"
                 },
                 {
-                    "name": "?",
+                    "name": "HF1 Maximum Trip time",
                     "div": 10,
+                    "def": 0.1,
                     "unit": "s"
                 },
                 {
-                    "name": "?",
-                    "div": 100
+                    "name": "Low Frequency 2",
+                    "div": 100,
+                    "max": 49,
+                    "min": 47.5,
+                    "def": 47.5,
+                    "unit": "Hz"
                 },
                 {
-                    "name": "?",
-                    "div": 10,
+                    "name": "LF2 Maximum Trip Time",
+                    "div": 100,
+                    "def": 0.1,
                     "unit": "s"
                 }
             ]
@@ -702,7 +717,7 @@
                 },
                 {
                     "name": "Recovery High Frequency",
-                    "div": 10,
+                    "div": 100,
                     "min": 50.1,
                     "max": 52,
                     "def": 50.2,
@@ -952,7 +967,7 @@
                     "unit": "%Pn"
                 },
                 {
-                    "name": "Power Factor ar Rated Power",
+                    "name": "Power Factor of Rated Power",
                     "div": 100,
                     "min": 0.8,
                     "max": 1,

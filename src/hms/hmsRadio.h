@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -26,15 +26,16 @@ class CmtRadio : public Radio {
             mPrintWholeTrace = printWholeTrace;
         }
 
-        void loop() {
+        bool loop() {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return;
+                return false;
             getRx();
             if(CMT_SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
+            return false;
         }
 
         bool isChipConnected(void) {
@@ -50,10 +51,10 @@ class CmtRadio : public Radio {
             mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
             mTxBuf[cnt++] = 0x00;
             if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
-                mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
-                mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+                mTxBuf[cnt++] = (data[0] >> 8) & 0xff; // power limit, multiplied by 10 (because of fraction)
+                mTxBuf[cnt++] = (data[0]     ) & 0xff; // power limit
+                mTxBuf[cnt++] = (data[1] >> 8) & 0xff; // setting for persistens handlings
+                mTxBuf[cnt++] = (data[1]     ) & 0xff; // setting for persistens handling
             }
 
             sendPacket(iv, cnt, isRetransmit);
@@ -134,8 +135,8 @@ class CmtRadio : public Radio {
                 mCmt.goRx();
             }
 
-            mIrqRcvd        = false;
-            mRqstGetRx      = false;
+            mIrqRcvd   = false;
+            mRqstGetRx = false;
         }
 
         inline void sendSwitchChCmd(Inverter<> *iv, uint8_t ch) {
@@ -163,11 +164,16 @@ class CmtRadio : public Radio {
             uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
+
+            // this code completly stops communication!
+            //if(p.packet[9] > ALL_FRAMES)          // indicates last frame
+            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
+            //optionally instead: mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
         }
 
         CmtType mCmt;
-        bool mRqstGetRx;
         bool mCmtAvail;
+        bool mRqstGetRx = false;
         uint32_t mMillis;
 };
 

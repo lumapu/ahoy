@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -12,13 +12,10 @@
 #include "../utils/timemonitor.h"
 #include "Heuristic.h"
 
-#define MI_TIMEOUT          250 // timeout for MI type requests
-#define FRSTMSG_TIMEOUT     150 // how long to wait for first msg to be received
-#define DEFAULT_TIMEOUT     500 // timeout for regular requests
-#define SINGLEFR_TIMEOUT    100 // timeout for single frame requests
 #define MAX_BUFFER          250
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
+typedef std::function<void(Inverter<> *)> powerLimitAckListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
@@ -38,6 +35,10 @@ class Communication : public CommQueue<> {
 
         void addPayloadListener(payloadListenerType cb) {
             mCbPayload = cb;
+        }
+
+        void addPowerLimitAckListener(powerLimitAckListenerType cb) {
+            mCbPwrAck = cb;
         }
 
         void addAlarmListener(alarmListenerType cb) {
@@ -60,205 +61,221 @@ class Communication : public CommQueue<> {
                     mLastEmptyQueueMillis = millis();
                 mPrintSequenceDuration = true;
 
-                uint16_t timeout     = (q->iv->ivGen == IV_MI) ? MI_TIMEOUT : (((q->iv->mGotFragment && q->iv->mGotLastMsg) || mIsRetransmit) ? SINGLEFR_TIMEOUT : ((q->cmd != AlarmData) && (q->cmd != GridOnProFilePara) ? DEFAULT_TIMEOUT : (1.5 * DEFAULT_TIMEOUT)));
-
-                /*if(mDebugState != mState) {
-                    DPRINT(DBG_INFO, F("State: "));
-                    DBGHEXLN((uint8_t)(mState));
-                    mDebugState = mState;
-                }*/
-                switch(mState) {
-                    case States::RESET:
-                        if (!mWaitTime.isTimeout())
-                            return;
-
-                        mMaxFrameId = 0;
-                        for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
-                            mLocalBuf[i].len = 0;
-                        }
-
-                        if(*mSerialDebug)
-                            mHeu.printStatus(q->iv);
-                        mHeu.getTxCh(q->iv);
-                        q->iv->mGotFragment = false;
-                        q->iv->mGotLastMsg  = false;
-                        q->iv->curFrmCnt    = 0;
-                        mIsRetransmit = false;
-                        if(NULL == q->iv->radio)
-                            cmdDone(false); // can't communicate while radio is not defined!
-                        q->iv->mCmd = q->cmd;
-                        q->iv->mIsSingleframeReq = false;
-                        mState = States::START;
-                        break;
-
-                    case States::START:
-                        setTs(mTimestamp);
-                        if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
-                            // frequency was changed during runtime
-                            if(q->iv->curCmtFreq != q->iv->config->frequency) {
-                                if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
-                                    q->iv->curCmtFreq = q->iv->config->frequency;
-                            }
-                        }
-
-                        if(q->isDevControl) {
-                            if(ActivePowerContr == q->cmd)
-                                q->iv->powerLimitAck = false;
-                            q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
-                        } else
-                            q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
-
-                        q->iv->radioStatistics.txCnt++;
-                        mWaitTime.startTimeMonitor(timeout);
-                        mIsRetransmit    = false;
-                        setAttempt();
-                        if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                            incrAttempt(q->cmd == AlarmData? 5 : 3);
-
-                        mState = States::WAIT;
-                        break;
-
-                    case States::WAIT:
-                        if (!mWaitTime.isTimeout())
-                            return;
-                        mState = States::CHECK_FRAMES;
-                        break;
-
-                    case States::CHECK_FRAMES: {
-                        if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) || (0 == q->attempts)) { // radio buffer empty or no more answers
-                            if(*mSerialDebug) {
-                                DPRINT_IVID(DBG_INFO, q->iv->id);
-                                DBGPRINT(F("request timeout: "));
-                                DBGPRINT(String(mWaitTime.getRunTime()));
-                                DBGPRINTLN(F("ms"));
-                            }
-                            if(!q->iv->mGotFragment) {
-                                if((IV_HMS == q->iv->ivGen) || (IV_HMT == q->iv->ivGen)) {
-                                    q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
-                                    mWaitTime.startTimeMonitor(1000);
-                                }
-                            }
-                            closeRequest(q, false);
-                            break;
-                        }
-                        mFirstTry = false; // for correct reset
-                        if((IV_MI != q->iv->ivGen) || (0 == q->attempts))
-                            mIsRetransmit = false;
-
-                        while(!q->iv->radio->mBufCtrl.empty()) {
-                            packet_t *p = &q->iv->radio->mBufCtrl.front();
-                            printRxInfo(q, p);
-
-                            if(validateIvSerial(&p->packet[1], q->iv)) {
-                                q->iv->radioStatistics.frmCnt++;
-                                q->iv->mDtuRxCnt++;
-
-                                if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                    if(parseFrame(p))
-                                        q->iv->curFrmCnt++;
-                                } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
-                                    if(parseDevCtrl(p, q))
-                                        closeRequest(q, true);
-                                    else
-                                        closeRequest(q, false);
-                                    q->iv->radio->mBufCtrl.pop();
-                                    return; // don't wait for empty buffer
-                                } else if(IV_MI == q->iv->ivGen) {
-                                    if(parseMiFrame(p, q))
-                                        q->iv->curFrmCnt++;
-                                }
-                            } //else -> serial does not match
-
-                            q->iv->radio->mBufCtrl.pop();
-                            yield();
-                        }
-
-                        if(0 == q->attempts) {
-                            DPRINT_IVID(DBG_INFO, q->iv->id);
-                            DBGPRINT(F("no attempts left"));
-                            closeRequest(q, false);
-                        } else {
-                            if(q->iv->ivGen != IV_MI) {
-                                mState = States::CHECK_PACKAGE;
-                            } else {
-                                bool fastNext = true;
-                                if(q->iv->miMultiParts < 6) {
-                                    mState = States::WAIT;
-                                    if((mWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
-                                        miRepeatRequest(q);
-                                        return;
-                                    }
-                                } else {
-                                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
-                                    if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
-                                        || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
-                                        || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
-                                        miComplete(q->iv);
-                                        fastNext = false;
-                                    }
-                                    if(fastNext)
-                                        miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
-                                    else
-                                        closeRequest(q, true);
-                                }
-                            }
-                        }
-
-                        }
-                        break;
-
-                    case States::CHECK_PACKAGE:
-                        uint8_t framnr = 0;
-                        if(0 == mMaxFrameId) {
-                            uint8_t i = 0;
-                            while(i < MAX_PAYLOAD_ENTRIES) {
-                                if(mLocalBuf[i].len == 0) {
-                                    framnr = i+1;
-                                    break;
-                                }
-                                i++;
-                            }
-                        }
-
-                        if(!framnr) {
-                            for(uint8_t i = 0; i < mMaxFrameId; i++) {
-                                if(mLocalBuf[i].len == 0) {
-                                    framnr = i+1;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if(framnr) {
-                            setAttempt();
-
-                            if(*mSerialDebug) {
-                                DPRINT_IVID(DBG_WARN, q->iv->id);
-                                DBGPRINT(F("frame "));
-                                DBGPRINT(String(framnr));
-                                DBGPRINT(F(" missing: request retransmit ("));
-                                DBGPRINT(String(q->attempts));
-                                DBGPRINTLN(F(" attempts left)"));
-                            }
-                            if (!mIsRetransmit)
-                                q->iv->mIsSingleframeReq = true;
-                            sendRetransmit(q, (framnr-1));
-                            mIsRetransmit = true;
-                            return;
-                        }
-
-                        compilePayload(q);
-
-                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
-                            (mCbPayload)(q->cmd, q->iv);
-
-                        closeRequest(q, true);
-                        break;
-                }
+                innerLoop(q);
             });
         }
 
     private:
+        inline void innerLoop(const queue_s *q) {
+            switch(mState) {
+                case States::RESET:
+                    if (!mWaitTime.isTimeout())
+                        return;
+
+                    mMaxFrameId = 0;
+                    for(uint8_t i = 0; i < MAX_PAYLOAD_ENTRIES; i++) {
+                        mLocalBuf[i].len = 0;
+                    }
+
+                    if(*mSerialDebug)
+                        mHeu.printStatus(q->iv);
+                    mHeu.getTxCh(q->iv);
+                    q->iv->mGotFragment = false;
+                    q->iv->mGotLastMsg  = false;
+                    q->iv->curFrmCnt    = 0;
+                    mIsRetransmit = false;
+                    if(NULL == q->iv->radio)
+                        cmdDone(false); // can't communicate while radio is not defined!
+                    mFirstTry = q->iv->isAvailable();
+                    q->iv->mCmd = q->cmd;
+                    q->iv->mIsSingleframeReq = false;
+                    mFramesExpected = getFramesExpected(q); // function to get expected frame count.
+                    mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
+
+                    mState = States::START;
+                    break;
+
+                case States::START:
+                    setTs(mTimestamp);
+                    if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
+                        // frequency was changed during runtime
+                        if(q->iv->curCmtFreq != q->iv->config->frequency) {
+                            if(q->iv->radio->switchFrequencyCh(q->iv, q->iv->curCmtFreq, q->iv->config->frequency))
+                                q->iv->curCmtFreq = q->iv->config->frequency;
+                        }
+                    }
+
+                    if(q->isDevControl) {
+                        if(ActivePowerContr == q->cmd)
+                            q->iv->powerLimitAck = false;
+                        q->iv->radio->sendControlPacket(q->iv, q->cmd, q->iv->powerLimit, false);
+                    } else
+                        q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
+
+                    q->iv->radioStatistics.txCnt++;
+                    q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
+
+                    mIsRetransmit    = false;
+                    setAttempt();
+                    if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                        incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
+                    mState = States::WAIT;
+                    break;
+
+                case States::WAIT:
+                    if (!q->iv->radio->mRadioWaitTime.isTimeout())
+                        return;
+                    mState = States::CHECK_FRAMES;
+                    break;
+
+                case States::CHECK_FRAMES: {
+                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) || (0 == q->attempts)) { // radio buffer empty or no more answers
+                        if(*mSerialDebug) {
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("request timeout: "));
+                            DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
+                            DBGPRINTLN(F("ms"));
+                        }
+                        if(!q->iv->mGotFragment) {
+                            if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
+                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
+                                mWaitTime.startTimeMonitor(1000);
+                            } else {
+                                if(IV_MI == q->iv->ivGen)
+                                    q->iv->mIvTxCnt++;
+
+                                if(mFirstTry) {
+                                    mFirstTry = false;
+                                    setAttempt();
+                                    mHeu.evalTxChQuality(q->iv, false, 0, 0);
+                                    q->iv->radioStatistics.rxFailNoAnser++;
+                                    q->iv->radioStatistics.retransmits++;
+                                    q->iv->radio->mRadioWaitTime.stopTimeMonitor();
+                                    mState = States::START;
+
+                                    return;
+                                }
+                            }
+                        }
+                        closeRequest(q, false);
+                        break;
+                    }
+                    mFirstTry = false; // for correct reset
+                    if((IV_MI != q->iv->ivGen) || (0 == q->attempts))
+                        mIsRetransmit = false;
+
+                    while(!q->iv->radio->mBufCtrl.empty()) {
+                        packet_t *p = &q->iv->radio->mBufCtrl.front();
+
+                        if(validateIvSerial(&p->packet[1], q->iv)) {
+                            printRxInfo(q, p);
+                            q->iv->radioStatistics.frmCnt++;
+                            q->iv->mDtuRxCnt++;
+
+                            if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+                                if(parseFrame(p))
+                                    q->iv->curFrmCnt++;
+                            } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
+                                if(parseDevCtrl(p, q))
+                                    closeRequest(q, true);
+                                else
+                                    closeRequest(q, false);
+                                q->iv->radio->mBufCtrl.pop();
+                                return; // don't wait for empty buffer
+                            } else if(IV_MI == q->iv->ivGen) {
+                                if(parseMiFrame(p, q))
+                                    q->iv->curFrmCnt++;
+                            }
+                        } //else -> serial does not match
+
+                        q->iv->radio->mBufCtrl.pop();
+                        yield();
+                    }
+
+                    if(q->iv->ivGen != IV_MI) {
+                        mState = States::CHECK_PACKAGE;
+                    } else {
+                        bool fastNext = true;
+                        if(q->iv->miMultiParts < 6) {
+                            mState = States::WAIT;
+                            if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
+                                miRepeatRequest(q);
+                                return;
+                            }
+                        } else {
+                            mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+                            if(((q->cmd == 0x39) && (q->iv->type == INV_TYPE_4CH))
+                                || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
+                                || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
+                                miComplete(q->iv);
+                                fastNext = false;
+                            }
+                            if(fastNext)
+                                miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
+                            else
+                                closeRequest(q, true);
+                        }
+                    }
+
+                    }
+                    break;
+
+                case States::CHECK_PACKAGE:
+                    uint8_t framnr = 0;
+                    if(0 == mMaxFrameId) {
+                        uint8_t i = 0;
+                        while(i < MAX_PAYLOAD_ENTRIES) {
+                            if(mLocalBuf[i].len == 0) {
+                                framnr = i+1;
+                                break;
+                            }
+                            i++;
+                        }
+                    }
+
+                    if(!framnr) {
+                        for(uint8_t i = 0; i < mMaxFrameId; i++) {
+                            if(mLocalBuf[i].len == 0) {
+                                framnr = i+1;
+                                break;
+                            }
+                        }
+                    }
+
+                    if(framnr) {
+                        if(0 == q->attempts) {
+                            DPRINT_IVID(DBG_INFO, q->iv->id);
+                            DBGPRINT(F("no attempts left"));
+                            closeRequest(q, false);
+                            return;
+                        }
+                        setAttempt();
+
+                        if(*mSerialDebug) {
+                            DPRINT_IVID(DBG_WARN, q->iv->id);
+                            DBGPRINT(F("frame "));
+                            DBGPRINT(String(framnr));
+                            DBGPRINT(F(" missing: request retransmit ("));
+                            DBGPRINT(String(q->attempts));
+                            DBGPRINTLN(F(" attempts left)"));
+                        }
+                        if (!mIsRetransmit)
+                            q->iv->mIsSingleframeReq = true;
+                        sendRetransmit(q, (framnr-1));
+                        mIsRetransmit = true;
+                        return;
+                    }
+
+                    compilePayload(q);
+
+                    if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
+                        (mCbPayload)(q->cmd, q->iv);
+
+                    closeRequest(q, true);
+                    break;
+            }
+        }
+
         inline void printRxInfo(const queue_s *q, packet_t *p) {
             DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("RX "));
@@ -267,7 +284,7 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            if((IV_HM == q->iv->ivGen) || (IV_MI == q->iv->ivGen)) {
+            if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)
                     DBGPRINT(F("0"));
@@ -292,16 +309,61 @@ class Communication : public CommQueue<> {
             }
         }
 
+
+        inline uint8_t getFramesExpected(const queue_s *q) {
+            if(q->isDevControl)
+                return 1;
+
+            if(q->iv->ivGen != IV_MI) {
+                if (q->cmd == RealTimeRunData_Debug) {
+                    uint8_t framecnt[4] = {2, 3, 4, 7};
+                    return framecnt[q->iv->type];
+                }
+
+                switch (q->cmd) {
+                    case InverterDevInform_All:
+                    case GetLossRate:
+                    case SystemConfigPara:
+                        return 1;
+                    case AlarmData:          return 0x0c;
+                    case GridOnProFilePara:  return 6;
+
+                    /*HardWareConfig           = 3,  // 0x03
+                    SimpleCalibrationPara    = 4,  // 0x04
+                    RealTimeRunData_Reality  = 12, // 0x0c
+                    RealTimeRunData_A_Phase  = 13, // 0x0d
+                    RealTimeRunData_B_Phase  = 14, // 0x0e
+                    RealTimeRunData_C_Phase  = 15, // 0x0f
+                    AlarmUpdate              = 18, // 0x12, Alarm data - all pending alarms
+                    RecordData               = 19, // 0x13
+                    InternalData             = 20, // 0x14
+                    GetSelfCheckState        = 30, // 0x1e
+                    */
+
+                    default:   return 8; // for the moment, this should result in sth. like a default timeout of 500ms
+                }
+
+            } else {  //MI
+                switch (q->cmd) {
+                    case MI_REQ_CH1:
+                    case MI_REQ_CH2:
+                        return 2;
+                    case 0x0f: return 3;
+                    default:   return 1;
+                }
+            }
+        }
+
         inline bool validateIvSerial(uint8_t buf[], Inverter<> *iv) {
             uint8_t tmp[4];
             CP_U32_BigEndian(tmp, iv->radioId.u64 >> 8);
             for(uint8_t i = 0; i < 4; i++) {
                 if(tmp[i] != buf[i]) {
-                    DPRINT(DBG_WARN, F("Inverter serial does not match, got: 0x"));
+                    /*DPRINT(DBG_WARN, F("Inverter serial does not match, got: 0x"));
                     DHEX(buf[0]);DHEX(buf[1]);DHEX(buf[2]);DHEX(buf[3]);
                     DBGPRINT(F(", expected: 0x"));
                     DHEX(tmp[0]);DHEX(tmp[1]);DHEX(tmp[2]);DHEX(tmp[3]);
-                    DBGPRINTLN("");
+                    DBGPRINTLN("");*/
                     return false;
                 }
             }
@@ -351,8 +413,13 @@ class Communication : public CommQueue<> {
                 // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
                 //mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(p, q);
-            } else if (p->packet[0] == (0x0f + ALL_FRAMES))
+            } else if (p->packet[0] == (0x0f + ALL_FRAMES)) {
                 miHwDecode(p, q);
+            } else if (p->packet[0] == ( 0x10 + ALL_FRAMES)) {
+                // MI response from get Grid Profile information request
+                miGPFDecode(p, q);
+            }
+
             else if ((p->packet[0] == 0x88) || (p->packet[0] == 0x92)) {
                 record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
                 rec->ts = q->ts;
@@ -392,10 +459,11 @@ class Communication : public CommQueue<> {
             DBGPRINT(F("has "));
             if(!accepted) DBGPRINT(F("not "));
             DBGPRINT(F("accepted power limit set point "));
-            DBGPRINT(String(q->iv->powerLimit[0]));
+            DBGPRINT(String((float)q->iv->powerLimit[0]/10.0));
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value
+            (mCbPwrAck)(q->iv);
 
             return accepted;
         }
@@ -487,6 +555,7 @@ class Communication : public CommQueue<> {
             for (uint8_t i = 0; i < rec->length; i++) {
                 q->iv->addValue(i, mPayload, rec);
             }
+            rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
 
             q->iv->rssi = rssi;
             q->iv->doCalculations();
@@ -504,20 +573,18 @@ class Communication : public CommQueue<> {
         }
 
         void sendRetransmit(const queue_s *q, uint8_t i) {
-            if(q->attempts) {
-                q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
-                q->iv->radioStatistics.retransmits++;
-                mWaitTime.startTimeMonitor(SINGLEFR_TIMEOUT); // timeout
-                mState = States::WAIT;
-            } else {
-                //add(q, true);
-                closeRequest(q, false);
-            }
+            mFramesExpected = 1;
+            q->iv->radio->setExpectedFrames(mFramesExpected);
+            q->iv->radio->sendCmdPacket(q->iv, TX_REQ_INFO, (SINGLE_FRAME + i), true);
+            q->iv->radioStatistics.retransmits++;
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
+
+            mState = States::WAIT;
         }
 
     private:
         void closeRequest(const queue_s *q, bool crcPass) {
-            mHeu.evalTxChQuality(q->iv, crcPass, (4 - q->attempts), q->iv->curFrmCnt);
+            mHeu.evalTxChQuality(q->iv, crcPass, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
             if(crcPass)
                 q->iv->radioStatistics.rxSuccess++;
             else if(q->iv->mGotFragment)
@@ -535,7 +602,6 @@ class Communication : public CommQueue<> {
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
             mIsRetransmit       = false;
-            mFirstTry           = false; // for correct reset
             mState              = States::RESET;
             DBGPRINTLN(F("-----"));
         }
@@ -592,6 +658,8 @@ class Communication : public CommQueue<> {
                 rec->ts = q->ts;
                 q->iv->setValue(1, rec, (uint32_t) ((p->packet[24] << 8) + p->packet[25])/1);
                 q->iv->miMultiParts +=4;
+                rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
+
             } else if ( p->packet[9] == 0x01 || p->packet[9] == 0x10 ) {//second frame for MI, 3rd gen. answers in 0x10
                 DPRINT_IVID(DBG_INFO, q->iv->id);
                 if ( p->packet[9] == 0x01 ) {
@@ -608,6 +676,7 @@ class Communication : public CommQueue<> {
                     record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                     rec->ts = q->ts;
                     q->iv->setValue(0, rec, (uint32_t) ((((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13])/1);
+                    rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
 
                     if(*mSerialDebug) {
                         DPRINT(DBG_INFO,F("HW_FB_TLmValue "));
@@ -650,22 +719,32 @@ class Communication : public CommQueue<> {
                     (mCbPayload)(InverterDevInform_Simple, q->iv);
                 q->iv->miMultiParts++;
             }
-            //if(q->iv->miMultiParts > 5)
-                //closeRequest(q->iv, true);
-            //else
-            //if(q->iv->miMultiParts < 6)
-            //    mState = States::WAIT;
+        }
 
-            /*if (mPayload[iv->id].multi_parts > 5) {
-                iv->setQueuedCmdFinished();
-                mPayload[iv->id].complete = true;
-                mPayload[iv->id].rxTmo    = true;
-                mPayload[iv->id].requested= false;
-                iv->radioStatistics.rxSuccess++;
-            }
-            if (mHighPrioIv == NULL)
-                mHighPrioIv = iv;
-                */
+        inline void miGPFDecode(packet_t *p, const queue_s *q) {
+            record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+            rec->ts = q->ts;
+            rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
+
+            q->iv->setValue(2, rec, (uint32_t) (((p->packet[10] << 8) | p->packet[11]))); //FLD_GRID_PROFILE_CODE
+            q->iv->setValue(3, rec, (uint32_t) (((p->packet[12] << 8) | p->packet[13]))); //FLD_GRID_PROFILE_VERSION
+
+            /* according to xlsx (different start byte -1!)
+             Polling Grid-connected Protection Parameter File Command - Receipt
+             byte[10]               ST1 indicates the status of the grid-connected protection file. ST1=1 indicates the default grid-connected protection file, ST=2 indicates that the grid-connected protection file is configured and normal, ST=3 indicates that the grid-connected protection file cannot be recognized, ST=4 indicates that the grid-connected protection file is damaged
+             byte[11]	 byte[12]   CountryStd variable indicates the national standard code of the grid-connected protection file
+             byte[13]	 byte[14]   Version indicates the version of the grid-connected protection file
+             byte[15]	 byte[16]
+            */
+            /*if(mSerialDebug) {
+                DPRINT(DBG_INFO,F("ST1 "));
+                DBGPRINTLN(String(p->packet[9]));
+                DPRINT(DBG_INFO,F("CountryStd "));
+                DBGPRINTLN(String((p->packet[10] << 8) + p->packet[11]));
+                DPRINT(DBG_INFO,F("Version "));
+                DBGPRINTLN(String((p->packet[12] << 8) + p->packet[13]));
+            }*/
+            q->iv->miMultiParts = 7; // indicate we are ready
         }
 
         inline void miDataDecode(packet_t *p, const queue_s *q) {
@@ -709,21 +788,20 @@ class Communication : public CommQueue<> {
                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), 1);
+                    mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), 1);
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
                 } else {
                     q->iv->miMultiParts = 7; // indicate we are ready
-                    //miComplete(q->iv);
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
                 //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
-                mHeu.evalTxChQuality(q->iv, true, (4 - q->attempts), q->iv->curFrmCnt);
-                //use also miMultiParts here for better statistics?
-                //mHeu.setGotFragment(q->iv);
-            } else {                                    // first data msg for 1ch, 2nd for 2ch
+                mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+                q->iv->mIvRxCnt++;           // statistics workaround...
+
+            } else {                      // first data msg for 1ch, 2nd for 2ch
                 q->iv->miMultiParts += 6; // indicate we are ready
-                //miComplete(q->iv);
+
             }
         }
 
@@ -737,16 +815,14 @@ class Communication : public CommQueue<> {
                 DBGHEXLN(cmd);
             }
 
-            if(q->iv->miMultiParts == 7) {
-                //mHeu.setGotAll(q->iv);
+            if(q->iv->miMultiParts == 7)
                 q->iv->radioStatistics.rxSuccess++;
-            } else
-                //mHeu.setGotFragment(q->iv);
-                /*iv->radioStatistics.rxFail++; // got no complete payload*/
-            //q->iv->radioStatistics.retransmits++;
+
+            mFramesExpected = getFramesExpected(q);
+            q->iv->radio->setExpectedFrames(mFramesExpected);
             q->iv->radio->sendCmdPacket(q->iv, cmd, 0x00, true);
 
-            mWaitTime.startTimeMonitor(MI_TIMEOUT);
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             q->iv->miMultiParts = 0;
             q->iv->mGotFragment = 0;
             mIsRetransmit = true;
@@ -766,8 +842,7 @@ class Communication : public CommQueue<> {
 
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
 
-            mWaitTime.startTimeMonitor(MI_TIMEOUT);
-            //mState = States::WAIT;
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             mIsRetransmit = false;
         }
 
@@ -833,6 +908,8 @@ class Communication : public CommQueue<> {
             if (!stsok) {
                 q->iv->setValue(q->iv->getPosByChFld(0, FLD_EVT, rec), rec, prntsts);
                 q->iv->lastAlarm[0] = alarm_t(prntsts, q->ts, 0);
+                rec->ts = q->ts;
+                rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
             }
 
             if (q->iv->alarmMesIndex < rec->record[q->iv->getPosByChFld(0, FLD_EVT, rec)]) {
@@ -851,6 +928,26 @@ class Communication : public CommQueue<> {
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINTLN(F("got all data msgs"));
             }
+
+            if (iv->mGetLossInterval >= AHOY_GET_LOSS_INTERVAL) { // initially mIvRxCnt = mIvTxCnt = 0
+                iv->mGetLossInterval = 1;
+                iv->radioStatistics.ivSent  = iv->mIvRxCnt + iv->mDtuTxCnt; // iv->mIvRxCnt is the nr. of additional answer frames, default we expect one frame per request
+                iv->radioStatistics.ivLoss  = iv->radioStatistics.ivSent - iv->mDtuRxCnt; // this is what we didn't receive
+                iv->radioStatistics.dtuLoss = iv->mIvTxCnt; // this is somehow the requests w/o answers in that periode
+                iv->radioStatistics.dtuSent = iv->mDtuTxCnt;
+                if (mSerialDebug) {
+                    DPRINT_IVID(DBG_INFO, iv->id);
+                    DBGPRINTLN("DTU loss: " +
+                        String (iv->radioStatistics.ivLoss) + "/" +
+                        String (iv->radioStatistics.ivSent) + " frames for " +
+                        String (iv->radioStatistics.dtuSent) + " requests");
+                }
+                iv->mIvRxCnt  = 0;  // start new interval, iVRxCnt is abused to collect additional possible frames
+                iv->mIvTxCnt  = 0;  // start new interval, iVTxCnt is abused to collect nr. of unanswered requests
+                iv->mDtuRxCnt = 0;  // start new interval
+                iv->mDtuTxCnt = 0;  // start new interval
+            }
+
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             iv->setValue(iv->getPosByChFld(0, FLD_YD, rec), rec, calcYieldDayCh0(iv,0));
 
@@ -871,17 +968,12 @@ class Communication : public CommQueue<> {
             iv->setValue(iv->getPosByChFld(0, FLD_PAC, rec), rec, (float) ac_pow/10);
 
             iv->doCalculations();
+            rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
             // update status state-machine,
             if (ac_pow)
                 iv->isProducing();
-            //closeRequest(iv, iv->miMultiParts > 5);
-
-            //mHeu.setGotAll(iv);
-            //cmdDone(false);
             if(NULL != mCbPayload)
                 (mCbPayload)(RealTimeRunData_Debug, iv);
-
-            //mState = States::RESET; // everything ok, next request
         }
 
     private:
@@ -905,14 +997,15 @@ class Communication : public CommQueue<> {
         bool mFirstTry = false;     // see, if we should do a second try
         bool mIsRetransmit = false; // we already had waited one complete cycle
         uint8_t mMaxFrameId;
+        uint8_t mFramesExpected = 12; // 0x8c was highest last frame for alarm data
+        uint16_t mTimeout = 0;       // calculating that once should be ok
         uint8_t mPayload[MAX_BUFFER];
         payloadListenerType mCbPayload = NULL;
+        powerLimitAckListenerType mCbPwrAck = NULL;
         alarmListenerType mCbAlarm = NULL;
         Heuristic mHeu;
         uint32_t mLastEmptyQueueMillis = 0;
         bool mPrintSequenceDuration = false;
-
-        //States mDebugState = States::START;
 };
 
 #endif /*__COMMUNICATION_H__*/

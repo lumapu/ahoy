@@ -33,6 +33,22 @@ textarea {
     color: var(--fg2);
 }
 
+svg rect {fill: #0000AA;}
+svg.chart {
+    background: #f2f2f2;
+    border: 2px solid gray;
+    padding: 1px;
+}
+
+div.chartDivContainer {
+    padding: 1px;
+    margin: 1px;
+}
+div.chartdivContainer span {
+    color: var(--fg2);
+}
+
+
 .topnav {
     background-color: var(--nav-bg);
     position: fixed;
@@ -650,39 +666,24 @@ div.hr {
 }
 
 
-.css-tooltip{
+.tooltip:hover {
     position: relative;
 }
-.css-tooltip:hover:after{
-    content:attr(data-tooltip);
-    background:#000;
-    padding:5px;
-    border-radius:3px;
+.tooltip:hover:after {
+    content: attr(data);
+    background: var(--nav-active);
+    padding: 5px;
+    border-radius: 3px;
     display: inline-block;
     position: absolute;
     transform: translate(-50%,-100%);
     margin:0 auto;
-    color:#FFF;
-    min-width:100px;
-    min-width:150px;
-    top:-5px;
+    color: var(--fg2);
+    min-width: 100px;
+    top: -5px;
     left: 50%;
     text-align:center;
-}
-.css-tooltip:hover:before {
-    top:-5px;
-    left: 50%;
-    border: solid transparent;
-    content: " ";
-    height: 0;
-    width: 0;
-    position: absolute;
-    pointer-events: none;
-    border-color: rgba(0, 0, 0, 0);
-    border-top-color: #000;
-    border-width: 5px;
-    margin-left: -5px;
-    transform: translate(0,0px);
+    font-size: 1rem;
 }
 
 #modal {
@@ -828,4 +829,21 @@ ul {
 .nav-link:hover, .nav-link:visited {
     background-color: var(--input-bg);
     color: var(--fg);
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.jc {
+    justify-content: center !important;
+}
+
+.aic {
+    align-items: center !important;
+}
+
+.container {
+    height: 100%;
+    overflow: auto;
 }

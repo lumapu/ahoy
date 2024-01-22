@@ -21,7 +21,8 @@ def get_firmware_specifier_build_flag():
     except:
         build_version = "g0000000"
 
-    build_flag = "-D AUTO_GIT_HASH=\\\"" + build_version[1:] + "\\\""
+    build_flag = "-D AUTO_GIT_HASH=\\\"" + build_version[1:] + "\\\" "
+    build_flag += "-DENV_NAME=\\\"" + env["PIOENV"] + "\\\" ";
     print ("Firmware Revision: " + build_version)
     return (build_flag)
 

@@ -3,6 +3,7 @@ import os
 import gzip
 import glob
 import shutil
+import json
 from datetime import date
 from pathlib import Path
 import subprocess
@@ -22,18 +23,33 @@ def readVersion(path):
 
     today = date.today()
     search = ["_MAJOR", "_MINOR", "_PATCH"]
-    version = today.strftime("%y%m%d") + "_ahoy_"
     ver = ""
     for line in lines:
         if(line.find("VERSION_") != -1):
             for s in search:
                 p = line.find(s)
                 if(p != -1):
-                    version += line[p+13:].rstrip() + "."
                     ver += line[p+13:].rstrip() + "."
     return ver[:-1]
 
-def htmlParts(file, header, nav, footer, version):
+def readVersionFull(path):
+    f = open(path, "r")
+    lines = f.readlines()
+    f.close()
+
+    today = date.today()
+    search = ["_MAJOR", "_MINOR", "_PATCH"]
+    version = today.strftime("%y%m%d") + "_ahoy_"
+    for line in lines:
+        if(line.find("VERSION_") != -1):
+            for s in search:
+                p = line.find(s)
+                if(p != -1):
+                    version += line[p+13:].rstrip() + "."
+    version = version[:-1] + "_" + get_git_sha()
+    return version
+
+def htmlParts(file, header, nav, footer, versionPath, lang):
     p = "";
     f = open(file, "r")
     lines = f.readlines()
@@ -58,12 +74,16 @@ def htmlParts(file, header, nav, footer, version):
         p += line
 
     #placeholders
+    version = readVersion(versionPath);
     link = '<a target="_blank" href="https://github.com/lumapu/ahoy/commits/' + get_git_sha() + '">GIT SHA: ' + get_git_sha() + ' :: ' + version + '</a>'
     p = p.replace("{#VERSION}", version)
+    p = p.replace("{#VERSION_FULL}", readVersionFull(versionPath))
     p = p.replace("{#VERSION_GIT}", link)
 
     # remove if - endif ESP32
     p = checkIf(p)
+    p = translate(file, p, lang)
+    p = translate("general", p, lang) # menu / header / footer
 
     f = open("tmp/" + file, "w")
     f.write(p);
@@ -94,7 +114,30 @@ def checkIf(data):
 
     return data
 
-def convert2Header(inFile, version):
+def findLang(file):
+    with open('../lang.json') as j:
+        lang = json.load(j)
+
+        for l in lang["files"]:
+            if l["name"] == file:
+                return l
+
+    return None
+
+def translate(file, data, lang="de"):
+    json = findLang(file)
+
+    if None != json:
+        matches = re.findall(r'\{\#([A-Z0-9_]+)\}', data)
+        for x in matches:
+            for e in json["list"]:
+                if x == e["token"]:
+                    #print("replace " + "{#" + x + "}" + " with " + e[lang])
+                    data = data.replace("{#" + x + "}", e[lang])
+    return data
+
+
+def convert2Header(inFile, versionPath, lang):
     fileType      = inFile.split(".")[1]
     define        = inFile.split(".")[0].upper()
     define2       = inFile.split(".")[1].upper()
@@ -114,7 +157,7 @@ def convert2Header(inFile, version):
         f.close()
     else:
         if fileType == "html":
-            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", version)
+            data = htmlParts(inFile, "includes/header.html", "includes/nav.html", "includes/footer.html", versionPath, lang)
         else:
             f = open(inFile, "r")
             data = f.read()
@@ -167,8 +210,12 @@ for files in types:
 Path("h").mkdir(exist_ok=True)
 Path("tmp").mkdir(exist_ok=True) # created to check if webpages are valid with all replacements
 shutil.copyfile("style.css", "tmp/style.css")
-version = readVersion("../../defines.h")
+
+# get language from environment
+lang = "en"
+if env['PIOENV'][-3:] == "-de":
+    lang = "de"
 
 # go throw the array
 for val in files_grabbed:
-    convert2Header(val, version)
+    convert2Header(val, "../../defines.h", lang)

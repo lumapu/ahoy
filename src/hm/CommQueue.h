@@ -11,6 +11,10 @@
 #include "hmInverter.h"
 #include "../utils/dbg.h"
 
+#define DEFAULT_ATTEMPS                 5
+#define MORE_ATTEMPS_ALARMDATA          8
+#define MORE_ATTEMPS_GRIDONPROFILEPARA  5
+
 template <uint8_t N=100>
 class CommQueue {
     public:
@@ -44,11 +48,12 @@ class CommQueue {
             Inverter<> *iv;
             uint8_t cmd;
             uint8_t attempts;
+            uint8_t attemptsMax;
             uint32_t ts;
             bool isDevControl;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool dev) :
-                iv(i), cmd(c), attempts(5), ts(0), isDevControl(dev) {}
+                iv(i), cmd(c), attempts(DEFAULT_ATTEMPS), attemptsMax(DEFAULT_ATTEMPS), ts(0), isDevControl(dev) {}
         };
 
     protected:
@@ -59,8 +64,10 @@ class CommQueue {
 
         void add(const queue_s *q, bool rstAttempts = false) {
             mQueue[mWrPtr] = *q;
-            if(rstAttempts)
-                mQueue[mWrPtr].attempts = 5;
+            if(rstAttempts) {
+                mQueue[mWrPtr].attempts = DEFAULT_ATTEMPS;
+                mQueue[mWrPtr].attemptsMax = DEFAULT_ATTEMPS;
+            }
             inc(&mWrPtr);
         }
 
@@ -79,7 +86,8 @@ class CommQueue {
 
         void cmdDone(bool keep = false) {
             if(keep) {
-                mQueue[mRdPtr].attempts = 5;
+                mQueue[mRdPtr].attempts = DEFAULT_ATTEMPS;
+                mQueue[mRdPtr].attemptsMax = DEFAULT_ATTEMPS;
                 add(mQueue[mRdPtr]); // add to the end again
             }
             inc(&mRdPtr);
@@ -96,6 +104,8 @@ class CommQueue {
 
         void incrAttempt(uint8_t attempts = 1) {
             mQueue[mRdPtr].attempts += attempts;
+            if (mQueue[mRdPtr].attempts > mQueue[mRdPtr].attemptsMax)
+                mQueue[mRdPtr].attemptsMax = mQueue[mRdPtr].attempts;
         }
 
         void inc(uint8_t *ptr) {

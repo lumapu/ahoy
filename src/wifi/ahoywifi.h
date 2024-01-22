@@ -1,7 +1,8 @@
+//------------------------------------//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
-//-----------------------------------------------------------------------------
+
 #if !defined(ETHERNET)
 #ifndef __AHOYWIFI_H__
 #define __AHOYWIFI_H__
@@ -28,6 +29,13 @@ class ahoywifi {
         bool getNtpTime(void);
         void scanAvailNetworks(void);
         bool getAvailNetworks(JsonObject obj);
+        void setStopApAllowedMode(bool allowed) {
+            mStopApAllowed = allowed;
+        }
+        String getStationIp(void) {
+            return WiFi.localIP().toString();
+        }
+        void setupStation(void);
 
     private:
         typedef enum WiFiStatus {
@@ -43,7 +51,6 @@ class ahoywifi {
 
         void setupWifi(bool startAP);
         void setupAp(void);
-        void setupStation(void);
         void sendNTPpacket(IPAddress& address);
         void sortRSSI(int *sort, int n);
         bool getBSSIDs(void);
@@ -60,7 +67,7 @@ class ahoywifi {
         void welcome(String ip, String mode);
 
 
-        settings_t *mConfig;
+        settings_t *mConfig = NULL;
         appWifiCb mAppWifiCb;
 
         DNSServer mDns;
@@ -78,6 +85,7 @@ class ahoywifi {
         bool mScanActive;
         bool mGotDisconnect;
         std::list<uint8_t> mBSSIDList;
+        bool mStopApAllowed;
 };
 
 #endif /*__AHOYWIFI_H__*/

@@ -72,11 +72,13 @@ namespace ah {
 
     String getTimeStrMs(uint64_t t) {
         char str[13];
+        uint16_t m;
         if(0 == t)
             sprintf(str, "n/a");
         else {
-            t = (t + (millis() % 1000)) / 1000;
-            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), millis() % 1000);
+            m = t % 1000;
+            t = t / 1000;
+            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), m);
         }
         return String(str);
     }
