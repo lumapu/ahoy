@@ -134,10 +134,15 @@ class Communication : public CommQueue<> {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
-                            DBGPRINTLN(F("ms"));
+                            DBGPRINT(F("ms"));
+                            if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
+                                DBGPRINT(F(", ARC "));
+                                DBGPRINTLN(String(q->iv->radio->getARC()));
+                            } else
+                                DBGPRINTLN("");
                         }
                         if(!q->iv->mGotFragment) {
-                            if(q->iv->ivRadioType == INV_RADIO_TYPE_CMT) {
+                            if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                 mWaitTime.startTimeMonitor(1000);
                             } else {

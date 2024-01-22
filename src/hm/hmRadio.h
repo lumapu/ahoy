@@ -293,6 +293,10 @@ class HmRadio : public Radio {
             return mNrf24->isPVariant();
         }
 
+        uint8_t getARC(void) {
+            return mNrf24->getARC();
+        }
+
     private:
         inline bool getReceived(void) {
             bool isLastPackage = false;
