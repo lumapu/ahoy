@@ -23,6 +23,7 @@ typedef struct {
     uint8_t packet[MAX_RF_PAYLOAD_SIZE];
     uint16_t millis;
     uint8_t arc;
+    uint8_t plos;
 } packet_t;
 
 typedef enum {

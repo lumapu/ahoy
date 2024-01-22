@@ -137,7 +137,9 @@ class Communication : public CommQueue<> {
                             DBGPRINT(F("ms"));
                             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                                 DBGPRINT(F(", ARC "));
-                                DBGPRINTLN(String(q->iv->radio->getARC()));
+                                DBGPRINT(String(q->iv->radio->getARC()));
+                                DBGPRINT(F(", PLOS "));
+                                DBGPRINTLN(String(q->iv->radio->getPLOS()));
                             } else
                                 DBGPRINTLN("");
                         }
@@ -291,6 +293,8 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->len));
             DBGPRINT(F(", ARC "));
             DBGPRINT(String(p->arc));
+            DBGPRINT(F(", PLOS "));
+            DBGPRINT(String(p->plos));
             DBGPRINT(F(" |"));
             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));

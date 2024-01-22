@@ -1,5 +1,5 @@
 diff --git a/RF24.cpp b/RF24.cpp
-index c0cc732..b6708d9 100644
+index 9e5b4a8..af00758 100644
 --- a/RF24.cpp
 +++ b/RF24.cpp
 @@ -12,228 +12,24 @@
@@ -727,7 +727,7 @@ index c0cc732..b6708d9 100644
  }
  
  /****************************************************************************/
-@@ -1676,15 +1136,8 @@ void RF24::closeReadingPipe(uint8_t pipe)
+@@ -1675,15 +1135,8 @@ void RF24::closeReadingPipe(uint8_t pipe)
  
  void RF24::toggle_features(void)
  {
@@ -745,8 +745,20 @@ index c0cc732..b6708d9 100644
  }
  
  /****************************************************************************/
+@@ -1871,6 +1324,11 @@ uint8_t RF24::getARC(void)
+     return read_register(OBSERVE_TX) & 0x0F;
+ }
+ 
++uint8_t RF24::getPLOS(void)
++{
++    return (read_register(OBSERVE_TX) >> 4) & 0x0F;
++}
++
+ /****************************************************************************/
+ 
+ bool RF24::setDataRate(rf24_datarate_e speed)
 diff --git a/RF24.h b/RF24.h
-index dbd32ae..f774bba 100644
+index dbd32ae..74ae35d 100644
 --- a/RF24.h
 +++ b/RF24.h
 @@ -16,12 +16,7 @@
@@ -932,7 +944,15 @@ index dbd32ae..f774bba 100644
       */
      void encodeRadioDetails(uint8_t* encoded_status);
  
-@@ -1896,18 +1800,6 @@ private:
+@@ -1644,6 +1548,7 @@ public:
+      * @return Returns values from 0 to 15.
+      */
+     uint8_t getARC(void);
++    uint8_t getPLOS(void);
+ 
+     /**
+      * Set the transmission @ref Datarate
+@@ -1896,18 +1801,6 @@ private:
       */
      bool _init_pins();
  
