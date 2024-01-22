@@ -170,7 +170,6 @@ void app::onNetwork(bool gotIp) {
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-    //tickNtpUpdate();
     #if !defined(ETHERNET)
     if (WIFI_AP == WiFi.getMode()) {
         mMqttEnabled = false;
@@ -204,12 +203,7 @@ void app::regularTickers(void) {
 
 #if defined(ETHERNET)
 void app::onNtpUpdate(bool gotTime) {
-    uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    if (gotTime || mTimestamp != 0) {
-        this->updateNtp();
-        nxtTrig = gotTime ? 43200 : 60;  // depending on NTP update success check again in 12 h or in 1 min
-    }
-    once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
+    mNtpReceived = true;
 }
 #endif /* defined(ETHERNET) */
 
@@ -253,13 +247,22 @@ void app::updateNtp(void) {
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
+    bool isOK = false;
+
     #if defined(ETHERNET)
-    bool isOK = (mTimestamp != 0);
-    mEth.updateNtpTime();
+    if (!mNtpReceived)
+    {
+        mEth.updateNtpTime();
+    }
+    else
+    {
+        mNtpReceived = false;
+        isOK = true;
+    }
     #else
-    bool isOK = mWifi.getNtpTime();
+    isOK = mWifi.getNtpTime();
     #endif
-    if (isOK || mTimestamp != 0) {
+    if (isOK) {
         this->updateNtp();
 
         nxtTrig = isOK ? (mConfig->ntp.interval * 60) : 60;  // depending on NTP update success check again in 12h (depends on setting) or in 1 min
@@ -563,6 +566,10 @@ void app::resetSystem(void) {
     mSaveReboot = false;
 
     mNetworkConnected = false;
+
+#if defined(ETHERNET)
+    mNtpReceived = false;
+#endif
 }
 
 //-----------------------------------------------------------------------------
