@@ -86,7 +86,7 @@ class Communication : public CommQueue<> {
                     mIsRetransmit = false;
                     if(NULL == q->iv->radio)
                         cmdDone(false); // can't communicate while radio is not defined!
-                    mFirstTry = q->iv->isAvailable();
+                    mFirstTry = INV_RADIO_TYPE_NRF == q->iv->ivRadioType && q->iv->isAvailable();
                     q->iv->mCmd = q->cmd;
                     q->iv->mIsSingleframeReq = false;
                     mFramesExpected = getFramesExpected(q); // function to get expected frame count.
@@ -185,7 +185,7 @@ class Communication : public CommQueue<> {
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                 if(parseFrame(p)) {
                                     q->iv->curFrmCnt++;
-                                    if(!mIsRetransmit && p->packet[9] == 2 && p->millis < 85)
+                                    if(!mIsRetransmit && (p->packet[9] == 0x02 || p->packet[9] == 0x82) && p->millis < 85)
                                         mHeu.setIvRetriesGood(q->iv,p->millis < 70);
                                 }
                             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
@@ -444,7 +444,6 @@ class Communication : public CommQueue<> {
                 record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
                 rec->ts = q->ts;
                 miStsConsolidate(q, ((p->packet[0] == 0x88) ? 1 : 2), rec, p->packet[10], p->packet[12], p->packet[9], p->packet[11]);
-                //mHeu.setGotFragment(q->iv); only do this when we are through the cycle?
             }
 
             return true;
