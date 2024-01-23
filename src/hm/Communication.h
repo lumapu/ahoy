@@ -86,7 +86,7 @@ class Communication : public CommQueue<> {
                     mIsRetransmit = false;
                     if(NULL == q->iv->radio)
                         cmdDone(false); // can't communicate while radio is not defined!
-                    mFirstTry = q->iv->isAvailable();
+                    mFirstTry = INV_RADIO_TYPE_NRF == q->iv->ivRadioType && q->iv->isAvailable();
                     q->iv->mCmd = q->cmd;
                     q->iv->mIsSingleframeReq = false;
                     mFramesExpected = getFramesExpected(q); // function to get expected frame count.
@@ -134,20 +134,23 @@ class Communication : public CommQueue<> {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
-                            DBGPRINT(F("ms"));
-                            if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
+                            DBGPRINTLN(F("ms"));
+                            /*if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
+                                DBGPRINT(F(", retries "));
+                                DBGPRINTLN(String(q->iv->radio->mTxRetriesNext));
                                 DBGPRINT(F(", ARC "));
                                 DBGPRINT(String(q->iv->radio->getARC()));
                                 DBGPRINT(F(", PLOS "));
                                 DBGPRINTLN(String(q->iv->radio->getPLOS()));
                             } else
-                                DBGPRINTLN("");
+                                DBGPRINTLN("");*/
                         }
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                 mWaitTime.startTimeMonitor(1000);
                             } else {
+                                mHeu.setIvRetriesBad(q->iv);
                                 if(IV_MI == q->iv->ivGen)
                                     q->iv->mIvTxCnt++;
 
@@ -180,8 +183,11 @@ class Communication : public CommQueue<> {
                             q->iv->mDtuRxCnt++;
 
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                if(parseFrame(p))
+                                if(parseFrame(p)) {
                                     q->iv->curFrmCnt++;
+                                    if(!mIsRetransmit && (p->packet[9] == 0x02 || p->packet[9] == 0x82) && p->millis < 85)
+                                        mHeu.setIvRetriesGood(q->iv,p->millis < 70);
+                                }
                             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                 if(parseDevCtrl(p, q))
                                     closeRequest(q, true);
@@ -291,10 +297,10 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            DBGPRINT(F(", ARC "));
+            /*DBGPRINT(F(", ARC "));
             DBGPRINT(String(p->arc));
             DBGPRINT(F(", PLOS "));
-            DBGPRINT(String(p->plos));
+            DBGPRINT(String(p->plos));*/
             DBGPRINT(F(" |"));
             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
@@ -417,6 +423,8 @@ class Communication : public CommQueue<> {
         }
 
         inline bool parseMiFrame(packet_t *p, const queue_s *q) {
+            if(!mIsRetransmit && p->packet[9] == 0x00 && p->millis < 35) //first frame is fast?
+                mHeu.setIvRetriesGood(q->iv,p->millis < 22);
             if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
                 || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))
@@ -436,7 +444,6 @@ class Communication : public CommQueue<> {
                 record_t<> *rec = q->iv->getRecordStruct(RealTimeRunData_Debug);  // choose the record structure
                 rec->ts = q->ts;
                 miStsConsolidate(q, ((p->packet[0] == 0x88) ? 1 : 2), rec, p->packet[10], p->packet[12], p->packet[9], p->packet[11]);
-                //mHeu.setGotFragment(q->iv); only do this when we are through the cycle?
             }
 
             return true;
@@ -527,7 +534,7 @@ class Communication : public CommQueue<> {
 
             len -= 2;
 
-            DPRINT_IVID(DBG_INFO, q->iv->id);
+            //DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("Payload ("));
             DBGPRINT(String(len));
             if(*mPrintWholeTrace) {

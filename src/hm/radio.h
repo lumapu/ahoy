@@ -29,8 +29,8 @@ class Radio {
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
         virtual bool isChipConnected(void) { return false; }
         virtual bool loop(void) = 0;
-        virtual uint8_t getARC(void) { return 0xff; }
-        virtual uint8_t getPLOS(void) { return 0xff; }
+        //virtual uint8_t getARC(void) { return 0xff; }
+        //virtual uint8_t getPLOS(void) { return 0xff; }
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -78,6 +78,7 @@ class Radio {
         std::queue<packet_t> mBufCtrl;
         uint8_t mIrqOk = IRQ_UNKNOWN;
         TimeMonitor mRadioWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
+        uint8_t mTxRetriesNext = 15;                        // let heuristics tell us the next reties count (for nRF type radios only)
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;

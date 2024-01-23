@@ -166,9 +166,10 @@ class CmtRadio : public Radio {
                 mBufCtrl.push(p);
 
             // this code completly stops communication!
-            //if(p.packet[9] > ALL_FRAMES)          // indicates last frame
+            if(p.packet[9] > ALL_FRAMES)          // indicates last frame
             //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
-            //optionally instead: mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
+            //optionally instead:
+                mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
         }
 
         CmtType mCmt;
