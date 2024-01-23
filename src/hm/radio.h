@@ -29,8 +29,8 @@ class Radio {
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
         virtual bool isChipConnected(void) { return false; }
         virtual bool loop(void) = 0;
-        virtual uint8_t getARC(void) { return 0xff; }
-        virtual uint8_t getPLOS(void) { return 0xff; }
+        //virtual uint8_t getARC(void) { return 0xff; }
+        //virtual uint8_t getPLOS(void) { return 0xff; }
 
         void handleIntr(void) {
             mIrqRcvd = true;
