@@ -167,6 +167,7 @@ class HmRadio : public Radio {
                 if(rx_ready) {
                     if (getReceived()) { // check what we got, returns true for last package
                         mNRFisInRX = false;
+                        rx_ready = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
                         mNrf24->stopListening();
                     } else {
