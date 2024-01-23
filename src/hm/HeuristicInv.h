@@ -27,6 +27,9 @@ class HeuristicInv {
         uint8_t testChId           = 0;
         int8_t  saveOldTestQuality = -6;
         uint8_t lastRxFragments    = 0;
+        bool    rxSpeeds[2]        = {false,false}; // is inverter responding very fast respective fast?
+        uint8_t rxSpeedCnt[2]      = {0,0};         // count how many messages had been received very fast respective fast (10 max)
+
 };
 
 #endif /*__HEURISTIC_INV_H__*/

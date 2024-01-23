@@ -161,7 +161,7 @@ class HmRadio : public Radio {
                     rxPendular  = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
-                    innerLoopTimeout = DURATION_TXFRAME;
+                    innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
                 }
 
                 if(rx_ready) {
@@ -356,11 +356,14 @@ class HmRadio : public Radio {
             mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
+                /* remark rejoe2: imo this has no added value here.
+                As this belongs to the last tx cycle, we should print that info
+                directly when switching from tx to rx. Otherwise we might confuse users.
                 if(!isRetransmit) {
                     DPRINT(DBG_INFO, "last tx setup: ");
                     DBGPRINT(String(mTxSetupTime));
                     DBGPRINTLN("ms");
-                }
+                }*/
 
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
@@ -383,6 +386,10 @@ class HmRadio : public Radio {
             }
 
             mNrf24->stopListening();
+            if(!isRetransmit && mTxRetries != mTxRetriesNext) {
+                mNrf24->setRetries(3, mTxRetriesNext);
+                mTxRetries = mTxRetriesNext;
+            }
             mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
@@ -425,6 +432,7 @@ class HmRadio : public Radio {
         bool rxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
         uint8_t mTxSetupTime = 0;
+        uint8_t mTxRetries = 15;                            // memorize last setting for mNrf24->setRetries(3, 15);
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

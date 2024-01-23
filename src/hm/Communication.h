@@ -148,6 +148,7 @@ class Communication : public CommQueue<> {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
                                 mWaitTime.startTimeMonitor(1000);
                             } else {
+                                mHeu.setIvRetriesBad(q->iv);
                                 if(IV_MI == q->iv->ivGen)
                                     q->iv->mIvTxCnt++;
 
@@ -180,8 +181,11 @@ class Communication : public CommQueue<> {
                             q->iv->mDtuRxCnt++;
 
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
-                                if(parseFrame(p))
+                                if(parseFrame(p)) {
                                     q->iv->curFrmCnt++;
+                                    if(!mIsRetransmit && p->packet[9] == 2 && p->millis < 85)
+                                        mHeu.setIvRetriesGood(q->iv,p->millis < 70);
+                                }
                             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                 if(parseDevCtrl(p, q))
                                     closeRequest(q, true);
@@ -417,6 +421,8 @@ class Communication : public CommQueue<> {
         }
 
         inline bool parseMiFrame(packet_t *p, const queue_s *q) {
+            if(!mIsRetransmit && p->packet[9] == 0x00 && p->millis < 35) //first frame is fast?
+                mHeu.setIvRetriesGood(q->iv,p->millis < 22);
             if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
                 || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))
@@ -527,7 +533,7 @@ class Communication : public CommQueue<> {
 
             len -= 2;
 
-            DPRINT_IVID(DBG_INFO, q->iv->id);
+            //DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("Payload ("));
             DBGPRINT(String(len));
             if(*mPrintWholeTrace) {
