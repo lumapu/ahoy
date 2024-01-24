@@ -14,8 +14,7 @@ class CmtRadio : public Radio {
     typedef Cmt2300a CmtType;
     public:
         CmtRadio() {
-            mDtuSn    = DTU_SN;
-            mCmtAvail = false;
+            mDtuSn = DTU_SN;
         }
 
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
@@ -38,7 +37,7 @@ class CmtRadio : public Radio {
             return false;
         }
 
-        bool isChipConnected(void) {
+        bool isChipConnected(void) const {
             return mCmtAvail;
         }
 
@@ -116,11 +115,11 @@ class CmtRadio : public Radio {
             iv->mDtuTxCnt++;
         }
 
-        uint64_t getIvId(Inverter<> *iv) {
+        uint64_t getIvId(Inverter<> *iv) const {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) {
+        uint8_t getIvGen(Inverter<> *iv) const {
             return iv->ivGen;
         }
 
@@ -172,7 +171,7 @@ class CmtRadio : public Radio {
         }
 
         CmtType mCmt;
-        bool mCmtAvail;
+        bool mCmtAvail = false;
         bool mRqstGetRx = false;
         uint32_t mMillis;
 };

@@ -134,14 +134,7 @@ class Communication : public CommQueue<> {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
-                            DBGPRINT(F("ms"));
-                            if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
-                                DBGPRINT(F(", ARC "));
-                                DBGPRINT(String(q->iv->radio->getARC()));
-                                DBGPRINT(F(", PLOS "));
-                                DBGPRINTLN(String(q->iv->radio->getPLOS()));
-                            } else
-                                DBGPRINTLN("");
+                            DBGPRINTLN(F("ms"));
                         }
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
@@ -291,11 +284,6 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            DBGPRINT(F(", ARC "));
-            DBGPRINT(String(p->arc));
-            DBGPRINT(F(", PLOS "));
-            DBGPRINT(String(p->plos));
-            DBGPRINT(F(" |"));
             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)

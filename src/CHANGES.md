@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.65 - 2024-01-24
+* removed patch for NRF `PLOS`
+* fix lang issues #1388
+* fix build on Windows of `opendtufusion` environments (git: trailing whitespaces)
+
 ## 0.8.64 - 2024-01-22
 * add `ARC` to log (NRF24 Debug)
 * merge PR: ETH NTP update bugfix #1385

@@ -670,7 +670,7 @@
                 },
                 {
                     "token": "INV_DELETE_SURE",
-                    "en": "do you realy want to delete inverter?",
+                    "en": "do you really want to delete inverter?",
                     "de": "Willst du den Wechselrichter wirklich l&ouml;schen?"
                 },
                 {
@@ -1070,7 +1070,7 @@
                 },
                 {
                     "token": "WARN_DIFF_ENV",
-                    "en": "your environment does not match the update file!",
+                    "en": "your environment may not match the update file!",
                     "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
                 },
                 {

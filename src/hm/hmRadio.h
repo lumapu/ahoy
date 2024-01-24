@@ -15,7 +15,6 @@
 #endif
 
 #define SPI_SPEED           1000000
-
 #define RF_CHANNELS         5
 
 const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
@@ -183,17 +182,13 @@ class HmRadio : public Radio {
                         }
                     }
                     return mNRFisInRX;
-                } /*else if(tx_fail) {
-                    mNRFisInRX = false;
-                    return false;
-                }*/
+                }
             }
 
             return false;
         }
 
-        bool isChipConnected(void) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:isChipConnected"));
+        bool isChipConnected(void) const {
             return mNrf24->isChipConnected();
         }
 
@@ -283,22 +278,14 @@ class HmRadio : public Radio {
             sendPacket(iv, cnt, isRetransmit, (IV_MI != iv->ivGen));
         }
 
-        uint8_t getDataRate(void) {
+        uint8_t getDataRate(void) const {
             if(!mNrf24->isChipConnected())
                 return 3; // unknown
             return mNrf24->getDataRate();
         }
 
-        bool isPVariant(void) {
+        bool isPVariant(void) const {
             return mNrf24->isPVariant();
-        }
-
-        uint8_t getARC(void) {
-            return mNrf24->getARC();
-        }
-
-        uint8_t getPLOS(void) {
-            return mNrf24->getPLOS();
         }
 
     private:
@@ -315,8 +302,6 @@ class HmRadio : public Radio {
                     p.len  = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24->testRPD() ? -64 : -75;
                     p.millis = millis() - mMillis;
-                    p.arc  = mNrf24->getARC();
-                    p.plos = mNrf24->getPLOS();
                     mNrf24->read(p.packet, p.len);
 
                     if (p.packet[0] != 0x00) {
@@ -393,11 +378,11 @@ class HmRadio : public Radio {
             mNRFisInRX = false;
         }
 
-        uint64_t getIvId(Inverter<> *iv) {
+        uint64_t getIvId(Inverter<> *iv) const {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) {
+        uint8_t getIvGen(Inverter<> *iv) const {
             return iv->ivGen;
         }
 
