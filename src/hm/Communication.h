@@ -129,7 +129,7 @@ class Communication : public CommQueue<> {
                     break;
 
                 case States::CHECK_FRAMES: {
-                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) || (0 == q->attempts)) { // radio buffer empty or no more answers
+                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) ) { // || (0 == q->attempts)) { // radio buffer empty or no more answers
                         if(*mSerialDebug) {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("request timeout: "));
@@ -259,7 +259,7 @@ class Communication : public CommQueue<> {
                     if(framnr) {
                         if(0 == q->attempts) {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
-                            DBGPRINT(F("no attempts left"));
+                            DBGPRINTLN(F("no attempts left"));
                             closeRequest(q, false);
                             return;
                         }

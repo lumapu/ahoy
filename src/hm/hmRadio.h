@@ -336,6 +336,8 @@ class HmRadio : public Radio {
                                 isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
                                 if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
                                     isRetransmitAnswer = true;
+                                if(isLastPackage)
+                                    mFramesExpected = p.packet[9] - ALL_FRAMES;
                             }
 
                             if(IV_MI == mLastIv->ivGen) {
@@ -350,8 +352,9 @@ class HmRadio : public Radio {
                 }
                 yield();
             }
-            if(isLastPackage)
+            if(isLastPackage) {
                 mLastIv->mGotLastMsg = true;
+            }
             return isLastPackage || isRetransmitAnswer;
         }
 
