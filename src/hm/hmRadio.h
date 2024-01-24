@@ -113,6 +113,7 @@ class HmRadio : public Radio {
 
                 if (mRadioWaitTime.isTimeout()) { // timeout reached!
                     mNRFisInRX = false;
+                    rx_ready = false;
                     return false;
                 }
 
@@ -165,7 +166,7 @@ class HmRadio : public Radio {
                 }
 
                 if(rx_ready) {
-                    if (getReceived()) { // check what we got, returns true for last package
+                    if (getReceived()) { // check what we got, returns true for last package or success for single frame request
                         mNRFisInRX = false;
                         rx_ready = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
@@ -183,6 +184,7 @@ class HmRadio : public Radio {
                                 mRxChIdx = tempRxChIdx;
                         }
                     }
+                    rx_ready = false; // reset
                     return mNRFisInRX;
                 } /*else if(tx_fail) {
                     mNRFisInRX = false;
@@ -305,6 +307,7 @@ class HmRadio : public Radio {
     private:
         inline bool getReceived(void) {
             bool isLastPackage = false;
+            bool isRetransmitAnswer = false;
             rx_ready = false; // reset for ACK case
 
             while(mNrf24->available()) {
@@ -329,8 +332,11 @@ class HmRadio : public Radio {
                             mLastIv->mGotFragment = true;
                             mBufCtrl.push(p);
 
-                            if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
+                            if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                 isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                                if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
+                                    isRetransmitAnswer = true;
+                            }
 
                             if(IV_MI == mLastIv->ivGen) {
                                 if (p.packet[0] == (0x0f + ALL_FRAMES))                  // response from MI get information command
@@ -346,7 +352,7 @@ class HmRadio : public Radio {
             }
             if(isLastPackage)
                 mLastIv->mGotLastMsg = true;
-            return isLastPackage;
+            return isLastPackage || isRetransmitAnswer;
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {

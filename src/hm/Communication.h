@@ -159,6 +159,7 @@ class Communication : public CommQueue<> {
                                     //setAttempt();
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                     //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
+                                    q->iv->radioStatistics.txCnt--;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;
@@ -835,8 +836,9 @@ class Communication : public CommQueue<> {
                 DBGHEXLN(cmd);
             }
 
-            if(q->iv->miMultiParts == 7)
-                q->iv->radioStatistics.rxSuccess++;
+            //if(q->iv->miMultiParts > 5) //if(q->iv->miMultiParts == 7)
+            q->iv->radioStatistics.rxSuccess++;
+            q->iv->radioStatistics.ivSent++;
 
             mFramesExpected = getFramesExpected(q);
             q->iv->radio->setExpectedFrames(mFramesExpected);
@@ -861,6 +863,7 @@ class Communication : public CommQueue<> {
             }
 
             q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
+            q->iv->radioStatistics.retransmits++;
 
             q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             mIsRetransmit = false;

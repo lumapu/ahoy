@@ -200,13 +200,17 @@ class Inverter {
                         cb(devControlCmd, false);            // custom command which was received by API
                         devControlCmd = InitDataState;
                         mGetLossInterval = 1;
-                    } else if(0 == getFwVersion())
+                    } else if(0 == getFwVersion()) {
+                        cb(RealTimeRunData_Debug, false);    // get live data
                         cb(InverterDevInform_All, false);    // get firmware version
-                    else if(0 == getHwVersion())
+                    }
+                    else if(0 == getHwVersion()) {
+                        cb(RealTimeRunData_Debug, false);    // get live data
                         cb(InverterDevInform_Simple, false); // get hardware version
-                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
+                        cb(RealTimeRunData_Debug, false);    // get live data
                         cb(AlarmData, false);                // get last alarms
-                    else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                    } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                         cb(GridOnProFilePara, false);
                     } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                         mGetLossInterval = 1;
