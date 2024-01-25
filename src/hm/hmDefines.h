@@ -94,6 +94,14 @@ enum {INV_RADIO_TYPE_NRF = 0, INV_RADIO_TYPE_CMT};
 #define DURATION_PAUSE_LASTFR   45 // how long to pause after last frame (ms)
 const uint8_t duration_reserve[2] = {115,115};
 
+#define LIMIT_FAST_IV           85 // time limit to qualify an inverter as very fast answering inverter
+#define LIMIT_VERYFAST_IV       70 // time limit to qualify an inverter as very fast answering inverter
+#define LIMIT_FAST_IV_MI        35 // time limit to qualify a MI type inverter as fast answering inverter
+#define LIMIT_VERYFAST_IV_MI    22 // time limit to qualify a MI type inverter as very fast answering inverter
+#define RETRIES_FAST_IV         11 // how often shall a message be automatically retransmitted by the nRF (fast answering inverter)
+#define RETRIES_VERYFAST_IV      7 // how often shall a message be automatically retransmitted by the nRF (very fast answering inverter)
+
+
 typedef struct {
     uint8_t    fieldId; // field id
     uint8_t    unitId;  // uint id

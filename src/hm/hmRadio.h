@@ -124,7 +124,7 @@ class HmRadio : public Radio {
 
                 rxPendular = !rxPendular;
                 //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
-                innerLoopTimeout = DURATION_LISTEN_MIN;
+                //innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
                     tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS;
@@ -154,7 +154,8 @@ class HmRadio : public Radio {
                     if(tx_ok)
                         mLastIv->mAckCount++;
 
-                    mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+                    //mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+                    mRxChIdx = (mTxChIdx + 3) % RF_CHANNELS;
                     mNrf24->setChannel(mRfChLst[mRxChIdx]);
                     mNrf24->startListening();
                     mTimeslotStart = millis();
@@ -162,7 +163,8 @@ class HmRadio : public Radio {
                     rxPendular  = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
-                    innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
+                    //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
+                    innerLoopTimeout = DURATION_LISTEN_MIN;
                 }
 
                 if(rx_ready) {
@@ -186,10 +188,7 @@ class HmRadio : public Radio {
                     }
                     rx_ready = false; // reset
                     return mNRFisInRX;
-                } /*else if(tx_fail) {
-                    mNRFisInRX = false;
-                    return false;
-                }*/
+                }
             }
 
             return false;

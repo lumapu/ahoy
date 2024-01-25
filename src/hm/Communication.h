@@ -186,8 +186,8 @@ class Communication : public CommQueue<> {
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                 if(parseFrame(p)) {
                                     q->iv->curFrmCnt++;
-                                    if(!mIsRetransmit && (p->packet[9] == 0x02 || p->packet[9] == 0x82) && p->millis < 85)
-                                        mHeu.setIvRetriesGood(q->iv,p->millis < 70);
+                                    if(!mIsRetransmit && (p->packet[9] == 0x02 || p->packet[9] == 0x82) && p->millis < LIMIT_FAST_IV)
+                                        mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV);
                                 }
                             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
                                 if(parseDevCtrl(p, q))
@@ -259,7 +259,7 @@ class Communication : public CommQueue<> {
                     if(framnr) {
                         if(0 == q->attempts) {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
-                            DBGPRINTLN(F("no attempts left"));
+                            DBGPRINTLN(F("timeout, no attempts left"));
                             closeRequest(q, false);
                             return;
                         }
@@ -424,8 +424,8 @@ class Communication : public CommQueue<> {
         }
 
         inline bool parseMiFrame(packet_t *p, const queue_s *q) {
-            if(!mIsRetransmit && p->packet[9] == 0x00 && p->millis < 35) //first frame is fast?
-                mHeu.setIvRetriesGood(q->iv,p->millis < 22);
+            if(!mIsRetransmit && p->packet[9] == 0x00 && p->millis < LIMIT_FAST_IV_MI) //first frame is fast?
+                mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV_MI);
             if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
                 || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))

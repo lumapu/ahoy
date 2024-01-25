@@ -159,9 +159,9 @@ class Heuristic {
 
         uint8_t getIvRetries(Inverter<> *iv) {
             if(iv->heuristics.rxSpeeds[0])
-                return 5;
+                return RETRIES_VERYFAST_IV;
             if(iv->heuristics.rxSpeeds[1])
-                return 10;
+                return RETRIES_FAST_IV;
             return 15;
         }
 
