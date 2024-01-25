@@ -220,21 +220,21 @@ class Inverter {
                         cb(RealTimeRunData_Debug, false); // get live data
                 }
             } else { // MI
-                if(0 == getFwVersion()) {
-                    mIvRxCnt +=2;
-                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
-                } else {
-                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
-                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
+                mGetLossInterval++;
+                if (type != INV_TYPE_4CH)
+                    mIvRxCnt++;  // statistics workaround...
+                if(isAvailable()) {
+                    if(0 == getFwVersion()) {
                         mIvRxCnt +=2;
-                    } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
-                        cb(0x10, false); // legacy GPF command
-                    else {
-                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
-                        mGetLossInterval++;
-                        if (type != INV_TYPE_4CH)
-                            mIvRxCnt++;  // statistics workaround...
+                        cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
+                    } else {
+                        record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
+                            cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                            mIvRxCnt +=2;
+                        } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                            cb(0x10, false); // legacy GPF command
                     }
                 }
             }

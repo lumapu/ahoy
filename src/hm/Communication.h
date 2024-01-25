@@ -114,11 +114,11 @@ class Communication : public CommQueue<> {
 
                     q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
+                    if(!mIsRetransmit && (q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                        incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
 
                     mIsRetransmit    = false;
                     setAttempt();
-                    if((q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                        incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
                     mState = States::WAIT;
                     break;
 
@@ -155,7 +155,8 @@ class Communication : public CommQueue<> {
                                     q->iv->mIvTxCnt++;
 
                                 if(mFirstTry) {
-                                    mFirstTry = false;
+                                    if(q->attempts < 3 || !q->iv->isProducing())
+                                        mFirstTry = false;
                                     //setAttempt();
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
                                     //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
@@ -209,7 +210,7 @@ class Communication : public CommQueue<> {
                     if(q->iv->ivGen != IV_MI) {
                         mState = States::CHECK_PACKAGE;
                     } else {
-                        bool fastNext = true;
+                        //bool fastNext = true;
                         if(q->iv->miMultiParts < 6) {
                             mState = States::WAIT;
                             if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
@@ -222,11 +223,11 @@ class Communication : public CommQueue<> {
                                 || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                 || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                 miComplete(q->iv);
-                                fastNext = false;
+                                //fastNext = false;
                             }
-                            if(fastNext)
+                            /*if(fastNext)
                                 miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
-                            else
+                            else*/
                                 closeRequest(q, true);
                         }
                     }
@@ -263,6 +264,25 @@ class Communication : public CommQueue<> {
                             closeRequest(q, false);
                             return;
                         }
+                        //count missing frames
+                        if(!q->iv->mIsSingleframeReq && q->iv->ivRadioType == INV_RADIO_TYPE_NRF) {  // already checked?
+                            uint8_t missedFrames = 0;
+                            for(uint8_t i = 0; i < q->iv->radio->mFramesExpected; i++) {
+                                if(mLocalBuf[i].len == 0)
+                                    missedFrames++;
+                            }
+                            if(missedFrames > 3 || (q->cmd == RealTimeRunData_Debug && missedFrames > 1) || (missedFrames > 1 && missedFrames + 2 > q->attempts)) {
+                                if(*mSerialDebug) {
+                                    DPRINT_IVID(DBG_INFO, q->iv->id);
+                                    DBGPRINT(String(missedFrames));
+                                    DBGPRINT(F(" frames missing "));
+                                    DBGPRINTLN(F("-> complete retransmit"));
+                                }
+                                mState = States::RESET;
+                                return;
+                            }
+                        }
+
                         setAttempt();
 
                         if(*mSerialDebug) {
@@ -411,8 +431,8 @@ class Communication : public CommQueue<> {
 
             if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
                 mMaxFrameId = (*frameId & 0x7f);
-                if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
-                    incrAttempt(mMaxFrameId - 6);
+                /*if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
+                    incrAttempt(mMaxFrameId - 6);*/
             }
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];
