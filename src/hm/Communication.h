@@ -83,6 +83,7 @@ class Communication : public CommQueue<> {
                     q->iv->mGotFragment = false;
                     q->iv->mGotLastMsg  = false;
                     q->iv->curFrmCnt    = 0;
+                    q->iv->radioStatistics.txCnt++;
                     mIsRetransmit = false;
                     if(NULL == q->iv->radio)
                         cmdDone(false); // can't communicate while radio is not defined!
@@ -112,7 +113,7 @@ class Communication : public CommQueue<> {
                     } else
                         q->iv->radio->prepareDevInformCmd(q->iv, q->cmd, q->ts, q->iv->alarmLastId, false);
 
-                    q->iv->radioStatistics.txCnt++;
+                    //q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
                     if(!mIsRetransmit && (q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
                         incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
@@ -129,22 +130,13 @@ class Communication : public CommQueue<> {
                     break;
 
                 case States::CHECK_FRAMES: {
-                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) ) { // || (0 == q->attempts)) { // radio buffer empty or no more answers
+                    if((q->iv->radio->mBufCtrl.empty() && !mIsRetransmit) ) { // || (0 == q->attempts)) { // radio buffer empty. No more answers will be checked later
                         if(*mSerialDebug) {
                             DPRINT_IVID(DBG_INFO, q->iv->id);
                             DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
                             DBGPRINTLN(F("ms"));
-                            /*if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
-                                DBGPRINT(F(", retries "));
-                                DBGPRINTLN(String(q->iv->radio->mTxRetriesNext));
-                                DBGPRINT(F(", ARC "));
-                                DBGPRINT(String(q->iv->radio->getARC()));
-                                DBGPRINT(F(", PLOS "));
-                                DBGPRINTLN(String(q->iv->radio->getPLOS()));
-                            } else
-                                DBGPRINTLN("");*/
-                        }
+                                                    }
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
@@ -157,14 +149,13 @@ class Communication : public CommQueue<> {
                                 if(mFirstTry) {
                                     if(q->attempts < 3 || !q->iv->isProducing())
                                         mFirstTry = false;
-                                    //setAttempt();
                                     mHeu.evalTxChQuality(q->iv, false, 0, 0);
+                                    mHeu.getTxCh(q->iv);
                                     //q->iv->radioStatistics.rxFailNoAnser++;  // should only be one of fail or retransmit.
-                                    q->iv->radioStatistics.txCnt--;
+                                    //q->iv->radioStatistics.txCnt--;
                                     q->iv->radioStatistics.retransmits++;
                                     q->iv->radio->mRadioWaitTime.stopTimeMonitor();
                                     mState = States::START;
-
                                     return;
                                 }
                             }
@@ -210,7 +201,6 @@ class Communication : public CommQueue<> {
                     if(q->iv->ivGen != IV_MI) {
                         mState = States::CHECK_PACKAGE;
                     } else {
-                        //bool fastNext = true;
                         if(q->iv->miMultiParts < 6) {
                             mState = States::WAIT;
                             if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
@@ -223,12 +213,8 @@ class Communication : public CommQueue<> {
                                 || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                 || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                 miComplete(q->iv);
-                                //fastNext = false;
                             }
-                            /*if(fastNext)
-                                miNextRequest(q->iv->type == INV_TYPE_4CH ? MI_REQ_4CH : MI_REQ_CH1, q);
-                            else*/
-                                closeRequest(q, true);
+                            closeRequest(q, true);
                         }
                     }
 
@@ -278,6 +264,8 @@ class Communication : public CommQueue<> {
                                     DBGPRINT(F(" frames missing "));
                                     DBGPRINTLN(F("-> complete retransmit"));
                                 }
+                                q->iv->radioStatistics.txCnt--;
+                                q->iv->radioStatistics.retransmits++;
                                 mState = States::RESET;
                                 return;
                             }
@@ -318,11 +306,6 @@ class Communication : public CommQueue<> {
             DBGPRINT(String(p->millis));
             DBGPRINT(F("ms | "));
             DBGPRINT(String(p->len));
-            /*DBGPRINT(F(", ARC "));
-            DBGPRINT(String(p->arc));
-            DBGPRINT(F(", PLOS "));
-            DBGPRINT(String(p->plos));*/
-            DBGPRINT(F(" |"));
             if(INV_RADIO_TYPE_NRF == q->iv->ivRadioType) {
                 DBGPRINT(F(" CH"));
                 if(3 == p->ch)
@@ -555,7 +538,7 @@ class Communication : public CommQueue<> {
 
             len -= 2;
 
-            //DPRINT_IVID(DBG_INFO, q->iv->id);
+            //DPRINT_IVID(DBG_INFO, q->iv->id); // it's already above "for"-loop
             DBGPRINT(F("Payload ("));
             DBGPRINT(String(len));
             if(*mPrintWholeTrace) {
@@ -856,8 +839,8 @@ class Communication : public CommQueue<> {
                 DBGHEXLN(cmd);
             }
 
-            //if(q->iv->miMultiParts > 5) //if(q->iv->miMultiParts == 7)
-            q->iv->radioStatistics.rxSuccess++;
+            /*if(q->iv->miMultiParts > 5) //if(q->iv->miMultiParts == 7)
+            q->iv->radioStatistics.rxSuccess++;*/
             q->iv->radioStatistics.ivSent++;
 
             mFramesExpected = getFramesExpected(q);

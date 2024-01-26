@@ -14,8 +14,7 @@ class CmtRadio : public Radio {
     typedef Cmt2300a CmtType;
     public:
         CmtRadio() {
-            mDtuSn    = DTU_SN;
-            mCmtAvail = false;
+            mDtuSn = DTU_SN;
         }
 
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
@@ -38,7 +37,7 @@ class CmtRadio : public Radio {
             return false;
         }
 
-        bool isChipConnected(void) {
+        bool isChipConnected(void) const {
             return mCmtAvail;
         }
 
@@ -116,11 +115,11 @@ class CmtRadio : public Radio {
             iv->mDtuTxCnt++;
         }
 
-        uint64_t getIvId(Inverter<> *iv) {
+        uint64_t getIvId(Inverter<> *iv) const {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) {
+        uint8_t getIvGen(Inverter<> *iv) const {
             return iv->ivGen;
         }
 
@@ -165,11 +164,10 @@ class CmtRadio : public Radio {
             if(CMT_SUCCESS == status)
                 mBufCtrl.push(p);
 
-            // this code completly stops communication!
             if(p.packet[9] > ALL_FRAMES)          // indicates last frame
-            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
-            //optionally instead:
                 mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
+            // optionally instead:
+            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
         }
 
         CmtType mCmt;

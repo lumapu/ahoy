@@ -27,10 +27,8 @@ class Radio {
         virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
-        virtual bool isChipConnected(void) { return false; }
+        virtual bool isChipConnected(void) const { return false; }
         virtual bool loop(void) = 0;
-        //virtual uint8_t getARC(void) { return 0xff; }
-        //virtual uint8_t getPLOS(void) { return 0xff; }
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -66,7 +64,7 @@ class Radio {
             sendPacket(iv, 24, isRetransmit);
         }
 
-        uint32_t getDTUSn(void) {
+        uint32_t getDTUSn(void) const {
             return mDtuSn;
         }
 
@@ -83,8 +81,8 @@ class Radio {
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;
-        virtual uint64_t getIvId(Inverter<> *iv) = 0;
-        virtual uint8_t getIvGen(Inverter<> *iv) = 0;
+        virtual uint64_t getIvId(Inverter<> *iv) const = 0;
+        virtual uint8_t getIvGen(Inverter<> *iv) const = 0;
 
         void initPacket(uint64_t ivId, uint8_t mid, uint8_t pid) {
             mTxBuf[0] = mid;

@@ -18,8 +18,6 @@
 template <uint8_t N=100>
 class CommQueue {
     public:
-        CommQueue() {}
-
         void addImportant(Inverter<> *iv, uint8_t cmd) {
             dec(&mRdPtr);
             mQueue[mRdPtr] = queue_s(iv, cmd, true);
@@ -34,12 +32,12 @@ class CommQueue {
             mQueue[mWrPtr] = queue_s(iv, cmd, false);
         }
 
-        uint8_t getFillState(void) {
+        uint8_t getFillState(void) const {
             //DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
             return abs(mRdPtr - mWrPtr);
         }
 
-        uint8_t getMaxFill(void) {
+        uint8_t getMaxFill(void) const {
             return N;
         }
 
