@@ -89,17 +89,16 @@ python3 getting_started.py # to test and see whether RF24 class can be loaded as
 If there are no error messages on the last step, then the NRF24 Wrapper has been installed successfully.
 
 
-Building RF24 Wrapper for Debian 11 (bullseye) 64 bit operating system
+Building RF24 Wrapper on Debian 11 (bullseye) 64 bit operating system
 ----------------------------------------------------------------------
-The description above does not work on Debian 11 (bullseye) 64 bit operating system.
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
 Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
  - `uname -a` search for aarch64
  - `lsb_release -d`
  - `cat /etc/debian_version`
 
-There are 2 possible solutions to install the RF24 wrapper:
+To install RF24 wrapper follow the instrauction:
 
-**__1. Solution:__**
 ```code
 sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
@@ -139,21 +138,47 @@ python3 -m pip list #watch for RF24 module - if its there its installed
 ```
 
 
-**__2. Solution:__**
+Alternative install pyRF24 library on Debian 11 (bullseye) 64 bit operating system
+-----------------------------------------------------------------------------------
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
+Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
+ - `uname -a` search for aarch64
+ - `lsb_release -d`
+ - `cat /etc/debian_version`
+
 ```code
-sudo apt install git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
+sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
 git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
 cd pyRF24
 python3 -m pip install . -v     # this step takes about 5 minutes on my RPI-4 !
+cd
 ```
 
-If you have problems with your radio module from ahoi, e.g.: cannot interpret received data, 
-please try to reduce the speed of your radio module!
-Add the following parameter to your ahoy.yml configuration file in "nrf" section:
-`spispeed: 600000` (0.6 MHz)
+Install pyRF24 library on Debian 12 (bookworm) 64 bit operating system
+-----------------------------------------------------------------------------------
+The description above does not work on Debian 11 (bullseye) 32 bit operating system.
+Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
+ - `uname -a` search for aarch64
+ - `lsb_release -d`
+ - `cat /etc/debian_version`
+
+Attension (PYTHON error ?): Debian 12 follows the recommendation of `PEP 668`
+see: `https://peps.python.org/pep-0668/` - now PYTHON is configured as 
+"externally-managed-environment" ! 
 
 
+
+```code
+sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
+
+git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
+cd pyRF24
+  python3 -m venv ahoyenv
+  source ahoyenv/bin/activate
+  python3 -m pip install . -v
+cd
+```
 
 Required python modules
 -----------------------
@@ -161,7 +186,7 @@ Required python modules
 Some modules are not installed by default on a RaspberryPi, therefore add them manually:
 
 ```code
-pip install crcmod pyyaml paho-mqtt SunTimes
+python3 -m pip install crcmod pyyaml paho-mqtt SunTimes
 ```
 
 Configuration
@@ -169,6 +194,12 @@ Configuration
 
 Local settings are read from ahoy.yml  
 An example is provided as ahoy.yml.example
+
+If you have problems with your radio module from ahoi, 
+e.g.: cannot interpret received data, 
+please try to reduce the speed of your radio module!
+Add the following parameter to your ahoy.yml configuration file in "nrf" section:
+`spispeed: 600000` (0.6 MHz)
 
 
 Example Run

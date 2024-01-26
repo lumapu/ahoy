@@ -19,16 +19,16 @@ try:
   # https://github.com/nRF24/RF24.git
   from RF24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
   if environ.get('TERM') is not None:
-    print('Using python Module: RF24')
+    print('Using python Module: "RF24"')
 except ModuleNotFoundError as e:
   if environ.get('TERM') is not None:
-    print(f'{e} - try to use module: RF24')
+    print(f'{e} - module not found, try to use "pyRF24"')
   try:
     # Repo for pyRF24 package
     # https://github.com/nRF24/pyRF24.git
     from pyrf24 import RF24, RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH, RF24_PA_MAX, RF24_250KBPS, RF24_CRC_DISABLED, RF24_CRC_8, RF24_CRC_16
     if environ.get('TERM') is not None:
-      print(f'{e} - Using python Module: pyrf24')
+      print(f'"pyrf24" found and used')
   except ModuleNotFoundError as e:
     if environ.get('TERM') is not None:
       print(f'{e} - exit')
