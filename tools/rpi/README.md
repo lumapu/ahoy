@@ -138,7 +138,7 @@ python3 -m pip list #watch for RF24 module - if its there its installed
 ```
 
 
-Alternative install pyRF24 library on Debian 11 (bullseye) 64 bit operating system
+Alternative: Install pyRF24 library on Debian 11 (bullseye) 64 bit operating system
 -----------------------------------------------------------------------------------
 The description above does not work on Debian 11 (bullseye) 32 bit operating system.
 Please check first, if you have Debian 11 (bullseye) 64 bit operating system installed:
@@ -163,21 +163,26 @@ Please check first, if you have Debian 11 (bullseye) 64 bit operating system ins
  - `lsb_release -d`
  - `cat /etc/debian_version`
 
-Attension (PYTHON error ?): Debian 12 follows the recommendation of `PEP 668`
-see: `https://peps.python.org/pep-0668/` - now PYTHON is configured as 
+Important: Debian 12 follows the recommendation of [`PEP 668`]
+(https://peps.python.org/pep-0668/) - now, PYTHON is configured as 
 "externally-managed-environment" ! 
+- You cann't install python libs via `pip`!
+- You have to use a python virtual environment `https://docs.python.org/3/library/venv.html`
 
 
 
 ```code
 sudo apt install cmake git python3-dev libboost-python-dev python3-pip python3-rpi.gpio
 
+cd ~
+python3 -m venv ahoyenv       ## create python virtual environment
+source ahoyenv/bin/activate   ## activate the virtual environment
+
 git clone --recurse-submodules https://github.com/nRF24/pyRF24.git
 cd pyRF24
-  python3 -m venv ahoyenv
-  source ahoyenv/bin/activate
   python3 -m pip install . -v
-cd
+  python3 -m pip list          ## check: search for pyRF24
+cd ~
 ```
 
 Required python modules
@@ -195,10 +200,10 @@ Configuration
 Local settings are read from ahoy.yml  
 An example is provided as ahoy.yml.example
 
-If you have problems with your radio module from ahoi, 
+If you have any problems with your radio module, 
 e.g.: cannot interpret received data, 
 please try to reduce the speed of your radio module!
-Add the following parameter to your ahoy.yml configuration file in "nrf" section:
+Add the following parameter to your `ahoy.yml` configuration file in section `nrf`:
 `spispeed: 600000` (0.6 MHz)
 
 
@@ -210,12 +215,14 @@ contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
 
-    $ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
+  ~~$ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
+    $ tail -f RPI-AHOY-DTU.log &
+    $ python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml
 
 Python parameters
 - `-u` enables python's unbuffered mode
 - `-m hoymiles` tells python to load module 'hoymiles' as main app
-
+Do not forget to stop `tail -f ...`
 
 The application describes itself
 ```code
@@ -259,12 +266,20 @@ Example injects exactly the same as we normally use to poll data
 
 This allows for even faster hacking during runtime
 
-Running it as a service
+
+Run as a service
 -----------------------
-If you want to run directly from the start, you might want to install it as a service.
-Depending on if you want to run it once a user is logged in or as soon as the system is booted, two service examples are included.
-ahoy.service allows you to start it as a user service upon login.
-ahoy_system.service allows you to start it as a system service already before login without user interaction.
+If you want to run directly at start, you have to install ahoy as a service.
+Depending oni, if you want to run it once a user is logged in or as soon as the system is booted, 
+two service examples are included.
+-`ahoy.service` allows you to start it as a user service upon login.
+-`ahoy_system.service` allows you to start it as a system service already before login without user interaction.
+
+Run as a service on Debian 12 (bookworm)
+----------------------------------------
+-`ahoy@bookworm.service` allows you to start it as a user service upon login.
+-`ahoy@bookworm_system.service` allows you to start it as a system service already before login without user interaction.
+
 
 Analysing the Logs
 ------------------
@@ -283,8 +298,6 @@ Use basic command line tools to get an idea what you recorded. For example:
 A brief example log is supplied in the `example-logs` folder.
 
 
-
-
 Todo
 ----
 
@@ -296,7 +309,6 @@ Todo
 - picture of setup!
 - python module
 - ...
-
 
 
 References
