@@ -133,6 +133,7 @@ class Inverter {
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
+        uint8_t       rxOffset;          // holds the default channel offset between tx and rx channel (nRF only)
         int8_t        rssi;              // RSSI
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
@@ -179,7 +180,6 @@ class Inverter {
             tsMaxAcPower       = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
-            memset(heuristics.txRfQuality, -6, 5);
 
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);

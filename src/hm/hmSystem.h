@@ -28,6 +28,8 @@ class HmSystem {
             iv->config     = &mInverter[0].generalConfig->iv[id];
             DPRINT(DBG_VERBOSE, "SERIAL: " + String(iv->config->serial.b[5], HEX));
             DPRINTLN(DBG_VERBOSE, " " + String(iv->config->serial.b[4], HEX));
+            //iv->rxOffset = 5 - (iv->config->serial.b[2] % 5); //RF_CHANNELS;
+            iv->rxOffset = (iv->config->serial.b[1] % 5); //RF_CHANNELS;
             if((iv->config->serial.b[5] == 0x11) || (iv->config->serial.b[5] == 0x10)) {
                 switch(iv->config->serial.b[4]) {
                     case 0x24: // HMS-500

@@ -154,11 +154,11 @@ class HmRadio : public Radio {
                         mLastIv->mAckCount++;
 
                     //mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
-                    mRxChIdx = (mTxChIdx + 3) % RF_CHANNELS;
+                    mRxChIdx = (mTxChIdx + mLastIv->rxOffset) % RF_CHANNELS;
                     mNrf24->setChannel(mRfChLst[mRxChIdx]);
                     mNrf24->startListening();
                     mTimeslotStart = millis();
-                    tempRxChIdx = mRxChIdx;
+                    tempRxChIdx = mRxChIdx;  // might be better to start off with one channel less?
                     rxPendular  = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
@@ -369,7 +369,10 @@ class HmRadio : public Radio {
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(", "));
                 DBGPRINT(String(mTxRetriesNext));
-                DBGPRINT(F(" retries | "));
+                //DBGPRINT(F(" retries | "));
+                DBGPRINT(F(" ret., rx offset: "));
+                DBGPRINT(String(iv->rxOffset));
+                DBGPRINT(F(" | "));
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
                         ah::dumpBuf(mTxBuf, len, 1, 4);
