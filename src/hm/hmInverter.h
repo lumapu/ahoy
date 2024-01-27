@@ -194,9 +194,10 @@ class Inverter {
                 if(mNextLive)
                     cb(RealTimeRunData_Debug, false);    // get live data
                 else {
-                    if(actPowerLimit == 0xffff)
+                    if(actPowerLimit == 0xffff) {
                         cb(SystemConfigPara, false);         // power limit info
-                    else if(InitDataState != devControlCmd) {
+                        cb(RealTimeRunData_Debug, false);
+                    } else if(InitDataState != devControlCmd) {
                         cb(devControlCmd, false);            // custom command which was received by API
                         devControlCmd = InitDataState;
                         mGetLossInterval = 1;

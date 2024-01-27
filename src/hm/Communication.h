@@ -264,8 +264,10 @@ class Communication : public CommQueue<> {
                                     DBGPRINT(F(" frames missing "));
                                     DBGPRINTLN(F("-> complete retransmit"));
                                 }
+                                mHeu.evalTxChQuality(q->iv, false, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
                                 q->iv->radioStatistics.txCnt--;
                                 q->iv->radioStatistics.retransmits++;
+                                mCompleteRetry = true;
                                 mState = States::RESET;
                                 return;
                             }
@@ -511,6 +513,7 @@ class Communication : public CommQueue<> {
 
                 } else
                     DBGPRINTLN(F("-> complete retransmit"));
+                mCompleteRetry = true;
                 mState = States::RESET;
                 return;
             }
@@ -611,7 +614,7 @@ class Communication : public CommQueue<> {
             mHeu.evalTxChQuality(q->iv, crcPass, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
             if(crcPass)
                 q->iv->radioStatistics.rxSuccess++;
-            else if(q->iv->mGotFragment)
+            else if(q->iv->mGotFragment || mCompleteRetry)
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
@@ -626,6 +629,7 @@ class Communication : public CommQueue<> {
             q->iv->mGotLastMsg  = false;
             q->iv->miMultiParts = 0;
             mIsRetransmit       = false;
+            mCompleteRetry      = false;
             mState              = States::RESET;
             DBGPRINTLN(F("-----"));
         }
@@ -1020,8 +1024,9 @@ class Communication : public CommQueue<> {
         uint16_t *mInverterGap;
         TimeMonitor mWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
-        bool mFirstTry = false;     // see, if we should do a second try
-        bool mIsRetransmit = false; // we already had waited one complete cycle
+        bool mFirstTry = false;      // see, if we should do a second try
+        bool mCompleteRetry = false; // remember if we did request a complete retransmission
+        bool mIsRetransmit = false;  // we already had waited one complete cycle
         uint8_t mMaxFrameId;
         uint8_t mFramesExpected = 12; // 0x8c was highest last frame for alarm data
         uint16_t mTimeout = 0;       // calculating that once should be ok
