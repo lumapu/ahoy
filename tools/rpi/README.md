@@ -200,9 +200,9 @@ Configuration
 Local settings are read from ahoy.yml  
 An example is provided as ahoy.yml.example
 
-If you have any problems with your radio module, 
-e.g.: cannot interpret received data, 
-please try to reduce the speed of your radio module!
+If you have any problems with your radio module,
+e.g.: cannot interpret received data,
+please try to reduce the speed of your radio module!  
 Add the following parameter to your `ahoy.yml` configuration file in section `nrf`:
 `spispeed: 600000` (0.6 MHz)
 
@@ -214,15 +214,19 @@ The following command will run the communication tool, which will try to
 contact the inverter every second on channel 40, and listen for replies.
 
 Whenever it sees a reply, it will decoded and logged to the given log file.
+```code
+  ~~$ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log~~
+    ## when using PYTHON virtual environment only - see hint `PEP 668`
+    $ source /home/pi/ahoyenv/bin/activate
 
-  ~~$ sudo python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml | tee -a log2.log
     $ tail -f RPI-AHOY-DTU.log &
     $ python3 -um hoymiles --log-transactions --verbose --config /home/dtu/ahoy.yml
+```
 
 Python parameters
 - `-u` enables python's unbuffered mode
 - `-m hoymiles` tells python to load module 'hoymiles' as main app
-Do not forget to stop `tail -f ...`
+Do not forget to stop `tail -f ...` with `fg`(forground) and than `ctrl-c`
 
 The application describes itself
 ```code
@@ -301,7 +305,7 @@ A brief example log is supplied in the `example-logs` folder.
 Todo
 ----
 
-- Ability to talk to multiple inverters
+- Ability to talk to multiple inverters - implemented - please test
 - MQTT gateway
 - understand channel hopping
 - ~~configurable polling interval~~ done: interval ist configurable in ahoy.yml
