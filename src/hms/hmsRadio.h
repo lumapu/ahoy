@@ -17,9 +17,9 @@ class CmtRadio : public Radio {
             mDtuSn = DTU_SN;
         }
 
-        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, bool genDtuSn = true) {
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, uint8_t region = 0, bool genDtuSn = true) {
             mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
-            reset(genDtuSn);
+            reset(genDtuSn, static_cast<RegionCfg>(region));
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
@@ -30,7 +30,7 @@ class CmtRadio : public Radio {
             if((!mIrqRcvd) && (!mRqstGetRx))
                 return false;
             getRx();
-            if(CMT_SUCCESS == mCmt.goRx()) {
+            if(CmtStatus::SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
@@ -76,6 +76,18 @@ class CmtRadio : public Radio {
             return true;
         }
 
+        uint16_t getBaseFreqMhz(void) override {
+            return mCmt.getBaseFreqMhz();
+        }
+
+        uint16_t getBootFreqMhz(void) override {
+            return mCmt.getBootFreqMhz();
+        }
+
+        std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) override {
+            return mCmt.getFreqRangeMhz();
+        }
+
     private:
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
@@ -104,12 +116,12 @@ class CmtRadio : public Radio {
                 }
             }
 
-            uint8_t status = mCmt.tx(mTxBuf, len);
+            CmtStatus status = mCmt.tx(mTxBuf, len);
             mMillis = millis();
-            if(CMT_SUCCESS != status) {
+            if(CmtStatus::SUCCESS != status) {
                 DPRINT(DBG_WARN, F("CMT TX failed, code: "));
-                DBGPRINTLN(String(status));
-                if(CMT_ERR_RX_IN_FIFO == status)
+                DBGPRINTLN(String(static_cast<uint8_t>(status)));
+                if(CmtStatus::ERR_RX_IN_FIFO == status)
                     mIrqRcvd = true;
             }
             iv->mDtuTxCnt++;
@@ -123,10 +135,10 @@ class CmtRadio : public Radio {
             return iv->ivGen;
         }
 
-        inline void reset(bool genDtuSn) {
+        inline void reset(bool genDtuSn, RegionCfg region) {
             if(genDtuSn)
                 generateDtuSn();
-            if(!mCmt.reset()) {
+            if(!mCmt.reset(region)) {
                 mCmtAvail = false;
                 DPRINTLN(DBG_WARN, F("Initializing CMT2300A failed!"));
             } else {
@@ -160,8 +172,8 @@ class CmtRadio : public Radio {
         inline void getRx(void) {
             packet_t p;
             p.millis = millis() - mMillis;
-            uint8_t status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
-            if(CMT_SUCCESS == status)
+            CmtStatus status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
+            if(CmtStatus::SUCCESS == status)
                 mBufCtrl.push(p);
 
             // this code completly stops communication!

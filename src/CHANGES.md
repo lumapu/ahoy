@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.66 - 2024-01-28
+* added support for other regions - untested #1271
+* fix generation of DTU-ID; was computed twice without reset if two radios are enabled
+
 ## 0.8.65 - 2024-01-24
 * removed patch for NRF `PLOS`
 * fix lang issues #1388

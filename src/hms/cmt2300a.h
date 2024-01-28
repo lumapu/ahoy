@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -12,8 +12,23 @@
 #include "esp32_3wSpi.h"
 #endif
 
-// detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
+#include <utility>
 
+enum class RegionCfg : uint8_t {
+    EUROPE, USA, BRAZIL, NUM
+};
+
+enum class CmtStatus : uint8_t {
+    SUCCESS = 0,
+    ERR_SWITCH_STATE,
+    ERR_TX_PENDING,
+    FIFO_EMPTY,
+    ERR_RX_IN_FIFO
+};
+
+#define FREQ_STEP_KHZ       250    // channel step size in kHz
+
+// detailed register infos from AN142_CMT2300AW_Quick_Start_Guide-Rev0.8.pdf
 #define CMT2300A_MASK_CFG_RETAIN        0x10
 #define CMT2300A_MASK_RSTN_IN_EN        0x20
 #define CMT2300A_MASK_LOCKING_EN        0x20
@@ -152,67 +167,6 @@
 #define CMT2300A_MASK_TX_DONE_FLG       0x08
 #define CMT2300A_MASK_PKT_OK_FLG        0x01
 
-// this list and the TX5, TX10 registers were compiled from the output of
-// HopeRF RFPDK Tool v1.54
-static uint8_t paLevelList[31][2] PROGMEM = {
-    {0x17, 0x01}, // -10dBm
-    {0x1a, 0x01}, // -09dBm
-    {0x1d, 0x01}, // -08dBm
-    {0x21, 0x01}, // -07dBm
-    {0x25, 0x01}, // -06dBm
-    {0x29, 0x01}, // -05dBm
-    {0x2d, 0x01}, // -04dBm
-    {0x33, 0x01}, // -03dBm
-    {0x39, 0x02}, // -02dBm
-    {0x41, 0x02}, // -01dBm
-    {0x4b, 0x02}, //  00dBm
-    {0x56, 0x03}, //  01dBm
-    {0x63, 0x03}, //  02dBm
-    {0x71, 0x04}, //  03dBm
-    {0x80, 0x04}, //  04dBm
-    {0x22, 0x01}, //  05dBm
-    {0x27, 0x04}, //  06dBm
-    {0x2c, 0x05}, //  07dBm
-    {0x31, 0x06}, //  08dBm
-    {0x38, 0x06}, //  09dBm
-    {0x3f, 0x07}, //  10dBm
-    {0x48, 0x08}, //  11dBm
-    {0x52, 0x09}, //  12dBm
-    {0x5d, 0x0b}, //  13dBm
-    {0x6a, 0x0c}, //  14dBm
-    {0x79, 0x0d}, //  15dBm
-    {0x46, 0x10}, //  16dBm
-    {0x51, 0x10}, //  17dBm
-    {0x60, 0x12}, //  18dBm
-    {0x71, 0x14}, //  19dBm
-    {0x8c, 0x1c}  //  20dBm
-};
-
-// default CMT parameters
-static uint8_t cmtConfig[0x60] PROGMEM {
-    // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
-    0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
-    0x11, 0x02, 0x02, 0x00, 0xAE, 0xE0, 0x35, 0x00,
-    // 0x10 - 0x1f
-    0x00, 0xF4, 0x10, 0xE2, 0x42, 0x20, 0x0C, 0x81,
-    0x42, 0x32, 0xCF, 0x82, 0x42, 0x27, 0x76, 0x12, // 860MHz as default
-    // 0x20 - 0x2f
-    0xA6, 0xC9, 0x20, 0x20, 0xD2, 0x35, 0x0C, 0x0A,
-    0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
-    // 0x30 - 0x3f
-    0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
-    0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
-    // 0x40 - 0x4f
-    0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1F, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
-    // 0x50 - 0x5f
-    0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
-    0x00, 0x07, 0x50, 0x00, 0x5D, 0x0B, 0x3F, 0x7F //  - TX 13dBm
-};
-
-
-enum {CMT_SUCCESS = 0, CMT_ERR_SWITCH_STATE, CMT_ERR_TX_PENDING, CMT_FIFO_EMPTY, CMT_ERR_RX_IN_FIFO};
-
 class Cmt2300a {
     public:
         Cmt2300a() {}
@@ -234,12 +188,12 @@ class Cmt2300a {
             }
         }
 
-        uint8_t goRx(void) {
+        CmtStatus goRx(void) {
             if(mTxPending)
-                return CMT_ERR_TX_PENDING;
+                return CmtStatus::ERR_TX_PENDING;
 
             if(mInRxMode)
-                return CMT_SUCCESS;
+                return CmtStatus::SUCCESS;
 
             mSpi.readReg(CMT2300A_CUS_INT1_CTL);
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
@@ -260,47 +214,47 @@ class Cmt2300a {
             mSpi.writeReg(0x16, 0x0C); // [4:3]: RSSI_DET_SEL, [2:0]: RSSI_AVG_MODE
 
             if(!cmtSwitchStatus(CMT2300A_GO_RX, CMT2300A_STA_RX))
-                return CMT_ERR_SWITCH_STATE;
+                return CmtStatus::ERR_SWITCH_STATE;
 
             mInRxMode = true;
 
-            return CMT_SUCCESS;
+            return CmtStatus::SUCCESS;
         }
 
-        uint8_t getRx(uint8_t buf[], uint8_t *rxLen, uint8_t maxlen, int8_t *rssi) {
+        CmtStatus getRx(uint8_t buf[], uint8_t *rxLen, uint8_t maxlen, int8_t *rssi) {
             if(mTxPending)
-                return CMT_ERR_TX_PENDING;
+                return CmtStatus::ERR_TX_PENDING;
 
             if(0x1b != (mSpi.readReg(CMT2300A_CUS_INT_FLAG) & 0x1b))
-                return CMT_FIFO_EMPTY;
+                return CmtStatus::FIFO_EMPTY;
 
             // receive ok (pream, sync, node, crc)
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
-                return CMT_ERR_SWITCH_STATE;
+                return CmtStatus::ERR_SWITCH_STATE;
 
             mSpi.readFifo(buf, rxLen, maxlen);
             *rssi = mSpi.readReg(CMT2300A_CUS_RSSI_DBM) - 128;
 
             if(!cmtSwitchStatus(CMT2300A_GO_SLEEP, CMT2300A_STA_SLEEP))
-                return CMT_ERR_SWITCH_STATE;
+                return CmtStatus::ERR_SWITCH_STATE;
 
             if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
-                return CMT_ERR_SWITCH_STATE;
+                return CmtStatus::ERR_SWITCH_STATE;
 
             mInRxMode   = false;
             mCusIntFlag = mSpi.readReg(CMT2300A_CUS_INT_FLAG);
 
-            return CMT_SUCCESS;
+            return CmtStatus::SUCCESS;
         }
 
-        uint8_t tx(uint8_t buf[], uint8_t len) {
+        CmtStatus tx(uint8_t buf[], uint8_t len) {
             if(mTxPending)
-                return CMT_ERR_TX_PENDING;
+                return CmtStatus::ERR_TX_PENDING;
 
             if(mInRxMode) {
                 mInRxMode = false;
                 if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
-                    return CMT_ERR_SWITCH_STATE;
+                    return CmtStatus::ERR_SWITCH_STATE;
             }
 
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
@@ -325,16 +279,17 @@ class Cmt2300a {
             }
 
             if(!cmtSwitchStatus(CMT2300A_GO_TX, CMT2300A_STA_TX))
-                return CMT_ERR_SWITCH_STATE;
+                return CmtStatus::ERR_SWITCH_STATE;
 
             // wait for tx done
             mTxPending = true;
 
-            return CMT_SUCCESS;
+            return CmtStatus::SUCCESS;
         }
 
         // initialize CMT2300A, returns true on success
-        bool reset(void) {
+        bool reset(RegionCfg region) {
+            mRegionCfg = region;
             mSpi.writeReg(0x7f, 0xff); // soft reset
             delay(30);
 
@@ -346,9 +301,18 @@ class Cmt2300a {
             if(mSpi.readReg(0x62) != 0x20)
                 return false; // not connected!
 
-            for(uint8_t i = 0; i < 0x60; i++) {
+            for(uint8_t i = 0; i < 0x18; i++) {
                 mSpi.writeReg(i, cmtConfig[i]);
             }
+            for(uint8_t i = 0; i < 8; i++) {
+                mSpi.writeReg(0x18 + i, mBaseFreqCfg[static_cast<uint8_t>(region)][i]);
+            }
+            for(uint8_t i = 0x20; i < 0x60; i++) {
+                mSpi.writeReg(i, cmtConfig[i]);
+            }
+
+            if(RegionCfg::EUROPE != region)
+                mSpi.writeReg(0x27, 0x0B);
 
 
             mSpi.writeReg(CMT2300A_CUS_IO_SEL, 0x20); // -> GPIO3_SEL[1:0] = 0x02
@@ -389,23 +353,14 @@ class Cmt2300a {
         }
 
         inline uint8_t freq2Chan(const uint32_t freqKhz) {
-            if((freqKhz % FREQ_STEP_KHZ) != 0) {
-                DPRINT(DBG_WARN, F("switch frequency to "));
-                DBGPRINT(String(freqKhz));
-                DBGPRINT(F("kHz not possible!"));
-                return 0xff; // error
-                // apply the nearest frequency
-                //freqKhz = (freqKhz + FREQ_STEP_KHZ/2) / FREQ_STEP_KHZ;
-                //freqKhz *= FREQ_STEP_KHZ;
-            }
-
-            if((freqKhz < HOY_BASE_FREQ_KHZ) || (freqKhz > HOY_MAX_FREQ_KHZ))
+            if((freqKhz % FREQ_STEP_KHZ) != 0)
                 return 0xff; // error
 
-            if((freqKhz < FREQ_WARN_MIN_KHZ) || (freqKhz > FREQ_WARN_MAX_KHZ))
-                DPRINTLN(DBG_WARN, F("Desired frequency is out of EU legal range! (863 - 870MHz)"));
+            std::pair<uint8_t, uint8_t> range = getFreqRangeMhz();
+            if((freqKhz < range.first) || (freqKhz > range.second))
+                return 0xff; // error
 
-            return (freqKhz - HOY_BASE_FREQ_KHZ) / FREQ_STEP_KHZ;
+            return (freqKhz - getBaseFreqMhz()) / FREQ_STEP_KHZ;
         }
 
         inline void switchChannel(uint8_t ch) {
@@ -414,9 +369,9 @@ class Cmt2300a {
 
         inline uint32_t getFreqKhz(void) {
             if(0xff != mRqstCh)
-                return HOY_BASE_FREQ_KHZ + (mRqstCh * FREQ_STEP_KHZ);
+                return getBaseFreqMhz() + (mRqstCh * FREQ_STEP_KHZ);
             else
-                return HOY_BASE_FREQ_KHZ + (mCurCh * FREQ_STEP_KHZ);
+                return getBaseFreqMhz() + (mCurCh * FREQ_STEP_KHZ);
         }
 
         uint8_t getCurrentChannel(void) {
@@ -442,6 +397,114 @@ class Cmt2300a {
             mSpi.writeReg(CMT2300A_CUS_TX8, paLevelList[level][0]);
             mSpi.writeReg(CMT2300A_CUS_TX9, paLevelList[level][1]);
         }
+
+    public:
+        uint16_t getBaseFreqMhz(void) {
+            switch(mRegionCfg) {
+                default:
+                    [[fallthrough]];
+                case RegionCfg::EUROPE:
+                    break;
+                case RegionCfg::USA:
+                    return 905;
+                case RegionCfg::BRAZIL:
+                    return 915;
+            }
+            return 860;
+        }
+
+        uint16_t getBootFreqMhz(void) {
+            switch(mRegionCfg) {
+                default:
+                    [[fallthrough]];
+                case RegionCfg::EUROPE:
+                    break;
+                case RegionCfg::USA:
+                    return 915;
+                case RegionCfg::BRAZIL:
+                    return 915;
+            }
+            return 868;
+        }
+
+        std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) {
+            switch(mRegionCfg) {
+                default:
+                    [[fallthrough]];
+                case RegionCfg::EUROPE:
+                    break;
+                case RegionCfg::USA:
+                    return std::make_pair(905, 925);
+                case RegionCfg::BRAZIL:
+                    return std::make_pair(915, 928);
+            }
+            return std::make_pair(860, 870); // Europe
+        }
+
+    private:
+        // this list and the TX5, TX10 registers were compiled from the output of
+        // HopeRF RFPDK Tool v1.54
+        constexpr static uint8_t paLevelList[31][2] PROGMEM = {
+            {0x17, 0x01}, // -10dBm
+            {0x1a, 0x01}, // -09dBm
+            {0x1d, 0x01}, // -08dBm
+            {0x21, 0x01}, // -07dBm
+            {0x25, 0x01}, // -06dBm
+            {0x29, 0x01}, // -05dBm
+            {0x2d, 0x01}, // -04dBm
+            {0x33, 0x01}, // -03dBm
+            {0x39, 0x02}, // -02dBm
+            {0x41, 0x02}, // -01dBm
+            {0x4b, 0x02}, //  00dBm
+            {0x56, 0x03}, //  01dBm
+            {0x63, 0x03}, //  02dBm
+            {0x71, 0x04}, //  03dBm
+            {0x80, 0x04}, //  04dBm
+            {0x22, 0x01}, //  05dBm
+            {0x27, 0x04}, //  06dBm
+            {0x2c, 0x05}, //  07dBm
+            {0x31, 0x06}, //  08dBm
+            {0x38, 0x06}, //  09dBm
+            {0x3f, 0x07}, //  10dBm
+            {0x48, 0x08}, //  11dBm
+            {0x52, 0x09}, //  12dBm
+            {0x5d, 0x0b}, //  13dBm
+            {0x6a, 0x0c}, //  14dBm
+            {0x79, 0x0d}, //  15dBm
+            {0x46, 0x10}, //  16dBm
+            {0x51, 0x10}, //  17dBm
+            {0x60, 0x12}, //  18dBm
+            {0x71, 0x14}, //  19dBm
+            {0x8c, 0x1c}  //  20dBm
+        };
+
+        // default CMT parameters
+        constexpr static uint8_t cmtConfig[0x60] PROGMEM {
+            // 0x00 - 0x0f -- RSSI offset +- 0 and 13dBm
+            0x00, 0x66, 0xEC, 0x1C, 0x70, 0x80, 0x14, 0x08,
+            0x11, 0x02, 0x02, 0x00, 0xAE, 0xE0, 0x35, 0x00,
+            // 0x10 - 0x1f
+            0x00, 0xF4, 0x10, 0xE2, 0x42, 0x20, 0x0C, 0x81,
+            0x42, 0x32, 0xCF, 0x82, 0x42, 0x27, 0x76, 0x12, // 860MHz as default
+            // 0x20 - 0x2f
+            0xA6, 0xC9, 0x20, 0x20, 0xD2, 0x35, 0x0C, 0x0A,
+            0x9F, 0x4B, 0x29, 0x29, 0xC0, 0x14, 0x05, 0x53,
+            // 0x30 - 0x3f
+            0x10, 0x00, 0xB4, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x12, 0x1E, 0x00, 0xAA, 0x06, 0x00, 0x00, 0x00,
+            // 0x40 - 0x4f
+            0x00, 0x48, 0x5A, 0x48, 0x4D, 0x01, 0x1F, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0xC3, 0x00, 0x00, 0x60,
+            // 0x50 - 0x5f
+            0xFF, 0x00, 0x00, 0x1F, 0x10, 0x70, 0x4D, 0x06,
+            0x00, 0x07, 0x50, 0x00, 0x5D, 0x0B, 0x3F, 0x7F // TX 13dBm
+        };
+
+        constexpr static uint8_t mBaseFreqCfg[static_cast<uint8_t>(RegionCfg::NUM)][8] {
+            {0x42, 0x32, 0xCF, 0x82, 0x42, 0x27, 0x76, 0x12}, // 860MHz
+            {0x45, 0xA8, 0x31, 0x8A, 0x45, 0x9D, 0xD8, 0x19}, // 905MHz (USA, Indonesia)
+            {0x46, 0x6D, 0x80, 0x86, 0x46, 0x62, 0x27, 0x16}  // 915MHz (Brazil)
+        };
 
     private:
         void init() {
@@ -480,6 +543,7 @@ class Cmt2300a {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
         }
 
+    private:
         #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
         cmtHal mSpi;
         #else
@@ -490,6 +554,7 @@ class Cmt2300a {
         bool mInRxMode;
         uint8_t mCusIntFlag;
         uint8_t mRqstCh, mCurCh;
+        RegionCfg mRegionCfg = RegionCfg::EUROPE;
 };
 
 #endif /*__CMT2300A_H__*/

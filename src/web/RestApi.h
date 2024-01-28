@@ -268,6 +268,8 @@ class RestApi {
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
             obj[F("cst_lnk_txt")] = String(mConfig->plugin.customLinkText);
+            obj[F("region")]      = mConfig->sys.region;
+            obj[F("timezone")]    = mConfig->sys.timezone;
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -651,6 +653,9 @@ class RestApi {
             obj[F("fcsb")]  = mConfig->cmt.pinFcsb;
             obj[F("gpio3")] = mConfig->cmt.pinIrq;
             obj[F("en")]    = (bool) mConfig->cmt.enabled;
+            std::pair<uint16_t, uint16_t> range = mRadioCmt->getFreqRangeMhz();
+            obj[F("freq_min")] = range.first;
+            obj[F("freq_max")] = range.second;
         }
 
         void getRadioCmtInfo(JsonObject obj) {

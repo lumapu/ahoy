@@ -27,6 +27,14 @@
                                 <div class="col-12">{#DARK_MODE_NOTE}</div>
                             </div>
                             <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#REGION}</div>
+                                <div class="col-4 col-sm-9" id="region"></div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-8 col-sm-3">{#TIMEZONE}</div>
+                                <div class="col-4 col-sm-9" id="timezone"></div>
+                            </div>
+                            <div class="row mb-3">
                                 <div class="col-8 col-sm-3">{#CUSTOM_LINK}</div>
                                 <div class="col-4 col-sm-9"><input type="text" name="cstLnk"/></div>
                             </div>
@@ -499,9 +507,6 @@
             for(var i = 0; i < 31; i++) {
                 esp32cmtPa.push([i, String(i-10) + " dBm"]);
             }
-            for(var i = 12; i < 41; i++) {
-                esp32cmtFreq.push([i, freqFmt.format(860 + i*0.25) + " MHz"]);
-            }
             /*ENDIF_ESP32*/
             var led_high_active = [
                 [0, "{#PIN_LOW_ACTIVE}"],
@@ -650,6 +655,14 @@
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
+
+                var tz = []
+                for(i = 0; i < 24; i += 0.5)
+                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
+                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
+                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
+                document.getElementById("region").append(sel("region", region, obj.region))
+
             }
 
             function parseGeneric(obj) {
@@ -1018,6 +1031,12 @@
                             )
                         ])
                     );
+                }
+
+                var i = 0
+                while(obj.freq_max >= (obj.freq_min + i * 0.25)) {
+                    esp32cmtFreq.push([i, freqFmt.format(obj.freq_min + i * 0.25) + " MHz"])
+                    i++
                 }
             }
             /*ENDIF_ESP32*/

@@ -138,7 +138,7 @@ class Communication : public CommQueue<> {
                         }
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
-                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
+                                q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000));
                                 mWaitTime.startTimeMonitor(1000);
                             } else {
                                 if(IV_MI == q->iv->ivGen)
