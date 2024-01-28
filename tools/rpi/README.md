@@ -272,13 +272,13 @@ Run as a service
 If you want to run directly at start, you have to install ahoy as a service.
 Depending oni, if you want to run it once a user is logged in or as soon as the system is booted, 
 two service examples are included.
--`ahoy.service` allows you to start it as a user service upon login.
--`ahoy_system.service` allows you to start it as a system service already before login without user interaction.
+- `ahoy.service` allows you to start it as a user service upon login.
+- `ahoy_system.service` allows you to start it as a system service already before login without user interaction.
 
 Run as a service on Debian 12 (bookworm)
 ----------------------------------------
--`ahoy@bookworm.service` allows you to start it as a user service upon login.
--`ahoy@bookworm_system.service` allows you to start it as a system service already before login without user interaction.
+- `ahoy@bookworm.service` allows you to start it as a user service upon login.
+- `ahoy@bookworm_system.service` allows you to start it as a system service already before login without user interaction.
 
 
 Analysing the Logs
