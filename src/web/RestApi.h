@@ -754,6 +754,12 @@ class RestApi {
                 warn.add(F(REBOOT_ESP_APPLY_CHANGES));
             if(0 == mApp->getTimestamp())
                 warn.add(F(TIME_NOT_SET));
+            #if !defined(ETHERNET)
+                #if !defined(ESP32)
+                if(mApp->getWasInCh12to14())
+                    warn.add(F(WAS_IN_CH_12_TO_14));
+                #endif
+            #endif
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {

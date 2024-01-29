@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.68 - 2024-01-29
+* fix HMS / HMT startup
+* added `flush_rx` to NRF on TX
+* start with heuristics set to `0`
+* added warning for WiFi channel 12-14 (ESP8266 only) #1381
+
 ## 0.8.67 - 2024-01-29
 * fix HMS frequency
 * fix display of inverter id in serial log (was displayed twice)

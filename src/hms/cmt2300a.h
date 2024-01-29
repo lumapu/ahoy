@@ -356,11 +356,11 @@ class Cmt2300a {
             if((freqKhz % FREQ_STEP_KHZ) != 0)
                 return 0xff; // error
 
-            std::pair<uint8_t, uint8_t> range = getFreqRangeMhz();
-            if((freqKhz < range.first) || (freqKhz > range.second))
+            std::pair<uint16_t, uint16_t> range = getFreqRangeMhz();
+            if((freqKhz < (range.first * 1000)) || (freqKhz > (range.second * 1000)))
                 return 0xff; // error
 
-            return (freqKhz - getBaseFreqMhz() * 1000) / FREQ_STEP_KHZ;
+            return (freqKhz - (getBaseFreqMhz() * 1000)) / FREQ_STEP_KHZ;
         }
 
         inline void switchChannel(uint8_t ch) {

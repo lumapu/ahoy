@@ -139,7 +139,10 @@ class Communication : public CommQueue<> {
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 #if defined(ESP32)
-                                q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000));
+                                if(!q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000))) {
+                                    DPRINT_IVID(DBG_INFO, q->iv->id);
+                                    DBGPRINTLN(F("switch frequency failed!"));
+                                }
                                 mWaitTime.startTimeMonitor(1000);
                                 #endif
                             } else {

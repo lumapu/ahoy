@@ -77,7 +77,7 @@ class HmRadio : public Radio {
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
             #endif
-            mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
+            mNrf24->setRetries(3, 9); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
             mNrf24->setDataRate(RF24_250KBPS);
             //mNrf24->setAutoAck(true); // enabled by default
@@ -120,14 +120,14 @@ class HmRadio : public Radio {
                 if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME+DURATION_ONEFRAME)))
                     mNRFloopChannels = true;
 
-                rxPendular = !rxPendular;
-                //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
+                mRxPendular = !mRxPendular;
+                //innerLoopTimeout = (mRxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
                     tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS;
                 else
-                    tempRxChIdx = (mRxChIdx + rxPendular*4) % RF_CHANNELS;
+                    tempRxChIdx = (mRxChIdx + mRxPendular*4) % RF_CHANNELS;
 
                 mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                 isRxInit = false;
@@ -141,7 +141,7 @@ class HmRadio : public Radio {
 
                 if(tx_ok || tx_fail) { // tx related interrupt, basically we should start listening
                     mNrf24->flush_tx();                         // empty TX FIFO
-                    mTxSetupTime = millis() - mMillis;
+                    //mTxSetupTime = millis() - mMillis;
 
                     if(mNRFisInRX) {
                         DPRINTLN(DBG_WARN, F("unexpected tx irq!"));
@@ -157,7 +157,7 @@ class HmRadio : public Radio {
                     mNrf24->startListening();
                     mTimeslotStart = millis();
                     tempRxChIdx = mRxChIdx;
-                    rxPendular  = false;
+                    mRxPendular = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
                     innerLoopTimeout = DURATION_TXFRAME;
@@ -168,11 +168,12 @@ class HmRadio : public Radio {
                         mNRFisInRX = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
                         mNrf24->stopListening();
+                        return false;
                     } else {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
                         if (!mNRFloopChannels) {
-                            //rxPendular = true; // stay longer on the next rx channel
+                            //mRxPendular = true; // stay longer on the next rx channel
                             if (isRxInit) {
                                 isRxInit = false;
                                 tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
@@ -180,8 +181,8 @@ class HmRadio : public Radio {
                             } else
                                 mRxChIdx = tempRxChIdx;
                         }
+                        return true;
                     }
-                    return mNRFisInRX;
                 }
             }
 
@@ -341,11 +342,11 @@ class HmRadio : public Radio {
             mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
-                if(!isRetransmit) {
+                /*if(!isRetransmit) {
                     DPRINT(DBG_INFO, "last tx setup: ");
                     DBGPRINT(String(mTxSetupTime));
                     DBGPRINTLN("ms");
-                }
+                }*/
 
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
@@ -368,6 +369,7 @@ class HmRadio : public Radio {
             }
 
             mNrf24->stopListening();
+            mNrf24->flush_rx();
             mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
@@ -407,9 +409,9 @@ class HmRadio : public Radio {
         bool mNRFloopChannels = false;
         bool mNRFisInRX = false;
         bool isRxInit = true;
-        bool rxPendular = false;
+        bool mRxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
-        uint8_t mTxSetupTime = 0;
+        //uint8_t mTxSetupTime = 0;
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

@@ -192,6 +192,14 @@ class Inverter {
                 if(mNextLive)
                     cb(RealTimeRunData_Debug, false);    // get live data
                 else {
+                    if(INV_RADIO_TYPE_NRF == ivRadioType) {
+                        // get live data until quility reaches maximum
+                        if(!heuristics.isTxAtMax()) {
+                            cb(RealTimeRunData_Debug, false);    // get live data
+                            return;
+                        }
+                    }
+
                     if(actPowerLimit == 0xffff)
                         cb(SystemConfigPara, false);         // power limit info
                     else if(InitDataState != devControlCmd) {
@@ -449,6 +457,7 @@ class Inverter {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
                     alarmMesIndex = 0;
+                    heuristics.clear();
                 }
                 else
                     status = InverterStatus::WAS_ON;

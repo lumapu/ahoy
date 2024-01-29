@@ -92,6 +92,8 @@ void ahoywifi::tickWifiLoop() {
             }
             #if !defined(ESP32)
             MDNS.update();
+            if(WiFi.channel() > 11)
+                mWasInCh12to14 = true;
             #endif
             return;
         case IN_AP_MODE:
