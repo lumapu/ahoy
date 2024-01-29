@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.67 - 2024-01-29
+* fix HMS frequency
+* fix display of inverter id in serial log (was displayed twice)
+
 ## 0.8.66 - 2024-01-28
 * added support for other regions - untested #1271
 * fix generation of DTU-ID; was computed twice without reset if two radios are enabled
@@ -169,7 +173,7 @@
 
 ## 0.8.37 - 2023-12-30
 * added grid profiles
-* format version of grid profile 
+* format version of grid profile
 
 # RELEASE 0.8.36 - 2023-12-30
 

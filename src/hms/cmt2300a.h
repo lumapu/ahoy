@@ -360,7 +360,7 @@ class Cmt2300a {
             if((freqKhz < range.first) || (freqKhz > range.second))
                 return 0xff; // error
 
-            return (freqKhz - getBaseFreqMhz()) / FREQ_STEP_KHZ;
+            return (freqKhz - getBaseFreqMhz() * 1000) / FREQ_STEP_KHZ;
         }
 
         inline void switchChannel(uint8_t ch) {
@@ -369,9 +369,9 @@ class Cmt2300a {
 
         inline uint32_t getFreqKhz(void) {
             if(0xff != mRqstCh)
-                return getBaseFreqMhz() + (mRqstCh * FREQ_STEP_KHZ);
+                return getBaseFreqMhz() * 1000 + (mRqstCh * FREQ_STEP_KHZ);
             else
-                return getBaseFreqMhz() + (mCurCh * FREQ_STEP_KHZ);
+                return getBaseFreqMhz() * 1000 + (mCurCh * FREQ_STEP_KHZ);
         }
 
         uint8_t getCurrentChannel(void) {

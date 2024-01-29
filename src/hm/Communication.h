@@ -502,7 +502,6 @@ class Communication : public CommQueue<> {
             int8_t rssi = -127;
             uint8_t len = 0;
 
-            DPRINT_IVID(DBG_INFO, q->iv->id);
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(mLocalBuf[i].len + len > MAX_BUFFER) {
                     DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
