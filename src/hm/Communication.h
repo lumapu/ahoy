@@ -139,8 +139,10 @@ class Communication : public CommQueue<> {
                                                     }
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
-                                q->iv->radio->switchFrequency(q->iv, HOY_BOOT_FREQ_KHZ, (q->iv->config->frequency*FREQ_STEP_KHZ + HOY_BASE_FREQ_KHZ));
+                                #if defined(ESP32)
+                                q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000));
                                 mWaitTime.startTimeMonitor(1000);
+                                #endif
                             } else {
                                 mHeu.setIvRetriesBad(q->iv);
                                 if(IV_MI == q->iv->ivGen)
@@ -526,7 +528,6 @@ class Communication : public CommQueue<> {
             int8_t rssi = -127;
             uint8_t len = 0;
 
-            DPRINT_IVID(DBG_INFO, q->iv->id);
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(mLocalBuf[i].len + len > MAX_BUFFER) {
                     DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
@@ -541,7 +542,7 @@ class Communication : public CommQueue<> {
 
             len -= 2;
 
-            //DPRINT_IVID(DBG_INFO, q->iv->id); // it's already above "for"-loop
+            DPRINT_IVID(DBG_INFO, q->iv->id);
             DBGPRINT(F("Payload ("));
             DBGPRINT(String(len));
             if(*mPrintWholeTrace) {

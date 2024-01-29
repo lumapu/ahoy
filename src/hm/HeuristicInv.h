@@ -14,7 +14,7 @@
 class HeuristicInv {
     public:
         HeuristicInv() {
-            memset(txRfQuality, -6, RF_MAX_CHANNEL_ID);
+            memset(txRfQuality, 0, RF_MAX_CHANNEL_ID);
         }
 
     public:

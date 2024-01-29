@@ -118,7 +118,7 @@ class HmRadio : public Radio {
 
                 // otherwise switch to next RX channel
                 mTimeslotStart = millis();
-                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME+DURATION_ONEFRAME)))
+                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME))) //(DURATION_TXFRAME+DURATION_ONEFRAME)))
                     mNRFloopChannels = true;
 
                 rxPendular = !rxPendular;
@@ -163,7 +163,7 @@ class HmRadio : public Radio {
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
                     //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
-                    innerLoopTimeout = DURATION_LISTEN_MIN;
+                    innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_LISTEN_MIN : 4;
                 }
 
                 if(rx_ready) {
@@ -324,7 +324,13 @@ class HmRadio : public Radio {
                                 if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
                                     isRetransmitAnswer = true;
                                 if(isLastPackage)
-                                    mFramesExpected = p.packet[9] - ALL_FRAMES;
+                                    setExpectedFrames(p.packet[9] - ALL_FRAMES);
+                                if(p.packet[9] == 1 && p.millis < DURATION_ONEFRAME)
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + 1) % RF_CHANNELS;
+                                else if(mNRFloopChannels && mLastIv->rxOffset > RF_CHANNELS) { // unsure setting?
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + (isLastPackage ? mFramesExpected : p.packet[9]));  // make clear it's not sure, start with one more offset
+                                    mNRFloopChannels = false;
+                                }
                             }
 
                             if(IV_MI == mLastIv->ivGen) {
@@ -332,6 +338,8 @@ class HmRadio : public Radio {
                                     isLastPackage = (p.packet[9] > 0x10);                // > 0x10 indicates last packet received
                                 else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
                                     isLastPackage = true;                                // response from dev control command
+                                if(p.packet[9] == 0x00 && p.millis < DURATION_ONEFRAME)
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx - 1) % RF_CHANNELS;
                             }
                             rx_ready = true; //reset in case we first read messages from other inverter or ACK zero payloads
                         }

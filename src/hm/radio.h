@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -28,6 +28,9 @@ class Radio {
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
         virtual bool isChipConnected(void) const { return false; }
+        virtual uint16_t getBaseFreqMhz() { return 0; }
+        virtual uint16_t getBootFreqMhz() { return 0; }
+        virtual std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) { return std::make_pair(0, 0); }
         virtual bool loop(void) = 0;
 
         void handleIntr(void) {
@@ -115,6 +118,7 @@ class Radio {
             chipID = ESP.getChipId();
             #endif
 
+            mDtuSn = 0;
             uint8_t t;
             for(int i = 0; i < (7 << 2); i += 4) {
                 t = (chipID >> i) & 0x0f;
@@ -124,6 +128,7 @@ class Radio {
             }
             mDtuSn |= 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
                     }
+
 
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;

@@ -180,7 +180,6 @@ class Inverter {
             tsMaxAcPower       = 0;
 
             memset(&radioStatistics, 0, sizeof(statistics_t));
-
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
         }
