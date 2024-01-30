@@ -193,6 +193,14 @@ class Inverter {
                 if(mNextLive)
                     cb(RealTimeRunData_Debug, false);    // get live data
                 else {
+                    if(INV_RADIO_TYPE_NRF == ivRadioType) {
+                        // get live data until quality reaches maximum
+                        if(!heuristics.isTxAtMax()) {
+                            cb(RealTimeRunData_Debug, false);    // get live data
+                            return;
+                        }
+                    }
+
                     if(actPowerLimit == 0xffff) {
                         cb(SystemConfigPara, false);         // power limit info
                         cb(RealTimeRunData_Debug, false);
@@ -201,17 +209,18 @@ class Inverter {
                         devControlCmd = InitDataState;
                         mGetLossInterval = 1;
                     } else if(0 == getFwVersion()) {
-                        cb(RealTimeRunData_Debug, false);    // get live data
                         cb(InverterDevInform_All, false);    // get firmware version
+                        cb(RealTimeRunData_Debug, false);    // get live data
                     }
                     else if(0 == getHwVersion()) {
-                        cb(RealTimeRunData_Debug, false);    // get live data
                         cb(InverterDevInform_Simple, false); // get hardware version
-                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
                         cb(RealTimeRunData_Debug, false);    // get live data
+                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
                         cb(AlarmData, false);                // get last alarms
+                        cb(RealTimeRunData_Debug, false);    // get live data
                     } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                         cb(GridOnProFilePara, false);
+                        cb(RealTimeRunData_Debug, false);    // get live data
                     } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                         mGetLossInterval = 1;
                         cb(RealTimeRunData_Debug, false); // get live data
@@ -455,6 +464,12 @@ class Inverter {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
                     alarmMesIndex = 0;
+                    if(ivRadioType == INV_RADIO_TYPE_NRF) {
+                        heuristics.clear();
+                        #ifdef DYNAMIC_OFFSET
+                        rxOffset = ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
+                        #endif
+                    }
                 }
                 else
                     status = InverterStatus::WAS_ON;

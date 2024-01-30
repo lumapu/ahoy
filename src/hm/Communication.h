@@ -140,7 +140,10 @@ class Communication : public CommQueue<> {
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 #if defined(ESP32)
-                                q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000));
+                                if(!q->iv->radio->switchFrequency(q->iv, q->iv->radio->getBootFreqMhz() * 1000, (q->iv->config->frequency*FREQ_STEP_KHZ + q->iv->radio->getBaseFreqMhz() * 1000))) {
+                                    DPRINT_IVID(DBG_INFO, q->iv->id);
+                                    DBGPRINTLN(F("switch frequency failed!"));
+                                }
                                 mWaitTime.startTimeMonitor(1000);
                                 #endif
                             } else {
@@ -418,8 +421,8 @@ class Communication : public CommQueue<> {
 
             if((*frameId & ALL_FRAMES) == ALL_FRAMES) {
                 mMaxFrameId = (*frameId & 0x7f);
-                /*if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
-                    incrAttempt(mMaxFrameId - 6);*/
+                if(mMaxFrameId > 8) // large payloads, e.g. AlarmData
+                    incrAttempt(mMaxFrameId - 6);
             }
 
             frame_t *f = &mLocalBuf[(*frameId & 0x7f) - 1];

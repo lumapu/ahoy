@@ -121,14 +121,14 @@ class HmRadio : public Radio {
                 if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME))) //(DURATION_TXFRAME+DURATION_ONEFRAME)))
                     mNRFloopChannels = true;
 
-                rxPendular = !rxPendular;
+                mRxPendular = !mRxPendular;
                 //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
-                //innerLoopTimeout = DURATION_LISTEN_MIN;
+                innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
                     tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS;
                 else
-                    tempRxChIdx = (mRxChIdx + rxPendular*4) % RF_CHANNELS;
+                    tempRxChIdx = (mRxChIdx + mRxPendular*4) % RF_CHANNELS;
 
                 mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                 isRxInit = false;
@@ -142,7 +142,7 @@ class HmRadio : public Radio {
 
                 if(tx_ok || tx_fail) { // tx related interrupt, basically we should start listening
                     mNrf24->flush_tx();                         // empty TX FIFO
-                    mTxSetupTime = millis() - mMillis;
+                    //mTxSetupTime = millis() - mMillis;
 
                     if(mNRFisInRX) {
                         DPRINTLN(DBG_WARN, F("unexpected tx irq!"));
@@ -153,17 +153,21 @@ class HmRadio : public Radio {
                     if(tx_ok)
                         mLastIv->mAckCount++;
 
-                    //mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+                    //#ifdef DYNAMIC_OFFSET
                     mRxChIdx = (mTxChIdx + mLastIv->rxOffset) % RF_CHANNELS;
+                    /*#else
+                    mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+                    #endif*/
                     mNrf24->setChannel(mRfChLst[mRxChIdx]);
                     mNrf24->startListening();
                     mTimeslotStart = millis();
                     tempRxChIdx = mRxChIdx;  // might be better to start off with one channel less?
-                    rxPendular  = false;
+                    mRxPendular = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
                     //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
-                    innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_LISTEN_MIN : 4;
+                    //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_LISTEN_MIN : 4;
+                    innerLoopTimeout = (mLastIv->mIsSingleframeReq || mLastIv->ivGen == IV_MI) ? DURATION_LISTEN_MIN : DURATION_TXFRAME;
                 }
 
                 if(rx_ready) {
@@ -176,7 +180,7 @@ class HmRadio : public Radio {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
                         if (!mNRFloopChannels) {
-                            //rxPendular = true; // stay longer on the next rx channel
+                            //mRxPendular = true; // stay longer on the next rx channel
                             if (isRxInit) {
                                 isRxInit = false;
                                 tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
@@ -325,12 +329,14 @@ class HmRadio : public Radio {
                                     isRetransmitAnswer = true;
                                 if(isLastPackage)
                                     setExpectedFrames(p.packet[9] - ALL_FRAMES);
+                                #ifdef DYNAMIC_OFFSET
                                 if(p.packet[9] == 1 && p.millis < DURATION_ONEFRAME)
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + 1) % RF_CHANNELS;
                                 else if(mNRFloopChannels && mLastIv->rxOffset > RF_CHANNELS) { // unsure setting?
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + (isLastPackage ? mFramesExpected : p.packet[9]));  // make clear it's not sure, start with one more offset
                                     mNRFloopChannels = false;
                                 }
+                                #endif
                             }
 
                             if(IV_MI == mLastIv->ivGen) {
@@ -338,8 +344,10 @@ class HmRadio : public Radio {
                                     isLastPackage = (p.packet[9] > 0x10);                // > 0x10 indicates last packet received
                                 else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
                                     isLastPackage = true;                                // response from dev control command
+                                #ifdef DYNAMIC_OFFSET
                                 if(p.packet[9] == 0x00 && p.millis < DURATION_ONEFRAME)
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx - 1) % RF_CHANNELS;
+                                #endif
                             }
                             rx_ready = true; //reset in case we first read messages from other inverter or ACK zero payloads
                         }
@@ -347,9 +355,8 @@ class HmRadio : public Radio {
                 }
                 yield();
             }
-            if(isLastPackage) {
+            if(isLastPackage)
                 mLastIv->mGotLastMsg = true;
-            }
             return isLastPackage || isRetransmitAnswer;
         }
 
@@ -361,10 +368,7 @@ class HmRadio : public Radio {
             mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
-                /* remark rejoe2: imo this has no added value here.
-                As this belongs to the last tx cycle, we should print that info
-                directly when switching from tx to rx. Otherwise we might confuse users.
-                if(!isRetransmit) {
+                /*if(!isRetransmit) {
                     DPRINT(DBG_INFO, "last tx setup: ");
                     DBGPRINT(String(mTxSetupTime));
                     DBGPRINTLN("ms");
@@ -374,13 +378,19 @@ class HmRadio : public Radio {
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
+                if(mTxChIdx == 0)
+                    DBGPRINT("0");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
                 DBGPRINT(F(", "));
                 DBGPRINT(String(mTxRetriesNext));
                 //DBGPRINT(F(" retries | "));
+                //#ifdef DYNAMIC_OFFSET
                 DBGPRINT(F(" ret., rx offset: "));
                 DBGPRINT(String(iv->rxOffset));
                 DBGPRINT(F(" | "));
+                /*#else
+                DBGPRINT(F(" ret. | "));
+                #endif*/
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
                         ah::dumpBuf(mTxBuf, len, 1, 4);
@@ -396,6 +406,7 @@ class HmRadio : public Radio {
             }
 
             mNrf24->stopListening();
+            mNrf24->flush_rx();
             if(!isRetransmit && mTxRetries != mTxRetriesNext) {
                 mNrf24->setRetries(3, mTxRetriesNext);
                 mTxRetries = mTxRetriesNext;
@@ -439,9 +450,9 @@ class HmRadio : public Radio {
         bool mNRFloopChannels = false;
         bool mNRFisInRX = false;
         bool isRxInit = true;
-        bool rxPendular = false;
+        bool mRxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
-        uint8_t mTxSetupTime = 0;
+        //uint8_t mTxSetupTime = 0;
         uint8_t mTxRetries = 15;                            // memorize last setting for mNrf24->setRetries(3, 15);
 
         std::unique_ptr<SPIClass> mSpi;

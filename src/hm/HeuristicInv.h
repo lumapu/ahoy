@@ -14,7 +14,22 @@
 class HeuristicInv {
     public:
         HeuristicInv() {
+            clear();
+        }
+
+        void clear() {
             memset(txRfQuality, 0, RF_MAX_CHANNEL_ID);
+            txRfChId           = 0;
+            lastBestTxChId     = 0;
+            testPeriodSendCnt  = 0;
+            testPeriodFailCnt  = 0;
+            testChId           = 0;
+            saveOldTestQuality = -6;
+            lastRxFragments    = 0;
+        }
+
+        bool isTxAtMax(void) const {
+            return (RF_MAX_QUALITY == txRfQuality[txRfChId]);
         }
 
     public:

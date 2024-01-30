@@ -12,7 +12,7 @@
 #include "../utils/dbg.h"
 
 #define DEFAULT_ATTEMPS                 5
-#define MORE_ATTEMPS_ALARMDATA          0 // 8
+#define MORE_ATTEMPS_ALARMDATA          3 // 8
 #define MORE_ATTEMPS_GRIDONPROFILEPARA  0 // 5
 
 template <uint8_t N=100>

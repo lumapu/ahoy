@@ -28,7 +28,6 @@ class HmSystem {
             iv->config     = &mInverter[0].generalConfig->iv[id];
             DPRINT(DBG_VERBOSE, "SERIAL: " + String(iv->config->serial.b[5], HEX));
             DPRINTLN(DBG_VERBOSE, " " + String(iv->config->serial.b[4], HEX));
-            iv->rxOffset = 13; // effective 3, but can easily be recognized as default setting
             if((iv->config->serial.b[5] == 0x11) || (iv->config->serial.b[5] == 0x10)) {
                 switch(iv->config->serial.b[4]) {
                     case 0x24: // HMS-500
@@ -95,6 +94,12 @@ class HmSystem {
 
             if((iv->config->serial.b[5] == 0x10) && ((iv->config->serial.b[4] & 0x03) == 0x01))
                 DPRINTLN(DBG_WARN, F("MI Inverter, has some restrictions!"));
+
+            #ifdef DYNAMIC_OFFSET
+            iv->rxOffset = iv->ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
+            #else
+            iv->rxOffset = (iv->ivGen == IV_HM && iv->type == INV_TYPE_4CH) ? 3 : 2; // effective 3 (or 2), but can easily be recognized as default setting
+            #endif
 
             cb(iv);
         }
