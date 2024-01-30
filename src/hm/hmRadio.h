@@ -122,7 +122,6 @@ class HmRadio : public Radio {
                     mNRFloopChannels = true;
 
                 mRxPendular = !mRxPendular;
-                //innerLoopTimeout = (rxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
@@ -167,7 +166,8 @@ class HmRadio : public Radio {
 
                     //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
                     //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_LISTEN_MIN : 4;
-                    innerLoopTimeout = (mLastIv->mIsSingleframeReq || mLastIv->ivGen == IV_MI) ? DURATION_LISTEN_MIN : DURATION_TXFRAME;
+                    //innerLoopTimeout = (mLastIv->mIsSingleframeReq || mLastIv->ivGen == IV_MI) ? DURATION_LISTEN_MIN : DURATION_TXFRAME;
+                    innerLoopTimeout = DURATION_LISTEN_MIN;
                 }
 
                 if(rx_ready) {
@@ -180,7 +180,6 @@ class HmRadio : public Radio {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
                         if (!mNRFloopChannels) {
-                            //mRxPendular = true; // stay longer on the next rx channel
                             if (isRxInit) {
                                 isRxInit = false;
                                 tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
