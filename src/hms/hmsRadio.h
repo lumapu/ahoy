@@ -76,7 +76,7 @@ class CmtRadio : public Radio {
             return true;
         }
 
-uint16_t getBaseFreqMhz(void) override {
+        uint16_t getBaseFreqMhz(void) override {
             return mCmt.getBaseFreqMhz();
         }
 

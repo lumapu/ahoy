@@ -19,6 +19,12 @@
 #endif
 
 #ifdef LANG_DE
+    #define WAS_IN_CH_12_TO_14 "Der ESP war in WLAN Kanal 12 bis 14, was uU. zu Abstürzen führt"
+#else /*LANG_EN*/
+    #define WAS_IN_CH_12_TO_14 "Your ESP was in wifi channel 12 to 14. It may cause reboots of your AhoyDTU"
+#endif
+
+#ifdef LANG_DE
     #define INV_INDEX_INVALID "Wechselrichterindex ungültig; "
 #else /*LANG_EN*/
     #define INV_INDEX_INVALID "inverter index invalid: "

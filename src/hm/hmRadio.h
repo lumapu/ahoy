@@ -77,7 +77,7 @@ class HmRadio : public Radio {
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
             #endif
-            mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
+            mNrf24->setRetries(3, 9); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
             mNrf24->setDataRate(RF24_250KBPS);
             //mNrf24->setAutoAck(true); // enabled by default
@@ -176,6 +176,7 @@ class HmRadio : public Radio {
                         rx_ready = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
                         mNrf24->stopListening();
+                        return false;
                     } else {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
@@ -187,6 +188,7 @@ class HmRadio : public Radio {
                             } else
                                 mRxChIdx = tempRxChIdx;
                         }
+                        return true;
                     }
                     rx_ready = false; // reset
                     return mNRFisInRX;

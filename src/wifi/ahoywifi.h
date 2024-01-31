@@ -37,6 +37,10 @@ class ahoywifi {
         }
         void setupStation(void);
 
+        bool getWasInCh12to14() const {
+            return mWasInCh12to14;
+        }
+
     private:
         typedef enum WiFiStatus {
             DISCONNECTED = 0,
@@ -86,6 +90,7 @@ class ahoywifi {
         bool mGotDisconnect;
         std::list<uint8_t> mBSSIDList;
         bool mStopApAllowed;
+        bool mWasInCh12to14 = false;
 };
 
 #endif /*__AHOYWIFI_H__*/

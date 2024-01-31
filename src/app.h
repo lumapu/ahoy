@@ -182,6 +182,10 @@ class app : public IApp, public ah::Scheduler {
             return mWifi.getStationIp();
         }
 
+        bool getWasInCh12to14(void) const {
+            return mWifi.getWasInCh12to14();
+        }
+
         #endif /* !defined(ETHERNET) */
 
         void setRebootFlag() {

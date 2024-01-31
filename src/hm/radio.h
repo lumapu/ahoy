@@ -127,7 +127,8 @@ class Radio {
                 mDtuSn |= (t << i);
             }
             mDtuSn |= 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
-                    }
+        }
+
 
 
         uint32_t mDtuSn;

@@ -35,6 +35,7 @@ class IApp {
         virtual void setupStation(void) = 0;
         virtual void setStopApAllowedMode(bool allowed) = 0;
         virtual String getStationIp(void) = 0;
+        virtual bool getWasInCh12to14(void) const = 0;
         #endif /* defined(ETHERNET) */
 
         virtual uint32_t getUptime() = 0;

@@ -30,7 +30,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      9
+#define CONFIG_VERSION      10
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -68,6 +68,8 @@ typedef struct {
     uint16_t protectionMask;
     bool darkMode;
     bool schedReboot;
+    uint8_t region;
+    int8_t timezone;
 
 #if !defined(ETHERNET)
     // wifi
@@ -395,6 +397,8 @@ class settings {
             #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
+            mCfg.sys.region   = 0; // Europe
+            mCfg.sys.timezone = 1;
 
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
@@ -512,6 +516,10 @@ class settings {
                 if(mCfg.configVersion < 9) {
                     mCfg.inst.gapMs = 1;
                 }
+                if(mCfg.configVersion < 10) {
+                    mCfg.sys.region   = 0; // Europe
+                    mCfg.sys.timezone = 1;
+                }
             }
         }
 
@@ -537,6 +545,8 @@ class settings {
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
                 obj[F("reb")] = (bool) mCfg.sys.schedReboot;
+                obj[F("region")] = mCfg.sys.region;
+                obj[F("timezone")] = mCfg.sys.timezone;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -554,6 +564,8 @@ class settings {
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
+                getVal<uint8_t>(obj, F("region"), &mCfg.sys.region);
+                getVal<int8_t>(obj, F("timezone"), &mCfg.sys.timezone);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());

@@ -481,7 +481,8 @@ class Web {
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
             mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
-
+            mConfig->sys.region = (request->arg("region")).toInt();
+            mConfig->sys.timezone = (request->arg("timezone")).toInt() - 12;
 
             if (request->arg("cstLnk") != "") {
                 request->arg("cstLnk").toCharArray(mConfig->plugin.customLink, MAX_CUSTOM_LINK_LEN);

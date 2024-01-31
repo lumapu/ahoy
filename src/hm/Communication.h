@@ -136,7 +136,8 @@ class Communication : public CommQueue<> {
                             DBGPRINT(F("request timeout: "));
                             DBGPRINT(String(q->iv->radio->mRadioWaitTime.getRunTime()));
                             DBGPRINTLN(F("ms"));
-                                                    }
+                        }
+
                         if(!q->iv->mGotFragment) {
                             if(INV_RADIO_TYPE_CMT == q->iv->ivRadioType) {
                                 #if defined(ESP32)

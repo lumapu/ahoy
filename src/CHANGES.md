@@ -1,5 +1,24 @@
 # Development Changes
 
+## 0.8.68 - 2024-01-29
+* fix HMS / HMT startup
+* added `flush_rx` to NRF on TX
+* start with heuristics set to `0`
+* added warning for WiFi channel 12-14 (ESP8266 only) #1381
+
+## 0.8.67 - 2024-01-29
+* fix HMS frequency
+* fix display of inverter id in serial log (was displayed twice)
+
+## 0.8.66 - 2024-01-28
+* added support for other regions - untested #1271
+* fix generation of DTU-ID; was computed twice without reset if two radios are enabled
+
+## 0.8.65 - 2024-01-24
+* removed patch for NRF `PLOS`
+* fix lang issues #1388
+* fix build on Windows of `opendtufusion` environments (git: trailing whitespaces)
+
 ## 0.8.64 - 2024-01-22
 * add `ARC` to log (NRF24 Debug)
 * merge PR: ETH NTP update bugfix #1385
@@ -160,7 +179,7 @@
 
 ## 0.8.37 - 2023-12-30
 * added grid profiles
-* format version of grid profile 
+* format version of grid profile
 
 # RELEASE 0.8.36 - 2023-12-30
 

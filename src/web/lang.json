@@ -149,6 +149,16 @@
                     "de": "(der Browser-Cache muss geleert oder STRG + F5 gedr&uuml;ckt werden, um diese Einstellung zu aktivieren)"
                 },
                 {
+                    "token": "REGION",
+                    "en": "Region",
+                    "de": "Region"
+                },
+                {
+                    "token": "TIMEZONE",
+                    "en": "Timezone",
+                    "de": "Zeitzone"
+                },
+                {
                     "token": "CUSTOM_LINK",
                     "en": "Custom link (leave empty to hide element in navigation)",
                     "de": "benutzerspezifischer Link (leer lassen, um Element in Navigation auszublenden)"
@@ -670,7 +680,7 @@
                 },
                 {
                     "token": "INV_DELETE_SURE",
-                    "en": "do you realy want to delete inverter?",
+                    "en": "do you really want to delete inverter?",
                     "de": "Willst du den Wechselrichter wirklich l&ouml;schen?"
                 },
                 {
@@ -1070,7 +1080,7 @@
                 },
                 {
                     "token": "WARN_DIFF_ENV",
-                    "en": "your environment does not match the update file!",
+                    "en": "your environment may not match the update file!",
                     "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
                 },
                 {
