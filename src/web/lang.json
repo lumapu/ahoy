@@ -1396,7 +1396,7 @@
                 {
                     "token": "CMD_RECEIVED_WAIT_ACK",
                     "en": "received command, waiting for inverter acknowledge ...",
-                    "de": "Befehl erhalten, warte auf Best&auml;igung von Wechselrichter ..."
+                    "de": "Befehl erhalten, warte auf Best&auml;igung vom Wechselrichter ..."
                 },
                 {
                     "token": "COMMAND_RECEIVED",

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.69 - 2024-01-31
+* merge PR: Dynamic retries, pendular first rx chan #1394
+
 ## 0.8.68 - 2024-01-29
 * fix HMS / HMT startup
 * added `flush_rx` to NRF on TX
