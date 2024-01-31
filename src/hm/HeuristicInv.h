@@ -26,6 +26,11 @@ class HeuristicInv {
             testChId           = 0;
             saveOldTestQuality = -6;
             lastRxFragments    = 0;
+
+            rxSpeeds[0]   = false;
+            rxSpeeds[1]   = false;
+            rxSpeedCnt[0] = 0;
+            rxSpeedCnt[1] = 0;
         }
 
         bool isTxAtMax(void) const {
@@ -42,9 +47,8 @@ class HeuristicInv {
         uint8_t testChId           = 0;
         int8_t  saveOldTestQuality = -6;
         uint8_t lastRxFragments    = 0;
-        bool    rxSpeeds[2]        = {false,false}; // is inverter responding very fast respective fast?
-        uint8_t rxSpeedCnt[2]      = {0,0};         // count how many messages had been received very fast respective fast (10 max)
-
+        bool    rxSpeeds[2]        = {false, false}; // is inverter responding very fast respective fast?
+        uint8_t rxSpeedCnt[2]      = {0, 0};         // count how many messages had been received very fast respective fast (10 max)
 };
 
 #endif /*__HEURISTIC_INV_H__*/

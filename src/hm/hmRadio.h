@@ -328,12 +328,13 @@ class HmRadio : public Radio {
                                 isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
                                 if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
                                     isRetransmitAnswer = true;
+
                                 if(isLastPackage)
                                     setExpectedFrames(p.packet[9] - ALL_FRAMES);
                                 #ifdef DYNAMIC_OFFSET
-                                if(p.packet[9] == 1 && p.millis < DURATION_ONEFRAME)
+                                if((p.packet[9] == 1) && (p.millis < DURATION_ONEFRAME))
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + 1) % RF_CHANNELS;
-                                else if(mNRFloopChannels && mLastIv->rxOffset > RF_CHANNELS) { // unsure setting?
+                                else if(mNRFloopChannels && (mLastIv->rxOffset > RF_CHANNELS)) { // unsure setting?
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + (isLastPackage ? mFramesExpected : p.packet[9]));  // make clear it's not sure, start with one more offset
                                     mNRFloopChannels = false;
                                 }
@@ -346,7 +347,7 @@ class HmRadio : public Radio {
                                 else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
                                     isLastPackage = true;                                // response from dev control command
                                 #ifdef DYNAMIC_OFFSET
-                                if(p.packet[9] == 0x00 && p.millis < DURATION_ONEFRAME)
+                                if((p.packet[9] == 0x00) && (p.millis < DURATION_ONEFRAME))
                                     mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx - 1) % RF_CHANNELS;
                                 #endif
                             }
@@ -408,7 +409,7 @@ class HmRadio : public Radio {
 
             mNrf24->stopListening();
             mNrf24->flush_rx();
-            if(!isRetransmit && mTxRetries != mTxRetriesNext) {
+            if(!isRetransmit && (mTxRetries != mTxRetriesNext)) {
                 mNrf24->setRetries(3, mTxRetriesNext);
                 mTxRetries = mTxRetriesNext;
             }

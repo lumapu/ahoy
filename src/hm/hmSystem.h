@@ -96,10 +96,10 @@ class HmSystem {
                 DPRINTLN(DBG_WARN, F("MI Inverter, has some restrictions!"));
 
             #ifdef DYNAMIC_OFFSET
-            iv->rxOffset = iv->ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
+            iv->rxOffset = (iv->ivGen == IV_HM) ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
             #else
-            iv->rxOffset = (iv->ivGen == IV_HM && iv->type == INV_TYPE_4CH) ? 3 : 2;
-            iv->rxOffset = iv->ivGen == IV_HM ? 3 : 2;
+            iv->rxOffset = ((iv->ivGen == IV_HM) && (iv->type == INV_TYPE_4CH)) ? 3 : 2;
+            iv->rxOffset = (iv->ivGen == IV_HM) ? 3 : 2;
             #endif
 
             cb(iv);

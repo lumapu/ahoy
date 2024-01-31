@@ -87,7 +87,7 @@ class Communication : public CommQueue<> {
                     mIsRetransmit = false;
                     if(NULL == q->iv->radio)
                         cmdDone(false); // can't communicate while radio is not defined!
-                    mFirstTry = INV_RADIO_TYPE_NRF == q->iv->ivRadioType && q->iv->isAvailable();
+                    mFirstTry = (INV_RADIO_TYPE_NRF == q->iv->ivRadioType) && (q->iv->isAvailable());
                     q->iv->mCmd = q->cmd;
                     q->iv->mIsSingleframeReq = false;
                     mFramesExpected = getFramesExpected(q); // function to get expected frame count.
@@ -116,7 +116,7 @@ class Communication : public CommQueue<> {
                     //q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
                     if(!mIsRetransmit && (q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
-                        incrAttempt(q->cmd == AlarmData? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
+                        incrAttempt((q->cmd == AlarmData)? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
 
                     mIsRetransmit    = false;
                     setAttempt();
@@ -184,7 +184,7 @@ class Communication : public CommQueue<> {
                             if (p->packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                 if(parseFrame(p)) {
                                     q->iv->curFrmCnt++;
-                                    if(!mIsRetransmit && (p->packet[9] == 0x02 || p->packet[9] == 0x82) && p->millis < LIMIT_FAST_IV)
+                                    if(!mIsRetransmit && ((p->packet[9] == 0x02) || (p->packet[9] == 0x82)) && (p->millis < LIMIT_FAST_IV))
                                         mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV);
                                 }
                             } else if (p->packet[0] == (TX_REQ_DEVCONTROL + ALL_FRAMES)) { // response from dev control command
@@ -257,13 +257,13 @@ class Communication : public CommQueue<> {
                             return;
                         }
                         //count missing frames
-                        if(!q->iv->mIsSingleframeReq && q->iv->ivRadioType == INV_RADIO_TYPE_NRF) {  // already checked?
+                        if(!q->iv->mIsSingleframeReq && (q->iv->ivRadioType == INV_RADIO_TYPE_NRF)) {  // already checked?
                             uint8_t missedFrames = 0;
                             for(uint8_t i = 0; i < q->iv->radio->mFramesExpected; i++) {
                                 if(mLocalBuf[i].len == 0)
                                     missedFrames++;
                             }
-                            if(missedFrames > 3 || (q->cmd == RealTimeRunData_Debug && missedFrames > 1) || (missedFrames > 1 && missedFrames + 2 > q->attempts)) {
+                            if(missedFrames > 3 || (q->cmd == RealTimeRunData_Debug && missedFrames > 1) || ((missedFrames > 1) && ((missedFrames + 2) > q->attempts))) {
                                 if(*mSerialDebug) {
                                     DPRINT_IVID(DBG_INFO, q->iv->id);
                                     DBGPRINT(String(missedFrames));
@@ -435,7 +435,7 @@ class Communication : public CommQueue<> {
         }
 
         inline bool parseMiFrame(packet_t *p, const queue_s *q) {
-            if(!mIsRetransmit && p->packet[9] == 0x00 && p->millis < LIMIT_FAST_IV_MI) //first frame is fast?
+            if((!mIsRetransmit && p->packet[9] == 0x00) && (p->millis < LIMIT_FAST_IV_MI)) //first frame is fast?
                 mHeu.setIvRetriesGood(q->iv,p->millis < LIMIT_VERYFAST_IV_MI);
             if ((p->packet[0] == MI_REQ_CH1 + ALL_FRAMES)
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)

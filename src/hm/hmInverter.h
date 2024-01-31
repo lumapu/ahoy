@@ -464,7 +464,7 @@ class Inverter {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
                     alarmMesIndex = 0;
-                    if(ivRadioType == INV_RADIO_TYPE_NRF) {
+                    if(INV_RADIO_TYPE_NRF == ivRadioType) {
                         heuristics.clear();
                         #ifdef DYNAMIC_OFFSET
                         rxOffset = ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
