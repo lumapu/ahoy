@@ -112,16 +112,16 @@ class HmRadio : public Radio {
 
                 if (mRadioWaitTime.isTimeout()) { // timeout reached!
                     mNRFisInRX = false;
+                    rx_ready = false;
                     return false;
                 }
 
                 // otherwise switch to next RX channel
                 mTimeslotStart = millis();
-                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME+DURATION_ONEFRAME)))
+                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME))) //(DURATION_TXFRAME+DURATION_ONEFRAME)))
                     mNRFloopChannels = true;
 
                 mRxPendular = !mRxPendular;
-                //innerLoopTimeout = (mRxPendular ? 1 : 2)*DURATION_LISTEN_MIN;
                 innerLoopTimeout = DURATION_LISTEN_MIN;
 
                 if(mNRFloopChannels)
@@ -152,20 +152,28 @@ class HmRadio : public Radio {
                     if(tx_ok)
                         mLastIv->mAckCount++;
 
+                    //#ifdef DYNAMIC_OFFSET
+                    mRxChIdx = (mTxChIdx + mLastIv->rxOffset) % RF_CHANNELS;
+                    /*#else
                     mRxChIdx = (mTxChIdx + 2) % RF_CHANNELS;
+                    #endif*/
                     mNrf24->setChannel(mRfChLst[mRxChIdx]);
                     mNrf24->startListening();
                     mTimeslotStart = millis();
-                    tempRxChIdx = mRxChIdx;
+                    tempRxChIdx = mRxChIdx;  // might be better to start off with one channel less?
                     mRxPendular = false;
                     mNRFloopChannels = (mLastIv->ivGen == IV_MI);
 
-                    innerLoopTimeout = DURATION_TXFRAME;
+                    //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_TXFRAME : DURATION_ONEFRAME;
+                    //innerLoopTimeout = mLastIv->ivGen != IV_MI ? DURATION_LISTEN_MIN : 4;
+                    //innerLoopTimeout = (mLastIv->mIsSingleframeReq || mLastIv->ivGen == IV_MI) ? DURATION_LISTEN_MIN : DURATION_TXFRAME;
+                    innerLoopTimeout = DURATION_LISTEN_MIN;
                 }
 
                 if(rx_ready) {
-                    if (getReceived()) { // check what we got, returns true for last package
+                    if (getReceived()) { // check what we got, returns true for last package or success for single frame request
                         mNRFisInRX = false;
+                        rx_ready = false;
                         mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
                         mNrf24->stopListening();
                         return false;
@@ -173,7 +181,6 @@ class HmRadio : public Radio {
                         innerLoopTimeout = DURATION_LISTEN_MIN;
                         mTimeslotStart = millis();
                         if (!mNRFloopChannels) {
-                            //mRxPendular = true; // stay longer on the next rx channel
                             if (isRxInit) {
                                 isRxInit = false;
                                 tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
@@ -183,6 +190,8 @@ class HmRadio : public Radio {
                         }
                         return true;
                     }
+                    rx_ready = false; // reset
+                    return mNRFisInRX;
                 }
             }
 
@@ -292,6 +301,7 @@ class HmRadio : public Radio {
     private:
         inline bool getReceived(void) {
             bool isLastPackage = false;
+            bool isRetransmitAnswer = false;
             rx_ready = false; // reset for ACK case
 
             while(mNrf24->available()) {
@@ -314,14 +324,31 @@ class HmRadio : public Radio {
                             mLastIv->mGotFragment = true;
                             mBufCtrl.push(p);
 
-                            if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
+                            if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
                                 isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                                if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
+                                    isRetransmitAnswer = true;
+                                if(isLastPackage)
+                                    setExpectedFrames(p.packet[9] - ALL_FRAMES);
+                                #ifdef DYNAMIC_OFFSET
+                                if(p.packet[9] == 1 && p.millis < DURATION_ONEFRAME)
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + 1) % RF_CHANNELS;
+                                else if(mNRFloopChannels && mLastIv->rxOffset > RF_CHANNELS) { // unsure setting?
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx + (isLastPackage ? mFramesExpected : p.packet[9]));  // make clear it's not sure, start with one more offset
+                                    mNRFloopChannels = false;
+                                }
+                                #endif
+                            }
 
                             if(IV_MI == mLastIv->ivGen) {
                                 if (p.packet[0] == (0x0f + ALL_FRAMES))                  // response from MI get information command
                                     isLastPackage = (p.packet[9] > 0x10);                // > 0x10 indicates last packet received
                                 else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
                                     isLastPackage = true;                                // response from dev control command
+                                #ifdef DYNAMIC_OFFSET
+                                if(p.packet[9] == 0x00 && p.millis < DURATION_ONEFRAME)
+                                    mLastIv->rxOffset = (RF_CHANNELS + mTxChIdx - tempRxChIdx - 1) % RF_CHANNELS;
+                                #endif
                             }
                             rx_ready = true; //reset in case we first read messages from other inverter or ACK zero payloads
                         }
@@ -331,7 +358,7 @@ class HmRadio : public Radio {
             }
             if(isLastPackage)
                 mLastIv->mGotLastMsg = true;
-            return isLastPackage;
+            return isLastPackage || isRetransmitAnswer;
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
@@ -352,8 +379,19 @@ class HmRadio : public Radio {
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
+                if(mTxChIdx == 0)
+                    DBGPRINT("0");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
+                DBGPRINT(F(", "));
+                DBGPRINT(String(mTxRetriesNext));
+                //DBGPRINT(F(" retries | "));
+                //#ifdef DYNAMIC_OFFSET
+                DBGPRINT(F(" ret., rx offset: "));
+                DBGPRINT(String(iv->rxOffset));
                 DBGPRINT(F(" | "));
+                /*#else
+                DBGPRINT(F(" ret. | "));
+                #endif*/
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
                         ah::dumpBuf(mTxBuf, len, 1, 4);
@@ -370,6 +408,10 @@ class HmRadio : public Radio {
 
             mNrf24->stopListening();
             mNrf24->flush_rx();
+            if(!isRetransmit && mTxRetries != mTxRetriesNext) {
+                mNrf24->setRetries(3, mTxRetriesNext);
+                mTxRetries = mTxRetriesNext;
+            }
             mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
             mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
@@ -412,6 +454,7 @@ class HmRadio : public Radio {
         bool mRxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
         //uint8_t mTxSetupTime = 0;
+        uint8_t mTxRetries = 15;                            // memorize last setting for mNrf24->setRetries(3, 15);
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

@@ -79,6 +79,8 @@ class Radio {
         std::queue<packet_t> mBufCtrl;
         uint8_t mIrqOk = IRQ_UNKNOWN;
         TimeMonitor mRadioWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
+        uint8_t mTxRetriesNext = 15;                        // let heuristics tell us the next reties count (for nRF type radios only)
+        uint8_t mFramesExpected = 0x0c;
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;
@@ -128,11 +130,11 @@ class Radio {
         }
 
 
+
         uint32_t mDtuSn;
         volatile bool mIrqRcvd;
         bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
-        uint8_t mFramesExpected = 0x0c;
 };
 
 #endif /*__RADIO_H__*/

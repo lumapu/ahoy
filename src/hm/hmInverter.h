@@ -133,6 +133,7 @@ class Inverter {
         bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
+        uint8_t       rxOffset;          // holds the default channel offset between tx and rx channel (nRF only)
         int8_t        rssi;              // RSSI
         uint16_t      alarmCnt;          // counts the total number of occurred alarms
         uint16_t      alarmLastId;       // lastId which was received
@@ -193,27 +194,33 @@ class Inverter {
                     cb(RealTimeRunData_Debug, false);    // get live data
                 else {
                     if(INV_RADIO_TYPE_NRF == ivRadioType) {
-                        // get live data until quility reaches maximum
+                        // get live data until quality reaches maximum
                         if(!heuristics.isTxAtMax()) {
                             cb(RealTimeRunData_Debug, false);    // get live data
                             return;
                         }
                     }
 
-                    if(actPowerLimit == 0xffff)
+                    if(actPowerLimit == 0xffff) {
                         cb(SystemConfigPara, false);         // power limit info
-                    else if(InitDataState != devControlCmd) {
+                        cb(RealTimeRunData_Debug, false);
+                    } else if(InitDataState != devControlCmd) {
                         cb(devControlCmd, false);            // custom command which was received by API
                         devControlCmd = InitDataState;
                         mGetLossInterval = 1;
-                    } else if(0 == getFwVersion())
+                    } else if(0 == getFwVersion()) {
                         cb(InverterDevInform_All, false);    // get firmware version
-                    else if(0 == getHwVersion())
+                        cb(RealTimeRunData_Debug, false);    // get live data
+                    }
+                    else if(0 == getHwVersion()) {
                         cb(InverterDevInform_Simple, false); // get hardware version
-                    else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
+                        cb(RealTimeRunData_Debug, false);    // get live data
+                    } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
                         cb(AlarmData, false);                // get last alarms
-                    else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
+                        cb(RealTimeRunData_Debug, false);    // get live data
+                    } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                         cb(GridOnProFilePara, false);
+                        cb(RealTimeRunData_Debug, false);    // get live data
                     } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                         mGetLossInterval = 1;
                         cb(RealTimeRunData_Debug, false); // get live data
@@ -222,21 +229,21 @@ class Inverter {
                         cb(RealTimeRunData_Debug, false); // get live data
                 }
             } else { // MI
-                if(0 == getFwVersion()) {
-                    mIvRxCnt +=2;
-                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
-                } else {
-                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
-                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
+                mGetLossInterval++;
+                if (type != INV_TYPE_4CH)
+                    mIvRxCnt++;  // statistics workaround...
+                if(isAvailable()) {
+                    if(0 == getFwVersion()) {
                         mIvRxCnt +=2;
-                    } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
-                        cb(0x10, false); // legacy GPF command
-                    else {
-                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
-                        mGetLossInterval++;
-                        if (type != INV_TYPE_4CH)
-                            mIvRxCnt++;  // statistics workaround...
+                        cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
+                    } else {
+                        record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
+                            cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                            mIvRxCnt +=2;
+                        } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                            cb(0x10, false); // legacy GPF command
                     }
                 }
             }
@@ -457,7 +464,12 @@ class Inverter {
                     status = InverterStatus::OFF;
                     actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
                     alarmMesIndex = 0;
-                    heuristics.clear();
+                    if(ivRadioType == INV_RADIO_TYPE_NRF) {
+                        heuristics.clear();
+                        #ifdef DYNAMIC_OFFSET
+                        rxOffset = ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
+                        #endif
+                    }
                 }
                 else
                     status = InverterStatus::WAS_ON;
