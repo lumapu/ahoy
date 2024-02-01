@@ -68,7 +68,7 @@ class RestApi {
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
-                setCtrl(obj, dummy);
+                setCtrl(obj, dummy, "api");
             else if(obj[F("path")] == "setup")
                 setSetup(obj, dummy);
         }
@@ -168,7 +168,7 @@ class RestApi {
             if(!err) {
                 String path = request->url().substring(5);
                 if(path == "ctrl")
-                    root[F("success")] = setCtrl(obj, root);
+                    root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
                 else if(path == "setup")
                     root[F("success")] = setSetup(obj, root);
                 else {
@@ -263,7 +263,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
-            obj[F("menu_prot")]   = mApp->getProtection(request);
+            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str());
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
@@ -847,7 +847,7 @@ class RestApi {
         }
 
 
-        bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
+        bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
             if(NULL == iv) {
@@ -855,6 +855,13 @@ class RestApi {
                 return false;
             }
             jsonOut[F("id")] = jsonIn[F("id")];
+
+            if(strncmp("api", clientIP, 3) != 0) {
+                if(mApp->isProtected(clientIP)) {
+                    jsonOut[F("error")] = F(INV_IS_PROTECTED);
+                    return false;
+                }
+            }
 
             if(F("power") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);

@@ -30,6 +30,7 @@
 #include "utils/scheduler.h"
 #include "utils/syslog.h"
 #include "web/RestApi.h"
+#include "web/Protection.h"
 #if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
 #endif /*ENABLE_HISTORY*/
@@ -246,8 +247,24 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
-        bool getProtection(AsyncWebServerRequest *request) {
-            return mWeb.isProtected(request);
+        void lock(void) override {
+            mProtection->lock();
+        }
+
+        void unlock(const char *clientIp) override {
+            mProtection->unlock(clientIp);
+        }
+
+        void resetLockTimeout(void) override {
+            mProtection->resetLockTimeout();
+        }
+
+        bool isProtected(void) const override {
+            return mProtection->isProtected();
+        }
+
+        bool isProtected(const char *clientIp) const override {
+            return mProtection->isProtected(clientIp);
         }
 
         bool getNrfEnabled(void) {
@@ -387,6 +404,7 @@ class app : public IApp, public ah::Scheduler {
         #endif /* defined(ETHERNET) */
         WebType mWeb;
         RestApiType mApi;
+        Protection *mProtection;
         #ifdef ENABLE_SYSLOG
         DbgSyslog mDbgSyslog;
         #endif

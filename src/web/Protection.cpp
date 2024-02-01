@@ -3,7 +3,5 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
-#if defined(ESP32)
-#include "spiPatcher.h"
-SpiPatcher *SpiPatcher::mInstance = nullptr;
-#endif
+#include "Protection.h"
+Protection *Protection::mInstance = nullptr;

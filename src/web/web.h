@@ -47,9 +47,6 @@ template <class HMSYSTEM>
 class Web {
    public:
         Web(void) : mWeb(80), mEvts("/events") {
-            mProtected     = true;
-            mLogoutTimeout = 0;
-
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
             mSerialBufFill     = 0;
             mSerialAddTime     = true;
@@ -110,16 +107,6 @@ class Web {
         }
 
         void tickSecond() {
-            if (0 != mLogoutTimeout) {
-                mLogoutTimeout -= 1;
-                if (0 == mLogoutTimeout) {
-                    if (strlen(mConfig->sys.adminPwd) > 0)
-                        mProtected = true;
-                }
-
-                DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
-            }
-
             if (mSerialClientConnnected) {
                 if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
@@ -131,27 +118,6 @@ class Web {
 
         AsyncWebServer *getWebSrvPtr(void) {
             return &mWeb;
-        }
-
-        void setProtection(bool protect) {
-            mProtected = protect;
-        }
-
-        bool isProtected(AsyncWebServerRequest *request) {
-            bool prot;
-            prot = mProtected;
-            if(!prot) {
-                if(strlen(mConfig->sys.adminPwd) > 0) {
-                    uint8_t ip[4];
-                    ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
-                    for(uint8_t i = 0; i < 4; i++) {
-                        if(mLoginIp[i] != ip[i])
-                            prot = true;
-                    }
-                }
-            }
-
-            return prot;
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -264,7 +230,7 @@ class Web {
         }
 
         void checkProtection(AsyncWebServerRequest *request) {
-            if(isProtected(request)) {
+            if(mApp->isProtected(request->client()->remoteIP().toString().c_str())) {
                 checkRedirect(request);
                 return;
             }
@@ -351,8 +317,7 @@ class Web {
 
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
-                    mProtected = false;
-                    ah::ip2Arr(mLoginIp, request->client()->remoteIP().toString().c_str());
+                    mApp->unlock(request->client()->remoteIP().toString().c_str());
                     request->redirect("/");
                 }
             }
@@ -366,8 +331,7 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
             checkProtection(request);
-
-            mProtected = true;
+            mApp->lock();
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -390,7 +354,6 @@ class Web {
 
         void onCss(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onCss"));
-            mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v")) {
@@ -424,6 +387,7 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico, favicon_ico_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
+            mApp->resetLockTimeout();
         }
 
         void showNotFound(AsyncWebServerRequest *request) {
@@ -495,7 +459,7 @@ class Web {
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
-                mProtected = (strlen(mConfig->sys.adminPwd) > 0);
+                mApp->lock();
             }
             mConfig->sys.protectionMask = 0x0000;
             for (uint8_t i = 0; i < 7; i++) {
@@ -945,9 +909,6 @@ class Web {
 #endif
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
-        bool mProtected;
-        uint32_t mLogoutTimeout;
-        uint8_t mLoginIp[4];
         IApp *mApp;
         HMSYSTEM *mSys;
 

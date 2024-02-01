@@ -97,9 +97,8 @@ void app::setup() {
     esp_task_wdt_reset();
 
     mWeb.setup(this, &mSys, mConfig);
-    mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
-
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
+    mProtection = Protection::getInstance(mConfig->sys.adminPwd);
 
     #ifdef ENABLE_SYSLOG
     mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
@@ -182,6 +181,8 @@ void app::onNetwork(bool gotIp) {
 void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
+    everySec([this]() { mProtection->tickSecond(); }, "prot");
+
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)

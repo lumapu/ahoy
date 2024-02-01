@@ -37,6 +37,12 @@
 #endif
 
 #ifdef LANG_DE
+    #define INV_IS_PROTECTED "nicht angemeldet, Kommando nicht möglich!"
+#else /*LANG_EN*/
+    #define INV_IS_PROTECTED "not logged in, command not possible!"
+#endif
+
+#ifdef LANG_DE
     #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "Leistungsbegrenzung / Ansteuerung aktuell nicht möglich"
 #else /*LANG_EN*/
     #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "inverter does not accept dev control request at this moment"
