@@ -33,13 +33,13 @@ jobs:
           - opendtufusion-ethernet
     steps:
     - uses: actions/checkout@v4
-    - uses: benjlevesque/short-sha@v2.1
+    - uses: benjlevesque/short-sha@v2.2
       id: short-sha
       with:
         length: 7
 
     - name: Cache Pip
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -47,7 +47,7 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
@@ -93,13 +93,13 @@ jobs:
           - opendtufusion-ethernet-de
     steps:
     - uses: actions/checkout@v4
-    - uses: benjlevesque/short-sha@v2.1
+    - uses: benjlevesque/short-sha@v2.2
       id: short-sha
       with:
         length: 7
 
     - name: Cache Pip
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -107,7 +107,7 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}

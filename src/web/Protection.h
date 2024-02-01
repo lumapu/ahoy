@@ -51,6 +51,7 @@ class Protection {
         }
 
         void unlock(const char *clientIp) {
+            mLogoutTimeout = LOGOUT_TIMEOUT;
             mProtected = false;
             ah::ip2Arr(static_cast<uint8_t*>(mLoginIp.data()), clientIp);
         }
@@ -70,14 +71,16 @@ class Protection {
             if(mPwd[0] == '\0')
                 return false;
 
-            uint8_t ip[4];
-            ah::ip2Arr(ip, clientIp);
+            std::array<uint8_t, 4> ip;
+            ah::ip2Arr(static_cast<uint8_t*>(ip.data()), clientIp);
             for(uint8_t i = 0; i < 4; i++) {
-                if(mLoginIp[i] != ip[i])
+                if(mLoginIp[i] != ip[i]) {
+                    DPRINTLN(DBG_INFO, "ip nicht gleich!");
                     return true;
+                }
             }
 
-            return true;
+            return false;
         }
 
     protected:
