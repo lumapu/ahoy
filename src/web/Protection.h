@@ -74,10 +74,8 @@ class Protection {
             std::array<uint8_t, 4> ip;
             ah::ip2Arr(static_cast<uint8_t*>(ip.data()), clientIp);
             for(uint8_t i = 0; i < 4; i++) {
-                if(mLoginIp[i] != ip[i]) {
-                    DPRINTLN(DBG_INFO, "ip nicht gleich!");
+                if(mLoginIp[i] != ip[i])
                     return true;
-                }
             }
 
             return false;
