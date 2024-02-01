@@ -681,7 +681,6 @@ class Communication : public CommQueue<> {
                 for (uint8_t i = 0; i < 5; i++) {
                     q->iv->setValue(i, rec, (float) ((p->packet[(12+2*i)] << 8) + p->packet[(13+2*i)])/1);
                 }
-                q->iv->isConnected = true;
                 if(*mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, q->iv->id);
                     DBGPRINT(F("HW_VER is "));

@@ -12,7 +12,7 @@ jobs:
     if: github.repository == 'lumapu/ahoy' && github.ref_name == 'development03'
     continue-on-error: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
   build-en:
     needs: check
@@ -32,7 +32,7 @@ jobs:
           - opendtufusion
           - opendtufusion-ethernet
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v2.1
       id: short-sha
       with:
@@ -53,7 +53,7 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
@@ -92,7 +92,7 @@ jobs:
           - opendtufusion-de
           - opendtufusion-ethernet-de
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v2.1
       id: short-sha
       with:
@@ -113,7 +113,7 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
@@ -138,7 +138,7 @@ jobs:
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     #- name: Copy boot_app0.bin
     #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 

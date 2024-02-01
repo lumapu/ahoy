@@ -130,7 +130,6 @@ class Inverter {
         record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
         record_t<REC_TYP> recordConfig;  // structure for system config values
         record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
         InverterStatus status;           // indicates the current inverter status
         std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
         uint8_t       rxOffset;          // holds the default channel offset between tx and rx channel (nRF only)
@@ -166,7 +165,6 @@ class Inverter {
             mDevControlRequest = false;
             devControlCmd      = InitDataState;
             alarmMesIndex      = 0;
-            isConnected        = false;
             status             = InverterStatus::OFF;
             alarmCnt           = 0;
             alarmLastId        = 0;
@@ -186,7 +184,10 @@ class Inverter {
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
             if(mDevControlRequest) {
-                cb(devControlCmd, true);
+                if(InverterStatus::PRODUCING == status)
+                    cb(devControlCmd, true);
+                else
+                    DPRINTLN(DBG_WARN, F("Inverter is not avail"));
                 mDevControlRequest = false;
             } else if (IV_MI != ivGen) { // HM / HMS / HMT
                 mGetLossInterval++;
@@ -262,8 +263,7 @@ class Inverter {
                         break;
                 }
                 return (pos >= rec->length) ? 0xff : pos;
-            }
-            else
+            } else
                 return 0xff;
         }
 
@@ -290,18 +290,18 @@ class Inverter {
         }
 
         bool setDevControlRequest(uint8_t cmd) {
-            if(isConnected) {
+            if(InverterStatus::PRODUCING == status) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
                 //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
             }
-            return isConnected;
+            return (InverterStatus::PRODUCING == status);
         }
 
         bool setDevCommand(uint8_t cmd) {
-            if(isConnected)
+            if(InverterStatus::PRODUCING == status)
                 devControlCmd = cmd;
-            return isConnected;
+            return (InverterStatus::PRODUCING == status);
         }
 
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
@@ -318,6 +318,7 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
+
                         if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
                             // temperature, Qvar, and power factor are a signed values
                             rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
@@ -350,12 +351,10 @@ class Inverter {
                             DBGPRINTLN(String(alarmMesIndex));
                         }
                     }
-                }
-                else {
+                } else {
                     if (rec->assign == InfoAssignment) {
                         DPRINTLN(DBG_DEBUG, "add info");
                         // eg. fw version ...
-                        isConnected = true;
                     } else if (rec->assign == SimpleInfoAssignment) {
                         DPRINTLN(DBG_DEBUG, "add simple info");
                         // eg. hw version ...
@@ -371,8 +370,7 @@ class Inverter {
                     } else
                         DPRINTLN(DBG_WARN, F("add with unknown assignment"));
                 }
-            }
-            else
+            } else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
 
             // update status state-machine
@@ -396,12 +394,12 @@ class Inverter {
                     if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
                         break;
                 }
+
                 if(pos >= rec->length)
                     return 0;
 
                 return rec->record[pos];
-            }
-            else
+            } else
                 return 0;
         }
 
@@ -477,6 +475,7 @@ class Inverter {
                 else if(InverterStatus::PRODUCING == status)
                     status = InverterStatus::WAS_PRODUCING;
             }
+
             return producing;
         }
 

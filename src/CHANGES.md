@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.70 - 2024-02-01
+* prevent sending commands to inverter which isn't active #1387
+
 ## 0.8.69 - 2024-01-31
 * merge PR: Dynamic retries, pendular first rx chan #1394
 
