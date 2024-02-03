@@ -289,11 +289,6 @@
                     "de": "Intervall"
                 },
                 {
-                    "token": "INV_GAP",
-                    "en": "Communication Gap",
-                    "de": "Kommunikationsl&uuml;cke"
-                },
-                {
                     "token": "INV_RESET_MIDNIGHT",
                     "en": "Reset values and YieldDay at midnight",
                     "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
@@ -662,11 +657,6 @@
                     "token": "INV_PAUSE_DURING_NIGHT",
                     "en": "Pause communication during night (lat. and lon. need to be set)",
                     "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"
-                },
-                {
-                    "token": "INV_INCLUDE_MQTT_SUM",
-                    "en": "Include inverter to sum of total (should be checked by default, MqTT only)",
-                    "de": "Wechselrichter in Liste der aufzuaddierenden Wechselrichter aufnehmen (nur MqTT)"
                 },
                 {
                     "token": "BTN_SAVE",

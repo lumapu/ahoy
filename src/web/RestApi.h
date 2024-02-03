@@ -216,6 +216,9 @@ class RestApi {
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
 
+            // save settings to have latest firmware changes in export
+            mApp->saveSettings(false);
+
             File fp = LittleFS.open("/settings.json", "r");
             if(!fp) {
                 DPRINTLN(DBG_ERROR, F("failed to load settings"));
@@ -459,7 +462,6 @@ class RestApi {
                 obj2[F("channels")] = iv->channels;
                 obj2[F("freq")]     = iv->config->frequency;
                 obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
-                obj2[F("add2total")] = (bool)iv->config->add2Total;
                 if(0xff == iv->config->powerLevel) {
                     if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
                         obj2[F("pa")] = 30; // 20dBm
@@ -483,7 +485,6 @@ class RestApi {
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
             obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
-            obj[F("gap")]               = mConfig->inst.gapMs;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -936,7 +937,6 @@ class RestApi {
                 iv->config->frequency   = jsonIn[F("freq")];
                 iv->config->powerLevel  = jsonIn[F("pa")];
                 iv->config->disNightCom = jsonIn[F("disnightcom")];
-                iv->config->add2Total   = jsonIn[F("add2total")];
                 mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F(UNKNOWN_CMD);

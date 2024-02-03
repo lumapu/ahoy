@@ -149,23 +149,21 @@ class PubMqttIvData {
                     // calculate total values for RealTimeRunData_Debug
                     if (CH0 == rec->assign[mPos].ch) {
                         if(mIv->getStatus() != InverterStatus::OFF) {
-                            if(mIv->config->add2Total) {
-                                mTotalFound = true;
-                                switch (rec->assign[mPos].fieldId) {
-                                    case FLD_PAC:
-                                        mTotal[0] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YT:
-                                        mTotal[1] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YD: {
-                                        mTotal[2] += mIv->getValue(mPos, rec);
-                                        break;
-                                    }
-                                    case FLD_PDC:
-                                        mTotal[3] += mIv->getValue(mPos, rec);
-                                        break;
+                            mTotalFound = true;
+                            switch (rec->assign[mPos].fieldId) {
+                                case FLD_PAC:
+                                    mTotal[0] += mIv->getValue(mPos, rec);
+                                    break;
+                                case FLD_YT:
+                                    mTotal[1] += mIv->getValue(mPos, rec);
+                                    break;
+                                case FLD_YD: {
+                                    mTotal[2] += mIv->getValue(mPos, rec);
+                                    break;
                                 }
+                                case FLD_PDC:
+                                    mTotal[3] += mIv->getValue(mPos, rec);
+                                    break;
                             }
                         } else
                             mAllTotalFound = false;

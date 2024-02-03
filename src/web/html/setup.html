@@ -150,10 +150,6 @@
                                 <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8 my-2">{#INV_GAP} [ms]</div>
-                                <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
-                            </div>
-                            <div class="row mb-3">
                                 <div class="col-8 mb-2">{#INV_RESET_MIDNIGHT}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                             </div>
@@ -630,7 +626,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"], ["invGap", "gap"]])
+                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -715,7 +711,6 @@
                 add.ch_yield_cor = [];
                 add.freq = 12;
                 add.pa = 30;
-                add.add2total = true;
 
                 var e = document.getElementById("inverter");
                 e.innerHTML = ""; // remove all childs
@@ -746,10 +741,8 @@
 
                 var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
                 var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
-                var cbAddTotal = ml("input", {name: "add2total", type: "checkbox"}, null);
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
-                cbAddTotal.checked = (obj.add2total);
 
                 var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
                 var html = ml("div", {}, [
@@ -798,10 +791,6 @@
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-10"}, "{#INV_PAUSE_DURING_NIGHT}"),
                             ml("div", {class: "col-2"}, cbDisNightCom)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-10"}, "{#INV_INCLUDE_MQTT_SUM}"),
-                            ml("div", {class: "col-2"}, cbAddTotal)
                         ])
                     ]),
                     ml("div", {class: "row mt-5"}, [
@@ -867,7 +856,6 @@
                         o.pa   = document.getElementsByName("cmtpa")[0].value;
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
-                    o.add2total = document.getElementsByName("add2total")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
 

@@ -147,7 +147,6 @@ typedef struct {
     uint8_t frequency;
     uint8_t powerLevel;
     bool disNightCom;  // disable night communication
-    bool add2Total; // add values to total values - useful if one inverter is on battery to turn off
 } cfgIv_t;
 
 typedef struct {
@@ -161,7 +160,6 @@ typedef struct {
     bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
-    uint16_t gapMs;
     bool readGrid;
 } cfgInst_t;
 
@@ -452,14 +450,12 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 1;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
                 mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
                 mCfg.inst.iv[i].disNightCom = false;
-                mCfg.inst.iv[i].add2Total   = true;
             }
 
             mCfg.led.led[0]      = DEF_LED0;
@@ -491,20 +487,15 @@ class settings {
                 }
                 if(mCfg.configVersion < 2) {
                     mCfg.inst.iv[i].disNightCom = false;
-                    mCfg.inst.iv[i].add2Total   = true;
                 }
                 if(mCfg.configVersion < 3) {
                     mCfg.serial.printWholeTrace = false;
-                }
-                if(mCfg.configVersion < 4) {
-                    mCfg.inst.gapMs = 500;
                 }
                 if(mCfg.configVersion < 5) {
                     mCfg.inst.sendInterval = SEND_INTERVAL;
                     mCfg.serial.printWholeTrace = false;
                 }
                 if(mCfg.configVersion < 6) {
-                    mCfg.inst.gapMs    = 500;
                     mCfg.inst.readGrid = true;
                 }
                 if(mCfg.configVersion < 7) {
@@ -512,9 +503,6 @@ class settings {
                 }
                 if(mCfg.configVersion < 8) {
                     mCfg.sun.offsetSecEvening = mCfg.sun.offsetSecMorning;
-                }
-                if(mCfg.configVersion < 9) {
-                    mCfg.inst.gapMs = 1;
                 }
                 if(mCfg.configVersion < 10) {
                     mCfg.sys.region   = 0; // Europe
@@ -768,7 +756,6 @@ class settings {
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
                 obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
-                obj[F("gap")]            = mCfg.inst.gapMs;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
@@ -780,7 +767,6 @@ class settings {
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
-                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
@@ -809,7 +795,6 @@ class settings {
                 obj[F("freq")] = cfg->frequency;
                 obj[F("pa")]   = cfg->powerLevel;
                 obj[F("dis")]  = cfg->disNightCom;
-                obj[F("add")]  = cfg->add2Total;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -822,7 +807,6 @@ class settings {
                 getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
                 getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
                 getVal<bool>(obj, F("dis"), &cfg->disNightCom);
-                getVal<bool>(obj, F("add"), &cfg->add2Total);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();

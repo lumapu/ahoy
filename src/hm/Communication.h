@@ -20,12 +20,11 @@ typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
     public:
-        void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint16_t *inverterGap) {
+        void setup(uint32_t *timestamp, bool *serialDebug, bool *privacyMode, bool *printWholeTrace) {
             mTimestamp = timestamp;
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
-            mInverterGap = inverterGap;
         }
 
         void addImportant(Inverter<> *iv, uint8_t cmd) {
@@ -524,10 +523,6 @@ class Communication : public CommQueue<> {
                 return;
             }
 
-            /*DPRINT_IVID(DBG_INFO, q->iv->id);
-            DBGPRINT(F("procPyld: cmd:  0x"));
-            DBGHEXLN(q->cmd);*/
-
             memset(mPayload, 0, MAX_BUFFER);
             int8_t rssi = -127;
             uint8_t len = 0;
@@ -623,7 +618,7 @@ class Communication : public CommQueue<> {
                 q->iv->radioStatistics.rxFail++; // got no complete payload
             else
                 q->iv->radioStatistics.rxFailNoAnser++; // got nothing
-            mWaitTime.startTimeMonitor(*mInverterGap);
+            mWaitTime.startTimeMonitor(1); // maybe remove, side effects unknown
 
             bool keep = false;
             if(q->isDevControl)
@@ -1025,7 +1020,6 @@ class Communication : public CommQueue<> {
         States mState = States::RESET;
         uint32_t *mTimestamp;
         bool *mPrivacyMode, *mSerialDebug, *mPrintWholeTrace;
-        uint16_t *mInverterGap;
         TimeMonitor mWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
         std::array<frame_t, MAX_PAYLOAD_ENTRIES> mLocalBuf;
         bool mFirstTry = false;      // see, if we should do a second try

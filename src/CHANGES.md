@@ -1,5 +1,13 @@
 # Development Changes
 
+## 0.8.71 - 2024-02-03
+* fix heuristics reset
+* fix CMT missing frames problem
+* removed inverter gap setting
+* removed add to total (MqTT) inverter setting
+* fixed sending commands to inverters which are soft turned off
+* save settings before they are exported #1395
+
 ## 0.8.70 - 2024-02-01
 * prevent sending commands to inverter which isn't active #1387
 * protect commands from popup in `/live` if password is set #1199

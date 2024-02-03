@@ -488,7 +488,6 @@ class Web {
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
-            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout

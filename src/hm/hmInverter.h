@@ -184,7 +184,7 @@ class Inverter {
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
             if(mDevControlRequest) {
-                if(InverterStatus::PRODUCING == status)
+                if(InverterStatus::OFF != status)
                     cb(devControlCmd, true);
                 else
                     DPRINTLN(DBG_WARN, F("Inverter is not avail"));
@@ -447,17 +447,14 @@ class Inverter {
                     status = InverterStatus::STARTING;
             } else {
                 if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
-                    status = InverterStatus::OFF;
-                    actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
-                    alarmMesIndex = 0;
-                    if(INV_RADIO_TYPE_NRF == ivRadioType) {
-                        heuristics.clear();
-                        #ifdef DYNAMIC_OFFSET
-                        rxOffset = ivGen == IV_HM ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
-                        #endif
+                    if(status != InverterStatus::OFF) {
+                        status = InverterStatus::OFF;
+                        actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                        alarmMesIndex = 0;
+                        if(INV_RADIO_TYPE_NRF == ivRadioType)
+                            heuristics.clear();
                     }
-                }
-                else
+                } else
                     status = InverterStatus::WAS_ON;
             }
 
