@@ -9,6 +9,7 @@
 * save settings before they are exported #1395
 * fix autologin bug if no password is set
 * translated `/serial`
+* removed "yield day" history
 
 ## 0.8.70 - 2024-02-01
 * prevent sending commands to inverter which isn't active #1387

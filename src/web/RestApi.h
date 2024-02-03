@@ -107,7 +107,6 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
             else if (path == "powerHistory")  getPowerHistory(request, root);
-            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -208,7 +207,6 @@ class RestApi {
             ep[F("live")]             = url + F("live");
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
@@ -831,24 +829,6 @@ class RestApi {
             obj[F("refresh")] = 86400;  // 1 day;
             #endif /*ENABLE_HISTORY*/
         }
-
-        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
-            getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = 86400;  // 1 day
-            uint16_t max = 0;
-            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);
-                obj[F("value")][fld] = value;
-                if (value > max)
-                    max = value;
-            }
-            obj[F("max")] = max;
-            #else
-            obj[F("refresh")] = 86400;  // 1 day
-            #endif /*ENABLE_HISTORY*/
-        }
-
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);

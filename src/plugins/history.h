@@ -52,8 +52,8 @@ class HistoryData {
 
             mCurPwr.reset();
             mCurPwr.refreshCycle = mConfig->inst.sendInterval;
-            mYieldDay.reset();
-            mYieldDay.refreshCycle = 60;
+            //mYieldDay.reset();
+            //mYieldDay.refreshCycle = 60;
         }
 
         void tickerSecond() {
@@ -80,7 +80,7 @@ class HistoryData {
                     mMaximumDay = roundf(maxPwr);
             }
 
-            if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
+            /*if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
                 if (*mTs > mApp->getSunset()) {
                     if ((!mDayStored) && (yldDay > 0)) {
                         addValue(&mYieldDay, roundf(yldDay));
@@ -88,11 +88,12 @@ class HistoryData {
                     }
                 } else if (*mTs > mApp->getSunrise())
                     mDayStored = false;
-            }
+            }*/
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {
-            storage_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
+            //storage_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
+            storage_t *s = &mCurPwr;
             uint16_t idx = (s->dispIdx + i) % HISTORY_DATA_ARR_LENGTH;
             return s->data[idx];
         }
@@ -119,7 +120,7 @@ class HistoryData {
         uint32_t *mTs;
 
         storage_t mCurPwr;
-        storage_t mYieldDay;
+        //storage_t mYieldDay;
         bool mDayStored = false;
         uint16_t mMaximumDay = 0;
 };
