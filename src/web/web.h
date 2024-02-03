@@ -387,7 +387,6 @@ class Web {
             AsyncWebServerResponse *response = request->beginResponse_P(200, favicon_type, favicon_ico, favicon_ico_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             request->send(response);
-            mApp->resetLockTimeout();
         }
 
         void showNotFound(AsyncWebServerRequest *request) {

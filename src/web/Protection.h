@@ -39,7 +39,7 @@ class Protection {
             // auto logout
             if(0 != mLogoutTimeout) {
                 if (0 == --mLogoutTimeout) {
-                    if(mPwd[0] == '\0')
+                    if(mPwd[0] != '\0')
                         mProtected = true;
                 }
             }

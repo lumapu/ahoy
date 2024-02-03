@@ -866,6 +866,36 @@
             ]
         },
         {
+            "name": "serial.html",
+            "list": [
+                {
+                    "token": "BTN_CLEAR",
+                    "en": "clear",
+                    "de": "l&ouuml;schen"
+                },
+                {
+                    "token": "BTN_AUTOSCROLL",
+                    "en": "autoscroll",
+                    "de": "automatisch scrollen"
+                },
+                {
+                    "token": "BTN_COPY",
+                    "en": "copy",
+                    "de": "kopieren"
+                },
+                {
+                    "token": "CONSOLE_ACTIVE",
+                    "en": "console active",
+                    "de": "Konsole aktiv"
+                },
+                {
+                    "token": "UPTIME",
+                    "en": "uptime",
+                    "de": "Laufzeit"
+                }
+            ]
+        },
+        {
             "name": "index.html",
             "list": [
                 {

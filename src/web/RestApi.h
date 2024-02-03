@@ -259,6 +259,8 @@ class RestApi {
         }
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
+            mApp->resetLockTimeout();
+
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]   = mApp->getUptime();
             obj[F("ts_now")]      = mApp->getTimestamp();
@@ -268,7 +270,7 @@ class RestApi {
             obj[F("env")]         = String(ENV_NAME);
             obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str());
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
-            obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
+            obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
             obj[F("cst_lnk_txt")] = String(mConfig->plugin.customLinkText);
             obj[F("region")]      = mConfig->sys.region;
