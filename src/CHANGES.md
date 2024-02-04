@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.72 - 2024-02-03
+* fixed translation #1403
+* fixed sending commands to inverters which are soft turned off #1397
+* reduce switchChannel command for HMS (only each 5th cycle it will be send now)
+
 ## 0.8.71 - 2024-02-03
 * fix heuristics reset
 * fix CMT missing frames problem

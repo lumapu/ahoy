@@ -152,7 +152,6 @@ class Inverter {
 
         static uint32_t  *timestamp;     // system timestamp
         static cfgInst_t *generalConfig; // general inverter configuration from setup
-        //static IApp      *app;           // pointer to app interface
 
     public:
 
@@ -290,18 +289,18 @@ class Inverter {
         }
 
         bool setDevControlRequest(uint8_t cmd) {
-            if(InverterStatus::PRODUCING == status) {
+            if(InverterStatus::OFF != status) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
                 //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
             }
-            return (InverterStatus::PRODUCING == status);
+            return (InverterStatus::OFF != status);
         }
 
         bool setDevCommand(uint8_t cmd) {
-            if(InverterStatus::PRODUCING == status)
+            if(InverterStatus::OFF != status)
                 devControlCmd = cmd;
-            return (InverterStatus::PRODUCING == status);
+            return (InverterStatus::OFF != status);
         }
 
         void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {

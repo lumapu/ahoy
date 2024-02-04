@@ -9,6 +9,8 @@
 #include "cmt2300a.h"
 #include "../hm/radio.h"
 
+#define CMT_SWITCH_CHANNEL_CYCLE    5
+
 template<uint32_t DTU_SN = 0x81001765>
 class CmtRadio : public Radio {
     typedef Cmt2300a CmtType;
@@ -151,6 +153,10 @@ class CmtRadio : public Radio {
         }
 
         inline void sendSwitchChCmd(Inverter<> *iv, uint8_t ch) {
+            if(CMT_SWITCH_CHANNEL_CYCLE > ++mSwitchCycle)
+                return;
+            mSwitchCycle = 0;
+
             /** ch:
              * 0x00: 860.00 MHz
              * 0x01: 860.25 MHz
@@ -172,9 +178,10 @@ class CmtRadio : public Radio {
         inline void getRx(void) {
             packet_t p;
             p.millis = millis() - mMillis;
-            CmtStatus status = mCmt.getRx(p.packet, &p.len, 28, &p.rssi);
-            if(CmtStatus::SUCCESS == status)
+            if(CmtStatus::SUCCESS == mCmt.getRx(p.packet, &p.len, 28, &p.rssi)) {
+                mSwitchCycle = 0;
                 mBufCtrl.push(p);
+            }
 
             if(p.packet[9] > ALL_FRAMES) { // indicates last frame
                 setExpectedFrames(p.packet[9] - ALL_FRAMES);
@@ -188,6 +195,7 @@ class CmtRadio : public Radio {
         bool mCmtAvail = false;
         bool mRqstGetRx = false;
         uint32_t mMillis;
+        uint8_t mSwitchCycle = 0;
 };
 
 #endif /*__HMS_RADIO_H__*/

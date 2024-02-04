@@ -68,7 +68,7 @@ class RestApi {
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
-                setCtrl(obj, dummy, "api");
+                setCtrl(obj, dummy, "*");
             else if(obj[F("path")] == "setup")
                 setSetup(obj, dummy);
         }
@@ -839,10 +839,12 @@ class RestApi {
             }
             jsonOut[F("id")] = jsonIn[F("id")];
 
-            if(strncmp("api", clientIP, 3) != 0) {
-                if(mApp->isProtected(clientIP)) {
-                    jsonOut[F("error")] = F(INV_IS_PROTECTED);
-                    return false;
+            if(mConfig->sys.adminPwd[0] != '\0') {
+                if(strncmp("*", clientIP, 1) != 0) { // no call from API (MqTT)
+                    if(mApp->isProtected(clientIP)) {
+                        jsonOut[F("error")] = F(INV_IS_PROTECTED);
+                        return false;
+                    }
                 }
             }
 
