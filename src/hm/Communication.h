@@ -295,12 +295,14 @@ class Communication : public CommQueue<> {
                         return;
                     }
 
-                    compilePayload(q);
+                    if(compilePayload(q)) {
+                        if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
+                            (mCbPayload)(q->cmd, q->iv);
 
-                    if((NULL != mCbPayload) && (GridOnProFilePara != q->cmd) && (GetLossRate != q->cmd))
-                        (mCbPayload)(q->cmd, q->iv);
+                        closeRequest(q, true);
+                    } else
+                        closeRequest(q, false);
 
-                    closeRequest(q, true);
                     break;
             }
         }
@@ -498,7 +500,7 @@ class Communication : public CommQueue<> {
             return accepted;
         }
 
-        inline void compilePayload(const queue_s *q) {
+        inline bool compilePayload(const queue_s *q) {
             uint16_t crc = 0xffff, crcRcv = 0x0000;
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(i == (mMaxFrameId - 1)) {
@@ -514,13 +516,12 @@ class Communication : public CommQueue<> {
                 DBGPRINT(F("CRC Error "));
                 if(q->attempts == 0) {
                     DBGPRINTLN(F("-> Fail"));
-                    closeRequest(q, false);
 
                 } else
                     DBGPRINTLN(F("-> complete retransmit"));
                 mCompleteRetry = true;
                 mState = States::RESET;
-                return;
+                return false;
             }
 
             memset(mPayload, 0, MAX_BUFFER);
@@ -530,7 +531,7 @@ class Communication : public CommQueue<> {
             for(uint8_t i = 0; i < mMaxFrameId; i++) {
                 if(mLocalBuf[i].len + len > MAX_BUFFER) {
                     DPRINTLN(DBG_ERROR, F("payload buffer to small!"));
-                    return;
+                    return true;
                 }
                 memcpy(&mPayload[len], mLocalBuf[i].buf, mLocalBuf[i].len);
                 len += mLocalBuf[i].len;
@@ -552,19 +553,18 @@ class Communication : public CommQueue<> {
 
             if(GridOnProFilePara == q->cmd) {
                 q->iv->addGridProfile(mPayload, len);
-                return;
+                return true;
             }
 
             record_t<> *rec = q->iv->getRecordStruct(q->cmd);
             if(NULL == rec) {
                 if(GetLossRate == q->cmd) {
                     q->iv->parseGetLossRate(mPayload, len);
-                    return;
-                } else {
+                    return true;
+                } else
                     DPRINTLN(DBG_ERROR, F("record is NULL!"));
-                    closeRequest(q, false);
-                }
-                return;
+
+                return false;
             }
             if((rec->pyldLen != len) && (0 != rec->pyldLen)) {
                 if(*mSerialDebug) {
@@ -572,10 +572,8 @@ class Communication : public CommQueue<> {
                     DBGPRINT(String(rec->pyldLen));
                     DBGPRINTLN(F(" bytes"));
                 }
-                /*q->iv->radioStatistics.rxFail++;*/
-                closeRequest(q, false);
 
-                return;
+                return false;
             }
 
             rec->ts = q->ts;
@@ -597,6 +595,7 @@ class Communication : public CommQueue<> {
                     yield();
                 }
             }
+            return true;
         }
 
         void sendRetransmit(const queue_s *q, uint8_t i) {

@@ -78,7 +78,7 @@ class PubMqttIvData {
 
                 if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) { // send RealTimeRunData only once
                     mSendTotals = (RealTimeRunData_Debug == mCmd);
-                    memset(mTotal, 0, sizeof(float) * 4);
+                    memset(mTotal, 0, sizeof(float) * 5);
                     mState = FIND_NXT_IV;
                 } else
                     mSendList->pop();
@@ -164,6 +164,9 @@ class PubMqttIvData {
                                 case FLD_PDC:
                                     mTotal[3] += mIv->getValue(mPos, rec);
                                     break;
+                                case FLD_MP:
+                                    mTotal[4] += mIv->getValue(mPos, rec);
+                                    break;
                             }
                         } else
                             mAllTotalFound = false;
@@ -204,7 +207,7 @@ class PubMqttIvData {
         void stateSendTotals() {
             uint8_t fieldId;
             mRTRDataHasBeenSent = true;
-            if(mPos < 4) {
+            if(mPos < 5) {
                 bool retained = true;
                 switch (mPos) {
                     default:
@@ -230,6 +233,10 @@ class PubMqttIvData {
                         fieldId = FLD_PDC;
                         retained = false;
                         break;
+                    case 4:
+                        fieldId = FLD_MP;
+                        retained = false;
+                        break;
                 }
                 snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
                 snprintf(mVal, 40, "%g", ah::round3(mTotal[mPos]));
@@ -251,7 +258,7 @@ class PubMqttIvData {
         uint8_t mCmd;
         uint8_t mLastIvId;
         bool mSendTotals, mTotalFound, mAllTotalFound, mSendTotalYd;
-        float mTotal[4], mYldTotalStore;
+        float mTotal[5], mYldTotalStore;
 
         Inverter<> *mIv, *mIvSend;
         uint8_t mPos;
