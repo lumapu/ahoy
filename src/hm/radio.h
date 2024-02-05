@@ -11,6 +11,7 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
+#include <atomic>
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 #include "../utils/timemonitor.h"
@@ -119,9 +120,8 @@ class Radio {
             #endif
 
             mDtuSn = 0;
-            uint8_t t;
             for(int i = 0; i < (7 << 2); i += 4) {
-                t = (chipID >> i) & 0x0f;
+                uint8_t t = (chipID >> i) & 0x0f;
                 if(t > 0x09)
                     t -= 6;
                 mDtuSn |= (t << i);
@@ -132,8 +132,8 @@ class Radio {
 
 
         uint32_t mDtuSn;
-        volatile bool mIrqRcvd;
-        bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
+        std::atomic<bool> mIrqRcvd;
+        bool *mSerialDebug = nullptr, *mPrivacyMode = nullptr, *mPrintWholeTrace = nullptr;
         uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
 };
 

@@ -90,7 +90,7 @@ class app : public IApp, public ah::Scheduler {
         void handleIntr(void) {
             mNrfRadio.handleIntr();
         }
-        void* getRadioObj(bool nrf) {
+        void* getRadioObj(bool nrf) override {
             if(nrf)
                 return (void*)&mNrfRadio;
             else {
@@ -108,19 +108,19 @@ class app : public IApp, public ah::Scheduler {
         }
         #endif
 
-        uint32_t getUptime() {
+        uint32_t getUptime() override {
             return Scheduler::getUptime();
         }
 
-        uint32_t getTimestamp() {
+        uint32_t getTimestamp() override {
             return Scheduler::mTimestamp;
         }
 
-        uint64_t getTimestampMs() {
+        uint64_t getTimestampMs() override {
             return ((uint64_t)Scheduler::mTimestamp * 1000) + ((uint64_t)millis() - (uint64_t)Scheduler::mTsMillis) % 1000;
         }
 
-        bool saveSettings(bool reboot) {
+        bool saveSettings(bool reboot) override {
             mShowRebootRequest = true; // only message on index, no reboot
             mSavePending = true;
             mSaveReboot = reboot;
@@ -131,7 +131,7 @@ class app : public IApp, public ah::Scheduler {
             return true;
         }
 
-        void initInverter(uint8_t id) {
+        void initInverter(uint8_t id) override {
             mSys.addInverter(id, [this](Inverter<> *iv) {
                 if((IV_MI == iv->ivGen) || (IV_HM == iv->ivGen))
                     iv->radio = &mNrfRadio;
@@ -142,7 +142,7 @@ class app : public IApp, public ah::Scheduler {
             });
         }
 
-        bool readSettings(const char *path) {
+        bool readSettings(const char *path) override {
             return mSettings.readSettings(path);
         }
 
@@ -150,80 +150,80 @@ class app : public IApp, public ah::Scheduler {
             return mSettings.eraseSettings(eraseWifi);
         }
 
-        bool getSavePending() {
+        bool getSavePending() override {
             return mSavePending;
         }
 
-        bool getLastSaveSucceed() {
+        bool getLastSaveSucceed() override {
             return mSettings.getLastSaveSucceed();
         }
 
-        bool getShouldReboot() {
+        bool getShouldReboot() override {
             return mSaveReboot;
         }
 
         #if !defined(ETHERNET)
-        void scanAvailNetworks() {
+        void scanAvailNetworks() override {
             mWifi.scanAvailNetworks();
         }
 
-        bool getAvailNetworks(JsonObject obj) {
+        bool getAvailNetworks(JsonObject obj) override {
             return mWifi.getAvailNetworks(obj);
         }
 
-        void setupStation(void) {
+        void setupStation(void) override {
             mWifi.setupStation();
         }
 
-        void setStopApAllowedMode(bool allowed) {
+        void setStopApAllowedMode(bool allowed) override {
             mWifi.setStopApAllowedMode(allowed);
         }
 
-        String getStationIp(void) {
+        String getStationIp(void) override {
             return mWifi.getStationIp();
         }
 
-        bool getWasInCh12to14(void) const {
+        bool getWasInCh12to14(void) const override {
             return mWifi.getWasInCh12to14();
         }
 
         #endif /* !defined(ETHERNET) */
 
-        void setRebootFlag() {
+        void setRebootFlag() override {
             once(std::bind(&app::tickReboot, this), 3, "rboot");
         }
 
-        const char *getVersion() {
+        const char *getVersion() override {
             return mVersion;
         }
 
-        const char *getVersionModules() {
+        const char *getVersionModules() override {
             return mVersionModules;
         }
 
-        uint32_t getSunrise() {
+        uint32_t getSunrise() override {
             return mSunrise;
         }
 
-        uint32_t getSunset() {
+        uint32_t getSunset() override {
             return mSunset;
         }
 
-        bool getSettingsValid() {
+        bool getSettingsValid() override {
             return mSettings.getValid();
         }
 
-        bool getRebootRequestState() {
+        bool getRebootRequestState() override {
             return mShowRebootRequest;
         }
 
-        void setMqttDiscoveryFlag() {
+        void setMqttDiscoveryFlag() override {
             #if defined(ENABLE_MQTT)
             once(std::bind(&PubMqttType::sendDiscoveryConfig, &mMqtt), 1, "disCf");
             #endif
         }
 
-        bool getMqttIsConnected() {
+        bool getMqttIsConnected() override {
             #if defined(ENABLE_MQTT)
                 return mMqtt.isConnected();
             #else
@@ -231,7 +231,7 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
-        uint32_t getMqttTxCnt() {
+        uint32_t getMqttTxCnt() override {
             #if defined(ENABLE_MQTT)
                 return mMqtt.getTxCnt();
             #else
@@ -239,7 +239,7 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
-        uint32_t getMqttRxCnt() {
+        uint32_t getMqttRxCnt() override {
             #if defined(ENABLE_MQTT)
                 return mMqtt.getRxCnt();
             #else
@@ -267,11 +267,11 @@ class app : public IApp, public ah::Scheduler {
             return mProtection->isProtected(clientIp);
         }
 
-        bool getNrfEnabled(void) {
+        bool getNrfEnabled(void) override {
             return mConfig->nrf.enabled;
         }
 
-        bool getCmtEnabled(void) {
+        bool getCmtEnabled(void) override {
             return mConfig->cmt.enabled;
         }
 
@@ -283,19 +283,19 @@ class app : public IApp, public ah::Scheduler {
             return mConfig->cmt.pinIrq;
         }
 
-        uint32_t getTimezoneOffset() {
+        uint32_t getTimezoneOffset() override {
             return mApi.getTimezoneOffset();
         }
 
-        void getSchedulerInfo(uint8_t *max) {
+        void getSchedulerInfo(uint8_t *max) override {
             getStat(max);
         }
 
-        void getSchedulerNames(void) {
+        void getSchedulerNames(void) override {
             printSchedulers();
         }
 
-        void setTimestamp(uint32_t newTime) {
+        void setTimestamp(uint32_t newTime) override {
             DPRINT(DBG_DEBUG, F("setTimestamp: "));
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
@@ -310,7 +310,7 @@ class app : public IApp, public ah::Scheduler {
                 Scheduler::setTimestamp(newTime);
         }
 
-        uint16_t getHistoryValue(uint8_t type, uint16_t i) {
+        uint16_t getHistoryValue(uint8_t type, uint16_t i) override {
             #if defined(ENABLE_HISTORY)
                 return mHistory.valueAt((HistoryStorageType)type, i);
             #else
@@ -318,7 +318,7 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
-        uint16_t getHistoryMaxDay() {
+        uint16_t getHistoryMaxDay() override {
             #if defined(ENABLE_HISTORY)
                 return mHistory.getMaximumDay();
             #else
@@ -372,11 +372,11 @@ class app : public IApp, public ah::Scheduler {
         void tickNtpUpdate(void);
         #if defined(ETHERNET)
         void onNtpUpdate(bool gotTime);
-        bool mNtpReceived;
+        bool mNtpReceived = false;
         #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
-        void triggerTickSend() {
+        void triggerTickSend() override {
             once(std::bind(&app::tickSend, this), 0, "tSend");
         }
 
@@ -395,7 +395,7 @@ class app : public IApp, public ah::Scheduler {
         HmRadio<> mNrfRadio;
         Communication mCommunication;
 
-        bool mShowRebootRequest;
+        bool mShowRebootRequest = false;
 
         #if defined(ETHERNET)
         ahoyeth mEth;
@@ -404,7 +404,7 @@ class app : public IApp, public ah::Scheduler {
         #endif /* defined(ETHERNET) */
         WebType mWeb;
         RestApiType mApi;
-        Protection *mProtection;
+        Protection *mProtection = nullptr;
         #ifdef ENABLE_SYSLOG
         DbgSyslog mDbgSyslog;
         #endif
@@ -421,26 +421,26 @@ class app : public IApp, public ah::Scheduler {
         char mVersion[12];
         char mVersionModules[12];
         settings mSettings;
-        settings_t *mConfig;
-        bool mSavePending;
-        bool mSaveReboot;
+        settings_t *mConfig = nullptr;
+        bool mSavePending = false;
+        bool mSaveReboot = false;
 
-        uint8_t mSendLastIvId;
-        bool mSendFirst;
-        bool mAllIvNotAvail;
+        uint8_t mSendLastIvId = 0;
+        bool mSendFirst = false;
+        bool mAllIvNotAvail = false;
 
-        bool mNetworkConnected;
+        bool mNetworkConnected = false;
 
         // mqtt
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
         #endif /*ENABLE_MQTT*/
-        bool mMqttReconnect;
-        bool mMqttEnabled;
+        bool mMqttReconnect = false;
+        bool mMqttEnabled = false;
 
         // sun
-        int32_t mCalculatedTimezoneOffset;
-        uint32_t mSunrise, mSunset;
+        int32_t mCalculatedTimezoneOffset = 0;
+        uint32_t mSunrise = 0, mSunset = 0;
 
         // plugins
         #if defined(PLUGIN_DISPLAY)

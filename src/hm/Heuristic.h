@@ -157,7 +157,7 @@ class Heuristic {
                 DBGPRINTLN(String(iv->config->powerLevel));
         }
 
-        uint8_t getIvRetries(Inverter<> *iv) {
+        uint8_t getIvRetries(const Inverter<> *iv) const {
             if(iv->heuristics.rxSpeeds[0])
                 return RETRIES_VERYFAST_IV;
             if(iv->heuristics.rxSpeeds[1])
@@ -200,7 +200,7 @@ class Heuristic {
         }
 
     private:
-        bool isNewTxCh(HeuristicInv *ih) {
+        bool isNewTxCh(const HeuristicInv *ih) const {
             return ih->txRfChId != ih->lastBestTxChId;
         }
 
@@ -222,9 +222,6 @@ class Heuristic {
             }
             return 3; // standard
         }
-
-    private:
-        uint8_t mChList[5] = {03, 23, 40, 61, 75};
 };
 
 

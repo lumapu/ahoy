@@ -15,6 +15,7 @@
     #include <WiFi.h>
 #endif
 
+#include <array>
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include <espMqttClient.h>
@@ -38,12 +39,15 @@ template<class HMSYSTEM>
 class PubMqtt {
     public:
         PubMqtt() {
-            mRxCnt = 0;
-            mTxCnt = 0;
-            mSubscriptionCb = NULL;
-            memset(mLastIvState, (uint8_t)InverterStatus::OFF, MAX_NUM_INVERTERS);
-            memset(mIvLastRTRpub, 0, MAX_NUM_INVERTERS * 4);
-            mLastAnyAvail = false;
+            mLastIvState.fill(InverterStatus::OFF);
+            mIvLastRTRpub.fill(0);
+
+            mVal.fill(0);
+            mTopic.fill(0);
+            mSubTopic.fill(0);
+            mClientId.fill(0);
+            mLwtTopic.fill(0);
+            mSendAlarm.fill(false);
         }
 
         ~PubMqtt() { }
@@ -63,16 +67,16 @@ class PubMqtt {
             });
             mDiscovery.running = false;
 
-            snprintf(mLwtTopic, MQTT_TOPIC_LEN + 5, "%s/mqtt", mCfgMqtt->topic);
+            snprintf(mLwtTopic.data(), mLwtTopic.size(), "%s/mqtt", mCfgMqtt->topic);
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
 
             if(strlen(mCfgMqtt->clientId) > 0)
-                snprintf(mClientId, 23, "%s", mCfgMqtt->clientId);
+                snprintf(mClientId.data(), mClientId.size(), "%s", mCfgMqtt->clientId);
             else {
-                snprintf(mClientId, 23, "%s-", mDevName);
-                uint8_t pos = strlen(mClientId);
+                snprintf(mClientId.data(), mClientId.size(), "%s-", mDevName);
+                uint8_t pos = strlen(mClientId.data());
                 mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
                 mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
                 mClientId[pos++] = WiFi.macAddress().substring(12, 13).c_str()[0];
@@ -82,9 +86,9 @@ class PubMqtt {
                 mClientId[pos++] = '\0';
             }
 
-            mClient.setClientId(mClientId);
+            mClient.setClientId(mClientId.data());
             mClient.setServer(mCfgMqtt->broker, mCfgMqtt->port);
-            mClient.setWill(mLwtTopic, QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
+            mClient.setWill(mLwtTopic.data(), QOS_0, true, mqttStr[MQTT_STR_LWT_NOT_CONN]);
             mClient.onConnect(std::bind(&PubMqtt::onConnect, this, std::placeholders::_1));
             mClient.onDisconnect(std::bind(&PubMqtt::onDisconnect, this, std::placeholders::_1));
             mClient.onMessage(std::bind(&PubMqtt::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
@@ -125,8 +129,8 @@ class PubMqtt {
         }
 
         void tickerMinute() {
-            snprintf(mVal, 40, "%d", (*mUptime));
-            publish(subtopics[MQTT_UPTIME], mVal);
+            snprintf(mVal.data(), mVal.size(), "%u", (*mUptime));
+            publish(subtopics[MQTT_UPTIME], mVal.data());
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
             #ifndef ESP32
@@ -143,18 +147,17 @@ class PubMqtt {
             publish(subtopics[MQTT_COMM_START], String(sunrise + offsM).c_str(), true);
             publish(subtopics[MQTT_COMM_STOP], String(sunset + offsE).c_str(), true);
 
-            Inverter<> *iv;
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                iv = mSys->getInverterByPos(i);
+                Inverter<> *iv = mSys->getInverterByPos(i);
                 if(NULL == iv)
                     continue;
 
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/dis_night_comm", iv->config->name);
-                publish(mSubTopic, ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/dis_night_comm", iv->config->name);
+                publish(mSubTopic.data(), ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
             }
 
-            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "comm_disabled");
-            publish(mSubTopic, (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
+            snprintf(mSubTopic.data(), mSubTopic.size(), "comm_disabled");
+            publish(mSubTopic.data(), (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
         }
@@ -176,9 +179,9 @@ class PubMqtt {
 
         void tickerMidnight() {
             // set Total YieldDay to zero
-            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[FLD_YD]);
-            snprintf(mVal, 2, "0");
-            publish(mSubTopic, mVal, true);
+            snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[FLD_YD]);
+            snprintf(mVal.data(), mVal.size(), "0");
+            publish(mSubTopic.data(), mVal.data(), true);
         }
 
         void payloadEventListener(uint8_t cmd, Inverter<> *iv) {
@@ -197,11 +200,11 @@ class PubMqtt {
                 return;
 
             if(addTopic)
-                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s/%s", mCfgMqtt->topic, subTopic);
+                snprintf(mTopic.data(), mTopic.size(), "%s/%s", mCfgMqtt->topic, subTopic);
             else
-                snprintf(mTopic, MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1, "%s", subTopic);
+                snprintf(mTopic.data(), mTopic.size(), "%s", subTopic);
 
-            mClient.publish(mTopic, qos, retained, payload);
+            mClient.publish(mTopic.data(), qos, retained, payload);
             yield();
             mTxCnt++;
         }
@@ -238,8 +241,8 @@ class PubMqtt {
 
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(mSubTopic, "true", true, true, QOS_2);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
+                publish(mSubTopic.data(), "true", true, true, QOS_2);
             }
         }
 
@@ -255,15 +258,15 @@ class PubMqtt {
             publish(subtopics[MQTT_IP_ADDR], WiFi.localIP().toString().c_str(), true);
             #endif
             tickerMinute();
-            publish(mLwtTopic, mqttStr[MQTT_STR_LWT_CONN], true, false);
+            publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                snprintf(mVal, 20, "ctrl/limit/%d", i);
-                subscribe(mVal, QOS_2);
-                snprintf(mVal, 20, "ctrl/restart/%d", i);
-                subscribe(mVal);
-                snprintf(mVal, 20, "ctrl/power/%d", i);
-                subscribe(mVal);
+                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
+                subscribe(mVal.data(), QOS_2);
+                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
+                subscribe(mVal.data());
+                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
+                subscribe(mVal.data());
             }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
         }
@@ -359,11 +362,9 @@ class PubMqtt {
         }
 
         void discoveryConfigLoop(void) {
-            char topic[64], name[32], uniq_id[32], buf[350];
             DynamicJsonDocument doc(256);
 
-            uint8_t fldTotal[4] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
-            const char* unitTotal[4] = {"W", "kWh", "Wh", "W"};
+            constexpr static uint8_t fldTotal[] = {FLD_PAC, FLD_YT, FLD_YD, FLD_PDC};
 
             String node_id = String(mDevName) + "_TOTAL";
             bool total = (mDiscovery.lastIvId == MAX_NUM_INVERTERS);
@@ -392,32 +393,37 @@ class PubMqtt {
                 doc[F("mf")] = F("Hoymiles");
                 JsonObject deviceObj = doc.as<JsonObject>(); // deviceObj is only pointer!?
 
+                std::array<char, 64> topic;
+                std::array<char, 32> name;
+                std::array<char, 32> uniq_id;
+                std::array<char, 350> buf;
                 const char *devCls, *stateCls;
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
-                        snprintf(name, 32, "%s", iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name.data(), name.size(), "%s", iv->getFieldName(mDiscovery.sub, rec));
                     else
-                        snprintf(name, 32, "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(topic, 64, "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(uniq_id, 32, "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name.data(), name.size(), "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(uniq_id.data(), uniq_id.size(), "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
 
                     devCls = getFieldDeviceClass(rec->assign[mDiscovery.sub].fieldId);
                     stateCls = getFieldStateClass(rec->assign[mDiscovery.sub].fieldId);
                 }
 
                 else { // total values
-                    snprintf(name, 32, "Total %s", fields[fldTotal[mDiscovery.sub]]);
-                    snprintf(topic, 64, "/%s", fields[fldTotal[mDiscovery.sub]]);
-                    snprintf(uniq_id, 32, "total_%s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(name.data(), name.size(), "Total %s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic.data(), topic.size(), "/%s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(uniq_id.data(), uniq_id.size(), "total_%s", fields[fldTotal[mDiscovery.sub]]);
                     devCls = getFieldDeviceClass(fldTotal[mDiscovery.sub]);
                     stateCls = getFieldStateClass(fldTotal[mDiscovery.sub]);
                 }
 
                 DynamicJsonDocument doc2(512);
+                constexpr static char* unitTotal[] = {"W", "kWh", "Wh", "W"};
                 doc2[F("name")] = name;
-                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic);
+                doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
                 doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
-                doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id;
+                doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id.data();
                 doc2[F("dev")] = deviceObj;
                 if (!(String(stateCls) == String("total_increasing")))
                     doc2[F("exp_aft")] = MQTT_INTERVAL + 5;  // add 5 sec if connection is bad or ESP too slow @TODO: stimmt das wirklich als expire!?
@@ -427,13 +433,13 @@ class PubMqtt {
                     doc2[F("stat_cla")] = String(stateCls);
 
                 if (!total)
-                    snprintf(topic, 64, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(topic.data(), topic.size(), "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                 else // total values
-                    snprintf(topic, 64, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
-                memset(buf, 0, size);
-                serializeJson(doc2, buf, size);
-                publish(topic, buf, true, false);
+                buf.fill(0);
+                serializeJson(doc2, buf.data(), size);
+                publish(topic.data(), buf.data(), true, false);
 
                 if(++mDiscovery.sub == ((!total) ? (rec->length) : 4)) {
                     mDiscovery.sub = 0;
@@ -503,15 +509,15 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/available", iv->config->name);
-                    snprintf(mVal, 40, "%d", (uint8_t)status);
-                    publish(mSubTopic, mVal, true);
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/available", iv->config->name);
+                    snprintf(mVal.data(), mVal.size(), "%d", (uint8_t)status);
+                    publish(mSubTopic.data(), mVal.data(), true);
                 }
             }
 
             if(changed) {
-                snprintf(mVal, 32, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
-                publish("status", mVal, true);
+                snprintf(mVal.data(), mVal.size(), "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
+                publish("status", mVal.data(), true);
             }
 
             return anyAvail;
@@ -533,19 +539,19 @@ class PubMqtt {
 
                 mSendAlarm[i] = false;
 
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/cnt", iv->config->name);
-                snprintf(mVal, 40, "%d", iv->alarmCnt);
-                publish(mSubTopic, mVal, false);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/alarm/cnt", iv->config->name);
+                snprintf(mVal.data(), mVal.size(), "%d", iv->alarmCnt);
+                publish(mSubTopic.data(), mVal.data(), false);
 
                 for(uint8_t j = 0; j < 10; j++) {
                     if(0 != iv->lastAlarm[j].code) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/alarm/%d", iv->config->name, j);
-                        snprintf(mVal, 100, "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/alarm/%d", iv->config->name, j);
+                        snprintf(mVal.data(), mVal.size(), "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
                             iv->lastAlarm[j].code,
                             iv->getAlarmStr(iv->lastAlarm[j].code).c_str(),
                             iv->lastAlarm[j].start + lastMidnight,
                             iv->lastAlarm[j].end + lastMidnight);
-                        publish(mSubTopic, mVal, false);
+                        publish(mSubTopic.data(), mVal.data(), false);
                         yield();
                     }
                 }
@@ -575,9 +581,9 @@ class PubMqtt {
                         }
                     }
 
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                    snprintf(mVal, 40, "%g", ah::round3(iv->getValue(i, rec)));
-                    publish(mSubTopic, mVal, retained);
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(mVal.data(), mVal.size(), "%g", ah::round3(iv->getValue(i, rec)));
+                    publish(mSubTopic.data(), mVal.data(), retained);
 
                     yield();
                 }
@@ -597,33 +603,33 @@ class PubMqtt {
         }
 
         espMqttClient mClient;
-        cfgMqtt_t *mCfgMqtt;
+        cfgMqtt_t *mCfgMqtt = nullptr;
         #if defined(ESP8266)
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
         #endif
 
-        HMSYSTEM *mSys;
+        HMSYSTEM *mSys = nullptr;
         PubMqttIvData<HMSYSTEM> mSendIvData;
 
-        uint32_t *mUtcTimestamp, *mUptime;
-        uint32_t mRxCnt, mTxCnt;
+        uint32_t *mUtcTimestamp = nullptr, *mUptime = nullptr;
+        uint32_t mRxCnt = 0, mTxCnt = 0;
         std::queue<sendListCmdIv> mSendList;
-        std::array<bool, MAX_NUM_INVERTERS> mSendAlarm{};
-        subscriptionCb mSubscriptionCb;
-        bool mLastAnyAvail;
-        InverterStatus mLastIvState[MAX_NUM_INVERTERS];
-        uint32_t mIvLastRTRpub[MAX_NUM_INVERTERS];
-        uint16_t mIntervalTimeout;
+        std::array<bool, MAX_NUM_INVERTERS> mSendAlarm;
+        subscriptionCb mSubscriptionCb = nullptr;
+        bool mLastAnyAvail = false;
+        std::array<InverterStatus, MAX_NUM_INVERTERS> mLastIvState;
+        std::array<uint32_t, MAX_NUM_INVERTERS> mIvLastRTRpub;
+        uint16_t mIntervalTimeout = 0;
 
         // last will topic and payload must be available through lifetime of 'espMqttClient'
-        char mLwtTopic[MQTT_TOPIC_LEN+5];
-        const char *mDevName, *mVersion;
-        char mClientId[24]; // number of chars is limited to 23 up to v3.1 of MQTT
+        std::array<char, (MQTT_TOPIC_LEN + 5)> mLwtTopic;
+        const char *mDevName = nullptr, *mVersion = nullptr;
+        std::array<char, 24> mClientId; // number of chars is limited to 23 up to v3.1 of MQTT
         // global buffer for mqtt topic. Used when publishing mqtt messages.
-        char mTopic[MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1];
-        char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[100];
-        discovery_t mDiscovery;
+        std::array<char, (MQTT_TOPIC_LEN + 32 + MAX_NAME_LENGTH + 1)> mTopic;
+        std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
+        std::array<char, 100> mVal;
+        discovery_t mDiscovery = {true, 0, 0, 0};
 };
 
 #endif /*ENABLE_MQTT*/

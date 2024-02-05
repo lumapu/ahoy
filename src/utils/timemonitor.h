@@ -22,14 +22,14 @@ class TimeMonitor {
         /**
          * A constructor for creating a TimeMonitor object
          */
-        TimeMonitor(void) {}
+        TimeMonitor() {}
 
         /**
          * A constructor for initializing a TimeMonitor object
          * @param timeout timeout in ms
          * @param start   (optional) if true, start TimeMonitor immediately
          */
-        TimeMonitor(uint32_t timeout, bool start = false) {
+        explicit TimeMonitor(uint32_t timeout, bool start = false) {
             if (start)
                 startTimeMonitor(timeout);
             else
@@ -80,7 +80,7 @@ class TimeMonitor {
          *         true:  TimeMonitor already timed out
          *         false: TimeMonitor still in time or TimeMonitor was stopped
          */
-        bool isTimeout(void) {
+        bool isTimeout(void) const {
             if ((mStarted) && ((millis() - mStartTime) >= mTimeout))
                 return true;
             else

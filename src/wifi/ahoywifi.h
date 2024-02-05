@@ -71,7 +71,7 @@ class ahoywifi {
         void welcome(String ip, String mode);
 
 
-        settings_t *mConfig = NULL;
+        settings_t *mConfig = nullptr;
         appWifiCb mAppWifiCb;
 
         DNSServer mDns;
@@ -81,15 +81,15 @@ class ahoywifi {
         WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
         #endif
 
-        WiFiStatus_t mStaConn;
-        uint8_t mCnt;
-        uint32_t *mUtcTimestamp;
+        WiFiStatus_t mStaConn = DISCONNECTED;
+        uint8_t mCnt = 0;
+        uint32_t *mUtcTimestamp = nullptr;
 
-        uint8_t mScanCnt;
-        bool mScanActive;
-        bool mGotDisconnect;
+        uint8_t mScanCnt = 0;
+        bool mScanActive = false;
+        bool mGotDisconnect = false;
         std::list<uint8_t> mBSSIDList;
-        bool mStopApAllowed;
+        bool mStopApAllowed = false;
         bool mWasInCh12to14 = false;
 };
 

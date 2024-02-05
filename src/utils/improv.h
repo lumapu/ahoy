@@ -10,6 +10,7 @@
 #include <functional>
 #include "dbg.h"
 #include "AsyncJson.h"
+#include "../appInterface.h"
 
 // https://www.improv-wifi.com/serial/
 // https://github.com/jnthas/improv-wifi-demo/blob/main/src/esp32-wifiimprov/esp32-wifiimprov.ino
@@ -78,7 +79,7 @@ class Improv {
             DBGPRINTLN("");
         }
 
-        inline uint8_t buildChecksum(uint8_t buf[], uint8_t len) {
+        inline uint8_t buildChecksum(const uint8_t buf[], uint8_t len) {
             uint8_t calc = 0;
             for(uint8_t i = 0; i < len; i++) {
                 calc += buf[i];
@@ -86,7 +87,7 @@ class Improv {
             return calc;
         }
 
-        inline bool checkChecksum(uint8_t buf[], uint8_t len) {
+        inline bool checkChecksum(const uint8_t buf[], uint8_t len) {
             /*DHEX(buf[len], false);
             DBGPRINT(F(" == "), false);
             DBGHEXLN(buildChecksum(buf, len), false);*/
@@ -97,7 +98,7 @@ class Improv {
             if(len < 11)
                 return false;
 
-            if(0 != strncmp((char*)buf, "IMPROV", 6))
+            if(0 != strncmp(reinterpret_cast<char*>(buf), "IMPROV", 6))
                 return false;
 
             // version check (only version 1 is supported!)
@@ -199,7 +200,7 @@ class Improv {
             dumpBuf(buf, len);
         }
 
-        void parsePayload(uint8_t type, uint8_t buf[], uint8_t len) {
+        void parsePayload(uint8_t type, const uint8_t buf[], uint8_t len) {
             if(TYPE_RPC == type) {
                 if(GET_CURRENT_STATE == buf[0]) {
                     setDebugEn(false);
@@ -212,9 +213,10 @@ class Improv {
             }
         }
 
-        IApp *mApp;
-        const char *mDevName, *mVersion;
-        bool mScanRunning;
+        IApp *mApp = nullptr;
+        const char *mDevName = nullptr;
+        const char *mVersion = nullptr;
+        bool mScanRunning = false;
 };
 #endif
 

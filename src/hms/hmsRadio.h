@@ -15,10 +15,6 @@ template<uint32_t DTU_SN = 0x81001765>
 class CmtRadio : public Radio {
     typedef Cmt2300a CmtType;
     public:
-        CmtRadio() {
-            mDtuSn = DTU_SN;
-        }
-
         void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t pinSclk, uint8_t pinSdio, uint8_t pinCsb, uint8_t pinFcsb, uint8_t region = 0, bool genDtuSn = true) {
             mCmt.setup(pinSclk, pinSdio, pinCsb, pinFcsb);
             reset(genDtuSn, static_cast<RegionCfg>(region));
@@ -27,7 +23,7 @@ class CmtRadio : public Radio {
             mPrintWholeTrace = printWholeTrace;
         }
 
-        bool loop() {
+        bool loop() override {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
                 return false;
@@ -39,11 +35,11 @@ class CmtRadio : public Radio {
             return false;
         }
 
-        bool isChipConnected(void) const {
+        bool isChipConnected(void) const override {
             return mCmtAvail;
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) override {
             DPRINT(DBG_INFO, F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
             initPacket(iv->radioId.u64, TX_REQ_DEVCONTROL, SINGLE_FRAME);
@@ -61,14 +57,14 @@ class CmtRadio : public Radio {
             sendPacket(iv, cnt, isRetransmit);
         }
 
-        bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) {
+        bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) override {
             uint8_t fromCh = mCmt.freq2Chan(fromkHz);
             uint8_t toCh = mCmt.freq2Chan(tokHz);
 
             return switchFrequencyCh(iv, fromCh, toCh);
         }
 
-        bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) {
+        bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) override {
             if((0xff == fromCh) || (0xff == toCh))
                 return false;
 
@@ -92,7 +88,7 @@ class CmtRadio : public Radio {
 
     private:
 
-        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
+        void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) override {
             // inverters have maybe different settings regarding frequency
             if(mCmt.getCurrentChannel() != iv->config->frequency)
                 mCmt.switchChannel(iv->config->frequency);
@@ -129,11 +125,11 @@ class CmtRadio : public Radio {
             iv->mDtuTxCnt++;
         }
 
-        uint64_t getIvId(Inverter<> *iv) const {
+        uint64_t getIvId(Inverter<> *iv) const override {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) const {
+        uint8_t getIvGen(Inverter<> *iv) const override {
             return iv->ivGen;
         }
 
@@ -180,6 +176,7 @@ class CmtRadio : public Radio {
             p.millis = millis() - mMillis;
             if(CmtStatus::SUCCESS == mCmt.getRx(p.packet, &p.len, 28, &p.rssi)) {
                 mSwitchCycle = 0;
+                p.ch = 0; // not used for CMT inverters
                 mBufCtrl.push(p);
             }
 
@@ -187,14 +184,12 @@ class CmtRadio : public Radio {
                 setExpectedFrames(p.packet[9] - ALL_FRAMES);
                 mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
             }
-            // optionally instead:
-            //    mRadioWaitTime.stopTimeMonitor(); // we got everything we expected and can exit rx mode...
         }
 
         CmtType mCmt;
         bool mCmtAvail = false;
         bool mRqstGetRx = false;
-        uint32_t mMillis;
+        uint32_t mMillis = 0;
         uint8_t mSwitchCycle = 0;
 };
 

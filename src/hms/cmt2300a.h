@@ -529,7 +529,8 @@ class Cmt2300a {
             return false;
         }
 
-        inline bool switchDtuFreq(const uint32_t freqKhz) {
+        // maybe used in future
+        /*inline bool switchDtuFreq(const uint32_t freqKhz) {
             uint8_t toCh = freq2Chan(freqKhz);
             if(0xff == toCh)
                 return false;
@@ -537,7 +538,7 @@ class Cmt2300a {
             switchChannel(toCh);
 
             return true;
-        }
+        }*/
 
         inline uint8_t getChipStatus(void) {
             return mSpi.readReg(CMT2300A_CUS_MODE_STA) & CMT2300A_MASK_CHIP_MODE_STA;
@@ -549,11 +550,11 @@ class Cmt2300a {
         #else
         esp32_3wSpi mSpi;
         #endif
-        uint8_t mCnt;
-        bool mTxPending;
-        bool mInRxMode;
-        uint8_t mCusIntFlag;
-        uint8_t mRqstCh, mCurCh;
+        uint8_t mCnt = 0;
+        bool mTxPending = false;
+        bool mInRxMode = false;
+        uint8_t mCusIntFlag = 0;
+        uint8_t mRqstCh = 0, mCurCh = 0;
         RegionCfg mRegionCfg = RegionCfg::EUROPE;
 };
 

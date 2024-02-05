@@ -205,9 +205,9 @@ class PubMqttIvData {
         }
 
         void stateSendTotals() {
-            uint8_t fieldId;
             mRTRDataHasBeenSent = true;
             if(mPos < 5) {
+                uint8_t fieldId;
                 bool retained = true;
                 switch (mPos) {
                     default:

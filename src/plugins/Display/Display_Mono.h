@@ -24,8 +24,6 @@
 
 class DisplayMono {
     public:
-        DisplayMono() {};
-
         virtual void init(DisplayData *displayData) = 0;
         virtual void config(display_t *cfg) = 0;
         virtual void disp(void) = 0;
@@ -289,11 +287,11 @@ class DisplayMono {
         DispSwitchState mDispSwitchState = DispSwitchState::TEXT;
 
         uint16_t mDispWidth;
-        uint8_t mExtra;
+        uint8_t mExtra = 0;
         int8_t  mPixelshift=0;
         char mFmtText[DISP_FMT_TEXT_LEN];
-        uint8_t mLineXOffsets[5] = {};
-        uint8_t mLineYOffsets[5] = {};
+        uint8_t mLineXOffsets[5] = {0, 0, 0, 0, 0};
+        uint8_t mLineYOffsets[5] = {0, 0, 0, 0, 0};
 
         uint8_t mPgWidth = 0;
 
@@ -308,8 +306,8 @@ class DisplayMono {
         uint32_t mPgLastTime = 0;
         PowerGraphState mPgState = PowerGraphState::NO_TIME_SYNC;
 
-        uint16_t mDispHeight;
-        uint8_t mLuminance;
+        uint16_t mDispHeight = 0;
+        uint8_t mLuminance = 0;
 
         TimeMonitor mDisplayTime = TimeMonitor(1000 * DISP_DEFAULT_TIMEOUT, true);
         TimeMonitor mDispSwitchTime = TimeMonitor();

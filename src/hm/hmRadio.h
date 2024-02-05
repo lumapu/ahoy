@@ -52,7 +52,7 @@ class HmRadio : public Radio {
             mPrintWholeTrace = printWholeTrace;
 
             generateDtuSn();
-            DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
+            mDtuRadioId = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
                 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
@@ -85,7 +85,7 @@ class HmRadio : public Radio {
             mNrf24->enableDynamicPayloads();
             mNrf24->setCRCLength(RF24_CRC_16);
             mNrf24->setAddressWidth(5);
-            mNrf24->openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
+            mNrf24->openReadingPipe(1, reinterpret_cast<uint8_t*>(&mDtuRadioId));
             mNrf24->maskIRQ(false, false, false); // enable all receiving interrupts
             mNrf24->setPALevel(1); // low is default
 
@@ -99,7 +99,7 @@ class HmRadio : public Radio {
         }
 
         // returns true if communication is active
-        bool loop(void) {
+        bool loop(void) override {
             if (!mIrqRcvd && !mNRFisInRX)
                 return false; // first quick check => nothing to do at all here
 
@@ -198,11 +198,11 @@ class HmRadio : public Radio {
             return false;
         }
 
-        bool isChipConnected(void) const {
+        bool isChipConnected(void) const override {
             return mNrf24->isChipConnected();
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) override {
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
@@ -423,15 +423,15 @@ class HmRadio : public Radio {
             mNRFisInRX = false;
         }
 
-        uint64_t getIvId(Inverter<> *iv) const {
+        uint64_t getIvId(Inverter<> *iv) const override {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) const {
+        uint8_t getIvGen(Inverter<> *iv) const override {
             return iv->ivGen;
         }
 
-        inline bool checkIvSerial(uint8_t buf[], Inverter<> *iv) {
+        inline bool checkIvSerial(const uint8_t buf[], Inverter<> *iv) {
             for(uint8_t i = 1; i < 5; i++) {
                 if(buf[i] != iv->radioId.b[i])
                     return false;
@@ -439,14 +439,14 @@ class HmRadio : public Radio {
             return true;
         }
 
-        uint64_t DTU_RADIO_ID;
-        uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
+        uint64_t mDtuRadioId = 0ULL;
+        const uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
         uint8_t mTxChIdx = 0;
         uint8_t mRxChIdx = 0;
-        uint8_t tempRxChIdx = mRxChIdx;
+        uint8_t tempRxChIdx = 0;
         bool    mGotLastMsg = false;
-        uint32_t mMillis;
-        bool tx_ok, tx_fail, rx_ready = false;
+        uint32_t mMillis = 0;
+        bool tx_ok = false, tx_fail = false, rx_ready = false;
         unsigned long mTimeslotStart = 0;
         unsigned long mLastIrqTime = 0;
         bool mNRFloopChannels = false;
@@ -454,7 +454,6 @@ class HmRadio : public Radio {
         bool isRxInit = true;
         bool mRxPendular = false;
         uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
-        //uint8_t mTxSetupTime = 0;
         uint8_t mTxRetries = 15;                            // memorize last setting for mNrf24->setRetries(3, 15);
 
         std::unique_ptr<SPIClass> mSpi;

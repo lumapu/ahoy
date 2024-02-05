@@ -91,7 +91,7 @@ class CommQueue {
             inc(&mRdPtr);
         }
 
-        void setTs(uint32_t *ts) {
+        void setTs(const uint32_t *ts) {
             mQueue[mRdPtr].ts = *ts;
         }
 

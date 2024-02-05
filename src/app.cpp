@@ -13,7 +13,10 @@
 
 
 //-----------------------------------------------------------------------------
-app::app() : ah::Scheduler {} {}
+app::app() : ah::Scheduler {} {
+    memset(mVersion, 0, sizeof(char) * 12);
+    memset(mVersionModules, 0, sizeof(char) * 12);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -228,7 +231,6 @@ void app::updateNtp(void) {
         onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
 
         if (mConfig->sys.schedReboot) {
-            uint32_t localTime = gTimezone.toLocal(mTimestamp);
             uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
             if (rebootTrig <= mTimestamp) { //necessary for times other than midnight to prevent reboot loop
                rebootTrig += 86400;
@@ -301,9 +303,8 @@ void app::tickIVCommunication(void) {
     bool zeroValues = false;
     uint32_t nxtTrig = 0;
 
-    Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        iv = mSys.getInverterByPos(i);
+        Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL == iv)
             continue;
 
@@ -390,10 +391,9 @@ void app::tickMidnight(void) {
 
         // clear max values
         if(mConfig->inst.rstMaxValsMidNight) {
-            uint8_t pos;
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             for(uint8_t i = 0; i <= iv->channels; i++) {
-                pos = iv->getPosByChFld(i, FLD_MP, rec);
+                uint8_t pos = iv->getPosByChFld(i, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
         }
@@ -592,9 +592,8 @@ void app::updateLed(void) {
     uint8_t led_on = (mConfig->led.high_active) ? (mConfig->led.luminance) : (255-mConfig->led.luminance);
 
     if (mConfig->led.led[0] != DEF_PIN_OFF) {
-        Inverter<> *iv;
         for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-            iv = mSys.getInverterByPos(id);
+            Inverter<> *iv = mSys.getInverterByPos(id);
             if (NULL != iv) {
                 if (iv->isProducing()) {
                     // turn on when at least one inverter is producing

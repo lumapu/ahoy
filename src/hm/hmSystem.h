@@ -98,35 +98,33 @@ class HmSystem {
             #ifdef DYNAMIC_OFFSET
             iv->rxOffset = (iv->ivGen == IV_HM) ? 13 : 12; // effective 3 (or 2), but can easily be recognized as default setting
             #else
-            iv->rxOffset = ((iv->ivGen == IV_HM) && (iv->type == INV_TYPE_4CH)) ? 3 : 2;
+            //iv->rxOffset = ((iv->ivGen == IV_HM) && (iv->type == INV_TYPE_4CH)) ? 3 : 2;
             iv->rxOffset = (iv->ivGen == IV_HM) ? 3 : 2;
             #endif
 
             cb(iv);
         }
 
-        INVERTERTYPE *findInverter(uint8_t buf[]) {
-            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:findInverter"));
-            INVERTERTYPE *p;
+        INVERTERTYPE *findInverter(const uint8_t buf[]) {
             for(uint8_t i = 0; i < MAX_INVERTER; i++) {
-                p = &mInverter[i];
+                INVERTERTYPE *p = &mInverter[i];
                 if((p->config->serial.b[3] == buf[0])
                     && (p->config->serial.b[2] == buf[1])
                     && (p->config->serial.b[1] == buf[2])
                     && (p->config->serial.b[0] == buf[3]))
                     return p;
             }
-            return NULL;
+            return nullptr;
         }
 
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
-                return NULL;
+                return nullptr;
             else if((mInverter[pos].config->serial.u64 != 0ULL) || (false == check))
                 return &mInverter[pos];
             else
-                return NULL;
+                return nullptr;
         }
 
         uint8_t getNumInverters(void) {

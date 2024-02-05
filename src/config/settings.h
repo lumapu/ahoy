@@ -13,6 +13,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <LittleFS.h>
 
 #include "../defines.h"
@@ -206,7 +207,7 @@ typedef struct {
 class settings {
     public:
         settings() {
-            mLastSaveSucceed = false;
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
         void setup() {
@@ -377,7 +378,7 @@ class settings {
                 memcpy(&tmp, &mCfg.sys, sizeof(cfgSys_t));
             }
             // erase all settings and reset to default
-            memset(&mCfg, 0, sizeof(settings_t));
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             mCfg.sys.darkMode = false;
@@ -847,7 +848,7 @@ class settings {
     #endif
 
         settings_t mCfg;
-        bool mLastSaveSucceed;
+        bool mLastSaveSucceed = 0;
 };
 
 #endif /*__SETTINGS_H__*/

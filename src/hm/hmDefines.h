@@ -76,7 +76,7 @@ enum {CMD_CALC = 0xffff};
 enum {CH0 = 0, CH1, CH2, CH3, CH4, CH5, CH6};
 
 enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
-enum {INV_RADIO_TYPE_NRF = 0, INV_RADIO_TYPE_CMT};
+enum {INV_RADIO_TYPE_UNKNOWN = 0, INV_RADIO_TYPE_NRF, INV_RADIO_TYPE_CMT};
 
 
 #define DURATION_ONEFRAME       50 // timeout parameter for each expected frame (ms)

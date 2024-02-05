@@ -192,15 +192,14 @@ class Display {
             if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF)) {
     #if defined(ESP8266)
                 if (mCfg->pirPin == A0)
-                    return((analogRead(A0) >= 512));
+                    return (analogRead(A0) >= 512);
                 else
-                    return(digitalRead(mCfg->pirPin));
+                    return digitalRead(mCfg->pirPin);
     #elif defined(ESP32)
-                return(digitalRead(mCfg->pirPin));
+                return digitalRead(mCfg->pirPin);
     #endif
-            }
-            else
-                return(false);
+            } else
+                return false;
         }
 
         // approximate RSSI in dB by invQuality levels from heuristic function (very unscientific but better than nothing :-) )

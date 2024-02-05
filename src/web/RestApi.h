@@ -141,7 +141,7 @@ class RestApi {
             #endif
         }
 
-        void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        void onApiPostBody(AsyncWebServerRequest *request, const uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
 
             if(0 == index) {
@@ -158,7 +158,7 @@ class RestApi {
 
             DynamicJsonDocument json(1000);
 
-            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            DeserializationError err = deserializeJson(json, reinterpret_cast<const char*>(mTmpBuf), mTmpSize);
             JsonObject obj = json.as<JsonObject>();
 
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
@@ -930,20 +930,20 @@ class RestApi {
             return true;
         }
 
-        IApp *mApp;
-        HMSYSTEM *mSys;
-        HmRadio<> *mRadioNrf;
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        HmRadio<> *mRadioNrf = nullptr;
         #if defined(ESP32)
-        CmtRadio<> *mRadioCmt;
+        CmtRadio<> *mRadioCmt = nullptr;
         #endif
-        AsyncWebServer *mSrv;
-        settings_t *mConfig;
+        AsyncWebServer *mSrv = nullptr;
+        settings_t *mConfig = nullptr;
 
-        uint32_t mTimezoneOffset;
-        uint32_t mHeapFree, mHeapFreeBlk;
-        uint8_t mHeapFrag;
+        uint32_t mTimezoneOffset = 0;
+        uint32_t mHeapFree = 0, mHeapFreeBlk = 0;
+        uint8_t mHeapFrag = 0;
         uint8_t *mTmpBuf = NULL;
-        uint32_t mTmpSize;
+        uint32_t mTmpSize = 0;
 };
 
 #endif /*__WEB_API_H__*/

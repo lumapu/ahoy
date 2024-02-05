@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.74 - 2024-02-05
+* reduced cppcheck linter warnings significantly
+
 ## 0.8.73 - 2024-02-03
 * fix nullpointer during communication #1401
 * added `max_power` to MqTT total values #1375

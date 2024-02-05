@@ -48,9 +48,6 @@ class Web {
    public:
         Web(void) : mWeb(80), mEvts("/events") {
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-            mSerialBufFill     = 0;
-            mSerialAddTime     = true;
-            mSerialClientConnnected = false;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
@@ -490,9 +487,8 @@ class Web {
 
 
             // pinout
-            uint8_t pin;
             for (uint8_t i = 0; i < 16; i++) {
-                pin = request->arg(String(pinArgNames[i])).toInt();
+                uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_NRF_CE_PIN);  break;
@@ -633,8 +629,8 @@ class Web {
         // NOTE: Grouping for fields with channels and totals is currently not working
         // TODO: Handle grouping and sorting for independant from channel number
         // NOTE: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
-        const char * metricConstPrefix = "ahoy_solar_";
-        const char * metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
+        const char* metricConstPrefix = "ahoy_solar_";
+        const char* metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
         typedef enum {
             metricsStateInverterInfo=0,           metricsStateInverterEnabled=1,        metricsStateInverterAvailable=2,
             metricsStateInverterProducing=3,      metricsStateInverterPowerLimitRead=4, metricsStateInverterPowerLimitAck=5,
@@ -648,7 +644,7 @@ class Web {
             metricsStateStart,
             metricsStateEnd
         } MetricStep_t;
-        MetricStep_t metricsStep;
+        MetricStep_t metricsStep = metricsStateInverterInfo;
         typedef struct {
             const char *topic;
             const char *type;
@@ -674,9 +670,6 @@ class Web {
             { "radio_dtu_loss_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuLoss;} },
             { "radio_dtu_sent_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuSent;} }
         };
-        int metricsInverterId;
-        uint8_t metricsFieldId;
-        bool metricDeclared, metricTotalDeclard;
 
         void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
@@ -715,7 +708,7 @@ class Web {
                         snprintf(topic,sizeof(topic),"%swifi_rssi_db{devicename=\"%s\"} %d\n",metricConstPrefix, mConfig->sys.deviceName, WiFi.RSSI());
                         metrics += String(type) + String(topic);
 
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
                         metricsStep = metricsStateInverterInfo;
                         break;
@@ -743,7 +736,7 @@ class Web {
                                         (String("ahoy_solar_inverter_") + inverterMetrics[metricsStep].topic +
                                             inverterMetrics[metricsStep].format).c_str(),
                                             inverterMetrics[metricsStep].valueFunc);
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
                         // ugly hack to increment the enum
                         metricsStep = static_cast<MetricStep_t>( static_cast<int>(metricsStep) + 1);
                         // Prepare  Realtime Field loop, which may be startet next
@@ -763,7 +756,7 @@ class Web {
                             metrics = "# Info: all realtime fields processed\n";
                             metricsStep = metricsStateAlarmData;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                   case metricStateRealtimeInverterId: // Iterate over all inverters for this field
@@ -837,7 +830,7 @@ class Web {
                             metricsFieldId++; // Process next field Id
                             metricsStep = metricStateRealtimeFieldId;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
@@ -861,7 +854,7 @@ class Web {
                                 }
                             }
                         }
-                        len = snprintf((char*)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
                         metricsStep = metricsStateEnd;
                         break;
 
@@ -880,10 +873,9 @@ class Web {
 
         // Traverse all inverters and collect the metric via valueFunc
         String inverterMetric(char *buffer, size_t len, const char *format, std::function<uint64_t(Inverter<> *iv)> valueFunc) {
-            Inverter<> *iv;
             String metric = "";
             for (int metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
-                iv = mSys->getInverterByPos(metricsInverterId);
+                Inverter<> *iv = mSys->getInverterByPos(metricsInverterId);
                 if (NULL != iv) {
                     snprintf(buffer,len,format,iv->config->name, valueFunc(iv));
                     metric += String(buffer);
@@ -904,21 +896,27 @@ class Web {
             if(shortUnit == "Hz")   return {"_hertz", "gauge"};
             return {"", "gauge"};
         }
+
+    private:
+        int metricsInverterId = 0;
+        uint8_t metricsFieldId = 0;
+        bool metricDeclared = false, metricTotalDeclard = false;
 #endif
+    private:
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
-        IApp *mApp;
-        HMSYSTEM *mSys;
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
 
-        settings_t *mConfig;
+        settings_t *mConfig = nullptr;
 
-        bool mSerialAddTime;
+        bool mSerialAddTime = true;
         char mSerialBuf[WEB_SERIAL_BUF_SIZE];
-        uint16_t mSerialBufFill;
-        bool mSerialClientConnnected;
+        uint16_t mSerialBufFill = 0;
+        bool mSerialClientConnnected = false;
 
         File mUploadFp;
-        bool mUploadFail;
+        bool mUploadFail = false;
 };
 
 #endif /*__WEB_H__*/

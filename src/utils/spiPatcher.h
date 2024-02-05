@@ -16,7 +16,7 @@
 
 class SpiPatcher {
     protected:
-        SpiPatcher(spi_host_device_t dev) :
+        explicit SpiPatcher(spi_host_device_t dev) :
             mHostDevice(dev), mCurHandle(nullptr) {
             // Use binary semaphore instead of mutex for performance reasons
             mutex = xSemaphoreCreateBinaryStatic(&mutex_buffer);
