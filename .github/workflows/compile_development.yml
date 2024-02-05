@@ -33,7 +33,7 @@ jobs:
           - opendtufusion-ethernet
     steps:
     - uses: actions/checkout@v4
-    - uses: benjlevesque/short-sha@v2.2
+    - uses: benjlevesque/short-sha@v3.0
       id: short-sha
       with:
         length: 7
@@ -93,7 +93,7 @@ jobs:
           - opendtufusion-ethernet-de
     steps:
     - uses: actions/checkout@v4
-    - uses: benjlevesque/short-sha@v2.2
+    - uses: benjlevesque/short-sha@v3.0
       id: short-sha
       with:
         length: 7
