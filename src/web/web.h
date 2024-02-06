@@ -656,7 +656,7 @@ class Web {
             { "is_enabled",           "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->config->enabled;} },
             { "is_available",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isAvailable();} },
             { "is_producing",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isProducing();} },
-            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (int64_t)ah::round3(iv->actPowerLimit);} },
+            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->actPowerLimit;} },
             { "power_limit_ack",      "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (iv->powerLimitAck)?1:0;} },
             { "max_power",            "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
             { "radio_rx_success",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
@@ -786,14 +786,14 @@ class Web {
                                                 char total[7];
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
-                                                    strncpy(total, "_total", 6);
+                                                    snprintf(total, sizeof(total)-1, "_total");
                                                 }
                                                 if (!metricTotalDeclard) {
-                                                    snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                    snprintf(type, sizeof(type)-1, "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
                                                     metrics += type;
                                                     metricTotalDeclard = true;
                                                 }
-                                                snprintf(topic, sizeof(topic), "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
+                                                snprintf(topic, sizeof(topic)-1, "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
                                                 // Report (non zero) channel value
                                                 // Use a fallback channel name (ch0, ch1, ...)if non is given by user
@@ -801,11 +801,11 @@ class Web {
                                                 if (iv->config->chName[channel-1][0] != 0) {
                                                     strncpy(chName, iv->config->chName[channel-1], sizeof(chName));
                                                 } else {
-                                                    snprintf(chName,sizeof(chName),"ch%1d",channel);
+                                                    snprintf(chName,sizeof(chName)-1,"ch%1d",channel);
                                                 }
-                                                snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
+                                                snprintf(topic, sizeof(topic)-1, "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
-                                            snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
+                                            snprintf(val, sizeof(val)-1, " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;
                                             metrics += val;
                                         }
@@ -835,7 +835,7 @@ class Web {
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
                         // Perform grouping on metrics according to Prometheus exposition format specification
-                        snprintf(type, sizeof(type),"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
+                        snprintf(type, sizeof(type)-1,"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
                         metrics = type;
 
                         for (metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
@@ -847,8 +847,8 @@ class Web {
                                 alarmChannelId = 0;
                                 if (alarmChannelId < rec->length) {
                                     std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
-                                    snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
-                                    snprintf(val, sizeof(val), " %.3f\n", iv->getValue(alarmChannelId, rec));
+                                    snprintf(topic, sizeof(topic)-1, "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
+                                    snprintf(val, sizeof(val)-1, " %.3f\n", iv->getValue(alarmChannelId, rec));
                                     metrics += topic;
                                     metrics += val;
                                 }

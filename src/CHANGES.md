@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.75 - 2024-02-06
+* fix active power control value #1406, #1409
+* update Mqtt lib to version `1.6.0`
+* take care of null terminator of chars #1410, #1411
+
 ## 0.8.74 - 2024-02-05
 * reduced cppcheck linter warnings significantly
 

@@ -120,7 +120,7 @@ class Inverter {
         uint8_t       type = INV_TYPE_1CH;                  // integer which refers to inverter type
         uint16_t      alarmMesIndex = 0;                    // Last recorded Alarm Message Index
         uint16_t      powerLimit[2] = {0xffff, AbsolutNonPersistent}; // limit power output (multiplied by 10)
-        float         actPowerLimit = -1;                   // actual power limit
+        uint16_t      actPowerLimit = 0xffff;               // actual power limit
         bool          powerLimitAck = false;                // acknowledged power limit
         uint8_t       devControlCmd = InitDataState;        // carries the requested cmd
         serial_u      radioId;                              // id converted to modbus
