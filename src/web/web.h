@@ -786,7 +786,7 @@ class Web {
                                                 char total[7];
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
-                                                    strncpy(total, "_total", 6);
+                                                    strncpy(total, "_total", sizeof(total));
                                                 }
                                                 if (!metricTotalDeclard) {
                                                     snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
