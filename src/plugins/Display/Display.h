@@ -223,21 +223,21 @@ class Display {
         }
 
         // private member variables
-        IApp *mApp;
+        IApp *mApp = nullptr;
         DisplayData mDisplayData;
-        bool mNewPayload;
-        uint8_t mLoopCnt;
-        uint32_t *mUtcTs;
-        display_t *mCfg;
-        HMSYSTEM *mSys;
-        RADIO *mHmRadio;
-        RADIO *mHmsRadio;
-        uint16_t mRefreshCycle;
+        bool mNewPayload = false;
+        uint8_t mLoopCnt = 0;
+        uint32_t *mUtcTs = nullptr;
+        display_t *mCfg = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        RADIO *mHmRadio = nullptr;
+        RADIO *mHmsRadio = nullptr;
+        uint16_t mRefreshCycle = 0;
 
     #if defined(ESP32) && !defined(ETHERNET)
         DisplayEPaper mEpaper;
     #endif
-        DisplayMono *mMono;
+        DisplayMono *mMono = nullptr;
 };
 
 #endif /*PLUGIN_DISPLAY*/

@@ -13,11 +13,11 @@ class DisplayMono128X64 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(display_t *cfg) {
+        void config(display_t *cfg) override {
             mCfg = cfg;
         }
 
-        void init(DisplayData *displayData) {
+        void init(DisplayData *displayData) override {
             u8g2_cb_t *rot = (u8g2_cb_t *)(( mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
             switch (mCfg->type) {
                 case DISP_TYPE_T1_SSD1306_128X64:
@@ -68,9 +68,7 @@ class DisplayMono128X64 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void disp(void) {
-            uint8_t pos, sun_pos, moon_pos;
-
+        void disp(void) override {
             mDisplay->clearBuffer();
 
             // Layout-Test
@@ -106,8 +104,8 @@ class DisplayMono128X64 : public DisplayMono {
                 }
                 // print status of inverters
                 else {
-                    sun_pos = -1;
-                    moon_pos = -1;
+                    int8_t sun_pos = -1;
+                    int8_t moon_pos = -1;
                     setLineFont(l_Status);
                     if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
                         snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
@@ -128,11 +126,11 @@ class DisplayMono128X64 : public DisplayMono {
                     }
                     printText(mFmtText, l_Status, 0xff);
 
-                    pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
+                    uint8_t pos = (mDispWidth - mDisplay->getStrWidth(mFmtText)) / 2;
                     mDisplay->setFont(u8g2_font_ncenB08_symbols8_ahoy);
-                    if (sun_pos!=-1)
+                    if (sun_pos != -1)
                         mDisplay->drawStr(pos + sun_pos + mPixelshift, mLineYOffsets[l_Status], "G");     // sun symbol
-                    if (moon_pos!=-1)
+                    if (moon_pos != -1)
                         mDisplay->drawStr(pos + moon_pos + mPixelshift, mLineYOffsets[l_Status], "H");    // moon symbol
                 }
             }
@@ -181,12 +179,11 @@ class DisplayMono128X64 : public DisplayMono {
             // draw dynamic RSSI bars
             int rssi_bar_height = 9;
             for (int i = 0; i < 4; i++) {
-                int radio_rssi_threshold = -60 - i * 10;
-                int wifi_rssi_threshold = -60 - i * 10;
+                int rssi_threshold = -60 - i * 10;
                 uint8_t barwidth = std::min(4 - i, 3);
-                if (mDisplayData->RadioRSSI > radio_rssi_threshold)
+                if (mDisplayData->RadioRSSI > rssi_threshold)
                     mDisplay->drawBox(widthShrink / 2 + mPixelshift,                         8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
-                if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
+                if (mDisplayData->WifiRSSI > rssi_threshold)
                     mDisplay->drawBox(mDispWidth - barwidth - widthShrink / 2 + mPixelshift, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
             }
             // draw dynamic antenna and WiFi symbols
@@ -223,23 +220,22 @@ class DisplayMono128X64 : public DisplayMono {
             l_MAX_LINES = 5,
         };
 
-        uint8_t graph_first_line;
-        uint8_t graph_last_line;
+        uint8_t graph_first_line = 0;
+        uint8_t graph_last_line = 0;
 
         const uint8_t pixelShiftRange = 11;  // number of pixels to shift from left to right (centered -> must be odd!)
-        uint8_t widthShrink;
+        uint8_t widthShrink = 0;
 
         void calcLinePositions() {
             uint8_t yOff = 0;
             uint8_t i = 0;
-            uint8_t asc, dsc;
 
             do {
                 setLineFont(i);
-                asc = mDisplay->getAscent();
+                uint8_t asc = mDisplay->getAscent();
                 yOff += asc;
                 mLineYOffsets[i] = yOff;
-                dsc = mDisplay->getDescent();
+                uint8_t dsc = mDisplay->getDescent();
                 yOff -= dsc;
                 if (l_Time == i) // prevent time and status line to touch
                     yOff++;      // -> one pixels space
@@ -248,8 +244,7 @@ class DisplayMono128X64 : public DisplayMono {
         }
 
         inline void setLineFont(uint8_t line) {
-            if ((line == l_TotalPower) ||
-                (line == l_Ahoy))
+            if (line == l_TotalPower) // || (line == l_Ahoy) -> l_TotalPower == l_Ahoy == 2
                 mDisplay->setFont(u8g2_font_ncenB14_tr);
             else if ((line == l_YieldDay) ||
                      (line == l_YieldTotal))

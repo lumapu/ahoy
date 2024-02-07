@@ -15,7 +15,7 @@
 
 class Protection {
     protected:
-        Protection(const char *pwd) {
+        explicit Protection(const char *pwd) {
             mPwd = pwd;
             mLogoutTimeout = 0;
             mLoginIp.fill(0);

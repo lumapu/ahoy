@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.76 - 2024-02-07
+* revert changes from yesterday regarding snprintf and its size #1410, #1411
+* reduced cppcheck linter warnings significantly
+* try to improve ePaper (ghosting) #1107
+
 ## 0.8.75 - 2024-02-06
 * fix active power control value #1406, #1409
 * update Mqtt lib to version `1.6.0`

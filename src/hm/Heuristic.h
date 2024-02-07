@@ -132,7 +132,7 @@ class Heuristic {
             ih->lastRxFragments = rxFragments;
         }
 
-        void printStatus(Inverter<> *iv) {
+        void printStatus(const Inverter<> *iv) {
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("Radio infos:"));
             if((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) {

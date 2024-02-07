@@ -11,6 +11,7 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
+#include <array>
 #include <atomic>
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
@@ -33,6 +34,8 @@ class Radio {
         virtual uint16_t getBootFreqMhz() { return 0; }
         virtual std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) { return std::make_pair(0, 0); }
         virtual bool loop(void) = 0;
+
+        Radio() : mTxBuf{} {}
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -107,7 +110,7 @@ class Radio {
                 mTxBuf[(*len)++] = (crc     ) & 0xff;
             }
             // crc over all
-            mTxBuf[*len] = ah::crc8(mTxBuf, *len);
+            mTxBuf[*len] = ah::crc8(mTxBuf.data(), *len);
             (*len)++;
         }
 
@@ -129,12 +132,11 @@ class Radio {
             mDtuSn |= 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
         }
 
-
-
-        uint32_t mDtuSn;
-        std::atomic<bool> mIrqRcvd;
+    protected:
+        uint32_t mDtuSn = 0;
+        std::atomic<bool> mIrqRcvd = false;
         bool *mSerialDebug = nullptr, *mPrivacyMode = nullptr, *mPrintWholeTrace = nullptr;
-        uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
+        std::array<uint8_t, MAX_RF_PAYLOAD_SIZE> mTxBuf;
 };
 
 #endif /*__RADIO_H__*/

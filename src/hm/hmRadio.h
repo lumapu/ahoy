@@ -395,9 +395,9 @@ class HmRadio : public Radio {
                 #endif*/
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
-                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                        ah::dumpBuf(mTxBuf.data(), len, 1, 4);
                     else
-                        ah::dumpBuf(mTxBuf, len);
+                        ah::dumpBuf(mTxBuf.data(), len);
                 } else {
                     DHEX(mTxBuf[0]);
                     DBGPRINT(F(" "));
@@ -415,7 +415,7 @@ class HmRadio : public Radio {
             }
             mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
-            mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
+            mNrf24->startWrite(mTxBuf.data(), len, false); // false = request ACK response
             mMillis = millis();
 
             mLastIv = iv;

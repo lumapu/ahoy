@@ -684,7 +684,6 @@ class Web {
                 char type[60], topic[100], val[25];
                 size_t len = 0;
                 int alarmChannelId;
-                int metricsChannelId;
 
                 // Perform grouping on metrics according to format specification
                 // Each step must return at least one character. Otherwise the processing of AsyncWebServerResponse stops.
@@ -766,7 +765,7 @@ class Web {
                             iv = mSys->getInverterByPos(metricsInverterId);
                             if (NULL != iv) {
                                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                                for (metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
+                                for (int metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
                                     uint8_t channel = rec->assign[metricsChannelId].ch;
 
                                     // Try inverter channel (channel 0) or any channel with maxPwr > 0
@@ -786,14 +785,14 @@ class Web {
                                                 char total[7];
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
-                                                    snprintf(total, sizeof(total)-1, "_total");
+                                                    snprintf(total, sizeof(total), "_total");
                                                 }
                                                 if (!metricTotalDeclard) {
-                                                    snprintf(type, sizeof(type)-1, "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                    snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
                                                     metrics += type;
                                                     metricTotalDeclard = true;
                                                 }
-                                                snprintf(topic, sizeof(topic)-1, "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
+                                                snprintf(topic, sizeof(topic), "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
                                                 // Report (non zero) channel value
                                                 // Use a fallback channel name (ch0, ch1, ...)if non is given by user
@@ -801,11 +800,11 @@ class Web {
                                                 if (iv->config->chName[channel-1][0] != 0) {
                                                     strncpy(chName, iv->config->chName[channel-1], sizeof(chName));
                                                 } else {
-                                                    snprintf(chName,sizeof(chName)-1,"ch%1d",channel);
+                                                    snprintf(chName,sizeof(chName),"ch%1d",channel);
                                                 }
-                                                snprintf(topic, sizeof(topic)-1, "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
+                                                snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
-                                            snprintf(val, sizeof(val)-1, " %.3f\n", iv->getValue(metricsChannelId, rec));
+                                            snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;
                                             metrics += val;
                                         }
@@ -835,7 +834,7 @@ class Web {
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
                         // Perform grouping on metrics according to Prometheus exposition format specification
-                        snprintf(type, sizeof(type)-1,"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
+                        snprintf(type, sizeof(type),"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
                         metrics = type;
 
                         for (metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
@@ -847,8 +846,8 @@ class Web {
                                 alarmChannelId = 0;
                                 if (alarmChannelId < rec->length) {
                                     std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
-                                    snprintf(topic, sizeof(topic)-1, "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
-                                    snprintf(val, sizeof(val)-1, " %.3f\n", iv->getValue(alarmChannelId, rec));
+                                    snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
+                                    snprintf(val, sizeof(val), " %.3f\n", iv->getValue(alarmChannelId, rec));
                                     metrics += topic;
                                     metrics += val;
                                 }
@@ -874,8 +873,8 @@ class Web {
         // Traverse all inverters and collect the metric via valueFunc
         String inverterMetric(char *buffer, size_t len, const char *format, std::function<uint64_t(Inverter<> *iv)> valueFunc) {
             String metric = "";
-            for (int metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
-                Inverter<> *iv = mSys->getInverterByPos(metricsInverterId);
+            for (int id = 0; id < mSys->getNumInverters();id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL != iv) {
                     snprintf(buffer,len,format,iv->config->name, valueFunc(iv));
                     metric += String(buffer);

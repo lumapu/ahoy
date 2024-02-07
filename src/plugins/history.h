@@ -47,14 +47,13 @@ class HistoryData {
         }
 
         void tickerSecond() {
-            Inverter<> *iv;
-            record_t<> *rec;
+            ;
             float curPwr = 0;
             float maxPwr = 0;
             float yldDay = -0.1;
             for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
-                iv = mSys->getInverterByPos(i);
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                Inverter<> *iv = mSys->getInverterByPos(i);
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if (iv == NULL)
                     continue;
                 curPwr += iv->getChannelFieldValue(CH0, FLD_PAC, rec);

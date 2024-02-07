@@ -10,6 +10,7 @@
 
 #define SYSLOG_MAX_PACKET_SIZE 256
 
+DbgSyslog::DbgSyslog() : mSyslogBuffer{} {}
 
 //-----------------------------------------------------------------------------
 void DbgSyslog::setup(settings_t *config) {

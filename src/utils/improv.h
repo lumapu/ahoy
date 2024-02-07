@@ -71,7 +71,7 @@ class Improv {
             TYPE_RPC_RESPONSE  = 0x04
         };
 
-        void dumpBuf(uint8_t buf[], uint8_t len) {
+        void dumpBuf(const uint8_t buf[], uint8_t len) {
             for(uint8_t i = 0; i < len; i++) {
                 DHEX(buf[i]);
                 DBGPRINT(F(" "));

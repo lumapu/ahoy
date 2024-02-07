@@ -38,7 +38,7 @@ typedef struct {
 template<class HMSYSTEM>
 class PubMqtt {
     public:
-        PubMqtt() {
+        PubMqtt() : SendIvData() {
             mLastIvState.fill(InverterStatus::OFF);
             mIvLastRTRpub.fill(0);
 
@@ -61,21 +61,21 @@ class PubMqtt {
             mUptime          = uptime;
             mIntervalTimeout = 1;
 
-            mSendIvData.setup(sys, utcTs, &mSendList);
-            mSendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
+            SendIvData.setup(sys, utcTs, &mSendList);
+            SendIvData.setPublishFunc([this](const char *subTopic, const char *payload, bool retained, uint8_t qos) {
                 publish(subTopic, payload, retained, true, qos);
             });
             mDiscovery.running = false;
 
-            snprintf(mLwtTopic.data(), mLwtTopic.size() - 1, "%s/mqtt", mCfgMqtt->topic);
+            snprintf(mLwtTopic.data(), mLwtTopic.size(), "%s/mqtt", mCfgMqtt->topic);
 
             if((strlen(mCfgMqtt->user) > 0) && (strlen(mCfgMqtt->pwd) > 0))
                 mClient.setCredentials(mCfgMqtt->user, mCfgMqtt->pwd);
 
             if(strlen(mCfgMqtt->clientId) > 0)
-                snprintf(mClientId.data(), mClientId.size() - 1, "%s", mCfgMqtt->clientId);
+                snprintf(mClientId.data(), mClientId.size(), "%s", mCfgMqtt->clientId);
             else {
-                snprintf(mClientId.data(), mClientId.size() - 1, "%s-", mDevName);
+                snprintf(mClientId.data(), mClientId.size(), "%s-", mDevName);
                 uint8_t pos = strlen(mClientId.data());
                 mClientId[pos++] = WiFi.macAddress().substring( 9, 10).c_str()[0];
                 mClientId[pos++] = WiFi.macAddress().substring(10, 11).c_str()[0];
@@ -95,7 +95,7 @@ class PubMqtt {
         }
 
         void loop() {
-            mSendIvData.loop();
+            SendIvData.loop();
 
             #if defined(ESP8266)
             mClient.loop();
@@ -129,7 +129,7 @@ class PubMqtt {
         }
 
         void tickerMinute() {
-            snprintf(mVal.data(), mVal.size() - 1, "%u", (*mUptime));
+            snprintf(mVal.data(), mVal.size(), "%u", (*mUptime));
             publish(subtopics[MQTT_UPTIME], mVal.data());
             publish(subtopics[MQTT_RSSI], String(WiFi.RSSI()).c_str());
             publish(subtopics[MQTT_FREE_HEAP], String(ESP.getFreeHeap()).c_str());
@@ -152,11 +152,11 @@ class PubMqtt {
                 if(NULL == iv)
                     continue;
 
-                snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/dis_night_comm", iv->config->name);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/dis_night_comm", iv->config->name);
                 publish(mSubTopic.data(), ((iv->commEnabled) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
             }
 
-            snprintf(mSubTopic.data(), mSubTopic.size() - 1, "comm_disabled");
+            snprintf(mSubTopic.data(), mSubTopic.size(), "comm_disabled");
             publish(mSubTopic.data(), (((*mUtcTimestamp > (sunset + offsE)) || (*mUtcTimestamp < (sunrise + offsM))) ? dict[STR_TRUE] : dict[STR_FALSE]), true);
 
             return true;
@@ -164,7 +164,7 @@ class PubMqtt {
 
         void notAvailChanged(bool allNotAvail) {
             if(!allNotAvail)
-                mSendIvData.resetYieldDay();
+                SendIvData.resetYieldDay();
         }
 
         bool tickerComm(bool disabled) {
@@ -179,8 +179,8 @@ class PubMqtt {
 
         void tickerMidnight() {
             // set Total YieldDay to zero
-            snprintf(mSubTopic.data(), mSubTopic.size() - 1, "total/%s", fields[FLD_YD]);
-            snprintf(mVal.data(), mVal.size() - 1, "0");
+            snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[FLD_YD]);
+            snprintf(mVal.data(), mVal.size(), "0");
             publish(mSubTopic.data(), mVal.data(), true);
         }
 
@@ -200,9 +200,9 @@ class PubMqtt {
                 return;
 
             if(addTopic)
-                snprintf(mTopic.data(), mTopic.size() - 1, "%s/%s", mCfgMqtt->topic, subTopic);
+                snprintf(mTopic.data(), mTopic.size(), "%s/%s", mCfgMqtt->topic, subTopic);
             else
-                snprintf(mTopic.data(), mTopic.size() - 1, "%s", subTopic);
+                snprintf(mTopic.data(), mTopic.size(), "%s", subTopic);
 
             mClient.publish(mTopic.data(), qos, retained, payload);
             yield();
@@ -241,7 +241,7 @@ class PubMqtt {
 
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
-                snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
                 publish(mSubTopic.data(), "true", true, true, QOS_2);
             }
         }
@@ -261,11 +261,11 @@ class PubMqtt {
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
-                snprintf(mVal.data(), mVal.size() - 1, "ctrl/limit/%d", i);
+                snprintf(mVal.data(), mVal.size(), "ctrl/limit/%d", i);
                 subscribe(mVal.data(), QOS_2);
-                snprintf(mVal.data(), mVal.size() - 1, "ctrl/restart/%d", i);
+                snprintf(mVal.data(), mVal.size(), "ctrl/restart/%d", i);
                 subscribe(mVal.data());
-                snprintf(mVal.data(), mVal.size() - 1, "ctrl/power/%d", i);
+                snprintf(mVal.data(), mVal.size(), "ctrl/power/%d", i);
                 subscribe(mVal.data());
             }
             subscribe(subscr[MQTT_SUBS_SET_TIME]);
@@ -400,20 +400,20 @@ class PubMqtt {
                 const char *devCls, *stateCls;
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
-                        snprintf(name.data(), name.size() - 1, "%s", iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name.data(), name.size(), "%s", iv->getFieldName(mDiscovery.sub, rec));
                     else
-                        snprintf(name.data(), name.size() - 1, "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(topic.data(), name.size() - 1, "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
-                    snprintf(uniq_id.data(), uniq_id.size() - 1, "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                        snprintf(name.data(), name.size(), "CH%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(topic.data(), name.size(), "/ch%d/%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(uniq_id.data(), uniq_id.size(), "ch%d_%s", rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
 
                     devCls = getFieldDeviceClass(rec->assign[mDiscovery.sub].fieldId);
                     stateCls = getFieldStateClass(rec->assign[mDiscovery.sub].fieldId);
                 }
 
                 else { // total values
-                    snprintf(name.data(), name.size() - 1, "Total %s", fields[fldTotal[mDiscovery.sub]]);
-                    snprintf(topic.data(), topic.size() - 1, "/%s", fields[fldTotal[mDiscovery.sub]]);
-                    snprintf(uniq_id.data(), uniq_id.size() - 1, "total_%s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(name.data(), name.size(), "Total %s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic.data(), topic.size(), "/%s", fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(uniq_id.data(), uniq_id.size(), "total_%s", fields[fldTotal[mDiscovery.sub]]);
                     devCls = getFieldDeviceClass(fldTotal[mDiscovery.sub]);
                     stateCls = getFieldStateClass(fldTotal[mDiscovery.sub]);
                 }
@@ -433,9 +433,9 @@ class PubMqtt {
                     doc2[F("stat_cla")] = String(stateCls);
 
                 if (!total)
-                    snprintf(topic.data(), topic.size() - 1, "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
+                    snprintf(topic.data(), topic.size(), "%s/sensor/%s/ch%d_%s/config", MQTT_DISCOVERY_PREFIX, iv->config->name, rec->assign[mDiscovery.sub].ch, iv->getFieldName(mDiscovery.sub, rec));
                 else // total values
-                    snprintf(topic.data(), topic.size() - 1, "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
+                    snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
                 buf.fill(0);
                 serializeJson(doc2, buf.data(), size);
@@ -509,14 +509,14 @@ class PubMqtt {
                     mLastIvState[id] = status;
                     changed = true;
 
-                    snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/available", iv->config->name);
-                    snprintf(mVal.data(), mVal.size() - 1, "%d", (uint8_t)status);
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/available", iv->config->name);
+                    snprintf(mVal.data(), mVal.size(), "%d", (uint8_t)status);
                     publish(mSubTopic.data(), mVal.data(), true);
                 }
             }
 
             if(changed) {
-                snprintf(mVal.data(), mVal.size() - 1, "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
+                snprintf(mVal.data(), mVal.size(), "%d", ((allAvail) ? MQTT_STATUS_ONLINE : ((anyAvail) ? MQTT_STATUS_PARTIAL : MQTT_STATUS_OFFLINE)));
                 publish("status", mVal.data(), true);
             }
 
@@ -539,14 +539,14 @@ class PubMqtt {
 
                 mSendAlarm[i] = false;
 
-                snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/alarm/cnt", iv->config->name);
-                snprintf(mVal.data(), mVal.size() - 1, "%d", iv->alarmCnt);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "%s/alarm/cnt", iv->config->name);
+                snprintf(mVal.data(), mVal.size(), "%d", iv->alarmCnt);
                 publish(mSubTopic.data(), mVal.data(), false);
 
                 for(uint8_t j = 0; j < 10; j++) {
                     if(0 != iv->lastAlarm[j].code) {
-                        snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/alarm/%d", iv->config->name, j);
-                        snprintf(mVal.data(), mVal.size() - 1, "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/alarm/%d", iv->config->name, j);
+                        snprintf(mVal.data(), mVal.size(), "{\"code\":%d,\"str\":\"%s\",\"start\":%d,\"end\":%d}",
                             iv->lastAlarm[j].code,
                             iv->getAlarmStr(iv->lastAlarm[j].code).c_str(),
                             iv->lastAlarm[j].start + lastMidnight,
@@ -581,8 +581,8 @@ class PubMqtt {
                         }
                     }
 
-                    snprintf(mSubTopic.data(), mSubTopic.size() - 1, "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
-                    snprintf(mVal.data(), mVal.size() - 1, "%g", ah::round3(iv->getValue(i, rec)));
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", iv->config->name, rec->assign[i].ch, fields[rec->assign[i].fieldId]);
+                    snprintf(mVal.data(), mVal.size(), "%g", ah::round3(iv->getValue(i, rec)));
                     publish(mSubTopic.data(), mVal.data(), retained);
 
                     yield();
@@ -598,7 +598,7 @@ class PubMqtt {
             if(mSendList.empty())
                 return;
 
-            mSendIvData.start();
+            SendIvData.start();
             mLastAnyAvail = anyAvail;
         }
 
@@ -609,7 +609,7 @@ class PubMqtt {
         #endif
 
         HMSYSTEM *mSys = nullptr;
-        PubMqttIvData<HMSYSTEM> mSendIvData;
+        PubMqttIvData<HMSYSTEM> SendIvData;
 
         uint32_t *mUtcTimestamp = nullptr, *mUptime = nullptr;
         uint32_t mRxCnt = 0, mTxCnt = 0;

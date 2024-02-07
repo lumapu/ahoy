@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
 // 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
@@ -21,6 +21,8 @@ struct sendListCmdIv {
 template<class HMSYSTEM>
 class PubMqttIvData {
     public:
+        PubMqttIvData() : mTotal{}, mSubTopic{}, mVal{} {}
+
         void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
             mSys           = sys;
             mUtcTimestamp  = utcTs;
@@ -249,25 +251,25 @@ class PubMqttIvData {
             }
         }
 
-        HMSYSTEM *mSys;
-        uint32_t *mUtcTimestamp;
+        HMSYSTEM *mSys = nullptr;
+        uint32_t *mUtcTimestamp = nullptr;
         pubMqttPublisherType mPublish;
-        State mState;
+        State mState = IDLE;
         StateFunction mTable[NUM_STATES];
 
-        uint8_t mCmd;
-        uint8_t mLastIvId;
-        bool mSendTotals, mTotalFound, mAllTotalFound, mSendTotalYd;
-        float mTotal[5], mYldTotalStore;
+        uint8_t mCmd = 0;
+        uint8_t mLastIvId = 0;
+        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false, mSendTotalYd = false;
+        float mTotal[5], mYldTotalStore = 0;
 
-        Inverter<> *mIv, *mIvSend;
-        uint8_t mPos;
-        bool mRTRDataHasBeenSent;
+        Inverter<> *mIv = nullptr, *mIvSend = nullptr;
+        uint8_t mPos = 0;
+        bool mRTRDataHasBeenSent = false;
 
         char mSubTopic[32 + MAX_NAME_LENGTH + 1];
         char mVal[140];
 
-        std::queue<sendListCmdIv> *mSendList;
+        std::queue<sendListCmdIv> *mSendList = nullptr;
 };
 
 #endif /*__PUB_MQTT_IV_DATA_H__*/

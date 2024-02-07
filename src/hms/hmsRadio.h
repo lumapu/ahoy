@@ -21,6 +21,7 @@ class CmtRadio : public Radio {
             mPrivacyMode = privacyMode;
             mSerialDebug = serialDebug;
             mPrintWholeTrace = printWholeTrace;
+            mTxBuf.fill(0);
         }
 
         bool loop() override {
@@ -102,9 +103,9 @@ class CmtRadio : public Radio {
                 DBGPRINT(F("Mhz | "));
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
-                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                        ah::dumpBuf(mTxBuf.data(), len, 1, 4);
                     else
-                        ah::dumpBuf(mTxBuf, len);
+                        ah::dumpBuf(mTxBuf.data(), len);
                 } else {
                     DHEX(mTxBuf[0]);
                     DBGPRINT(F(" "));
@@ -114,7 +115,7 @@ class CmtRadio : public Radio {
                 }
             }
 
-            CmtStatus status = mCmt.tx(mTxBuf, len);
+            CmtStatus status = mCmt.tx(mTxBuf.data(), len);
             mMillis = millis();
             if(CmtStatus::SUCCESS != status) {
                 DPRINT(DBG_WARN, F("CMT TX failed, code: "));

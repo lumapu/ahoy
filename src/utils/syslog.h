@@ -36,6 +36,7 @@
 
 class DbgSyslog {
     public:
+        DbgSyslog();
         void setup (settings_t *config);
         void syslogCb(String msg);
         void log(const char *hostname, uint8_t facility, uint8_t severity, char* msg);
@@ -43,7 +44,7 @@ class DbgSyslog {
     private:
         WiFiUDP mSyslogUdp;
         IPAddress mSyslogIP;
-        settings_t *mConfig;
+        settings_t *mConfig = nullptr;
         char mSyslogBuffer[SYSLOG_BUF_SIZE+1];
         uint16_t mSyslogBufFill = 0;
         int mSyslogSeverity = PRI_NOTICE;

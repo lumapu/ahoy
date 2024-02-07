@@ -264,11 +264,10 @@ void app::tickNtpUpdate(void) {
     #endif
     if (isOK) {
         this->updateNtp();
-
-        nxtTrig = isOK ? (mConfig->ntp.interval * 60) : 60;  // depending on NTP update success check again in 12h (depends on setting) or in 1 min
+        nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h
 
         // immediately start communicating
-        if (isOK && mSendFirst) {
+        if (mSendFirst) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 1, "senOn");
         }

@@ -12,11 +12,11 @@ class DisplayMono64X48 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(display_t *cfg) {
+        void config(display_t *cfg) override {
             mCfg = cfg;
         }
 
-        void init(DisplayData *displayData) {
+        void init(DisplayData *displayData) override {
             u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
             // Wemos OLed Shield is not defined in u8 lib -> use nearest compatible
             monoInit(new U8G2_SSD1306_64X48_ER_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
@@ -28,7 +28,7 @@ class DisplayMono64X48 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void disp(void) {
+        void disp(void) override {
             mDisplay->clearBuffer();
 
             // calculate current pixelshift for pixelshift screensaver

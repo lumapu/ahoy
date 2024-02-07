@@ -698,7 +698,7 @@ class Communication : public CommQueue<> {
                     byte[23] to	 byte[26] Matching_APPFW_PN*/
                     DPRINT(DBG_INFO,F("HW_PartNo "));
                     DBGPRINTLN(String((uint32_t) (((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13]));
-                    record_t<> *rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
+                    rec = q->iv->getRecordStruct(InverterDevInform_Simple);  // choose the record structure
                     rec->ts = q->ts;
                     q->iv->setValue(0, rec, (uint32_t) ((((p->packet[10] << 8) | p->packet[11]) << 8 | p->packet[12]) << 8 | p->packet[13])/1);
                     rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
@@ -899,14 +899,16 @@ class Communication : public CommQueue<> {
                 q->iv->alarmCnt = 1; // minimum...
                 stsok = false;
                 //sth is or was wrong?
-                if ( (q->iv->type != INV_TYPE_1CH) && ( (statusMi != 3)
-                                                || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
+                if ((q->iv->type != INV_TYPE_1CH)
+                    && ((statusMi != 3)
+                        || ((q->iv->lastAlarm[stschan].code) && (q->iv->lastAlarm[stschan].code != 1)))
                    ) {
                     q->iv->lastAlarm[stschan+q->iv->type==INV_TYPE_2CH ? 2: 4] = alarm_t(q->iv->lastAlarm[stschan].code, q->iv->lastAlarm[stschan].start,q->ts);
                     q->iv->lastAlarm[stschan] = alarm_t(prntsts, q->ts,0);
                     q->iv->alarmCnt = q->iv->type == INV_TYPE_2CH ? 3 : 5;
-                } else if ( (q->iv->type == INV_TYPE_1CH) && ( (statusMi != 3)
-                                                || ((q->iv->lastAlarm[stschan].code) && (statusMi == 3) && (q->iv->lastAlarm[stschan].code != 1)))
+                } else if ((q->iv->type == INV_TYPE_1CH)
+                    && ( (statusMi != 3)
+                        || ((q->iv->lastAlarm[stschan].code) && (q->iv->lastAlarm[stschan].code != 1)))
                    ) {
                     q->iv->lastAlarm[stschan] = alarm_t(q->iv->lastAlarm[0].code, q->iv->lastAlarm[0].start,q->ts);
                 } else if (q->iv->type == INV_TYPE_1CH)
@@ -962,7 +964,7 @@ class Communication : public CommQueue<> {
                 iv->radioStatistics.ivLoss  = iv->radioStatistics.ivSent - iv->mDtuRxCnt; // this is what we didn't receive
                 iv->radioStatistics.dtuLoss = iv->mIvTxCnt; // this is somehow the requests w/o answers in that periode
                 iv->radioStatistics.dtuSent = iv->mDtuTxCnt;
-                if (mSerialDebug) {
+                if (*mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, iv->id);
                     DBGPRINTLN("DTU loss: " +
                         String (iv->radioStatistics.ivLoss) + "/" +
