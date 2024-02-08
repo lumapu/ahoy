@@ -266,7 +266,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
-            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str());
+            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
@@ -833,7 +833,7 @@ class RestApi {
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
             if(F("auth") == jsonIn[F("cmd")]) {
                 if(String(jsonIn["val"]) == String(mConfig->sys.adminPwd))
-                    jsonOut["token"] = mApp->unlock(clientIP);
+                    jsonOut["token"] = mApp->unlock(clientIP, false);
                 else {
                     jsonOut[F("error")] = F(AUTH_ERROR);
                     return false;
@@ -841,20 +841,10 @@ class RestApi {
                 return true;
             }
 
-            /*if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
-                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
-                    const char* token = jsonIn["token"];
-                    if(mApp->isProtected(clientIP, token)) {
-                        jsonOut[F("error")] = F(IS_PROTECTED);
-                        jsonOut[F("bla")] = String(token);
-                        return false;
-                    }
-                }
-            }*/
-
             if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
                 if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
-                    if(mApp->isProtected(clientIP)) {
+                    const char* token = jsonIn["token"];
+                    if(mApp->isProtected(token, false)) {
                         jsonOut[F("error")] = F(IS_PROTECTED);
                         return false;
                     }
@@ -904,15 +894,15 @@ class RestApi {
         }
 
         bool setSetup(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
-            /*if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
                 if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
                     const char* token = jsonIn["token"];
-                    if(mApp->isProtected(clientIP, token)) {
+                    if(mApp->isProtected(token, false)) {
                         jsonOut[F("error")] = F(IS_PROTECTED);
                         return false;
                     }
                 }
-            }*/
+            }
 
             #if !defined(ETHERNET)
             if(F("scan_wifi") == jsonIn[F("cmd")])

@@ -251,8 +251,8 @@ class app : public IApp, public ah::Scheduler {
             mProtection->lock();
         }
 
-        char *unlock(const char *clientIp) override {
-            return mProtection->unlock(clientIp);
+        char *unlock(const char *clientIp, bool loginFromWeb) override {
+            return mProtection->unlock(clientIp, loginFromWeb);
         }
 
         void resetLockTimeout(void) override {
@@ -263,12 +263,8 @@ class app : public IApp, public ah::Scheduler {
             return mProtection->isProtected();
         }
 
-        bool isProtected(const char *clientIp) const override {
-            return mProtection->isProtected(clientIp);
-        }
-
-        bool isProtected(const char *clientIp, const char *token) const override {
-            return mProtection->isProtected(clientIp, token);
+        bool isProtected(const char *token, bool askedFromWeb) const override {
+            return mProtection->isProtected(token, askedFromWeb);
         }
 
         bool getNrfEnabled(void) override {

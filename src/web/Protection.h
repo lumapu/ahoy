@@ -40,8 +40,9 @@ class Protection {
             // auto logout
             if(0 != mLogoutTimeout) {
                 if (0 == --mLogoutTimeout) {
-                    if(mPwd[0] != '\0')
+                    if(mPwd[0] != '\0') {
                         mProtected = true;
+                    }
                 }
             }
         }
@@ -49,13 +50,17 @@ class Protection {
         void lock(void) {
             mProtected = true;
             mLoginIp.fill(0);
+            mToken.fill(0);
         }
 
-        char *unlock(const char *clientIp) {
+        char *unlock(const char *clientIp, bool loginFromWeb) {
             mLogoutTimeout = LOGOUT_TIMEOUT;
             mProtected = false;
-            ah::ip2Arr(static_cast<uint8_t*>(mLoginIp.data()), clientIp);
-            genToken();
+
+            if(loginFromWeb)
+                ah::ip2Arr(static_cast<uint8_t*>(mLoginIp.data()), clientIp);
+            else
+                genToken();
 
             return reinterpret_cast<char*>(mToken.data());
         }
@@ -69,28 +74,25 @@ class Protection {
             return mProtected;
         }
 
-        bool isProtected(const char *clientIp, const char *token) const {
-            if(isProtected(clientIp))
-                return true;
-
-            if(0 == mToken[0]) // token is zero
-                return true;
-
-            return (0 != strncmp(token, mToken.data(), 16));
-        }
-
-        bool isProtected(const char *clientIp) const {
+        bool isProtected(const char *token, bool askedFromWeb) const { // token == clientIp
             if(mProtected)
                 return true;
 
             if(mPwd[0] == '\0')
                 return false;
 
-            std::array<uint8_t, 4> ip;
-            ah::ip2Arr(static_cast<uint8_t*>(ip.data()), clientIp);
-            for(uint8_t i = 0; i < 4; i++) {
-                if(mLoginIp[i] != ip[i])
+            if(askedFromWeb) { // check IP address
+                std::array<uint8_t, 4> ip;
+                ah::ip2Arr(static_cast<uint8_t*>(ip.data()), token);
+                for(uint8_t i = 0; i < 4; i++) {
+                    if(mLoginIp[i] != ip[i])
+                        return true;
+                }
+            } else { // API call - check token
+                if(0 == mToken[0]) // token is zero
                     return true;
+
+                return (0 != strncmp(token, mToken.data(), 16));
             }
 
             return false;

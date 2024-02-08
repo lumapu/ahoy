@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.78 - 2024-02-09
+* finalized API token access #1415
+
 ## 0.8.77 - 2024-02-08
 * merge PR: BugFix: ACK #1414
 * fix suspicious if condition #1416
