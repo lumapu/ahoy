@@ -782,7 +782,7 @@ class Web {
                                             // report value
                                             if (0 == channel) {
                                                 // Report a _total value if also channel values were reported. Otherwise report without _total
-                                                char total[7];
+                                                char total[7] = {0};
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
                                                     snprintf(total, sizeof(total), "_total");

@@ -70,7 +70,7 @@ class RestApi {
             if(obj[F("path")] == "ctrl")
                 setCtrl(obj, dummy, "*");
             else if(obj[F("path")] == "setup")
-                setSetup(obj, dummy);
+                setSetup(obj, dummy, "*");
         }
 
     private:
@@ -169,7 +169,7 @@ class RestApi {
                 if(path == "ctrl")
                     root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
                 else if(path == "setup")
-                    root[F("success")] = setSetup(obj, root);
+                    root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
                 else {
                     root[F("success")] = false;
                     root[F("error")]   = F(PATH_NOT_FOUND) + path;
@@ -831,6 +831,36 @@ class RestApi {
         }
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            if(F("auth") == jsonIn[F("cmd")]) {
+                if(String(jsonIn["val"]) == String(mConfig->sys.adminPwd))
+                    jsonOut["token"] = mApp->unlock(clientIP);
+                else {
+                    jsonOut[F("error")] = F(AUTH_ERROR);
+                    return false;
+                }
+                return true;
+            }
+
+            /*if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
+                    const char* token = jsonIn["token"];
+                    if(mApp->isProtected(clientIP, token)) {
+                        jsonOut[F("error")] = F(IS_PROTECTED);
+                        jsonOut[F("bla")] = String(token);
+                        return false;
+                    }
+                }
+            }*/
+
+            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
+                    if(mApp->isProtected(clientIP)) {
+                        jsonOut[F("error")] = F(IS_PROTECTED);
+                        return false;
+                    }
+                }
+            }
+
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
             if(NULL == iv) {
@@ -838,15 +868,6 @@ class RestApi {
                 return false;
             }
             jsonOut[F("id")] = jsonIn[F("id")];
-
-            if(mConfig->sys.adminPwd[0] != '\0') {
-                if(strncmp("*", clientIP, 1) != 0) { // no call from API (MqTT)
-                    if(mApp->isProtected(clientIP)) {
-                        jsonOut[F("error")] = F(INV_IS_PROTECTED);
-                        return false;
-                    }
-                }
-            }
 
             if(F("power") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest((jsonIn[F("val")] == 1) ? TurnOn : TurnOff);
@@ -882,7 +903,17 @@ class RestApi {
             return true;
         }
 
-        bool setSetup(JsonObject jsonIn, JsonObject jsonOut) {
+        bool setSetup(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            /*if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
+                    const char* token = jsonIn["token"];
+                    if(mApp->isProtected(clientIP, token)) {
+                        jsonOut[F("error")] = F(IS_PROTECTED);
+                        return false;
+                    }
+                }
+            }*/
+
             #if !defined(ETHERNET)
             if(F("scan_wifi") == jsonIn[F("cmd")])
                 mApp->scanAvailNetworks();

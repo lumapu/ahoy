@@ -31,15 +31,21 @@
 #endif
 
 #ifdef LANG_DE
+    #define AUTH_ERROR "Authentifizierungsfehler"
+#else /*LANG_EN*/
+    #define AUTH_ERROR "authentication error"
+#endif
+
+#ifdef LANG_DE
     #define UNKNOWN_CMD "unbekanntes Kommando: '"
 #else /*LANG_EN*/
     #define UNKNOWN_CMD "unknown cmd: '"
 #endif
 
 #ifdef LANG_DE
-    #define INV_IS_PROTECTED "nicht angemeldet, Kommando nicht möglich!"
+    #define IS_PROTECTED "nicht angemeldet, Kommando nicht möglich!"
 #else /*LANG_EN*/
-    #define INV_IS_PROTECTED "not logged in, command not possible!"
+    #define IS_PROTECTED "not logged in, command not possible!"
 #endif
 
 #ifdef LANG_DE

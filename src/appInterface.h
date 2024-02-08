@@ -62,10 +62,11 @@ class IApp {
         virtual uint32_t getMqttTxCnt() = 0;
 
         virtual void lock(void) = 0;
-        virtual void unlock(const char *clientIp) = 0;
+        virtual char *unlock(const char *clientIp) = 0;
         virtual void resetLockTimeout(void) = 0;
         virtual bool isProtected(void) const = 0;
         virtual bool isProtected(const char *clientIp) const = 0;
+        virtual bool isProtected(const char *clientIp, const char *token) const = 0;
 
         virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
         virtual uint16_t getHistoryMaxDay() = 0;

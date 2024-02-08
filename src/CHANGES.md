@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.77 - 2024-02-08
+* merge PR: BugFix: ACK #1414
+* fix suspicious if condition #1416
+* prepared API token for access, not functional #1415
+
 ## 0.8.76 - 2024-02-07
 * revert changes from yesterday regarding snprintf and its size #1410, #1411
 * reduced cppcheck linter warnings significantly
