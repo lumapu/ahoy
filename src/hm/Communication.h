@@ -13,7 +13,7 @@
 #include "../utils/timemonitor.h"
 #include "Heuristic.h"
 
-#define MAX_BUFFER          250
+#define MAX_BUFFER          200
 
 typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> powerLimitAckListenerType;
@@ -92,6 +92,8 @@ class Communication : public CommQueue<> {
                     q->iv->mIsSingleframeReq = false;
                     mFramesExpected = getFramesExpected(q); // function to get expected frame count.
                     mTimeout = DURATION_TXFRAME + mFramesExpected*DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType];
+                    if((q->iv->ivGen == IV_MI) && ((q->cmd == MI_REQ_CH1) || (q->cmd == MI_REQ_4CH)))
+                        incrAttempt(q->iv->channels); // 2 more attempts for 2ch, 4 more for 4ch
 
                     mState = States::START;
                     break;
@@ -209,7 +211,7 @@ class Communication : public CommQueue<> {
                     } else {
                         if(q->iv->miMultiParts < 6) {
                             mState = States::WAIT;
-                            if((q->iv->radio->mRadioWaitTime.isTimeout() && mIsRetransmit) || !mIsRetransmit) {
+                            if(q->iv->radio->mRadioWaitTime.isTimeout() && q->attempts) {
                                 miRepeatRequest(q);
                                 return;
                             }
@@ -219,6 +221,10 @@ class Communication : public CommQueue<> {
                                 || ((q->cmd == MI_REQ_CH2) && (q->iv->type == INV_TYPE_2CH))
                                 || ((q->cmd == MI_REQ_CH1) && (q->iv->type == INV_TYPE_1CH))) {
                                 miComplete(q->iv);
+                            }
+                            if(*mSerialDebug) {
+                                DPRINT_IVID(DBG_INFO, q->iv->id);
+                                DBGPRINTLN(F("Payload (MI got all)"));
                             }
                             closeRequest(q, true);
                         }
@@ -443,9 +449,8 @@ class Communication : public CommQueue<> {
                 || (p->packet[0] == MI_REQ_CH2 + ALL_FRAMES)
                 || ((p->packet[0] >= (MI_REQ_4CH + ALL_FRAMES))
                     && (p->packet[0] < (0x39 + SINGLE_FRAME))
-                    )) {    //&& (p->packet[0] != (0x0f + ALL_FRAMES)))) {
+                    )) {
                 // small MI or MI 1500 data responses to 0x09, 0x11, 0x36, 0x37, 0x38 and 0x39
-                //mPayload[iv->id].txId = p->packet[0];
                 miDataDecode(p, q);
             } else if (p->packet[0] == (0x0f + ALL_FRAMES)) {
                 miHwDecode(p, q);
@@ -541,14 +546,16 @@ class Communication : public CommQueue<> {
 
             len -= 2;
 
-            DPRINT_IVID(DBG_INFO, q->iv->id);
-            DBGPRINT(F("Payload ("));
-            DBGPRINT(String(len));
-            if(*mPrintWholeTrace) {
-                DBGPRINT(F("): "));
-                ah::dumpBuf(mPayload.data(), len);
-            } else
-                DBGPRINTLN(F(")"));
+            if(*mSerialDebug) {
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                DBGPRINT(F("Payload ("));
+                DBGPRINT(String(len));
+                if(*mPrintWholeTrace) {
+                    DBGPRINT(F("): "));
+                    ah::dumpBuf(mPayload.data(), len);
+                } else
+                    DBGPRINTLN(F(")"));
+            }
 
             if(GridOnProFilePara == q->cmd) {
                 q->iv->addGridProfile(mPayload.data(), len);
@@ -813,35 +820,21 @@ class Communication : public CommQueue<> {
                 miStsConsolidate(q, datachan, rec, p->packet[23], p->packet[24]);
 
                 if (p->packet[0] < (0x39 + ALL_FRAMES) ) {
-                    mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), 1);
                     miNextRequest((p->packet[0] - ALL_FRAMES + 1), q);
                 } else {
                     q->iv->miMultiParts = 7; // indicate we are ready
                 }
             } else if((p->packet[0] == (MI_REQ_CH1 + ALL_FRAMES)) && (q->iv->type == INV_TYPE_2CH)) {
-                //addImportant(q->iv, MI_REQ_CH2);
                 miNextRequest(MI_REQ_CH2, q);
-                mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
-                q->iv->mIvRxCnt++;           // statistics workaround...
+                q->iv->mIvRxCnt++;        // statistics workaround...
 
-            } else {                      // first data msg for 1ch, 2nd for 2ch
+            } else                        // first data msg for 1ch, 2nd for 2ch
                 q->iv->miMultiParts += 6; // indicate we are ready
-
-            }
         }
 
         void miNextRequest(uint8_t cmd, const queue_s *q) {
-            incrAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
-            if(*mSerialDebug) {
-                DPRINT_IVID(DBG_WARN, q->iv->id);
-                DBGPRINT(F("next request ("));
-                DBGPRINT(String(q->attempts));
-                DBGPRINT(F(" attempts left): 0x"));
-                DBGHEXLN(cmd);
-            }
-
-            /*if(q->iv->miMultiParts > 5) //if(q->iv->miMultiParts == 7)
-            q->iv->radioStatistics.rxSuccess++;*/
+            mHeu.evalTxChQuality(q->iv, true, (q->attemptsMax - 1 - q->attempts), q->iv->curFrmCnt);
+            mHeu.getTxCh(q->iv);
             q->iv->radioStatistics.ivSent++;
 
             mFramesExpected = getFramesExpected(q);
@@ -851,6 +844,13 @@ class Communication : public CommQueue<> {
             q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             q->iv->miMultiParts = 0;
             q->iv->mGotFragment = 0;
+            if(*mSerialDebug) {
+                DPRINT_IVID(DBG_INFO, q->iv->id);
+                DBGPRINT(F("next: ("));
+                DBGPRINT(String(q->attempts));
+                DBGPRINT(F(" attempts left): 0x"));
+                DBGHEXLN(cmd);
+            }
             mIsRetransmit = true;
             chgCmd(cmd);
             //mState = States::WAIT;
@@ -858,19 +858,17 @@ class Communication : public CommQueue<> {
 
         void miRepeatRequest(const queue_s *q) {
             setAttempt();    // if function is called, we got something, and we necessarily need more transmissions for MI types...
+            q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
+            q->iv->radioStatistics.retransmits++;
+            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
             if(*mSerialDebug) {
-                DPRINT_IVID(DBG_WARN, q->iv->id);
+                DPRINT_IVID(DBG_INFO, q->iv->id);
                 DBGPRINT(F("resend request ("));
                 DBGPRINT(String(q->attempts));
                 DBGPRINT(F(" attempts left): 0x"));
                 DBGHEXLN(q->cmd);
             }
-
-            q->iv->radio->sendCmdPacket(q->iv, q->cmd, 0x00, true);
-            q->iv->radioStatistics.retransmits++;
-
-            q->iv->radio->mRadioWaitTime.startTimeMonitor(DURATION_TXFRAME + DURATION_ONEFRAME + duration_reserve[q->iv->ivRadioType]);
-            mIsRetransmit = false;
+            //mIsRetransmit = false;
         }
 
         void miStsConsolidate(const queue_s *q, uint8_t stschan,  record_t<> *rec, uint8_t uState, uint8_t uEnum, uint8_t lState = 0, uint8_t lEnum = 0) {
@@ -953,11 +951,6 @@ class Communication : public CommQueue<> {
 
 
         void miComplete(Inverter<> *iv) {
-            if (*mSerialDebug) {
-                DPRINT_IVID(DBG_INFO, iv->id);
-                DBGPRINTLN(F("got all data msgs"));
-            }
-
             if (iv->mGetLossInterval >= AHOY_GET_LOSS_INTERVAL) { // initially mIvRxCnt = mIvTxCnt = 0
                 iv->mGetLossInterval = 1;
                 iv->radioStatistics.ivSent  = iv->mIvRxCnt + iv->mDtuTxCnt; // iv->mIvRxCnt is the nr. of additional answer frames, default we expect one frame per request
@@ -966,10 +959,16 @@ class Communication : public CommQueue<> {
                 iv->radioStatistics.dtuSent = iv->mDtuTxCnt;
                 if (*mSerialDebug) {
                     DPRINT_IVID(DBG_INFO, iv->id);
-                    DBGPRINTLN("DTU loss: " +
-                        String (iv->radioStatistics.ivLoss) + "/" +
-                        String (iv->radioStatistics.ivSent) + " frames for " +
-                        String (iv->radioStatistics.dtuSent) + " requests");
+                    DBGPRINT(F("DTU loss: ") +
+                        String (iv->radioStatistics.ivLoss) + F("/") +
+                        String (iv->radioStatistics.ivSent) + F(" frames for ") +
+                        String (iv->radioStatistics.dtuSent) + F(" requests"));
+                     if(iv->mAckCount) {
+                        DBGPRINT(F(". ACKs: "));
+                        DBGPRINTLN(String(iv->mAckCount));
+                        iv->mAckCount = 0;
+                    } else
+                        DBGPRINTLN(F(""));
                 }
                 iv->mIvRxCnt  = 0;  // start new interval, iVRxCnt is abused to collect additional possible frames
                 iv->mIvTxCnt  = 0;  // start new interval, iVTxCnt is abused to collect nr. of unanswered requests
