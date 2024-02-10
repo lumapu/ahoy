@@ -246,7 +246,7 @@ class PubMqttIvData {
                 mPos++;
             } else {
                 mSendList->pop();
-                mPos = 0;
+                mSendTotals = false;
                 mState = IDLE;
             }
         }

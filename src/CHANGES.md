@@ -2,6 +2,7 @@
 
 ## 0.8.78 - 2024-02-10
 * finalized API token access #1415
+* possible fix of MqTT fix "total values are sent to often" #1421
 
 ## 0.8.77 - 2024-02-08
 * merge PR: BugFix: ACK #1414
