@@ -841,15 +841,8 @@ class RestApi {
                 return true;
             }
 
-            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
-                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
-                    const char* token = jsonIn["token"];
-                    if(mApp->isProtected(clientIP, token, false)) {
-                        jsonOut[F("error")] = F(IS_PROTECTED);
-                        return false;
-                    }
-                }
-            }
+            if(isProtected(jsonIn, jsonOut, clientIP))
+                return false;
 
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
@@ -894,15 +887,8 @@ class RestApi {
         }
 
         bool setSetup(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
-            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
-                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
-                    const char* token = jsonIn["token"];
-                    if(mApp->isProtected(clientIP, token, false)) {
-                        jsonOut[F("error")] = F(IS_PROTECTED);
-                        return false;
-                    }
-                }
-            }
+            if(isProtected(jsonIn, jsonOut, clientIP))
+                return false;
 
             #if !defined(ETHERNET)
             if(F("scan_wifi") == jsonIn[F("cmd")])
@@ -951,6 +937,25 @@ class RestApi {
             return true;
         }
 
+        bool isProtected(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
+                    const char* token = nullptr;
+                    if(jsonIn.containsKey(F("token")))
+                        token = jsonIn["token"];
+
+                    if(!mApp->isProtected(clientIP, token, false))
+                        return false;
+
+                    jsonOut[F("error")] = F(IS_PROTECTED);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+    private:
         IApp *mApp = nullptr;
         HMSYSTEM *mSys = nullptr;
         HmRadio<> *mRadioNrf = nullptr;

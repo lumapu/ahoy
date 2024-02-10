@@ -454,18 +454,20 @@
                     val = 100;
 
                 var obj = new Object();
-                obj.id = id;
-                obj.cmd = cmd;
-                obj.val = Math.round(val*10);
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+                obj.id = id
+                obj.token = "*"
+                obj.cmd = cmd
+                obj.val = Math.round(val*10)
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj))
             }
 
             function applyCtrl(id, cmd, val=0) {
                 var obj = new Object();
-                obj.id  = id;
-                obj.cmd = cmd;
-                obj.val = val;
-                getAjax("/api/ctrl", ctrlCb2, "POST", JSON.stringify(obj));
+                obj.id  = id
+                obj.token = "*"
+                obj.cmd = cmd
+                obj.val = val
+                getAjax("/api/ctrl", ctrlCb2, "POST", JSON.stringify(obj))
             }
 
             function ctrlCb(obj) {

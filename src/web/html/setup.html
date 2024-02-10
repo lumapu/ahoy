@@ -559,31 +559,26 @@
             }
 
             function setTime() {
-                var date = new Date();
-                var obj = new Object();
-                obj.cmd = "set_time";
-                obj.val = parseInt(date.getTime() / 1000);
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var date = new Date()
+                var obj = {cmd: "set_time", token: "*", val: parseInt(date.getTime() / 1000)}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function scan() {
-                var obj = new Object();
-                obj.cmd = "scan_wifi";
+                var obj = {cmd: "scan_wifi", token: "*"}
                 getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
                 setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function syncTime() {
-                var obj = new Object();
-                obj.cmd = "sync_ntp";
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var obj = {cmd: "sync_ntp", token: "*"}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function sendDiscoveryConfig() {
-                var obj = new Object();
-                obj.cmd = "discovery_cfg";
+                var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
@@ -837,8 +832,9 @@
 
                 function ivSave() {
                     var o = new Object();
-                    o.cmd  = "save_iv";
-                    o.id   = obj.id;
+                    o.cmd  = "save_iv"
+                    o.token = "*"
+                    o.id   = obj.id
                     o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
                     o.name = document.getElementsByName("name")[0].value;
                     o.en   = document.getElementsByName("enable")[0].checked;

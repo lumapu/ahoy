@@ -33,8 +33,7 @@ class Protection {
             return mInstance;
         }
 
-        void tickSecond() {
-            // auto logout
+        void tickSecond() { // auto logout
             if(0 != mLogoutTimeout) {
                 if (0 == --mLogoutTimeout) {
                     if(mPwd[0] != '\0')
@@ -77,8 +76,10 @@ class Protection {
             if(askedFromWeb)
                 return !isIdentical(clientIp, mWebIp);
 
-             // API call
-            if(0 == mToken[0]) // token is zero, from WebUi (logged in)
+            if(nullptr == token)
+                return true;
+
+            if('*' == token[0]) // call from WebUI
                 return !isIdentical(clientIp, mWebIp);
 
             if(isIdentical(clientIp, mApiIp))
@@ -92,10 +93,9 @@ class Protection {
             mToken.fill(0);
             for(uint8_t i = 0; i < 16; i++) {
                 mToken[i] = random(1, 35);
-                if(mToken[i] < 10)
-                    mToken[i] += 0x30; // convert to ascii number 1-9 (zero isn't allowed)
-                else
-                    mToken[i] += 0x37; // convert to ascii upper case character A-Z
+                // convert to ascii number 1-9 (zero isn't allowed) or upper
+                // case character A-Z
+                mToken[i] += (mToken[i] < 10) ? 0x30 : 0x37;
             }
         }
 

@@ -41,27 +41,24 @@
             var release = null;
 
             function apiCb(obj) {
-                var e = document.getElementById("apiResult");
+                var e = document.getElementById("apiResult")
                 if(obj.success) {
-                    e.innerHTML = " {#COMMAND_EXE}";
-                    getAjax("/api/index", parse);
-                }
-                else
-                    e.innerHTML = " {#ERROR}: " + obj.error;
+                    e.innerHTML = " {#COMMAND_EXE}"
+                    getAjax("/api/index", parse)
+                } else
+                    e.innerHTML = " {#ERROR}: " + obj.error
             }
 
             function setTime() {
-                var date = new Date();
-                var obj = new Object();
-                obj.cmd = "set_time";
-                obj.val = parseInt(date.getTime() / 1000);
-                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj));
+                var date = new Date()
+                var obj = {cmd: "set_time", token: "*", val: parseInt(date.getTime() / 1000)}
+                getAjax("/api/setup", apiCb, "POST", JSON.stringify(obj))
             }
 
             function parseGeneric(obj) {
                 if(exeOnce)
-                    parseESP(obj);
-                parseRssi(obj);
+                    parseESP(obj)
+                parseRssi(obj)
             }
 
             function parseSys(obj) {
