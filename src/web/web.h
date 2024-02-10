@@ -227,7 +227,7 @@ class Web {
         }
 
         void checkProtection(AsyncWebServerRequest *request) {
-            if(mApp->isProtected(request->client()->remoteIP().toString().c_str(), true)) {
+            if(mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true)) {
                 checkRedirect(request);
                 return;
             }
@@ -328,7 +328,7 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
             checkProtection(request);
-            mApp->lock();
+            mApp->lock(true);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -455,7 +455,7 @@ class Web {
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
-                mApp->lock();
+                mApp->lock(false);
             }
             mConfig->sys.protectionMask = 0x0000;
             for (uint8_t i = 0; i < 7; i++) {

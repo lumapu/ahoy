@@ -266,7 +266,7 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
-            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), true);
+            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
             obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
@@ -844,7 +844,7 @@ class RestApi {
             if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
                 if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
                     const char* token = jsonIn["token"];
-                    if(mApp->isProtected(token, false)) {
+                    if(mApp->isProtected(clientIP, token, false)) {
                         jsonOut[F("error")] = F(IS_PROTECTED);
                         return false;
                     }
@@ -897,7 +897,7 @@ class RestApi {
             if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
                 if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
                     const char* token = jsonIn["token"];
-                    if(mApp->isProtected(token, false)) {
+                    if(mApp->isProtected(clientIP, token, false)) {
                         jsonOut[F("error")] = F(IS_PROTECTED);
                         return false;
                     }

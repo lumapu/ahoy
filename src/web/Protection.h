@@ -18,12 +18,9 @@ class Protection {
         explicit Protection(const char *pwd) {
             mPwd = pwd;
             mLogoutTimeout = 0;
-            mLoginIp.fill(0);
+            mWebIp.fill(0);
+            mApiIp.fill(0);
             mToken.fill(0);
-
-            // no password set - unlock
-            if(pwd[0] == '\0')
-                mProtected = false;
         }
 
     public:
@@ -40,27 +37,30 @@ class Protection {
             // auto logout
             if(0 != mLogoutTimeout) {
                 if (0 == --mLogoutTimeout) {
-                    if(mPwd[0] != '\0') {
-                        mProtected = true;
-                    }
+                    if(mPwd[0] != '\0')
+                        lock(false);
                 }
             }
         }
 
-        void lock(void) {
-            mProtected = true;
-            mLoginIp.fill(0);
+        void lock(bool fromWeb) {
+            mWebIp.fill(0);
+            if(fromWeb)
+                return;
+
+            mApiIp.fill(0);
             mToken.fill(0);
         }
 
         char *unlock(const char *clientIp, bool loginFromWeb) {
             mLogoutTimeout = LOGOUT_TIMEOUT;
-            mProtected = false;
 
             if(loginFromWeb)
-                ah::ip2Arr(static_cast<uint8_t*>(mLoginIp.data()), clientIp);
-            else
+                ah::ip2Arr(static_cast<uint8_t*>(mWebIp.data()), clientIp);
+            else {
+                ah::ip2Arr(static_cast<uint8_t*>(mApiIp.data()), clientIp);
                 genToken();
+            }
 
             return reinterpret_cast<char*>(mToken.data());
         }
@@ -70,30 +70,19 @@ class Protection {
                 mLogoutTimeout = LOGOUT_TIMEOUT;
         }
 
-        bool isProtected(void) const {
-            return mProtected;
-        }
-
-        bool isProtected(const char *token, bool askedFromWeb) const { // token == clientIp
-            if(mProtected)
-                return true;
-
-            if(mPwd[0] == '\0')
+        bool isProtected(const char *clientIp, const char *token, bool askedFromWeb) const {
+            if(mPwd[0] == '\0') // no password set
                 return false;
 
-            if(askedFromWeb) { // check IP address
-                std::array<uint8_t, 4> ip;
-                ah::ip2Arr(static_cast<uint8_t*>(ip.data()), token);
-                for(uint8_t i = 0; i < 4; i++) {
-                    if(mLoginIp[i] != ip[i])
-                        return true;
-                }
-            } else { // API call - check token
-                if(0 == mToken[0]) // token is zero
-                    return true;
+            if(askedFromWeb)
+                return !isIdentical(clientIp, mWebIp);
 
+             // API call
+            if(0 == mToken[0]) // token is zero, from WebUi (logged in)
+                return !isIdentical(clientIp, mWebIp);
+
+            if(isIdentical(clientIp, mApiIp))
                 return (0 != strncmp(token, mToken.data(), 16));
-            }
 
             return false;
         }
@@ -106,8 +95,18 @@ class Protection {
                 if(mToken[i] < 10)
                     mToken[i] += 0x30; // convert to ascii number 1-9 (zero isn't allowed)
                 else
-                    mToken[i] += 0x37; // convert to ascii upper case character
+                    mToken[i] += 0x37; // convert to ascii upper case character A-Z
             }
+        }
+
+        bool isIdentical(const char *clientIp, const std::array<uint8_t, 4> cmp) const {
+            std::array<uint8_t, 4> ip;
+            ah::ip2Arr(static_cast<uint8_t*>(ip.data()), clientIp);
+            for(uint8_t i = 0; i < 4; i++) {
+                if(cmp[i] != ip[i])
+                    return false;
+            }
+            return true;
         }
 
     protected:
@@ -115,9 +114,8 @@ class Protection {
 
     private:
         const char *mPwd;
-        bool mProtected = true;
         uint16_t mLogoutTimeout = 0;
-        std::array<uint8_t, 4> mLoginIp;
+        std::array<uint8_t, 4> mWebIp, mApiIp;
         std::array<char, 17> mToken;
 };
 
