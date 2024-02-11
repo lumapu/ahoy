@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.79 - 2024-02-11
+* fix `opendtufusion` build (started only once USB-console was connected)
+* code quality improvments
+
 ## 0.8.78 - 2024-02-10
 * finalized API token access #1415
 * possible fix of MqTT fix "total values are sent to often" #1421

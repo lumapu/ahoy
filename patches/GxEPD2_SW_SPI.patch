@@ -1,5 +1,5 @@
 diff --git a/src/GxEPD2_EPD.cpp b/src/GxEPD2_EPD.cpp
-index 40b1b13..d0dbdba 100644
+index 8df8bef..91d7f49 100644
 --- a/src/GxEPD2_EPD.cpp
 +++ b/src/GxEPD2_EPD.cpp
 @@ -19,9 +19,9 @@
@@ -14,25 +14,29 @@ index 40b1b13..d0dbdba 100644
  {
    _initial_write = true;
    _initial_refresh = true;
-@@ -61,7 +61,6 @@ void GxEPD2_EPD::init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset
-     digitalWrite(_cs, HIGH); // set (needed e.g. for RP2040)
-   }
-   _reset();
--  _pSPIx->begin(); // may steal _rst pin (Waveshare Pico-ePaper-2.9)
-   if (_rst >= 0)
-   {
-     digitalWrite(_rst, HIGH); // preset (less glitch for any analyzer)
-@@ -84,14 +83,30 @@ void GxEPD2_EPD::init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset
+@@ -71,27 +71,30 @@ void GxEPD2_EPD::init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset
    {
      pinMode(_busy, INPUT);
    }
+-  _pSPIx->begin();
+-  if (_busy == MISO) // may be overridden
+-  {
+-    pinMode(_busy, INPUT);
+-  }
+-  if (_dc == MISO) // may be overridden, TTGO T5 V2.66
+-  {
+-    pinMode(_dc, OUTPUT);
+-  }
+-  if (_cs == MISO) // may be overridden
 +  if (_sck < 0) SPI.begin();
 +}
 +
 +void GxEPD2_EPD::init(int16_t sck, int16_t mosi, uint32_t serial_diag_bitrate, bool initial, uint16_t reset_duration, bool pulldown_rst_mode)
 +{
 +  if ((sck >= 0) && (mosi >= 0))
-+  {
+   {
+-    pinMode(_cs, INPUT);
+-  }
 +    _sck = sck;
 +    _mosi = mosi;
 +    digitalWrite(_sck, LOW);
@@ -54,7 +58,7 @@ index 40b1b13..d0dbdba 100644
  }
  
  void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void* busy_callback_parameter)
-@@ -100,12 +115,6 @@ void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void*
+@@ -100,12 +103,6 @@ void GxEPD2_EPD::setBusyCallback(void (*busyCallback)(const void*), const void*
    _busy_callback_parameter = busy_callback_parameter;
  }
  
@@ -67,7 +71,7 @@ index 40b1b13..d0dbdba 100644
  void GxEPD2_EPD::_reset()
  {
    if (_rst >= 0)
-@@ -174,115 +183,201 @@ void GxEPD2_EPD::_waitWhileBusy(const char* comment, uint16_t busy_time)
+@@ -174,115 +171,201 @@ void GxEPD2_EPD::_waitWhileBusy(const char* comment, uint16_t busy_time)
  
  void GxEPD2_EPD::_writeCommand(uint8_t c)
  {
@@ -300,10 +304,21 @@ index 40b1b13..d0dbdba 100644
 +  _endTransaction();
  }
 diff --git a/src/GxEPD2_EPD.h b/src/GxEPD2_EPD.h
-index 3daf37e..96198c2 100644
+index 34c1145..c480b7d 100644
 --- a/src/GxEPD2_EPD.h
 +++ b/src/GxEPD2_EPD.h
-@@ -35,6 +35,7 @@ class GxEPD2_EPD
+@@ -8,6 +8,10 @@
+ // Version: see library.properties
+ //
+ // Library: https://github.com/ZinggJM/GxEPD2
++// To use SW SPI with GxEPD2:
++//   add the special call to the added init method BEFORE the normal init method:
++//   display.epd2.init(SW_SCK, SW_MOSI, 115200, true, 20, false); // define or replace SW_SCK, SW_MOSI
++//   display.init(115200); // needed to init upper level
+ 
+ #ifndef _GxEPD2_EPD_H_
+ #define _GxEPD2_EPD_H_
+@@ -35,6 +39,7 @@ class GxEPD2_EPD
                 uint16_t w, uint16_t h, GxEPD2::Panel p, bool c, bool pu, bool fpu);
      virtual void init(uint32_t serial_diag_bitrate = 0); // serial_diag_bitrate = 0 : disabled
      virtual void init(uint32_t serial_diag_bitrate, bool initial, uint16_t reset_duration = 10, bool pulldown_rst_mode = false);
@@ -311,7 +326,7 @@ index 3daf37e..96198c2 100644
      virtual void end(); // release SPI and control pins
      //  Support for Bitmaps (Sprites) to Controller Buffer and to Screen
      virtual void clearScreen(uint8_t value) = 0; // init controller memory and screen (default white)
-@@ -97,7 +98,6 @@ class GxEPD2_EPD
+@@ -97,7 +102,6 @@ class GxEPD2_EPD
      {
        return (a > b ? a : b);
      };
@@ -319,7 +334,7 @@ index 3daf37e..96198c2 100644
    protected:
      void _reset();
      void _waitWhileBusy(const char* comment = 0, uint16_t busy_time = 5000);
-@@ -111,8 +111,14 @@ class GxEPD2_EPD
+@@ -111,17 +115,22 @@ class GxEPD2_EPD
      void _startTransfer();
      void _transfer(uint8_t value);
      void _endTransfer();
@@ -331,11 +346,12 @@ index 3daf37e..96198c2 100644
 +    void _readData(uint8_t* data, uint16_t n);
    protected:
 -    int16_t _cs, _dc, _rst, _busy, _busy_level;
-+    int16_t _cs, _dc, _rst, _busy, _busy_level, _sck, _mosi;
++    int16_t _cs, _dc, _rst, _busy, _busy_level, _sck, _mosi;;
      uint32_t _busy_timeout;
      bool _diag_enabled, _pulldown_rst_mode;
-     SPIClass* _pSPIx;
-@@ -121,7 +127,7 @@ class GxEPD2_EPD
+-    SPIClass* _pSPIx;
+     SPISettings _spi_settings;
+     bool _initial_write, _initial_refresh;
      bool _power_is_on, _using_partial_mode, _hibernating;
      bool _init_display_done;
      uint16_t _reset_duration;
