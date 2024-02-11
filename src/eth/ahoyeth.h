@@ -49,7 +49,7 @@ class ahoyeth {
         #if defined(CONFIG_IDF_TARGET_ESP32S3)
         EthSpi mEthSpi;
         #endif
-        settings_t *mConfig = NULL;
+        settings_t *mConfig = nullptr;
 
         uint32_t *mUtcTimestamp;
         AsyncUDP mUdp; // for time server

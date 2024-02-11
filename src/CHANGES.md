@@ -4,6 +4,9 @@
 * finalized API token access #1415
 * possible fix of MqTT fix "total values are sent to often" #1421
 * removed `switchCycle` from `hmsRadio.h` #1412
+* merge PR: Add hint to INV_RESET_MIDNIGHT resp. INV_PAUSE_DURING_NIGHT #1418
+* merge PR: simplify rxOffset logic #1417
+* code quality improvments
 
 ## 0.8.77 - 2024-02-08
 * merge PR: BugFix: ACK #1414

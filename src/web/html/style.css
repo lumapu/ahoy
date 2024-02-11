@@ -16,11 +16,11 @@ span, li, h3, label, fieldset {
     color: var(--fg);
 }
 
-fieldset, input[type=submit], .btn {
+fieldset, input[type="submit"], .btn {
     border-radius: 4px;
 }
 
-input[type=file] {
+input[type="file"] {
     width: 100%;
 }
 
@@ -33,7 +33,7 @@ textarea {
     color: var(--fg2);
 }
 
-svg rect {fill: #0000AA;}
+svg rect {fill: #00A;}
 svg.chart {
     background: #f2f2f2;
     border: 2px solid gray;
@@ -44,6 +44,7 @@ div.chartDivContainer {
     padding: 1px;
     margin: 1px;
 }
+
 div.chartdivContainer span {
     color: var(--fg2);
 }
@@ -95,7 +96,7 @@ svg.icon {
     vertical-align: middle;
     display: inline-block;
     margin-top:-4x;
-    padding: 5px 7px 5px 0px;
+    padding: 5px 7px 5px 0;
 }
 
 .icon-info {
@@ -141,7 +142,7 @@ svg.icon {
 span.seperator {
     width: 100%;
     height: 1px;
-    margin: 5px 0px 5px;
+    margin: 5px 0 5px;
     background-color: #494949;
     display: block;
 }
@@ -391,7 +392,7 @@ th {
 
 #footer .left {
     color: #bbb;
-    margin: 23px 0px 0px 25px;
+    margin: 23px 0 0 25px;
 }
 
 #footer ul {
@@ -525,7 +526,7 @@ input, select {
     font-size: 13pt;
 }
 
-input[type=text], input[type=password], select, input[type=number] {
+input[type="text"], input[type="password"], select, input[type="number"] {
     width: 100%;
     box-sizing: border-box;
     border: 1px solid #ccc;
@@ -551,7 +552,7 @@ input.btnDel {
 input.btn {
     background-color: var(--primary);
     color: #fff;
-    border: 0px;
+    border: 0;
     padding: 7px 20px 7px 20px;
     margin-bottom: 10px;
     text-transform: uppercase;
@@ -572,7 +573,7 @@ label {
     display: inline-block;
     font-size: 12pt;
     padding-right: 10px;
-    margin: 10px 0px 0px 15px;
+    margin: 10px 0 0 15px;
     vertical-align: top;
 }
 
@@ -601,7 +602,7 @@ div.ModPwr, div.ModName, div.YieldCor {
 div.hr {
     height: 1px;
     border-top: 1px solid #ccc;
-    margin: 10px 0px 10px;
+    margin: 10px 0 10px;
 }
 
 #note {

@@ -68,12 +68,11 @@ void DbgSyslog::syslogCb (String msg)
             // Send mSyslogBuffer in chunks because mSyslogBuffer is larger than syslog packet size
             int packetStart = 0;
             int packetSize = 122; // syslog payload depends also on hostname and app
-            char saveChar;
             if (isEolFound) {
                 mSyslogBuffer[mSyslogBufFill-2]=0; // skip \r\n
             }
             while(packetStart < mSyslogBufFill) {
-                saveChar = mSyslogBuffer[packetStart+packetSize];
+                char saveChar = mSyslogBuffer[packetStart+packetSize];
                 mSyslogBuffer[packetStart+packetSize] = 0;
                 log(mConfig->sys.deviceName,SYSLOG_FACILITY, mSyslogSeverity, &mSyslogBuffer[packetStart]);
                 mSyslogBuffer[packetStart+packetSize] = saveChar;
