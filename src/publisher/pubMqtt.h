@@ -316,7 +316,7 @@ class PubMqtt {
                 if(NULL == strstr(topic, "limit"))
                     root[F("val")] = atoi(pyld);
                 else
-                    root[F("val")] = (int)(atof(pyld) * 10.0f);
+                    root[F("val")] = atof(pyld);
 
                 if(pyld[len-1] == 'W')
                     limitAbs = true;

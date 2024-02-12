@@ -1432,6 +1432,31 @@
                     "token": "INV_ACK",
                     "en": "inverter acknowledged active power control command",
                     "de": "Wechselrichter hat die Leistungsbegrenzung akzeptiert"
+                },
+                {
+                    "token": "ERR_AUTH",
+                    "en": "authentication error",
+                    "de": "Authentifizierungsfehler"
+                },
+                {
+                    "token": "ERR_INDEX",
+                    "en": "inverter index invalid",
+                    "de": "Wechselrichterindex ungültig"
+                },
+                {
+                    "token": "ERR_UNKNOWN_CMD",
+                    "en": "unknown cmd",
+                    "de": "unbekanntes Kommando"
+                },
+                {
+                    "token": "ERR_LIMIT_NOT_ACCEPT",
+                    "en": "inverter does not accept dev control request at this moment",
+                    "de": "Leistungsbegrenzung / Ansteuerung aktuell nicht m&ouml;glich"
+                },
+                {
+                    "token": "ERR_PROTECTED",
+                    "en": "not logged in, command not possible!",
+                    "de": "nicht angemeldet, Kommando nicht m&ouml;glich!"
                 }
             ]
         },

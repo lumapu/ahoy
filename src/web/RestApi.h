@@ -30,10 +30,6 @@
 #define F(sl) (sl)
 #endif
 
-const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
-const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
-const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
-
 template<class HMSYSTEM>
 class RestApi {
     public:
@@ -831,14 +827,16 @@ class RestApi {
         }
 
         bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
-            if(F("auth") == jsonIn[F("cmd")]) {
-                if(String(jsonIn["val"]) == String(mConfig->sys.adminPwd))
-                    jsonOut["token"] = mApp->unlock(clientIP, false);
-                else {
-                    jsonOut[F("error")] = F(AUTH_ERROR);
+            if(jsonIn.containsKey(F("auth"))) {
+                if(String(jsonIn[F("auth")]) == String(mConfig->sys.adminPwd)) {
+                    jsonOut[F("token")] = mApp->unlock(clientIP, false);
+                    jsonIn[F("token")] = jsonOut[F("token")];
+                } else {
+                    jsonOut[F("error")] = F("ERR_AUTH");
                     return false;
                 }
-                return true;
+                if(!jsonIn.containsKey(F("cmd")))
+                    return true;
             }
 
             if(isProtected(jsonIn, jsonOut, clientIP))
@@ -847,7 +845,7 @@ class RestApi {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
             if(NULL == iv) {
-                jsonOut[F("error")] = F(INV_INDEX_INVALID) + jsonIn[F("id")].as<String>();
+                jsonOut[F("error")] = F("ERR_INDEX");
                 return false;
             }
             jsonOut[F("id")] = jsonIn[F("id")];
@@ -857,7 +855,7 @@ class RestApi {
             else if(F("restart") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest(Restart);
             else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
-                iv->powerLimit[0] = jsonIn["val"];
+                iv->powerLimit[0] = static_cast<uint16_t>(jsonIn["val"].as<float>() * 10.0);
                 if(F("limit_persistent_relative") == jsonIn[F("cmd")])
                     iv->powerLimit[1] = RelativPersistent;
                 else if(F("limit_persistent_absolute") == jsonIn[F("cmd")])
@@ -874,12 +872,12 @@ class RestApi {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
             } else {
-                jsonOut[F("error")] = F(UNKNOWN_CMD) + jsonIn["cmd"].as<String>() + "'";
+                jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
             }
 
             if(!accepted) {
-                jsonOut[F("error")] = F(INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT);
+                jsonOut[F("error")] = F("ERR_LIMIT_NOT_ACCEPT");
                 return false;
             }
 
@@ -930,7 +928,7 @@ class RestApi {
                 iv->config->disNightCom = jsonIn[F("disnightcom")];
                 mApp->saveSettings(false); // without reboot
             } else {
-                jsonOut[F("error")] = F(UNKNOWN_CMD);
+                jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
             }
 
@@ -947,13 +945,20 @@ class RestApi {
                     if(!mApp->isProtected(clientIP, token, false))
                         return false;
 
-                    jsonOut[F("error")] = F(IS_PROTECTED);
+                    jsonOut[F("error")] = F("ERR_PROTECTED");
                     return true;
                 }
             }
 
             return false;
         }
+
+    private:
+        constexpr static uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT,
+            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+        constexpr static uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T,
+            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+        constexpr static uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
     private:
         IApp *mApp = nullptr;

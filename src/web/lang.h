@@ -25,36 +25,6 @@
 #endif
 
 #ifdef LANG_DE
-    #define INV_INDEX_INVALID "Wechselrichterindex ungültig; "
-#else /*LANG_EN*/
-    #define INV_INDEX_INVALID "inverter index invalid: "
-#endif
-
-#ifdef LANG_DE
-    #define AUTH_ERROR "Authentifizierungsfehler"
-#else /*LANG_EN*/
-    #define AUTH_ERROR "authentication error"
-#endif
-
-#ifdef LANG_DE
-    #define UNKNOWN_CMD "unbekanntes Kommando: '"
-#else /*LANG_EN*/
-    #define UNKNOWN_CMD "unknown cmd: '"
-#endif
-
-#ifdef LANG_DE
-    #define IS_PROTECTED "nicht angemeldet, Kommando nicht möglich!"
-#else /*LANG_EN*/
-    #define IS_PROTECTED "not logged in, command not possible!"
-#endif
-
-#ifdef LANG_DE
-    #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "Leistungsbegrenzung / Ansteuerung aktuell nicht möglich"
-#else /*LANG_EN*/
-    #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "inverter does not accept dev control request at this moment"
-#endif
-
-#ifdef LANG_DE
     #define PATH_NOT_FOUND "Pfad nicht gefunden: "
 #else /*LANG_EN*/
     #define PATH_NOT_FOUND "Path not found: "

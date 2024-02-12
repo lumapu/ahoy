@@ -163,9 +163,10 @@ class Inverter {
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
             if(mDevControlRequest) {
-                if(InverterStatus::OFF != status)
+                if(InverterStatus::OFF != status) {
                     cb(devControlCmd, true);
-                else
+                    devControlCmd = InitDataState;
+                } else
                     DPRINTLN(DBG_WARN, F("Inverter is not avail"));
                 mDevControlRequest = false;
             } else if (IV_MI != ivGen) { // HM / HMS / HMT

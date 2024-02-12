@@ -1,5 +1,12 @@
 # Development Changes
 
+## 0.8.80 - 2024-02-12
+* optimize API authentication, Error-Codes #1415
+* breaking change: authentication API command changed #1415
+* breaking change: limit has to be send als `float`, `0.0 .. 100.0` #1415
+* updated documentation #1415
+* fix don't send control command twice #1426
+
 ## 0.8.79 - 2024-02-11
 * fix `opendtufusion` build (started only once USB-console was connected)
 * code quality improvments
