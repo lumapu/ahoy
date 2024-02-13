@@ -77,7 +77,7 @@ class HmRadio : public Radio {
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
             #endif
-            mNrf24->setRetries(3, 9); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
+            mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
             mNrf24->setDataRate(RF24_250KBPS);
             //mNrf24->setAutoAck(true); // enabled by default
@@ -159,7 +159,7 @@ class HmRadio : public Radio {
                     mTimeslotStart = millis();
                     tempRxChIdx = mRxChIdx;  // might be better to start off with one channel less?
                     mRxPendular = false;
-                    mNRFloopChannels = (mLastIv->mCmd == MI_REQ_CH1);
+                    mNRFloopChannels = (mLastIv->mCmd == MI_REQ_CH1 || mLastIv->mCmd == MI_REQ_CH2);
                     innerLoopTimeout = DURATION_LISTEN_MIN;
                 }
 
