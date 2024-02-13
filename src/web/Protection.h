@@ -85,7 +85,7 @@ class Protection {
             if(isIdentical(clientIp, mApiIp))
                 return (0 != strncmp(token, mToken.data(), 16));
 
-            return false;
+            return true;
         }
 
     private:

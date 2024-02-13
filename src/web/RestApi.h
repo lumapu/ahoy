@@ -680,6 +680,7 @@ class RestApi {
             obj[F("debug")]          = mConfig->serial.debug;
             obj[F("priv")]           = mConfig->serial.privacyLog;
             obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
+            obj[F("log2mqtt")]       = mConfig->serial.log2mqtt;
         }
 
         void getStaticIp(JsonObject obj) {

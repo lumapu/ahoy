@@ -204,6 +204,11 @@
                     "de": "alle Informationen in Log schreiben"
                 },
                 {
+                    "token": "LOG_TO_MQTT",
+                    "en": "Send Serial debug over MqTT",
+                    "de": "sende serielles Log &uuml;ber MqTT"
+                },
+                {
                     "token": "NETWORK",
                     "en": "Network",
                     "de": "Netzwerk"

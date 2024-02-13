@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.81 - 2024-02-13
+* fixed authentication with empty token #1415
+* added new setting for future function to send log via MqTT
+* combined firmware and hardware version to JSON topics (MqTT) #1212
+
 ## 0.8.80 - 2024-02-12
 * optimize API authentication, Error-Codes #1415
 * breaking change: authentication API command changed #1415

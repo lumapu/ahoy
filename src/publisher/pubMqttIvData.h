@@ -6,6 +6,7 @@
 #ifndef __PUB_MQTT_IV_DATA_H__
 #define __PUB_MQTT_IV_DATA_H__
 
+#include <array>
 #include "../utils/dbg.h"
 #include "../hm/hmSystem.h"
 #include "pubMqttDefs.h"
@@ -107,14 +108,14 @@ class PubMqttIvData {
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
                 if(MqttSentStatus::NEW_DATA == rec->mqttSentStatus) {
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
-                    snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
-                    mPublish(mSubTopic, mVal, true, QOS_0);
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/last_success", mIv->config->name);
+                    snprintf(mVal.data(), mVal.size(), "%d", mIv->getLastTs(rec));
+                    mPublish(mSubTopic.data(), mVal.data(), true, QOS_0);
 
                     if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch0/rssi", mIv->config->name);
-                        snprintf(mVal, 40, "%d", mIv->rssi);
-                        mPublish(mSubTopic, mVal, false, QOS_0);
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "%d", mIv->rssi);
+                        mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
                     }
                     rec->mqttSentStatus = MqttSentStatus::LAST_SUCCESS_SENT;
                 }
@@ -144,7 +145,7 @@ class PubMqttIvData {
 
             if(mPos < rec->length) {
                 bool retained = false;
-                if (mCmd == RealTimeRunData_Debug) {
+                if (RealTimeRunData_Debug == mCmd) {
                     if((FLD_YT == rec->assign[mPos].fieldId) || (FLD_YD == rec->assign[mPos].fieldId))
                         retained = true;
 
@@ -176,10 +177,32 @@ class PubMqttIvData {
                 }
 
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
+                    if(InverterDevInform_All == mCmd) {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/firmware", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%s\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
+                            mIv->getChannelFieldValue(CH0, FLD_FW_VERSION, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_YEAR, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec));
+                        retained = true;
+                    } else if(InverterDevInform_Simple == mCmd) {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/hardware", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%s\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
+                            mIv->getChannelFieldValue(CH0, FLD_PART_NUM, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec),
+                            mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec));
+                        retained = true;
+                    } else {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
+                        snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                    }
+
                     uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
-                    snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
-                    mPublish(mSubTopic, mVal, retained, qos);
+                    if((FLD_EVT != rec->assign[mPos].fieldId)
+                        && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
+                        mPublish(mSubTopic.data(), mVal.data(), retained, qos);
                 }
                 mPos++;
             } else {
@@ -192,8 +215,8 @@ class PubMqttIvData {
         }
 
         inline void sendRadioStat(uint8_t start) {
-            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/radio_stat", mIv->config->name);
-            snprintf(mVal, 140, "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d,\"lossIvRx\":%d,\"lossIvTx\":%d,\"lossDtuRx\":%d,\"lossDtuTx\":%d}",
+            snprintf(mSubTopic.data(), mSubTopic.size(), "%s/radio_stat", mIv->config->name);
+            snprintf(mVal.data(), mVal.size(), "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d,\"lossIvRx\":%d,\"lossIvTx\":%d,\"lossDtuRx\":%d,\"lossDtuTx\":%d}",
                 mIv->radioStatistics.txCnt,
                 mIv->radioStatistics.rxSuccess,
                 mIv->radioStatistics.rxFail,
@@ -203,7 +226,7 @@ class PubMqttIvData {
                 mIv->radioStatistics.ivSent,
                 mIv->radioStatistics.dtuLoss,
                 mIv->radioStatistics.dtuSent);
-            mPublish(mSubTopic, mVal, false, QOS_0);
+            mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
         }
 
         void stateSendTotals() {
@@ -240,9 +263,9 @@ class PubMqttIvData {
                         retained = false;
                         break;
                 }
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                snprintf(mVal, 40, "%g", ah::round3(mTotal[mPos]));
-                mPublish(mSubTopic, mVal, retained, QOS_0);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
+                snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mTotal[mPos]));
+                mPublish(mSubTopic.data(), mVal.data(), retained, QOS_0);
                 mPos++;
             } else {
                 mSendList->pop();
@@ -266,8 +289,8 @@ class PubMqttIvData {
         uint8_t mPos = 0;
         bool mRTRDataHasBeenSent = false;
 
-        char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[140];
+        std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
+        std::array<char, 140> mVal;
 
         std::queue<sendListCmdIv> *mSendList = nullptr;
 };

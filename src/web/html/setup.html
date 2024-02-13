@@ -43,24 +43,8 @@
                                 <div class="col-4 col-sm-9"><input type="text" name="cstLnkTxt"/></div>
                             </div>
                         </fieldset>
-                        <fieldset class="mb-4">
+                        <fieldset class="mb-4" id="serialCb">
                             <legend class="des">{#SERIAL_CONSOLE}</legend>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRINT_INVERTER_DATA}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_SERIAL_DEBUG}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRIVACY_MODE}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRINT_TRACES}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="wholeTrace"/></div>
-                            </div>
                         </fieldset>
                     </div>
 
@@ -716,6 +700,13 @@
                 ivGlob(obj);
             }
 
+            function divRow(item0, item1) {
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-3 mt-2"}, item0),
+                    ml("div", {class: "col-9"}, item1)
+                ])
+            }
+
             function ivModal(obj) {
                 var lines = [];
                 lines.push(ml("tr", {}, [
@@ -743,43 +734,23 @@
                 var html = ml("div", {}, [
                     tabs(["{#TAB_GENERAL}", "{#TAB_INPUTS}", "{#TAB_RADIO}", "{#TAB_ADVANCED}"]),
                     ml("div", {id: "div{#TAB_GENERAL}", class: "tab-content"}, [
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2"}, "{#INV_ENABLE}"),
-                            ml("div", {class: "col-10"}, cbEn)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "{#INV_SERIAL}"),
-                            ml("div", {class: "col-10"}, ser)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "Name"),
-                            ml("div", {class: "col-10"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
-                        ])
+                        divRow("{#INV_ENABLE}", cbEn),
+                        divRow("{#INV_SERIAL}", ser),
+                        divRow("Name", ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
                     ]),
                     ml("div", {id: "div{#TAB_INPUTS}", class: "tab-content hide"}, [
                         ml("div", {class: "row mb-3"},
-                            ml("table", {class: "table"},
-                                ml("tbody", {}, lines)
-                            )
+                            ml("table", {class: "table"}, ml("tbody", {}, lines))
                         )
                     ]),
                     ml("div", {id: "div{#TAB_RADIO}", class: "tab-content hide"}, [
                         ml("input", {type: "hidden", name: "isnrf"}, null),
                         ml("div", {id: "setcmt"}, [
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_FREQUENCY}"),
-                                ml("div", {class: "col-9"}, sel("freq", esp32cmtFreq, obj.freq))
-                            ]),
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_POWER_LEVEL}"),
-                                ml("div", {class: "col-9"}, sel("cmtpa", esp32cmtPa, obj.pa))
-                            ]),
+                            divRow("{#INV_FREQUENCY}", sel("freq", esp32cmtFreq, obj.freq)),
+                            divRow("{#INV_POWER_LEVEL}", sel("cmtpa", esp32cmtPa, obj.pa))
                         ]),
                         ml("div", {id: "setnrf"},
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_POWER_LEVEL}"),
-                                ml("div", {class: "col-9"}, sel("nrfpa", nrfPa, obj.pa))
-                            ]),
+                            divRow("{#INV_POWER_LEVEL}", sel("nrfpa", nrfPa, obj.pa))
                         ),
                     ]),
                     ml("div", {id: "div{#TAB_ADVANCED}", class: "tab-content hide"}, [
@@ -1026,8 +997,18 @@
             /*ENDIF_ESP32*/
 
             function parseSerial(obj) {
-                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"], ["priv", "priv"], ["wholeTrace", "wholeTrace"]])
-                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                var e = document.getElementById("serialCb")
+                var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"], ["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"]]
+                for(var i of l) {
+                    var cb = ml("input", {name: i[0], type: "checkbox"}, null)
+                    cb.checked = obj[i[1]]
+                    e.appendChild(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-8 col-sm-3"}, i[2]),
+                            ml("div", {class: "col-4 col-sm-9"}, cb)
+                        ])
+                    )
+                }
             }
 
             function parseDisplay(obj, type, system) {

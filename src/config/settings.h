@@ -31,7 +31,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      10
+#define CONFIG_VERSION      11
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -120,6 +120,7 @@ typedef struct {
     bool debug;
     bool privacyLog;
     bool printWholeTrace;
+    bool log2mqtt;
 } cfgSerial_t;
 
 typedef struct {
@@ -436,6 +437,7 @@ class settings {
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
             mCfg.serial.printWholeTrace = false;
+            mCfg.serial.log2mqtt = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -508,6 +510,9 @@ class settings {
                 if(mCfg.configVersion < 10) {
                     mCfg.sys.region   = 0; // Europe
                     mCfg.sys.timezone = 1;
+                }
+                if(mCfg.configVersion < 11) {
+                    mCfg.serial.log2mqtt = false;
                 }
             }
         }
@@ -658,11 +663,13 @@ class settings {
                 obj[F("debug")] = mCfg.serial.debug;
                 obj[F("prv")] = (bool) mCfg.serial.privacyLog;
                 obj[F("trc")] = (bool) mCfg.serial.printWholeTrace;
+                obj[F("mqtt")] = (bool) mCfg.serial.log2mqtt;
             } else {
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
                 getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
                 getVal<bool>(obj, F("trc"), &mCfg.serial.printWholeTrace);
+                getVal<bool>(obj, F("mqtt"), &mCfg.serial.log2mqtt);
             }
         }
 

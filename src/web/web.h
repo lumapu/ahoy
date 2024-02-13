@@ -552,6 +552,7 @@ class Web {
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
+            mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
