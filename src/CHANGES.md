@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.82 - 2024-02-15
+* fixed crash once firmware version was read and sent via MqTT #1428
+* possible fix: reset yield offset on midnight #1429
+
 ## 0.8.81 - 2024-02-13
 * fixed authentication with empty token #1415
 * added new setting for future function to send log via MqTT

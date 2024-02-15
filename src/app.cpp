@@ -466,8 +466,6 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
             continue;  // skip to next inverter
         if (!iv->config->enabled)
             continue;  // skip to next inverter
-        if (iv->commEnabled)
-            continue;  // skip to next inverter
 
         if (checkAvail) {
             if (!iv->isAvailable())
@@ -495,6 +493,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
+            iv->resetAlarms();
 
             iv->doCalculations();
         }

@@ -179,20 +179,20 @@ class PubMqttIvData {
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
                     if(InverterDevInform_All == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/firmware", mIv->config->name);
-                        snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%s\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
-                            mIv->getChannelFieldValue(CH0, FLD_FW_VERSION, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_YEAR, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec));
+                        snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%d\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_VERSION, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_YEAR, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec)));
                         retained = true;
                     } else if(InverterDevInform_Simple == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/hardware", mIv->config->name);
-                        snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%s\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
-                            mIv->getChannelFieldValue(CH0, FLD_PART_NUM, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec),
-                            mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec));
+                        snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%d\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_PART_NUM, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec)));
                         retained = true;
                     } else {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);

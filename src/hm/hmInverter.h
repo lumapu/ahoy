@@ -149,9 +149,6 @@ class Inverter {
         uint32_t      tsMaxAcPower = 0;                     // holds the timestamp when the MaxAC power was seen
         bool          commEnabled = true;                   // 'pause night communication' sets this field to false
 
-        static uint32_t  *timestamp;     // system timestamp
-        static cfgInst_t *generalConfig; // general inverter configuration from setup
-
     public:
 
         Inverter() {
@@ -826,20 +823,23 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
-    private:
-        float mOffYD[6], mLastYD[6];
-        bool mDevControlRequest = false; // true if change needed
-        uint8_t mGridLen = 0;
-        std::array<uint8_t, MAX_GRID_LENGTH> mGridProfile;
-        uint8_t mAlarmNxtWrPos = 0; // indicates the position in array (rolling buffer)
-
     public:
+        static uint32_t  *timestamp;     // system timestamp
+        static cfgInst_t *generalConfig; // general inverter configuration from setup
+
         uint16_t mDtuRxCnt = 0;
         uint16_t mDtuTxCnt = 0;
         uint8_t  mGetLossInterval = 0;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
         uint16_t mIvRxCnt  = 0;
         uint16_t mIvTxCnt  = 0;
         uint16_t mAckCount = 0;
+
+    private:
+        float mOffYD[6], mLastYD[6];
+        bool mDevControlRequest = false; // true if change needed
+        uint8_t mGridLen = 0;
+        std::array<uint8_t, MAX_GRID_LENGTH> mGridProfile;
+        uint8_t mAlarmNxtWrPos = 0; // indicates the position in array (rolling buffer)
 };
 
 template <class REC_TYP>
