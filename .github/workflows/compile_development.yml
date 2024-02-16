@@ -1,4 +1,4 @@
-name: Ahoy Dev-Build for ESP8266/ESP32
+name: Ahoy Development
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   check:
+    name: Check Repository
     runs-on: ubuntu-latest
     if: github.repository == 'lumapu/ahoy' && github.ref_name == 'development03'
     continue-on-error: true
@@ -15,6 +16,7 @@ jobs:
     - uses: actions/checkout@v4
 
   build-en:
+    name: Build Environments (English)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -75,6 +77,7 @@ jobs:
         path: firmware/*
 
   build-de:
+    name: Build Environments (German)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -135,8 +138,10 @@ jobs:
         path: firmware/*
 
   deploy:
+    name: Deploy Environments
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
+    continue-on-error: false
     steps:
     - uses: actions/checkout@v4
     #- name: Copy boot_app0.bin
@@ -155,7 +160,7 @@ jobs:
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
       with:
-        files: tools/esp8266/User_Manual.md
+        files: manual/User_Manual.md
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
 
