@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     name: Build Environments
-    needs: check
     runs-on: ubuntu-latest
     if: github.repository == 'lumapu/ahoy' && github.ref_name == 'main'
     continue-on-error: false
