@@ -123,12 +123,12 @@ jobs:
     - name: Publish Release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: ${{ steps.version_name.outputs.name }}
         artifactErrorsFailBuild: true
         skipIfReleaseExists: true
         bodyFile: src/CHANGES.md
-        tag: ${{ steps.rename-binary-files.outputs.name }}
-        name: ${{ steps.rename-binary-files.outputs.name }}
+        artifacts: ${{ steps.version_name.outputs.name }}
+        tag: ${{ steps.version_name.outputs.name }}
+        name: ${{ steps.version_name.outputs.name }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
 
