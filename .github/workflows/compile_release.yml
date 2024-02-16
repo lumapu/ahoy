@@ -99,6 +99,17 @@ jobs:
       id: version_name
       run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
 
+    - name: Create tag
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/${{ steps.version_name.outputs.name }}',
+            sha: context.sha
+          })
+
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
       with:
@@ -113,15 +124,17 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         artifacts: ${{ steps.version_name.outputs.name }}
+        artifactErrorsFailBuild: true
+        skipIfReleaseExists: true
         bodyFile: src/CHANGES.md
-        commit: "main"
         tag: ${{ steps.rename-binary-files.outputs.name }}
         name: ${{ steps.rename-binary-files.outputs.name }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 
 
   deploy:
     name: Deploy Environments to fw.ahoydtu.de
-    needs: [build]
+    needs: [build, release]
     runs-on: ubuntu-latest
     continue-on-error: false
     steps:
@@ -151,7 +164,7 @@ jobs:
       with:
         src: ${{ steps.version_name.outputs.name }}/
         host: ${{ secrets.FW_SSH_HOST }}
-        remote: ${{ secrets.FW_SSH_DIR }}/dev
+        remote: ${{ secrets.FW_SSH_DIR }}/release
         port: ${{ secrets.FW_SSH_PORT }}
         user: ${{ secrets.FW_SSH_USER }}
         key: ${{ secrets.FW_SSH_KEY }}
