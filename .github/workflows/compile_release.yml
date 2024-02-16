@@ -89,6 +89,7 @@ jobs:
       contents: write
 
     steps:
+    - uses: actions/checkout@v4
     - name: Get Artifacts
       uses: actions/download-artifact@v4
       with:
@@ -110,7 +111,6 @@ jobs:
       run: mv firmware ${{ steps.version_name.outputs.name }}
 
     - name: Publish Release
-      uses: actions/checkout@v3
       uses: ncipollo/release-action@v1
       with:
         artifacts: ${{ steps.version_name.outputs.name }}
