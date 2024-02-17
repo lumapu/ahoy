@@ -120,13 +120,19 @@ jobs:
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
 
+    - name: Rename firmware directory
+      uses: vimtor/action-zip@v1.2
+        with:
+          files: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
+          dest: '${{ steps.version_name.outputs.name }}.zip'
+
     - name: Publish Release
       uses: ncipollo/release-action@v1
       with:
         artifactErrorsFailBuild: true
         skipIfReleaseExists: true
         bodyFile: src/CHANGES.md
-        artifacts: ${{ steps.version_name.outputs.name }}
+        artifacts: '${{ steps.version_name.outputs.name }}.zip'
         tag: ${{ steps.version_name.outputs.name }}
         name: ${{ steps.version_name.outputs.name }}
         token: ${{ secrets.GITHUB_TOKEN }}
