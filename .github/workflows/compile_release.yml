@@ -122,9 +122,9 @@ jobs:
 
     - name: Rename firmware directory
       uses: vimtor/action-zip@v1.2
-        with:
-          files: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
-          dest: '${{ steps.version_name.outputs.name }}.zip'
+      with:
+        files: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
+        dest: '${{ steps.version_name.outputs.name }}.zip'
 
     - name: Publish Release
       uses: ncipollo/release-action@v1
