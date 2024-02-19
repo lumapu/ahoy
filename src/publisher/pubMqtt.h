@@ -397,6 +397,10 @@ class PubMqtt {
                 std::array<char, 32> name;
                 std::array<char, 32> uniq_id;
                 std::array<char, 350> buf;
+                topic.fill(0);
+                name.fill(0);
+                uniq_id.fill(0);
+                buf.fill(0);
                 const char *devCls, *stateCls;
                 if (!total) {
                     if (rec->assign[mDiscovery.sub].ch == CH0)
@@ -420,7 +424,7 @@ class PubMqtt {
 
                 DynamicJsonDocument doc2(512);
                 constexpr static char* unitTotal[] = {"W", "kWh", "Wh", "W"};
-                doc2[F("name")] = name;
+                doc2[F("name")] = String(name.data());
                 doc2[F("stat_t")] = String(mCfgMqtt->topic) + "/" + ((!total) ? String(iv->config->name) : "total" ) + String(topic.data());
                 doc2[F("unit_of_meas")] = ((!total) ? (iv->getUnit(mDiscovery.sub, rec)) : (unitTotal[mDiscovery.sub]));
                 doc2[F("uniq_id")] = ((!total) ? (String(iv->config->serial.u64, HEX)) : (node_id)) + "_" + uniq_id.data();
@@ -437,7 +441,6 @@ class PubMqtt {
                 else // total values
                     snprintf(topic.data(), topic.size(), "%s/sensor/%s/total_%s/config", MQTT_DISCOVERY_PREFIX, node_id.c_str(), fields[fldTotal[mDiscovery.sub]]);
                 size_t size = measureJson(doc2) + 1;
-                buf.fill(0);
                 serializeJson(doc2, buf.data(), size);
                 publish(topic.data(), buf.data(), true, false);
 
