@@ -2,6 +2,7 @@
 
 ## 0.8.84 - 2024-02-19
 * fix homeassistant autodiscovery #1432
+* merge PR: more gracefull handling of complete retransmits #1433
 
 # RELEASE 0.8.83 - 2024-02-16
 
