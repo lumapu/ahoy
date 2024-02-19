@@ -38,6 +38,8 @@ class Heuristic {
                     ih->txRfChId = curId;
                 curId = (curId + 1) % RF_MAX_CHANNEL_ID;
             }
+            if(ih->txRfQuality[ih->txRfChId] == RF_MIN_QUALTIY) // all channels are bad, reset...
+                ih->clear();
 
             if(ih->testPeriodSendCnt < 0xff)
                 ih->testPeriodSendCnt++;
@@ -71,7 +73,7 @@ class Heuristic {
             return id2Ch(ih->txRfChId);
         }
 
-        void evalTxChQuality(Inverter<> *iv, bool crcPass, uint8_t retransmits, uint8_t rxFragments) {
+        void evalTxChQuality(Inverter<> *iv, bool crcPass, uint8_t retransmits, uint8_t rxFragments, bool quotaMissed = false) {
             HeuristicInv *ih = &iv->heuristics;
 
             #if (DBG_DEBUG == DEBUG_LEVEL)
@@ -84,8 +86,10 @@ class Heuristic {
             DBGPRINT(", ");
             DBGPRINTLN(String(ih->lastRxFragments));
             #endif
+            if(quotaMissed)                             // we got not enough frames on this attempt, but iv was answering
+                updateQuality(ih, (rxFragments > 3 ? RF_TX_CHAN_QUALITY_GOOD : (rxFragments > 1 ?  RF_TX_CHAN_QUALITY_OK : RF_TX_CHAN_QUALITY_LOW)));
 
-            if(ih->lastRxFragments == rxFragments) {
+            else if(ih->lastRxFragments == rxFragments) {
                 if(crcPass)
                     updateQuality(ih, RF_TX_CHAN_QUALITY_GOOD);
                 else if(!retransmits || isNewTxCh(ih)) { // nothing received: send probably lost
