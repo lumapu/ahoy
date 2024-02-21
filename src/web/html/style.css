@@ -470,6 +470,10 @@ p.lic, p.lic a {
     color: #fff;
 }
 
+.disabled {
+    background-color: dimgray;
+}
+
 .s_content {
     display: none;
     overflow: hidden;

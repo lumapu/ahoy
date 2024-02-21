@@ -547,6 +547,39 @@ class Web {
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
 
+            // zero-export
+            #if defined(ESP32)
+            mConfig->plugin.zexport.enabled = (request->arg("en_zeroexport") == "on");
+            mConfig->plugin.zexport.two_percent = (request->arg("two_percent") == "on");
+            mConfig->plugin.zexport.Iv = request->arg("Iv").toInt();
+            mConfig->plugin.zexport.count_avg = request->arg("count_avg").toInt();
+            mConfig->plugin.zexport.max_power = request->arg("max_power").toDouble();
+            mConfig->plugin.zexport.power_avg = request->arg("power_avg").toFloat();
+            mConfig->plugin.zexport.query_device = request->arg("query_device").toInt();
+            mConfig->plugin.zexport.total_power = request->arg("total_power").toDouble();
+
+            if (request->arg("monitor_url") != "") {
+                String addr = request->arg("monitor_url");
+                addr.trim();
+                addr.toCharArray(mConfig->plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
+            } else
+                mConfig->plugin.zexport.monitor_url[0] = '\0';
+
+            if (request->arg("json_path") != "") {
+                String addr = request->arg("json_path");
+                addr.trim();
+                addr.toCharArray(mConfig->plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
+            } else
+                mConfig->plugin.zexport.json_path[0] = '\0';
+
+            if (request->arg("tibber_pw") != "") {
+                String addr = request->arg("tibber_pw");
+                addr.trim();
+                addr.toCharArray(mConfig->plugin.zexport.tibber_pw, 10);
+            } else
+                mConfig->plugin.zexport.tibber_pw[0] = '\0';
+            #endif
+
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
             mConfig->serial.privacyLog = (request->arg("priv") == "on");

@@ -14,7 +14,7 @@
 
 //-----------------------------------------------------------------------------
 app::app() : ah::Scheduler {} {
-    memset(mVersion, 0, sizeof(char) * 12);
+    memset(mVersion, 0, sizeof(char) * 17);
     memset(mVersionModules, 0, sizeof(char) * 12);
 }
 
@@ -124,6 +124,11 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    // ZeroExport
+    if (mConfig->plugin.zexport.enabled) {
+        mzExport.setup(&mConfig->plugin.zexport, &mSys, mConfig);
+    }
+
     #if !defined(ETHERNET)
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
     #endif
@@ -191,6 +196,13 @@ void app::regularTickers(void) {
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     #endif
+
+    // ZeroExport
+    #if defined(PLUGIN_ZEROEXPORT)
+    if (mConfig->plugin.zexport.enabled)
+        everySec(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
+    #endif
+
     every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
     #if !defined(ETHERNET)
     //everySec([this]() { mImprov.tickSerial(); }, "impro");
@@ -445,6 +457,10 @@ void app::tickSend(void) {
                 else
                     mCommunication.add(iv, cmd);
             });
+
+            #if defined(ESP32)
+            if(mConfig->nrf.enabled || mConfig->cmt.enabled) zeroexport();
+            #endif
         }
     }
 
@@ -506,7 +522,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
-    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    snprintf(mVersion, sizeof(mVersion), "zero-%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
     snprintf(mVersionModules, sizeof(mVersionModules), "%s",
     #ifdef ENABLE_PROMETHEUS_EP
         "P"
@@ -619,3 +635,47 @@ void app::updateLed(void) {
             analogWrite(mConfig->led.led[2], led_off);
     }
 }
+//-----------------------------------------------------------------------------
+#if defined(ESP32)
+void app::zeroexport() {
+    if (!mConfig->plugin.zexport.enabled ||
+    !mSys.getInverterByPos(mConfig->plugin.zexport.Iv)->isProducing()) {   // check if plugin is enabled && indicate to send new value
+        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+        return;
+    }
+
+    if (millis() - mConfig->plugin.zexport.lastTime > mConfig->plugin.zexport.count_avg  * 1000UL)
+    {
+        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
+
+        DynamicJsonDocument doc(512);
+        JsonObject object = doc.to<JsonObject>();
+
+        double nValue = round(mzExport.getPowertoSetnewValue());
+        double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
+
+        if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal))
+            nValue = twoPerVal;
+
+        if(mConfig->plugin.zexport.max_power <= nValue)
+            nValue = mConfig->plugin.zexport.max_power;
+
+        if(iv->actPowerLimit == nValue) {
+            mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+            return; // if PowerLimit same as befor, then skip
+        }
+
+        object["val"] = nValue;
+        object["id"] = mConfig->plugin.zexport.Iv;
+        object["path"] = "ctrl";
+        object["cmd"] = "limit_nonpersistent_absolute";
+
+        String data;
+        serializeJsonPretty(object, data);
+        DPRINTLN(DBG_INFO, data);
+        mApi.ctrlRequest(object);
+
+        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+    }
+}
+#endif

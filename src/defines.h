@@ -98,6 +98,8 @@ enum {
 #define DEVNAME_LEN             16
 #define NTP_ADDR_LEN            32 // DNS Name
 
+#define ZEXPORT_ADDR_LEN        100 // Zero-Export Address
+
 #define MQTT_ADDR_LEN           64 // DNS Name
 #define MQTT_CLIENTID_LEN       22 // number of chars is limited to 23 up to v3.1 of MQTT
 #define MQTT_USER_LEN           65 // there is another byte necessary for \0
@@ -106,6 +108,7 @@ enum {
 
 #define MQTT_MAX_PACKET_SIZE    384
 
+#define PLUGIN_ZEROEXPORT
 
 typedef struct {
     uint32_t rxFail;

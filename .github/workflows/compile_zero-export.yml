@@ -1,0 +1,179 @@
+name: Ahoy Zero-Export
+
+on:
+  push:
+    branches: zero-export
+    paths-ignore:
+    - '**.md' # Do no build on *.md changes
+
+jobs:
+  check:
+    name: Check Repository
+    runs-on: ubuntu-latest
+    if: github.repository == 'lumapu/ahoy' && github.ref_name == 'zero-export'
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+
+  build-en:
+    name: Build Environments (English)
+    needs: check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        variant:
+          - esp32-wroom32
+          - esp32-wroom32-prometheus
+          - esp32-wroom32-ethernet
+          - esp32-s2-mini
+          - esp32-c3-mini
+          - opendtufusion
+          - opendtufusion-ethernet
+    steps:
+    - uses: actions/checkout@v4
+    - uses: benjlevesque/short-sha@v3.0
+      id: short-sha
+      with:
+        length: 7
+
+    - name: Cache Pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: ~/.platformio
+        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Install PlatformIO
+      run: |
+        python -m pip install setuptools --upgrade pip
+        pip install --upgrade platformio
+
+    - name: Run PlatformIO
+      run:  pio run -d src -e ${{ matrix.variant }}
+
+    - name: Rename Firmware
+      run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zero-${{ matrix.variant }}
+        path: firmware/*
+
+  build-de:
+    name: Build Environments (German)
+    needs: check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        variant:
+          - esp32-wroom32-de
+          - esp32-wroom32-prometheus-de
+          - esp32-wroom32-ethernet-de
+          - esp32-s2-mini-de
+          - esp32-c3-mini-de
+          - opendtufusion-de
+          - opendtufusion-ethernet-de
+    steps:
+    - uses: actions/checkout@v4
+    - uses: benjlevesque/short-sha@v3.0
+      id: short-sha
+      with:
+        length: 7
+
+    - name: Cache Pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: ~/.platformio
+        key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Install PlatformIO
+      run: |
+        python -m pip install setuptools --upgrade pip
+        pip install --upgrade platformio
+
+    - name: Run PlatformIO
+      run:  pio run -d src -e ${{ matrix.variant }}
+
+    - name: Rename Firmware
+      run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zero-${{ matrix.variant }}
+        path: firmware/*
+
+  combine:
+    name: Combine Artifacts
+    needs: [build-en, build-de]
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    steps:
+    - uses: actions/checkout@v4
+    #- name: Copy boot_app0.bin
+    #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
+
+    - name: Get Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        merge-multiple: true
+        path: firmware
+
+    - name: Get Version from code
+      id: version_name
+      run: python scripts/getVersion.py ${{ matrix.variant }} >> $GITHUB_OUTPUT
+
+    - name: Set Version
+      uses: cschleiden/replace-tokens@v1
+      with:
+        files: manual/User_Manual.md
+      env:
+          VERSION: ${{ steps.version_name.outputs.name }}
+
+    - name: Rename firmware directory
+      run: mv firmware ${{ steps.version_name.outputs.name }}
+
+    - name: Zip Artifacts
+      uses: vimtor/action-zip@v1.2
+      with:
+        files: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
+        dest: '${{ steps.version_name.outputs.name }}.zip'
+
+    - name: delete environment Artifacts
+      uses: geekyeggo/delete-artifact@v4
+      with:
+        name: zero-*
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zero-${{ steps.version_name.outputs.name }}
+        path: '${{ steps.version_name.outputs.name }}.zip'

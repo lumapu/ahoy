@@ -615,6 +615,22 @@ class RestApi {
             obj[F("interval")]   = String(mConfig->mqtt.interval);
         }
 
+        #if defined(ESP32)
+        void getzeroExport(JsonObject obj) {
+            obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
+            obj[F("two_percent")] = (bool) mConfig->plugin.zexport.two_percent;
+            obj[F("monitor_url")] = String(mConfig->plugin.zexport.monitor_url);
+            obj[F("json_path")] = String(mConfig->plugin.zexport.json_path);
+            obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
+            obj[F("max_power")] = (double)mConfig->plugin.zexport.max_power;
+            obj[F("Iv")] = (uint8_t)mConfig->plugin.zexport.Iv;
+            obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;
+            obj[F("query_device")] = (float)mConfig->plugin.zexport.query_device;
+            obj[F("total_power")] = (double)mConfig->plugin.zexport.total_power;
+            //obj[F("device")] = (uint8_t)mCfg.plugin.zexport.device;
+        }
+        #endif
+
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
             obj[F("port")] = String(mConfig->ntp.port);
@@ -775,6 +791,10 @@ class RestApi {
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));
+
+            #if defined(ESP32)
+            getzeroExport(obj.createNestedObject(F("zeroExport")));
+            #endif
         }
 
         #if !defined(ETHERNET)

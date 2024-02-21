@@ -139,6 +139,24 @@ typedef struct {
     uint16_t interval;
 } cfgMqtt_t;
 
+/* Zero Export section */
+#if defined(ESP32)
+typedef struct {
+    char monitor_url[ZEXPORT_ADDR_LEN];
+    char json_path[ZEXPORT_ADDR_LEN];
+    uint8_t query_device;   // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
+    uint8_t Iv;         // saves the inverter that is used for regulation
+    bool enabled;
+    float power_avg;
+    uint8_t count_avg;
+    double total_power;
+    unsigned long lastTime; // tic toc
+    double max_power;
+    bool two_percent;   // ask if not go lower then 2%
+    char tibber_pw[10];   // needed for tibber QWGH-ED12
+} cfgzeroExport_t;
+#endif
+
 typedef struct {
     bool enabled;
     char name[MAX_NAME_LENGTH];
@@ -188,6 +206,9 @@ typedef struct {
     display_t display;
     char customLink[MAX_CUSTOM_LINK_LEN];
     char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
+    #if defined(ESP32)
+    cfgzeroExport_t zexport;
+    #endif
 } plugins_t;
 
 typedef struct {
@@ -291,6 +312,7 @@ class settings {
                     if(root.containsKey(F("nrf"))) jsonNrf(root[F("nrf")]);
                     #if defined(ESP32)
                     if(root.containsKey(F("cmt"))) jsonCmt(root[F("cmt")]);
+                    if(root.containsKey(F("zeroExport"))) jsonzeroExport(root[F("zeroExport")]);
                     #endif
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
@@ -320,6 +342,7 @@ class settings {
             jsonNrf(root[F("nrf")].to<JsonObject>(), true);
             #if defined(ESP32)
             jsonCmt(root[F("cmt")].to<JsonObject>(), true);
+            jsonzeroExport(root.createNestedObject(F("zeroExport")), true);
             #endif
             jsonNtp(root[F("ntp")].to<JsonObject>(), true);
             jsonSun(root[F("sun")].to<JsonObject>(), true);
@@ -328,6 +351,7 @@ class settings {
             jsonLed(root[F("led")].to<JsonObject>(), true);
             jsonPlugin(root[F("plugin")].to<JsonObject>(), true);
             jsonInst(root[F("inst")].to<JsonObject>(), true);
+
 
             DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
@@ -446,7 +470,22 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
-            mCfg.inst.sendInterval     = SEND_INTERVAL;
+            // Zero-Export
+            #if defined(ESP32)
+            snprintf(mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+            mCfg.plugin.zexport.enabled = false;
+            mCfg.plugin.zexport.count_avg = 10;
+            mCfg.plugin.zexport.lastTime =  millis();   // do not change!
+
+            mCfg.plugin.zexport.query_device = 1;       // Standard shelly
+            mCfg.plugin.zexport.power_avg = 10;
+            mCfg.plugin.zexport.Iv = 0;
+            mCfg.plugin.zexport.max_power = 600;        // Max 600W to stay safe
+            mCfg.plugin.zexport.two_percent = true;
+            #endif
+
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
@@ -693,6 +732,40 @@ class settings {
                 getChar(obj, F("topic"), mCfg.mqtt.topic, MQTT_TOPIC_LEN);
             }
         }
+
+        #if defined(ESP32)
+        void jsonzeroExport(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
+                obj[F("monitor_url")] = mCfg.plugin.zexport.monitor_url;
+                obj[F("json_path")] = mCfg.plugin.zexport.json_path;
+                obj[F("Iv")] = mCfg.plugin.zexport.Iv;
+                obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
+                obj[F("query_device")] = mCfg.plugin.zexport.query_device;
+                obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
+                obj[F("max_power")] = mCfg.plugin.zexport.max_power;
+                obj[F("total_power")] = mCfg.plugin.zexport.total_power;
+                obj[F("two_percent")] = (bool)mCfg.plugin.zexport.two_percent;
+            }
+            else
+            {
+                getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
+                getVal<bool>(obj, F("two_percent"), &mCfg.plugin.zexport.two_percent);
+
+                getChar(obj, F("monitor_url"), mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
+                getChar(obj, F("json_path"), mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
+
+                getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
+                getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);
+                getVal<double>(obj, F("max_power"), &mCfg.plugin.zexport.max_power);
+
+                getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
+                getVal<uint8_t>(obj, F("query_device"), &mCfg.plugin.zexport.query_device);
+
+                getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
+            }
+        }
+        #endif
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {

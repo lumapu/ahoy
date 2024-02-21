@@ -164,6 +164,7 @@
                         </fieldset>
                     </div>
 
+                    <!-- NTP Server -->
                     <button type="button" class="s_collapsible">NTP Server</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -218,6 +219,7 @@
                         </fieldset>
                     </div>
 
+                    <!-- MQTT -->
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -304,6 +306,51 @@
                                 <div id="graphSize"></div>
                             </div>
                         </fieldset>
+                    </div>
+
+                    <!-- Zero Export -->
+                    <button type="button" class="s_collapsible" id="zeroExport_button">Zero Export</button>
+                    <div class="s_content" id="zeroExport">
+                    <fieldset class="mb-4">
+                        <legend class="des">Zero Export</legend>
+                        <div id="zeroType"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-8 col-sm-3">Enable zero export</div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="en_zeroexport"/></div>
+                            <p>Please select your favorite query interface:</p>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12 col-sm-3 my-2">Monitor IP: </div>
+                                <input type="radio" id="html" name="dev_Tibber" value="Tibber">
+                                <label for="html">Tibber</label>
+                                <input type="radio" id="css" name="dev_Shelly" value="Shelly">
+                                <label for="css">Shelly</label>
+                                <input type="radio" id="javascript" name="dev_Other" value="Other">
+                                <label for="javascript">Other</label>
+
+                            <div class="col-12 col-sm-9">
+                                <input type="text" name="monitor_url" maxlength="100">A JSON-Format is required to work properly.<br>
+                                HICHI:  http://IP_Address/cm?cmnd=status%208</div>
+
+                            <div class="col-12 col-sm-3 my-2">Prio Inverter</div>
+                            <div class="col-12 col-sm-9"><select name="iv" id="Inv_ID"></select>Which Inverter should be regulated.</div>
+
+                            <div class="col-12 col-sm-3 my-2">JSON Path: </div>
+                            <div class="col-12 col-sm-9"><input type="text" name="json_path" maxlength="100">Only for HICHI needed!</div>
+
+                            <div class="col-8 col-sm-3">2% protection: </div>
+                            <div class="col-4 col-sm-9"><input type="checkbox" name="two_percent"/></div>
+                            <br>
+                            <div class="col-8 col-sm-3">Max Power: </div>
+                            <div class="col-4 col-sm-9"><input type="number" name="max_power" min="8" ></div>
+                            <br>
+                            <div class="col-12 col-sm-3 my-2">Refresh rate (sec.)<input type="number" name="count_avg" min="0" max="255"></div>
+                            <div class="col-12 col-sm-3 my-2">Power tolerances (Watt)<input type="number" name="power_avg" min="0" max="255"></div>
+                        </div>
+                        <p name="total_power">Total: n/a</p>
+                    </fieldset>
                     </div>
 
                     <div class="row mb-4 mt-4">
@@ -1157,6 +1204,56 @@
                 document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
             }
 
+            function parsezeroExport(obj, type, ) {
+                if ("ESP8266" == type) {
+                    var e = document.getElementById("zeroExport");
+                    e.remove();
+
+                    var e = document.getElementById("zeroExport_button");
+                    e.textContent += " (only for ESP32 available)";
+                    e.disabled = true;
+                    element.classList.add("disabled");
+
+                    return;
+                }
+
+                document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
+                document.getElementsByName("two_percent")[0].checked = obj["two_percent"];
+
+                document.getElementsByName("dev_Tibber")[0].checked = (obj["query_device"] == 1);
+                document.getElementsByName("dev_Shelly")[0].checked = (obj["query_device"] == 2);
+                document.getElementsByName("dev_Other")[0].checked =  (obj["query_device"] == 3);
+
+
+                getAjax("/api/inverter/list", parseZeroIv);
+
+                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"], ["query_device", "query_device"]])
+                    if(null != obj[i[1]])
+                        document.getElementsByName(i[0])[0].value = obj[i[1]];
+
+                document.getElementsByName("total_power")[0].innerHTML = "Total: " + obj["total_power"].toFixed(2) + "W";
+                document.getElementById("Inv_ID").selectedIndex = obj["Iv"];
+            }
+
+            function parseZeroIv(root)
+            {
+                for(var i = 0; i < root.inverter.length; i++)
+                    root.inverter[i];
+
+                select = document.getElementById('Inv_ID');
+                parseInt(select.value)
+
+                if(null == root) return;
+                root = root.inverter;
+                for(var i = 0; i < root.length; i++) {
+                    inv = root[i];
+                    var opt = document.createElement('option');
+                    opt.value = inv.id;
+                    opt.innerHTML = inv.name;
+                    select.appendChild(opt);
+                }
+            }
+
             function parse(root) {
                 if(null != root) {
                     parseGeneric(root["generic"]);
@@ -1167,11 +1264,15 @@
                     parseSun(root["sun"]);
                     parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
                     parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
+
                     /*IF_ESP32*/
                     parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
                     /*ENDIF_ESP32*/
+                    parsezeroExport(root["zeroExport"], root["system"]["esp_type"]);
+
                     parseSerial(root["serial"]);
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+
                     getAjax("/api/inverter/list", parseIv);
                 }
             }
