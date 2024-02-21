@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "sml.h"
-#include "smlCrcTable.h"
+#include "SML.h"
+#include "SMLCRCTable.h"
 
 #ifdef SML_DEBUG
 char logBuff[200];
