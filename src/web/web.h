@@ -37,7 +37,9 @@
 #include "html/h/visualization_html.h"
 #include "html/h/about_html.h"
 #include "html/h/wizard_html.h"
-#include "html/h/history_html.h"
+#if defined(ENABLE_HISTORY)
+    #include "html/h/history_html.h"
+#endif
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
@@ -77,8 +79,9 @@ class Web {
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
+            #if defined(ENABLE_HISTORY)
             mWeb.on("/history",        HTTP_ANY, std::bind(&Web::onHistory,       this, std::placeholders::_1));
-
+            #endif
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
         #endif
@@ -588,6 +591,7 @@ class Web {
             mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
 
             // display
+            #if defined(PLUGIN_DISPLAY)
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
             mConfig->plugin.display.graph_size  = request->arg("disp_graph_size").toInt();
             mConfig->plugin.display.rot         = request->arg("disp_rot").toInt();
@@ -614,7 +618,7 @@ class Web {
             mConfig->plugin.display.disp_reset  = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
             mConfig->plugin.display.disp_busy   = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
             mConfig->plugin.display.pirPin      = (mConfig->plugin.display.screenSaver != DISP_TYPE_T2_SH1106_128X64) ? DEF_PIN_OFF : request->arg("pir_pin").toInt(); // pir pin only for motion screensaver
-                                                                                                                                              // otherweise default value
+            #endif                                                                                                                                       // otherweise default value
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
@@ -627,9 +631,11 @@ class Web {
             getPage(request, PROT_MASK_LIVE, visualization_html, visualization_html_len);
         }
 
+        #if defined(ENABLE_HISTORY)
         void onHistory(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_HISTORY, history_html, history_html_len);
         }
+        #endif
 
         void onAbout(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), about_html, about_html_len);

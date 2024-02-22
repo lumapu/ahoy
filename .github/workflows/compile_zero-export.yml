@@ -161,12 +161,6 @@ jobs:
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
 
-    - name: Zip Artifacts
-      uses: vimtor/action-zip@v1.2
-      with:
-        files: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
-        dest: '${{ steps.version_name.outputs.name }}.zip'
-
     - name: delete environment Artifacts
       uses: geekyeggo/delete-artifact@v4
       with:
@@ -176,4 +170,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zero-${{ steps.version_name.outputs.name }}
-        path: '${{ steps.version_name.outputs.name }}.zip'
+        path: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md

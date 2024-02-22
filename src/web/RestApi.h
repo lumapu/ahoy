@@ -708,6 +708,7 @@ class RestApi {
             ah::ip2Char(mConfig->sys.ip.gateway, buf); obj[F("gateway")] = String(buf);
         }
 
+        #if defined(PLUGIN_DISPLAY)
         void getDisplay(JsonObject obj) {
             obj[F("disp_typ")]          = (uint8_t)mConfig->plugin.display.type;
             obj[F("disp_pwr")]          = (bool)mConfig->plugin.display.pwrSaveAtIvOffline;
@@ -724,6 +725,7 @@ class RestApi {
             obj[F("disp_bsy")]          = mConfig->plugin.display.disp_busy;
             obj[F("pir_pin")]           = mConfig->plugin.display.pirPin;
         }
+        #endif
 
         void getMqttInfo(JsonObject obj) {
             obj[F("enabled")]   = (mConfig->mqtt.broker[0] != '\0');
@@ -790,7 +792,9 @@ class RestApi {
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
+            #if defined(PLUGIN_DISPLAY)
             getDisplay(obj.createNestedObject(F("display")));
+            #endif
 
             #if defined(ESP32)
             getzeroExport(obj.createNestedObject(F("zeroExport")));

@@ -183,6 +183,7 @@ typedef struct {
     bool readGrid;
 } cfgInst_t;
 
+#if defined(PLUGIN_DISPLAY)
 typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
@@ -201,9 +202,12 @@ typedef struct {
     uint8_t disp_dc;
     uint8_t pirPin;
 } display_t;
+#endif
 
 typedef struct {
+    #if defined(PLUGIN_DISPLAY)
     display_t display;
+    #endif
     char customLink[MAX_CUSTOM_LINK_LEN];
     char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
     #if defined(ESP32)
@@ -506,6 +510,7 @@ class settings {
             mCfg.led.high_active = LED_HIGH_ACTIVE;
             mCfg.led.luminance   = 255;
 
+            #if defined(PLUGIN_DISPLAY)
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
             mCfg.plugin.display.contrast = 140;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
@@ -519,6 +524,7 @@ class settings {
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
             mCfg.plugin.display.pirPin     = DEF_PIN_OFF;
+            #endif
         }
 
         void loadAddedDefaults() {
@@ -785,6 +791,7 @@ class settings {
 
         void jsonPlugin(JsonObject obj, bool set = false) {
             if(set) {
+                #if defined(PLUGIN_DISPLAY)
                 JsonObject disp = obj.createNestedObject("disp");
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
@@ -802,9 +809,11 @@ class settings {
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
                 disp[F("pirPin")] = mCfg.plugin.display.pirPin;
+                #endif
                 obj[F("cst_lnk")] = mCfg.plugin.customLink;
                 obj[F("cst_lnk_txt")] = mCfg.plugin.customLinkText;
             } else {
+                #if defined(PLUGIN_DISPLAY)
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
@@ -822,6 +831,7 @@ class settings {
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
                 getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
+                #endif
                 getChar(obj, F("cst_lnk"), mCfg.plugin.customLink, MAX_CUSTOM_LINK_LEN);
                 getChar(obj, F("cst_lnk_txt"), mCfg.plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
             }
