@@ -35,7 +35,7 @@
                 var hrs  = parseInt(up / 3600) % 24;
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
-                document.getElementById("uptime").innerHTML = days + " Days, "
+                document.getElementById("uptime").innerHTML = days + " {#DAYS}, "
                     + ("0"+hrs).substr(-2) + ":"
                     + ("0"+min).substr(-2) + ":"
                     + ("0"+sec).substr(-2);
