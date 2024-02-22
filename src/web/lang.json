@@ -898,6 +898,12 @@
                     "en": "uptime",
                     "de": "Laufzeit"
                 }
+,
+                {
+                    "token": "DAYS",
+                    "en": "days",
+                    "de": "Tage"
+                }
             ]
         },
         {
@@ -986,7 +992,7 @@
                 {
                     "token": "NIGHT_TIME",
                     "en": "Night time, inverter polling disabled",
-                    "de": "Wechselrichterabfrage deaktivert (Nacht)"
+                    "de": "Wechselrichterabfrage deaktiviert (Nacht)"
                 },
                 {
                     "token": "PAUSED_AT",

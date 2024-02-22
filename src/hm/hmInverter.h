@@ -407,23 +407,17 @@ class Inverter {
         bool isAvailable() {
             bool avail = false;
 
-            if((recordMeas.ts == 0) && (recordInfo.ts == 0) && (recordConfig.ts == 0) && (recordAlarm.ts == 0))
+            if(recordMeas.ts == 0)
                 return false;
 
-            if((*timestamp - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordInfo.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordConfig.ts) < INVERTER_INACT_THRES_SEC)
-                avail = true;
-            if((*timestamp - recordAlarm.ts) < INVERTER_INACT_THRES_SEC)
+            if(((*timestamp) - recordMeas.ts) < INVERTER_INACT_THRES_SEC)
                 avail = true;
 
             if(avail) {
                 if(status < InverterStatus::PRODUCING)
                     status = InverterStatus::STARTING;
             } else {
-                if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
+                if(((*timestamp) - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
                     if(status != InverterStatus::OFF) {
                         status = InverterStatus::OFF;
                         actPowerLimit = 0xffff; // power limit will be read once inverter becomes available

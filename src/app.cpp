@@ -472,6 +472,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 continue;
         }
 
+        changed = true;
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         for(uint8_t ch = 0; ch <= iv->channels; ch++) {
             uint8_t pos = 0;
@@ -494,10 +495,8 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 iv->setValue(pos, rec, 0.0f);
             }
             iv->resetAlarms();
-
             iv->doCalculations();
         }
-        changed = true;
     }
 
     if(changed)

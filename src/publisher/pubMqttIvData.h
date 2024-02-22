@@ -75,6 +75,7 @@ class PubMqttIvData {
             mTotalFound = false;
             mSendTotalYd = true;
             mAllTotalFound = true;
+            mAtLeastOneWasntSent = false;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
@@ -122,7 +123,7 @@ class PubMqttIvData {
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
-            } else if(mSendTotals && mTotalFound) {
+            } else if(mSendTotals && mTotalFound && mAtLeastOneWasntSent) {
                 if(mYldTotalStore > mTotal[2])
                     mSendTotalYd = false; // don't send yield total if last value was greater
                 else
@@ -177,6 +178,7 @@ class PubMqttIvData {
                 }
 
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
+                    mAtLeastOneWasntSent = true;
                     if(InverterDevInform_All == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/firmware", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%d\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
@@ -282,7 +284,8 @@ class PubMqttIvData {
 
         uint8_t mCmd = 0;
         uint8_t mLastIvId = 0;
-        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false, mSendTotalYd = false;
+        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false;
+        bool mSendTotalYd = false, mAtLeastOneWasntSent = false;
         float mTotal[5], mYldTotalStore = 0;
 
         Inverter<> *mIv = nullptr, *mIvSend = nullptr;

@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.85 - 2024-02-22
+* possible fix of MqTT fix "total values are sent to often" #1421
+* fix translation #1442
+* availability check only related to live data #1035 #1437
+
 ## 0.8.84 - 2024-02-19
 * fix homeassistant autodiscovery #1432
 * merge PR: more gracefull handling of complete retransmits #1433
