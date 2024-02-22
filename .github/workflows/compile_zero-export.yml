@@ -170,4 +170,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: zero-${{ steps.version_name.outputs.name }}
-        path: ${{ steps.version_name.outputs.name }} manual/User_Manual.md manual/Getting_Started.md
+        path: |
+          ${{ steps.version_name.outputs.name }}
+          manual/User_Manual.md
+          manual/Getting_Started.md
