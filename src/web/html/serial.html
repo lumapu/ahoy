@@ -65,7 +65,7 @@
             });
             document.getElementById("scroll").addEventListener("click", function() {
                 mAutoScroll = !mAutoScroll;
-                this.value = (mAutoScroll) ? "autoscroll" : "manual scroll";
+                this.value = (mAutoScroll) ? "{#BTN_AUTOSCROLL}" : "{#BTN_MANUALSCROLL}";
             });
             document.getElementById("copy").addEventListener("click", function() {
                 con.value = version + " - " + build + "\n---------------\n" + con.value;
@@ -80,10 +80,10 @@
                     try {
                         return document.execCommand("copy");  // Security exception may be thrown by some browsers.
                     } catch (ex) {
-                        alert("Copy to clipboard failed" + ex);
+                        alert("CLIPBOARD_FAILED " + ex);
                     } finally {
                         document.body.removeChild(ta);
-                        alert("Copied to clipboard");
+                        alert("{#COPIED_TO_CLIPBOARD}");
                     }
                 }
             });

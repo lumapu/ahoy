@@ -884,6 +884,11 @@
                     "de": "automatisch scrollen"
                 },
                 {
+                    "token": "BTN_MANUALSCROLL",
+                    "en": "manual scroll",
+                    "de": "manuell scrollen"
+                },
+                {
                     "token": "BTN_COPY",
                     "en": "copy",
                     "de": "kopieren"
@@ -897,12 +902,21 @@
                     "token": "UPTIME",
                     "en": "uptime",
                     "de": "Laufzeit"
-                }
-,
+                },
                 {
                     "token": "DAYS",
                     "en": "days",
                     "de": "Tage"
+                },
+                {
+                    "token": "COPIED_TO_CLIPBOARD",
+                    "en": "Copied to clipboard",
+                    "de": "in die Zwischenablage kopiert"
+                },
+                {
+                    "token": "CLIPBOARD_FAILED",
+                    "en": "Copy failed",
+                    "de": "kopieren fehlgeschlagen"
                 }
             ]
         },

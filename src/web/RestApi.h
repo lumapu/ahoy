@@ -141,7 +141,7 @@ class RestApi {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
 
             if(0 == index) {
-                if(NULL != mTmpBuf)
+                if(nullptr != mTmpBuf)
                     delete[] mTmpBuf;
                 mTmpBuf = new uint8_t[total+1];
                 mTmpSize = total;
@@ -154,36 +154,40 @@ class RestApi {
 
             DynamicJsonDocument json(1000);
 
-            DeserializationError err = deserializeJson(json, reinterpret_cast<const char*>(mTmpBuf), mTmpSize);
-            JsonObject obj = json.as<JsonObject>();
-
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-            root[F("success")] = (err) ? false : true;
-            if(!err) {
-                String path = request->url().substring(5);
-                if(path == "ctrl")
-                    root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
-                else if(path == "setup")
-                    root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
-                else {
-                    root[F("success")] = false;
-                    root[F("error")]   = F(PATH_NOT_FOUND) + path;
-                }
-            } else {
-                switch (err.code()) {
-                    case DeserializationError::Ok: break;
-                    case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
-                    case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
-                    case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
-                    default:                                    root[F("error")] = F(DESER_FAILED);     break;
+            DeserializationError err = deserializeJson(json, reinterpret_cast<const char*>(mTmpBuf), mTmpSize);
+            if(!json.is<JsonObject>())
+                root[F("error")] = F(DESER_FAILED);
+            else {
+                JsonObject obj = json.as<JsonObject>();
+
+                root[F("success")] = (err) ? false : true;
+                if(!err) {
+                    String path = request->url().substring(5);
+                    if(path == "ctrl")
+                        root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
+                    else if(path == "setup")
+                        root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
+                    else {
+                        root[F("success")] = false;
+                        root[F("error")]   = F(PATH_NOT_FOUND) + path;
+                    }
+                } else {
+                    switch (err.code()) {
+                        case DeserializationError::Ok: break;
+                        case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
+                        case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
+                        case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
+                        default:                                    root[F("error")] = F(DESER_FAILED);     break;
+                    }
                 }
             }
 
             response->setLength();
             request->send(response);
             delete[] mTmpBuf;
-            mTmpBuf = NULL;
+            mTmpBuf = nullptr;
         }
 
         void getNotFound(JsonObject obj, String url) {
@@ -974,7 +978,7 @@ class RestApi {
         uint32_t mTimezoneOffset = 0;
         uint32_t mHeapFree = 0, mHeapFreeBlk = 0;
         uint8_t mHeapFrag = 0;
-        uint8_t *mTmpBuf = NULL;
+        uint8_t *mTmpBuf = nullptr;
         uint32_t mTmpSize = 0;
 };
 

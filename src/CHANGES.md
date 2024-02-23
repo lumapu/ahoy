@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.86 - 2024-02-23
+* RestAPI check for parent element to be JsonObject #1449
+* fix translation #1448 #1442
+* fix reset values when inverter status is 'not available' #1035 #1437
+
 ## 0.8.85 - 2024-02-22
 * possible fix of MqTT fix "total values are sent to often" #1421
 * fix translation #1442
