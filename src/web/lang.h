@@ -43,6 +43,12 @@
 #endif
 
 #ifdef LANG_DE
+    #define INVALID_DATATYPE "Ungültiger Datentyp"
+#else /*LANG_EN*/
+    #define INVALID_DATATYPE "Invalid datatype"
+#endif
+
+#ifdef LANG_DE
     #define NOT_ENOUGH_MEM "nicht genügend Speicher"
 #else /*LANG_EN*/
     #define NOT_ENOUGH_MEM "Not enough memory"

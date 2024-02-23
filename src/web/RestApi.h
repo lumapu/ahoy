@@ -63,10 +63,11 @@ class RestApi {
         void ctrlRequest(JsonObject obj) {
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
-            if(obj[F("path")] == "ctrl")
-                setCtrl(obj, dummy, "*");
-            else if(obj[F("path")] == "setup")
-                setSetup(obj, dummy, "*");
+
+                if(obj[F("path")] == "ctrl")
+                    setCtrl(obj, dummy, "*");
+                else if(obj[F("path")] == "setup")
+                    setSetup(obj, dummy, "*");
         }
 
     private:
@@ -155,31 +156,35 @@ class RestApi {
             DynamicJsonDocument json(1000);
 
             DeserializationError err = deserializeJson(json, reinterpret_cast<const char*>(mTmpBuf), mTmpSize);
-            JsonObject obj = json.as<JsonObject>();
-
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-            root[F("success")] = (err) ? false : true;
-            if(!err) {
-                String path = request->url().substring(5);
-                if(path == "ctrl")
-                    root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
-                else if(path == "setup")
-                    root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
-                else {
-                    root[F("success")] = false;
-                    root[F("error")]   = F(PATH_NOT_FOUND) + path;
-                }
+            if (json.is<JsonObject>()) {
+                JsonObject obj = json.as<JsonObject>();
+
+
+                root[F("success")] = (err) ? false : true;
+
+                    String path = request->url().substring(5);
+                    if(path == "ctrl")
+                        root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
+                    else if(path == "setup")
+                        root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
+                    else {
+                        root[F("success")] = false;
+                        root[F("error")]   = F(PATH_NOT_FOUND) + path;
+                    }
+
             } else {
+
                 switch (err.code()) {
-                    case DeserializationError::Ok: break;
+                    case DeserializationError::Ok: root[F("error")] = F(INVALID_DATATYPE); break;
                     case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
                     case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
                     case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
                     default:                                    root[F("error")] = F(DESER_FAILED);     break;
                 }
-            }
 
+            }
             response->setLength();
             request->send(response);
             delete[] mTmpBuf;
