@@ -65,7 +65,7 @@ def buildManifest(path, infile, outfile):
 
     jsonString = json.dumps(data, indent=2)
 
-    fp = open(path + "firmware/" + outfile, "w")
+    fp = open(path + "../firmware/" + outfile, "w")
     fp.write(jsonString)
     fp.close()
 

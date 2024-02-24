@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
 
   build-en:
-    name: Build Environments (English)
+    name: Build (English)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -77,7 +77,7 @@ jobs:
         path: firmware/*
 
   build-de:
-    name: Build Environments (German)
+    name: Build (German)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -138,7 +138,7 @@ jobs:
         path: firmware/*
 
   deploy:
-    name: Deploy Environments
+    name: Update Artifacts / Deploy
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     continue-on-error: false
