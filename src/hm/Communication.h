@@ -117,7 +117,7 @@ class Communication : public CommQueue<> {
 
                     //q->iv->radioStatistics.txCnt++;
                     q->iv->radio->mRadioWaitTime.startTimeMonitor(mTimeout);
-                    if(!mIsRetransmit && (q->cmd == AlarmData) || (q->cmd == GridOnProFilePara))
+                    if((!mIsRetransmit && (q->cmd == AlarmData)) || (q->cmd == GridOnProFilePara))
                         incrAttempt((q->cmd == AlarmData)? MORE_ATTEMPS_ALARMDATA : MORE_ATTEMPS_GRIDONPROFILEPARA);
 
                     mIsRetransmit    = false;
