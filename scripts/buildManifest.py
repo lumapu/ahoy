@@ -36,8 +36,26 @@ def buildManifest(path, infile, outfile):
     esp32["parts"].append({"path": "ESP32/bootloader.bin", "offset": 4096})
     esp32["parts"].append({"path": "ESP32/partitions.bin", "offset": 32768})
     esp32["parts"].append({"path": "ESP32/ota.bin", "offset": 57344})
-    esp32["parts"].append({"path": "ESP32/" + version[1] + "_" + sha + "_esp32.bin", "offset": 65536})
+    esp32["parts"].append({"path": "ESP32/" + version[1] + "_" + sha + "_esp32-wroom32.bin", "offset": 65536})
     data["builds"].append(esp32)
+
+    esp32s2 = {}
+    esp32s2["chipFamily"] = "ESP32-S2"
+    esp32s2["parts"] = []
+    esp32s2["parts"].append({"path": "ESP32-S2/bootloader.bin", "offset": 4096})
+    esp32s2["parts"].append({"path": "ESP32-S2/partitions.bin", "offset": 32768})
+    esp32s2["parts"].append({"path": "ESP32-S2/ota.bin", "offset": 57344})
+    esp32s2["parts"].append({"path": "ESP32-S2/" + version[1] + "_" + sha + "_esp32-s2-mini.bin", "offset": 65536})
+    data["builds"].append(esp32s2)
+
+    esp32s3 = {}
+    esp32s3["chipFamily"] = "ESP32-S3"
+    esp32s3["parts"] = []
+    esp32s3["parts"].append({"path": "ESP32/bootloader.bin", "offset": 4096})
+    esp32s3["parts"].append({"path": "ESP32/partitions.bin", "offset": 32768})
+    esp32s3["parts"].append({"path": "ESP32/ota.bin", "offset": 57344})
+    esp32s3["parts"].append({"path": "ESP32-S3/" + version[1] + "_" + sha + "_opendtufusion.bin", "offset": 65536})
+    data["builds"].append(esp32s3)
 
     esp8266 = {}
     esp8266["chipFamily"] = "ESP8266"
