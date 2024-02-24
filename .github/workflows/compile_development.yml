@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
 
   build-en:
-    name: Build (English)
+    name: Build (EN)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -77,7 +77,7 @@ jobs:
         path: firmware/*
 
   build-de:
-    name: Build (German)
+    name: Build (DE)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -170,10 +170,10 @@ jobs:
       run: python ../scripts/buildManifest.py
 
     - name: Copy install html
-      run: mv ../scripts/gh-action-dev-build-flash.html firmware/install.html
+      run: mv scripts/gh-action-dev-build-flash.html firmware/install.html
 
     - name: Copy Changes.md
-      run: mv CHANGES.md firmware/CHANGES.md
+      run: mv src/CHANGES.md firmware/CHANGES.md
 
 
     - name: Rename firmware directory
