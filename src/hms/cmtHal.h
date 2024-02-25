@@ -17,7 +17,7 @@
 class cmtHal : public SpiPatcherHandle {
     public:
         cmtHal() {
-            mSpiPatcher = SpiPatcher::getInstance(SPI2_HOST);
+            mSpiPatcher = SpiPatcher::getInstance(DEF_CMT_SPI_HOST);
         }
 
         void patch() override {
@@ -89,7 +89,7 @@ class cmtHal : public SpiPatcherHandle {
         }
 
         uint8_t readReg(uint8_t addr) {
-            uint8_t data;
+            uint8_t data = 0;
 
             request_spi();
 

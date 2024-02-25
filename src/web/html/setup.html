@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>Setup</title>
+        <title>{#SETTINGS}</title>
         {#HTML_HEADER}
     </head>
     <body>
@@ -9,78 +9,64 @@
         <div id="wrapper">
             <div id="content">
                 <form method="post" action="/save" id="settings">
-                    <fieldset>
-                    <button type="button" class="s_collapsible mt-4">System Config</button>
+                    <button type="button" class="s_collapsible mt-4">{#SYSTEM_CONFIG}</button>
                     <div class="s_content">
-                    <fieldset class="mb-2">
-                        <legend class="des">Device Host Name</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3">Device Name</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Reboot Ahoy at midnight</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="schedReboot"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Dark Mode</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
-                            <div class="col-12">(empty browser cache or use CTRL + F5 after reboot to apply this setting)</div>
-                        </div>
-                    </fieldset>
-                    <fieldset class="mb-4">
-                        <legend class="des">System Config</legend>
-                        <p class="des">Status LEDs</p>
-                        <div id="pinout"></div>
-
-                        <p class="des">Radio (NRF24L01+)</p>
-                        <div id="rf24"></div>
-                        <!--IF_ESP32-->
-                        <p class="des">Radio (CMT2300A)</p>
-                        <div id="cmt"><div class="col-12">(ESP32 only)</div></div>
-                        <!--ENDIF_ESP32-->
-                        <p class="des">Serial Console</p>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">print inverter data</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Serial Debug</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Privacy Mode</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Print whole traces in Log</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="wholeTrace"/></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-2">
+                            <legend class="des">{#SYSTEM_CONFIG}</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3">{#DEVICE_NAME}</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="device"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#REBOOT_AT_MIDNIGHT}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="schedReboot"/></div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-8 col-sm-3">{#DARK_MODE}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="darkMode"/></div>
+                                <div class="col-12">{#DARK_MODE_NOTE}</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#REGION}</div>
+                                <div class="col-4 col-sm-9" id="region"></div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-8 col-sm-3">{#TIMEZONE}</div>
+                                <div class="col-4 col-sm-9" id="timezone"></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#CUSTOM_LINK}</div>
+                                <div class="col-4 col-sm-9"><input type="text" name="cstLnk"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#CUSTOM_LINK_TEXT}</div>
+                                <div class="col-4 col-sm-9"><input type="text" name="cstLnkTxt"/></div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="mb-4" id="serialCb">
+                            <legend class="des">{#SERIAL_CONSOLE}</legend>
+                        </fieldset>
                     </div>
 
-                    <button type="button" class="s_collapsible">Network</button>
+                    <button type="button" class="s_collapsible">{#NETWORK}</button>
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
 
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">AP Password (min. length: 8)</div>
+                                <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
-
-                            <p>Enter the credentials to your preferred WiFi station. After rebooting the device tries to connect with this information.</p>
-
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">Search Networks</div>
-                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="scan" onclick="scan()"/></div>
+                                <div class="col-12 col-sm-3 my-2">{#SEARCH_NETWORKS}</div>
+                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="{#BTN_SCAN}" onclick="scan()"/></div>
                             </div>
 
                             <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">Avail Networks</div>
+                                <div class="col-12 col-sm-3 my-2">{#AVAIL_NETWORKS}</div>
                                 <div class="col-12 col-sm-9">
                                     <select name="networks" id="networks" onChange="selNet()">
-                                        <option value="-1" selected disabled hidden>not scanned</option>
+                                        <option value="-1" selected disabled hidden>{#NETWORK_NOT_SCANNED}</option>
                                     </select>
                                 </div>
                             </div>
@@ -89,26 +75,25 @@
                                 <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3">SSID is hidden</div>
+                                <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
                                 <div class="col-12 col-sm-9"><input type="checkbox" name="hidd"/></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">Password</div>
+                                <div class="col-12 col-sm-3 my-2">{#PASSWORD}</div>
                                 <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
                             </div>
                         </fieldset>
                         <fieldset class="mb-4">
-                            <legend class="des">Static IP (optional)</legend>
+                            <legend class="des">{#STATIC_IP}</legend>
                             <p>
-                                Leave fields blank for DHCP<br/>
-                                The following fields are parsed in this format: 192.168.4.1
+                                {#NETWORK_HINT_BLANK}
                             </p>
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">IP Address</div>
+                                <div class="col-12 col-sm-3 my-2">{#IP_ADDRESS}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ipAddr" maxlength="15" /></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">Submask</div>
+                                <div class="col-12 col-sm-3 my-2">{#SUBMASK}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ipMask" maxlength="15" /></div>
                             </div>
                             <div class="row mb-3">
@@ -126,192 +111,216 @@
                         </fieldset>
                     </div>
 
-                    <button type="button" class="s_collapsible">Protection</button>
+                    <button type="button" class="s_collapsible">{#PROTECTION}</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
-                            <legend class="des mx-2">Protection</legend>
+                            <legend class="des mx-2">{#PROTECTION}</legend>
                             <div class="row mb-3">
-                                <div class="col-12 col-sm-3 mb-2 mt-2">Admin Password</div>
+                                <div class="col-12 col-sm-3 mb-2 mt-2">{#ADMIN_PASSWORD}</div>
                                 <div class="col-12 col-sm-9"><input type="password" name="adminpwd" value="{PWD}"/></div>
                             </div>
-                            <p>Select pages which should be protected by password</p>
+                            <p>{#PROTECTION_NOTE}</p>
                             <div id="prot_mask"></div>
                         </fieldset>
                     </div>
 
-                    <button type="button" class="s_collapsible">Inverter</button>
+                    <button type="button" class="s_collapsible">{#INVERTER}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                    <legend class="des">Inverter</legend>
-                        <div id="inverter"></div>
-                        <div class="row mb-3">
-                            <div class="col-8 my-2">Interval [s]</div>
-                            <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 my-2">Inverter Gap [ms]</div>
-                            <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 mb-2">Reset values and YieldDay at midnight</div>
-                            <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8 mb-2">Reset values when inverter polling pauses at sunset</div>
-                            <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">Reset values when inverter status is 'not available'</div>
-                            <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">Reset 'max' values at midnight</div>
-                            <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">Start without time sync (useful in AP-Only-Mode)</div>
-                            <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">Read Grid Profile</div>
-                            <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-8">Yield Efficiency (Standard 1.0)</div>
-                            <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-4">
+                        <legend class="des">{#INVERTER}</legend>
+                            <div id="inverter"></div>
+                            <div class="row mb-3">
+                                <div class="col-8 my-2">{#INTERVAL} [s]</div>
+                                <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_RESET_MIDNIGHT}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8 mb-2">{#INV_PAUSE_SUNSET}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstComStop"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_RESET_NOT_AVAIL}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstNotAvail"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_RESET_MAX_MIDNIGHT}</div>
+                                <div class="col-4"><input type="checkbox" name="invRstMaxMid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_START_WITHOUT_TIME}</div>
+                                <div class="col-4"><input type="checkbox" name="strtWthtTm"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
+                                <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-8">{#INV_YIELD_EFF}</div>
+                                <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">NTP Server</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">NTP Server</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Port</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">NTP Interval (in Minutes, min. 5 Minutes)</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">set System time</div>
-                            <div class="col-12 col-sm-9">
-                                <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="from browser" onclick="setTime()"/>
-                                <input type="button" name="ntpSync" id="ntpSync" class="btn" value="sync NTP" onclick="syncTime()"/><br/>
-                                <span id="apiResultNtp"></span>
+                        <fieldset class="mb-4">
+                            <legend class="des">NTP Server</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">NTP Server / IP</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ntpAddr"/></div>
                             </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">System Time</div>
-                            <div class="col-12 col-sm-9 my-2"><span id="date"></span></div>
-                        </div>
-                    </fieldset>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">NTP Port</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ntpPort"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_INTERVAL}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ntpIntvl"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_SET_SYS_TIME}</div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="button" name="ntpBtn" id="ntpBtn" class="btn" value="{#BTN_FROM_BROWSER}" onclick="setTime()"/>
+                                    <input type="button" name="ntpSync" id="ntpSync" class="btn" value="{#BTN_SYNC_NTP}" onclick="syncTime()"/><br/>
+                                    <span id="apiResultNtp"></span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#NTP_SYS_TIME}</div>
+                                <div class="col-12 col-sm-9 my-2"><span id="date"></span></div>
+                            </div>
+                        </fieldset>
                     </div>
 
-                    <button type="button" class="s_collapsible">Sunrise & Sunset</button>
+                    <button type="button" class="s_collapsible">{#SUNRISE_SUNSET}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">Sunrise & Sunset</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Latitude (decimal)</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="sunLat" step="any"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Longitude (decimal)</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Offset (pre sunrise, post sunset)</div>
-                            <div class="col-12 col-sm-9"><select name="sunOffs"></select></div>
-                        </div>
-                    </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">{#SUNRISE_SUNSET}</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#LATITUDE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="sunLat" step="any"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#LONGITUDE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="sunLon" step="any"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNRISE}</div>
+                                <div class="col-12 col-sm-9"><select name="sunOffsSr"></select></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#OFFSET_SUNSET}</div>
+                                <div class="col-12 col-sm-9"><select name="sunOffsSs"></select></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">MQTT</legend>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Port</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="mqttPort"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Client Id (optional)</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttClientId"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Username (optional)</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Password (optional)</div>
-                            <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Topic</div>
-                            <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
-                        </div>
-                        <p class="des">Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)</p>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Interval [s]</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
-                            <div class="col-12 col-sm-9">
-                                <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="send" onclick="sendDiscoveryConfig()"/>
-                                <span id="apiResultMqtt"></span>
+                        <fieldset class="mb-4">
+                            <legend class="des">MQTT</legend>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Broker / Server IP</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttAddr"/></div>
                             </div>
-                        </div>
-                    </fieldset>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Port</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="mqttPort"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Client Id (optional)</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttClientId"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_USER}</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttUser"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#MQTT_PASSWORD}</div>
+                                <div class="col-12 col-sm-9"><input type="password" name="mqttPwd"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Topic</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="mqttTopic" pattern="[\-\+A-Za-z0-9\.\/#\$%&=_]+" title="Invalid input" /></div>
+                            </div>
+                            <p class="des">{#MQTT_NOTE}</p>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="button" name="mqttDiscovery" id="mqttDiscovery" class="btn" value="{#BTN_SEND}" onclick="sendDiscoveryConfig()"/>
+                                    <span id="apiResultMqtt"></span>
+                                </div>
+                            </div>
+                        </fieldset>
                     </div>
 
-                    <button type="button" class="s_collapsible">Display Config</button>
+                    <button type="button" class="s_collapsible">{#PINOUT_CONFIG}</button>
                     <div class="s_content">
-                    <fieldset class="mb-4">
-                        <legend class="des">Display Config</legend>
-                        <div id="dispType"></div>
-                        <div id="dispRot"></div>
-                        <div class="row mb-3">
-                            <div class="col-8 col-sm-3">Turn off while inverters are offline</div>
-                            <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
-                        </div>
-                        <div id="screenSaver"></div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-sm-3 my-2">Luminance</div>
-                            <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
-                        </div>
-                        <p class="des">Pinout</p>
-                        <div id="dispPins"></div>
-                        <div id="pirPin"></div>
-                    </fieldset>
+                        <fieldset class="mb-4">
+                            <legend class="des">{#PINOUT_CONFIG}</legend>
+                            <p class="des">Status LEDs</p>
+                            <div id="pinout"></div>
+
+                            <p class="des">{#RADIO} (NRF24L01+)</p>
+                            <div id="rf24"></div>
+                            <!--IF_ESP32-->
+                            <p class="des">{#RADIO} (CMT2300A)</p>
+                            <div id="cmt"></div>
+                            <!--ENDIF_ESP32-->
+                        </fieldset>
+                    </div>
+
+                    <button type="button" class="s_collapsible">{#DISPLAY_CONFIG}</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des">{#DISPLAY_CONFIG}</legend>
+                            <div id="dispType"></div>
+                            <div id="dispRot"></div>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#DISP_OFF_INV}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="disp_pwr"/></div>
+                            </div>
+                            <div id="screenSaver"></div>
+                            <div class="row mb-3" id="luminanceOption">
+                                <div class="col-12 col-sm-3 my-2">{#DISP_LUMINANCE}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="disp_cont" min="0" max="255"></select></div>
+                            </div>
+                            <p class="des">{#DISP_PINOUT}</p>
+                            <div id="dispPins"></div>
+                            <div id="pirPin"></div>
+                            <div id="graphOptions">
+                                <p class="des">{#GRAPH_OPTIONS}</p>
+                                <div class="row mb-3">
+                                    <div class="col-12 col-sm-3 my-2">{#GRAPH_SHOW_RATIO}</div>
+                                    <div class="col-12 col-sm-9"><input type="number" name="disp_graph_ratio" min="0" max="100"></select></div>
+                                </div>
+                                <div id="graphSize"></div>
+                            </div>
+                        </fieldset>
                     </div>
 
                     <div class="row mb-4 mt-4">
-                        <div class="col-8 col-sm-3">Reboot device after successful save</div>
+                        <div class="col-8 col-sm-3">{#BTN_REBOOT_SUCCESSFUL_SAVE}</div>
                         <div class="col-4 col-sm-9">
                             <input type="checkbox" name="reboot" checked />
-                            <input type="submit" value="save" class="btn right"/>
+                            <input type="submit" value="{#BTN_SAVE}" class="btn right"/>
                         </div>
                     </div>
                 </form>
                 <div class="hr mb-3 mt-3"></div>
                 <div class="mb-4 mt-4">
-                    <a class="btn" href="/erase">ERASE SETTINGS (not WiFi)</a>
+                    <a class="btn" href="/erase">{#BTN_ERASE}</a>
                     <fieldset class="mb-4">
-                        <legend class="des">Import / Export JSON Settings</legend>
+                        <legend class="des">{#IM_EXPORT}</legend>
                         <div class="row mb-4 mt-4">
-                            <div class="col-12 col-sm-3">Import</div>
+                            <div class="col-12 col-sm-3">{#IMPORT}</div>
                             <div class="col-12 col-sm-9">
                                 <form id="form" method="POST" action="/upload" enctype="multipart/form-data" accept-charset="utf-8">
                                     <div class="row">
@@ -322,9 +331,9 @@
                             </div>
                         </div>
                         <div class="row mb-4 mt-4">
-                            <div class="col-12 col-sm-3 my-2">Export</div>
+                            <div class="col-12 col-sm-3 my-2">{#EXPORT}</div>
                             <div class="col-12 col-sm-9">
-                                <a class="btn" href="/get_setup" target="_blank">Export settings (JSON file)</a><span> (only values, passwords will be removed!)</span>
+                                <a class="btn" href="/get_setup" target="_blank">{#BTN_EXPORT}</a><span> {#EXPORT_NOTE}</span>
                             </div>
                         </div>
                     </fieldset>
@@ -337,7 +346,7 @@
             var ts = 0;
 
             var esp8266pins = [
-                [255, "off / default"],
+                [255, "{#PIN_OFF}"],
                 [0, "D3 (GPIO0)"],
                 [1, "TX (GPIO1)"],
                 [2, "D4 (GPIO2)"],
@@ -354,12 +363,12 @@
                 [13, "D7 (GPIO13)"],
                 [14, "D5 (GPIO14)"],
                 [15, "D8 (GPIO15)"],
-                [16, "D0 (GPIO16 - no IRQ!)"]
+                [16, "D0 (GPIO16 - {#PIN_NO_IRQ})"]
             ];
 
             /*IF_ESP32*/
             var esp32pins = [
-                [255, "off / default"],
+                [255, "{#PIN_OFF}"],
                 [0,  "GPIO0"],
                 [1,  "TX (GPIO1)"],
                 [2,  "GPIO2 (LED)"],
@@ -382,14 +391,14 @@
                 [27, "GPIO27"],
                 [32, "GPIO32"],
                 [33, "GPIO33"],
-                [34, "GPIO34 (in only)"],
-                [35, "GPIO35 (in only)"],
-                [36, "VP (GPIO36, in only)"],
-                [39, "VN (GPIO39, in only)"]
+                [34, "GPIO34 ({#PIN_INPUT_ONLY})"],
+                [35, "GPIO35 ({#PIN_INPUT_ONLY})"],
+                [36, "VP (GPIO36, {#PIN_INPUT_ONLY})"],
+                [39, "VN (GPIO39, {#PIN_INPUT_ONLY})"]
             ];
-            var esp32s3pins = [
+            var esp32sXpins = [
                 [255, "off / default"],
-                [0,  "GPIO0 (DONT USE - BOOT)"],
+                [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
                 [1,  "GPIO1"],
                 [2,  "GPIO2"],
                 [3,  "GPIO3"],
@@ -408,18 +417,18 @@
                 [16, "GPIO16"],
                 [17, "GPIO17"],
                 [18, "GPIO18"],
-                [19, "GPIO19 (DONT USE - USB-)"],
-                [20, "GPIO20 (DONT USE - USB+)"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB-)"],
+                [20, "GPIO20 ({#PIN_DONT_USE} - USB+)"],
                 [21, "GPIO21"],
-                [26, "GPIO26 (PSRAM - not available)"],
-                [27, "GPIO27 (FLASH - not available)"],
-                [28, "GPIO28 (FLASH - not available)"],
-                [29, "GPIO29 (FLASH - not available)"],
-                [30, "GPIO30 (FLASH - not available)"],
-                [31, "GPIO31 (FLASH - not available)"],
-                [32, "GPIO32 (FLASH - not available)"],
-                [33, "GPIO33 (not exposed on WROOM modules)"],
-                [34, "GPIO34 (not exposed on WROOM modules)"],
+                [26, "GPIO26 (PSRAM - {#PIN_NOT_AVAIL})"],
+                [27, "GPIO27 (FLASH - {#PIN_NOT_AVAIL})"],
+                [28, "GPIO28 (FLASH - {#PIN_NOT_AVAIL})"],
+                [29, "GPIO29 (FLASH - {#PIN_NOT_AVAIL})"],
+                [30, "GPIO30 (FLASH - {#PIN_NOT_AVAIL})"],
+                [31, "GPIO31 (FLASH - {#PIN_NOT_AVAIL})"],
+                [32, "GPIO32 (FLASH - {#PIN_NOT_AVAIL})"],
+                [33, "GPIO33 (not exposed on S3-WROOM modules)"],
+                [34, "GPIO34 (not exposed on S3-WROOM modules)"],
                 [35, "GPIO35"],
                 [36, "GPIO36"],
                 [37, "GPIO37"],
@@ -430,8 +439,8 @@
                 [42, "GPIO42"],
                 [43, "GPIO43"],
                 [44, "GPIO44"],
-                [45, "GPIO45 (DONT USE - STRAPPING PIN)"],
-                [46, "GPIO46 (DONT USE - STRAPPING PIN)"],
+                [45, "GPIO45 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [46, "GPIO46 ({#PIN_DONT_USE} - STRAPPING PIN)"],
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
@@ -455,17 +464,17 @@
                 [15, "GPIO15 (PSRAM/FLASH)"],
                 [16, "GPIO16 (PSRAM/FLASH)"],
                 [17, "GPIO17 (PSRAM/FLASH)"],
-                [18, "GPIO18 (DONT USE - USB-)"],
-                [19, "GPIO19 (DONT USE - USB+)"],
+                [18, "GPIO18 ({#PIN_DONT_USE} - USB-)"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB+)"],
                 [20, "GPIO20 (RX)"],
                 [21, "GPIO21 (TX)"],
             ];
             /*ENDIF_ESP32*/
             var nrfPa = [
-                [0, "MIN (recommended)"],
+                [0, "MIN ({#PIN_RECOMMENDED})"],
                 [1, "LOW"],
                 [2, "HIGH"],
-                [3, "MAX (experimental)"]
+                [3, "MAX ({#PIN_EXPERIMENTAL})"]
             ];
             var esp32cmtPa = [];
             var esp32cmtFreq = [];
@@ -478,13 +487,10 @@
             for(var i = 0; i < 31; i++) {
                 esp32cmtPa.push([i, String(i-10) + " dBm"]);
             }
-            for(var i = 12; i < 41; i++) {
-                esp32cmtFreq.push([i, freqFmt.format(860 + i*0.25) + " MHz"]);
-            }
             /*ENDIF_ESP32*/
             var led_high_active = [
-                [0, "low active"],
-                [1, "high active"],
+                [0, "{#PIN_LOW_ACTIVE}"],
+                [1, "{#PIN_HIGH_ACTIVE}"],
             ];
 
             window.onload = function() {
@@ -509,66 +515,61 @@
                 var e = document.getElementById("networks");
                 selDelAllOpt(e);
                 if(obj["success"])
-                    e.appendChild(opt("-1", "scanning ..."))
+                    e.appendChild(opt("-1", "{#NETWORK_SCANNING}"))
                 else
-                    e.appendChild(opt("-1", "Error: " + obj["error"]));
+                    e.appendChild(opt("-1", "{#ERROR} " + obj["error"]));
             }
 
             function apiCbNtp(obj) {
                 var e = document.getElementById("apiResultNtp");
                 if(obj["success"])
-                    e.innerHTML = "command executed, set new time ...";
+                    e.innerHTML = "{#NTP_COMMAND_EXE}";
                 else
-                    e.innerHTML = "Error: " + obj["error"];
+                    e.innerHTML = "{#ERROR} " + obj["error"];
             }
 
             function apiCbNtp2(obj) {
                 var e = document.getElementById("apiResultNtp");
                 var date = new Date(obj["ts_now"] * 1000);
-                e.innerHTML = "synced at: " + toIsoDateStr(date) + ", difference: " + (ts - obj["ts_now"]) + "ms";
+                e.innerHTML = "{#NTP_SYNCED_AT}: " + toIsoDateStr(date) + ", {#NTP_DIFF}: " + (ts - obj["ts_now"]) + "ms";
             }
 
             function apiCbMqtt(obj) {
                 var e = document.getElementById("apiResultMqtt");
                 if(obj["success"])
-                    e.innerHTML = "command executed";
+                    e.innerHTML = "{#MQTT_EXE}";
                 else
-                    e.innerHTML = "Error: " + obj["error"];
+                    e.innerHTML = "{#ERROR} " + obj["error"];
             }
 
             function setTime() {
-                var date = new Date();
-                var obj = new Object();
-                obj.cmd = "set_time";
-                obj.val = parseInt(date.getTime() / 1000);
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var date = new Date()
+                var obj = {cmd: "set_time", token: "*", val: parseInt(date.getTime() / 1000)}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function scan() {
-                var obj = new Object();
-                obj.cmd = "scan_wifi";
+                var obj = {cmd: "scan_wifi", token: "*"}
                 getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
                 setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function syncTime() {
-                var obj = new Object();
-                obj.cmd = "sync_ntp";
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var obj = {cmd: "sync_ntp", token: "*"}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function sendDiscoveryConfig() {
-                var obj = new Object();
-                obj.cmd = "discovery_cfg";
+                var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
             function hide() {
                 document.getElementById("form").submit();
                 var e = document.getElementById("content");
-                e.replaceChildren(span("upload started"));
+                e.replaceChildren(span("{#IMPORT_UPLOAD_STARTED}"));
             }
 
             function delIv() {
@@ -604,7 +605,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"], ["invGap", "gap"]])
+                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -622,19 +623,32 @@
                 if(!obj["pwd_set"])
                     e.value = "";
                 var d = document.getElementById("prot_mask");
-                var a = ["Index", "Live", "Webserial", "Settings", "Update", "System"];
+                var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System", "{#NAV_HISTORY}"];
                 var el = [];
-                for(var i = 0; i < 6; i++) {
+                for(var i = 0; i < 7; i++) {
                     var chk = ((obj["prot_mask"] & (1 << i)) == (1 << i));
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
+
+                var tz = []
+                for(i = 0; i < 24; i += 0.5)
+                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
+                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
+                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
+                document.getElementById("region").append(sel("region", region, obj.region))
+
             }
 
             function parseGeneric(obj) {
                 parseNav(obj);
                 parseESP(obj);
                 parseRssi(obj);
+
+                if(0 != obj.cst_lnk.length) {
+                    document.getElementsByName("cstLnk")[0].value = obj.cst_lnk
+                    document.getElementsByName("cstLnkTxt")[0].value = obj.cst_lnk_txt
+                }
 
                 ts = obj["ts_now"];
                 window.setInterval("tick()", 1000);
@@ -653,13 +667,13 @@
                     ml("th", {style: "width: 10%; text-align: center;"}, ""),
                     ml("th", {}, "Name"),
                     ml("th", {}, "Serial"),
-                    ml("th", {style: "width: 10%; text-align: center;"}, "Edit"),
-                    ml("th", {style: "width: 10%; text-align: center;"}, "Delete")
+                    ml("th", {style: "width: 10%; text-align: center;"}, "{#INV_EDIT}"),
+                    ml("th", {style: "width: 10%; text-align: center;"}, "{#INV_DELETE}")
                 ]));
 
                 for(let i = 0; i < obj.inverter.length; i++) {
                     lines.push(ml("tr", {}, [
-                        ml("td", {}, badge(obj.inverter[i].enabled, (obj.inverter[i].enabled) ? "enabled" : "disabled")),
+                        ml("td", {}, badge(obj.inverter[i].enabled, (obj.inverter[i].enabled) ? "{#ENABLED}" : "{#DISABLED}")),
                         ml("td", {}, obj.inverter[i].name),
                         ml("td", {}, String(obj.inverter[i].serial)),
                         ml("td", {style: "text-align: center;", onclick: function() {ivModal(obj.inverter[i]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
@@ -676,24 +690,30 @@
                 add.ch_yield_cor = [];
                 add.freq = 12;
                 add.pa = 30;
-                add.add2total = true;
 
                 var e = document.getElementById("inverter");
                 e.innerHTML = ""; // remove all childs
                 e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
                 if(obj.max_num_inverters > obj.inverter.length)
-                    e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "add Inverter", class: "btn", onclick: function() { ivModal(add); }}, null))));
+                    e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "{#BTN_INV_ADD}", class: "btn", onclick: function() { ivModal(add); }}, null))));
 
                 ivGlob(obj);
+            }
+
+            function divRow(item0, item1) {
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-3 mt-2"}, item0),
+                    ml("div", {class: "col-9"}, item1)
+                ])
             }
 
             function ivModal(obj) {
                 var lines = [];
                 lines.push(ml("tr", {}, [
-                    ml("th", {style: "width: 10%;"}, "Input"),
-                    ml("th", {}, "Max Module Power [Wp]"),
+                    ml("th", {style: "width: 10%;"}, "{#INV_INPUT}"),
+                    ml("th", {}, "{#INV_MAX_MODULE_POWER} [Wp]"),
                     ml("th", {}, "Name (optional)"),
-                    ml("th", {}, "Yield Correction [kWh] (optional)")
+                    ml("th", {}, "{#INV_YIELD_CORR} [kWh] (optional)")
                 ]));
 
                 for(let i = 0; i < 6; i++) {
@@ -707,67 +727,41 @@
 
                 var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
                 var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
-                var cbAddTotal = ml("input", {name: "add2total", type: "checkbox"}, null);
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
-                cbAddTotal.checked = (obj.add2total);
 
                 var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
                 var html = ml("div", {}, [
-                    tabs(["General", "Inputs", "Radio", "Advanced"]),
-                    ml("div", {id: "divGeneral", class: "tab-content"}, [
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2"}, "Enable"),
-                            ml("div", {class: "col-10"}, cbEn)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "Serial"),
-                            ml("div", {class: "col-10"}, ser)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "Name"),
-                            ml("div", {class: "col-10"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
-                        ])
+                    tabs(["{#TAB_GENERAL}", "{#TAB_INPUTS}", "{#TAB_RADIO}", "{#TAB_ADVANCED}"]),
+                    ml("div", {id: "div{#TAB_GENERAL}", class: "tab-content"}, [
+                        divRow("{#INV_ENABLE}", cbEn),
+                        divRow("{#INV_SERIAL}", ser),
+                        divRow("Name", ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
                     ]),
-                    ml("div", {id: "divInputs", class: "tab-content hide"}, [
+                    ml("div", {id: "div{#TAB_INPUTS}", class: "tab-content hide"}, [
                         ml("div", {class: "row mb-3"},
-                            ml("table", {class: "table"},
-                                ml("tbody", {}, lines)
-                            )
+                            ml("table", {class: "table"}, ml("tbody", {}, lines))
                         )
                     ]),
-                    ml("div", {id: "divRadio", class: "tab-content hide"}, [
+                    ml("div", {id: "div{#TAB_RADIO}", class: "tab-content hide"}, [
                         ml("input", {type: "hidden", name: "isnrf"}, null),
                         ml("div", {id: "setcmt"}, [
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "Frequency"),
-                                ml("div", {class: "col-9"}, sel("freq", esp32cmtFreq, obj.freq))
-                            ]),
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
-                                ml("div", {class: "col-9"}, sel("cmtpa", esp32cmtPa, obj.pa))
-                            ]),
+                            divRow("{#INV_FREQUENCY}", sel("freq", esp32cmtFreq, obj.freq)),
+                            divRow("{#INV_POWER_LEVEL}", sel("cmtpa", esp32cmtPa, obj.pa))
                         ]),
                         ml("div", {id: "setnrf"},
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "Power Level"),
-                                ml("div", {class: "col-9"}, sel("nrfpa", nrfPa, obj.pa))
-                            ]),
+                            divRow("{#INV_POWER_LEVEL}", sel("nrfpa", nrfPa, obj.pa))
                         ),
                     ]),
-                    ml("div", {id: "divAdvanced", class: "tab-content hide"}, [
+                    ml("div", {id: "div{#TAB_ADVANCED}", class: "tab-content hide"}, [
                         ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-10"}, "Pause communication during night (lat. and lon. need to be set)"),
+                            ml("div", {class: "col-10"}, "{#INV_PAUSE_DURING_NIGHT}"),
                             ml("div", {class: "col-2"}, cbDisNightCom)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-10"}, "Include inverter to sum of total (should be checked by default)"),
-                            ml("div", {class: "col-2"}, cbAddTotal)
                         ])
                     ]),
                     ml("div", {class: "row mt-5"}, [
                         ml("div", {class: "col-8", id: "res"}, ""),
-                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "save", class: "btn", onclick: function() { ivSave(); }}, null))
+                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "{#BTN_SAVE}", class: "btn", onclick: function() { ivSave(); }}, null))
                     ])
                 ]);
 
@@ -804,13 +798,14 @@
                     })
                 });
 
-                modal("Edit inverter " + obj.name, html);
+                modal("{#INV_EDIT_MODAL}: " + obj.name, html);
                 ser.dispatchEvent(new Event('change'));
 
                 function ivSave() {
                     var o = new Object();
-                    o.cmd  = "save_iv";
-                    o.id   = obj.id;
+                    o.cmd  = "save_iv"
+                    o.token = "*"
+                    o.id   = obj.id
                     o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
                     o.name = document.getElementsByName("name")[0].value;
                     o.en   = document.getElementsByName("enable")[0].checked;
@@ -828,14 +823,13 @@
                         o.pa   = document.getElementsByName("cmtpa")[0].value;
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
-                    o.add2total = document.getElementsByName("add2total")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
 
                 function cb(obj2) {
                     var e = document.getElementById("res");
                     if(!obj2.success)
-                        e.innerHTML = "error: " + obj2.error;
+                        e.innerHTML = "{#ERROR}" + obj2.error;
                     else {
                         modalClose();
                         getAjax("/api/inverter/list", parseIv);
@@ -845,10 +839,10 @@
 
             function ivDel(obj) {
                 var html = ml("div", {class: "row"}, [
-                    ml("div", {class: "col-9"}, "do you realy want to delete inverter " + obj.name + "?"),
-                    ml("div", {class: "col-3 a-r"}, ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "yes", class: "btn", onclick: function() { del(); }}, null)))
+                    ml("div", {class: "col-9"}, "{#INV_DELETE_SURE} (" + obj.name + ")"),
+                    ml("div", {class: "col-3 a-r"}, ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "{#BTN_YES}", class: "btn", onclick: function() { del(); }}, null)))
                 ]);
-                modal("Delete inverter " + obj.name, html);
+                modal("{#INV_DELETE_MODAL}: " + obj.name, html);
 
                 function del() {
                     var o = new Object();
@@ -889,9 +883,11 @@
             function parseSun(obj) {
                 document.getElementsByName("sunLat")[0].value = obj["lat"];
                 document.getElementsByName("sunLon")[0].value = obj["lon"];
-                const sel = document.getElementsByName("sunOffs")[0];
-                for(var i = 0; i <= 60; i++) {
-                    sel.appendChild(opt(i, i + " minutes", (i == (obj["offs"] / 60))));
+                for(p of [["sunOffsSr", "offsSr"], ["sunOffsSs", "offsSs"]]) {
+                    const sel = document.getElementsByName(p[0])[0];
+                    for(var i = -60; i <= 60; i++) {
+                        sel.appendChild(opt(i, i + " {#NTP_MINUTES}", (i == (obj[p[1]] / 60))));
+                    }
                 }
             }
 
@@ -900,10 +896,10 @@
                 var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model) pinList = esp32s3pins;
+                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
                 else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
                 /*ENDIF_ESP32*/
-                pins = [['led0', 'pinLed0', 'At least one inverter is producing'], ['led1', 'pinLed1', 'MqTT connected']];
+                pins = [['led0', 'pinLed0', '{#LED_AT_LEAST_ONE_PRODUCING}'], ['led1', 'pinLed1', '{#LED_MQTT_CONNECTED}'], ['led2', 'pinLed2', '{#LED_NIGHT_TIME}']];
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
@@ -916,13 +912,13 @@
                 }
                 e.append(
                     ml("div", { class: "row mb-3" }, [
-                        ml("div", { class: "col-12 col-sm-3 my-2" }, "LED polarity"),
+                        ml("div", { class: "col-12 col-sm-3 my-2" }, "{#LED_POLARITY}"),
                         ml("div", { class: "col-12 col-sm-9" },
                             sel('pinLedHighActive', led_high_active, obj.led_high_active)
                         )
                     ]),
                     ml("div", { class: "row mb-3" }, [
-                        ml("div", { class: "col-12 col-sm-3 my-2" }, "LED luminance (0-255)"),
+                        ml("div", { class: "col-12 col-sm-3 my-2" }, "{#LED_LUMINANCE} (0-255)"),
                         ml("div", { class: "col-12 col-sm-9" }, ml("input", {class: "text", type: "number", name: "pinLedLum", value: obj.led_lum, min: 0, max: 255}, null))
                     ])
                 )
@@ -936,13 +932,13 @@
                 var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model) pinList = esp32s3pins;
+                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
                 else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
                 /*ENDIF_ESP32*/
 
                 e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-8 col-sm-3 my-2"}, "NRF24 Enable"),
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "{#NRF24_ENABLE}"),
                         ml("div", {class: "col-4 col-sm-9"}, en)
                     ])
                 );
@@ -969,14 +965,14 @@
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system["chip_model"]) pinList = esp32s3pins;
+                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
                 else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
 
                 en.checked = obj["en"];
 
                 e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-8 col-sm-3 my-2"}, "CMT2300A Enable"),
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "{#CMT_ENABLE}"),
                         ml("div", {class: "col-4 col-sm-9"}, en)
                     ])
                 );
@@ -991,19 +987,35 @@
                         ])
                     );
                 }
+
+                var i = 0
+                while(obj.freq_max >= (obj.freq_min + i * 0.25)) {
+                    esp32cmtFreq.push([i, freqFmt.format(obj.freq_min + i * 0.25) + " MHz"])
+                    i++
+                }
             }
             /*ENDIF_ESP32*/
 
             function parseSerial(obj) {
-                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"], ["priv", "priv"], ["wholeTrace", "wholeTrace"]])
-                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                var e = document.getElementById("serialCb")
+                var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"], ["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"]]
+                for(var i of l) {
+                    var cb = ml("input", {name: i[0], type: "checkbox"}, null)
+                    cb.checked = obj[i[1]]
+                    e.appendChild(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-8 col-sm-3"}, i[2]),
+                            ml("div", {class: "col-4 col-sm-9"}, cb)
+                        ])
+                    )
+                }
             }
 
             function parseDisplay(obj, type, system) {
                 var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model) pinList = esp32s3pins;
+                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
                 else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
                 /*ENDIF_ESP32*/
 
@@ -1027,20 +1039,20 @@
                     );
                 }
                 // keep display types grouped
-                var opts = [[0, "None"],
+                var opts = [[0, "{#DISP_NONE}"],
                             [2, "SH1106 128x64 (1.3\")"],
                             [5, "SSD1306 64x48 (0.66\" Wemos OLED Shield)"],
                             [4, "SSD1306 128x32 (0.91\")"],
                             [1, "SSD1306 128x64 (0.96\", 1.54\")"],
-                            [6, "SSD1309 128X64 (2.42\")"],
-                            [3, "PCD8544 84X48 (1.6\" Nokia 5110)"]];
+                            [6, "SSD1309 128x64 (2.42\")"],
+                            [3, "PCD8544 84x48 (1.6\" Nokia 5110)"]];
                 /*IF_ESP32*/
                 opts.push([10, "ePaper"]);
                 /*ENDIF_ESP32*/
                 var dtype_sel = sel("disp_typ", opts, obj["disp_typ"]);
                 document.getElementById("dispType").append(
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Type"),
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "{#DISP_TYPE}"),
                         ml("div", {class: "col-12 col-sm-9"}, dtype_sel)
                     ])
                 );
@@ -1051,22 +1063,22 @@
                 /*ENDIF_ESP32*/
                 document.getElementById("dispRot").append(
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Rotation"),
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "{#DISP_ROTATION}"),
                         ml("div", {class: "col-12 col-sm-9"}, sel("disp_rot", opts, obj["disp_rot"]))
                     ])
                 );
 
-                var opts1 = [[0, "off"], [1, "pixel shift"], [2, "motion sensor"]];
+                var opts1 = [[0, "{#DISP_SCREENSAVER_OFF}"], [1, "{#DISP_PIXEL_SHIFT}"], [2, "{#DISP_MOTION_SENS}"]];
                 var screensaver_sel = sel("disp_screensaver", opts1, obj["disp_screensaver"]);
                 screensaver_sel.id = 'disp_screensaver';
                 document.getElementById("screenSaver").append(
                     ml("div", {class: "row mb-3"}, [
-                        ml("div", {class: "col-12 col-sm-3 my-2"}, "Screensaver (OLED only)"),
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "{#DISP_SCREENSAVER}"),
                         ml("div", {class: "col-12 col-sm-9"}, screensaver_sel)
                     ])
                 );
 
-                var esp8266pirpins = [[255, "off / default"],
+                var esp8266pirpins = [[255, "{#PIN_OFF}"],
                                       [17,  "A0"]];
                 document.getElementById("pirPin").append(
                     ml("div", {class: "row mb-3"}, [
@@ -1085,22 +1097,33 @@
                     hideDispPins(pins, parseInt(dtype_sel.value))
                 });
 
+                document.getElementsByName("disp_graph_ratio")[0].value = obj["disp_graph_ratio"];
+
+                var opts2 = [[0, "{#GRAPH_LINES_1_2}"], [1, "{#GRAPH_LINES_2_3}"], [2, "{#GRAPH_LINES_1_3}"], [3, "{#GRAPH_LINES_2_4}"], [4, "{#GRAPH_LINES_1_4}"]];
+                var graph_size_sel = sel("disp_graph_size", opts2, obj["disp_graph_size"]);
+                graph_size_sel.id = 'disp_graph_size';
+                document.getElementById("graphSize").append(
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-12 col-sm-3 my-2"}, "{#GRAPH_POSITION}"),
+                        ml("div", {class: "col-12 col-sm-9"}, graph_size_sel)
+                    ])
+                );
+
                 hideDispPins(pins, obj.disp_typ);
             }
 
             function hideDispPins(pins, dispType) {
                 // create pin map for each display type.
-                // It depends on fix pin array (see var pins)
-                // var pins = [['clock', 'disp_clk'], ['data', 'disp_data'], ['cs', 'disp_cs'], ['dc', 'disp_dc'], ['reset', 'disp_rst']];
+                // It depends on fix pin array, see var pins: ['clock', 'data', 'cs', 'dc', 'reset', 'busy']
                 const pinMap = new Map([
-                    [0, [0,0,0,0,0,0]], //none
-                    [1, [1,1,0,0,0,0]], //SSD1306_128X64
-                    [2, [1,1,0,0,0,0]], //SH1106_128X64
-                    [3, [1,1,1,1,0,0]], //PCD8544_84X48 /nokia5110
-                    [4, [1,1,0,0,0,0]], //SSD1306_128X32
-                    [5, [1,1,0,0,0,0]], //SSD1306_128x64
-                    [6, [1,1,0,0,0,0]], //SSD1309_128x64
-                    [10, [1,1,1,1,1,1]] //ePaper
+                    [0,  [0,0,0,0,0,0]], //none
+                    [1,  [1,1,0,0,0,0]], //SSD1306_128X64
+                    [2,  [1,1,0,0,0,0]], //SH1106_128X64
+                    [3,  [1,1,1,1,0,0]], //PCD8544_84X48 /nokia5110
+                    [4,  [1,1,0,0,0,0]], //SSD1306_128X32
+                    [5,  [1,1,0,0,0,0]], //SSD1306_64X48
+                    [6,  [1,1,0,0,0,0]], //SSD1309_128x64
+                    [10, [1,1,1,1,1,1]]  //ePaper
                 ])
                 for(var i = 0; i < pins.length; i++) {
                     var cl = document.getElementById("row_" + pins[i][1]).classList;
@@ -1112,14 +1135,22 @@
                     }
                 }
 
-                var screenSaver = document.getElementById("disp_screensaver").value;
+                const optionsMap = new Map([  // options: [Graph, Luminance, Screensaver]
+                    [0,  [0,0,0]], //none
+                    [1,  [1,1,1]], //SSD1306_128X64
+                    [2,  [1,1,1]], //SH1106_128X64
+                    [3,  [1,1,0]], //PCD8544_84X48 /nokia5110
+                    [4,  [0,1,1]], //SSD1306_128X32
+                    [5,  [0,1,1]], //SSD1306_64X48
+                    [6,  [1,1,1]], //SSD1309_128x64
+                    [10, [0,0,0]]  //ePaper
+                ])
 
-                if (2==screenSaver) {  // show pir pin only for motion screensaver
-                    setHide("pirPin", false);
-                }
-                else {                 // no pir pin for all others
-                    setHide("pirPin", true);
-                }
+                var screenSaver = document.getElementById("disp_screensaver").value;
+                setHide("graphOptions",    !optionsMap.get(dispType)[0]);
+                setHide("luminanceOption", !optionsMap.get(dispType)[1]);
+                setHide("screenSaver",     !optionsMap.get(dispType)[2]);
+                setHide("pirPin",          !(optionsMap.get(dispType)[2] && (screenSaver==2))); // show pir pin only for motion screensaver
             }
 
             function tick() {
@@ -1149,12 +1180,12 @@
                 var s = document.getElementById("networks");
                 selDelAllOpt(s);
                 if(root["networks"].length > 0) {
-                    s.appendChild(opt("-1", "please select network"));
+                    s.appendChild(opt("-1", "{#NETWORK_PLEASE_SELECT}"));
                     for(i = 0; i < root["networks"].length; i++) {
                         s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
                     }
                 } else
-                    s.appendChild(opt("-1", "no network found"));
+                    s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
             }
 
             function selNet() {

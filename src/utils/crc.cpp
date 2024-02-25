@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #include "crc.h"
@@ -19,7 +19,7 @@ namespace ah {
 
     uint16_t crc16(uint8_t buf[], uint8_t len, uint16_t start) {
         uint16_t crc = start;
-        uint8_t shift = 0;
+        uint8_t shift;
 
         for(uint8_t i = 0; i < len; i ++) {
             crc = crc ^ buf[i];

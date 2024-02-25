@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -13,6 +13,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <LittleFS.h>
 
 #include "../defines.h"
@@ -30,7 +31,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      7
+#define CONFIG_VERSION      11
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -39,8 +40,9 @@
 #define PROT_MASK_SETUP     0x0008
 #define PROT_MASK_UPDATE    0x0010
 #define PROT_MASK_SYSTEM    0x0020
-#define PROT_MASK_API       0x0040
-#define PROT_MASK_MQTT      0x0080
+#define PROT_MASK_HISTORY   0x0040
+#define PROT_MASK_API       0x0080
+#define PROT_MASK_MQTT      0x0100
 
 #define DEF_PROT_INDEX      0x0001
 #define DEF_PROT_LIVE       0x0000
@@ -48,6 +50,7 @@
 #define DEF_PROT_SETUP      0x0008
 #define DEF_PROT_UPDATE     0x0010
 #define DEF_PROT_SYSTEM     0x0020
+#define DEF_PROT_HISTORY    0x0000
 #define DEF_PROT_API        0x0000
 #define DEF_PROT_MQTT       0x0000
 
@@ -66,6 +69,8 @@ typedef struct {
     uint16_t protectionMask;
     bool darkMode;
     bool schedReboot;
+    uint8_t region;
+    int8_t timezone;
 
 #if !defined(ETHERNET)
     // wifi
@@ -106,7 +111,8 @@ typedef struct {
 typedef struct {
     float lat;
     float lon;
-    uint16_t offsetSec;
+    int16_t offsetSecMorning;
+    int16_t offsetSecEvening;
 } cfgSun_t;
 
 typedef struct {
@@ -114,11 +120,11 @@ typedef struct {
     bool debug;
     bool privacyLog;
     bool printWholeTrace;
+    bool log2mqtt;
 } cfgSerial_t;
 
 typedef struct {
-    uint8_t led0;      // first LED pin
-    uint8_t led1;      // second LED pin
+    uint8_t led[3];    // LED pins
     bool high_active;  // determines if LEDs are high or low active
     uint8_t luminance; // luminance of LED
 } cfgLed_t;
@@ -143,7 +149,6 @@ typedef struct {
     uint8_t frequency;
     uint8_t powerLevel;
     bool disNightCom;  // disable night communication
-    bool add2Total; // add values to total values - useful if one inverter is on battery to turn off
 } cfgIv_t;
 
 typedef struct {
@@ -157,7 +162,6 @@ typedef struct {
     bool rstMaxValsMidNight;
     bool startWithoutTime;
     float yieldEffiency;
-    uint16_t gapMs;
     bool readGrid;
 } cfgInst_t;
 
@@ -165,6 +169,8 @@ typedef struct {
     uint8_t type;
     bool pwrSaveAtIvOffline;
     uint8_t screenSaver;
+    uint8_t graph_ratio;
+    uint8_t graph_size;
     uint8_t rot;
     //uint16_t wakeUp;
     //uint16_t sleepAt;
@@ -180,6 +186,8 @@ typedef struct {
 
 typedef struct {
     display_t display;
+    char customLink[MAX_CUSTOM_LINK_LEN];
+    char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
 } plugins_t;
 
 typedef struct {
@@ -200,7 +208,7 @@ typedef struct {
 class settings {
     public:
         settings() {
-            mLastSaveSucceed = false;
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
         void setup() {
@@ -308,18 +316,18 @@ class settings {
             DynamicJsonDocument json(MAX_ALLOWED_BUF_SIZE);
             JsonObject root = json.to<JsonObject>();
             json[F("version")] = CONFIG_VERSION;
-            jsonNetwork(root.createNestedObject(F("wifi")), true);
-            jsonNrf(root.createNestedObject(F("nrf")), true);
+            jsonNetwork(root[F("wifi")].to<JsonObject>(), true);
+            jsonNrf(root[F("nrf")].to<JsonObject>(), true);
             #if defined(ESP32)
-            jsonCmt(root.createNestedObject(F("cmt")), true);
+            jsonCmt(root[F("cmt")].to<JsonObject>(), true);
             #endif
-            jsonNtp(root.createNestedObject(F("ntp")), true);
-            jsonSun(root.createNestedObject(F("sun")), true);
-            jsonSerial(root.createNestedObject(F("serial")), true);
-            jsonMqtt(root.createNestedObject(F("mqtt")), true);
-            jsonLed(root.createNestedObject(F("led")), true);
-            jsonPlugin(root.createNestedObject(F("plugin")), true);
-            jsonInst(root.createNestedObject(F("inst")), true);
+            jsonNtp(root[F("ntp")].to<JsonObject>(), true);
+            jsonSun(root[F("sun")].to<JsonObject>(), true);
+            jsonSerial(root[F("serial")].to<JsonObject>(), true);
+            jsonMqtt(root[F("mqtt")].to<JsonObject>(), true);
+            jsonLed(root[F("led")].to<JsonObject>(), true);
+            jsonPlugin(root[F("plugin")].to<JsonObject>(), true);
+            jsonInst(root[F("inst")].to<JsonObject>(), true);
 
             DPRINT(DBG_INFO, F("memory usage: "));
             DBGPRINTLN(String(json.memoryUsage()));
@@ -371,9 +379,9 @@ class settings {
                 memcpy(&tmp, &mCfg.sys, sizeof(cfgSys_t));
             }
             // erase all settings and reset to default
-            memset(&mCfg, 0, sizeof(settings_t));
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
-                                    | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
+                                    | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             mCfg.sys.darkMode = false;
             mCfg.sys.schedReboot = false;
             // restore temp settings
@@ -389,6 +397,8 @@ class settings {
             #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
+            mCfg.sys.region   = 0; // Europe
+            mCfg.sys.timezone = 1;
 
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
@@ -420,12 +430,14 @@ class settings {
 
             mCfg.sun.lat         = 0.0;
             mCfg.sun.lon         = 0.0;
-            mCfg.sun.offsetSec   = 0;
+            mCfg.sun.offsetSecMorning = 0;
+            mCfg.sun.offsetSecEvening = 0;
 
             mCfg.serial.showIv   = false;
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
             mCfg.serial.printWholeTrace = false;
+            mCfg.serial.log2mqtt = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -441,24 +453,25 @@ class settings {
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
             mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 500;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
                 mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
                 mCfg.inst.iv[i].disNightCom = false;
-                mCfg.inst.iv[i].add2Total   = true;
             }
 
-            mCfg.led.led0        = DEF_LED0;
-            mCfg.led.led1        = DEF_LED1;
+            mCfg.led.led[0]      = DEF_LED0;
+            mCfg.led.led[1]      = DEF_LED1;
+            mCfg.led.led[2]      = DEF_LED2;
             mCfg.led.high_active = LED_HIGH_ACTIVE;
             mCfg.led.luminance   = 255;
 
             mCfg.plugin.display.pwrSaveAtIvOffline = false;
-            mCfg.plugin.display.contrast = 60;
+            mCfg.plugin.display.contrast = 140;
             mCfg.plugin.display.screenSaver = 1;  // default: 1 .. pixelshift for OLED for downward compatibility
+            mCfg.plugin.display.graph_ratio = 0;
+            mCfg.plugin.display.graph_size  = 2;
             mCfg.plugin.display.rot = 0;
             mCfg.plugin.display.disp_data  = DEF_PIN_OFF; // SDA
             mCfg.plugin.display.disp_clk   = DEF_PIN_OFF; // SCL
@@ -466,7 +479,7 @@ class settings {
             mCfg.plugin.display.disp_reset = DEF_PIN_OFF;
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
-            mCfg.plugin.display.pirPin     = DEF_MOTION_SENSOR_PIN;
+            mCfg.plugin.display.pirPin     = DEF_PIN_OFF;
         }
 
         void loadAddedDefaults() {
@@ -477,24 +490,29 @@ class settings {
                 }
                 if(mCfg.configVersion < 2) {
                     mCfg.inst.iv[i].disNightCom = false;
-                    mCfg.inst.iv[i].add2Total   = true;
                 }
                 if(mCfg.configVersion < 3) {
                     mCfg.serial.printWholeTrace = false;
-                }
-                if(mCfg.configVersion < 4) {
-                    mCfg.inst.gapMs = 500;
                 }
                 if(mCfg.configVersion < 5) {
                     mCfg.inst.sendInterval = SEND_INTERVAL;
                     mCfg.serial.printWholeTrace = false;
                 }
                 if(mCfg.configVersion < 6) {
-                    mCfg.inst.gapMs    = 500;
                     mCfg.inst.readGrid = true;
                 }
                 if(mCfg.configVersion < 7) {
                     mCfg.led.luminance = 255;
+                }
+                if(mCfg.configVersion < 8) {
+                    mCfg.sun.offsetSecEvening = mCfg.sun.offsetSecMorning;
+                }
+                if(mCfg.configVersion < 10) {
+                    mCfg.sys.region   = 0; // Europe
+                    mCfg.sys.timezone = 1;
+                }
+                if(mCfg.configVersion < 11) {
+                    mCfg.serial.log2mqtt = false;
                 }
             }
         }
@@ -521,6 +539,8 @@ class settings {
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
                 obj[F("reb")] = (bool) mCfg.sys.schedReboot;
+                obj[F("region")] = mCfg.sys.region;
+                obj[F("timezone")] = mCfg.sys.timezone;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -538,6 +558,8 @@ class settings {
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
+                getVal<uint8_t>(obj, F("region"), &mCfg.sys.region);
+                getVal<int8_t>(obj, F("timezone"), &mCfg.sys.timezone);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
@@ -546,7 +568,7 @@ class settings {
 
                 if(mCfg.sys.protectionMask == 0)
                     mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
-                                            | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT;
+                                            | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             }
         }
 
@@ -625,11 +647,13 @@ class settings {
             if(set) {
                 obj[F("lat")]  = mCfg.sun.lat;
                 obj[F("lon")]  = mCfg.sun.lon;
-                obj[F("offs")] = mCfg.sun.offsetSec;
+                obj[F("offs")] = mCfg.sun.offsetSecMorning;
+                obj[F("offsEve")] = mCfg.sun.offsetSecEvening;
             } else {
                 getVal<float>(obj, F("lat"), &mCfg.sun.lat);
                 getVal<float>(obj, F("lon"), &mCfg.sun.lon);
-                getVal<uint16_t>(obj, F("offs"), &mCfg.sun.offsetSec);
+                getVal<int16_t>(obj, F("offs"), &mCfg.sun.offsetSecMorning);
+                getVal<int16_t>(obj, F("offsEve"), &mCfg.sun.offsetSecEvening);
             }
         }
 
@@ -639,11 +663,13 @@ class settings {
                 obj[F("debug")] = mCfg.serial.debug;
                 obj[F("prv")] = (bool) mCfg.serial.privacyLog;
                 obj[F("trc")] = (bool) mCfg.serial.printWholeTrace;
+                obj[F("mqtt")] = (bool) mCfg.serial.log2mqtt;
             } else {
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
                 getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
                 getVal<bool>(obj, F("trc"), &mCfg.serial.printWholeTrace);
+                getVal<bool>(obj, F("mqtt"), &mCfg.serial.log2mqtt);
             }
         }
 
@@ -670,13 +696,15 @@ class settings {
 
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
-                obj[F("0")]        = mCfg.led.led0;
-                obj[F("1")]        = mCfg.led.led1;
+                obj[F("0")]        = mCfg.led.led[0];
+                obj[F("1")]        = mCfg.led.led[1];
+                obj[F("2")]        = mCfg.led.led[2];
                 obj[F("act_high")] = mCfg.led.high_active;
                 obj[F("lum")]      = mCfg.led.luminance;
             } else {
-                getVal<uint8_t>(obj, F("0"), &mCfg.led.led0);
-                getVal<uint8_t>(obj, F("1"), &mCfg.led.led1);
+                getVal<uint8_t>(obj, F("0"), &mCfg.led.led[0]);
+                getVal<uint8_t>(obj, F("1"), &mCfg.led.led[1]);
+                getVal<uint8_t>(obj, F("2"), &mCfg.led.led[2]);
                 getVal<bool>(obj, F("act_high"), &mCfg.led.high_active);
                 getVal<uint8_t>(obj, F("lum"), &mCfg.led.luminance);
             }
@@ -688,6 +716,8 @@ class settings {
                 disp[F("type")]     = mCfg.plugin.display.type;
                 disp[F("pwrSafe")]  = (bool)mCfg.plugin.display.pwrSaveAtIvOffline;
                 disp[F("screenSaver")] = mCfg.plugin.display.screenSaver;
+                disp[F("graph_ratio")] = mCfg.plugin.display.graph_ratio;
+                disp[F("graph_size")] = mCfg.plugin.display.graph_size;
                 disp[F("rotation")] = mCfg.plugin.display.rot;
                 //disp[F("wake")] = mCfg.plugin.display.wakeUp;
                 //disp[F("sleep")] = mCfg.plugin.display.sleepAt;
@@ -699,11 +729,15 @@ class settings {
                 disp[F("busy")] = mCfg.plugin.display.disp_busy;
                 disp[F("dc")] = mCfg.plugin.display.disp_dc;
                 disp[F("pirPin")] = mCfg.plugin.display.pirPin;
+                obj[F("cst_lnk")] = mCfg.plugin.customLink;
+                obj[F("cst_lnk_txt")] = mCfg.plugin.customLinkText;
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
                 getVal<bool>(disp, F("pwrSafe"), &mCfg.plugin.display.pwrSaveAtIvOffline);
                 getVal<uint8_t>(disp, F("screenSaver"), &mCfg.plugin.display.screenSaver);
+                getVal<uint8_t>(disp, F("graph_ratio"), &mCfg.plugin.display.graph_ratio);
+                getVal<uint8_t>(disp, F("graph_size"), &mCfg.plugin.display.graph_size);
                 getVal<uint8_t>(disp, F("rotation"), &mCfg.plugin.display.rot);
                 //mCfg.plugin.display.wakeUp = disp[F("wake")];
                 //mCfg.plugin.display.sleepAt = disp[F("sleep")];
@@ -715,6 +749,8 @@ class settings {
                 getVal<uint8_t>(disp, F("busy"), &mCfg.plugin.display.disp_busy);
                 getVal<uint8_t>(disp, F("dc"), &mCfg.plugin.display.disp_dc);
                 getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
+                getChar(obj, F("cst_lnk"), mCfg.plugin.customLink, MAX_CUSTOM_LINK_LEN);
+                getChar(obj, F("cst_lnk_txt"), mCfg.plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
             }
         }
 
@@ -728,7 +764,6 @@ class settings {
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
                 obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
-                obj[F("gap")]            = mCfg.inst.gapMs;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
@@ -740,7 +775,6 @@ class settings {
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
                 getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
-                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
 
                 if(mCfg.inst.yieldEffiency < 0.5)
@@ -769,7 +803,6 @@ class settings {
                 obj[F("freq")] = cfg->frequency;
                 obj[F("pa")]   = cfg->powerLevel;
                 obj[F("dis")]  = cfg->disNightCom;
-                obj[F("add")]  = cfg->add2Total;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -782,7 +815,6 @@ class settings {
                 getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
                 getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
                 getVal<bool>(obj, F("dis"), &cfg->disNightCom);
-                getVal<bool>(obj, F("add"), &cfg->add2Total);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();
@@ -796,8 +828,10 @@ class settings {
 
     #if defined(ESP32)
         void getChar(JsonObject obj, const char *key, char *dst, int maxLen) {
-            if(obj.containsKey(key))
+            if(obj.containsKey(key)) {
                 snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+                dst[maxLen-1] = '\0';
+            }
         }
 
         template<typename T=uint8_t>
@@ -807,8 +841,10 @@ class settings {
         }
     #else
         void getChar(JsonObject obj, const __FlashStringHelper *key, char *dst, int maxLen) {
-            if(obj.containsKey(key))
+            if(obj.containsKey(key)) {
                 snprintf(dst, maxLen, "%s", obj[key].as<const char*>());
+                dst[maxLen-1] = '\0';
+            }
         }
 
         template<typename T=uint8_t>
@@ -819,7 +855,7 @@ class settings {
     #endif
 
         settings_t mCfg;
-        bool mLastSaveSucceed;
+        bool mLastSaveSucceed = 0;
 };
 
 #endif /*__SETTINGS_H__*/

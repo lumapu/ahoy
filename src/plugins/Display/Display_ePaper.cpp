@@ -7,6 +7,7 @@
 #endif
 #include "../../utils/helper.h"
 #include "imagedata.h"
+#include "defines.h"
 
 #if defined(ESP32)
 
@@ -19,6 +20,7 @@ SPIClass hspi(HSPI);
 DisplayEPaper::DisplayEPaper() {
     mDisplayRotation = 2;
     mHeadFootPadding = 16;
+    memset(_fmtText, 0, EPAPER_MAX_TEXT_LEN);
 }
 
 
@@ -29,7 +31,7 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
     mRefreshState = RefreshStatus::LOGO;
     mSecondCnt = 0;
 
-    if (type == 10) {
+    if (DISP_TYPE_T10_EPAPER == type) {
         Serial.begin(115200);
         _display = new GxEPD2_BW<GxEPD2_150_BN, GxEPD2_150_BN::HEIGHT>(GxEPD2_150_BN(_CS, _DC, _RST, _BUSY));
 
@@ -65,6 +67,7 @@ void DisplayEPaper::refreshLoop() {
         case RefreshStatus::LOGO:
             _display->fillScreen(GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
+            mSecondCnt = 2;
             mNextRefreshState = RefreshStatus::PARTITIALS;
             mRefreshState = RefreshStatus::WAIT;
             break;
@@ -76,11 +79,11 @@ void DisplayEPaper::refreshLoop() {
             break;
 
         case RefreshStatus::WHITE:
-            if(mSecondCnt == 0) {
-                _display->fillScreen(GxEPD_WHITE);
-                mNextRefreshState = RefreshStatus::PARTITIALS;
-                mRefreshState = RefreshStatus::WAIT;
-            }
+            if(0 != mSecondCnt)
+                break;
+            _display->fillScreen(GxEPD_WHITE);
+            mNextRefreshState = RefreshStatus::PARTITIALS;
+            mRefreshState = RefreshStatus::WAIT;
             break;
 
         case RefreshStatus::WAIT:
@@ -89,10 +92,13 @@ void DisplayEPaper::refreshLoop() {
             break;
 
         case RefreshStatus::PARTITIALS:
+            if(0 != mSecondCnt)
+                break;
             headlineIP();
             versionFooter();
             mSecondCnt = 4; // display Logo time during boot up
-            mRefreshState = RefreshStatus::DONE;
+            mNextRefreshState = RefreshStatus::DONE;
+            mRefreshState = RefreshStatus::WAIT;
             break;
 
         default: // RefreshStatus::DONE
@@ -112,9 +118,9 @@ void DisplayEPaper::headlineIP() {
 
     do {
         if ((WiFi.isConnected() == true) && (WiFi.localIP() > 0)) {
-            snprintf(_fmtText, sizeof(_fmtText), "%s", WiFi.localIP().toString().c_str());
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%s", WiFi.localIP().toString().c_str());
         } else {
-            snprintf(_fmtText, sizeof(_fmtText), "WiFi not connected");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "WiFi not connected");
         }
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -135,7 +141,7 @@ void DisplayEPaper::lastUpdatePaged() {
     _display->fillScreen(GxEPD_BLACK);
     do {
         if (NULL != mUtcTs) {
-            snprintf(_fmtText, sizeof(_fmtText), ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str());
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, ah::getDateTimeStr(gTimezone.toLocal(*mUtcTs)).c_str());
 
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -156,7 +162,7 @@ void DisplayEPaper::versionFooter() {
     _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
     _display->fillScreen(GxEPD_BLACK);
     do {
-        snprintf(_fmtText, sizeof(_fmtText), "Version: %s", _version);
+        snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "Version: %s", _version);
 
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -177,7 +183,7 @@ void DisplayEPaper::offlineFooter() {
     _display->fillScreen(GxEPD_BLACK);
     do {
         if (NULL != mUtcTs) {
-            snprintf(_fmtText, sizeof(_fmtText), "offline");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "offline");
 
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -201,13 +207,13 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
     do {
         // actual Production
         if (totalPower > 9999) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.1f kW", (totalPower / 1000));
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%.1f kW", (totalPower / 1000));
             _changed = true;
         } else if ((totalPower > 0) && (totalPower <= 9999)) {
-            snprintf(_fmtText, sizeof(_fmtText), "%.0f W", totalPower);
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%.0f W", totalPower);
             _changed = true;
         } else
-            snprintf(_fmtText, sizeof(_fmtText), "offline");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "offline");
 
         if ((totalPower == 0) && (mEnPowerSave)) {
             _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
@@ -262,7 +268,7 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
             // Inverter online
             _display->setFont(&FreeSans12pt7b);
             y = _display->height() - (mHeadFootPadding + 10);
-            snprintf(_fmtText, sizeof(_fmtText), " %d online", isprod);
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, " %d online", isprod);
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             _display->drawInvertedBitmap(10, y - tbh, myWR, 20, 20, GxEPD_BLACK);
             x = ((_display->width() - tbw - 20) / 2) - tbx;

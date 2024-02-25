@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
+// 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       36
+#define VERSION_PATCH       83
 
 //-------------------------------------
 typedef struct {
@@ -78,6 +78,18 @@ union serial_u {
 
 enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
+enum {
+    DISP_TYPE_T0_NONE           = 0,
+    DISP_TYPE_T1_SSD1306_128X64 = 1,
+    DISP_TYPE_T2_SH1106_128X64  = 2,
+    DISP_TYPE_T3_PCD8544_84X48  = 3,
+    DISP_TYPE_T4_SSD1306_128X32 = 4,
+    DISP_TYPE_T5_SSD1306_64X48  = 5,
+    DISP_TYPE_T6_SSD1309_128X64 = 6,
+    DISP_TYPE_T10_EPAPER        = 10
+};
+
+
 //-------------------------------------
 // EEPROM
 //-------------------------------------
@@ -94,7 +106,6 @@ enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
 
 #define MQTT_MAX_PACKET_SIZE    384
 
-#define PLUGIN_DISPLAY
 
 typedef struct {
     uint32_t rxFail;
@@ -103,6 +114,10 @@ typedef struct {
     uint32_t frmCnt;
     uint32_t txCnt;
     uint32_t retransmits;
+    uint16_t ivLoss;   // lost frames (from GetLossRate)
+    uint16_t ivSent;   // sent frames (from GetLossRate)
+    uint16_t dtuLoss;  // current DTU lost frames (since last GetLossRate)
+    uint16_t dtuSent;  // current DTU sent frames (since last GetLossRate)
 } statistics_t;
 
 #endif /*__DEFINES_H__*/

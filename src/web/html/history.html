@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+    <head>
+        <title>{#NAV_HISTORY}</title>
+        {#HTML_HEADER}
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="format-detection" content="telephone=no">
+
+    </head>
+
+    <body>
+        {#HTML_NAV}
+        <div id="wrapper">
+            <div id="content">
+                <h3>{#TOTAL_POWER}</h3>
+                <div>
+                    <div class="chartDiv" id="pwrChart">  </div>
+                    <p>
+                        {#MAX_DAY}: <span id="pwrMaxDay"></span> W. {#LAST_VALUE}: <span id="pwrLast"></span> W.<br />
+                        {#MAXIMUM}: <span id="pwrMax"></span> W. {#UPDATED} <span id="pwrRefresh"></span> {#SECONDS}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {#HTML_FOOTER}
+
+        <script type="text/javascript">
+            const svgns = "http://www.w3.org/2000/svg";
+            var pwrExeOnce = true;
+            var ydExeOnce = true;
+            // make a simple rectangle
+            var mRefresh = 60;
+            var mLastValue = 0;
+            const mChartHeight = 250;
+
+            function parseHistory(obj, namePrefix, execOnce) {
+                mRefresh = obj.refresh
+                var data = Object.assign({}, obj.value)
+                numDataPts = Object.keys(data).length
+
+                if (true == execOnce) {
+                    let s = document.createElementNS(svgns, "svg");
+                    s.setAttribute("class", "chart");
+                    s.setAttribute("width", (numDataPts + 2) * 2);
+                    s.setAttribute("height", mChartHeight);
+                    s.setAttribute("role", "img");
+
+                    let g = document.createElementNS(svgns, "g");
+                    s.appendChild(g);
+                    for (var i = 0; i < numDataPts; i++) {
+                        val = data[i];
+                        let rect = document.createElementNS(svgns, "rect");
+                        rect.setAttribute("id", namePrefix+"Rect" + i);
+                        rect.setAttribute("x", i * 2);
+                        rect.setAttribute("width", 2);
+                        g.appendChild(rect);
+                    }
+                    document.getElementById(namePrefix+"Chart").appendChild(s);
+                }
+
+                // normalize data to chart
+                let divider = obj.max / mChartHeight;
+                if (divider == 0)
+                    divider = 1;
+                for (var i = 0; i < numDataPts; i++) {
+                    val = data[i];
+                    if (val > 0)
+                        mLastValue = val
+                    val = val / divider
+                    rect = document.getElementById(namePrefix+"Rect" + i);
+                    rect.setAttribute("height", val);
+                    rect.setAttribute("y", mChartHeight - val);
+                }
+                document.getElementById(namePrefix + "Max").innerHTML = obj.max;
+                if (mRefresh < 5)
+                    mRefresh = 5;
+                document.getElementById(namePrefix + "Refresh").innerHTML = mRefresh;
+            }
+
+            function parsePowerHistory(obj){
+                if (null != obj) {
+                    parseNav(obj.generic);
+                    parseHistory(obj,"pwr", pwrExeOnce)
+                    document.getElementById("pwrLast").innerHTML = mLastValue
+                    document.getElementById("pwrMaxDay").innerHTML = obj.maxDay
+                }
+                if (pwrExeOnce) {
+                    pwrExeOnce = false;
+                    window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
+                }
+            }
+
+            getAjax("/api/powerHistory", parsePowerHistory);
+        </script>
+    </body>
+</html>

@@ -75,8 +75,9 @@ namespace ah {
         if(0 == t)
             sprintf(str, "n/a");
         else {
-            t = (t + (millis() % 1000)) / 1000;
-            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), millis() % 1000);
+            uint16_t m = t % 1000;
+            t = t / 1000;
+            sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), m);
         }
         return String(str);
     }
@@ -84,14 +85,13 @@ namespace ah {
     uint64_t Serial2u64(const char *val) {
         char tmp[3];
         uint64_t ret = 0ULL;
-        uint64_t u64;
         memset(tmp, 0, 3);
         for(uint8_t i = 0; i < 6; i++) {
             tmp[0] = val[i*2];
             tmp[1] = val[i*2 + 1];
             if((tmp[0] == '\0') || (tmp[1] == '\0'))
                 break;
-            u64 = strtol(tmp, NULL, 16);
+            uint64_t u64 = strtol(tmp, NULL, 16);
             ret |= (u64 << ((5-i) << 3));
         }
         return ret;

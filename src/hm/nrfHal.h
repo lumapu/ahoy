@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __NRF_HAL_H__
@@ -142,8 +142,10 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
         }
 
         uint8_t read(uint8_t cmd, uint8_t* buf, uint8_t len) override {
-            uint8_t data[NRF_MAX_TRANSFER_SZ];
+            uint8_t data[NRF_MAX_TRANSFER_SZ + 1];
             data[0] = cmd;
+            if(len > NRF_MAX_TRANSFER_SZ)
+                len = NRF_MAX_TRANSFER_SZ;
             memset(&data[1], 0xff, len);
 
             request_spi();
@@ -168,13 +170,16 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
         }
 
         uint8_t read(uint8_t cmd, uint8_t* buf, uint8_t data_len, uint8_t blank_len) override {
-            uint8_t data[NRF_MAX_TRANSFER_SZ];
+            uint8_t data[NRF_MAX_TRANSFER_SZ + 1];
+            uint8_t len = data_len + blank_len;
             data[0] = cmd;
-            memset(&data[1], 0xff, (data_len + blank_len));
+            if(len > (NRF_MAX_TRANSFER_SZ + 1))
+                len = (NRF_MAX_TRANSFER_SZ + 1);
+            memset(&data[1], 0xff, len);
 
             request_spi();
 
-            size_t spiLen = (static_cast<size_t>(data_len) + static_cast<size_t>(blank_len) + 1u) << 3;
+            size_t spiLen = (static_cast<size_t>(len) + 1u) << 3;
             spi_transaction_t t = {
                 .flags = 0,
                 .cmd = 0,

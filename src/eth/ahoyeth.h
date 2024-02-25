@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #if defined(ETHERNET)
@@ -49,7 +49,7 @@ class ahoyeth {
         #if defined(CONFIG_IDF_TARGET_ESP32S3)
         EthSpi mEthSpi;
         #endif
-        settings_t *mConfig;
+        settings_t *mConfig = nullptr;
 
         uint32_t *mUtcTimestamp;
         AsyncUDP mUdp; // for time server

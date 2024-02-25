@@ -1,3 +1,8 @@
+//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
+//-----------------------------------------------------------------------------
+
 #include <algorithm>
 #include "syslog.h"
 
@@ -5,6 +10,7 @@
 
 #define SYSLOG_MAX_PACKET_SIZE 256
 
+DbgSyslog::DbgSyslog() : mSyslogBuffer{} {}
 
 //-----------------------------------------------------------------------------
 void DbgSyslog::setup(settings_t *config) {
@@ -62,12 +68,11 @@ void DbgSyslog::syslogCb (String msg)
             // Send mSyslogBuffer in chunks because mSyslogBuffer is larger than syslog packet size
             int packetStart = 0;
             int packetSize = 122; // syslog payload depends also on hostname and app
-            char saveChar;
             if (isEolFound) {
                 mSyslogBuffer[mSyslogBufFill-2]=0; // skip \r\n
             }
             while(packetStart < mSyslogBufFill) {
-                saveChar = mSyslogBuffer[packetStart+packetSize];
+                char saveChar = mSyslogBuffer[packetStart+packetSize];
                 mSyslogBuffer[packetStart+packetSize] = 0;
                 log(mConfig->sys.deviceName,SYSLOG_FACILITY, mSyslogSeverity, &mSyslogBuffer[packetStart]);
                 mSyslogBuffer[packetStart+packetSize] = saveChar;
@@ -87,7 +92,7 @@ void DbgSyslog::log(const char *hostname, uint8_t facility, uint8_t severity, ch
 
     // This is a unit8 instead of a char because that's what udp.write() wants
     uint8_t buffer[SYSLOG_MAX_PACKET_SIZE];
-    int len = snprintf((char*)buffer, SYSLOG_MAX_PACKET_SIZE, "<%d>%s %s: %s", priority, hostname, SYSLOG_APP, msg);
+    int len = snprintf(static_cast<char*>(buffer), SYSLOG_MAX_PACKET_SIZE, "<%d>%s %s: %s", priority, hostname, SYSLOG_APP, msg);
     //printf("syslog::log %s\n",mSyslogIP.toString().c_str());
     //printf("syslog::log %d %s\n",len,buffer);
     // Send the raw UDP packet

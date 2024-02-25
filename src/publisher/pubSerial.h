@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://ahoydtu.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __PUB_SERIAL_H__
@@ -13,8 +13,6 @@
 template<class HMSYSTEM>
 class PubSerial {
     public:
-        PubSerial() {}
-
         void setup(settings_t *cfg, HMSYSTEM *sys, uint32_t *utcTs) {
             mCfg = cfg;
             mSys = sys;
@@ -46,9 +44,9 @@ class PubSerial {
         }
 
     private:
-        settings_t *mCfg;
-        HMSYSTEM *mSys;
-        uint32_t *mUtcTimestamp;
+        settings_t *mCfg = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        uint32_t *mUtcTimestamp = nullptr;
 };
 
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <title>Serial Console</title>
+        <title>{#NAV_WEBSERIAL}</title>
         {#HTML_HEADER}
     </head>
     <body>
@@ -12,12 +12,12 @@
                     <textarea id="serial" class="mt-3" cols="80" rows="40" readonly></textarea>
                 </div>
                 <div class="row my-3">
-                    <div class="col-3">console active: <span class="dot" id="active"></span></div>
-                    <div class="col-3 col-sm-4 my-3">Uptime: <span id="uptime"></span></div>
+                    <div class="col-3">{#CONSOLE_ACTIVE}: <span class="dot" id="active"></span></div>
+                    <div class="col-3 col-sm-4 my-3">{#UPTIME}: <span id="uptime"></span></div>
                     <div class="col-6 col-sm-4 a-r">
-                        <input type="button" value="clear" class="btn" id="clear"/>
-                        <input type="button" value="autoscroll" class="btn" id="scroll"/>
-                        <input type="button" value="copy" class="btn" id="copy"/>
+                        <input type="button" value="{#BTN_CLEAR}" class="btn" id="clear"/>
+                        <input type="button" value="{#BTN_AUTOSCROLL}" class="btn" id="scroll"/>
+                        <input type="button" value="{#BTN_COPY}" class="btn" id="copy"/>
                     </div>
                 </div>
             </div>

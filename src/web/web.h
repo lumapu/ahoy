@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -36,22 +36,18 @@
 #include "html/h/update_html.h"
 #include "html/h/visualization_html.h"
 #include "html/h/about_html.h"
+#include "html/h/wizard_html.h"
+#include "html/h/history_html.h"
 
 #define WEB_SERIAL_BUF_SIZE 2048
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 
 template <class HMSYSTEM>
 class Web {
    public:
         Web(void) : mWeb(80), mEvts("/events") {
-            mProtected     = true;
-            mLogoutTimeout = 0;
-
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-            mSerialBufFill     = 0;
-            mSerialAddTime     = true;
-            mSerialClientConnnected = false;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
@@ -77,9 +73,11 @@ class Web {
             mWeb.on("/factorytrue",    HTTP_ANY,  std::bind(&Web::showHtml,       this, std::placeholders::_1));
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
+            mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
+            mWeb.on("/history",        HTTP_ANY, std::bind(&Web::onHistory,       this, std::placeholders::_1));
 
         #ifdef ENABLE_PROMETHEUS_EP
             mWeb.on("/metrics",        HTTP_ANY,  std::bind(&Web::showMetrics,    this, std::placeholders::_1));
@@ -106,16 +104,6 @@ class Web {
         }
 
         void tickSecond() {
-            if (0 != mLogoutTimeout) {
-                mLogoutTimeout -= 1;
-                if (0 == mLogoutTimeout) {
-                    if (strlen(mConfig->sys.adminPwd) > 0)
-                        mProtected = true;
-                }
-
-                DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
-            }
-
             if (mSerialClientConnnected) {
                 if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
@@ -127,27 +115,6 @@ class Web {
 
         AsyncWebServer *getWebSrvPtr(void) {
             return &mWeb;
-        }
-
-        void setProtection(bool protect) {
-            mProtected = protect;
-        }
-
-        bool isProtected(AsyncWebServerRequest *request) {
-            bool prot;
-            prot = mProtected;
-            if(!prot) {
-                if(strlen(mConfig->sys.adminPwd) > 0) {
-                    uint8_t ip[4];
-                    ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
-                    for(uint8_t i = 0; i < 4; i++) {
-                        if(mLoginIp[i] != ip[i])
-                            prot = true;
-                    }
-                }
-            }
-
-            return prot;
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -249,6 +216,8 @@ class Web {
                 request->redirect(F("/index"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_LIVE) != PROT_MASK_LIVE)
                 request->redirect(F("/live"));
+            else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY)
+                request->redirect(F("/history"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL)
                 request->redirect(F("/serial"));
             else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM)
@@ -258,13 +227,13 @@ class Web {
         }
 
         void checkProtection(AsyncWebServerRequest *request) {
-            if(isProtected(request)) {
+            if(mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true)) {
                 checkRedirect(request);
                 return;
             }
         }
 
-        void getPage(AsyncWebServerRequest *request, uint8_t mask, const uint8_t *zippedHtml, uint32_t len) {
+        void getPage(AsyncWebServerRequest *request, uint16_t mask, const uint8_t *zippedHtml, uint32_t len) {
             if (CHECK_MASK(mConfig->sys.protectionMask, mask))
                 checkProtection(request);
 
@@ -345,8 +314,7 @@ class Web {
 
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
-                    mProtected = false;
-                    ah::ip2Arr(mLoginIp, request->client()->remoteIP().toString().c_str());
+                    mApp->unlock(request->client()->remoteIP().toString().c_str(), true);
                     request->redirect("/");
                 }
             }
@@ -360,8 +328,7 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
             checkProtection(request);
-
-            mProtected = true;
+            mApp->lock(true);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -384,7 +351,6 @@ class Web {
 
         void onCss(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onCss"));
-            mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v")) {
@@ -422,7 +388,7 @@ class Web {
 
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
-            request->redirect("/setup");
+            request->redirect("/wizard");
         }
 
         void onReboot(AsyncWebServerRequest *request) {
@@ -442,6 +408,13 @@ class Web {
 
         void onSetup(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_SETUP, setup_html, setup_html_len);
+        }
+
+        void onWizard(AsyncWebServerRequest *request) {
+            AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), wizard_html, wizard_html_len);
+            response->addHeader(F("Content-Encoding"), "gzip");
+            response->addHeader(F("content-type"), "text/html; charset=UTF-8");
+            request->send(response);
         }
 
         void showSave(AsyncWebServerRequest *request) {
@@ -468,14 +441,24 @@ class Web {
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
             mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
+            mConfig->sys.region = (request->arg("region")).toInt();
+            mConfig->sys.timezone = (request->arg("timezone")).toInt() - 12;
+
+            if (request->arg("cstLnk") != "") {
+                request->arg("cstLnk").toCharArray(mConfig->plugin.customLink, MAX_CUSTOM_LINK_LEN);
+                request->arg("cstLnkTxt").toCharArray(mConfig->plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
+            } else {
+                mConfig->plugin.customLink[0] = '\0';
+                mConfig->plugin.customLinkText[0] = '\0';
+            }
 
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
-                mProtected = (strlen(mConfig->sys.adminPwd) > 0);
+                mApp->lock(false);
             }
             mConfig->sys.protectionMask = 0x0000;
-            for (uint8_t i = 0; i < 6; i++) {
+            for (uint8_t i = 0; i < 7; i++) {
                 if (request->arg("protMask" + String(i)) == "on")
                     mConfig->sys.protectionMask |= (1 << i);
             }
@@ -501,13 +484,11 @@ class Web {
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
             mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
-            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout
-            uint8_t pin;
-            for (uint8_t i = 0; i < 15; i++) {
-                pin = request->arg(String(pinArgNames[i])).toInt();
+            for (uint8_t i = 0; i < 16; i++) {
+                uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_NRF_CE_PIN);  break;
@@ -515,15 +496,16 @@ class Web {
                     case 3:  mConfig->nrf.pinSclk  = ((pin != 0xff) ? pin : DEF_NRF_SCLK_PIN); break;
                     case 4:  mConfig->nrf.pinMosi  = ((pin != 0xff) ? pin : DEF_NRF_MOSI_PIN); break;
                     case 5:  mConfig->nrf.pinMiso  = ((pin != 0xff) ? pin : DEF_NRF_MISO_PIN); break;
-                    case 6:  mConfig->led.led0     = pin; break;
-                    case 7:  mConfig->led.led1     = pin; break;
-                    case 8:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 9:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
-                    case 10: mConfig->cmt.pinSclk  = pin; break;
-                    case 11: mConfig->cmt.pinSdio  = pin; break;
-                    case 12: mConfig->cmt.pinCsb   = pin; break;
-                    case 13: mConfig->cmt.pinFcsb  = pin; break;
-                    case 14: mConfig->cmt.pinIrq   = pin; break;
+                    case 6:  mConfig->led.led[0]   = pin; break;
+                    case 7:  mConfig->led.led[1]   = pin; break;
+                    case 8:  mConfig->led.led[2]   = pin; break;
+                    case 9:  mConfig->led.high_active = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 10:  mConfig->led.luminance = pin; break;  // this is not really a pin but a polarity, but handling it close to here makes sense
+                    case 11: mConfig->cmt.pinSclk  = pin; break;
+                    case 12: mConfig->cmt.pinSdio  = pin; break;
+                    case 13: mConfig->cmt.pinCsb   = pin; break;
+                    case 14: mConfig->cmt.pinFcsb  = pin; break;
+                    case 15: mConfig->cmt.pinIrq   = pin; break;
                 }
             }
 
@@ -541,11 +523,13 @@ class Web {
             if (request->arg("sunLat") == "" || (request->arg("sunLon") == "")) {
                 mConfig->sun.lat = 0.0;
                 mConfig->sun.lon = 0.0;
-                mConfig->sun.offsetSec = 0;
+                mConfig->sun.offsetSecMorning = 0;
+                mConfig->sun.offsetSecEvening = 0;
             } else {
                 mConfig->sun.lat = request->arg("sunLat").toFloat();
                 mConfig->sun.lon = request->arg("sunLon").toFloat();
-                mConfig->sun.offsetSec = request->arg("sunOffs").toInt() * 60;
+                mConfig->sun.offsetSecMorning = request->arg("sunOffsSr").toInt() * 60;
+                mConfig->sun.offsetSecEvening = request->arg("sunOffsSs").toInt() * 60;
             }
 
             // mqtt
@@ -568,20 +552,36 @@ class Web {
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
+            mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
-            mConfig->plugin.display.screenSaver = request->arg("disp_screensaver").toInt();
-            mConfig->plugin.display.rot        = request->arg("disp_rot").toInt();
-            mConfig->plugin.display.type       = request->arg("disp_typ").toInt();
-            mConfig->plugin.display.contrast   = (mConfig->plugin.display.type == 0) ? 60 : request->arg("disp_cont").toInt();
-            mConfig->plugin.display.disp_data  = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
-            mConfig->plugin.display.disp_clk   = (mConfig->plugin.display.type == 0) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
-            mConfig->plugin.display.disp_cs    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
-            mConfig->plugin.display.disp_reset = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
-            mConfig->plugin.display.disp_dc    = (mConfig->plugin.display.type < 3)  ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
-            mConfig->plugin.display.disp_busy  = (mConfig->plugin.display.type < 10) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
-            mConfig->plugin.display.pirPin     = request->arg("pir_pin").toInt();
+            mConfig->plugin.display.graph_size  = request->arg("disp_graph_size").toInt();
+            mConfig->plugin.display.rot         = request->arg("disp_rot").toInt();
+            mConfig->plugin.display.type        = request->arg("disp_typ").toInt();
+            mConfig->plugin.display.contrast    = (mConfig->plugin.display.type  == DISP_TYPE_T0_NONE) ||   // contrast available only according optionsMap in setup.html, otherwise default value
+                                                  (mConfig->plugin.display.type  == DISP_TYPE_T10_EPAPER) ? 140 : request->arg("disp_cont").toInt();
+            mConfig->plugin.display.screenSaver = ((mConfig->plugin.display.type == DISP_TYPE_T1_SSD1306_128X64) // screensaver available only according optionsMap in setup.html, otherwise default value
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T2_SH1106_128X64)
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T4_SSD1306_128X32)
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T5_SSD1306_64X48)
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T6_SSD1309_128X64)) ? request->arg("disp_screensaver").toInt() : 0;
+            mConfig->plugin.display.graph_ratio = ((mConfig->plugin.display.type == DISP_TYPE_T1_SSD1306_128X64) // display graph available only according optionsMap in setup.html, otherwise has to be 0
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T2_SH1106_128X64)
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T3_PCD8544_84X48)
+                                                || (mConfig->plugin.display.type == DISP_TYPE_T6_SSD1309_128X64)) ? request->arg("disp_graph_ratio").toInt() : 0;
+
+                                                                                           // available pins according pinMap in setup.html, otherwise default value
+            mConfig->plugin.display.disp_data   = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : request->arg("disp_data").toInt();
+            mConfig->plugin.display.disp_clk    = (mConfig->plugin.display.type == DISP_TYPE_T0_NONE) ? DEF_PIN_OFF : request->arg("disp_clk").toInt();
+            mConfig->plugin.display.disp_cs     = (mConfig->plugin.display.type != DISP_TYPE_T3_PCD8544_84X48)
+                                               && (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_cs").toInt();
+            mConfig->plugin.display.disp_dc     = (mConfig->plugin.display.type != DISP_TYPE_T3_PCD8544_84X48)
+                                               && (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_dc").toInt();
+            mConfig->plugin.display.disp_reset  = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_rst").toInt();
+            mConfig->plugin.display.disp_busy   = (mConfig->plugin.display.type != DISP_TYPE_T10_EPAPER) ? DEF_PIN_OFF : request->arg("disp_bsy").toInt();
+            mConfig->plugin.display.pirPin      = (mConfig->plugin.display.screenSaver != DISP_TYPE_T2_SH1106_128X64) ? DEF_PIN_OFF : request->arg("pir_pin").toInt(); // pir pin only for motion screensaver
+                                                                                                                                              // otherweise default value
 
             mApp->saveSettings((request->arg("reboot") == "on"));
 
@@ -592,6 +592,10 @@ class Web {
 
         void onLive(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_LIVE, visualization_html, visualization_html_len);
+        }
+
+        void onHistory(AsyncWebServerRequest *request) {
+            getPage(request, PROT_MASK_HISTORY, history_html, history_html_len);
         }
 
         void onAbout(AsyncWebServerRequest *request) {
@@ -623,17 +627,50 @@ class Web {
 #ifdef ENABLE_PROMETHEUS_EP
         // Note
         // Prometheus exposition format is defined here: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md
-        // TODO: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
-        enum {
-            metricsStateStart,
-            metricsStateInverter1, metricsStateInverter2, metricsStateInverter3, metricsStateInverter4,
-            metricStateRealtimeFieldId, metricStateRealtimeInverterId,
+        // NOTE: Grouping for fields with channels and totals is currently not working
+        // TODO: Handle grouping and sorting for independant from channel number
+        // NOTE: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
+        const char* metricConstPrefix = "ahoy_solar_";
+        const char* metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
+        typedef enum {
+            metricsStateInverterInfo=0,           metricsStateInverterEnabled=1,        metricsStateInverterAvailable=2,
+            metricsStateInverterProducing=3,      metricsStateInverterPowerLimitRead=4, metricsStateInverterPowerLimitAck=5,
+            metricsStateInverterMaxPower=6,       metricsStateInverterRxSuccess=7,      metricsStateInverterRxFail=8,
+            metricsStateInverterRxFailAnswer=9,   metricsStateInverterFrameCnt=10,      metricsStateInverterTxCnt=11,
+            metricsStateInverterRetransmits=12,   metricsStateInverterIvRxCnt=13,       metricsStateInverterIvTxCnt=14,
+            metricsStateInverterDtuRxCnt=15,      metricsStateInverterDtuTxCnt=16,
+            metricStateRealtimeFieldId=metricsStateInverterDtuTxCnt+1, // ensure that this state follows the last per_inverter state
+            metricStateRealtimeInverterId,
             metricsStateAlarmData,
+            metricsStateStart,
             metricsStateEnd
-        } metricsStep;
-        int metricsInverterId;
-        uint8_t metricsFieldId;
-        bool metricDeclared;
+        } MetricStep_t;
+        MetricStep_t metricsStep = metricsStateInverterInfo;
+        typedef struct {
+            const char *topic;
+            const char *type;
+            const char *format;
+            const std::function<uint64_t(Inverter<> *iv)> valueFunc;
+        } InverterMetric_t;
+        InverterMetric_t inverterMetrics[17] = {
+            { "info",                 "gauge",   " {name=\"%s\",serial=\"%12llx\"} 1\n", [](Inverter<> *iv)-> uint64_t {return iv->config->serial.u64;} },
+            { "is_enabled",           "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->config->enabled;} },
+            { "is_available",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isAvailable();} },
+            { "is_producing",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isProducing();} },
+            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->actPowerLimit;} },
+            { "power_limit_ack",      "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (iv->powerLimitAck)?1:0;} },
+            { "max_power",            "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
+            { "radio_rx_success",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
+            { "radio_rx_fail",        "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFail;} },
+            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnser;} },
+            { "radio_frame_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
+            { "radio_tx_cnt",         "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
+            { "radio_retransmits",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} },
+            { "radio_iv_loss_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivLoss;} },
+            { "radio_iv_sent_cnt",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.ivSent;} },
+            { "radio_dtu_loss_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuLoss;} },
+            { "radio_dtu_sent_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuSent;} }
+        };
 
         void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
@@ -648,85 +685,70 @@ class Web {
                 char type[60], topic[100], val[25];
                 size_t len = 0;
                 int alarmChannelId;
-                int metricsChannelId;
 
                 // Perform grouping on metrics according to format specification
                 // Each step must return at least one character. Otherwise the processing of AsyncWebServerResponse stops.
                 // So several "Info:" blocks are used to keep the transmission going
                 switch (metricsStep) {
-                    case metricsStateStart: // System Info & NRF Statistics : fit to one packet
-                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_info gauge\n");
-                        snprintf(topic,sizeof(topic),"ahoy_solar_info{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",
+                    case metricsStateStart: // System Info  : fit to one packet
+                        snprintf(type,sizeof(type),"# TYPE %sinfo gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%sinfo{version=\"%s\",image=\"\",devicename=\"%s\"} 1\n",metricConstPrefix,
                             mApp->getVersion(), mConfig->sys.deviceName);
                         metrics = String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_freeheap gauge\n");
-                        snprintf(topic,sizeof(topic),"ahoy_solar_freeheap{devicename=\"%s\"} %u\n",mConfig->sys.deviceName,ESP.getFreeHeap());
+                        snprintf(type,sizeof(type),"# TYPE %sfreeheap gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%sfreeheap{devicename=\"%s\"} %u\n",metricConstPrefix,mConfig->sys.deviceName,ESP.getFreeHeap());
                         metrics += String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_uptime counter\n");
-                        snprintf(topic,sizeof(topic),"ahoy_solar_uptime{devicename=\"%s\"} %u\n", mConfig->sys.deviceName, mApp->getUptime());
+                        snprintf(type,sizeof(type),"# TYPE %suptime counter\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%suptime{devicename=\"%s\"} %u\n",metricConstPrefix, mConfig->sys.deviceName, mApp->getUptime());
                         metrics += String(type) + String(topic);
 
-                        snprintf(type,sizeof(type),"# TYPE ahoy_solar_wifi_rssi_db gauge\n");
-                        snprintf(topic,sizeof(topic),"ahoy_solar_wifi_rssi_db{devicename=\"%s\"} %d\n", mConfig->sys.deviceName, WiFi.RSSI());
+                        snprintf(type,sizeof(type),"# TYPE %swifi_rssi_db gauge\n",metricConstPrefix);
+                        snprintf(topic,sizeof(topic),"%swifi_rssi_db{devicename=\"%s\"} %d\n",metricConstPrefix, mConfig->sys.deviceName, WiFi.RSSI());
                         metrics += String(type) + String(topic);
 
-                        // NRF Statistics
-                        // @TODO 2023-10-01: the statistic data is now available per inverter
-                        /*stat = mApp->getNrfStatistics();
-                        metrics += radioStatistic(F("rx_success"),     stat->rxSuccess);
-                        metrics += radioStatistic(F("rx_fail"),        stat->rxFail);
-                        metrics += radioStatistic(F("rx_fail_answer"), stat->rxFailNoAnser);
-                        metrics += radioStatistic(F("frame_cnt"),      stat->frmCnt);
-                        metrics += radioStatistic(F("tx_cnt"),         stat->txCnt);
-                        metrics += radioStatistic(F("retrans_cnt"),    stat->retransmits);*/
-
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
-                        metricsInverterId = 0;
-                        metricsStep = metricsStateInverter1;
+                        metricsStep = metricsStateInverterInfo;
                         break;
 
-                    case metricsStateInverter1: // Information about all inverters configured : fit to one packet
-                        metrics = "# TYPE ahoy_solar_inverter_info gauge\n";
-                        metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_info{name=\"%s\",serial=\"%12llx\"} 1\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->config->serial.u64;});
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
-                        metricsStep = metricsStateInverter2;
-                        break;
-
-                    case metricsStateInverter2: // Information about all inverters configured : fit to one packet
-                        metrics += "# TYPE ahoy_solar_inverter_is_enabled gauge\n";
-                        metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_enabled {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->config->enabled;});
-
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
-                        metricsStep = metricsStateInverter3;
-                        break;
-
-                    case metricsStateInverter3: // Information about all inverters configured : fit to one packet
-                        metrics += "# TYPE ahoy_solar_inverter_is_available gauge\n";
-                        metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_available {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isAvailable();});
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
-                        metricsStep = metricsStateInverter4;
-                        break;
-
-                    case metricsStateInverter4: // Information about all inverters configured : fit to one packet
-                        metrics += "# TYPE ahoy_solar_inverter_is_producing gauge\n";
-                        metrics += inverterMetric(topic, sizeof(topic),"ahoy_solar_inverter_is_producing {inverter=\"%s\"} %d\n",
-                                    [](Inverter<> *iv,IApp *mApp)-> uint64_t {return iv->isProducing();});
-                       len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
-                        // Start Realtime Field loop
+                    // Information about all inverters configured : each metric for all inverters must fit to one network packet
+                    case metricsStateInverterInfo:
+                    case metricsStateInverterEnabled:
+                    case metricsStateInverterAvailable:
+                    case metricsStateInverterProducing:
+                    case metricsStateInverterPowerLimitRead:
+                    case metricsStateInverterPowerLimitAck:
+                    case metricsStateInverterMaxPower:
+                    case metricsStateInverterRxSuccess:
+                    case metricsStateInverterRxFail:
+                    case metricsStateInverterRxFailAnswer:
+                    case metricsStateInverterFrameCnt:
+                    case metricsStateInverterTxCnt:
+                    case metricsStateInverterRetransmits:
+                    case metricsStateInverterIvRxCnt:
+                    case metricsStateInverterIvTxCnt:
+                    case metricsStateInverterDtuRxCnt:
+                    case metricsStateInverterDtuTxCnt:
+                        metrics = "# TYPE ahoy_solar_inverter_" + String(inverterMetrics[metricsStep].topic) + " " + String(inverterMetrics[metricsStep].type) + "\n";
+                        metrics += inverterMetric(topic, sizeof(topic),
+                                        (String("ahoy_solar_inverter_") + inverterMetrics[metricsStep].topic +
+                                            inverterMetrics[metricsStep].format).c_str(),
+                                            inverterMetrics[metricsStep].valueFunc);
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
+                        // ugly hack to increment the enum
+                        metricsStep = static_cast<MetricStep_t>( static_cast<int>(metricsStep) + 1);
+                        // Prepare  Realtime Field loop, which may be startet next
                         metricsFieldId = FLD_UDC;
-                        metricsStep = metricStateRealtimeFieldId;
                         break;
+
 
                     case metricStateRealtimeFieldId: // Iterate over all defined fields
                         if (metricsFieldId < FLD_LAST_ALARM_CODE) {
                             metrics = "# Info: processing realtime field #"+String(metricsFieldId)+"\n";
                             metricDeclared = false;
+                            metricTotalDeclard = false;
 
                             metricsInverterId = 0;
                             metricsStep = metricStateRealtimeInverterId;
@@ -734,18 +756,17 @@ class Web {
                             metrics = "# Info: all realtime fields processed\n";
                             metricsStep = metricsStateAlarmData;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                   case metricStateRealtimeInverterId: // Iterate over all inverters for this field
                         metrics = "";
                         if (metricsInverterId < mSys->getNumInverters()) {
                             // process all channels of this inverter
-
                             iv = mSys->getInverterByPos(metricsInverterId);
                             if (NULL != iv) {
                                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                                for (metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
+                                for (int metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
                                     uint8_t channel = rec->assign[metricsChannelId].ch;
 
                                     // Try inverter channel (channel 0) or any channel with maxPwr > 0
@@ -755,22 +776,26 @@ class Web {
                                             std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(metricsChannelId, rec));
                                             // Declare metric only once
                                             if (channel != 0 && !metricDeclared) {
-                                                snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
+                                                snprintf(type, sizeof(type), "# TYPE %s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), promType.c_str());
                                                 metrics += type;
                                                 metricDeclared = true;
                                             }
                                             // report value
                                             if (0 == channel) {
-                                                char total[7];
-                                                total[0] = 0;
+                                                // Report a _total value if also channel values were reported. Otherwise report without _total
+                                                char total[7] = {0};
                                                 if (metricDeclared) {
-                                                    // A declaration and value for channels has been delivered. So declare and deliver a _total metric
-                                                    strncpy(total,"_total",sizeof(total));
+                                                    // A declaration and value for channels have been delivered. So declare and deliver a _total metric
+                                                    snprintf(total, sizeof(total), "_total");
                                                 }
-                                                snprintf(type, sizeof(type), "# TYPE ahoy_solar_%s%s%s %s\n", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
-                                                metrics += type;
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s%s{inverter=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
+                                                if (!metricTotalDeclard) {
+                                                    snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
+                                                    metrics += type;
+                                                    metricTotalDeclard = true;
+                                                }
+                                                snprintf(topic, sizeof(topic), "%s%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total,iv->config->name);
                                             } else {
+                                                // Report (non zero) channel value
                                                 // Use a fallback channel name (ch0, ch1, ...)if non is given by user
                                                 char chName[MAX_NAME_LENGTH];
                                                 if (iv->config->chName[channel-1][0] != 0) {
@@ -778,7 +803,7 @@ class Web {
                                                 } else {
                                                     snprintf(chName,sizeof(chName),"ch%1d",channel);
                                                 }
-                                                snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\",channel=\"%s\"}", iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
+                                                snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\",channel=\"%s\"}",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), iv->config->name,chName);
                                             }
                                             snprintf(val, sizeof(val), " %.3f\n", iv->getValue(metricsChannelId, rec));
                                             metrics += topic;
@@ -787,12 +812,14 @@ class Web {
                                     }
                                 }
                                 if (metrics.length() < 1) {
-                                    metrics = "# Info: Field #"+String(metricsFieldId)+" not available for inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
+                                    metrics = "# Info: Field #"+String(metricsFieldId)+" (" + fields[metricsFieldId] +
+                                                ") not available for inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
                                     metricsFieldId++; // Process next field Id
                                     metricsStep = metricStateRealtimeFieldId;
                                 }
                             } else {
-                                metrics = "# Info: No data for field #"+String(metricsFieldId)+" of inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
+                                metrics = "# Info: No data for field #"+String(metricsFieldId)+ " (" + fields[metricsFieldId] +
+                                          ") of inverter #"+String(metricsInverterId)+". Skipping remaining inverters\n";
                                 metricsFieldId++; // Process next field Id
                                 metricsStep = metricStateRealtimeFieldId;
                             }
@@ -803,12 +830,12 @@ class Web {
                             metricsFieldId++; // Process next field Id
                             metricsStep = metricStateRealtimeFieldId;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
                         // Perform grouping on metrics according to Prometheus exposition format specification
-                        snprintf(type, sizeof(type),"# TYPE ahoy_solar_%s gauge\n",fields[FLD_LAST_ALARM_CODE]);
+                        snprintf(type, sizeof(type),"# TYPE %s%s gauge\n",metricConstPrefix,fields[FLD_LAST_ALARM_CODE]);
                         metrics = type;
 
                         for (metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
@@ -820,22 +847,24 @@ class Web {
                                 alarmChannelId = 0;
                                 if (alarmChannelId < rec->length) {
                                     std::tie(promUnit, promType) = convertToPromUnits(iv->getUnit(alarmChannelId, rec));
-                                    snprintf(topic, sizeof(topic), "ahoy_solar_%s%s{inverter=\"%s\"}", iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
+                                    snprintf(topic, sizeof(topic), "%s%s%s{inverter=\"%s\"}",metricConstPrefix, iv->getFieldName(alarmChannelId, rec), promUnit.c_str(), iv->config->name);
                                     snprintf(val, sizeof(val), " %.3f\n", iv->getValue(alarmChannelId, rec));
                                     metrics += topic;
                                     metrics += val;
                                 }
                             }
                         }
-                        len = snprintf((char*)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
                         metricsStep = metricsStateEnd;
                         break;
 
-                    case metricsStateEnd:
                     default: // end of transmission
+                        DBGPRINT("E: Prometheus: Bad metricsStep=");
+                        DBGPRINTLN(String(metricsStep));
+                    case metricsStateEnd:
                         len = 0;
                         break;
-                }
+                } // switch
                 return len;
             });
             request->send(response);
@@ -843,25 +872,16 @@ class Web {
 
 
         // Traverse all inverters and collect the metric via valueFunc
-        String inverterMetric(char *buffer, size_t len, const char *format, std::function<uint64_t(Inverter<> *iv, IApp *mApp)> valueFunc) {
-            Inverter<> *iv;
+        String inverterMetric(char *buffer, size_t len, const char *format, std::function<uint64_t(Inverter<> *iv)> valueFunc) {
             String metric = "";
-            for (int metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
-                iv = mSys->getInverterByPos(metricsInverterId);
+            for (int id = 0; id < mSys->getNumInverters();id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL != iv) {
-                    snprintf(buffer,len,format,iv->config->name, valueFunc(iv,mApp));
+                    snprintf(buffer,len,format,iv->config->name, valueFunc(iv));
                     metric += String(buffer);
                 }
             }
             return metric;
-        }
-
-        String radioStatistic(String statistic, uint32_t value) {
-            char type[60], topic[80], val[25];
-            snprintf(type, sizeof(type), "# TYPE ahoy_solar_radio_%s counter",statistic.c_str());
-            snprintf(topic, sizeof(topic), "ahoy_solar_radio_%s",statistic.c_str());
-            snprintf(val, sizeof(val), "%d", value);
-            return ( String(type) + "\n" + String(topic) + " " + String(val) + "\n");
         }
 
         std::pair<String, String> convertToPromUnits(String shortUnit) {
@@ -876,24 +896,27 @@ class Web {
             if(shortUnit == "Hz")   return {"_hertz", "gauge"};
             return {"", "gauge"};
         }
+
+    private:
+        int metricsInverterId = 0;
+        uint8_t metricsFieldId = 0;
+        bool metricDeclared = false, metricTotalDeclard = false;
 #endif
+    private:
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
-        bool mProtected;
-        uint32_t mLogoutTimeout;
-        uint8_t mLoginIp[4];
-        IApp *mApp;
-        HMSYSTEM *mSys;
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
 
-        settings_t *mConfig;
+        settings_t *mConfig = nullptr;
 
-        bool mSerialAddTime;
+        bool mSerialAddTime = true;
         char mSerialBuf[WEB_SERIAL_BUF_SIZE];
-        uint16_t mSerialBufFill;
-        bool mSerialClientConnnected;
+        uint16_t mSerialBufFill = 0;
+        bool mSerialClientConnnected = false;
 
         File mUploadFp;
-        bool mUploadFail;
+        bool mUploadFail = false;
 };
 
 #endif /*__WEB_H__*/

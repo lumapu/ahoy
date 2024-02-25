@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_INVERTER_H__
@@ -14,6 +14,7 @@
 #define MAX_GRID_LENGTH     150
 
 #include "hmDefines.h"
+#include "../appInterface.h"
 #include "HeuristicInv.h"
 #include "../hms/hmsDefines.h"
 #include <memory>
@@ -64,13 +65,28 @@ struct calcFunc_t {
     func_t<T>*  func;   // function pointer
 };
 
+enum class MqttSentStatus : uint8_t {
+    NEW_DATA,
+    LAST_SUCCESS_SENT,
+    DATA_SENT
+};
+
+enum class InverterStatus : uint8_t {
+    OFF,
+    STARTING,
+    PRODUCING,
+    WAS_PRODUCING,
+    WAS_ON
+};
+
 template<class T=float>
 struct record_t {
-    byteAssign_t* assign; // assignment of bytes in payload
-    uint8_t length;       // length of the assignment list
-    T *record;            // data pointer
-    uint32_t ts;          // timestamp of last received payload
-    uint8_t pyldLen;      // expected payload length for plausibility check
+    byteAssign_t* assign = nullptr; // assignment of bytes in payload
+    uint8_t length = 0;             // length of the assignment list
+    T *record = nullptr;            // data pointer
+    uint32_t ts = 0;                // timestamp of last received payload
+    uint8_t pyldLen = 0;            // expected payload length for plausibility check
+    MqttSentStatus mqttSentStatus = MqttSentStatus:: NEW_DATA; // indicates the current MqTT sent status
 };
 
 struct alarm_t {
@@ -94,129 +110,112 @@ const calcFunc_t<T> calcFunctions[] = {
     { CALC_MPDC_CH,  &calcMaxPowerDc    }
 };
 
-enum class InverterStatus : uint8_t {
-    OFF,
-    STARTING,
-    PRODUCING,
-    WAS_PRODUCING,
-    WAS_ON
-};
-
 template <class REC_TYP>
 class Inverter {
     public:
-        uint8_t       ivGen;             // generation of inverter (HM / MI)
-        cfgIv_t       *config;           // stored settings
-        uint8_t       id;                // unique id
-        uint8_t       type;              // integer which refers to inverter type
-        uint16_t      alarmMesIndex;     // Last recorded Alarm Message Index
-        uint16_t      powerLimit[2];     // limit power output
-        float         actPowerLimit;     // actual power limit
-        bool          powerLimitAck;     // acknowledged power limit (default: false)
-        uint8_t       devControlCmd;     // carries the requested cmd
-        serial_u      radioId;           // id converted to modbus
-        uint8_t       channels;          // number of PV channels (1-4)
-        record_t<REC_TYP> recordMeas;    // structure for measured values
-        record_t<REC_TYP> recordInfo;    // structure for info values
-        record_t<REC_TYP> recordHwInfo;  // structure for simple (hardware) info values
-        record_t<REC_TYP> recordConfig;  // structure for system config values
-        record_t<REC_TYP> recordAlarm;   // structure for alarm values
-        bool          isConnected;       // shows if inverter was successfully identified (fw version and hardware info)
-        InverterStatus status;           // indicates the current inverter status
-        std::array<alarm_t, 10> lastAlarm; // holds last 10 alarms
-        uint8_t       alarmNxtWrPos;     // indicates the position in array (rolling buffer)
-        uint16_t      alarmCnt;          // counts the total number of occurred alarms
-        uint16_t      alarmLastId;       // lastId which was received
-        int8_t        rssi;              // RSSI
-        uint8_t       miMultiParts;      // helper info for MI multiframe msgs
-        uint8_t       outstandingFrames; // helper info to count difference between expected and received frames
-        bool          mGotFragment;      // shows if inverter has sent at least one fragment
-        uint8_t       curFrmCnt;         // count received frames in current loop
-        bool          mGotLastMsg;       // shows if inverter has already finished transmission cycle
-        uint8_t       mCmd;              // holds the command to send
-        bool          mIsSingleframeReq; // indicates this is a missing single frame request
-        Radio         *radio;            // pointer to associated radio class
-        statistics_t  radioStatistics;   // information about transmitted, failed, ... packets
-        HeuristicInv  heuristics;        // heuristic information / logic
-        uint8_t       curCmtFreq;        // current used CMT frequency, used to check if freq. was changed during runtime
-        bool          commEnabled;       // 'pause night communication' sets this field to false
+        uint8_t       ivGen = IV_UNKNOWN;                   // generation of inverter (HM / MI)
+        uint8_t       ivRadioType = INV_RADIO_TYPE_UNKNOWN; // refers to used radio (nRF24 / CMT)
+        cfgIv_t       *config = nullptr;                    // stored settings
+        uint8_t       id = 0;                               // unique id
+        uint8_t       type = INV_TYPE_1CH;                  // integer which refers to inverter type
+        uint16_t      alarmMesIndex = 0;                    // Last recorded Alarm Message Index
+        uint16_t      powerLimit[2] = {0xffff, AbsolutNonPersistent}; // limit power output (multiplied by 10)
+        uint16_t      actPowerLimit = 0xffff;               // actual power limit
+        bool          powerLimitAck = false;                // acknowledged power limit
+        uint8_t       devControlCmd = InitDataState;        // carries the requested cmd
+        serial_u      radioId;                              // id converted to modbus
+        uint8_t       channels = 1;                         // number of PV channels (1-4)
+        record_t<REC_TYP> recordMeas;                       // structure for measured values
+        record_t<REC_TYP> recordInfo;                       // structure for info values
+        record_t<REC_TYP> recordHwInfo;                     // structure for simple (hardware) info values
+        record_t<REC_TYP> recordConfig;                     // structure for system config values
+        record_t<REC_TYP> recordAlarm;                      // structure for alarm values
+        InverterStatus status = InverterStatus::OFF;        // indicates the current inverter status
+        std::array<alarm_t, 10> lastAlarm;                  // holds last 10 alarms
+        int8_t        rssi = 0;                             // RSSI
+        uint16_t      alarmCnt = 0;                         // counts the total number of occurred alarms
+        uint16_t      alarmLastId = 0;                      // lastId which was received
+        uint8_t       mCmd = InitDataState;                 // holds the command to send
+        bool          mGotFragment = false;                 // shows if inverter has sent at least one fragment
+        uint8_t       miMultiParts = 0;                     // helper info for MI multiframe msgs
+        uint8_t       outstandingFrames = 0;                // helper info to count difference between expected and received frames
+        uint8_t       curFrmCnt = 0;                        // count received frames in current loop
+        bool          mGotLastMsg = false;                  // shows if inverter has already finished transmission cycle
+        bool          mIsSingleframeReq = false;            // indicates this is a missing single frame request
+        Radio         *radio = nullptr;                     // pointer to associated radio class
+        statistics_t  radioStatistics;                      // information about transmitted, failed, ... packets
+        HeuristicInv  heuristics;                           // heuristic information / logic
+        uint8_t       curCmtFreq = 0;                       // current used CMT frequency, used to check if freq. was changed during runtime
+        uint32_t      tsMaxAcPower = 0;                     // holds the timestamp when the MaxAC power was seen
+        bool          commEnabled = true;                   // 'pause night communication' sets this field to false
 
-        uint16_t      mIvRxCnt;          // last iv rx frames (from GetLossRate)
-        uint16_t      mIvTxCnt;          // last iv tx frames (from GetLossRate)
-        uint16_t      mDtuRxCnt;         // cur dtu rx frames (since last GetLossRate)
-        uint16_t      mDtuTxCnt;         // cur dtu tx frames (since last getLoassRate)
-        uint8_t       mGetLossInterval;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debu
-
-        static uint32_t *timestamp;      // system timestamp
-        static cfgInst_t *generalConfig; // general inverter configuration from setup
+    public:
 
         Inverter() {
-            ivGen              = IV_HM;
-            powerLimit[0]      = 0xffff;               // 65535 W Limit -> unlimited
-            powerLimit[1]      = AbsolutNonPersistent; // default power limit setting
-            powerLimitAck      = false;
-            actPowerLimit      = 0xffff;               // init feedback from inverter to -1
-            mDevControlRequest = false;
-            devControlCmd      = InitDataState;
-            alarmMesIndex      = 0;
-            isConnected        = false;
-            status             = InverterStatus::OFF;
-            alarmNxtWrPos      = 0;
-            alarmCnt           = 0;
-            alarmLastId        = 0;
-            rssi               = -127;
-            miMultiParts       = 0;
-            mGotLastMsg        = false;
-            mCmd               = InitDataState;
-            mIsSingleframeReq  = false;
-            radio              = NULL;
-            commEnabled        = true;
-            mIvRxCnt           = 0;
-            mIvTxCnt           = 0;
-            mDtuRxCnt          = 0;
-            mDtuTxCnt          = 0;
-
             memset(&radioStatistics, 0, sizeof(statistics_t));
-            memset(heuristics.txRfQuality, -6, 5);
-
             memset(mOffYD, 0, sizeof(float) * 6);
             memset(mLastYD, 0, sizeof(float) * 6);
+            mGridProfile.fill(0);
         }
 
         void tickSend(std::function<void(uint8_t cmd, bool isDevControl)> cb) {
             if(mDevControlRequest) {
-                cb(devControlCmd, true);
+                if(InverterStatus::OFF != status) {
+                    cb(devControlCmd, true);
+                    devControlCmd = InitDataState;
+                } else
+                    DPRINTLN(DBG_WARN, F("Inverter is not avail"));
                 mDevControlRequest = false;
-            } else if (IV_MI != ivGen) {
+            } else if (IV_MI != ivGen) { // HM / HMS / HMT
                 mGetLossInterval++;
-                if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0))
-                    cb(AlarmData, false);                // get last alarms
-                else if(0 == getFwVersion())
-                    cb(InverterDevInform_All, false);    // get firmware version
-                else if(0 == getHwVersion())
-                    cb(InverterDevInform_Simple, false); // get hardware version
-                else if(actPowerLimit == 0xffff)
+                if(INV_RADIO_TYPE_NRF == ivRadioType) {
+                    // get live data until quality reaches maximum
+                    if(!heuristics.isTxAtMax()) {
+                        cb(RealTimeRunData_Debug, false);    // get live data
+                        return;
+                    }
+                }
+
+                if(actPowerLimit == 0xffff) {
                     cb(SystemConfigPara, false);         // power limit info
-                else if(InitDataState != devControlCmd) {
+                } else if(InitDataState != devControlCmd) {
                     cb(devControlCmd, false);            // custom command which was received by API
                     devControlCmd = InitDataState;
                     mGetLossInterval = 1;
+                    return;
+                } else if(0 == getFwVersion()) {
+                    cb(InverterDevInform_All, false);    // get firmware version
+                } else if(0 == getHwVersion()) {
+                    cb(InverterDevInform_Simple, false); // get hardware version
+                } else if((alarmLastId != alarmMesIndex) && (alarmMesIndex != 0)) {
+                    cb(AlarmData, false);                // get last alarms
                 } else if((0 == mGridLen) && generalConfig->readGrid) { // read grid profile
                     cb(GridOnProFilePara, false);
                 } else if (mGetLossInterval > AHOY_GET_LOSS_INTERVAL) { // get loss rate
                     mGetLossInterval = 1;
+                    cb(RealTimeRunData_Debug, false); // get live data
                     cb(GetLossRate, false);
-                } else
-                    cb(RealTimeRunData_Debug, false);    // get live data
-            } else {
-                if(0 == getFwVersion())
-                    cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
-                else {
-                    record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
-                    if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0)
-                        cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
-                    else
-                        cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
+                    return;
+                }
+
+                cb(RealTimeRunData_Debug, false); // get live data
+            } else { // MI
+                cb(((type == INV_TYPE_4CH) ? MI_REQ_4CH : MI_REQ_CH1), false);
+                mGetLossInterval++;
+                if (type != INV_TYPE_4CH)
+                    mIvRxCnt++;  // statistics workaround...
+                if(isAvailable()) {
+                    if(0 == getFwVersion()) {
+                        mIvRxCnt +=2;
+                        cb(0x0f, false);    // get firmware version; for MI, this makes part of polling the device software and hardware version number
+                    } else {
+                        record_t<> *rec = getRecordStruct(InverterDevInform_Simple);
+                        if (getChannelFieldValue(CH0, FLD_PART_NUM, rec) == 0) {
+                            cb(0x0f, false); // hard- and firmware version for missing HW part nr, delivered by frame 1
+                            mIvRxCnt +=2;
+                        } else if((getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec) == 0) && generalConfig->readGrid) // read grid profile
+                            cb(0x10, false); // legacy GPF command
+                    }
                 }
             }
         }
@@ -234,15 +233,14 @@ class Inverter {
 
         uint8_t getPosByChFld(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getPosByChFld"));
-            uint8_t pos = 0;
             if(NULL != rec) {
+                uint8_t pos = 0;
                 for(; pos < rec->length; pos++) {
                     if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
                         break;
                 }
                 return (pos >= rec->length) ? 0xff : pos;
-            }
-            else
+            } else
                 return 0xff;
         }
 
@@ -251,41 +249,39 @@ class Inverter {
         }
 
         const char *getFieldName(uint8_t pos, record_t<> *rec) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getFieldName"));
             if(NULL != rec)
                 return fields[rec->assign[pos].fieldId];
             return notAvail;
         }
 
         const char *getUnit(uint8_t pos, record_t<> *rec) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getUnit"));
             if(NULL != rec)
                 return units[rec->assign[pos].unitId];
             return notAvail;
         }
 
         uint8_t getChannel(uint8_t pos, record_t<> *rec) {
-            DPRINTLN(DBG_VERBOSE, F("hmInverter.h:getChannel"));
             if(NULL != rec)
                 return rec->assign[pos].ch;
             return 0;
         }
 
         bool setDevControlRequest(uint8_t cmd) {
-            if(isConnected) {
+            if(InverterStatus::OFF != status) {
                 mDevControlRequest = true;
                 devControlCmd = cmd;
+                //app->triggerTickSend(); // done in RestApi.h, because of "chicken-and-egg problem ;-)"
             }
-            return isConnected;
+            return (InverterStatus::OFF != status);
         }
 
         bool setDevCommand(uint8_t cmd) {
-            if(isConnected)
+            if(InverterStatus::OFF != status)
                 devControlCmd = cmd;
-            return isConnected;
+            return (InverterStatus::OFF != status);
         }
 
-        void addValue(uint8_t pos, uint8_t buf[], record_t<> *rec) {
+        void addValue(uint8_t pos, const uint8_t buf[], record_t<> *rec) {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:addValue"));
             if(NULL != rec) {
                 uint8_t  ptr = rec->assign[pos].start;
@@ -299,6 +295,7 @@ class Inverter {
                             val <<= 8;
                             val |= buf[ptr];
                         } while(++ptr != end);
+
                         if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
                             // temperature, Qvar, and power factor are a signed values
                             rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
@@ -322,7 +319,6 @@ class Inverter {
 
                 if(rec == &recordMeas) {
                     DPRINTLN(DBG_VERBOSE, "add real time");
-
                     // get last alarm message index and save it in the inverter object
                     if (getPosByChFld(0, FLD_EVT, rec) == pos) {
                         if (alarmMesIndex < rec->record[pos]) {
@@ -332,31 +328,26 @@ class Inverter {
                             DBGPRINTLN(String(alarmMesIndex));
                         }
                     }
+                } else {
+                    if (rec->assign == InfoAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add info");
+                        // eg. fw version ...
+                    } else if (rec->assign == SimpleInfoAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add simple info");
+                        // eg. hw version ...
+                    } else if (rec->assign == SystemConfigParaAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add config");
+                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
+                            actPowerLimit = rec->record[pos];
+                            DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
+                            DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
+                        }
+                    } else if (rec->assign == AlarmDataAssignment) {
+                        DPRINTLN(DBG_DEBUG, "add alarm");
+                    } else
+                        DPRINTLN(DBG_WARN, F("add with unknown assignment"));
                 }
-                else if (rec->assign == InfoAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add info");
-                    // eg. fw version ...
-                    isConnected = true;
-                }
-                else if (rec->assign == SimpleInfoAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add simple info");
-                    // eg. hw version ...
-                }
-                else if (rec->assign == SystemConfigParaAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add config");
-                    if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
-                        actPowerLimit = rec->record[pos];
-                        DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
-                        DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));
-                    }
-                }
-                else if (rec->assign == AlarmDataAssignment) {
-                    DPRINTLN(DBG_DEBUG, "add alarm");
-                }
-                else
-                    DPRINTLN(DBG_WARN, F("add with unknown assignment"));
-            }
-            else
+            } else
                 DPRINTLN(DBG_ERROR, F("addValue: assignment not found with cmd 0x"));
 
             // update status state-machine
@@ -374,18 +365,18 @@ class Inverter {
         }
 
         REC_TYP getChannelFieldValue(uint8_t channel, uint8_t fieldId, record_t<> *rec) {
-            uint8_t pos = 0;
             if(NULL != rec) {
+                uint8_t pos = 0;
                 for(; pos < rec->length; pos++) {
                     if((rec->assign[pos].ch == channel) && (rec->assign[pos].fieldId == fieldId))
                         break;
                 }
+
                 if(pos >= rec->length)
                     return 0;
 
                 return rec->record[pos];
-            }
-            else
+            } else
                 return 0;
         }
 
@@ -433,11 +424,14 @@ class Inverter {
                     status = InverterStatus::STARTING;
             } else {
                 if((*timestamp - recordMeas.ts) > INVERTER_OFF_THRES_SEC) {
-                    status = InverterStatus::OFF;
-                    actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
-                    alarmMesIndex = 0;
-                }
-                else
+                    if(status != InverterStatus::OFF) {
+                        status = InverterStatus::OFF;
+                        actPowerLimit = 0xffff; // power limit will be read once inverter becomes available
+                        alarmMesIndex = 0;
+                        if(INV_RADIO_TYPE_NRF == ivRadioType)
+                            heuristics.clear();
+                    }
+                } else
                     status = InverterStatus::WAS_ON;
             }
 
@@ -455,6 +449,7 @@ class Inverter {
                 else if(InverterStatus::PRODUCING == status)
                     status = InverterStatus::WAS_PRODUCING;
             }
+
             return producing;
         }
 
@@ -506,16 +501,17 @@ class Inverter {
             DPRINTLN(DBG_VERBOSE, F("hmInverter.h:initAssignment"));
             rec->ts     = 0;
             rec->length = 0;
+            rec->mqttSentStatus = MqttSentStatus::DATA_SENT; // nothing new to transmit
             switch (cmd) {
                 case RealTimeRunData_Debug:
                     if (INV_TYPE_1CH == type) {
                         if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM1CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hm1chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hm1chAssignment));
                             rec->pyldLen = HM1CH_PAYLOAD_LEN;
                         } else if(IV_HMS == ivGen) {
                             rec->length  = (uint8_t)(HMS1CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hms1chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hms1chAssignment));
                             rec->pyldLen = HMS1CH_PAYLOAD_LEN;
                         }
                         channels = 1;
@@ -523,11 +519,11 @@ class Inverter {
                     else if (INV_TYPE_2CH == type) {
                         if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM2CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hm2chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hm2chAssignment));
                             rec->pyldLen = HM2CH_PAYLOAD_LEN;
                         } else if(IV_HMS == ivGen) {
                             rec->length  = (uint8_t)(HMS2CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hms2chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hms2chAssignment));
                             rec->pyldLen = HMS2CH_PAYLOAD_LEN;
                         }
                         channels = 2;
@@ -535,18 +531,18 @@ class Inverter {
                     else if (INV_TYPE_4CH == type) {
                         if((IV_HM == ivGen) || (IV_MI == ivGen)) {
                             rec->length  = (uint8_t)(HM4CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hm4chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hm4chAssignment));
                             rec->pyldLen = HM4CH_PAYLOAD_LEN;
                         } else if(IV_HMS == ivGen) {
                             rec->length  = (uint8_t)(HMS4CH_LIST_LEN);
-                            rec->assign  = (byteAssign_t *)hms4chAssignment;
+                            rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hms4chAssignment));
                             rec->pyldLen = HMS4CH_PAYLOAD_LEN;
                         }
                         channels = 4;
                     }
                     else if (INV_TYPE_6CH == type) {
                         rec->length  = (uint8_t)(HMT6CH_LIST_LEN);
-                        rec->assign  = (byteAssign_t *)hmt6chAssignment;
+                        rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(hmt6chAssignment));
                         rec->pyldLen = HMT6CH_PAYLOAD_LEN;
                         channels = 6;
                     }
@@ -559,22 +555,22 @@ class Inverter {
                     break;
                 case InverterDevInform_All:
                     rec->length  = (uint8_t)(HMINFO_LIST_LEN);
-                    rec->assign  = (byteAssign_t *)InfoAssignment;
+                    rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(InfoAssignment));
                     rec->pyldLen = HMINFO_PAYLOAD_LEN;
                     break;
                 case InverterDevInform_Simple:
                     rec->length  = (uint8_t)(HMSIMPLE_INFO_LIST_LEN);
-                    rec->assign  = (byteAssign_t *)SimpleInfoAssignment;
+                    rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(SimpleInfoAssignment));
                     rec->pyldLen = HMSIMPLE_INFO_PAYLOAD_LEN;
                     break;
                 case SystemConfigPara:
                     rec->length  = (uint8_t)(HMSYSTEM_LIST_LEN);
-                    rec->assign  = (byteAssign_t *)SystemConfigParaAssignment;
+                    rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(SystemConfigParaAssignment));
                     rec->pyldLen = HMSYSTEM_PAYLOAD_LEN;
                     break;
                 case AlarmData:
                     rec->length  = (uint8_t)(HMALARMDATA_LIST_LEN);
-                    rec->assign  = (byteAssign_t *)AlarmDataAssignment;
+                    rec->assign  = reinterpret_cast<byteAssign_t*>(const_cast<byteAssign_t*>(AlarmDataAssignment));
                     rec->pyldLen = HMALARMDATA_PAYLOAD_LEN;
                     break;
                 default:
@@ -590,7 +586,7 @@ class Inverter {
 
         void resetAlarms() {
             lastAlarm.fill({0, 0, 0});
-            alarmNxtWrPos = 0;
+            mAlarmNxtWrPos = 0;
             alarmCnt = 0;
             alarmLastId = 0;
 
@@ -598,26 +594,49 @@ class Inverter {
             memset(mLastYD, 0, sizeof(float) * 6);
         }
 
-        bool parseGetLossRate(uint8_t pyld[], uint8_t len) {
+        bool parseGetLossRate(const uint8_t pyld[], uint8_t len) {
             if (len == HMGETLOSSRATE_PAYLOAD_LEN) {
                 uint16_t rxCnt = (pyld[0] << 8) + pyld[1];
                 uint16_t txCnt = (pyld[2] << 8) + pyld[3];
 
-                if (mIvRxCnt || mIvTxCnt) {   // there was successful GetLossRate in the past
+                if (mIvRxCnt || mIvTxCnt) { // there was successful GetLossRate in the past
+                    radioStatistics.ivSent = mDtuTxCnt;
+                    if (rxCnt < mIvRxCnt)   // overflow
+                        radioStatistics.ivLoss = radioStatistics.ivSent - (rxCnt + ((uint16_t)65535 - mIvRxCnt) + 1);
+                    else
+                        radioStatistics.ivLoss = radioStatistics.ivSent - (rxCnt - mIvRxCnt);
+
+                    if (txCnt < mIvTxCnt)   // overflow
+                        radioStatistics.dtuSent = txCnt + ((uint16_t)65535 - mIvTxCnt) + 1;
+                    else
+                        radioStatistics.dtuSent = txCnt - mIvTxCnt;
+
+                    radioStatistics.dtuLoss = radioStatistics.dtuSent - mDtuRxCnt;
+
                     DPRINT_IVID(DBG_INFO, id);
-                    DBGPRINTLN("Inv loss: " +
-                        String (mDtuTxCnt - (rxCnt - mIvRxCnt)) + " of " +
-                        String (mDtuTxCnt) + ", DTU loss: " +
-                        String (txCnt - mIvTxCnt - mDtuRxCnt) + " of " +
-                        String (txCnt - mIvTxCnt));
+                    DBGPRINT(F("Inv loss: "));
+                    DBGPRINT(String(radioStatistics.ivLoss));
+                    DBGPRINT(F(" of "));
+                    DBGPRINT(String(radioStatistics.ivSent));
+                    DBGPRINT(F(", DTU loss: "));
+                    DBGPRINT(String(radioStatistics.dtuLoss));
+                    DBGPRINT(F(" of "));
+                    if(mAckCount) {
+                        DBGPRINT(String(radioStatistics.dtuSent));
+                        DBGPRINT(F(". ACKs: "));
+                        DBGPRINTLN(String(mAckCount));
+                        mAckCount = 0;
+                    } else
+                        DBGPRINTLN(String(radioStatistics.dtuSent));
                 }
 
-                mIvRxCnt = rxCnt;
-                mIvTxCnt = txCnt;
+                mIvRxCnt  = rxCnt;
+                mIvTxCnt  = txCnt;
                 mDtuRxCnt = 0;  // start new interval
                 mDtuTxCnt = 0;  // start new interval
                 return true;
             }
+
             return false;
         }
 
@@ -774,7 +793,7 @@ class Inverter {
 
         void addGridProfile(uint8_t buf[], uint8_t length) {
             mGridLen = (length > MAX_GRID_LENGTH) ? MAX_GRID_LENGTH : length;
-            std::copy(buf, &buf[mGridLen], mGridProfile);
+            std::copy(buf, &buf[mGridLen], mGridProfile.data());
         }
 
         String getGridProfile(void) {
@@ -789,9 +808,9 @@ class Inverter {
 
     private:
         inline void addAlarm(uint16_t code, uint32_t start, uint32_t end) {
-            lastAlarm[alarmNxtWrPos] = alarm_t(code, start, end);
-            if(++alarmNxtWrPos >= 10) // rolling buffer
-                alarmNxtWrPos = 0;
+            lastAlarm[mAlarmNxtWrPos] = alarm_t(code, start, end);
+            if(++mAlarmNxtWrPos >= 10) // rolling buffer
+                mAlarmNxtWrPos = 0;
         }
 
         void toRadioId(void) {
@@ -804,11 +823,23 @@ class Inverter {
             radioId.b[0] = 0x01;
         }
 
+    public:
+        static uint32_t  *timestamp;     // system timestamp
+        static cfgInst_t *generalConfig; // general inverter configuration from setup
+
+        uint16_t mDtuRxCnt = 0;
+        uint16_t mDtuTxCnt = 0;
+        uint8_t  mGetLossInterval = 0;  // request iv every AHOY_GET_LOSS_INTERVAL RealTimeRunData_Debug
+        uint16_t mIvRxCnt  = 0;
+        uint16_t mIvTxCnt  = 0;
+        uint16_t mAckCount = 0;
+
     private:
         float mOffYD[6], mLastYD[6];
-        bool mDevControlRequest; // true if change needed
+        bool mDevControlRequest = false; // true if change needed
         uint8_t mGridLen = 0;
-        uint8_t mGridProfile[MAX_GRID_LENGTH];
+        std::array<uint8_t, MAX_GRID_LENGTH> mGridProfile;
+        uint8_t mAlarmNxtWrPos = 0; // indicates the position in array (rolling buffer)
 };
 
 template <class REC_TYP>
@@ -920,8 +951,10 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
                 acMaxPower = iv->getValue(i, rec);
             }
         }
-        if(acPower > acMaxPower)
+        if(acPower > acMaxPower) {
+            iv->tsMaxAcPower = *iv->timestamp;
             return acPower;
+        }
     }
     return acMaxPower;
 }

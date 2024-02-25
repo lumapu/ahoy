@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -15,7 +15,6 @@
 #endif
 
 #define SPI_SPEED           1000000
-
 #define RF_CHANNELS         5
 
 const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
@@ -48,12 +47,12 @@ class HmRadio : public Radio {
 
             pinMode(irq, INPUT_PULLUP);
 
-            mSerialDebug = serialDebug;
-            mPrivacyMode = privacyMode;
+            mSerialDebug     = serialDebug;
+            mPrivacyMode     = privacyMode;
             mPrintWholeTrace = printWholeTrace;
 
             generateDtuSn();
-            DTU_RADIO_ID = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
+            mDtuRadioId = ((uint64_t)(((mDtuSn >> 24) & 0xFF) | ((mDtuSn >> 8) & 0xFF00) | ((mDtuSn << 8) & 0xFF0000) | ((mDtuSn << 24) & 0xFF000000)) << 8) | 0x01;
 
             #ifdef ESP32
                 #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
@@ -78,21 +77,16 @@ class HmRadio : public Radio {
             #else
                 mNrf24->begin(mSpi.get(), ce, cs);
             #endif
-            mNrf24->setRetries(3, 15); // 3*250us + 250us and 15 loops -> 15ms
+            mNrf24->setRetries(3, 9); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
-            mNrf24->setChannel(mRfChLst[mRxChIdx]);
-            mNrf24->startListening();
             mNrf24->setDataRate(RF24_250KBPS);
-            mNrf24->setAutoAck(true);
-            mNrf24->enableDynamicAck();
+            //mNrf24->setAutoAck(true); // enabled by default
+            //mNrf24->enableDynamicAck();
             mNrf24->enableDynamicPayloads();
             mNrf24->setCRCLength(RF24_CRC_16);
             mNrf24->setAddressWidth(5);
-            mNrf24->openReadingPipe(1, reinterpret_cast<uint8_t*>(&DTU_RADIO_ID));
-
-            // enable all receiving interrupts
-            mNrf24->maskIRQ(false, false, false);
-
+            mNrf24->openReadingPipe(1, reinterpret_cast<uint8_t*>(&mDtuRadioId));
+            mNrf24->maskIRQ(false, false, false); // enable all receiving interrupts
             mNrf24->setPALevel(1); // low is default
 
             if(mNrf24->isChipConnected()) {
@@ -104,70 +98,101 @@ class HmRadio : public Radio {
                 DPRINTLN(DBG_WARN, F("WARNING! your NRF24 module can't be reached, check the wiring"));
         }
 
-        void loop(void) {
-            if (!mIrqRcvd)
-                return; // nothing to do
-            mIrqRcvd = false;
-            bool tx_ok, tx_fail, rx_ready;
-            mNrf24->whatHappened(tx_ok, tx_fail, rx_ready);  // resets the IRQ pin to HIGH
-            mNrf24->flush_tx();                              // empty TX FIFO
-
-            // start listening
-            uint8_t chOffset = 2;
-            mRxChIdx = (mTxChIdx + chOffset) % RF_CHANNELS;
-            mNrf24->setChannel(mRfChLst[mRxChIdx]);
-            mNrf24->startListening();
+        // returns true if communication is active
+        bool loop(void) override {
+            if (!mIrqRcvd && !mNRFisInRX)
+                return false; // first quick check => nothing to do at all here
 
             if(NULL == mLastIv) // prevent reading on NULL object!
-                return;
+                return false;
 
-            uint32_t innerLoopTimeout = 55000;
-            uint32_t loopMillis       = millis();
-            uint32_t outerLoopTimeout = (mLastIv->mIsSingleframeReq) ? 100 : ((mLastIv->mCmd != AlarmData) && (mLastIv->mCmd != GridOnProFilePara)) ? 400 : 600;
-            bool isRxInit             = true;
+            if(!mIrqRcvd) {     // no news from nRF, check timers
+                if ((millis() - mTimeslotStart) < innerLoopTimeout)
+                    return true; // nothing to do, still waiting
 
-
-            while ((millis() - loopMillis) < outerLoopTimeout) {
-                uint32_t startMicros = micros();
-                while ((micros() - startMicros) < innerLoopTimeout) {  // listen (4088us or?) 5110us to each channel
-                    if (mIrqRcvd) {
-                        mIrqRcvd = false;
-
-                        if (getReceived()) { // everything received
-                            return;
-                        }
-
-                        innerLoopTimeout = 4088*5;
-                        if (isRxInit) {
-                            isRxInit = false;
-                            if (micros() - startMicros < 42000) {
-                                innerLoopTimeout = 4088*12;
-                                mRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
-                                mNrf24->setChannel(mRfChLst[mRxChIdx]);
-                            }
-                        }
-
-                        startMicros = micros();
-                    }
-                    yield();
+                if (mRadioWaitTime.isTimeout()) { // timeout reached!
+                    mNRFisInRX = false;
+                    rx_ready = false;
+                    return false;
                 }
-                // switch to next RX channel
-                mRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
-                mNrf24->setChannel(mRfChLst[mRxChIdx]);
-                innerLoopTimeout = 4088;
-                isRxInit = false;
-            }
-            // not finished but time is over
 
-            return;
+                // otherwise switch to next RX channel
+                mTimeslotStart = millis();
+                if(!mNRFloopChannels && ((mTimeslotStart - mLastIrqTime) > (DURATION_TXFRAME))) //(DURATION_TXFRAME+DURATION_ONEFRAME)))
+                    mNRFloopChannels = true;
+
+                mRxPendular = !mRxPendular;
+                innerLoopTimeout = DURATION_LISTEN_MIN;
+
+                if(mNRFloopChannels)
+                    tempRxChIdx = (tempRxChIdx + 4) % RF_CHANNELS;
+                else
+                    tempRxChIdx = (mRxChIdx + mRxPendular*4) % RF_CHANNELS;
+
+                mNrf24->setChannel(mRfChLst[tempRxChIdx]);
+                isRxInit = false;
+
+                return true; // communicating, but changed RX channel
+            } else {
+                // here we got news from the nRF
+                mIrqRcvd     = false;
+                mNrf24->whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
+                mLastIrqTime = millis();
+
+                if(tx_ok || tx_fail) { // tx related interrupt, basically we should start listening
+                    mNrf24->flush_tx();                         // empty TX FIFO
+                    //mTxSetupTime = millis() - mMillis;
+
+                    if(mNRFisInRX) {
+                        DPRINTLN(DBG_WARN, F("unexpected tx irq!"));
+                        return false;
+                    }
+
+                    mNRFisInRX = true;
+                    if(tx_ok)
+                        mLastIv->mAckCount++;
+
+                    rxOffset = mLastIv->ivGen == IV_HM ? 3 : 2;          // holds the default channel offset between tx and rx channel (nRF only)
+                    mRxChIdx = (mTxChIdx + rxOffset) % RF_CHANNELS;
+                    mNrf24->setChannel(mRfChLst[mRxChIdx]);
+                    mNrf24->startListening();
+                    mTimeslotStart = millis();
+                    tempRxChIdx = mRxChIdx;  // might be better to start off with one channel less?
+                    mRxPendular = false;
+                    mNRFloopChannels = (mLastIv->mCmd == MI_REQ_CH1);
+                    innerLoopTimeout = DURATION_LISTEN_MIN;
+                }
+
+                if(rx_ready) {
+                    if (getReceived()) { // check what we got, returns true for last package or success for single frame request
+                        mNRFisInRX = false;
+                        mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first end his transmissions
+                        mNrf24->stopListening();
+                    } else {
+                        innerLoopTimeout = DURATION_LISTEN_MIN;
+                        mTimeslotStart = millis();
+                        if (!mNRFloopChannels) {
+                            if (isRxInit) {
+                                isRxInit = false;
+                                tempRxChIdx = (mRxChIdx + 4) % RF_CHANNELS;
+                                mNrf24->setChannel(mRfChLst[tempRxChIdx]);
+                            } else
+                                mRxChIdx = tempRxChIdx;
+                        }
+                    }
+                    rx_ready = false; // reset
+                    return mNRFisInRX;
+                }
+            }
+
+            return false;
         }
 
-        bool isChipConnected(void) {
-            //DPRINTLN(DBG_VERBOSE, F("hmRadio.h:isChipConnected"));
+        bool isChipConnected(void) const override {
             return mNrf24->isChipConnected();
         }
 
-        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) {
+        void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) override {
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
@@ -177,10 +202,10 @@ class HmRadio : public Radio {
                 mTxBuf[cnt++] = cmd; // cmd -> 0 on, 1 off, 2 restart, 11 active power, 12 reactive power, 13 power factor
                 mTxBuf[cnt++] = 0x00;
                 if(cmd >= ActivePowerContr && cmd <= PFSet) { // ActivePowerContr, ReactivePowerContr, PFSet
-                    mTxBuf[cnt++] = ((data[0] * 10) >> 8) & 0xff; // power limit
-                    mTxBuf[cnt++] = ((data[0] * 10)     ) & 0xff; // power limit
-                    mTxBuf[cnt++] = ((data[1]     ) >> 8) & 0xff; // setting for persistens handlings
-                    mTxBuf[cnt++] = ((data[1]     )     ) & 0xff; // setting for persistens handling
+                    mTxBuf[cnt++] = (data[0] >> 8) & 0xff; // power limit, multiplied by 10 (because of fraction)
+                    mTxBuf[cnt++] = (data[0]     ) & 0xff; // power limit
+                    mTxBuf[cnt++] = (data[1] >> 8) & 0xff; // setting for persistens handlings
+                    mTxBuf[cnt++] = (data[1]     ) & 0xff; // setting for persistens handling
                 }
             } else { //MI 2nd gen. specific
                 uint16_t powerMax = ((iv->powerLimit[1] == RelativNonPersistent) ? 0 : iv->getMaxPower());
@@ -249,59 +274,72 @@ class HmRadio : public Radio {
                 }
                 cnt++;
             }
+
             sendPacket(iv, cnt, isRetransmit, (IV_MI != iv->ivGen));
         }
 
-        uint8_t getDataRate(void) {
+        uint8_t getDataRate(void) const {
             if(!mNrf24->isChipConnected())
                 return 3; // unknown
             return mNrf24->getDataRate();
         }
 
-        bool isPVariant(void) {
+        bool isPVariant(void) const {
             return mNrf24->isPVariant();
         }
 
     private:
         inline bool getReceived(void) {
-            bool tx_ok, tx_fail, rx_ready;
-            mNrf24->whatHappened(tx_ok, tx_fail, rx_ready); // resets the IRQ pin to HIGH
-
             bool isLastPackage = false;
+            bool isRetransmitAnswer = false;
+            rx_ready = false; // reset for ACK case
+
             while(mNrf24->available()) {
-                uint8_t len;
-                len = mNrf24->getDynamicPayloadSize(); // if payload size > 32, corrupt payload has been flushed
+                uint8_t len = mNrf24->getDynamicPayloadSize(); // payload size > 32 -> corrupt payload
+
                 if (len > 0) {
                     packet_t p;
-                    p.ch = mRfChLst[mRxChIdx];
-                    p.len = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
+                    p.ch   = mRfChLst[tempRxChIdx];
+                    p.len  = (len > MAX_RF_PAYLOAD_SIZE) ? MAX_RF_PAYLOAD_SIZE : len;
                     p.rssi = mNrf24->testRPD() ? -64 : -75;
                     p.millis = millis() - mMillis;
                     mNrf24->read(p.packet, p.len);
+
                     if (p.packet[0] != 0x00) {
                         if(!checkIvSerial(p.packet, mLastIv)) {
-                            DPRINT(DBG_WARN, "RX other inverter ");
-                            if(*mPrivacyMode)
-                                ah::dumpBuf(p.packet, p.len, 1, 4);
-                            else
+                            DPRINT(DBG_WARN, F("RX other inverter "));
+                            if(!*mPrivacyMode)
                                 ah::dumpBuf(p.packet, p.len);
-                            return false;
+                            else
+                                DBGPRINTLN(F(""));
+                        } else {
+                            mLastIv->mGotFragment = true;
+                            mBufCtrl.push(p);
+
+                            if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES)) {  // response from get information command
+                                isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
+                                if(mLastIv->mIsSingleframeReq)                  // we only expect one frame here...
+                                    isRetransmitAnswer = true;
+
+                                if(isLastPackage)
+                                    setExpectedFrames(p.packet[9] - ALL_FRAMES);
+                            }
+
+                            if(IV_MI == mLastIv->ivGen) {
+                                if (p.packet[0] == (0x0f + ALL_FRAMES))                  // response from MI get information command
+                                    isLastPackage = (p.packet[9] > 0x10);                // > 0x10 indicates last packet received
+                                else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
+                                    isLastPackage = true;                                // response from dev control command
+                            }
+                            rx_ready = true; //reset in case we first read messages from other inverter or ACK zero payloads
                         }
-                        mLastIv->mGotFragment = true;
-                        mBufCtrl.push(p);
-                        if (p.packet[0] == (TX_REQ_INFO + ALL_FRAMES))  // response from get information command
-                            isLastPackage = (p.packet[9] > ALL_FRAMES); // > ALL_FRAMES indicates last packet received
-                        else if (p.packet[0] == ( 0x0f + ALL_FRAMES) )  // response from MI get information command
-                            isLastPackage = (p.packet[9] > 0x10);       // > 0x10 indicates last packet received
-                        else if ((p.packet[0] != 0x88) && (p.packet[0] != 0x92)) // ignore MI status messages //#0 was p.packet[0] != 0x00 &&
-                            isLastPackage = true;                       // response from dev control command
                     }
                 }
                 yield();
             }
             if(isLastPackage)
                 mLastIv->mGotLastMsg = true;
-            return isLastPackage;
+            return isLastPackage || isRetransmitAnswer;
         }
 
         void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) {
@@ -312,17 +350,27 @@ class HmRadio : public Radio {
             mTxChIdx = iv->heuristics.txRfChId;
 
             if(*mSerialDebug) {
+                /*if(!isRetransmit) {
+                    DPRINT(DBG_INFO, "last tx setup: ");
+                    DBGPRINT(String(mTxSetupTime));
+                    DBGPRINTLN("ms");
+                }*/
+
                 DPRINT_IVID(DBG_INFO, iv->id);
                 DBGPRINT(F("TX "));
                 DBGPRINT(String(len));
                 DBGPRINT(" CH");
+                if(mTxChIdx == 0)
+                    DBGPRINT("0");
                 DBGPRINT(String(mRfChLst[mTxChIdx]));
-                DBGPRINT(F(" | "));
+                DBGPRINT(F(", "));
+                DBGPRINT(String(mTxRetriesNext));
+                DBGPRINT(F(" ret. | "));
                 if(*mPrintWholeTrace) {
                     if(*mPrivacyMode)
-                        ah::dumpBuf(mTxBuf, len, 1, 4);
+                        ah::dumpBuf(mTxBuf.data(), len, 1, 4);
                     else
-                        ah::dumpBuf(mTxBuf, len);
+                        ah::dumpBuf(mTxBuf.data(), len);
                 } else {
                     DHEX(mTxBuf[0]);
                     DBGPRINT(F(" "));
@@ -333,24 +381,30 @@ class HmRadio : public Radio {
             }
 
             mNrf24->stopListening();
+            mNrf24->flush_rx();
+            if(!isRetransmit && (mTxRetries != mTxRetriesNext)) {
+                mNrf24->setRetries(3, mTxRetriesNext);
+                mTxRetries = mTxRetriesNext;
+            }
             mNrf24->setChannel(mRfChLst[mTxChIdx]);
             mNrf24->openWritingPipe(reinterpret_cast<uint8_t*>(&iv->radioId.u64));
-            mNrf24->startWrite(mTxBuf, len, false); // false = request ACK response
+            mNrf24->startFastWrite(mTxBuf.data(), len, false, true); // false (3) = request ACK response; true (4) reset CE to high after transmission
             mMillis = millis();
 
             mLastIv = iv;
             iv->mDtuTxCnt++;
+            mNRFisInRX = false;
         }
 
-        uint64_t getIvId(Inverter<> *iv) {
+        uint64_t getIvId(Inverter<> *iv) const override {
             return iv->radioId.u64;
         }
 
-        uint8_t getIvGen(Inverter<> *iv) {
+        uint8_t getIvGen(Inverter<> *iv) const override {
             return iv->ivGen;
         }
 
-        inline bool checkIvSerial(uint8_t buf[], Inverter<> *iv) {
+        inline bool checkIvSerial(const uint8_t buf[], Inverter<> *iv) {
             for(uint8_t i = 1; i < 5; i++) {
                 if(buf[i] != iv->radioId.b[i])
                     return false;
@@ -358,12 +412,23 @@ class HmRadio : public Radio {
             return true;
         }
 
-        uint64_t DTU_RADIO_ID;
-        uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
+        uint64_t mDtuRadioId = 0ULL;
+        const uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
         uint8_t mTxChIdx = 0;
         uint8_t mRxChIdx = 0;
+        uint8_t tempRxChIdx = 0;
         bool    mGotLastMsg = false;
-        uint32_t mMillis;
+        uint32_t mMillis = 0;
+        bool tx_ok = false, tx_fail = false, rx_ready = false;
+        unsigned long mTimeslotStart = 0;
+        unsigned long mLastIrqTime = 0;
+        bool mNRFloopChannels = false;
+        bool mNRFisInRX = false;
+        bool isRxInit = true;
+        bool mRxPendular = false;
+        uint32_t innerLoopTimeout = DURATION_LISTEN_MIN;
+        uint8_t mTxRetries = 15;                            // memorize last setting for mNrf24->setRetries(3, 15);
+        uint8_t rxOffset = 3;                               // holds the channel offset between tx and rx channel used for actual inverter
 
         std::unique_ptr<SPIClass> mSpi;
         std::unique_ptr<RF24> mNrf24;

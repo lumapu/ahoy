@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2022 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __CONFIG_H__
@@ -32,12 +32,33 @@
 // timeout for automatic logoff (20 minutes)
 #define LOGOUT_TIMEOUT      (20 * 60)
 
+
+//-------------------------------------
+// MODULE SELECTOR - done by platform.ini
+//-------------------------------------
+
+// MqTT connection
+//#define ENABLE_MQTT
+
+// display plugin
+//#define PLUGIN_DISPLAY
+
+// history graph (WebUI)
+//#define ENABLE_HISTORY
+
+// inverter simulation
+//#define ENABLE_SIMULATOR
+
+// to enable the syslog logging (will disable web-serial)
+//#define ENABLE_SYSLOG
+
+
+
 //-------------------------------------
 // CONFIGURATION - COMPILE TIME
 //-------------------------------------
 
 // ethernet
-
 #if defined(ETHERNET)
     #define ETH_SPI_HOST            SPI2_HOST
     #define ETH_SPI_CLOCK_MHZ       25
@@ -93,6 +114,16 @@
         #define DEF_NRF_SCLK_PIN        18
     #endif
 
+#if defined(ETHERNET) && !defined(SPI_HAL)
+    #ifndef DEF_CMT_SPI_HOST
+        #define DEF_CMT_SPI_HOST        SPI3_HOST
+    #endif
+#else
+    #ifndef DEF_CMT_SPI_HOST
+        #define DEF_CMT_SPI_HOST        SPI2_HOST
+    #endif
+#endif /* defined(ETHERNET) */
+
     #ifndef DEF_CMT_SCLK
         #define DEF_CMT_SCLK            12
     #endif
@@ -142,6 +173,9 @@
 #ifndef DEF_LED1
     #define DEF_LED1                DEF_PIN_OFF
 #endif
+#ifndef DEF_LED2
+    #define DEF_LED2                DEF_PIN_OFF
+#endif
 #ifdef LED_ACTIVE_HIGH
     #define LED_HIGH_ACTIVE         true
 #else
@@ -181,7 +215,7 @@
 #define INVERTER_OFF_THRES_SEC      15*60
 
 // threshold of minimum power on which the inverter is marked as inactive
-#define INACT_PWR_THRESH        3
+#define INACT_PWR_THRESH        0
 
 // Timezone
 #define TIMEZONE                1
@@ -218,6 +252,17 @@
 
 // reconnect delay
 #define MQTT_RECONNECT_DELAY    5000
+
+// maximum custom link length
+#define MAX_CUSTOM_LINK_LEN         100
+#define MAX_CUSTOM_LINK_TEXT_LEN    32
+// syslog settings
+#ifdef ENABLE_SYSLOG
+#define SYSLOG_HOST "<hostname-or-ip-address-of-syslog-server>"
+#define SYSLOG_APP  "ahoy"
+#define SYSLOG_FACILITY FAC_USER
+#define SYSLOG_PORT 514
+#endif
 
 #if __has_include("config_override.h")
     #include "config_override.h"

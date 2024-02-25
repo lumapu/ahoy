@@ -24,7 +24,7 @@
                 const data = ["sdk", "cpu_freq", "chip_revision",
                     "chip_model", "chip_cores", "esp_type", "mac", "wifi_rssi", "ts_uptime",
                     "flash_size", "sketch_used", "heap_total", "heap_free", "heap_frag",
-                    "max_free_blk", "version", "core_version", "reboot_reason"];
+                    "max_free_blk", "version", "modules", "env", "core_version", "reboot_reason"];
 
                 lines = [];
                 for (const [key, value] of Object.entries(obj)) {
@@ -44,20 +44,29 @@
                 return ml("div", {class: "head p-2 mt-3"}, ml("div", {class: "row"}, ml("div", {class: "col a-c"}, text)))
             }
 
+            function irqBadge(state) {
+                switch(state) {
+                    case 0: return badge(false, "{#UNKNOWN}", "warning"); break;
+                    case 1: return badge(true, "{#TRUE}"); break;
+                    default: return badge(false, "{#FALSE}"); break;
+                }                    
+            }
+
             function parseRadio(obj) {
                 const dr = ["1 M", "2 M", "250 k"]
 
                 if(obj.radioNrf.en) {
                     lines = [
-                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "not ") + "connected")),
-                        tr("NRF24 Data Rate", dr[obj.radioNrf.dataRate] + "bps"),
+                        tr("NRF24L01", badge(obj.radioNrf.isconnected, ((obj.radioNrf.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
+                        tr("{#IRQ_WORKING}", irqBadge(obj.radioNrf.irqOk)),
+                        tr("{#NRF24_DATA_RATE}", dr[obj.radioNrf.dataRate] + "bps"),
                         tr("DTU Radio ID", obj.radioNrf.sn)
                     ];
                 } else
-                    lines = [tr("NRF24L01", badge(false, "not enabled"))];
+                    lines = [tr("NRF24L01", badge(false, "{#NOT_ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("Radio NRF"),
+                    headline("{#NRF24_RADIO}"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, lines)
                     )
@@ -66,14 +75,15 @@
                 /*IF_ESP32*/
                 if(obj.radioCmt.en) {
                     cmt = [
-                        tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "not ") + "connected")),
+                        tr("CMT2300A", badge(obj.radioCmt.isconnected, ((obj.radioCmt.isconnected) ? "" : "{#NOT} ") + "{#CONNECTED}")),
+                        tr("{#IRQ_WORKING}", irqBadge(obj.radioCmt.irqOk)),
                         tr("DTU Radio ID", obj.radioCmt.sn)
                     ];
                 } else
-                    cmt = [tr("CMT2300A", badge(false, "not enabled"))];
+                    cmt = [tr("CMT2300A", badge(false, "{#NOT_ENABLED}"))];
 
                 document.getElementById("info").append(
-                    headline("Radio CMT"),
+                    headline("{#CMT_RADIO}"),
                     ml("table", {class: "table"},
                         ml("tbody", {}, cmt)
                     )
@@ -84,13 +94,13 @@
             function parseMqtt(obj) {
                 if(obj.enabled) {
                     lines = [
-                        tr("connected", badge(obj.connected, ((obj.connected) ? "true" : "false"))),
+                        tr("{#CONNECTED}", badge(obj.connected, ((obj.connected) ? "{#TRUE}" : "{#FALSE}"))),
                         tr("#TX", obj.tx_cnt),
                         tr("#RX", obj.rx_cnt)
                     ];
 
                 } else
-                    lines = tr("enabled", badge(false, "false"));
+                    lines = tr("{#ENABLED}", badge(false, "{#FALSE}"));
 
                 document.getElementById("info").append(
                     headline("MqTT"),
@@ -103,14 +113,14 @@
             function parseIndex(obj) {
                 if(obj.ts_sunrise > 0) {
                     document.getElementById("info").append(
-                        headline("Sun"),
+                        headline("{#SUN}"),
                         ml("table", {class: "table"},
                             ml("tbody", {}, [
-                                tr("Sunrise", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
-                                tr("Sunset", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
-                                tr("Communication start", new Date((obj.ts_sunrise - obj.ts_offset) * 1000).toLocaleString('de-DE')),
-                                tr("Communication stop", new Date((obj.ts_sunset + obj.ts_offset) * 1000).toLocaleString('de-DE')),
-                                tr("Night behaviour", badge(obj.disNightComm, ((obj.disNightComm) ? "not" : "") + " communicating", "warning"))
+                                tr("{#SUNRISE}", new Date(obj.ts_sunrise * 1000).toLocaleString('de-DE')),
+                                tr("{#SUNSET}", new Date(obj.ts_sunset * 1000).toLocaleString('de-DE')),
+                                tr("{#COMMUNICATION_START}", new Date((obj.ts_sunrise + obj.ts_offsSr) * 1000).toLocaleString('de-DE')),
+                                tr("{#COMMUNICATION_STOP}", new Date((obj.ts_sunset + obj.ts_offsSs) * 1000).toLocaleString('de-DE')),
+                                tr("{#NIGHT_BEHAVE}", badge(obj.disNightComm, ((obj.disNightComm) ? "{#NOT}" : "") + " {#COMMUNICATING}", "warning"))
                             ])
                         )
                     );

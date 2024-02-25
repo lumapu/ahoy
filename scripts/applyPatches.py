@@ -12,11 +12,11 @@ def applyPatch(libName, patchFile):
 
     os.chdir('.pio/libdeps/' + env['PIOENV'] + '/' + libName)
 
-    process = subprocess.run(['git', 'apply', '--reverse', '--check', '../../../../' + patchFile], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    process = subprocess.run(['git', 'apply', '--ignore-whitespace', '--reverse', '--check', '../../../../' + patchFile], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if (process.returncode == 0):
         print('\'' + patchFile + '\' already applied')
     else:
-        process = subprocess.run(['git', 'apply', '../../../../' + patchFile])
+        process = subprocess.run(['git', 'apply', '--ignore-whitespace', '../../../../' + patchFile])
         if (process.returncode == 0):
             print('\'' + patchFile + '\' applied')
         else:

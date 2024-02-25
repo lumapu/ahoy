@@ -10,6 +10,7 @@
 #if defined(ESP32)
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
+#include "../config/config.h"
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
@@ -21,7 +22,7 @@
 // for ESP32 this is the so-called HSPI
 // for ESP32-S2/S3/C3 this nomenclature does not really exist anymore,
 // it is simply the first externally usable hardware SPI master controller
-#define SPI_CMT SPI2_HOST
+//#define SPI_CMT SPI2_HOST
 
 class esp32_3wSpi {
     public:
@@ -54,8 +55,8 @@ class esp32_3wSpi {
                 .post_cb = NULL,
             };
 
-            ESP_ERROR_CHECK(spi_bus_initialize(SPI_CMT, &buscfg, SPI_DMA_DISABLED));
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg, &spi_reg));
+            ESP_ERROR_CHECK(spi_bus_initialize(DEF_CMT_SPI_HOST, &buscfg, SPI_DMA_DISABLED));
+            ESP_ERROR_CHECK(spi_bus_add_device(DEF_CMT_SPI_HOST, &devcfg, &spi_reg));
 
             // FiFo
             spi_device_interface_config_t devcfg2 = {
@@ -72,9 +73,9 @@ class esp32_3wSpi {
                 .pre_cb = NULL,
                 .post_cb = NULL,
             };
-            ESP_ERROR_CHECK(spi_bus_add_device(SPI_CMT, &devcfg2, &spi_fifo));
+            ESP_ERROR_CHECK(spi_bus_add_device(DEF_CMT_SPI_HOST, &devcfg2, &spi_fifo));
 
-            esp_rom_gpio_connect_out_signal(pinSdio, spi_periph_signal[SPI_CMT].spid_out, true, false);
+            esp_rom_gpio_connect_out_signal(pinSdio, spi_periph_signal[DEF_CMT_SPI_HOST].spid_out, true, false);
             delay(100);
 
             //pinMode(pinGpio3, INPUT);
@@ -104,7 +105,7 @@ class esp32_3wSpi {
             if(!mInitialized)
                 return 0;
 
-            uint8_t rx_data;
+            uint8_t rx_data = 0;
             spi_transaction_t t = {
                 .cmd = 0,
                 .addr = (uint64_t)(~addr),
@@ -121,7 +122,7 @@ class esp32_3wSpi {
             return rx_data;
         }
 
-        void writeFifo(uint8_t buf[], uint8_t len) {
+        void writeFifo(const uint8_t buf[], uint8_t len) {
             if(!mInitialized)
                 return;
             uint8_t tx_data;
@@ -144,7 +145,7 @@ class esp32_3wSpi {
         void readFifo(uint8_t buf[], uint8_t *len, uint8_t maxlen) {
             if(!mInitialized)
                 return;
-            uint8_t rx_data;
+            uint8_t rx_data = 0;
 
             spi_transaction_t t = {
                 .length = 8,

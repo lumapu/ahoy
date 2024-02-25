@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -23,8 +23,8 @@
 class Heuristic {
     public:
         uint8_t getTxCh(Inverter<> *iv) {
-            if((IV_HMS == iv->ivGen) || (IV_HMT == iv->ivGen))
-                return 0; // not used for these inverter types
+            if(iv->ivRadioType != INV_RADIO_TYPE_NRF)
+                return 0; // not used for other than nRF inverter types
 
             HeuristicInv *ih = &iv->heuristics;
 
@@ -65,6 +65,8 @@ class Heuristic {
                 ih->testPeriodSendCnt = 0;
                 ih->testPeriodFailCnt = 0;
             }
+
+            iv->radio->mTxRetriesNext = getIvRetries(iv);
 
             return id2Ch(ih->txRfChId);
         }
@@ -130,7 +132,7 @@ class Heuristic {
             ih->lastRxFragments = rxFragments;
         }
 
-        void printStatus(Inverter<> *iv) {
+        void printStatus(const Inverter<> *iv) {
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("Radio infos:"));
             if((IV_HMS != iv->ivGen) && (IV_HMT != iv->ivGen)) {
@@ -155,8 +157,50 @@ class Heuristic {
                 DBGPRINTLN(String(iv->config->powerLevel));
         }
 
+        uint8_t getIvRetries(const Inverter<> *iv) const {
+            if(iv->heuristics.rxSpeeds[0])
+                return RETRIES_VERYFAST_IV;
+            if(iv->heuristics.rxSpeeds[1])
+                return RETRIES_FAST_IV;
+            return 15;
+        }
+
+        void setIvRetriesGood(Inverter<> *iv, bool veryGood) {
+            if(iv->ivRadioType != INV_RADIO_TYPE_NRF)
+                return; // not used for other than nRF inverter types
+
+            if(iv->heuristics.rxSpeedCnt[veryGood] > 9)
+                return;
+            iv->heuristics.rxSpeedCnt[veryGood]++;
+            iv->heuristics.rxSpeeds[veryGood] = true;
+        }
+
+        void setIvRetriesBad(Inverter<> *iv) {
+            if(iv->ivRadioType != INV_RADIO_TYPE_NRF)
+                return; // not used for other than nRF inverter types
+
+            if(iv->heuristics.rxSpeedCnt[0]) {
+                iv->heuristics.rxSpeedCnt[0]--;
+                return;
+            }
+            if(iv->heuristics.rxSpeeds[0]) {
+                iv->heuristics.rxSpeeds[0] = false;
+                return;
+            }
+
+            if(iv->heuristics.rxSpeedCnt[1]) {
+                iv->heuristics.rxSpeedCnt[1]--;
+                return;
+            }
+            if(iv->heuristics.rxSpeeds[1]) {
+                iv->heuristics.rxSpeeds[1] = false;
+                return;
+            }
+            return;
+        }
+
     private:
-        bool isNewTxCh(HeuristicInv *ih) {
+        bool isNewTxCh(const HeuristicInv *ih) const {
             return ih->txRfChId != ih->lastBestTxChId;
         }
 
@@ -178,9 +222,6 @@ class Heuristic {
             }
             return 3; // standard
         }
-
-    private:
-        uint8_t mChList[5] = {03, 23, 40, 61, 75};
 };
 
 

@@ -1,13 +1,13 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://ahoydtu.de
-// Lukas Pusch, lukas@lpusch.de
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
 
 #include <functional>
+#include <array>
 #include "dbg.h"
 
 namespace ah {
@@ -29,18 +29,16 @@ namespace ah {
 
     class Scheduler {
         public:
-            Scheduler() {}
-
             void setup(bool directStart) {
                 mUptime     = 0;
                 mTimestamp  = (directStart) ? 1 : 0;
-                mTsMillis   = 0;
                 mMax        = 0;
                 mPrevMillis = millis();
+                mTsMillis   = mPrevMillis % 1000;
                 resetTicker();
             }
 
-            void loop(void) {
+            virtual void loop(void) {
                 mMillis = millis();
                 mDiff = mMillis - mPrevMillis;
                 if (mDiff < 1000)
@@ -62,7 +60,7 @@ namespace ah {
                 mUptime += mDiffSeconds;
                 if(0 != mTimestamp) {
                     mTimestamp += mDiffSeconds;
-                    mTsMillis  = mMillis % 1000;
+                    mTsMillis  = mPrevMillis % 1000;
                 }
                 checkTicker();
 
@@ -80,7 +78,6 @@ namespace ah {
 
             virtual void setTimestamp(uint32_t ts) {
                 mTimestamp = ts;
-                mTsMillis  = millis() % 1000;
             }
 
             bool resetEveryById(uint8_t id) {
@@ -95,8 +92,7 @@ namespace ah {
             }
 
             inline void resetTicker(void) {
-                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
-                    mTickerInUse[i] = false;
+                mTickerInUse.fill(false);
             }
 
             void getStat(uint8_t *max) {
@@ -121,7 +117,7 @@ namespace ah {
             uint16_t mTsMillis;
 
         private:
-            inline uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
+            uint8_t addTicker(scdCb c, uint32_t timeout, uint32_t reload, bool isTimestamp, const char *name) {
                 for (uint8_t i = 0; i < MAX_NUM_TICKER; i++) {
                     if (!mTickerInUse[i]) {
                         mTickerInUse[i] = true;
@@ -161,11 +157,11 @@ namespace ah {
                 }
             }
 
-            sP mTicker[MAX_NUM_TICKER];
-            bool mTickerInUse[MAX_NUM_TICKER];
-            uint32_t mMillis, mPrevMillis, mDiff;
-            uint8_t mDiffSeconds;
-            uint8_t mMax;
+            std::array<sP, MAX_NUM_TICKER> mTicker;
+            std::array<bool, MAX_NUM_TICKER> mTickerInUse;
+            uint32_t mMillis = 0, mPrevMillis = 0, mDiff = 0;
+            uint8_t mDiffSeconds = 0;
+            uint8_t mMax = 0;
     };
 }
 

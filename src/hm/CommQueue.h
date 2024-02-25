@@ -11,11 +11,13 @@
 #include "hmInverter.h"
 #include "../utils/dbg.h"
 
+#define DEFAULT_ATTEMPS                 5
+#define MORE_ATTEMPS_ALARMDATA          3 // 8
+#define MORE_ATTEMPS_GRIDONPROFILEPARA  0 // 5
+
 template <uint8_t N=100>
 class CommQueue {
     public:
-        CommQueue() {}
-
         void addImportant(Inverter<> *iv, uint8_t cmd) {
             dec(&mRdPtr);
             mQueue[mRdPtr] = queue_s(iv, cmd, true);
@@ -30,12 +32,12 @@ class CommQueue {
             mQueue[mWrPtr] = queue_s(iv, cmd, false);
         }
 
-        uint8_t getFillState(void) {
+        uint8_t getFillState(void) const {
             //DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
             return abs(mRdPtr - mWrPtr);
         }
 
-        uint8_t getMaxFill(void) {
+        uint8_t getMaxFill(void) const {
             return N;
         }
 
@@ -44,11 +46,12 @@ class CommQueue {
             Inverter<> *iv;
             uint8_t cmd;
             uint8_t attempts;
+            uint8_t attemptsMax;
             uint32_t ts;
             bool isDevControl;
             queue_s() {}
             queue_s(Inverter<> *i, uint8_t c, bool dev) :
-                iv(i), cmd(c), attempts(5), ts(0), isDevControl(dev) {}
+                iv(i), cmd(c), attempts(DEFAULT_ATTEMPS), attemptsMax(DEFAULT_ATTEMPS), ts(0), isDevControl(dev) {}
         };
 
     protected:
@@ -59,8 +62,10 @@ class CommQueue {
 
         void add(const queue_s *q, bool rstAttempts = false) {
             mQueue[mWrPtr] = *q;
-            if(rstAttempts)
-                mQueue[mWrPtr].attempts = 5;
+            if(rstAttempts) {
+                mQueue[mWrPtr].attempts = DEFAULT_ATTEMPS;
+                mQueue[mWrPtr].attemptsMax = DEFAULT_ATTEMPS;
+            }
             inc(&mWrPtr);
         }
 
@@ -79,13 +84,14 @@ class CommQueue {
 
         void cmdDone(bool keep = false) {
             if(keep) {
-                mQueue[mRdPtr].attempts = 5;
+                mQueue[mRdPtr].attempts = DEFAULT_ATTEMPS;
+                mQueue[mRdPtr].attemptsMax = DEFAULT_ATTEMPS;
                 add(mQueue[mRdPtr]); // add to the end again
             }
             inc(&mRdPtr);
         }
 
-        void setTs(uint32_t *ts) {
+        void setTs(const uint32_t *ts) {
             mQueue[mRdPtr].ts = *ts;
         }
 
@@ -96,6 +102,8 @@ class CommQueue {
 
         void incrAttempt(uint8_t attempts = 1) {
             mQueue[mRdPtr].attempts += attempts;
+            if (mQueue[mRdPtr].attempts > mQueue[mRdPtr].attemptsMax)
+                mQueue[mRdPtr].attemptsMax = mQueue[mRdPtr].attempts;
         }
 
         void inc(uint8_t *ptr) {

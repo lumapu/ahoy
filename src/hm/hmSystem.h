@@ -1,11 +1,12 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __HM_SYSTEM_H__
 #define __HM_SYSTEM_H__
 
+#include "../appInterface.h"
 #include "hmInverter.h"
 #include <functional>
 
@@ -14,9 +15,10 @@ class HmSystem {
     public:
         HmSystem() {}
 
-        void setup(uint32_t *timestamp, cfgInst_t *config) {
-            mInverter[0].timestamp = timestamp;
+        void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
+            mInverter[0].timestamp     = timestamp;
             mInverter[0].generalConfig = config;
+            //mInverter[0].app           = app;
         }
 
         void addInverter(uint8_t id, std::function<void(Inverter<> *iv)> cb) {
@@ -49,18 +51,25 @@ class HmSystem {
                 }
 
                 if(iv->config->serial.b[5] == 0x11) {
-                    if((iv->config->serial.b[4] & 0x0f) == 0x04)
+                    if((iv->config->serial.b[4] & 0x0f) == 0x04) {
                         iv->ivGen = IV_HMS;
-                    else
+                        iv->ivRadioType = INV_RADIO_TYPE_CMT;
+                    } else {
                         iv->ivGen = IV_HM;
+                        iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                    }
                 }
-                else if((iv->config->serial.b[4] & 0x03) == 0x02) // MI 3rd Gen -> same as HM
+                else if((iv->config->serial.b[4] & 0x03) == 0x02) { // MI 3rd Gen -> same as HM
                     iv->ivGen = IV_HM;
-                else // MI 2nd Gen
+                    iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                } else {  // MI 2nd Gen
                     iv->ivGen = IV_MI;
+                    iv->ivRadioType = INV_RADIO_TYPE_NRF;
+                }
             } else if(iv->config->serial.b[5] == 0x13) {
                     iv->ivGen = IV_HMT;
                     iv->type = INV_TYPE_6CH;
+                    iv->ivRadioType = INV_RADIO_TYPE_CMT;
             } else if(iv->config->serial.u64 != 0ULL) {
                 DPRINTLN(DBG_ERROR, F("inverter type can't be detected!"));
                 return;
@@ -84,34 +93,31 @@ class HmSystem {
 
             DBGPRINTLN(String(iv->config->serial.u64, HEX));
 
-            if((iv->config->serial.b[5] == 0x10) && ((iv->config->serial.b[4] & 0x03) == 0x01))
-                DPRINTLN(DBG_WARN, F("MI Inverter are not fully supported now!!!"));
-
+            if(IV_MI == iv->ivGen)
+                DPRINTLN(DBG_WARN, F("MI Inverter, has some restrictions!"));
             cb(iv);
         }
 
-        INVERTERTYPE *findInverter(uint8_t buf[]) {
-            DPRINTLN(DBG_VERBOSE, F("hmSystem.h:findInverter"));
-            INVERTERTYPE *p;
+        INVERTERTYPE *findInverter(const uint8_t buf[]) {
             for(uint8_t i = 0; i < MAX_INVERTER; i++) {
-                p = &mInverter[i];
+                INVERTERTYPE *p = &mInverter[i];
                 if((p->config->serial.b[3] == buf[0])
                     && (p->config->serial.b[2] == buf[1])
                     && (p->config->serial.b[1] == buf[2])
                     && (p->config->serial.b[0] == buf[3]))
                     return p;
             }
-            return NULL;
+            return nullptr;
         }
 
         INVERTERTYPE *getInverterByPos(uint8_t pos, bool check = true) {
             DPRINTLN(DBG_VERBOSE, F("hmSystem.h:getInverterByPos"));
             if(pos >= MAX_INVERTER)
-                return NULL;
+                return nullptr;
             else if((mInverter[pos].config->serial.u64 != 0ULL) || (false == check))
                 return &mInverter[pos];
             else
-                return NULL;
+                return nullptr;
         }
 
         uint8_t getNumInverters(void) {
