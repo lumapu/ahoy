@@ -1,0 +1,14 @@
+[Unit]
+Description=Hoymiles Exporter
+After=network.target
+
+[Service]
+WorkingDirectory=/home/rpi/hoymiles_exporter
+ExecStart=/usr/bin/bash -c 'cd /home/rpi/hoymiles_exporter ; /usr/bin/python3 -um hoymiles --config ahoy.yml'
+User=rpi
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=hoymiles.service

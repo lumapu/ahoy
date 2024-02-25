@@ -1,0 +1,18 @@
+FROM python:latest
+
+LABEL maintainer Simoliv
+
+USER root
+
+RUN mkdir /hoymiles_exporter
+
+COPY . /hoymiles_exporter
+
+WORKDIR /hoymiles_exporter
+
+RUN pip3 install --upgrade pip
+RUN ls -la 
+RUN pip3 install -r requirements.txt
+RUN pip3 install -r optional-requirements.txt
+
+CMD python3 -um hoymiles --verbose --log-transactions --config ahoy.yml
