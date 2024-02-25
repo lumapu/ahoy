@@ -994,6 +994,16 @@
                     "de": "Fehler"
                 },
                 {
+                    "token": "DAY",
+                    "en": "day",
+                    "de": "Tag"
+                },
+                {
+                    "token": "S",
+                    "en": "s",
+                    "de": "e"
+                },
+                {
                     "token": "NTP_UNREACH",
                     "en": "NTP timeserver unreachable",
                     "de": "NTP Zeitserver nicht erreichbar"

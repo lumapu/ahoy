@@ -70,9 +70,9 @@
                 var min  = parseInt(up / 60) % 60;
                 var sec  = up % 60;
                 var e = document.getElementById("uptime");
-                e.innerHTML = days + " Day";
+                e.innerHTML = days + " {#DAY}";
                 if(1 != days)
-                    e.innerHTML += "s";
+                    e.innerHTML += "{#S}";
                 e.innerHTML += ", " + ("0"+hrs).substr(-2) + ":"
                    + ("0"+min).substr(-2) + ":"
                    + ("0"+sec).substr(-2);

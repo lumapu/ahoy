@@ -80,7 +80,7 @@
                     try {
                         return document.execCommand("copy");  // Security exception may be thrown by some browsers.
                     } catch (ex) {
-                        alert("CLIPBOARD_FAILED " + ex);
+                        alert("{#CLIPBOARD_FAILED} " + ex);
                     } finally {
                         document.body.removeChild(ta);
                         alert("{#COPIED_TO_CLIPBOARD}");

@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.87 - 2024-02-25
+* fix translations #1455 #1442
+
 ## 0.8.86 - 2024-02-23
 * RestAPI check for parent element to be JsonObject #1449
 * fix translation #1448 #1442
