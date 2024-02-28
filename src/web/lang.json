@@ -295,8 +295,8 @@
                 },
                 {
                     "token": "INV_RESET_MIDNIGHT",
-                    "en": "Reset values and YieldDay at midnight. ('Pause communication during night' need to be set)",
-                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen ('Kommunikation w&auml;hrend der Nacht pausieren' muss gesetzt sein)"
+                    "en": "Reset values and YieldDay at midnight",
+                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_PAUSE_SUNSET",
