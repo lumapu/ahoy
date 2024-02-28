@@ -161,7 +161,6 @@ typedef struct {
     bool rstValsCommStop;
     bool rstMaxValsMidNight;
     bool startWithoutTime;
-    float yieldEffiency;
     bool readGrid;
 } cfgInst_t;
 
@@ -452,7 +451,6 @@ class settings {
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.yieldEffiency    = 1.0f;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
@@ -763,7 +761,6 @@ class settings {
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
-                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
@@ -774,13 +771,7 @@ class settings {
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
-                getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
-
-                if(mCfg.inst.yieldEffiency < 0.5)
-                    mCfg.inst.yieldEffiency = 1.0f;
-                else if(mCfg.inst.yieldEffiency > 1.0f)
-                    mCfg.inst.yieldEffiency = 1.0f;
             }
 
             JsonArray ivArr;

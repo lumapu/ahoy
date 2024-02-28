@@ -324,11 +324,6 @@
                     "de": "Grid-Profil auslesen"
                 },
                 {
-                    "token": "INV_YIELD_EFF",
-                    "en": "Yield Efficiency (default 1.0)",
-                    "de": "Ertragseffizienz (Standard 1.0)"
-                },
-                {
                     "token": "NTP_INTERVAL",
                     "en": "NTP Interval (in minutes, min. 5 minutes)",
                     "de": "NTP Intervall (in Minuten, min. 5 Minuten)"

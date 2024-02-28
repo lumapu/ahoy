@@ -293,7 +293,7 @@ class PubMqttIvData {
         bool mRTRDataHasBeenSent = false;
 
         std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
-        std::array<char, 140> mVal;
+        std::array<char, 160> mVal;
 
         std::queue<sendListCmdIv> *mSendList = nullptr;
 };

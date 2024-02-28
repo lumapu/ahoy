@@ -483,7 +483,6 @@ class Web {
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
-            mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
 
 
             // pinout

@@ -157,10 +157,6 @@
                                 <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
                                 <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-8">{#INV_YIELD_EFF}</div>
-                                <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
-                            </div>
                         </fieldset>
                     </div>
 
@@ -605,7 +601,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"]])
+                for(var i of [["invInterval", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -786,7 +782,8 @@
                             case 0x1000: nrf = true; break;
                             case 0x1100:
                                 switch(sn & 0x000f) {
-                                    case 0x0004: nrf = false; break;
+                                    case 0x0004:
+                                    case 0x0005: nrf = false; break;
                                     default:     nrf = true; break;
                                 }
                                 break;

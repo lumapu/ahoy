@@ -300,9 +300,9 @@ class Inverter {
                             // temperature, Qvar, and power factor are a signed values
                             rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
                         } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
                         } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            float actYD = (REC_TYP)(val) / (REC_TYP)(div) * generalConfig->yieldEffiency;
+                            float actYD = (REC_TYP)(val) / (REC_TYP)(div);
                             uint8_t idx = rec->assign[pos].ch - 1;
                             if (mLastYD[idx] > actYD)
                                 mOffYD[idx] += mLastYD[idx];
