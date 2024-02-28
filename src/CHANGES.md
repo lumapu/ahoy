@@ -4,6 +4,7 @@
 * fix MqTT statistic data overflow #1458
 * add HMS-400-1T support (serial number 1125...) #1460
 * removed `yield efficiency` because the inverter already calculates correct #1243
+* merge PR: Remove hint to INV_RESET_MIDNIGHT resp. INV_PAUSE_DURING_NIGHT #1431
 
 ## 0.8.87 - 2024-02-25
 * fix translations #1455 #1442
