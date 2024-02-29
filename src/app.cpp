@@ -14,7 +14,11 @@
 
 //-----------------------------------------------------------------------------
 app::app() : ah::Scheduler {} {
+    #if defined(PLUGIN_ZEROEXPORT)
     memset(mVersion, 0, sizeof(char) * 17);
+    #else
+    memset(mVersion, 0, sizeof(char) * 12);
+    #endif
     memset(mVersionModules, 0, sizeof(char) * 12);
 }
 
@@ -118,16 +122,20 @@ void app::setup() {
 
     esp_task_wdt_reset();
 
+    // Plugin ZeroExport
+    #if defined(PLUGIN_ZEROEXPORT)
+// TODO: aufräumen
+//    if (mConfig->plugin.zeroExport.enabled) {
+        mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig);
+//    }
+    #endif
+    // Plugin ZeroExport - Ende
+
     #if defined(ENABLE_HISTORY)
     mHistory.setup(this, &mSys, mConfig, &mTimestamp);
     #endif /*ENABLE_HISTORY*/
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
-
-    // ZeroExport
-    if (mConfig->plugin.zexport.enabled) {
-        mzExport.setup(&mConfig->plugin.zexport, &mSys, mConfig);
-    }
 
     #if !defined(ETHERNET)
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
@@ -197,11 +205,14 @@ void app::regularTickers(void) {
         everySec(std::bind(&DisplayType::tickerSecond, &mDisplay), "disp");
     #endif
 
-    // ZeroExport
+    // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
-    if (mConfig->plugin.zexport.enabled)
-        everySec(std::bind(&ZeroExportType::tickerSecond, &mzExport), "zExport");
+// TODO: aufräumen
+//    if (mConfig->plugin.zeroExport.enabled) {
+        everySec(std::bind(&ZeroExportType::tickerSecond, &mZeroExport), "ZeroExport");
+//    }
     #endif
+    // Plugin ZeroExport - Ende
 
     every(std::bind(&PubSerialType::tick, &mPubSerial), 5, "uart");
     #if !defined(ETHERNET)
@@ -458,9 +469,15 @@ void app::tickSend(void) {
                     mCommunication.add(iv, cmd);
             });
 
-            #if defined(ESP32)
-            if(mConfig->nrf.enabled || mConfig->cmt.enabled) zeroexport();
+            // Plugin ZeroExport
+            #if defined(PLUGIN_ZEROEXPORT)
+// TODO: aufräumen
+            if(mConfig->nrf.enabled || mConfig->cmt.enabled) {
+                mZeroExport.loop();
+//                zeroexport();
+            }
             #endif
+            // Plugin ZeroExport - Ende
         }
     }
 
@@ -521,7 +538,11 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
 
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
+    #if defined(PLUGIN_ZEROEXPORT)
     snprintf(mVersion, sizeof(mVersion), "zero-%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    #else
+    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    #endif
     snprintf(mVersionModules, sizeof(mVersionModules), "%s",
     #ifdef ENABLE_PROMETHEUS_EP
         "P"
@@ -635,37 +656,45 @@ void app::updateLed(void) {
     }
 }
 //-----------------------------------------------------------------------------
-#if defined(ESP32)
+// Plugin ZeroExport
+#if defined(PLUGIN_ZEROEXPORT)
 void app::zeroexport() {
-    if (!mConfig->plugin.zexport.enabled ||
-    !mSys.getInverterByPos(mConfig->plugin.zexport.Iv)->isProducing()) {   // check if plugin is enabled && indicate to send new value
-        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+    return;
+// TODO: aufräumen
+// TODO: umziehen nach loop
+
+
+/*
+
+    if (!mConfig->plugin.zeroExport.enabled ||
+    !mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv)->isProducing()) {   // check if plugin is enabled && indicate to send new value
+        mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
         return;
     }
 
-    if (millis() - mConfig->plugin.zexport.lastTime > mConfig->plugin.zexport.count_avg  * 1000UL)
+    if (millis() - mConfig->plugin.zeroExport.lastTime > mConfig->plugin.zeroExport.count_avg  * 1000UL)
     {
-        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zexport.Iv);
+        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv);
 
         DynamicJsonDocument doc(512);
         JsonObject object = doc.to<JsonObject>();
 
-        double nValue = round(mzExport.getPowertoSetnewValue());
+        double nValue = round(mZeroExport.getPowertoSetnewValue());
         double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
 
-        if(mConfig->plugin.zexport.two_percent && (nValue <= twoPerVal))
+        if(mConfig->plugin.zeroExport.two_percent && (nValue <= twoPerVal))
             nValue = twoPerVal;
 
-        if(mConfig->plugin.zexport.max_power <= nValue)
-            nValue = mConfig->plugin.zexport.max_power;
+        if(mConfig->plugin.zeroExport.max_power <= nValue)
+            nValue = mConfig->plugin.zeroExport.max_power;
 
         if(iv->actPowerLimit == nValue) {
-            mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+            mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
             return; // if PowerLimit same as befor, then skip
         }
 
         object["val"] = nValue;
-        object["id"] = mConfig->plugin.zexport.Iv;
+        object["id"] = mConfig->plugin.zeroExport.Iv;
         object["path"] = "ctrl";
         object["cmd"] = "limit_nonpersistent_absolute";
 
@@ -674,7 +703,9 @@ void app::zeroexport() {
         DPRINTLN(DBG_INFO, data);
         mApi.ctrlRequest(object);
 
-        mConfig->plugin.zexport.lastTime = millis();    // set last timestamp
+        mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
     }
+*/
 }
 #endif
+// Plugin ZeroExport - Ende

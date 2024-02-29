@@ -615,22 +615,6 @@ class RestApi {
             obj[F("interval")]   = String(mConfig->mqtt.interval);
         }
 
-        #if defined(ESP32)
-        void getzeroExport(JsonObject obj) {
-            obj[F("en_zeroexport")] = (bool) mConfig->plugin.zexport.enabled;
-            obj[F("two_percent")] = (bool) mConfig->plugin.zexport.two_percent;
-            obj[F("monitor_url")] = String(mConfig->plugin.zexport.monitor_url);
-            obj[F("json_path")] = String(mConfig->plugin.zexport.json_path);
-            obj[F("count_avg")] = (uint8_t)mConfig->plugin.zexport.count_avg;
-            obj[F("max_power")] = (double)mConfig->plugin.zexport.max_power;
-            obj[F("Iv")] = (uint8_t)mConfig->plugin.zexport.Iv;
-            obj[F("power_avg")] = (float)mConfig->plugin.zexport.power_avg;
-            obj[F("query_device")] = (float)mConfig->plugin.zexport.query_device;
-            obj[F("total_power")] = (double)mConfig->plugin.zexport.total_power;
-            //obj[F("device")] = (uint8_t)mCfg.plugin.zexport.device;
-        }
-        #endif
-
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
             obj[F("port")] = String(mConfig->ntp.port);
@@ -727,6 +711,49 @@ class RestApi {
         }
         #endif
 
+        // Plugin ZeroExport
+        #if defined(PLUGIN_ZEROEXPORT)
+        void getZeroExport(JsonObject obj) {
+            obj[F("enabled")] = (bool) mConfig->plugin.zeroExport.enabled;
+            // Groups
+            obj[F("max_groups")] = ZEROEXPORT_MAX_GROUPS;
+            JsonArray arrGroup = obj.createNestedArray(F("groups"));
+            for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                JsonObject objGroup = arrGroup.createNestedObject();
+                // General
+                objGroup[F("id")]  = (uint8_t)group;
+                objGroup[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].enabled;
+                objGroup[F("name")]  = String(mConfig->plugin.zeroExport.groups[group].name);
+                // Powermeter
+                objGroup[F("pm_type")] = (uint8_t)mConfig->plugin.zeroExport.groups[group].pm_type;
+                objGroup[F("pm_url")]  = String(mConfig->plugin.zeroExport.groups[group].pm_url);
+                objGroup[F("pm_jsonPath")]  = String(mConfig->plugin.zeroExport.groups[group].pm_jsonPath);
+                objGroup[F("pm_user")]  = String(mConfig->plugin.zeroExport.groups[group].pm_user);
+                objGroup[F("pm_pass")]  = String(mConfig->plugin.zeroExport.groups[group].pm_pass);
+                // Inverters
+                objGroup[F("max_inverters")] = ZEROEXPORT_GROUP_MAX_INVERTERS;
+                JsonArray arrInv = objGroup.createNestedArray(F("inverters"));
+                for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    JsonObject objGroupInv = arrInv.createNestedObject();
+                    objGroupInv[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].inverters[inv].enabled;
+                    objGroupInv[F("id")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].id;
+                    objGroupInv[F("target")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].target;
+                    objGroupInv[F("twoPercent")]  = (bool)mConfig->plugin.zeroExport.groups[group].inverters[inv].twoPercent;
+                    objGroupInv[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax;
+                }
+                // Battery
+                objGroup[F("battEnabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].battEnabled;
+                objGroup[F("battVoltageOn")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].battVoltageOn);
+                objGroup[F("battVoltageOff")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].battVoltageOff);
+                // Advanced
+                objGroup[F("refresh")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].refresh;
+                objGroup[F("powerTolerance")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].powerTolerance;
+                objGroup[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].powerMax;
+            }
+        }
+        #endif
+        // Plugin ZeroExport - Ende
+
         void getMqttInfo(JsonObject obj) {
             obj[F("enabled")]   = (mConfig->mqtt.broker[0] != '\0');
             obj[F("connected")] = mApp->getMqttIsConnected();
@@ -795,10 +822,11 @@ class RestApi {
             #if defined(PLUGIN_DISPLAY)
             getDisplay(obj.createNestedObject(F("display")));
             #endif
-
-            #if defined(ESP32)
-            getzeroExport(obj.createNestedObject(F("zeroExport")));
+            // Plugin ZeroExport
+            #if defined(PLUGIN_ZEROEXPORT)
+            getZeroExport(obj.createNestedObject(F("zeroExport")));
             #endif
+            // Plugin ZeroExport - Ende
         }
 
         #if !defined(ETHERNET)
@@ -952,7 +980,42 @@ class RestApi {
                 iv->config->powerLevel  = jsonIn[F("pa")];
                 iv->config->disNightCom = jsonIn[F("disnightcom")];
                 mApp->saveSettings(false); // without reboot
-            } else {
+            }
+            // Plugin ZeroExport
+            #if defined(PLUGIN_ZEROEXPORT)
+            else if(F("ze_save_group") == jsonIn[F("cmd")]) {
+                // General
+                uint8_t group = jsonIn[F("id")];
+                mConfig->plugin.zeroExport.groups[group].enabled = jsonIn[F("enabled")];
+                snprintf(mConfig->plugin.zeroExport.groups[group].name, ZEROEXPORT_GROUP_MAX_LEN_NAME, "%s", jsonIn[F("name")].as<const char*>());
+                // Powermeter
+                mConfig->plugin.zeroExport.groups[group].pm_type = jsonIn[F("pm_type")];
+                snprintf(mConfig->plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL, "%s", jsonIn[F("pm_url")].as<const char*>());
+                snprintf(mConfig->plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH, "%s", jsonIn[F("pm_jsonPath")].as<const char*>());
+                snprintf(mConfig->plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER, "%s", jsonIn[F("pm_user")].as<const char*>());
+                snprintf(mConfig->plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS, "%s", jsonIn[F("pm_pass")].as<const char*>());
+                // Inverters
+                for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].enabled = jsonIn[F("inverters")][inv][F("enabled")];
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].id = jsonIn[F("inverters")][inv][F("id")];
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].target = jsonIn[F("inverters")][inv][F("target")];
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].twoPercent = jsonIn[F("inverters")][inv][F("twoPercent")];
+                    mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax = jsonIn[F("inverters")][inv][F("powerMax")];
+                }
+                // Battery
+                mConfig->plugin.zeroExport.groups[group].battEnabled = jsonIn[F("battEnabled")];
+                mConfig->plugin.zeroExport.groups[group].battVoltageOn = jsonIn[F("battVoltageOn")];
+                mConfig->plugin.zeroExport.groups[group].battVoltageOff = jsonIn[F("battVoltageOff")];
+                // Advanced
+                mConfig->plugin.zeroExport.groups[group].refresh = jsonIn[F("refresh")];
+                mConfig->plugin.zeroExport.groups[group].powerTolerance = jsonIn[F("powerTolerance")];
+                mConfig->plugin.zeroExport.groups[group].powerMax = jsonIn[F("powerMax")];
+                // Global
+                mApp->saveSettings(false); // without reboot
+            }
+            #endif
+            // Plugin ZeroExport - Ende
+            else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
             }
