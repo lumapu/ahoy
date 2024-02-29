@@ -30,6 +30,8 @@
                         {#UPDATED} <span id="pwrDayRefresh"></span> {#SECONDS}
                     </p>
                 </div>
+
+                <!--
                 <h3>{#TOTAL_YIELD_PER_DAY}</h3>
                 <div class="chartDivContainer">
                     <div class="chartDiv" id="ydChart"> </div>
@@ -48,7 +50,7 @@
                         <input type="file" name="insert" style="width: 80%;">
                     </form>
                 </fieldset>
-
+                -->
             </div>
         </div>
         {#HTML_FOOTER}
@@ -93,7 +95,7 @@
 					init(numDatapoints) {
 						this.datapoints = numDatapoints;
 						// generate svg
-            const svgns = "http://www.w3.org/2000/svg";
+                        const svgns = "http://www.w3.org/2000/svg";
 						this.svg = document.createElementNS(svgns, "svg");
 						this.svg.setAttribute("class", "container");
 						this.svg.setAttribute("id", this.namePrefix + "_svg");
@@ -195,7 +197,7 @@
 							text.setAttribute("y", String(this.mChartHight + 10 - (i + 1) * this.xGridDist));
 							text.innerHTML = (i + 1) * this.xGridDist;
 							this.svg.appendChild(text);
-                    }
+                        }
 						// Y-grid lines
 						let numYGridLines = (this.datapoints / this.yGridDist) * 2;
 						for (let i = numYGridLines; i > 0; i--) {
@@ -215,7 +217,7 @@
 							text.setAttribute("y", String(this.mChartHight + 17));
 							text.innerHTML = "";
 							this.svg.appendChild(text);
-                }
+                        }
 						//
 						this.svg.appendChild(chartContent);
 					};
@@ -236,10 +238,10 @@
 						else
 							this.maxValue = maxVal;
 
-                // normalize data to chart
+                        // normalize data to chart
 						let divider = this.maxValue / this.mChartHight;
-                if (divider == 0)
-                    divider = 1;
+                        if (divider == 0)
+                            divider = 1;
 
                         let firstValPos = -1;  // position of first value >0 W
 						let lastValPos = -1;   // position of last value >0 W
@@ -253,8 +255,8 @@
                                     firstValPos = i;
                                 val = val / divider;
                                 points += ' ' + String(i * 2) + ',' + String(this.mChartHight - val);
-                }
-            }
+                            }
+                        }
 						let poly = document.getElementById(this.namePrefix + "Poly");
 						poly.setAttribute("points", points);
                         // "close" polyFill-line down to the x-axis
@@ -330,7 +332,7 @@
                         // Regular update:
                         window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", refresh * 1000);
                         // one after the other
-                        addNextChart = true;
+                        addNextChart = false; // if true: add YieldDayHistory
                     }
                     powerHistDayObj.setXScale(refresh, obj.lastValueTs * 1000);
                     powerHistDayObj.update(obj.value, maximum);
@@ -358,7 +360,7 @@
                         // Regular update:
                         window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", refresh * 500);
                         addNextChart = true;
-                }
+                    }
                     ydHistObj.setXScale(refresh, obj.lastValueTs * 1000);
                     ydHistObj.update(obj.value, maximum);
 

@@ -34,9 +34,7 @@ class HistoryData {
             void reset() {
                 loopCnt = 0;
                 listIdx = 0;
-                for(uint16_t i = 0; i < (HISTORY_DATA_ARR_LENGTH + 1); i++) {
-                    data[i] = 0;
-                }
+                data.fill(0);
             }
         };
 
