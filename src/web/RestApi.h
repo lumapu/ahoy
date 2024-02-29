@@ -736,8 +736,8 @@ class RestApi {
                 for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     JsonObject objGroupInv = arrInv.createNestedObject();
                     objGroupInv[F("enabled")]  = (bool)mConfig->plugin.zeroExport.groups[group].inverters[inv].enabled;
-                    objGroupInv[F("id")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].id;
-                    objGroupInv[F("target")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].target;
+                    objGroupInv[F("id")]  = (int8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].id;
+                    objGroupInv[F("target")]  = (int8_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].target;
                     objGroupInv[F("twoPercent")]  = (bool)mConfig->plugin.zeroExport.groups[group].inverters[inv].twoPercent;
                     objGroupInv[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].inverters[inv].powerMax;
                 }

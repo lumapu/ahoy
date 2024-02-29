@@ -234,8 +234,8 @@ typedef enum {
 
 typedef struct {
     bool enabled;
-    uint8_t id;
-    uint8_t target;
+    int8_t id;
+    int8_t target;
     bool twoPercent;
     uint16_t powerMax;
 
@@ -908,9 +908,9 @@ class settings {
                 if (obj.containsKey(F("enabled")))
                     getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled);
                 if (obj.containsKey(F("id")))
-                    getVal<uint8_t>(obj, F("id"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].id);
+                    getVal<int8_t>(obj, F("id"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].id);
                 if (obj.containsKey(F("target")))
-                    getVal<uint8_t>(obj, F("target"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].target);
+                    getVal<int8_t>(obj, F("target"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].target);
                 if (obj.containsKey(F("twoPercent")))
                     getVal<bool>(obj, F("twoPercent"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].twoPercent);
                 if (obj.containsKey(F("powerMax")))

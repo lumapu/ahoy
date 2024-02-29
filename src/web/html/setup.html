@@ -1176,25 +1176,7 @@
 
             /*IF_PLUGIN_ZEROEXPORT*/
             // Plugin ZeroExport
-            function parseZeroExportGroup_Modal_Iv(root) {
-
-                if (root == null)
-                    return;
-
-                var invMax = document.getElementById("invMax").value;
-
-                for (var inv = 0; inv < invMax; inv++) {
-                    var e = document.getElementById("invId"+inv);
-                    selDelAllOpt(e);
-//                    e.appendChild(opt(-1, "---"));
-// TODO: Verhindert die Funktion des selects egal ob -1 oder "-1"
-                      for (var i = 0; i < root.inverter.length; i++) {
-                        e.appendChild(opt((root.inverter[i].id), (root.inverter[i].name)));
-                    }
-                }
-            }
-
-            function ZeroExportGroup_Modal(obj) {
+            function ZeroExportGroup_Modal(obj, ivObj) {
 
                 // Tab_General
                 var cbEnabled = ml("input", {name: "enabled", type: "checkbox"}, null);
@@ -1331,17 +1313,18 @@
                     e.checked = (obj.inverters[inv].enabled);
                 }
                 // - InverterId
-                getAjax("/api/inverter/list", parseZeroExportGroup_Modal_Iv);
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invId"+inv);
-console.log(e);
+                    selDelAllOpt(e);
+                    e.appendChild(opt("-1", "---"));
+// TODO: Verhindert die Funktion des selects egal ob -1 oder "-1"
+                    for (var i = 0; i < ivObj.inverter.length; i++) {
+                        e.appendChild(opt((ivObj.inverter[i].id), (ivObj.inverter[i].name)));
+                    }
                     //e.selectedIndex = (obj.inverters[inv].id);
-console.log(e.length)
                     for (var i = 0; i < (e.length); i++) {
-console.log(i);
                         if (e.options[i].value == obj.inverters[inv].id) {
                             e.selectedIndex = i;
-console.log(i);
                         }
                     }
                 }
@@ -1349,6 +1332,7 @@ console.log(i);
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invTarget"+inv);
                     selDelAllOpt(e);
+                    e.appendChild(opt("-1", "---"));
                     e.appendChild(opt("0", "Sum"));
                     e.appendChild(opt("1", "L1"));
                     e.appendChild(opt("2", "L2"));
@@ -1515,7 +1499,13 @@ console.log(i);
                         ml("td", {style: "text-align: center;", }, String(obj.groups[group].id)),
                         ml("td", {style: "text-align: left;", }, String(obj.groups[group].name)),
                         ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
-                        ml("td", {style: "text-align: center;", onclick: function() {ZeroExportGroup_Modal(obj.groups[group]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
+//                        ml("td", {style: "text-align: center;", onclick: function() {ZeroExportGroup_Modal(obj.groups[group]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
+                        ml("td", {style: "text-align: center;", onclick: function() {
+                            function zeroGetIvList(ivObj) {
+                                ZeroExportGroup_Modal(obj.groups[group], ivObj)
+                            }
+                            getAjax("/api/inverter/list", zeroGetIvList)
+                        }}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
                         ml("td", {style: "text-align: center;", onclick: function() {ZeroExportGroup_Del(obj.groups[group]);}}, svg(iconDel, 25, 25, "icon icon-fg pointer"))
                     ]));
                 }
