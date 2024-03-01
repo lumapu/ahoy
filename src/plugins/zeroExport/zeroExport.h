@@ -57,19 +57,71 @@ class ZeroExport {
                 continue;
             }
 
-//            if (millis() - mCfg->groups[group].startTimestamp < mCfg->groups[group].refresh) {
-//                mCfg->groups[group].startTimestamp = mCfg->groups[group].startTimestamp + mCfg->groups[group].refresh;
+            switch (mCfg->groups[group].state) {
+                case zeroExportState::RESET:
+//DBGPRINT(F("State::RESET: "));
+//DBGPRINTLN(String(group));
+                    mCfg->groups[group].lastRun = millis();
+                    // Weiter zum nächsten State
+                    mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+                    break;
+                case zeroExportState::GETPOWERMETER:
+                    if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
+//DBGPRINT(F("State::GETPOWERMETER:"));
+//DBGPRINTLN(String(group));
+                        if (getPowermeterWatts(group)) {
+                            // Weiter zum nächsten State
+                            mCfg->groups[group].state = zeroExportState::GETINVERTERPOWER;
+                        } else {
+                            // Wartezeit wenn Keine Daten vom Powermeter
+                            mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                        }
+                    }
+                    break;
+                case zeroExportState::GETINVERTERPOWER:
+                    if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
+//DBGPRINT(F("State::GETINVERTERPOWER:"));
+//DBGPRINTLN(String(group));
+                        if (getInverterPowerWatts(group)) {
+                            // Weiter zum nächsten State
+                            mCfg->groups[group].state = zeroExportState::FINISH;
+                        } else {
+                            // Wartezeit wenn Keine Daten vom Powermeter
+                            mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                        }
+                    }
+                    break;
 /*
-                if (getPowermeterWatts(group)) {
-                    mCfg->groups[group].powermeter.nextRun = millis() + mCfg->groups[group].powermeter.interval;
-                    mCfg->groups[group].powermeter.error = 0;
-DBGPRINTLN(String("Powermeter: ") + String(mCfg->groups[group].powermeter.power) + String(" W"));
-                } else {
-                    mCfg->groups[group].powermeter.error++;
-                    continue;
-                }
+                case 4:
+                    //
+                    mCfg->groups[group].state = zeroExportState::RESET;
+                    break;
+                case 5:
+                    //
+                    mCfg->groups[group].state = zeroExportState::RESET;
+                    break;
 */
-//            }
+                default:
+                    //
+//DBGPRINT(F("State::?: "));
+//DBGPRINTLN(String(group));
+                    mCfg->groups[group].state = zeroExportState::RESET;
+                    break;
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
             if (!mCfg->groups[group].powermeter.error) {
 DBGPRINTLN(String("ok verarbeiten."));
@@ -270,65 +322,149 @@ DBGPRINTLN(String("nok Notmodus."));
 
         bool getPowermeterWatts(uint8_t group) {
             bool ret = false;
-//            switch (mCfg->groups[group].powermeter.type) {
-//                case 1:
-//                    ret = getPowermeterWattsTibber();
-//                    break;
+DBGPRINT(String("getPowermeterWatts: "));
+DBGPRINTLN(String(group));
+            switch (mCfg->groups[group].pm_type) {
+                case 1:
+                    ret = getPowermeterWattsShelly(group);
+                    break;
 //                case 2:
-//                    ret = getPowermeterWattsShelly();
+//                    ret = getPowermeterWattsTasmota(group);
 //                    break;
 //                case 3:
-//                    ret = getPowermeterWattsTasmota();
+//                    ret = getPowermeterWattsMqtt(group);
 //                    break;
 //                case 4:
-//                    ret = getPowermeterWattsMqtt();
+//                    ret = getPowermeterWattsHichi(group);
+//                    break;
+//                case 5:
+//                    ret = getPowermeterWattsTibber(group);
 //                    break;
 ///                default:
 ///                    ret = false;
 ///                    break;
-//            }
+            }
             return ret;
         }
 
-        int getPowermeterWattsTibber(void) {
-            // TODO:
-            return 0;
-        }
-
-        int getPowermeterWattsShelly(void) {
-/*
+        int getPowermeterWattsShelly(uint8_t group) {
+            bool ret = false;
             HTTPClient http;
-            char url[100] = "http://";
-            strcat(url, mCfg->monitor_url);
-            strcat(url, "/status");
-            http.begin(url);
-
-            if (http.GET() == 200)
+//            httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            httpClient.setUserAgent("Ahoy-Agent");
+// TODO: Ahoy-0.8.850024-zero
+//            httpClient.setConnectTimeout(1000);
+//            httpClient.setTimeout(1000);
+//            httpClient.addHeader("Content-Type", "application/json");
+//            httpClient.addHeader("Accept", "application/json");
+            http.begin(mCfg->groups[group].pm_url);
+            if (http.GET() == HTTP_CODE_OK)
             {
+
                 // Parsing
                 DynamicJsonDocument doc(2048);
                 DeserializationError error = deserializeJson(doc, http.getString());
                 if (error)
                 {
-                    Serial.print("deserializeJson() failed: ");
-                    Serial.println(error.c_str());
-                    return 0;
+DBGPRINT(String("deserializeJson() failed: "));
+DBGPRINTLN(String(error.c_str()));
+                    return ret;
                 }
 
-                float total_power = doc["total_power"];
-                int Shelly_Power = (int)(total_power + .5);
-                return Shelly_Power;
-*/
-                /*
-                String url = "http://" + String(SHELLY_IP) + "/status";
-                ParsedData = http.get(url).json();
-                int Watts = ParsedData['total_power'].toInt();
-                return Watts;
-                */
-//            }
-//            http.end();
+                // Shelly 3EM
+                if (doc.containsKey(F("total_power"))) {
+                    mCfg->groups[group].pmPower = doc["total_power"];
+                    ret = true;
+                // Shelly pro 3EM
+                } else if (doc.containsKey(F("em:0"))) {
+                    mCfg->groups[group].pmPower = doc["em:0"]["total_act_power"];
+                    ret = true;
+                // Keine Daten
+                } else {
+                    mCfg->groups[group].pmPower = 0;
+                }
 
-            return 0;
+                // Shelly 3EM
+                if (doc.containsKey(F("emeters"))) {
+                    mCfg->groups[group].pmPowerL1 = doc["emeters"][0]["power"];
+                    ret = true;
+                // Shelly pro 3EM
+                } else if (doc.containsKey(F("em:0"))) {
+                    mCfg->groups[group].pmPowerL1 = doc["em:0"]["a_act_power"];
+                    ret = true;
+                // Shelly plus1pm plus2pm
+                } else if (doc.containsKey(F("switch:0"))) {
+                    mCfg->groups[group].pmPowerL1 = doc["switch:0"]["apower"];
+                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
+                    ret = true;
+                // Shelly Alternative
+                } else if (doc.containsKey(F("apower"))) {
+                    mCfg->groups[group].pmPowerL1 = doc["apower"];
+                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
+                    ret = true;
+                // Keine Daten
+                } else {
+                    mCfg->groups[group].pmPowerL1 = 0;
+                }
+DBGPRINT(String("pmPowerL1: "));
+DBGPRINTLN(String(mCfg->groups[group].pmPowerL1));
+
+                // Shelly 3EM
+                if (doc.containsKey(F("emeters"))) {
+                    mCfg->groups[group].pmPowerL2 = doc["emeters"][1]["power"];
+                    ret = true;
+                // Shelly pro 3EM
+                } else if (doc.containsKey(F("em:0"))) {
+                    mCfg->groups[group].pmPowerL2 = doc["em:0"]["b_act_power"];
+                    ret = true;
+                // Shelly plus1pm plus2pm
+                } else if (doc.containsKey(F("switch:1"))) {
+                    mCfg->groups[group].pmPowerL2 = doc["switch.1"]["apower"];
+                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
+                    ret = true;
+//                // Shelly Alternative
+//                } else if (doc.containsKey(F("apower"))) {
+//                    mCfg->groups[group].pmPowerL2 = doc["apower"];
+//                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
+//                    ret = true;
+                // Keine Daten
+                } else {
+                    mCfg->groups[group].pmPowerL2 = 0;
+                }
+DBGPRINT(String("pmPowerL2: "));
+DBGPRINTLN(String(mCfg->groups[group].pmPowerL2));
+
+                // Shelly 3EM
+                if (doc.containsKey(F("emeters"))) {
+                    mCfg->groups[group].pmPowerL3 = doc["emeters"][2]["power"];
+                    ret = true;
+                // Shelly pro 3EM
+                } else if (doc.containsKey(F("em:0"))) {
+                    mCfg->groups[group].pmPowerL3 = doc["em:0"]["c_act_power"];
+                    ret = true;
+                // Shelly plus1pm plus2pm
+                } else if (doc.containsKey(F("switch:2"))) {
+                    mCfg->groups[group].pmPowerL3 = doc["switch:2"]["apower"];
+                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
+                    ret = true;
+//                // Shelly Alternative
+//                } else if (doc.containsKey(F("apower"))) {
+//                    mCfg->groups[group].pmPowerL3 = doc["apower"];
+//                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
+//                    ret = true;
+                // Keine Daten
+                } else {
+                    mCfg->groups[group].pmPowerL3 = 0;
+                }
+DBGPRINT(String("pmPowerL3: "));
+DBGPRINTLN(String(mCfg->groups[group].pmPowerL3));
+
+DBGPRINT(String("pmPower: "));
+DBGPRINTLN(String(mCfg->groups[group].pmPower));
+            }
+            http.end();
+
+            return ret;
         }
 
         int getPowermeterWattsTasmota(void) {
@@ -369,9 +505,28 @@ DBGPRINTLN(String("nok Notmodus."));
             return 0;
         }
 
+        int getPowermeterWattsHichi(void) {
+            // TODO:
+            return 0;
+        }
+
+        int getPowermeterWattsTibber(void) {
+            // TODO:
+            return 0;
+        }
 
 
 
+        bool getInverterPowerWatts(uint8_t group) {
+            bool ret = false;
+DBGPRINT(String("getInverterPowerWatts: "));
+DBGPRINTLN(String(group));
+//            switch (mCfg->groups[group].pm_type) {
+
+
+
+            return ret;
+        }
 
 
 

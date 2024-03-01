@@ -172,6 +172,15 @@ void app::loop(void) {
     if (mMqttEnabled && mNetworkConnected)
         mMqtt.loop();
     #endif
+
+    // Plugin ZeroExport
+    #if defined(PLUGIN_ZEROEXPORT)
+    if(mConfig->nrf.enabled || mConfig->cmt.enabled) {
+        mZeroExport.loop();
+    }
+    #endif
+    // Plugin ZeroExport - Ende
+
     yield();
 }
 

@@ -198,6 +198,10 @@ typedef struct {
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS      10000
 
 #if defined(PLUGIN_ZEROEXPORT)
+enum class zeroExportState : uint8_t {
+     RESET, GETPOWERMETER, GETINVERTERPOWER, FINISH
+};
+
 typedef enum {
     None        = 0,
     Shelly      = 1,
@@ -268,7 +272,12 @@ typedef struct {
     uint16_t powerMax;
 
 
-    uint16_t startTimestamp;
+    zeroExportState state;
+    unsigned long lastRun;
+    float pmPower;
+    float pmPowerL1;
+    float pmPowerL2;
+    float pmPowerL3;
 //    uint16_t power;             // Aktueller Verbrauch
 //    uint16_t powerLimitAkt;     // Aktuelles Limit
 //    uint16_t powerHyst;         // Hysterese
@@ -629,6 +638,13 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].refresh = 10;
                 mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
                 mCfg.plugin.zeroExport.groups[group].powerMax = 600;
+//
+                mCfg.plugin.zeroExport.groups[group].state = zeroExportState::RESET;
+                mCfg.plugin.zeroExport.groups[group].lastRun = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPower = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL1 = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL2 = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL3 = 0;
 
             }
 #warning("Defaultsettings")

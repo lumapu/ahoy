@@ -1249,14 +1249,20 @@
                         divRow("{#ZE_GROUP_TAB_POWERMETER_TYPE}",
                             ml("select", {name: "pm_type", class: "text", id: "pm_type"}, null),
                         ),
-                        divRow("{#ZE_GROUP_TAB_POWERMETER_URL}",
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
+                            ml("p", {}, "(3em)                - http://IP/status"),
+                            ml("p", {}, "(pro3em)             - http://IP/rpc/Shelly.GetStatus"),
+                            ml("p", {}, "(plus1pm)            - http://IP/rpc/Shelly.GetStatus"),
+                            ml("p", {}, "(plus2pm)            - http://IP/rpc/Shelly.GetStatus"),
+                            ml("p", {}, "(plus1pmAlternative) - http://IP/rpc/switch.GetStatus?id=0"),
+                            ml("p", {}, "(plus2pmAlternative) - http://IP/rpc/switch.GetStatus?id=0"),
                             ml("p", {}, "A JSON-Format is required to work properly.<br>HICHI:  http://IP_Address/cm?cmnd=status%208"),
-                        ),
-                        divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}",
+                        ]),
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
                             ml("p", {}, "Only for HICHI needed!"),
-                        ),
+                        ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
                             ml("input", {name: "pm_user", class: "text", type: "text", value: obj.pm_user}, null),
                         ),
@@ -1299,7 +1305,6 @@
                 e.appendChild(opt("3", "Mqtt"));
                 e.appendChild(opt("4", "Hichi"));
                 e.appendChild(opt("5", "Tibber"));
-                //e.selectedIndex = obj.pm_type;
                 for (var i = 0; i < e.options.length; i++) {
                     if (e.options[i].value == obj.pm_type) {
                         e.selectedIndex = i;
@@ -1317,11 +1322,9 @@
                     var e = document.getElementById("invId"+inv);
                     selDelAllOpt(e);
                     e.appendChild(opt("-1", "---"));
-// TODO: Verhindert die Funktion des selects egal ob -1 oder "-1"
                     for (var i = 0; i < ivObj.inverter.length; i++) {
                         e.appendChild(opt((ivObj.inverter[i].id), (ivObj.inverter[i].name)));
                     }
-                    //e.selectedIndex = (obj.inverters[inv].id);
                     for (var i = 0; i < (e.length); i++) {
                         if (e.options[i].value == obj.inverters[inv].id) {
                             e.selectedIndex = i;
@@ -1340,7 +1343,6 @@
                     e.appendChild(opt("4", "L1 + Sum"));
                     e.appendChild(opt("5", "L2 + Sum"));
                     e.appendChild(opt("6", "L3 + Sum"));
-                    //e.selectedIndex = (obj.inverters[inv].target);
                     for (var i = 0; i < e.options.length; i++) {
                         if (e.options[i].value == obj.inverters[inv].target) {
                             e.selectedIndex = i;
@@ -1380,10 +1382,8 @@
                     for(var inv = 0; inv < o.invMax; inv++) {
                         var q = new Object();
                         q.enabled = document.getElementById("invEnabled"+inv).checked;
-                        //q.id = document.getElementById("invId"+inv).selectedIndex+1;
                         var e = document.getElementById("invId"+inv);
 		                q.id = e.options[e.selectedIndex].value;
-                        //q.target = document.getElementById("invTarget"+inv).selectedIndex;
                         var e = document.getElementById("invTarget"+inv);
 		                q.target = e.options[e.selectedIndex].value;
                         q.twoPercent = document.getElementById("invTwoPercent"+inv).checked;
@@ -1422,6 +1422,7 @@
                 modal("{#ZE_GROUP_DELETE_MODAL}: " + obj.name, html);
 
                 function del() {
+// TODO: Es wäre gut, wenn die Defaultwerte nicht hier sondern wie in der settings.h gesetzt würden.
                     var o = new Object();
                     o.cmd  = "ze_save_group";
                     // General
@@ -1435,20 +1436,27 @@
                     o.pm_user = "";
                     o.pm_pass = "";
                     // Inverters
-//                    o.ser  = 0;
-//                    o.ch = [];
-//                    for(let i = 0; i < 6; i++) {
-//                        var q = new Object();
-//                        q.pwr  = 0;
-//                        q.name = "";
-//                        q.yld  = 0;
-//                        o.ch.push(q);
-//                    }
+                    o.invMax = obj.inverters.length;
+                    o.inverters = [];
+                    for(var inv = 0; inv < o.invMax; inv++) {
+                        var q = new Object();
+                        q.enabled = false;
+                        var e = document.getElementById("invId"+inv);
+		                q.id = -1;
+                        var e = document.getElementById("invTarget"+inv);
+		                q.target = -1;
+                        q.twoPercent = false;
+                        q.powerMax = 0;
+                        o.inverters.push(q);
+                    }
+                    // Battery
+                    o.battEnabled = false;
+                    o.battVoltageOn = 0;
+                    o.battVoltageOff = 0;
                     // Advanced
                     o.refresh = 10;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
-// TODO: Default aus Settings.h laden
                     // Global
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
@@ -1510,7 +1518,7 @@
                     ]));
                 }
 
-//#warning("groups")
+// TODO: Das Add sollte anders / überhaupt gelöst werden
                 var add = new Object();
                 add.enabled = true;
                 add.id = obj.groups.length;
@@ -1530,43 +1538,7 @@
 
 //                ivGlob(obj);
 
-
-
-//#warning("groups")
-//                document.getElementsByName("en_zeroexport")[0].checked = obj["en_zeroexport"];
-//                document.getElementsByName("two_percent")[0].checked = obj["two_percent"];
-
-//                document.getElementsByName("query_device")[0].checked = (obj["query_device"] == 1);
-//                document.getElementsByName("query_device")[1].checked = (obj["query_device"] == 2);
-//                document.getElementsByName("query_device")[2].checked =  (obj["query_device"] == 3);
-
-//                getAjax("/api/inverter/list", parseZeroExportIv);
-
-//                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"], ["query_device", "query_device"]])
-//                for(var i of [["monitor_url", "monitor_url"], ["power_avg", "power_avg"], ["count_avg", "count_avg"], ["json_path", "json_path"], ["max_power", "max_power"]])
-//                    if(null != obj[i[1]])
-//                        document.getElementsByName(i[0])[0].value = obj[i[1]];
-
-//                document.getElementsByName("total_power")[0].innerHTML = "Total: " + obj["total_power"].toFixed(2) + "W";
-//                document.getElementById("Inv_ID").selectedIndex = obj["Iv"];
             }
-/*
-            function parseZeroExportGroupInverterId(root) {
-                e = document.getElementById("");
-                selDelAllOpt(e);
-                for (it of root.inverter) {
-                    e.appendChild(opt(it.id, it.name));
-                }
-            }
-
-            function parseZeroExportGroupIverterTarget(root) {
-                e = document.getElementById("");
-                selDelAllOpt(e);
-                for (it of root.inverter) {
-                    e.appendChild(opt(it.id, it.name));
-                }
-            }
-*/
             // Plugin ZeroExport - Ende
             /*ENDIF_PLUGIN_ZEROEXPORT*/
 
