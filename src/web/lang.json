@@ -926,7 +926,7 @@
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED_REFRESH",
                     "en": "Refresh rate (sec):",
-                    "de": "Refresh rate (sec):"
+                    "de": "Aktualisierung (sec):"
                 },
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE",
