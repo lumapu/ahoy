@@ -16,8 +16,8 @@ class HmSystem {
         HmSystem() {}
 
         void setup(uint32_t *timestamp, cfgInst_t *config, IApp *app) {
-            mInverter[0].timestamp     = timestamp;
-            mInverter[0].generalConfig = config;
+            INVERTERTYPE::timestamp = timestamp;
+            INVERTERTYPE::generalConfig = config;
             //mInverter[0].app           = app;
         }
 
@@ -35,6 +35,8 @@ class HmSystem {
                     case 0x21: iv->type = INV_TYPE_1CH;
                         break;
 
+                    case 0x25: // HMS-400 - 1 channel but payload like 2ch
+
                     case 0x44: // HMS-1000
                     case 0x42:
                     case 0x41: iv->type = INV_TYPE_2CH;
@@ -51,15 +53,14 @@ class HmSystem {
                 }
 
                 if(iv->config->serial.b[5] == 0x11) {
-                    if((iv->config->serial.b[4] & 0x0f) == 0x04) {
+                    if(((iv->config->serial.b[4] & 0x0f) == 0x04) || ((iv->config->serial.b[4] & 0x0f) == 0x05)) {
                         iv->ivGen = IV_HMS;
                         iv->ivRadioType = INV_RADIO_TYPE_CMT;
                     } else {
                         iv->ivGen = IV_HM;
                         iv->ivRadioType = INV_RADIO_TYPE_NRF;
                     }
-                }
-                else if((iv->config->serial.b[4] & 0x03) == 0x02) { // MI 3rd Gen -> same as HM
+                } else if((iv->config->serial.b[4] & 0x03) == 0x02) { // MI 3rd Gen -> same as HM
                     iv->ivGen = IV_HM;
                     iv->ivRadioType = INV_RADIO_TYPE_NRF;
                 } else {  // MI 2nd Gen
@@ -82,7 +83,7 @@ class HmSystem {
 
             DPRINT(DBG_INFO, "added inverter ");
             if(iv->config->serial.b[5] == 0x11) {
-                if((iv->config->serial.b[4] & 0x0f) == 0x04)
+                if(((iv->config->serial.b[4] & 0x0f) == 0x04) || ((iv->config->serial.b[4] & 0x0f) == 0x05))
                     DBGPRINT("HMS");
                 else
                     DBGPRINT("HM");

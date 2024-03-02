@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
 
   build-en:
-    name: Build Environments (English)
+    name: Build (EN)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -77,7 +77,7 @@ jobs:
         path: firmware/*
 
   build-de:
-    name: Build Environments (German)
+    name: Build (DE)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -138,7 +138,7 @@ jobs:
         path: firmware/*
 
   deploy:
-    name: Deploy Environments
+    name: Update Artifacts / Deploy
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
     continue-on-error: false
@@ -164,8 +164,34 @@ jobs:
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
 
+
+    - name: Create ESP Web Tools Manifest
+      working-directory: src
+      run: python ../scripts/buildManifest.py
+
+    - name: Copy install html
+      run: mv scripts/gh-action-dev-build-flash.html firmware/install.html
+
+    - name: Copy Changes.md
+      run: mv src/CHANGES.md firmware/CHANGES.md
+
+
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
+
+    - name: delete environment Artifacts
+      uses: geekyeggo/delete-artifact@v4
+      with:
+        name: dev-*
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dev-${{ steps.version_name.outputs.name }}
+        path: |
+          ${{ steps.version_name.outputs.name }}/*
+          manual/User_Manual.md
+          manual/Getting_Started.md
 
     - name: Deploy
       uses: nogsantos/scp-deploy@master

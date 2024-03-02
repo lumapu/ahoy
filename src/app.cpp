@@ -484,7 +484,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
             continue;  // skip to next inverter
 
         if (checkAvail) {
-            if (!iv->isAvailable())
+            if (iv->isAvailable())
                 continue;
         }
 

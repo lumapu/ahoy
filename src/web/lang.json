@@ -295,8 +295,8 @@
                 },
                 {
                     "token": "INV_RESET_MIDNIGHT",
-                    "en": "Reset values and YieldDay at midnight. ('Pause communication during night' need to be set)",
-                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen ('Kommunikation w&auml;hrend der Nacht pausieren' muss gesetzt sein)"
+                    "en": "Reset values and YieldDay at midnight",
+                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
                 },
                 {
                     "token": "INV_PAUSE_SUNSET",
@@ -322,11 +322,6 @@
                     "token": "INV_READ_GRID_PROFILE",
                     "en": "Read Grid Profile",
                     "de": "Grid-Profil auslesen"
-                },
-                {
-                    "token": "INV_YIELD_EFF",
-                    "en": "Yield Efficiency (default 1.0)",
-                    "de": "Ertragseffizienz (Standard 1.0)"
                 },
                 {
                     "token": "NTP_INTERVAL",
@@ -884,6 +879,11 @@
                     "de": "automatisch scrollen"
                 },
                 {
+                    "token": "BTN_MANUALSCROLL",
+                    "en": "manual scroll",
+                    "de": "manuell scrollen"
+                },
+                {
                     "token": "BTN_COPY",
                     "en": "copy",
                     "de": "kopieren"
@@ -897,12 +897,21 @@
                     "token": "UPTIME",
                     "en": "uptime",
                     "de": "Laufzeit"
-                }
-,
+                },
                 {
                     "token": "DAYS",
                     "en": "days",
                     "de": "Tage"
+                },
+                {
+                    "token": "COPIED_TO_CLIPBOARD",
+                    "en": "Copied to clipboard",
+                    "de": "in die Zwischenablage kopiert"
+                },
+                {
+                    "token": "CLIPBOARD_FAILED",
+                    "en": "Copy failed",
+                    "de": "kopieren fehlgeschlagen"
                 }
             ]
         },
@@ -978,6 +987,16 @@
                     "token": "ERROR",
                     "en": "Error",
                     "de": "Fehler"
+                },
+                {
+                    "token": "DAY",
+                    "en": "day",
+                    "de": "Tag"
+                },
+                {
+                    "token": "S",
+                    "en": "s",
+                    "de": "e"
                 },
                 {
                     "token": "NTP_UNREACH",

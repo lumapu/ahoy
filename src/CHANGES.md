@@ -1,5 +1,24 @@
 # Development Changes
 
+## 0.8.89 - 2024-03-02
+* merge PR: Collection of small fixes #1465
+* fix: show esp type on `/history` #1463
+* improved HMS-400-1T support (serial number 1125...) #1460
+
+## 0.8.88 - 2024-02-28
+* fix MqTT statistic data overflow #1458
+* add HMS-400-1T support (serial number 1125...) #1460
+* removed `yield efficiency` because the inverter already calculates correct #1243
+* merge PR: Remove hint to INV_RESET_MIDNIGHT resp. INV_PAUSE_DURING_NIGHT #1431
+
+## 0.8.87 - 2024-02-25
+* fix translations #1455 #1442
+
+## 0.8.86 - 2024-02-23
+* RestAPI check for parent element to be JsonObject #1449
+* fix translation #1448 #1442
+* fix reset values when inverter status is 'not available' #1035 #1437
+
 ## 0.8.85 - 2024-02-22
 * possible fix of MqTT fix "total values are sent to often" #1421
 * fix translation #1442
@@ -251,7 +270,7 @@
 
 ## 0.8.39 - 2024-01-01
 * fix MqTT dis_night_comm in the morning #1309 #1286
-* seperated offset for sunrise and sunset #1308
+* separated offset for sunrise and sunset #1308
 * powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
@@ -464,7 +483,7 @@
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`
-* moved radio statistics into the inverter - each inverter has now seperate statistics which can be accessed by click on the footer in `/live`
+* moved radio statistics into the inverter - each inverter has now separate statistics which can be accessed by click on the footer in `/live`
 * fix compiler warnings #1191
 * fix ePaper logo during night time #1151
 
