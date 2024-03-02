@@ -22,6 +22,15 @@
             var total = Array(6).fill(0);
             var tPwrAck;
 
+            function getErrStr(code) {
+                if("ERR_AUTH") return "{#ERR_AUTH}"
+                if("ERR_INDEX") return "{#ERR_INDEX}"
+                if("ERR_UNKNOWN_CMD") return "{#ERR_UNKNOWN_CMD}"
+                if("ERR_LIMIT_NOT_ACCEPT") return "{#ERR_LIMIT_NOT_ACCEPT}"
+                if("ERR_UNKNOWN_CMD") return "{#ERR_AUTH}"
+                return "n/a"
+            }
+
             function parseGeneric(obj) {
                 if(true == exeOnce){
                     parseNav(obj);
@@ -454,18 +463,20 @@
                     val = 100;
 
                 var obj = new Object();
-                obj.id = id;
-                obj.cmd = cmd;
-                obj.val = Math.round(val*10);
-                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj));
+                obj.id = id
+                obj.token = "*"
+                obj.cmd = cmd
+                obj.val = val
+                getAjax("/api/ctrl", ctrlCb, "POST", JSON.stringify(obj))
             }
 
             function applyCtrl(id, cmd, val=0) {
                 var obj = new Object();
-                obj.id  = id;
-                obj.cmd = cmd;
-                obj.val = val;
-                getAjax("/api/ctrl", ctrlCb2, "POST", JSON.stringify(obj));
+                obj.id  = id
+                obj.token = "*"
+                obj.cmd = cmd
+                obj.val = val
+                getAjax("/api/ctrl", ctrlCb2, "POST", JSON.stringify(obj))
             }
 
             function ctrlCb(obj) {
@@ -475,7 +486,7 @@
                     tPwrAck = window.setInterval("getAjax('/api/inverter/pwrack/" + obj.id + "', updatePwrAck)", 1000);
                 }
                 else
-                    e.innerHTML = "{#ERROR}: " + obj["error"];
+                    e.innerHTML = "{#ERROR}: " + getErrStr(obj.error);
             }
 
             function ctrlCb2(obj) {
@@ -483,7 +494,7 @@
                 if(obj.success)
                     e.innerHTML = "{#COMMAND_RECEIVED}";
                 else
-                    e.innerHTML = "{#ERROR}: " + obj["error"];
+                    e.innerHTML = "{#ERROR}: " + getErrStr(obj.error);
             }
 
             function updatePwrAck(obj) {

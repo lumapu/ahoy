@@ -192,15 +192,14 @@ class Display {
             if ((mCfg->screenSaver == 2) && (mCfg->pirPin != DEF_PIN_OFF)) {
     #if defined(ESP8266)
                 if (mCfg->pirPin == A0)
-                    return((analogRead(A0) >= 512));
+                    return (analogRead(A0) >= 512);
                 else
-                    return(digitalRead(mCfg->pirPin));
+                    return digitalRead(mCfg->pirPin);
     #elif defined(ESP32)
-                return(digitalRead(mCfg->pirPin));
+                return digitalRead(mCfg->pirPin);
     #endif
-            }
-            else
-                return(false);
+            } else
+                return false;
         }
 
         // approximate RSSI in dB by invQuality levels from heuristic function (very unscientific but better than nothing :-) )
@@ -224,21 +223,21 @@ class Display {
         }
 
         // private member variables
-        IApp *mApp;
+        IApp *mApp = nullptr;
         DisplayData mDisplayData;
-        bool mNewPayload;
-        uint8_t mLoopCnt;
-        uint32_t *mUtcTs;
-        display_t *mCfg;
-        HMSYSTEM *mSys;
-        RADIO *mHmRadio;
-        RADIO *mHmsRadio;
-        uint16_t mRefreshCycle;
+        bool mNewPayload = false;
+        uint8_t mLoopCnt = 0;
+        uint32_t *mUtcTs = nullptr;
+        display_t *mCfg = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        RADIO *mHmRadio = nullptr;
+        RADIO *mHmsRadio = nullptr;
+        uint16_t mRefreshCycle = 0;
 
     #if defined(ESP32) && !defined(ETHERNET)
         DisplayEPaper mEpaper;
     #endif
-        DisplayMono *mMono;
+        DisplayMono *mMono = nullptr;
 };
 
 #endif /*PLUGIN_DISPLAY*/

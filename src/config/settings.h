@@ -13,6 +13,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <LittleFS.h>
 
 #include "../defines.h"
@@ -30,7 +31,7 @@
  * https://arduino-esp8266.readthedocs.io/en/latest/filesystem.html#flash-layout
  * */
 
-#define CONFIG_VERSION      9
+#define CONFIG_VERSION      11
 
 
 #define PROT_MASK_INDEX     0x0001
@@ -68,6 +69,8 @@ typedef struct {
     uint16_t protectionMask;
     bool darkMode;
     bool schedReboot;
+    uint8_t region;
+    int8_t timezone;
 
 #if !defined(ETHERNET)
     // wifi
@@ -117,6 +120,7 @@ typedef struct {
     bool debug;
     bool privacyLog;
     bool printWholeTrace;
+    bool log2mqtt;
 } cfgSerial_t;
 
 typedef struct {
@@ -145,11 +149,10 @@ typedef struct {
     uint8_t frequency;
     uint8_t powerLevel;
     bool disNightCom;  // disable night communication
-    bool add2Total; // add values to total values - useful if one inverter is on battery to turn off
 } cfgIv_t;
 
 typedef struct {
-    bool enabled;
+//    bool enabled;
     cfgIv_t iv[MAX_NUM_INVERTERS];
 
     uint16_t sendInterval;
@@ -158,8 +161,6 @@ typedef struct {
     bool rstValsCommStop;
     bool rstMaxValsMidNight;
     bool startWithoutTime;
-    float yieldEffiency;
-    uint16_t gapMs;
     bool readGrid;
 } cfgInst_t;
 
@@ -206,7 +207,7 @@ typedef struct {
 class settings {
     public:
         settings() {
-            mLastSaveSucceed = false;
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
         }
 
         void setup() {
@@ -377,7 +378,7 @@ class settings {
                 memcpy(&tmp, &mCfg.sys, sizeof(cfgSys_t));
             }
             // erase all settings and reset to default
-            memset(&mCfg, 0, sizeof(settings_t));
+            std::fill(reinterpret_cast<char*>(&mCfg), reinterpret_cast<char*>(&mCfg) + sizeof(mCfg), 0);
             mCfg.sys.protectionMask = DEF_PROT_INDEX | DEF_PROT_LIVE | DEF_PROT_SERIAL | DEF_PROT_SETUP
                                     | DEF_PROT_UPDATE | DEF_PROT_SYSTEM | DEF_PROT_API | DEF_PROT_MQTT | DEF_PROT_HISTORY;
             mCfg.sys.darkMode = false;
@@ -395,6 +396,8 @@ class settings {
             #endif /* !defined(ETHERNET) */
 
             snprintf(mCfg.sys.deviceName,  DEVNAME_LEN, DEF_DEVICE_NAME);
+            mCfg.sys.region   = 0; // Europe
+            mCfg.sys.timezone = 1;
 
             mCfg.nrf.pinCs             = DEF_NRF_CS_PIN;
             mCfg.nrf.pinCe             = DEF_NRF_CE_PIN;
@@ -433,6 +436,7 @@ class settings {
             mCfg.serial.debug    = false;
             mCfg.serial.privacyLog = true;
             mCfg.serial.printWholeTrace = false;
+            mCfg.serial.log2mqtt = false;
 
             mCfg.mqtt.port = DEF_MQTT_PORT;
             snprintf(mCfg.mqtt.broker, MQTT_ADDR_LEN,  "%s", DEF_MQTT_BROKER);
@@ -447,15 +451,12 @@ class settings {
             mCfg.inst.rstValsCommStop  = false;
             mCfg.inst.startWithoutTime = false;
             mCfg.inst.rstMaxValsMidNight = false;
-            mCfg.inst.yieldEffiency    = 1.0f;
-            mCfg.inst.gapMs            = 1;
             mCfg.inst.readGrid         = true;
 
             for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
                 mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
                 mCfg.inst.iv[i].disNightCom = false;
-                mCfg.inst.iv[i].add2Total   = true;
             }
 
             mCfg.led.led[0]      = DEF_LED0;
@@ -487,20 +488,15 @@ class settings {
                 }
                 if(mCfg.configVersion < 2) {
                     mCfg.inst.iv[i].disNightCom = false;
-                    mCfg.inst.iv[i].add2Total   = true;
                 }
                 if(mCfg.configVersion < 3) {
                     mCfg.serial.printWholeTrace = false;
-                }
-                if(mCfg.configVersion < 4) {
-                    mCfg.inst.gapMs = 500;
                 }
                 if(mCfg.configVersion < 5) {
                     mCfg.inst.sendInterval = SEND_INTERVAL;
                     mCfg.serial.printWholeTrace = false;
                 }
                 if(mCfg.configVersion < 6) {
-                    mCfg.inst.gapMs    = 500;
                     mCfg.inst.readGrid = true;
                 }
                 if(mCfg.configVersion < 7) {
@@ -509,8 +505,12 @@ class settings {
                 if(mCfg.configVersion < 8) {
                     mCfg.sun.offsetSecEvening = mCfg.sun.offsetSecMorning;
                 }
-                if(mCfg.configVersion < 9) {
-                    mCfg.inst.gapMs = 1;
+                if(mCfg.configVersion < 10) {
+                    mCfg.sys.region   = 0; // Europe
+                    mCfg.sys.timezone = 1;
+                }
+                if(mCfg.configVersion < 11) {
+                    mCfg.serial.log2mqtt = false;
                 }
             }
         }
@@ -537,6 +537,8 @@ class settings {
                 obj[F("prot_mask")] = mCfg.sys.protectionMask;
                 obj[F("dark")] = mCfg.sys.darkMode;
                 obj[F("reb")] = (bool) mCfg.sys.schedReboot;
+                obj[F("region")] = mCfg.sys.region;
+                obj[F("timezone")] = mCfg.sys.timezone;
                 ah::ip2Char(mCfg.sys.ip.ip, buf);      obj[F("ip")]   = String(buf);
                 ah::ip2Char(mCfg.sys.ip.mask, buf);    obj[F("mask")] = String(buf);
                 ah::ip2Char(mCfg.sys.ip.dns1, buf);    obj[F("dns1")] = String(buf);
@@ -554,6 +556,8 @@ class settings {
                 getVal<uint16_t>(obj, F("prot_mask"), &mCfg.sys.protectionMask);
                 getVal<bool>(obj, F("dark"), &mCfg.sys.darkMode);
                 getVal<bool>(obj, F("reb"), &mCfg.sys.schedReboot);
+                getVal<uint8_t>(obj, F("region"), &mCfg.sys.region);
+                getVal<int8_t>(obj, F("timezone"), &mCfg.sys.timezone);
                 if(obj.containsKey(F("ip"))) ah::ip2Arr(mCfg.sys.ip.ip,      obj[F("ip")].as<const char*>());
                 if(obj.containsKey(F("mask"))) ah::ip2Arr(mCfg.sys.ip.mask,    obj[F("mask")].as<const char*>());
                 if(obj.containsKey(F("dns1"))) ah::ip2Arr(mCfg.sys.ip.dns1,    obj[F("dns1")].as<const char*>());
@@ -657,11 +661,13 @@ class settings {
                 obj[F("debug")] = mCfg.serial.debug;
                 obj[F("prv")] = (bool) mCfg.serial.privacyLog;
                 obj[F("trc")] = (bool) mCfg.serial.printWholeTrace;
+                obj[F("mqtt")] = (bool) mCfg.serial.log2mqtt;
             } else {
                 getVal<bool>(obj, F("show"), &mCfg.serial.showIv);
                 getVal<bool>(obj, F("debug"), &mCfg.serial.debug);
                 getVal<bool>(obj, F("prv"), &mCfg.serial.privacyLog);
                 getVal<bool>(obj, F("trc"), &mCfg.serial.printWholeTrace);
+                getVal<bool>(obj, F("mqtt"), &mCfg.serial.log2mqtt);
             }
         }
 
@@ -749,32 +755,23 @@ class settings {
         void jsonInst(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("intvl")]          = mCfg.inst.sendInterval;
-                obj[F("en")] = (bool)mCfg.inst.enabled;
+//                obj[F("en")] = (bool)mCfg.inst.enabled;
                 obj[F("rstMidNight")]    = (bool)mCfg.inst.rstYieldMidNight;
                 obj[F("rstNotAvail")]    = (bool)mCfg.inst.rstValsNotAvail;
                 obj[F("rstComStop")]     = (bool)mCfg.inst.rstValsCommStop;
                 obj[F("strtWthtTime")]   = (bool)mCfg.inst.startWithoutTime;
                 obj[F("rstMaxMidNight")] = (bool)mCfg.inst.rstMaxValsMidNight;
-                obj[F("yldEff")]         = mCfg.inst.yieldEffiency;
-                obj[F("gap")]            = mCfg.inst.gapMs;
                 obj[F("rdGrid")]         = (bool)mCfg.inst.readGrid;
             }
             else {
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.inst.sendInterval);
-                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
+//                getVal<bool>(obj, F("en"), &mCfg.inst.enabled);
                 getVal<bool>(obj, F("rstMidNight"), &mCfg.inst.rstYieldMidNight);
                 getVal<bool>(obj, F("rstNotAvail"), &mCfg.inst.rstValsNotAvail);
                 getVal<bool>(obj, F("rstComStop"), &mCfg.inst.rstValsCommStop);
                 getVal<bool>(obj, F("strtWthtTime"), &mCfg.inst.startWithoutTime);
                 getVal<bool>(obj, F("rstMaxMidNight"), &mCfg.inst.rstMaxValsMidNight);
-                getVal<float>(obj, F("yldEff"), &mCfg.inst.yieldEffiency);
-                getVal<uint16_t>(obj, F("gap"), &mCfg.inst.gapMs);
                 getVal<bool>(obj, F("rdGrid"), &mCfg.inst.readGrid);
-
-                if(mCfg.inst.yieldEffiency < 0.5)
-                    mCfg.inst.yieldEffiency = 1.0f;
-                else if(mCfg.inst.yieldEffiency > 1.0f)
-                    mCfg.inst.yieldEffiency = 1.0f;
             }
 
             JsonArray ivArr;
@@ -797,7 +794,6 @@ class settings {
                 obj[F("freq")] = cfg->frequency;
                 obj[F("pa")]   = cfg->powerLevel;
                 obj[F("dis")]  = cfg->disNightCom;
-                obj[F("add")]  = cfg->add2Total;
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -810,7 +806,6 @@ class settings {
                 getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
                 getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
                 getVal<bool>(obj, F("dis"), &cfg->disNightCom);
-                getVal<bool>(obj, F("add"), &cfg->add2Total);
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();
@@ -851,7 +846,7 @@ class settings {
     #endif
 
         settings_t mCfg;
-        bool mLastSaveSucceed;
+        bool mLastSaveSucceed = 0;
 };
 
 #endif /*__SETTINGS_H__*/

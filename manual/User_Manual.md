@@ -166,6 +166,8 @@ inverter/ctrl/limit/0     600W
 ### Power Limit persistent
 This feature was removed. The persisten limit should not be modified cyclic by a script because of potential wearout of the flash inside the inverter.
 
+
+
 ## Control via REST API
 
 ### Generic Information
@@ -173,6 +175,46 @@ This feature was removed. The persisten limit should not be modified cyclic by a
 The rest API works with *JSON* POST requests. All the following instructions must be sent to the `/api/ctrl` endpoint of the AhoyDTU.
 
 👆 `<INVERTER_ID>` is the number of the specific inverter in the setup page.
+
+### Authentication (new for versions > `0.8.79`)
+
+The authentication is only needed if a password was set.
+To authenticate from API you have to add the following `JSON` to your request:
+
+```json
+{
+    "auth": <PASSOWRD>
+}
+```
+`<PASSWORD>` is your DTU password in plain text.
+
+As Response you get the following `JSON` if successful:
+
+```json
+{
+    "success": true,
+    "token": "<TOKEN>"
+}
+```
+Where `<TOKEN>` is a random token with a length of 16 characters.
+
+For all following commands you have only to include the token into your `JSON`:
+```json
+{
+    "token": "<TOKEN>"
+}
+```
+
+ℹ️ Do not pass the plain text password with each command. Authenticate once and then use the token for all following commands. The token expires once the token wasn't sent for 20 minutes.
+
+If the authentication fails or the token is expired you will receive the following `JSON`:
+
+```json
+{
+    "success": false,
+    "error": "ERR_PROTECTED"
+}
+```
 
 ### Inverter Power (On / Off)
 
@@ -244,19 +286,6 @@ The `VALUE` represents a percent number in a range of `[2.0 .. 100.0]`
 ```
 The `VALUE` represents watts in a range of `[1.0 .. 6553.5]`
 
-
-
-### Developer Information REST API (obsolete)
-In the same approach as for MQTT any other SubCmd and also MainCmd can be applied and the response payload can be observed in the serial logs. Eg. request the Alarm-Data from the Alarm-Index 5 from inverter 0 will look like this:
-```json
-{
-    "inverter":0,
-    "tx_request": 21,
-    "cmd": 17,
-    "payload": 5,
-    "payload2": 0
-}
-```
 
 ## Zero Export Control (needs rework)
 * You can use the mqtt topic `<TOPIC>/devcontrol/<INVERTER_ID>/11` with a number as payload (eg. 300 -> 300 Watt) to set the power limit to the published number in Watt. (In regular cases the inverter will use the new set point within one intervall period; to verify this see next bullet)

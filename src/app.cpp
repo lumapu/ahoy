@@ -13,7 +13,10 @@
 
 
 //-----------------------------------------------------------------------------
-app::app() : ah::Scheduler {} {}
+app::app() : ah::Scheduler {} {
+    memset(mVersion, 0, sizeof(char) * 12);
+    memset(mVersionModules, 0, sizeof(char) * 12);
+}
 
 
 //-----------------------------------------------------------------------------
@@ -47,7 +50,7 @@ void app::setup() {
     }
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
-        mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb);
+        mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, mConfig->sys.region);
     }
     #endif
     #ifdef ETHERNET
@@ -64,7 +67,7 @@ void app::setup() {
 
     esp_task_wdt_reset();
 
-    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->inst.gapMs);
+    mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
     #if defined(ENABLE_MQTT)
     mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
@@ -97,9 +100,8 @@ void app::setup() {
     esp_task_wdt_reset();
 
     mWeb.setup(this, &mSys, mConfig);
-    mWeb.setProtection(strlen(mConfig->sys.adminPwd) != 0);
-
     mApi.setup(this, &mSys, mWeb.getWebSrvPtr(), mConfig);
+    mProtection = Protection::getInstance(mConfig->sys.adminPwd);
 
     #ifdef ENABLE_SYSLOG
     mDbgSyslog.setup(mConfig); // be sure to init after mWeb.setup (webSerial uses also debug callback)
@@ -182,6 +184,8 @@ void app::onNetwork(bool gotIp) {
 void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
+    everySec([this]() { mProtection->tickSecond(); }, "prot");
+
     // Plugins
     #if defined(PLUGIN_DISPLAY)
     if (DISP_TYPE_T0_NONE != mConfig->plugin.display.type)
@@ -227,7 +231,6 @@ void app::updateNtp(void) {
         onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
 
         if (mConfig->sys.schedReboot) {
-            uint32_t localTime = gTimezone.toLocal(mTimestamp);
             uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
             if (rebootTrig <= mTimestamp) { //necessary for times other than midnight to prevent reboot loop
                rebootTrig += 86400;
@@ -236,7 +239,7 @@ void app::updateNtp(void) {
         }
     }
 
-    if ((mSunrise == 0) && (mConfig->sun.lat) && (mConfig->sun.lon)) {
+    if ((0 == mSunrise) && (0.0 != mConfig->sun.lat) && (0.0 != mConfig->sun.lon)) {
         mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
         tickCalcSunrise();
     }
@@ -261,11 +264,10 @@ void app::tickNtpUpdate(void) {
     #endif
     if (isOK) {
         this->updateNtp();
-
-        nxtTrig = isOK ? (mConfig->ntp.interval * 60) : 60;  // depending on NTP update success check again in 12h (depends on setting) or in 1 min
+        nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h
 
         // immediately start communicating
-        if (isOK && mSendFirst) {
+        if (mSendFirst) {
             mSendFirst = false;
             once(std::bind(&app::tickSend, this), 1, "senOn");
         }
@@ -300,9 +302,8 @@ void app::tickIVCommunication(void) {
     bool zeroValues = false;
     uint32_t nxtTrig = 0;
 
-    Inverter<> *iv;
     for(uint8_t i = 0; i < MAX_NUM_INVERTERS; i ++) {
-        iv = mSys.getInverterByPos(i);
+        Inverter<> *iv = mSys.getInverterByPos(i);
         if(NULL == iv)
             continue;
 
@@ -389,10 +390,9 @@ void app::tickMidnight(void) {
 
         // clear max values
         if(mConfig->inst.rstMaxValsMidNight) {
-            uint8_t pos;
             record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
             for(uint8_t i = 0; i <= iv->channels; i++) {
-                pos = iv->getPosByChFld(i, FLD_MP, rec);
+                uint8_t pos = iv->getPosByChFld(i, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
         }
@@ -466,14 +466,13 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
             continue;  // skip to next inverter
         if (!iv->config->enabled)
             continue;  // skip to next inverter
-        if (iv->commEnabled)
-            continue;  // skip to next inverter
 
         if (checkAvail) {
-            if (!iv->isAvailable())
+            if (iv->isAvailable())
                 continue;
         }
 
+        changed = true;
         record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
         for(uint8_t ch = 0; ch <= iv->channels; ch++) {
             uint8_t pos = 0;
@@ -495,10 +494,9 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
                 pos = iv->getPosByChFld(ch, FLD_MP, rec);
                 iv->setValue(pos, rec, 0.0f);
             }
-
+            iv->resetAlarms();
             iv->doCalculations();
         }
-        changed = true;
     }
 
     if(changed)
@@ -591,9 +589,8 @@ void app::updateLed(void) {
     uint8_t led_on = (mConfig->led.high_active) ? (mConfig->led.luminance) : (255-mConfig->led.luminance);
 
     if (mConfig->led.led[0] != DEF_PIN_OFF) {
-        Inverter<> *iv;
         for (uint8_t id = 0; id < mSys.getNumInverters(); id++) {
-            iv = mSys.getInverterByPos(id);
+            Inverter<> *iv = mSys.getInverterByPos(id);
             if (NULL != iv) {
                 if (iv->isProducing()) {
                     // turn on when at least one inverter is producing

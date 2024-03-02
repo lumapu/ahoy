@@ -31,7 +31,7 @@ Table of approaches:
 
 | Board  | MI | HM | HMS/HMT | comment | HowTo start |
 | ------ | -- | -- | ------- | ------- | ---------- |
-| [ESP8266/ESP32, C++](Getting_Started.md) | ✔️ | ✔️ | ✔️ |  👈 the most effort is spent here | [create your own DTU](https://ahoydtu.de/getting_started/) |
+| [ESP8266/ESP32, C++](manual/Getting_Started.md) | ✔️ | ✔️ | ✔️ |  👈 the most effort is spent here | [create your own DTU](https://ahoydtu.de/getting_started/) |
 | [Arduino Nano, C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ | |
 | [Raspberry Pi, Python](tools/rpi/) | ❌ | ✔️ | ❌ | |
 | [Others, C/C++](tools/nano/NRF24_SendRcv/) | ❌ | ✔️ | ❌ |  |
@@ -39,11 +39,11 @@ Table of approaches:
 ⚠️ **Warning: HMS-XXXXW-2T WiFi inverters are not supported. They have a 'W' in their name and a DTU serial number on its sticker**
 
 ## Getting Started
-1. [Guide how to start with a ESP module](Getting_Started.md)
+1. [Guide how to start with a ESP module](manual/Getting_Started.md)
 
 2. [ESP Webinstaller (Edge / Chrome Browser only)](https://ahoydtu.de/web_install)
 
-3. [Ahoy Configuration ](ahoy_config.md)
+3. [Ahoy Configuration ](manual/ahoy_config.md)
 
 ## Our Website
 [https://ahoydtu.de](https://ahoydtu.de)

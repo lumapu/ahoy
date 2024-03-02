@@ -10,6 +10,7 @@
 #if defined(ESP32)
 #include "driver/spi_master.h"
 #include "esp_rom_gpio.h" // for esp_rom_gpio_connect_out_signal
+#include "../config/config.h"
 
 #define SPI_CLK     1 * 1000 * 1000 // 1MHz
 
@@ -104,7 +105,7 @@ class esp32_3wSpi {
             if(!mInitialized)
                 return 0;
 
-            uint8_t rx_data;
+            uint8_t rx_data = 0;
             spi_transaction_t t = {
                 .cmd = 0,
                 .addr = (uint64_t)(~addr),
@@ -121,7 +122,7 @@ class esp32_3wSpi {
             return rx_data;
         }
 
-        void writeFifo(uint8_t buf[], uint8_t len) {
+        void writeFifo(const uint8_t buf[], uint8_t len) {
             if(!mInitialized)
                 return;
             uint8_t tx_data;
@@ -144,7 +145,7 @@ class esp32_3wSpi {
         void readFifo(uint8_t buf[], uint8_t *len, uint8_t maxlen) {
             if(!mInitialized)
                 return;
-            uint8_t rx_data;
+            uint8_t rx_data = 0;
 
             spi_transaction_t t = {
                 .length = 8,

@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------
 // 2024 Ahoy, https://ahoydtu.de
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
@@ -6,6 +6,7 @@
 #ifndef __PUB_MQTT_IV_DATA_H__
 #define __PUB_MQTT_IV_DATA_H__
 
+#include <array>
 #include "../utils/dbg.h"
 #include "../hm/hmSystem.h"
 #include "pubMqttDefs.h"
@@ -21,6 +22,8 @@ struct sendListCmdIv {
 template<class HMSYSTEM>
 class PubMqttIvData {
     public:
+        PubMqttIvData() : mTotal{}, mSubTopic{}, mVal{} {}
+
         void setup(HMSYSTEM *sys, uint32_t *utcTs, std::queue<sendListCmdIv> *sendList) {
             mSys           = sys;
             mUtcTimestamp  = utcTs;
@@ -72,13 +75,14 @@ class PubMqttIvData {
             mTotalFound = false;
             mSendTotalYd = true;
             mAllTotalFound = true;
+            mAtLeastOneWasntSent = false;
             if(!mSendList->empty()) {
                 mCmd = mSendList->front().cmd;
                 mIvSend = mSendList->front().iv;
 
                 if((RealTimeRunData_Debug != mCmd) || !mRTRDataHasBeenSent) { // send RealTimeRunData only once
                     mSendTotals = (RealTimeRunData_Debug == mCmd);
-                    memset(mTotal, 0, sizeof(float) * 4);
+                    memset(mTotal, 0, sizeof(float) * 5);
                     mState = FIND_NXT_IV;
                 } else
                     mSendList->pop();
@@ -105,21 +109,21 @@ class PubMqttIvData {
             if(found) {
                 record_t<> *rec = mIv->getRecordStruct(mCmd);
                 if(MqttSentStatus::NEW_DATA == rec->mqttSentStatus) {
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/last_success", mIv->config->name);
-                    snprintf(mVal, 40, "%d", mIv->getLastTs(rec));
-                    mPublish(mSubTopic, mVal, true, QOS_0);
+                    snprintf(mSubTopic.data(), mSubTopic.size(), "%s/last_success", mIv->config->name);
+                    snprintf(mVal.data(), mVal.size(), "%d", mIv->getLastTs(rec));
+                    mPublish(mSubTopic.data(), mVal.data(), true, QOS_0);
 
                     if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
-                        snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch0/rssi", mIv->config->name);
-                        snprintf(mVal, 40, "%d", mIv->rssi);
-                        mPublish(mSubTopic, mVal, false, QOS_0);
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "%d", mIv->rssi);
+                        mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
                     }
                     rec->mqttSentStatus = MqttSentStatus::LAST_SUCCESS_SENT;
                 }
 
                 mIv->isProducing(); // recalculate status
                 mState = SEND_DATA;
-            } else if(mSendTotals && mTotalFound) {
+            } else if(mSendTotals && mTotalFound && mAtLeastOneWasntSent) {
                 if(mYldTotalStore > mTotal[2])
                     mSendTotalYd = false; // don't send yield total if last value was greater
                 else
@@ -142,30 +146,31 @@ class PubMqttIvData {
 
             if(mPos < rec->length) {
                 bool retained = false;
-                if (mCmd == RealTimeRunData_Debug) {
+                if (RealTimeRunData_Debug == mCmd) {
                     if((FLD_YT == rec->assign[mPos].fieldId) || (FLD_YD == rec->assign[mPos].fieldId))
                         retained = true;
 
                     // calculate total values for RealTimeRunData_Debug
                     if (CH0 == rec->assign[mPos].ch) {
                         if(mIv->getStatus() != InverterStatus::OFF) {
-                            if(mIv->config->add2Total) {
-                                mTotalFound = true;
-                                switch (rec->assign[mPos].fieldId) {
-                                    case FLD_PAC:
-                                        mTotal[0] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YT:
-                                        mTotal[1] += mIv->getValue(mPos, rec);
-                                        break;
-                                    case FLD_YD: {
-                                        mTotal[2] += mIv->getValue(mPos, rec);
-                                        break;
-                                    }
-                                    case FLD_PDC:
-                                        mTotal[3] += mIv->getValue(mPos, rec);
-                                        break;
+                            mTotalFound = true;
+                            switch (rec->assign[mPos].fieldId) {
+                                case FLD_PAC:
+                                    mTotal[0] += mIv->getValue(mPos, rec);
+                                    break;
+                                case FLD_YT:
+                                    mTotal[1] += mIv->getValue(mPos, rec);
+                                    break;
+                                case FLD_YD: {
+                                    mTotal[2] += mIv->getValue(mPos, rec);
+                                    break;
                                 }
+                                case FLD_PDC:
+                                    mTotal[3] += mIv->getValue(mPos, rec);
+                                    break;
+                                case FLD_MP:
+                                    mTotal[4] += mIv->getValue(mPos, rec);
+                                    break;
                             }
                         } else
                             mAllTotalFound = false;
@@ -173,10 +178,33 @@ class PubMqttIvData {
                 }
 
                 if (MqttSentStatus::LAST_SUCCESS_SENT == rec->mqttSentStatus) {
+                    mAtLeastOneWasntSent = true;
+                    if(InverterDevInform_All == mCmd) {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/firmware", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "{\"version\":%d,\"build_year\":\"%d\",\"build_month_day\":%d,\"build_hour_min\":%d,\"bootloader\":%d}",
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_VERSION, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_YEAR, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec)));
+                        retained = true;
+                    } else if(InverterDevInform_Simple == mCmd) {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/hardware", mIv->config->name);
+                        snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%d\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_PART_NUM, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec)),
+                            static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec)));
+                        retained = true;
+                    } else {
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
+                        snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
+                    }
+
                     uint8_t qos = (FLD_ACT_ACTIVE_PWR_LIMIT == rec->assign[mPos].fieldId) ? QOS_2 : QOS_0;
-                    snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
-                    snprintf(mVal, 40, "%g", ah::round3(mIv->getValue(mPos, rec)));
-                    mPublish(mSubTopic, mVal, retained, qos);
+                    if((FLD_EVT != rec->assign[mPos].fieldId)
+                        && (FLD_LAST_ALARM_CODE != rec->assign[mPos].fieldId))
+                        mPublish(mSubTopic.data(), mVal.data(), retained, qos);
                 }
                 mPos++;
             } else {
@@ -189,24 +217,24 @@ class PubMqttIvData {
         }
 
         inline void sendRadioStat(uint8_t start) {
-            snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "%s/radio_stat", mIv->config->name);
-            snprintf(mVal, 140, "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d,\"lossIvRx\":%d,\"lossIvTx\":%d,\"lossDtuRx\":%d,\"lossDtuTx\":%d}",
+            snprintf(mSubTopic.data(), mSubTopic.size(), "%s/radio_stat", mIv->config->name);
+            snprintf(mVal.data(), mVal.size(), "{\"tx\":%d,\"success\":%d,\"fail\":%d,\"no_answer\":%d,\"retransmits\":%d,\"lossIvRx\":%d,\"lossIvTx\":%d,\"lossDtuRx\":%d,\"lossDtuTx\":%d}",
                 mIv->radioStatistics.txCnt,
                 mIv->radioStatistics.rxSuccess,
                 mIv->radioStatistics.rxFail,
-                mIv->radioStatistics.rxFailNoAnser,
+                mIv->radioStatistics.rxFailNoAnswer,
                 mIv->radioStatistics.retransmits,
                 mIv->radioStatistics.ivLoss,
                 mIv->radioStatistics.ivSent,
                 mIv->radioStatistics.dtuLoss,
                 mIv->radioStatistics.dtuSent);
-            mPublish(mSubTopic, mVal, false, QOS_0);
+            mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
         }
 
         void stateSendTotals() {
-            uint8_t fieldId;
             mRTRDataHasBeenSent = true;
-            if(mPos < 4) {
+            if(mPos < 5) {
+                uint8_t fieldId;
                 bool retained = true;
                 switch (mPos) {
                     default:
@@ -232,37 +260,42 @@ class PubMqttIvData {
                         fieldId = FLD_PDC;
                         retained = false;
                         break;
+                    case 4:
+                        fieldId = FLD_MP;
+                        retained = false;
+                        break;
                 }
-                snprintf(mSubTopic, 32 + MAX_NAME_LENGTH, "total/%s", fields[fieldId]);
-                snprintf(mVal, 40, "%g", ah::round3(mTotal[mPos]));
-                mPublish(mSubTopic, mVal, retained, QOS_0);
+                snprintf(mSubTopic.data(), mSubTopic.size(), "total/%s", fields[fieldId]);
+                snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mTotal[mPos]));
+                mPublish(mSubTopic.data(), mVal.data(), retained, QOS_0);
                 mPos++;
             } else {
                 mSendList->pop();
-                mPos = 0;
+                mSendTotals = false;
                 mState = IDLE;
             }
         }
 
-        HMSYSTEM *mSys;
-        uint32_t *mUtcTimestamp;
+        HMSYSTEM *mSys = nullptr;
+        uint32_t *mUtcTimestamp = nullptr;
         pubMqttPublisherType mPublish;
-        State mState;
+        State mState = IDLE;
         StateFunction mTable[NUM_STATES];
 
-        uint8_t mCmd;
-        uint8_t mLastIvId;
-        bool mSendTotals, mTotalFound, mAllTotalFound, mSendTotalYd;
-        float mTotal[4], mYldTotalStore;
+        uint8_t mCmd = 0;
+        uint8_t mLastIvId = 0;
+        bool mSendTotals = false, mTotalFound = false, mAllTotalFound = false;
+        bool mSendTotalYd = false, mAtLeastOneWasntSent = false;
+        float mTotal[5], mYldTotalStore = 0;
 
-        Inverter<> *mIv, *mIvSend;
-        uint8_t mPos;
-        bool mRTRDataHasBeenSent;
+        Inverter<> *mIv = nullptr, *mIvSend = nullptr;
+        uint8_t mPos = 0;
+        bool mRTRDataHasBeenSent = false;
 
-        char mSubTopic[32 + MAX_NAME_LENGTH + 1];
-        char mVal[140];
+        std::array<char, (32 + MAX_NAME_LENGTH + 1)> mSubTopic;
+        std::array<char, 160> mVal;
 
-        std::queue<sendListCmdIv> *mSendList;
+        std::queue<sendListCmdIv> *mSendList = nullptr;
 };
 
 #endif /*__PUB_MQTT_IV_DATA_H__*/

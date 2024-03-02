@@ -12,11 +12,11 @@ class DisplayMono128X32 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(display_t *cfg) {
+        void config(display_t *cfg) override {
             mCfg = cfg;
         }
 
-        void init(DisplayData *displayData) {
+        void init(DisplayData *displayData) override {
             u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
             monoInit(new U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C(rot, 0xff, mCfg->disp_clk, mCfg->disp_data), displayData);
             calcLinePositions();
@@ -26,7 +26,7 @@ class DisplayMono128X32 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void disp(void) {
+        void disp(void)  override {
             mDisplay->clearBuffer();
 
             // calculate current pixelshift for pixelshift screensaver

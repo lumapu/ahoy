@@ -20,14 +20,6 @@
                         {#MAXIMUM}: <span id="pwrMax"></span> W. {#UPDATED} <span id="pwrRefresh"></span> {#SECONDS}
                     </p>
                 </div>
-                <h3>{#TOTAL_YIELD_PER_DAY}</h3>
-                <div>
-                    <div class="chartDiv" id="ydChart"> </div>
-                    <p>
-                        {#MAXIMUM}: <span id="ydMax"></span> Wh<br />
-                        {#UPDATED} <span id="ydRefresh"></span> {#SECONDS}
-                    </p>
-                </div>
             </div>
         </div>
         {#HTML_FOOTER}
@@ -87,6 +79,8 @@
 
             function parsePowerHistory(obj){
                 if (null != obj) {
+                    parseNav(obj.generic);
+                    parseESP(obj.generic);
                     parseHistory(obj,"pwr", pwrExeOnce)
                     document.getElementById("pwrLast").innerHTML = mLastValue
                     document.getElementById("pwrMaxDay").innerHTML = obj.maxDay
@@ -94,20 +88,6 @@
                 if (pwrExeOnce) {
                     pwrExeOnce = false;
                     window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", mRefresh * 1000);
-
-                    setTimeout(() => {
-                        getAjax("/api/yieldDayHistory", parseYieldDayHistory);
-                    } , 20);
-                }
-            }
-            function parseYieldDayHistory(obj) {
-                if (null != obj) {
-                    parseNav(obj.generic);
-                    parseHistory(obj, "yd", ydExeOnce)
-                }
-                if (ydExeOnce) {
-                    ydExeOnce = false;
-                    window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", mRefresh * 500);
                 }
             }
 

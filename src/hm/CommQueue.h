@@ -12,14 +12,12 @@
 #include "../utils/dbg.h"
 
 #define DEFAULT_ATTEMPS                 5
-#define MORE_ATTEMPS_ALARMDATA          8
-#define MORE_ATTEMPS_GRIDONPROFILEPARA  5
+#define MORE_ATTEMPS_ALARMDATA          3 // 8
+#define MORE_ATTEMPS_GRIDONPROFILEPARA  0 // 5
 
 template <uint8_t N=100>
 class CommQueue {
     public:
-        CommQueue() {}
-
         void addImportant(Inverter<> *iv, uint8_t cmd) {
             dec(&mRdPtr);
             mQueue[mRdPtr] = queue_s(iv, cmd, true);
@@ -34,12 +32,12 @@ class CommQueue {
             mQueue[mWrPtr] = queue_s(iv, cmd, false);
         }
 
-        uint8_t getFillState(void) {
+        uint8_t getFillState(void) const {
             //DPRINTLN(DBG_INFO, "wr: " + String(mWrPtr) + ", rd: " + String(mRdPtr));
             return abs(mRdPtr - mWrPtr);
         }
 
-        uint8_t getMaxFill(void) {
+        uint8_t getMaxFill(void) const {
             return N;
         }
 
@@ -93,7 +91,7 @@ class CommQueue {
             inc(&mRdPtr);
         }
 
-        void setTs(uint32_t *ts) {
+        void setTs(const uint32_t *ts) {
             mQueue[mRdPtr].ts = *ts;
         }
 

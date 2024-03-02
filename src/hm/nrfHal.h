@@ -142,7 +142,7 @@ class nrfHal: public RF24_hal, public SpiPatcherHandle {
         }
 
         uint8_t read(uint8_t cmd, uint8_t* buf, uint8_t len) override {
-            uint8_t data[NRF_MAX_TRANSFER_SZ];
+            uint8_t data[NRF_MAX_TRANSFER_SZ + 1];
             data[0] = cmd;
             if(len > NRF_MAX_TRANSFER_SZ)
                 len = NRF_MAX_TRANSFER_SZ;

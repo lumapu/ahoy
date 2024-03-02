@@ -43,13 +43,7 @@ template <class HMSYSTEM>
 class Web {
    public:
         Web(void) : mWeb(80), mEvts("/events") {
-            mProtected     = true;
-            mLogoutTimeout = 0;
-
             memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-            mSerialBufFill     = 0;
-            mSerialAddTime     = true;
-            mSerialClientConnnected = false;
         }
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
@@ -106,16 +100,6 @@ class Web {
         }
 
         void tickSecond() {
-            if (0 != mLogoutTimeout) {
-                mLogoutTimeout -= 1;
-                if (0 == mLogoutTimeout) {
-                    if (strlen(mConfig->sys.adminPwd) > 0)
-                        mProtected = true;
-                }
-
-                DPRINTLN(DBG_DEBUG, "auto logout in " + String(mLogoutTimeout));
-            }
-
             if (mSerialClientConnnected) {
                 if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
@@ -127,27 +111,6 @@ class Web {
 
         AsyncWebServer *getWebSrvPtr(void) {
             return &mWeb;
-        }
-
-        void setProtection(bool protect) {
-            mProtected = protect;
-        }
-
-        bool isProtected(AsyncWebServerRequest *request) {
-            bool prot;
-            prot = mProtected;
-            if(!prot) {
-                if(strlen(mConfig->sys.adminPwd) > 0) {
-                    uint8_t ip[4];
-                    ah::ip2Arr(ip, request->client()->remoteIP().toString().c_str());
-                    for(uint8_t i = 0; i < 4; i++) {
-                        if(mLoginIp[i] != ip[i])
-                            prot = true;
-                    }
-                }
-            }
-
-            return prot;
         }
 
         void showUpdate2(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -260,7 +223,7 @@ class Web {
         }
 
         void checkProtection(AsyncWebServerRequest *request) {
-            if(isProtected(request)) {
+            if(mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true)) {
                 checkRedirect(request);
                 return;
             }
@@ -347,8 +310,7 @@ class Web {
 
             if (request->args() > 0) {
                 if (String(request->arg("pwd")) == String(mConfig->sys.adminPwd)) {
-                    mProtected = false;
-                    ah::ip2Arr(mLoginIp, request->client()->remoteIP().toString().c_str());
+                    mApp->unlock(request->client()->remoteIP().toString().c_str(), true);
                     request->redirect("/");
                 }
             }
@@ -362,8 +324,7 @@ class Web {
             DPRINTLN(DBG_VERBOSE, F("onLogout"));
 
             checkProtection(request);
-
-            mProtected = true;
+            mApp->lock(true);
 
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/html; charset=UTF-8"), system_html, system_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
@@ -386,7 +347,6 @@ class Web {
 
         void onCss(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("onCss"));
-            mLogoutTimeout = LOGOUT_TIMEOUT;
             AsyncWebServerResponse *response = request->beginResponse_P(200, F("text/css"), style_css, style_css_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             if(request->hasParam("v")) {
@@ -477,7 +437,8 @@ class Web {
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
             mConfig->sys.schedReboot = (request->arg("schedReboot") == "on");
-
+            mConfig->sys.region = (request->arg("region")).toInt();
+            mConfig->sys.timezone = (request->arg("timezone")).toInt() - 12;
 
             if (request->arg("cstLnk") != "") {
                 request->arg("cstLnk").toCharArray(mConfig->plugin.customLink, MAX_CUSTOM_LINK_LEN);
@@ -490,7 +451,7 @@ class Web {
             // protection
             if (request->arg("adminpwd") != "{PWD}") {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
-                mProtected = (strlen(mConfig->sys.adminPwd) > 0);
+                mApp->lock(false);
             }
             mConfig->sys.protectionMask = 0x0000;
             for (uint8_t i = 0; i < 7; i++) {
@@ -518,14 +479,11 @@ class Web {
             mConfig->inst.startWithoutTime = (request->arg("strtWthtTm") == "on");
             mConfig->inst.readGrid = (request->arg("rdGrid") == "on");
             mConfig->inst.rstMaxValsMidNight = (request->arg("invRstMaxMid") == "on");
-            mConfig->inst.yieldEffiency = (request->arg("yldEff")).toFloat();
-            mConfig->inst.gapMs = (request->arg("invGap")).toInt();
 
 
             // pinout
-            uint8_t pin;
             for (uint8_t i = 0; i < 16; i++) {
-                pin = request->arg(String(pinArgNames[i])).toInt();
+                uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
                     case 1:  mConfig->nrf.pinCe    = ((pin != 0xff) ? pin : DEF_NRF_CE_PIN);  break;
@@ -589,6 +547,7 @@ class Web {
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
+            mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
@@ -666,8 +625,8 @@ class Web {
         // NOTE: Grouping for fields with channels and totals is currently not working
         // TODO: Handle grouping and sorting for independant from channel number
         // NOTE: Check packetsize for MAX_NUM_INVERTERS. Successfully Tested with 4 Inverters (each with 4 channels)
-        const char * metricConstPrefix = "ahoy_solar_";
-        const char * metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
+        const char* metricConstPrefix = "ahoy_solar_";
+        const char* metricConstInverterFormat = " {inverter=\"%s\"} %d\n";
         typedef enum {
             metricsStateInverterInfo=0,           metricsStateInverterEnabled=1,        metricsStateInverterAvailable=2,
             metricsStateInverterProducing=3,      metricsStateInverterPowerLimitRead=4, metricsStateInverterPowerLimitAck=5,
@@ -681,7 +640,7 @@ class Web {
             metricsStateStart,
             metricsStateEnd
         } MetricStep_t;
-        MetricStep_t metricsStep;
+        MetricStep_t metricsStep = metricsStateInverterInfo;
         typedef struct {
             const char *topic;
             const char *type;
@@ -693,12 +652,12 @@ class Web {
             { "is_enabled",           "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->config->enabled;} },
             { "is_available",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isAvailable();} },
             { "is_producing",         "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->isProducing();} },
-            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (int64_t)ah::round3(iv->actPowerLimit);} },
+            { "power_limit_read",     "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->actPowerLimit;} },
             { "power_limit_ack",      "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return (iv->powerLimitAck)?1:0;} },
             { "max_power",            "gauge",   metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->getMaxPower();} },
             { "radio_rx_success",     "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxSuccess;} },
             { "radio_rx_fail",        "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFail;} },
-            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnser;} },
+            { "radio_rx_fail_answer", "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.rxFailNoAnswer;} },
             { "radio_frame_cnt",      "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.frmCnt;} },
             { "radio_tx_cnt",         "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.txCnt;} },
             { "radio_retransmits",    "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.retransmits;} },
@@ -707,9 +666,6 @@ class Web {
             { "radio_dtu_loss_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuLoss;} },
             { "radio_dtu_sent_cnt",   "counter" ,metricConstInverterFormat, [](Inverter<> *iv)-> uint64_t {return iv->radioStatistics.dtuSent;} }
         };
-        int metricsInverterId;
-        uint8_t metricsFieldId;
-        bool metricDeclared, metricTotalDeclard;
 
         void showMetrics(AsyncWebServerRequest *request) {
             DPRINTLN(DBG_VERBOSE, F("web::showMetrics"));
@@ -724,7 +680,6 @@ class Web {
                 char type[60], topic[100], val[25];
                 size_t len = 0;
                 int alarmChannelId;
-                int metricsChannelId;
 
                 // Perform grouping on metrics according to format specification
                 // Each step must return at least one character. Otherwise the processing of AsyncWebServerResponse stops.
@@ -748,7 +703,7 @@ class Web {
                         snprintf(topic,sizeof(topic),"%swifi_rssi_db{devicename=\"%s\"} %d\n",metricConstPrefix, mConfig->sys.deviceName, WiFi.RSSI());
                         metrics += String(type) + String(topic);
 
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen,"%s",metrics.c_str());
                         // Next is Inverter information
                         metricsStep = metricsStateInverterInfo;
                         break;
@@ -776,7 +731,7 @@ class Web {
                                         (String("ahoy_solar_inverter_") + inverterMetrics[metricsStep].topic +
                                             inverterMetrics[metricsStep].format).c_str(),
                                             inverterMetrics[metricsStep].valueFunc);
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
                         // ugly hack to increment the enum
                         metricsStep = static_cast<MetricStep_t>( static_cast<int>(metricsStep) + 1);
                         // Prepare  Realtime Field loop, which may be startet next
@@ -796,7 +751,7 @@ class Web {
                             metrics = "# Info: all realtime fields processed\n";
                             metricsStep = metricsStateAlarmData;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                   case metricStateRealtimeInverterId: // Iterate over all inverters for this field
@@ -806,7 +761,7 @@ class Web {
                             iv = mSys->getInverterByPos(metricsInverterId);
                             if (NULL != iv) {
                                 rec = iv->getRecordStruct(RealTimeRunData_Debug);
-                                for (metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
+                                for (int metricsChannelId=0; metricsChannelId < rec->length;metricsChannelId++) {
                                     uint8_t channel = rec->assign[metricsChannelId].ch;
 
                                     // Try inverter channel (channel 0) or any channel with maxPwr > 0
@@ -823,10 +778,10 @@ class Web {
                                             // report value
                                             if (0 == channel) {
                                                 // Report a _total value if also channel values were reported. Otherwise report without _total
-                                                char total[7];
+                                                char total[7] = {0};
                                                 if (metricDeclared) {
                                                     // A declaration and value for channels have been delivered. So declare and deliver a _total metric
-                                                    strncpy(total, "_total", 6);
+                                                    snprintf(total, sizeof(total), "_total");
                                                 }
                                                 if (!metricTotalDeclard) {
                                                     snprintf(type, sizeof(type), "# TYPE %s%s%s%s %s\n",metricConstPrefix, iv->getFieldName(metricsChannelId, rec), promUnit.c_str(), total, promType.c_str());
@@ -870,7 +825,7 @@ class Web {
                             metricsFieldId++; // Process next field Id
                             metricsStep = metricStateRealtimeFieldId;
                         }
-                        len = snprintf((char *)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char *>(buffer), maxLen, "%s", metrics.c_str());
                         break;
 
                     case metricsStateAlarmData: // Alarm Info loop : fit to one packet
@@ -894,7 +849,7 @@ class Web {
                                 }
                             }
                         }
-                        len = snprintf((char*)buffer,maxLen,"%s",metrics.c_str());
+                        len = snprintf(reinterpret_cast<char*>(buffer), maxLen, "%s", metrics.c_str());
                         metricsStep = metricsStateEnd;
                         break;
 
@@ -913,10 +868,9 @@ class Web {
 
         // Traverse all inverters and collect the metric via valueFunc
         String inverterMetric(char *buffer, size_t len, const char *format, std::function<uint64_t(Inverter<> *iv)> valueFunc) {
-            Inverter<> *iv;
             String metric = "";
-            for (int metricsInverterId = 0; metricsInverterId < mSys->getNumInverters();metricsInverterId++) {
-                iv = mSys->getInverterByPos(metricsInverterId);
+            for (int id = 0; id < mSys->getNumInverters();id++) {
+                Inverter<> *iv = mSys->getInverterByPos(id);
                 if (NULL != iv) {
                     snprintf(buffer,len,format,iv->config->name, valueFunc(iv));
                     metric += String(buffer);
@@ -937,24 +891,27 @@ class Web {
             if(shortUnit == "Hz")   return {"_hertz", "gauge"};
             return {"", "gauge"};
         }
+
+    private:
+        int metricsInverterId = 0;
+        uint8_t metricsFieldId = 0;
+        bool metricDeclared = false, metricTotalDeclard = false;
 #endif
+    private:
         AsyncWebServer mWeb;
         AsyncEventSource mEvts;
-        bool mProtected;
-        uint32_t mLogoutTimeout;
-        uint8_t mLoginIp[4];
-        IApp *mApp;
-        HMSYSTEM *mSys;
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
 
-        settings_t *mConfig;
+        settings_t *mConfig = nullptr;
 
-        bool mSerialAddTime;
+        bool mSerialAddTime = true;
         char mSerialBuf[WEB_SERIAL_BUF_SIZE];
-        uint16_t mSerialBufFill;
-        bool mSerialClientConnnected;
+        uint16_t mSerialBufFill = 0;
+        bool mSerialClientConnnected = false;
 
         File mUploadFp;
-        bool mUploadFail;
+        bool mUploadFail = false;
 };
 
 #endif /*__WEB_H__*/

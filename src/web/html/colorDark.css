@@ -4,8 +4,8 @@
     --fg2: #fff;
 
     --info: #0072c8;
-    --warn: #ffaa00;
-    --success: #00bb00;
+    --warn: #fa0;
+    --success: #0b0;
 
     --input-bg: #333;
     --table-border: #333;
@@ -20,14 +20,14 @@
 
     --invalid-bg: #400;
 
-    --total-head-title: #555511;
-    --total-bg: #666622;
-    --iv-head-title: #115511;
-    --iv-head-bg: #226622;
+    --total-head-title: #551;
+    --total-bg: #662;
+    --iv-head-title: #151;
+    --iv-head-bg: #262;
     --iv-dis-title: #333;
     --iv-dis: #444;
-    --ch-head-title: #112255;
-    --ch-head-bg: #223366;
+    --ch-head-title: #125;
+    --ch-head-bg: #236;
     --ts-head: #333;
     --ts-bg: #555;
 }

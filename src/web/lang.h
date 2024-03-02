@@ -19,21 +19,9 @@
 #endif
 
 #ifdef LANG_DE
-    #define INV_INDEX_INVALID "Wechselrichterindex ungültig; "
+    #define WAS_IN_CH_12_TO_14 "Der ESP war in WLAN Kanal 12 bis 14, was uU. zu Abstürzen führt"
 #else /*LANG_EN*/
-    #define INV_INDEX_INVALID "inverter index invalid: "
-#endif
-
-#ifdef LANG_DE
-    #define UNKNOWN_CMD "unbekanntes Kommando: '"
-#else /*LANG_EN*/
-    #define UNKNOWN_CMD "unknown cmd: '"
-#endif
-
-#ifdef LANG_DE
-    #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "Leistungsbegrenzung / Ansteuerung aktuell nicht möglich"
-#else /*LANG_EN*/
-    #define INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT "inverter does not accept dev control request at this moment"
+    #define WAS_IN_CH_12_TO_14 "Your ESP was in wifi channel 12 to 14. It may cause reboots of your AhoyDTU"
 #endif
 
 #ifdef LANG_DE

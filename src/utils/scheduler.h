@@ -7,6 +7,7 @@
 #define __SCHEDULER_H__
 
 #include <functional>
+#include <array>
 #include "dbg.h"
 
 namespace ah {
@@ -28,8 +29,6 @@ namespace ah {
 
     class Scheduler {
         public:
-            Scheduler() {}
-
             void setup(bool directStart) {
                 mUptime     = 0;
                 mTimestamp  = (directStart) ? 1 : 0;
@@ -93,8 +92,7 @@ namespace ah {
             }
 
             inline void resetTicker(void) {
-                for (uint8_t i = 0; i < MAX_NUM_TICKER; i++)
-                    mTickerInUse[i] = false;
+                mTickerInUse.fill(false);
             }
 
             void getStat(uint8_t *max) {
@@ -127,8 +125,8 @@ namespace ah {
                         mTicker[i].timeout = timeout;
                         mTicker[i].reload = reload;
                         mTicker[i].isTimestamp = isTimestamp;
-                        memset(mTicker[i].name, 0, 6);
-                        strncpy(mTicker[i].name, name, (strlen(name) < 6) ? strlen(name) : 5);
+                        strncpy(mTicker[i].name, name, 5);
+                        mTicker[i].name[5]=0;
                         if(mMax == i)
                             mMax = i + 1;
                         return i;
@@ -159,11 +157,11 @@ namespace ah {
                 }
             }
 
-            sP mTicker[MAX_NUM_TICKER];
-            bool mTickerInUse[MAX_NUM_TICKER];
-            uint32_t mMillis, mPrevMillis, mDiff;
-            uint8_t mDiffSeconds;
-            uint8_t mMax;
+            std::array<sP, MAX_NUM_TICKER> mTicker;
+            std::array<bool, MAX_NUM_TICKER> mTickerInUse;
+            uint32_t mMillis = 0, mPrevMillis = 0, mDiff = 0;
+            uint8_t mDiffSeconds = 0;
+            uint8_t mMax = 0;
     };
 }
 

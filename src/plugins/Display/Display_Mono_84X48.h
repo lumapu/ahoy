@@ -12,11 +12,11 @@ class DisplayMono84X48 : public DisplayMono {
             mExtra = 0;
         }
 
-        void config(display_t *cfg) {
+        void config(display_t *cfg) override {
             mCfg = cfg;
         }
 
-        void init(DisplayData *displayData) {
+        void init(DisplayData *displayData) override {
             u8g2_cb_t *rot = (u8g2_cb_t *)((mCfg->rot != 0x00) ? U8G2_R2 : U8G2_R0);
 
             monoInit(new U8G2_PCD8544_84X48_F_4W_SW_SPI(rot, mCfg->disp_clk, mCfg->disp_data, mCfg->disp_cs, mCfg->disp_dc, 0xff), displayData);
@@ -55,7 +55,7 @@ class DisplayMono84X48 : public DisplayMono {
             mDisplay->sendBuffer();
         }
 
-        void disp(void) {
+        void disp(void) override {
             mDisplay->clearBuffer();
 
             // Layout-Test
@@ -143,12 +143,11 @@ class DisplayMono84X48 : public DisplayMono {
             // draw dynamic RSSI bars
             int rssi_bar_height = 7;
             for (int i = 0; i < 4; i++) {
-                int radio_rssi_threshold = -60 - i * 10;
-                int wifi_rssi_threshold = -60 - i * 10;
+                int rssi_threshold = -60 - i * 10;
                 uint8_t barwidth = std::min(4 - i, 3);
-                if (mDisplayData->RadioRSSI > radio_rssi_threshold)
+                if (mDisplayData->RadioRSSI > rssi_threshold)
                     mDisplay->drawBox(0,                     8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
-                if (mDisplayData->WifiRSSI > wifi_rssi_threshold)
+                if (mDisplayData->WifiRSSI > rssi_threshold)
                     mDisplay->drawBox(mDispWidth - barwidth, 8 + (rssi_bar_height + 1) * i, barwidth, rssi_bar_height);
             }
 
@@ -184,30 +183,28 @@ class DisplayMono84X48 : public DisplayMono {
             l_MAX_LINES = 5,
         };
 
-        uint8_t graph_first_line;
-        uint8_t graph_last_line;
+        uint8_t graph_first_line = 0;
+        uint8_t graph_last_line = 0;
 
         void calcLinePositions() {
             uint8_t yOff = 0;
             uint8_t i = 0;
-            uint8_t asc, dsc;
 
             do {
                 setLineFont(i);
-                asc = mDisplay->getAscent();
+                uint8_t asc = mDisplay->getAscent();
                 yOff += asc;
                 mLineYOffsets[i] = yOff;
-                dsc = mDisplay->getDescent();
+                uint8_t dsc = mDisplay->getDescent();
                 if (l_TotalPower != i)   // power line needs no descent spacing
                     yOff -= dsc;
                 yOff++;     // instead lets spend one pixel space between all lines
                 i++;
-            } while(l_MAX_LINES>i);
+            } while(l_MAX_LINES > i);
         }
 
         inline void setLineFont(uint8_t line) {
-            if ((line == l_TotalPower) ||
-                (line == l_Ahoy))
+            if (line == l_TotalPower) // || (line == l_Ahoy) -> l_TotalPower == l_Ahoy == 2
                 mDisplay->setFont(u8g2_font_logisoso16_tr);
             else
                 mDisplay->setFont(u8g2_font_5x8_symbols_ahoy);

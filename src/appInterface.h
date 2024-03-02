@@ -14,7 +14,7 @@
 class IApp {
     public:
         virtual ~IApp() {}
-        virtual bool saveSettings(bool stopFs) = 0;
+        virtual bool saveSettings(bool reboot) = 0;
         virtual void initInverter(uint8_t id) = 0;
         virtual bool readSettings(const char *path) = 0;
         virtual bool eraseSettings(bool eraseWifi) = 0;
@@ -31,6 +31,7 @@ class IApp {
         virtual void setupStation(void) = 0;
         virtual void setStopApAllowedMode(bool allowed) = 0;
         virtual String getStationIp(void) = 0;
+        virtual bool getWasInCh12to14(void) const = 0;
         #endif /* defined(ETHERNET) */
 
         virtual uint32_t getUptime() = 0;
@@ -56,7 +57,10 @@ class IApp {
         virtual uint32_t getMqttRxCnt() = 0;
         virtual uint32_t getMqttTxCnt() = 0;
 
-        virtual bool getProtection(AsyncWebServerRequest *request) = 0;
+        virtual void lock(bool fromWeb) = 0;
+        virtual char *unlock(const char *clientIp, bool loginFromWeb) = 0;
+        virtual void resetLockTimeout(void) = 0;
+        virtual bool isProtected(const char *clientIp, const char *token, bool askedFromWeb) const = 0;
 
         virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
         virtual uint16_t getHistoryMaxDay() = 0;

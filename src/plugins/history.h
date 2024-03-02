@@ -24,23 +24,15 @@ template<class HMSYSTEM>
 class HistoryData {
     private:
         struct storage_t {
-            uint16_t refreshCycle;
-            uint16_t loopCnt;
-            uint16_t listIdx; // index for next Element to write into WattArr
-            uint16_t dispIdx; // index for 1st Element to display from WattArr
-            bool wrapped;
+            uint16_t refreshCycle = 0;
+            uint16_t loopCnt = 0;
+            uint16_t listIdx = 0; // index for next Element to write into WattArr
+            uint16_t dispIdx = 0; // index for 1st Element to display from WattArr
+            bool wrapped = false;
             // ring buffer for watt history
             std::array<uint16_t, (HISTORY_DATA_ARR_LENGTH + 1)> data;
 
-            void reset() {
-                loopCnt = 0;
-                listIdx = 0;
-                dispIdx = 0;
-                wrapped = false;
-                for(uint16_t i = 0; i < (HISTORY_DATA_ARR_LENGTH + 1); i++) {
-                    data[i] = 0;
-                }
-            }
+            storage_t() { data.fill(0); }
         };
 
     public:
@@ -50,21 +42,18 @@ class HistoryData {
             mConfig = config;
             mTs = ts;
 
-            mCurPwr.reset();
             mCurPwr.refreshCycle = mConfig->inst.sendInterval;
-            mYieldDay.reset();
-            mYieldDay.refreshCycle = 60;
+            //mYieldDay.refreshCycle = 60;
         }
 
         void tickerSecond() {
-            Inverter<> *iv;
-            record_t<> *rec;
+            ;
             float curPwr = 0;
             float maxPwr = 0;
             float yldDay = -0.1;
             for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
-                iv = mSys->getInverterByPos(i);
-                rec = iv->getRecordStruct(RealTimeRunData_Debug);
+                Inverter<> *iv = mSys->getInverterByPos(i);
+                record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
                 if (iv == NULL)
                     continue;
                 curPwr += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
@@ -80,7 +69,7 @@ class HistoryData {
                     mMaximumDay = roundf(maxPwr);
             }
 
-            if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
+            /*if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
                 if (*mTs > mApp->getSunset()) {
                     if ((!mDayStored) && (yldDay > 0)) {
                         addValue(&mYieldDay, roundf(yldDay));
@@ -88,11 +77,12 @@ class HistoryData {
                     }
                 } else if (*mTs > mApp->getSunrise())
                     mDayStored = false;
-            }
+            }*/
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {
-            storage_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
+            //storage_t *s = (HistoryStorageType::POWER == type) ? &mCurPwr : &mYieldDay;
+            storage_t *s = &mCurPwr;
             uint16_t idx = (s->dispIdx + i) % HISTORY_DATA_ARR_LENGTH;
             return s->data[idx];
         }
@@ -112,14 +102,13 @@ class HistoryData {
         }
 
     private:
-        IApp *mApp;
-        HMSYSTEM *mSys;
-        settings *mSettings;
-        settings_t *mConfig;
-        uint32_t *mTs;
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        settings *mSettings = nullptr;
+        settings_t *mConfig = nullptr;
+        uint32_t *mTs = nullptr;
 
         storage_t mCurPwr;
-        storage_t mYieldDay;
         bool mDayStored = false;
         uint16_t mMaximumDay = 0;
 };

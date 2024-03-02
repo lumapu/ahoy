@@ -118,9 +118,9 @@ class Simulator {
         }
 
     private:
-        HMSYSTEM *mSys;
-        uint8_t mIvId;
-        uint32_t *mTimestamp;
+        HMSYSTEM *mSys = nullptr;
+        uint8_t mIvId = 0;
+        uint32_t *mTimestamp = nullptr;
         payloadListenerType mCbPayload = nullptr;
         uint8_t payloadCtrl = 0;
 

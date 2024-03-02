@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #ifndef __SPI_PATCHER_H__
@@ -16,7 +16,7 @@
 
 class SpiPatcher {
     protected:
-        SpiPatcher(spi_host_device_t dev) :
+        explicit SpiPatcher(spi_host_device_t dev) :
             mHostDevice(dev), mCurHandle(nullptr) {
             // Use binary semaphore instead of mutex for performance reasons
             mutex = xSemaphoreCreateBinaryStatic(&mutex_buffer);

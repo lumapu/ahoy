@@ -27,6 +27,14 @@
                                 <div class="col-12">{#DARK_MODE_NOTE}</div>
                             </div>
                             <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#REGION}</div>
+                                <div class="col-4 col-sm-9" id="region"></div>
+                            </div>
+                            <div class="row mb-5">
+                                <div class="col-8 col-sm-3">{#TIMEZONE}</div>
+                                <div class="col-4 col-sm-9" id="timezone"></div>
+                            </div>
+                            <div class="row mb-3">
                                 <div class="col-8 col-sm-3">{#CUSTOM_LINK}</div>
                                 <div class="col-4 col-sm-9"><input type="text" name="cstLnk"/></div>
                             </div>
@@ -35,24 +43,8 @@
                                 <div class="col-4 col-sm-9"><input type="text" name="cstLnkTxt"/></div>
                             </div>
                         </fieldset>
-                        <fieldset class="mb-4">
+                        <fieldset class="mb-4" id="serialCb">
                             <legend class="des">{#SERIAL_CONSOLE}</legend>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRINT_INVERTER_DATA}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="serEn"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_SERIAL_DEBUG}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="serDbg"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRIVACY_MODE}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="priv"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8 col-sm-3">{#LOG_PRINT_TRACES}</div>
-                                <div class="col-4 col-sm-9"><input type="checkbox" name="wholeTrace"/></div>
-                            </div>
                         </fieldset>
                     </div>
 
@@ -142,10 +134,6 @@
                                 <div class="col-4"><input type="number" name="invInterval" title="Invalid input"/></div>
                             </div>
                             <div class="row mb-3">
-                                <div class="col-8 my-2">{#INV_GAP} [ms]</div>
-                                <div class="col-4"><input type="number" name="invGap" title="Invalid input"/></div>
-                            </div>
-                            <div class="row mb-3">
                                 <div class="col-8 mb-2">{#INV_RESET_MIDNIGHT}</div>
                                 <div class="col-4"><input type="checkbox" name="invRstMid"/></div>
                             </div>
@@ -168,10 +156,6 @@
                             <div class="row mb-3">
                                 <div class="col-8">{#INV_READ_GRID_PROFILE}</div>
                                 <div class="col-4"><input type="checkbox" name="rdGrid"/></div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-8">{#INV_YIELD_EFF}</div>
-                                <div class="col-4"><input type="number" name="yldEff" step="any"/></div>
                             </div>
                         </fieldset>
                     </div>
@@ -499,9 +483,6 @@
             for(var i = 0; i < 31; i++) {
                 esp32cmtPa.push([i, String(i-10) + " dBm"]);
             }
-            for(var i = 12; i < 41; i++) {
-                esp32cmtFreq.push([i, freqFmt.format(860 + i*0.25) + " MHz"]);
-            }
             /*ENDIF_ESP32*/
             var led_high_active = [
                 [0, "{#PIN_LOW_ACTIVE}"],
@@ -558,31 +539,26 @@
             }
 
             function setTime() {
-                var date = new Date();
-                var obj = new Object();
-                obj.cmd = "set_time";
-                obj.val = parseInt(date.getTime() / 1000);
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var date = new Date()
+                var obj = {cmd: "set_time", token: "*", val: parseInt(date.getTime() / 1000)}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function scan() {
-                var obj = new Object();
-                obj.cmd = "scan_wifi";
+                var obj = {cmd: "scan_wifi", token: "*"}
                 getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
                 setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function syncTime() {
-                var obj = new Object();
-                obj.cmd = "sync_ntp";
-                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000);
+                var obj = {cmd: "sync_ntp", token: "*"}
+                getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
+                setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
             function sendDiscoveryConfig() {
-                var obj = new Object();
-                obj.cmd = "discovery_cfg";
+                var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
 
@@ -625,7 +601,7 @@
             }
 
             function ivGlob(obj) {
-                for(var i of [["invInterval", "interval"], ["yldEff", "yldEff"], ["invGap", "gap"]])
+                for(var i of [["invInterval", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 for(var i of ["Mid", "ComStop", "NotAvail", "MaxMid"])
                     document.getElementsByName("invRst"+i)[0].checked = obj["rst" + i];
@@ -650,6 +626,14 @@
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
                 d.append(...el);
+
+                var tz = []
+                for(i = 0; i < 24; i += 0.5)
+                    tz.push([i, ((i-12 > 0) ? "+" : "") + String(i-12)]);
+                document.getElementById("timezone").append(sel("timezone", tz, obj.timezone + 12))
+                var region = [[0, "Europe (860 - 870 MHz)"], [1, "USA, Indonesia (905 - 925 MHz)"], [2, "Brazil (915 - 928 MHz)"]]
+                document.getElementById("region").append(sel("region", region, obj.region))
+
             }
 
             function parseGeneric(obj) {
@@ -702,7 +686,6 @@
                 add.ch_yield_cor = [];
                 add.freq = 12;
                 add.pa = 30;
-                add.add2total = true;
 
                 var e = document.getElementById("inverter");
                 e.innerHTML = ""; // remove all childs
@@ -711,6 +694,13 @@
                     e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "{#BTN_INV_ADD}", class: "btn", onclick: function() { ivModal(add); }}, null))));
 
                 ivGlob(obj);
+            }
+
+            function divRow(item0, item1) {
+                return ml("div", {class: "row mb-3"}, [
+                    ml("div", {class: "col-3 mt-2"}, item0),
+                    ml("div", {class: "col-9"}, item1)
+                ])
             }
 
             function ivModal(obj) {
@@ -733,62 +723,36 @@
 
                 var cbEn = ml("input", {name: "enable", type: "checkbox"}, null);
                 var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
-                var cbAddTotal = ml("input", {name: "add2total", type: "checkbox"}, null);
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
-                cbAddTotal.checked = (obj.add2total);
 
                 var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
                 var html = ml("div", {}, [
                     tabs(["{#TAB_GENERAL}", "{#TAB_INPUTS}", "{#TAB_RADIO}", "{#TAB_ADVANCED}"]),
                     ml("div", {id: "div{#TAB_GENERAL}", class: "tab-content"}, [
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2"}, "{#INV_ENABLE}"),
-                            ml("div", {class: "col-10"}, cbEn)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "{#INV_SERIAL}"),
-                            ml("div", {class: "col-10"}, ser)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-2 mt-2"}, "Name"),
-                            ml("div", {class: "col-10"}, ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
-                        ])
+                        divRow("{#INV_ENABLE}", cbEn),
+                        divRow("{#INV_SERIAL}", ser),
+                        divRow("Name", ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null))
                     ]),
                     ml("div", {id: "div{#TAB_INPUTS}", class: "tab-content hide"}, [
                         ml("div", {class: "row mb-3"},
-                            ml("table", {class: "table"},
-                                ml("tbody", {}, lines)
-                            )
+                            ml("table", {class: "table"}, ml("tbody", {}, lines))
                         )
                     ]),
                     ml("div", {id: "div{#TAB_RADIO}", class: "tab-content hide"}, [
                         ml("input", {type: "hidden", name: "isnrf"}, null),
                         ml("div", {id: "setcmt"}, [
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_FREQUENCY}"),
-                                ml("div", {class: "col-9"}, sel("freq", esp32cmtFreq, obj.freq))
-                            ]),
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_POWER_LEVEL}"),
-                                ml("div", {class: "col-9"}, sel("cmtpa", esp32cmtPa, obj.pa))
-                            ]),
+                            divRow("{#INV_FREQUENCY}", sel("freq", esp32cmtFreq, obj.freq)),
+                            divRow("{#INV_POWER_LEVEL}", sel("cmtpa", esp32cmtPa, obj.pa))
                         ]),
                         ml("div", {id: "setnrf"},
-                            ml("div", {class: "row mb-3"}, [
-                                ml("div", {class: "col-3 mt-2"}, "{#INV_POWER_LEVEL}"),
-                                ml("div", {class: "col-9"}, sel("nrfpa", nrfPa, obj.pa))
-                            ]),
+                            divRow("{#INV_POWER_LEVEL}", sel("nrfpa", nrfPa, obj.pa))
                         ),
                     ]),
                     ml("div", {id: "div{#TAB_ADVANCED}", class: "tab-content hide"}, [
                         ml("div", {class: "row mb-3"}, [
                             ml("div", {class: "col-10"}, "{#INV_PAUSE_DURING_NIGHT}"),
                             ml("div", {class: "col-2"}, cbDisNightCom)
-                        ]),
-                        ml("div", {class: "row mb-3"}, [
-                            ml("div", {class: "col-10"}, "{#INV_INCLUDE_MQTT_SUM}"),
-                            ml("div", {class: "col-2"}, cbAddTotal)
                         ])
                     ]),
                     ml("div", {class: "row mt-5"}, [
@@ -818,7 +782,8 @@
                             case 0x1000: nrf = true; break;
                             case 0x1100:
                                 switch(sn & 0x000f) {
-                                    case 0x0004: nrf = false; break;
+                                    case 0x0004:
+                                    case 0x0005: nrf = false; break;
                                     default:     nrf = true; break;
                                 }
                                 break;
@@ -835,8 +800,9 @@
 
                 function ivSave() {
                     var o = new Object();
-                    o.cmd  = "save_iv";
-                    o.id   = obj.id;
+                    o.cmd  = "save_iv"
+                    o.token = "*"
+                    o.id   = obj.id
                     o.ser  = parseInt(document.getElementsByName("ser")[0].value, 16);
                     o.name = document.getElementsByName("name")[0].value;
                     o.en   = document.getElementsByName("enable")[0].checked;
@@ -854,7 +820,6 @@
                         o.pa   = document.getElementsByName("cmtpa")[0].value;
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
-                    o.add2total = document.getElementsByName("add2total")[0].checked;
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
 
@@ -1019,12 +984,28 @@
                         ])
                     );
                 }
+
+                var i = 0
+                while(obj.freq_max >= (obj.freq_min + i * 0.25)) {
+                    esp32cmtFreq.push([i, freqFmt.format(obj.freq_min + i * 0.25) + " MHz"])
+                    i++
+                }
             }
             /*ENDIF_ESP32*/
 
             function parseSerial(obj) {
-                for(var i of [["serEn", "show_live_data"], ["serDbg", "debug"], ["priv", "priv"], ["wholeTrace", "wholeTrace"]])
-                    document.getElementsByName(i[0])[0].checked = obj[i[1]];
+                var e = document.getElementById("serialCb")
+                var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"], ["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"]]
+                for(var i of l) {
+                    var cb = ml("input", {name: i[0], type: "checkbox"}, null)
+                    cb.checked = obj[i[1]]
+                    e.appendChild(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-8 col-sm-3"}, i[2]),
+                            ml("div", {class: "col-4 col-sm-9"}, cb)
+                        ])
+                    )
+                }
             }
 
             function parseDisplay(obj, type, system) {

@@ -76,23 +76,23 @@ enum {CMD_CALC = 0xffff};
 enum {CH0 = 0, CH1, CH2, CH3, CH4, CH5, CH6};
 
 enum {INV_TYPE_1CH = 0, INV_TYPE_2CH, INV_TYPE_4CH, INV_TYPE_6CH};
-enum {INV_RADIO_TYPE_NRF = 0, INV_RADIO_TYPE_CMT};
+enum {INV_RADIO_TYPE_UNKNOWN = 0, INV_RADIO_TYPE_NRF, INV_RADIO_TYPE_CMT};
 
-#define WORK_FREQ_KHZ       865000 // desired work frequency between DTU and
-                                   // inverter in kHz
-#define HOY_BASE_FREQ_KHZ   860000 // in kHz
-#define HOY_MAX_FREQ_KHZ    923500 // 0xFE * 250kHz + Base_freq
-#define HOY_BOOT_FREQ_KHZ   868000 // Hoymiles boot/init frequency after power up inverter
-#define FREQ_STEP_KHZ       250    // channel step size in kHz
-#define FREQ_WARN_MIN_KHZ   863000 // for EU 863 - 870 MHz is allowed
-#define FREQ_WARN_MAX_KHZ   870000 // for EU 863 - 870 MHz is allowed
 
 #define DURATION_ONEFRAME       50 // timeout parameter for each expected frame (ms)
 //#define DURATION_RESERVE  {90,120} // timeout parameter to still wait after last expected frame (ms)
 #define DURATION_TXFRAME        85 // timeout parameter for first transmission and first expected frame (time to first channel switch from tx start!) (ms)
 #define DURATION_LISTEN_MIN      5 // time to stay at least on a listening channel (ms)
 #define DURATION_PAUSE_LASTFR   45 // how long to pause after last frame (ms)
-const uint8_t duration_reserve[2] = {115,115};
+const uint8_t duration_reserve[2] = {65, 115};
+
+#define LIMIT_FAST_IV           85 // time limit to qualify an inverter as very fast answering inverter
+#define LIMIT_VERYFAST_IV       70 // time limit to qualify an inverter as very fast answering inverter
+#define LIMIT_FAST_IV_MI        35 // time limit to qualify a MI type inverter as fast answering inverter
+#define LIMIT_VERYFAST_IV_MI    25 // time limit to qualify a MI type inverter as very fast answering inverter
+#define RETRIES_FAST_IV         12 // how often shall a message be automatically retransmitted by the nRF (fast answering inverter)
+#define RETRIES_VERYFAST_IV      9 // how often shall a message be automatically retransmitted by the nRF (very fast answering inverter)
+
 
 typedef struct {
     uint8_t    fieldId; // field id

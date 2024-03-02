@@ -1,4 +1,4 @@
-name: Ahoy Dev-Build for ESP8266/ESP32
+name: Ahoy Development
 
 on:
   push:
@@ -8,13 +8,15 @@ on:
 
 jobs:
   check:
+    name: Check Repository
     runs-on: ubuntu-latest
     if: github.repository == 'lumapu/ahoy' && github.ref_name == 'development03'
     continue-on-error: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
   build-en:
+    name: Build (EN)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -32,14 +34,14 @@ jobs:
           - opendtufusion
           - opendtufusion-ethernet
     steps:
-    - uses: actions/checkout@v3
-    - uses: benjlevesque/short-sha@v2.1
+    - uses: actions/checkout@v4
+    - uses: benjlevesque/short-sha@v3.0
       id: short-sha
       with:
         length: 7
 
     - name: Cache Pip
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -47,13 +49,13 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
@@ -75,6 +77,7 @@ jobs:
         path: firmware/*
 
   build-de:
+    name: Build (DE)
     needs: check
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -92,14 +95,14 @@ jobs:
           - opendtufusion-de
           - opendtufusion-ethernet-de
     steps:
-    - uses: actions/checkout@v3
-    - uses: benjlevesque/short-sha@v2.1
+    - uses: actions/checkout@v4
+    - uses: benjlevesque/short-sha@v3.0
       id: short-sha
       with:
         length: 7
 
     - name: Cache Pip
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -107,13 +110,13 @@ jobs:
           ${{ runner.os }}-pip-
 
     - name: Cache PlatformIO
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.platformio
         key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
     - name: Setup Python
-      uses: actions/setup-python@v4.3.0
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
 
@@ -135,10 +138,12 @@ jobs:
         path: firmware/*
 
   deploy:
+    name: Update Artifacts / Deploy
     needs: [build-en, build-de]
     runs-on: ubuntu-latest
+    continue-on-error: false
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     #- name: Copy boot_app0.bin
     #  run: cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin src/.pio/build/opendtufusion/ota.bin
 
@@ -155,12 +160,38 @@ jobs:
     - name: Set Version
       uses: cschleiden/replace-tokens@v1
       with:
-        files: tools/esp8266/User_Manual.md
+        files: manual/User_Manual.md
       env:
           VERSION: ${{ steps.version_name.outputs.name }}
 
+
+    - name: Create ESP Web Tools Manifest
+      working-directory: src
+      run: python ../scripts/buildManifest.py
+
+    - name: Copy install html
+      run: mv scripts/gh-action-dev-build-flash.html firmware/install.html
+
+    - name: Copy Changes.md
+      run: mv src/CHANGES.md firmware/CHANGES.md
+
+
     - name: Rename firmware directory
       run: mv firmware ${{ steps.version_name.outputs.name }}
+
+    - name: delete environment Artifacts
+      uses: geekyeggo/delete-artifact@v4
+      with:
+        name: dev-*
+
+    - name: Create Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dev-${{ steps.version_name.outputs.name }}
+        path: |
+          ${{ steps.version_name.outputs.name }}/*
+          manual/User_Manual.md
+          manual/Getting_Started.md
 
     - name: Deploy
       uses: nogsantos/scp-deploy@master

@@ -37,6 +37,10 @@ class ahoywifi {
         }
         void setupStation(void);
 
+        bool getWasInCh12to14() const {
+            return mWasInCh12to14;
+        }
+
     private:
         typedef enum WiFiStatus {
             DISCONNECTED = 0,
@@ -67,7 +71,7 @@ class ahoywifi {
         void welcome(String ip, String mode);
 
 
-        settings_t *mConfig = NULL;
+        settings_t *mConfig = nullptr;
         appWifiCb mAppWifiCb;
 
         DNSServer mDns;
@@ -77,15 +81,16 @@ class ahoywifi {
         WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
         #endif
 
-        WiFiStatus_t mStaConn;
-        uint8_t mCnt;
-        uint32_t *mUtcTimestamp;
+        WiFiStatus_t mStaConn = DISCONNECTED;
+        uint8_t mCnt = 0;
+        uint32_t *mUtcTimestamp = nullptr;
 
-        uint8_t mScanCnt;
-        bool mScanActive;
-        bool mGotDisconnect;
+        uint8_t mScanCnt = 0;
+        bool mScanActive = false;
+        bool mGotDisconnect = false;
         std::list<uint8_t> mBSSIDList;
-        bool mStopApAllowed;
+        bool mStopApAllowed = false;
+        bool mWasInCh12to14 = false;
 };
 
 #endif /*__AHOYWIFI_H__*/

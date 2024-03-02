@@ -67,7 +67,7 @@ void DisplayEPaper::refreshLoop() {
         case RefreshStatus::LOGO:
             _display->fillScreen(GxEPD_BLACK);
             _display->drawBitmap(0, 0, logo, 200, 200, GxEPD_WHITE);
-            _display->display(false); // full update
+            mSecondCnt = 2;
             mNextRefreshState = RefreshStatus::PARTITIALS;
             mRefreshState = RefreshStatus::WAIT;
             break;
@@ -79,11 +79,11 @@ void DisplayEPaper::refreshLoop() {
             break;
 
         case RefreshStatus::WHITE:
-            if(mSecondCnt == 0) {
-                _display->fillScreen(GxEPD_WHITE);
-                mNextRefreshState = RefreshStatus::PARTITIALS;
-                mRefreshState = RefreshStatus::WAIT;
-            }
+            if(0 != mSecondCnt)
+                break;
+            _display->fillScreen(GxEPD_WHITE);
+            mNextRefreshState = RefreshStatus::PARTITIALS;
+            mRefreshState = RefreshStatus::WAIT;
             break;
 
         case RefreshStatus::WAIT:
@@ -92,10 +92,13 @@ void DisplayEPaper::refreshLoop() {
             break;
 
         case RefreshStatus::PARTITIALS:
+            if(0 != mSecondCnt)
+                break;
             headlineIP();
             versionFooter();
             mSecondCnt = 4; // display Logo time during boot up
-            mRefreshState = RefreshStatus::DONE;
+            mNextRefreshState = RefreshStatus::DONE;
+            mRefreshState = RefreshStatus::WAIT;
             break;
 
         default: // RefreshStatus::DONE

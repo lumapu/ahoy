@@ -26,10 +26,6 @@
 #define F(sl) (sl)
 #endif
 
-const uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
-const uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
-const uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
-
 template<class HMSYSTEM>
 class RestApi {
     public:
@@ -64,9 +60,9 @@ class RestApi {
             DynamicJsonDocument json(128);
             JsonObject dummy = json.as<JsonObject>();
             if(obj[F("path")] == "ctrl")
-                setCtrl(obj, dummy);
+                setCtrl(obj, dummy, "*");
             else if(obj[F("path")] == "setup")
-                setSetup(obj, dummy);
+                setSetup(obj, dummy, "*");
         }
 
     private:
@@ -103,7 +99,6 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
             else if (path == "powerHistory")  getPowerHistory(request, root);
-            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -138,11 +133,11 @@ class RestApi {
             #endif
         }
 
-        void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        void onApiPostBody(AsyncWebServerRequest *request, const uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
 
             if(0 == index) {
-                if(NULL != mTmpBuf)
+                if(nullptr != mTmpBuf)
                     delete[] mTmpBuf;
                 mTmpBuf = new uint8_t[total+1];
                 mTmpSize = total;
@@ -155,36 +150,40 @@ class RestApi {
 
             DynamicJsonDocument json(1000);
 
-            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
-            JsonObject obj = json.as<JsonObject>();
-
             AsyncJsonResponse* response = new AsyncJsonResponse(false, 200);
             JsonObject root = response->getRoot();
-            root[F("success")] = (err) ? false : true;
-            if(!err) {
-                String path = request->url().substring(5);
-                if(path == "ctrl")
-                    root[F("success")] = setCtrl(obj, root);
-                else if(path == "setup")
-                    root[F("success")] = setSetup(obj, root);
-                else {
-                    root[F("success")] = false;
-                    root[F("error")]   = F(PATH_NOT_FOUND) + path;
-                }
-            } else {
-                switch (err.code()) {
-                    case DeserializationError::Ok: break;
-                    case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
-                    case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
-                    case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
-                    default:                                    root[F("error")] = F(DESER_FAILED);     break;
+            DeserializationError err = deserializeJson(json, reinterpret_cast<const char*>(mTmpBuf), mTmpSize);
+            if(!json.is<JsonObject>())
+                root[F("error")] = F(DESER_FAILED);
+            else {
+                JsonObject obj = json.as<JsonObject>();
+
+                root[F("success")] = (err) ? false : true;
+                if(!err) {
+                    String path = request->url().substring(5);
+                    if(path == "ctrl")
+                        root[F("success")] = setCtrl(obj, root, request->client()->remoteIP().toString().c_str());
+                    else if(path == "setup")
+                        root[F("success")] = setSetup(obj, root, request->client()->remoteIP().toString().c_str());
+                    else {
+                        root[F("success")] = false;
+                        root[F("error")]   = F(PATH_NOT_FOUND) + path;
+                    }
+                } else {
+                    switch (err.code()) {
+                        case DeserializationError::Ok: break;
+                        case DeserializationError::IncompleteInput: root[F("error")] = F(INCOMPLETE_INPUT); break;
+                        case DeserializationError::InvalidInput:    root[F("error")] = F(INVALID_INPUT);    break;
+                        case DeserializationError::NoMemory:        root[F("error")] = F(NOT_ENOUGH_MEM);   break;
+                        default:                                    root[F("error")] = F(DESER_FAILED);     break;
+                    }
                 }
             }
 
             response->setLength();
             request->send(response);
             delete[] mTmpBuf;
-            mTmpBuf = NULL;
+            mTmpBuf = nullptr;
         }
 
         void getNotFound(JsonObject obj, String url) {
@@ -204,13 +203,15 @@ class RestApi {
             ep[F("live")]             = url + F("live");
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
-            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
 
         void onDwnldSetup(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response;
+
+            // save settings to have latest firmware changes in export
+            mApp->saveSettings(false);
 
             File fp = LittleFS.open("/settings.json", "r");
             if(!fp) {
@@ -252,6 +253,8 @@ class RestApi {
         }
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
+            mApp->resetLockTimeout();
+
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
             obj[F("ts_uptime")]   = mApp->getUptime();
             obj[F("ts_now")]      = mApp->getTimestamp();
@@ -259,11 +262,13 @@ class RestApi {
             obj[F("modules")]     = String(mApp->getVersionModules());
             obj[F("build")]       = String(AUTO_GIT_HASH);
             obj[F("env")]         = String(ENV_NAME);
-            obj[F("menu_prot")]   = mApp->getProtection(request);
+            obj[F("menu_prot")]   = mApp->isProtected(request->client()->remoteIP().toString().c_str(), "", true);
             obj[F("menu_mask")]   = (uint16_t)(mConfig->sys.protectionMask );
-            obj[F("menu_protEn")] = (bool) (strlen(mConfig->sys.adminPwd) > 0);
+            obj[F("menu_protEn")] = (bool) (mConfig->sys.adminPwd[0] != '\0');
             obj[F("cst_lnk")]     = String(mConfig->plugin.customLink);
             obj[F("cst_lnk_txt")] = String(mConfig->plugin.customLinkText);
+            obj[F("region")]      = mConfig->sys.region;
+            obj[F("timezone")]    = mConfig->sys.timezone;
 
         #if defined(ESP32)
             obj[F("esp_type")]    = F("ESP32");
@@ -417,7 +422,7 @@ class RestApi {
             obj[F("name")]           = String(iv->config->name);
             obj[F("rx_success")]     = iv->radioStatistics.rxSuccess;
             obj[F("rx_fail")]        = iv->radioStatistics.rxFail;
-            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnser;
+            obj[F("rx_fail_answer")] = iv->radioStatistics.rxFailNoAnswer;
             obj[F("frame_cnt")]      = iv->radioStatistics.frmCnt;
             obj[F("tx_cnt")]         = iv->radioStatistics.txCnt;
             obj[F("retransmits")]    = iv->radioStatistics.retransmits;
@@ -453,7 +458,6 @@ class RestApi {
                 obj2[F("channels")] = iv->channels;
                 obj2[F("freq")]     = iv->config->frequency;
                 obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
-                obj2[F("add2total")] = (bool)iv->config->add2Total;
                 if(0xff == iv->config->powerLevel) {
                     if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
                         obj2[F("pa")] = 30; // 20dBm
@@ -476,8 +480,6 @@ class RestApi {
             obj[F("strtWthtTm")]        = (bool)mConfig->inst.startWithoutTime;
             obj[F("rdGrid")]            = (bool)mConfig->inst.readGrid;
             obj[F("rstMaxMid")]         = (bool)mConfig->inst.rstMaxValsMidNight;
-            obj[F("yldEff")]            = mConfig->inst.yieldEffiency;
-            obj[F("gap")]               = mConfig->inst.gapMs;
         }
 
         void getInverter(JsonObject obj, uint8_t id) {
@@ -493,7 +495,7 @@ class RestApi {
             obj[F("name")]             = String(iv->config->name);
             obj[F("serial")]           = String(iv->config->serial.u64, HEX);
             obj[F("version")]          = String(iv->getFwVersion());
-            obj[F("power_limit_read")] = ah::round3(iv->actPowerLimit);
+            obj[F("power_limit_read")] = iv->actPowerLimit;
             obj[F("power_limit_ack")]  = iv->powerLimitAck;
             obj[F("max_pwr")]          = iv->getMaxPower();
             obj[F("ts_last_success")]  = rec->ts;
@@ -647,6 +649,9 @@ class RestApi {
             obj[F("fcsb")]  = mConfig->cmt.pinFcsb;
             obj[F("gpio3")] = mConfig->cmt.pinIrq;
             obj[F("en")]    = (bool) mConfig->cmt.enabled;
+            std::pair<uint16_t, uint16_t> range = mRadioCmt->getFreqRangeMhz();
+            obj[F("freq_min")] = range.first;
+            obj[F("freq_max")] = range.second;
         }
 
         void getRadioCmtInfo(JsonObject obj) {
@@ -674,6 +679,7 @@ class RestApi {
             obj[F("debug")]          = mConfig->serial.debug;
             obj[F("priv")]           = mConfig->serial.privacyLog;
             obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
+            obj[F("log2mqtt")]       = mConfig->serial.log2mqtt;
         }
 
         void getStaticIp(JsonObject obj) {
@@ -745,6 +751,12 @@ class RestApi {
                 warn.add(F(REBOOT_ESP_APPLY_CHANGES));
             if(0 == mApp->getTimestamp())
                 warn.add(F(TIME_NOT_SET));
+            #if !defined(ETHERNET)
+                #if !defined(ESP32)
+                if(mApp->getWasInCh12to14())
+                    warn.add(F(WAS_IN_CH_12_TO_14));
+                #endif
+            #endif
         }
 
         void getSetup(AsyncWebServerRequest *request, JsonObject obj) {
@@ -814,29 +826,26 @@ class RestApi {
             #endif /*ENABLE_HISTORY*/
         }
 
-        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
-            getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = 86400;  // 1 day
-            uint16_t max = 0;
-            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
-                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);
-                obj[F("value")][fld] = value;
-                if (value > max)
-                    max = value;
+        bool setCtrl(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            if(jsonIn.containsKey(F("auth"))) {
+                if(String(jsonIn[F("auth")]) == String(mConfig->sys.adminPwd)) {
+                    jsonOut[F("token")] = mApp->unlock(clientIP, false);
+                    jsonIn[F("token")] = jsonOut[F("token")];
+                } else {
+                    jsonOut[F("error")] = F("ERR_AUTH");
+                    return false;
+                }
+                if(!jsonIn.containsKey(F("cmd")))
+                    return true;
             }
-            obj[F("max")] = max;
-            #else
-            obj[F("refresh")] = 86400;  // 1 day
-            #endif /*ENABLE_HISTORY*/
-        }
 
+            if(isProtected(jsonIn, jsonOut, clientIP))
+                return false;
 
-        bool setCtrl(JsonObject jsonIn, JsonObject jsonOut) {
             Inverter<> *iv = mSys->getInverterByPos(jsonIn[F("id")]);
             bool accepted = true;
             if(NULL == iv) {
-                jsonOut[F("error")] = F(INV_INDEX_INVALID) + jsonIn[F("id")].as<String>();
+                jsonOut[F("error")] = F("ERR_INDEX");
                 return false;
             }
             jsonOut[F("id")] = jsonIn[F("id")];
@@ -846,7 +855,7 @@ class RestApi {
             else if(F("restart") == jsonIn[F("cmd")])
                 accepted = iv->setDevControlRequest(Restart);
             else if(0 == strncmp("limit_", jsonIn[F("cmd")].as<const char*>(), 6)) {
-                iv->powerLimit[0] = jsonIn["val"];
+                iv->powerLimit[0] = static_cast<uint16_t>(jsonIn["val"].as<float>() * 10.0);
                 if(F("limit_persistent_relative") == jsonIn[F("cmd")])
                     iv->powerLimit[1] = RelativPersistent;
                 else if(F("limit_persistent_absolute") == jsonIn[F("cmd")])
@@ -863,19 +872,22 @@ class RestApi {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
             } else {
-                jsonOut[F("error")] = F(UNKNOWN_CMD) + jsonIn["cmd"].as<String>() + "'";
+                jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
             }
 
             if(!accepted) {
-                jsonOut[F("error")] = F(INV_DOES_NOT_ACCEPT_LIMIT_AT_MOMENT);
+                jsonOut[F("error")] = F("ERR_LIMIT_NOT_ACCEPT");
                 return false;
             }
 
             return true;
         }
 
-        bool setSetup(JsonObject jsonIn, JsonObject jsonOut) {
+        bool setSetup(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            if(isProtected(jsonIn, jsonOut, clientIP))
+                return false;
+
             #if !defined(ETHERNET)
             if(F("scan_wifi") == jsonIn[F("cmd")])
                 mApp->scanAvailNetworks();
@@ -914,30 +926,55 @@ class RestApi {
                 iv->config->frequency   = jsonIn[F("freq")];
                 iv->config->powerLevel  = jsonIn[F("pa")];
                 iv->config->disNightCom = jsonIn[F("disnightcom")];
-                iv->config->add2Total   = jsonIn[F("add2total")];
                 mApp->saveSettings(false); // without reboot
             } else {
-                jsonOut[F("error")] = F(UNKNOWN_CMD);
+                jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");
                 return false;
             }
 
             return true;
         }
 
-        IApp *mApp;
-        HMSYSTEM *mSys;
-        HmRadio<> *mRadioNrf;
-        #if defined(ESP32)
-        CmtRadio<> *mRadioCmt;
-        #endif
-        AsyncWebServer *mSrv;
-        settings_t *mConfig;
+        bool isProtected(JsonObject jsonIn, JsonObject jsonOut, const char *clientIP) {
+            if(mConfig->sys.adminPwd[0] != '\0') { // check if admin password is set
+                if(strncmp("*", clientIP, 1) != 0) { // no call from MqTT
+                    const char* token = nullptr;
+                    if(jsonIn.containsKey(F("token")))
+                        token = jsonIn["token"];
 
-        uint32_t mTimezoneOffset;
-        uint32_t mHeapFree, mHeapFreeBlk;
-        uint8_t mHeapFrag;
-        uint8_t *mTmpBuf = NULL;
-        uint32_t mTmpSize;
+                    if(!mApp->isProtected(clientIP, token, false))
+                        return false;
+
+                    jsonOut[F("error")] = F("ERR_PROTECTED");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+    private:
+        constexpr static uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT,
+            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+        constexpr static uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T,
+            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+        constexpr static uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
+
+    private:
+        IApp *mApp = nullptr;
+        HMSYSTEM *mSys = nullptr;
+        HmRadio<> *mRadioNrf = nullptr;
+        #if defined(ESP32)
+        CmtRadio<> *mRadioCmt = nullptr;
+        #endif
+        AsyncWebServer *mSrv = nullptr;
+        settings_t *mConfig = nullptr;
+
+        uint32_t mTimezoneOffset = 0;
+        uint32_t mHeapFree = 0, mHeapFreeBlk = 0;
+        uint8_t mHeapFrag = 0;
+        uint8_t *mTmpBuf = nullptr;
+        uint32_t mTmpSize = 0;
 };
 
 #endif /*__WEB_API_H__*/

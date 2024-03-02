@@ -215,7 +215,7 @@
 #define INVERTER_OFF_THRES_SEC      15*60
 
 // threshold of minimum power on which the inverter is marked as inactive
-#define INACT_PWR_THRESH        1
+#define INACT_PWR_THRESH        0
 
 // Timezone
 #define TIMEZONE                1

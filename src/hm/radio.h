@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://github.com/lumpapu/ahoy
+// 2024 Ahoy, https://github.com/lumpapu/ahoy
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
@@ -11,6 +11,8 @@
 #define ALL_FRAMES          0x80
 #define SINGLE_FRAME        0x81
 
+#include <array>
+#include <atomic>
 #include "../utils/dbg.h"
 #include "../utils/crc.h"
 #include "../utils/timemonitor.h"
@@ -27,10 +29,13 @@ class Radio {
         virtual void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) = 0;
         virtual bool switchFrequency(Inverter<> *iv, uint32_t fromkHz, uint32_t tokHz) { return true; }
         virtual bool switchFrequencyCh(Inverter<> *iv, uint8_t fromCh, uint8_t toCh) { return true; }
-        virtual bool isChipConnected(void) { return false; }
+        virtual bool isChipConnected(void) const { return false; }
+        virtual uint16_t getBaseFreqMhz() { return 0; }
+        virtual uint16_t getBootFreqMhz() { return 0; }
+        virtual std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) { return std::make_pair(0, 0); }
         virtual bool loop(void) = 0;
-        virtual uint8_t getARC(void) { return 0xff; }
-        virtual uint8_t getPLOS(void) { return 0xff; }
+
+        Radio() : mTxBuf{} {}
 
         void handleIntr(void) {
             mIrqRcvd = true;
@@ -66,7 +71,7 @@ class Radio {
             sendPacket(iv, 24, isRetransmit);
         }
 
-        uint32_t getDTUSn(void) {
+        uint32_t getDTUSn(void) const {
             return mDtuSn;
         }
 
@@ -78,11 +83,13 @@ class Radio {
         std::queue<packet_t> mBufCtrl;
         uint8_t mIrqOk = IRQ_UNKNOWN;
         TimeMonitor mRadioWaitTime = TimeMonitor(0, true);  // start as expired (due to code in RESET state)
+        uint8_t mTxRetriesNext = 15;                        // let heuristics tell us the next reties count (for nRF type radios only)
+        uint8_t mFramesExpected = 0x0c;
 
     protected:
         virtual void sendPacket(Inverter<> *iv, uint8_t len, bool isRetransmit, bool appendCrc16=true) = 0;
-        virtual uint64_t getIvId(Inverter<> *iv) = 0;
-        virtual uint8_t getIvGen(Inverter<> *iv) = 0;
+        virtual uint64_t getIvId(Inverter<> *iv) const = 0;
+        virtual uint8_t getIvGen(Inverter<> *iv) const = 0;
 
         void initPacket(uint64_t ivId, uint8_t mid, uint8_t pid) {
             mTxBuf[0] = mid;
@@ -103,7 +110,7 @@ class Radio {
                 mTxBuf[(*len)++] = (crc     ) & 0xff;
             }
             // crc over all
-            mTxBuf[*len] = ah::crc8(mTxBuf, *len);
+            mTxBuf[*len] = ah::crc8(mTxBuf.data(), *len);
             (*len)++;
         }
 
@@ -115,21 +122,21 @@ class Radio {
             chipID = ESP.getChipId();
             #endif
 
-            uint8_t t;
+            mDtuSn = 0;
             for(int i = 0; i < (7 << 2); i += 4) {
-                t = (chipID >> i) & 0x0f;
+                uint8_t t = (chipID >> i) & 0x0f;
                 if(t > 0x09)
                     t -= 6;
                 mDtuSn |= (t << i);
             }
             mDtuSn |= 0x80000000; // the first digit is an 8 for DTU production year 2022, the rest is filled with the ESP chipID in decimal
-                    }
+        }
 
-        uint32_t mDtuSn;
-        volatile bool mIrqRcvd;
-        bool *mSerialDebug, *mPrivacyMode, *mPrintWholeTrace;
-        uint8_t mTxBuf[MAX_RF_PAYLOAD_SIZE];
-        uint8_t mFramesExpected = 0x0c;
+    protected:
+        uint32_t mDtuSn = 0;
+        std::atomic<bool> mIrqRcvd = false;
+        bool *mSerialDebug = nullptr, *mPrivacyMode = nullptr, *mPrintWholeTrace = nullptr;
+        std::array<uint8_t, MAX_RF_PAYLOAD_SIZE> mTxBuf;
 };
 
 #endif /*__RADIO_H__*/

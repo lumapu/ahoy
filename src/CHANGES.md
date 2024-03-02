@@ -1,5 +1,127 @@
 # Development Changes
 
+## 0.8.89 - 2024-03-02
+* merge PR: Collection of small fixes #1465
+* fix: show esp type on `/history` #1463
+* improved HMS-400-1T support (serial number 1125...) #1460
+
+## 0.8.88 - 2024-02-28
+* fix MqTT statistic data overflow #1458
+* add HMS-400-1T support (serial number 1125...) #1460
+* removed `yield efficiency` because the inverter already calculates correct #1243
+* merge PR: Remove hint to INV_RESET_MIDNIGHT resp. INV_PAUSE_DURING_NIGHT #1431
+
+## 0.8.87 - 2024-02-25
+* fix translations #1455 #1442
+
+## 0.8.86 - 2024-02-23
+* RestAPI check for parent element to be JsonObject #1449
+* fix translation #1448 #1442
+* fix reset values when inverter status is 'not available' #1035 #1437
+
+## 0.8.85 - 2024-02-22
+* possible fix of MqTT fix "total values are sent to often" #1421
+* fix translation #1442
+* availability check only related to live data #1035 #1437
+
+## 0.8.84 - 2024-02-19
+* fix homeassistant autodiscovery #1432
+* merge PR: more gracefull handling of complete retransmits #1433
+
+# RELEASE 0.8.83 - 2024-02-16
+
+## 0.8.82 - 2024-02-15
+* fixed crash once firmware version was read and sent via MqTT #1428
+* possible fix: reset yield offset on midnight #1429
+
+## 0.8.81 - 2024-02-13
+* fixed authentication with empty token #1415
+* added new setting for future function to send log via MqTT
+* combined firmware and hardware version to JSON topics (MqTT) #1212
+
+## 0.8.80 - 2024-02-12
+* optimize API authentication, Error-Codes #1415
+* breaking change: authentication API command changed #1415
+* breaking change: limit has to be send als `float`, `0.0 .. 100.0` #1415
+* updated documentation #1415
+* fix don't send control command twice #1426
+
+## 0.8.79 - 2024-02-11
+* fix `opendtufusion` build (started only once USB-console was connected)
+* code quality improvments
+
+## 0.8.78 - 2024-02-10
+* finalized API token access #1415
+* possible fix of MqTT fix "total values are sent to often" #1421
+* removed `switchCycle` from `hmsRadio.h` #1412
+* merge PR: Add hint to INV_RESET_MIDNIGHT resp. INV_PAUSE_DURING_NIGHT #1418
+* merge PR: simplify rxOffset logic #1417
+* code quality improvments
+
+## 0.8.77 - 2024-02-08
+* merge PR: BugFix: ACK #1414
+* fix suspicious if condition #1416
+* prepared API token for access, not functional #1415
+
+## 0.8.76 - 2024-02-07
+* revert changes from yesterday regarding snprintf and its size #1410, #1411
+* reduced cppcheck linter warnings significantly
+* try to improve ePaper (ghosting) #1107
+
+## 0.8.75 - 2024-02-06
+* fix active power control value #1406, #1409
+* update Mqtt lib to version `1.6.0`
+* take care of null terminator of chars #1410, #1411
+
+## 0.8.74 - 2024-02-05
+* reduced cppcheck linter warnings significantly
+
+## 0.8.73 - 2024-02-03
+* fix nullpointer during communication #1401
+* added `max_power` to MqTT total values #1375
+
+## 0.8.72 - 2024-02-03
+* fixed translation #1403
+* fixed sending commands to inverters which are soft turned off #1397
+* reduce switchChannel command for HMS (only each 5th cycle it will be send now)
+
+## 0.8.71 - 2024-02-03
+* fix heuristics reset
+* fix CMT missing frames problem
+* removed inverter gap setting
+* removed add to total (MqTT) inverter setting
+* fixed sending commands to inverters which are soft turned off
+* save settings before they are exported #1395
+* fix autologin bug if no password is set
+* translated `/serial`
+* removed "yield day" history
+
+## 0.8.70 - 2024-02-01
+* prevent sending commands to inverter which isn't active #1387
+* protect commands from popup in `/live` if password is set #1199
+
+## 0.8.69 - 2024-01-31
+* merge PR: Dynamic retries, pendular first rx chan #1394
+
+## 0.8.68 - 2024-01-29
+* fix HMS / HMT startup
+* added `flush_rx` to NRF on TX
+* start with heuristics set to `0`
+* added warning for WiFi channel 12-14 (ESP8266 only) #1381
+
+## 0.8.67 - 2024-01-29
+* fix HMS frequency
+* fix display of inverter id in serial log (was displayed twice)
+
+## 0.8.66 - 2024-01-28
+* added support for other regions - untested #1271
+* fix generation of DTU-ID; was computed twice without reset if two radios are enabled
+
+## 0.8.65 - 2024-01-24
+* removed patch for NRF `PLOS`
+* fix lang issues #1388
+* fix build on Windows of `opendtufusion` environments (git: trailing whitespaces)
+
 ## 0.8.64 - 2024-01-22
 * add `ARC` to log (NRF24 Debug)
 * merge PR: ETH NTP update bugfix #1385
@@ -148,7 +270,7 @@
 
 ## 0.8.39 - 2024-01-01
 * fix MqTT dis_night_comm in the morning #1309 #1286
-* seperated offset for sunrise and sunset #1308
+* separated offset for sunrise and sunset #1308
 * powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
@@ -160,7 +282,7 @@
 
 ## 0.8.37 - 2023-12-30
 * added grid profiles
-* format version of grid profile 
+* format version of grid profile
 
 # RELEASE 0.8.36 - 2023-12-30
 
@@ -361,7 +483,7 @@
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`
-* moved radio statistics into the inverter - each inverter has now seperate statistics which can be accessed by click on the footer in `/live`
+* moved radio statistics into the inverter - each inverter has now separate statistics which can be accessed by click on the footer in `/live`
 * fix compiler warnings #1191
 * fix ePaper logo during night time #1151
 
