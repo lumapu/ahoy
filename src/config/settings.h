@@ -648,7 +648,6 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].pmPowerL3 = 0;
 
             }
-#warning("Defaultsettings")
 //            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
 //            snprintf(mCfg.plugin.zeroExport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
 //            snprintf(mCfg.plugin.zeroExport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
