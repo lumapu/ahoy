@@ -868,9 +868,6 @@
                     "en": "Password:",
                     "de": "Passwort:"
                 },
-
-
-
                 {
                     "token": "ZE_GROUP_TAB_INVERTER",
                     "en": "Inverter",
@@ -892,28 +889,15 @@
                     "de": "Gesamt"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM",
-                    "en": "Sum",
-                    "de": "Gesamt"
+                    "token": "ZE_GROUP_TAB_INVERTER_TWOPERCENT",
+                    "en": "2%",
+                    "de": "2%"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM_PHA",
-                    "en": "Ph A",
-                    "de": "L1"
+                    "token": "ZE_GROUP_TAB_INVERTER_POWERMAX",
+                    "en": "Power (Max)",
+                    "de": "Leistung (Max)"
                 },
-                {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM_PHB",
-                    "en": "Ph B",
-                    "de": "L2"
-                },
-                {
-                    "token": "ZE_GROUP_TAB_INVERTER_SUM_PHC",
-                    "en": "Ph C",
-                    "de": "L3"
-                },
-
-
-
                 {
                     "token": "ZE_GROUP_TAB_BATTERY",
                     "en": "Battery",

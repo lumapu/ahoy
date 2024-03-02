@@ -521,10 +521,78 @@ DBGPRINTLN(String(mCfg->groups[group].pmPower));
             bool ret = false;
 DBGPRINT(String("getInverterPowerWatts: "));
 DBGPRINTLN(String(group));
-//            switch (mCfg->groups[group].pm_type) {
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+DBGPRINT(String("iv: "));
+DBGPRINT(String(inv));
+DBGPRINT(String(" "));
+                // Wenn Inverter deaktiviert -> Eintrag ignorieren
+                if (!mCfg->groups[group].inverters[inv].enabled) {
+DBGPRINT(String("(ze disabled)."));
+                    continue;
+                }
+                // Daten holen
+                Inverter<> *iv;
+                record_t<> *rec;
+// TODO: getInverterById
+                for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
+                    iv = mSys->getInverterByPos(i);
+                    // Wenn kein Inverter -> ignorieren
+                    if (iv == NULL) {
+                        continue;
+                    }
+                    // Wenn falscher Inverter -> ignorieren
+                    if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) {
+                        continue;
+                    }
+DBGPRINT(String("("));
+DBGPRINT(String(iv->id));
+DBGPRINT(String("( gefunden)"));
+                    // wenn Inverter deaktiviert -> Daten ignorieren
+//                    if (!iv->enabled()) {
+//DBGPRINT(String(" aber deaktiviert "));
+//                        continue;
+//                    }
+                    // wenn Inverter nicht verfügbar -> Daten ignorieren
+                    if (!iv->isAvailable()) {
+DBGPRINT(String(" aber nicht erreichbar "));
+                        continue;
+                    }
+                    // wenn Inverter nicht produziert -> Daten ignorieren
+//                    if (!iv->isProducing()) {
+//DBGPRINT(String(" aber produziert nix "));
+//                        continue;
+//                    }
+                    // Daten abrufen
+                    rec = iv->getRecordStruct(RealTimeRunData_Debug);
+
+// TODO: gibts hier nen Timestamp? Wenn die Daten nicht aktueller sind als beim letzten Durchlauf dann brauch ich nix machen
+
+mCfg->groups[group].inverters[inv].power = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+DBGPRINT(String("(P="));
+DBGPRINT(String(mCfg->groups[group].inverters[inv].power));
+DBGPRINT(String("W "));
+
+mCfg->groups[group].inverters[inv].limit = iv->actPowerLimit;
+DBGPRINT(String("Li="));
+DBGPRINT(String(mCfg->groups[group].inverters[inv].limit));
+DBGPRINT(String("% "));
+
+mCfg->groups[group].inverters[inv].limitAck = iv->powerLimitAck;
+DBGPRINT(String("Ack= "));
+DBGPRINT(String(mCfg->groups[group].inverters[inv].limitAck));
+DBGPRINT(String(" "));
+
+mCfg->groups[group].inverters[inv].dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
+DBGPRINT(String("U="));
+DBGPRINT(String(mCfg->groups[group].inverters[inv].dcVoltage));
+DBGPRINT(String("V) "));
+// TODO: Eingang muss konfigurierbar sein
 
 
-
+                    ret = true;
+                }
+            }
+DBGPRINTLN(String(""));
             return ret;
         }
 

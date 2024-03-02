@@ -1194,8 +1194,8 @@
                     ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_ENABLED}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_NAME}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_SUM}"),
-                    ml("th", {style: "width: 10%;"}, "2%"),
-                    ml("th", {style: "width: 15%;"}, "Max Power"),
+                    ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_TWOPERCENT}"),
+                    ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMAX}"),
                 ]));
 
                 for(var inv = 0; inv < maxInv; inv++) {
@@ -1251,6 +1251,7 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
+// TODO: Hilfstexte -> übersetzen mit lang.json
                             ml("p", {}, "(3em)                - http://IP/status"),
                             ml("p", {}, "(pro3em)             - http://IP/rpc/Shelly.GetStatus"),
                             ml("p", {}, "(plus1pm)            - http://IP/rpc/Shelly.GetStatus"),
@@ -1261,6 +1262,7 @@
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
+// TODO: Hilfstexte -> übersetzen mit lang.json
                             ml("p", {}, "Only for HICHI needed!"),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
@@ -1299,6 +1301,7 @@
 // Inhalt für pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
+// TODO: übersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
                 e.appendChild(opt("2", "Tasmota"));
@@ -1335,6 +1338,7 @@
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invTarget"+inv);
                     selDelAllOpt(e);
+// TODO: übersetzen?
                     e.appendChild(opt("-1", "---"));
                     e.appendChild(opt("0", "Sum"));
                     e.appendChild(opt("1", "L1"));
@@ -1483,6 +1487,7 @@
 
                     return;
                 }
+// TODO: übersetzen? / Überflüssig? Wenn das Modul später entsprechend deaktiviert wird über das Define PLUGIN_ZEROEXPORT
 
                 // enabled
                 document.getElementsByName("ze_enabled")[0].checked = obj["enabled"];
@@ -1507,7 +1512,6 @@
                         ml("td", {style: "text-align: center;", }, String(obj.groups[group].id)),
                         ml("td", {style: "text-align: left;", }, String(obj.groups[group].name)),
                         ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
-//                        ml("td", {style: "text-align: center;", onclick: function() {ZeroExportGroup_Modal(obj.groups[group]);}}, svg(iconGear, 25, 25, "icon icon-fg pointer")),
                         ml("td", {style: "text-align: center;", onclick: function() {
                             function zeroGetIvList(ivObj) {
                                 ZeroExportGroup_Modal(obj.groups[group], ivObj)

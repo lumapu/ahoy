@@ -244,10 +244,11 @@ typedef struct {
     uint16_t powerMax;
 
 
-
+    float power;
+    uint16_t limit;
+    bool limitAck;
+    float dcVoltage;
 //    uint16_t waitingTime;
-//    uint16_t limit;
-//    bool limitAck;
 } zeroExportGroupInverter_t;
 
 typedef struct {
