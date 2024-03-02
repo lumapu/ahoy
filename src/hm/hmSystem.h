@@ -31,10 +31,11 @@ class HmSystem {
             if((iv->config->serial.b[5] == 0x11) || (iv->config->serial.b[5] == 0x10)) {
                 switch(iv->config->serial.b[4]) {
                     case 0x24: // HMS-500
-                    case 0x25: // HMS-400
                     case 0x22:
                     case 0x21: iv->type = INV_TYPE_1CH;
                         break;
+
+                    case 0x25: // HMS-400 - 1 channel but payload like 2ch
 
                     case 0x44: // HMS-1000
                     case 0x42:

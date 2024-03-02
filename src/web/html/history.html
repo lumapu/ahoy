@@ -80,6 +80,7 @@
             function parsePowerHistory(obj){
                 if (null != obj) {
                     parseNav(obj.generic);
+                    parseESP(obj.generic);
                     parseHistory(obj,"pwr", pwrExeOnce)
                     document.getElementById("pwrLast").innerHTML = mLastValue
                     document.getElementById("pwrMaxDay").innerHTML = obj.maxDay

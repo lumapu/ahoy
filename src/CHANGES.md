@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.89 - 2024-03-02
+* merge PR: Collection of small fixes #1465
+* fix: show esp type on `/history` #1463
+* improved HMS-400-1T support (serial number 1125...) #1460
+
 ## 0.8.88 - 2024-02-28
 * fix MqTT statistic data overflow #1458
 * add HMS-400-1T support (serial number 1125...) #1460
