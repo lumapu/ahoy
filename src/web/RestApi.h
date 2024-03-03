@@ -398,6 +398,7 @@ class RestApi {
             obj[F("heap_free")]    = mHeapFree;
             obj[F("sketch_total")] = ESP.getFreeSketchSpace();
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
+            obj[F("wifi_channel")] = WiFi.channel();
             getGeneric(request, obj);
 
             getRadioNrf(obj.createNestedObject(F("radioNrf")));

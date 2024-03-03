@@ -343,6 +343,8 @@
                     document.getElementById("pwrDayRefresh").innerHTML = refresh;
                     if (addNextChart)
                         setTimeout(() => { getAjax("/api/yieldDayHistory", parseYieldDayHistory); }, 50);
+                    else
+                        parseNav(obj.generic);
                 }
             }
 
