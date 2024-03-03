@@ -139,24 +139,6 @@ typedef struct {
     uint16_t interval;
 } cfgMqtt_t;
 
-/* Zero Export section */
-#if defined(ESP32)
-typedef struct {
-    char monitor_url[ZEXPORT_ADDR_LEN];
-    char json_path[ZEXPORT_ADDR_LEN];
-    uint8_t query_device;   // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
-    uint8_t Iv;         // saves the inverter that is used for regulation
-    bool enabled;
-    float power_avg;
-    uint8_t count_avg;
-    double total_power;
-    unsigned long lastTime; // tic toc
-    double max_power;
-    bool two_percent;   // ask if not go lower then 2%
-    char tibber_pw[10];   // needed for tibber QWGH-ED12
-} cfgzeroExport_t;
-#endif
-
 typedef struct {
     bool enabled;
     char name[MAX_NAME_LENGTH];
@@ -203,14 +185,133 @@ typedef struct {
 } display_t;
 #endif
 
+// Plugin ZeroExport
+#define ZEROEXPORT_MAX_GROUPS               6
+#define ZEROEXPORT_GROUP_MAX_LEN_NAME       25
+#define ZEROEXPORT_GROUP_MAX_LEN_PM_URL       100
+#define ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH       100
+#define ZEROEXPORT_GROUP_MAX_LEN_PM_USER       25
+#define ZEROEXPORT_GROUP_MAX_LEN_PM_PASS       25
+#define ZEROEXPORT_GROUP_MAX_INVERTERS      3
+#define ZEROEXPORT_POWERMETER_MAX_ERRORS    5
+#define ZEROEXPORT_DEF_INV_WAITINGTIME_MS      10000
+
+#if defined(PLUGIN_ZEROEXPORT)
+enum class zeroExportState : uint8_t {
+     RESET, GETPOWERMETER, GETINVERTERPOWER, FINISH
+};
+
+typedef enum {
+    None        = 0,
+    Shelly      = 1,
+    Tasmota     = 2,
+    Mqtt        = 3,
+    Hichi       = 4,
+    Tibber      = 5,
+} zeroExportPowermeterType_t;
+/*
+typedef struct {
+    uint8_t type;
+    uint8_t ip;
+    uint8_t url;
+    bool login;
+    uint8_t username;
+    uint8_t password;
+    uint8_t group;
+    uint8_t phase;
+    uint16_t nextRun;
+    uint16_t interval;
+    uint8_t error;
+    uint16_t power;
+} zeroExportPowermeter_t;
+*/
+typedef enum {
+    Sum     = 0,
+    L1      = 1,
+    L2      = 2,
+    L3      = 3,
+    L1Sum   = 4,
+    L2Sum   = 5,
+    L3Sum   = 6,
+} zeroExportInverterTarget_t;
+
+typedef struct {
+    bool enabled;
+    int8_t id;
+    int8_t target;
+    bool twoPercent;
+    uint16_t powerMax;
+
+
+    float power;
+    uint16_t limit;
+    bool limitAck;
+    float dcVoltage;
+//    uint16_t waitingTime;
+} zeroExportGroupInverter_t;
+
+typedef struct {
+    // General
+    bool enabled;
+    char name[ZEROEXPORT_GROUP_MAX_LEN_NAME];
+    // Powermeter
+    uint8_t pm_type;
+    char pm_url[ZEROEXPORT_GROUP_MAX_LEN_PM_URL];
+    char pm_jsonPath[ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH];
+    char pm_user[ZEROEXPORT_GROUP_MAX_LEN_PM_USER];
+    char pm_pass[ZEROEXPORT_GROUP_MAX_LEN_PM_PASS];
+    // Inverters
+    zeroExportGroupInverter_t inverters[ZEROEXPORT_GROUP_MAX_INVERTERS];
+    // Battery
+    bool battEnabled;
+    float battVoltageOn;
+    float battVoltageOff;
+    // Advanced
+    uint8_t refresh;
+    uint8_t powerTolerance;
+    uint16_t powerMax;
+
+
+    zeroExportState state;
+    unsigned long lastRun;
+    float pmPower;
+    float pmPowerL1;
+    float pmPowerL2;
+    float pmPowerL3;
+//    uint16_t power;             // Aktueller Verbrauch
+//    uint16_t powerLimitAkt;     // Aktuelles Limit
+//    uint16_t powerHyst;         // Hysterese
+} zeroExportGroup_t;
+
+typedef struct {
+    bool enabled;
+    zeroExportGroup_t groups[ZEROEXPORT_MAX_GROUPS];
+
+
+
+//    uint8_t query_device;   // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
+//    char monitor_url[ZEXPORT_ADDR_LEN];
+//    char json_path[ZEXPORT_ADDR_LEN];
+//    char tibber_pw[10];   // needed for tibber QWGH-ED12
+//    uint8_t Iv;         // saves the inverter that is used for regulation
+//    float power_avg;
+//    uint8_t count_avg;
+//    double total_power;
+//    unsigned long lastTime; // tic toc
+//    double max_power;
+//    bool two_percent;   // ask if not go lower then 2%
+} zeroExport_t;
+#endif
+// Plugin ZeroExport - Ende
+
 typedef struct {
     #if defined(PLUGIN_DISPLAY)
     display_t display;
     #endif
     char customLink[MAX_CUSTOM_LINK_LEN];
     char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
-    #if defined(ESP32)
-    cfgzeroExport_t zexport;
+    #if defined(PLUGIN_ZEROEXPORT)
+    zeroExport_t zeroExport;
     #endif
 } plugins_t;
 
@@ -315,7 +416,6 @@ class settings {
                     if(root.containsKey(F("nrf"))) jsonNrf(root[F("nrf")]);
                     #if defined(ESP32)
                     if(root.containsKey(F("cmt"))) jsonCmt(root[F("cmt")]);
-                    if(root.containsKey(F("zeroExport"))) jsonzeroExport(root[F("zeroExport")]);
                     #endif
                     if(root.containsKey(F("ntp"))) jsonNtp(root[F("ntp")]);
                     if(root.containsKey(F("sun"))) jsonSun(root[F("sun")]);
@@ -345,7 +445,6 @@ class settings {
             jsonNrf(root[F("nrf")].to<JsonObject>(), true);
             #if defined(ESP32)
             jsonCmt(root[F("cmt")].to<JsonObject>(), true);
-            jsonzeroExport(root.createNestedObject(F("zeroExport")), true);
             #endif
             jsonNtp(root[F("ntp")].to<JsonObject>(), true);
             jsonSun(root[F("sun")].to<JsonObject>(), true);
@@ -473,22 +572,7 @@ class settings {
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
 
-            // Zero-Export
-            #if defined(ESP32)
-            snprintf(mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
-            snprintf(mCfg.plugin.zexport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
-            snprintf(mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
-            mCfg.plugin.zexport.enabled = false;
-            mCfg.plugin.zexport.count_avg = 10;
-            mCfg.plugin.zexport.lastTime =  millis();   // do not change!
-
-            mCfg.plugin.zexport.query_device = 1;       // Standard shelly
-            mCfg.plugin.zexport.power_avg = 10;
-            mCfg.plugin.zexport.Iv = 0;
-            mCfg.plugin.zexport.max_power = 600;        // Max 600W to stay safe
-            mCfg.plugin.zexport.two_percent = true;
-            #endif
-
+            mCfg.inst.sendInterval     = SEND_INTERVAL;
             mCfg.inst.rstYieldMidNight = false;
             mCfg.inst.rstValsNotAvail  = false;
             mCfg.inst.rstValsCommStop  = false;
@@ -523,6 +607,77 @@ class settings {
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
             mCfg.plugin.display.pirPin     = DEF_PIN_OFF;
             #endif
+
+            // Plugin ZeroExport
+            #if defined(PLUGIN_ZEROEXPORT)
+            mCfg.plugin.zeroExport.enabled = false;
+            for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                // General
+                mCfg.plugin.zeroExport.groups[group].enabled = false;
+                snprintf(mCfg.plugin.zeroExport.groups[group].name, ZEROEXPORT_GROUP_MAX_LEN_NAME,  "%s", DEF_ZEXPORT);
+                // Powermeter
+                mCfg.plugin.zeroExport.groups[group].pm_type = zeroExportPowermeterType_t::None;
+                snprintf(mCfg.plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL,  "%s", DEF_ZEXPORT);
+                snprintf(mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH,  "%s", DEF_ZEXPORT);
+                snprintf(mCfg.plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
+                snprintf(mCfg.plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", DEF_ZEXPORT);
+                // Inverters
+                for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].id = -1;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].target = -1;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].twoPercent = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax = 600;
+                }
+                // Battery
+                mCfg.plugin.zeroExport.groups[group].battEnabled = false;
+                mCfg.plugin.zeroExport.groups[group].battVoltageOn = 0;
+                mCfg.plugin.zeroExport.groups[group].battVoltageOff = 0;
+                // Advanced
+                mCfg.plugin.zeroExport.groups[group].refresh = 10;
+                mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
+                mCfg.plugin.zeroExport.groups[group].powerMax = 600;
+//
+                mCfg.plugin.zeroExport.groups[group].state = zeroExportState::RESET;
+                mCfg.plugin.zeroExport.groups[group].lastRun = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPower = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL1 = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL2 = 0;
+                mCfg.plugin.zeroExport.groups[group].pmPowerL3 = 0;
+
+            }
+//            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//            snprintf(mCfg.plugin.zeroExport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//            snprintf(mCfg.plugin.zeroExport.json_path, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//            mCfg.plugin.zeroExport.enabled = false;
+//            mCfg.plugin.zeroExport.count_avg = 10;
+//            mCfg.plugin.zeroExport.lastTime =  millis();   // do not change!
+
+//            mCfg.plugin.zeroExport.query_device = 1;       // Standard shelly
+//            mCfg.plugin.zeroExport.power_avg = 10;
+//            mCfg.plugin.zeroExport.Iv = 0;
+//            mCfg.plugin.zeroExport.max_power = 600;        // Max 600W to stay safe
+//            mCfg.plugin.zeroExport.two_percent = true;
+//    uint8_t ip;
+//    uint8_t url;
+//    bool login;
+//    uint8_t username;
+//    uint8_t password;
+//            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
+//    uint8_t group;
+//    uint8_t phase;
+//                mCfg.plugin.zeroExport.groups[group].powermeter.nextRun = 0;
+//                mCfg.plugin.zeroExport.groups[group].powermeter.interval = 10000;
+//                mCfg.plugin.zeroExport.groups[group].powermeter.error = 0;
+//                mCfg.plugin.zeroExport.groups[group].powermeter.power = 0;
+//                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitingTime = 0;
+//                    mCfg.plugin.zeroExport.groups[group].inverters[inv].limit = -1;
+//                    mCfg.plugin.zeroExport.groups[group].inverters[inv].limitAck = false;
+            // Plugin ZeroExport - Ende
+            #endif
+
         }
 
         void loadAddedDefaults() {
@@ -737,40 +892,6 @@ class settings {
             }
         }
 
-        #if defined(ESP32)
-        void jsonzeroExport(JsonObject obj, bool set = false) {
-            if(set) {
-                obj[F("en_zeroexport")] = (bool) mCfg.plugin.zexport.enabled;
-                obj[F("monitor_url")] = mCfg.plugin.zexport.monitor_url;
-                obj[F("json_path")] = mCfg.plugin.zexport.json_path;
-                obj[F("Iv")] = mCfg.plugin.zexport.Iv;
-                obj[F("power_avg")] = mCfg.plugin.zexport.power_avg;
-                obj[F("query_device")] = mCfg.plugin.zexport.query_device;
-                obj[F("count_avg")] = mCfg.plugin.zexport.count_avg;
-                obj[F("max_power")] = mCfg.plugin.zexport.max_power;
-                obj[F("total_power")] = mCfg.plugin.zexport.total_power;
-                obj[F("two_percent")] = (bool)mCfg.plugin.zexport.two_percent;
-            }
-            else
-            {
-                getVal<bool>(obj, F("en_zeroexport"), &mCfg.plugin.zexport.enabled);
-                getVal<bool>(obj, F("two_percent"), &mCfg.plugin.zexport.two_percent);
-
-                getChar(obj, F("monitor_url"), mCfg.plugin.zexport.monitor_url, ZEXPORT_ADDR_LEN);
-                getChar(obj, F("json_path"), mCfg.plugin.zexport.json_path, ZEXPORT_ADDR_LEN);
-
-                getVal<uint8_t>(obj, F("Iv"), &mCfg.plugin.zexport.Iv);
-                getVal<uint8_t>(obj, F("count_avg"), &mCfg.plugin.zexport.count_avg);
-                getVal<double>(obj, F("max_power"), &mCfg.plugin.zexport.max_power);
-
-                getVal<float>(obj, F("power_avg"), &mCfg.plugin.zexport.power_avg);
-                getVal<uint8_t>(obj, F("query_device"), &mCfg.plugin.zexport.query_device);
-
-                getVal<double>(obj, F("total_power"), &mCfg.plugin.zexport.total_power);
-            }
-        }
-        #endif
-
         void jsonLed(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("0")]        = mCfg.led.led[0];
@@ -786,6 +907,116 @@ class settings {
                 getVal<uint8_t>(obj, F("lum"), &mCfg.led.luminance);
             }
         }
+
+        // Plugin ZeroExport
+        #if defined(PLUGIN_ZEROEXPORT)
+
+        void jsonZeroExportGroupInverter(JsonObject obj, uint8_t group, uint8_t inv, bool set = false) {
+            if(set) {
+                obj[F("enabled")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled;
+                obj[F("id")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].id;
+                obj[F("target")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].target;
+                obj[F("twoPercent")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].twoPercent;
+                obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax;
+            } else {
+                if (obj.containsKey(F("enabled")))
+                    getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].enabled);
+                if (obj.containsKey(F("id")))
+                    getVal<int8_t>(obj, F("id"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].id);
+                if (obj.containsKey(F("target")))
+                    getVal<int8_t>(obj, F("target"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].target);
+                if (obj.containsKey(F("twoPercent")))
+                    getVal<bool>(obj, F("twoPercent"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].twoPercent);
+                if (obj.containsKey(F("powerMax")))
+                    getVal<uint16_t>(obj, F("powerMax"), &mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax);
+            }
+        }
+
+        void jsonZeroExportGroup(JsonObject obj, uint8_t group, bool set = false) {
+            if(set) {
+                // General
+                obj[F("enabled")] = mCfg.plugin.zeroExport.groups[group].enabled;
+                obj[F("name")] = mCfg.plugin.zeroExport.groups[group].name;
+                // Powermeter
+                obj[F("pm_type")] = mCfg.plugin.zeroExport.groups[group].pm_type;
+                obj[F("pm_url")] = mCfg.plugin.zeroExport.groups[group].pm_url;
+                obj[F("pm_jsonPath")] = mCfg.plugin.zeroExport.groups[group].pm_jsonPath;
+                obj[F("pm_user")] = mCfg.plugin.zeroExport.groups[group].pm_user;
+                obj[F("pm_pass")] = mCfg.plugin.zeroExport.groups[group].pm_pass;
+                // Inverters
+                JsonArray invArr = obj.createNestedArray(F("inverters"));
+                for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    jsonZeroExportGroupInverter(invArr.createNestedObject(), group, inv, set);
+                }
+                // Battery
+                obj[F("battEnabled")] = mCfg.plugin.zeroExport.groups[group].battEnabled;
+                obj[F("battVoltageOn")] = mCfg.plugin.zeroExport.groups[group].battVoltageOn;
+                obj[F("battVoltageOff")] = mCfg.plugin.zeroExport.groups[group].battVoltageOff;
+                // Advanced
+                obj[F("refresh")] = mCfg.plugin.zeroExport.groups[group].refresh;
+                obj[F("powerTolerance")] = mCfg.plugin.zeroExport.groups[group].powerTolerance;
+                obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].powerMax;
+            } else {
+                // General
+                if (obj.containsKey(F("enabled")))
+                    getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.groups[group].enabled);
+                if (obj.containsKey(F("name")))
+                    getChar(obj, F("name"), mCfg.plugin.zeroExport.groups[group].name, ZEXPORT_ADDR_LEN);
+                // Powermeter
+                if (obj.containsKey(F("pm_type")))
+                    getVal<uint8_t>(obj, F("pm_type"), &mCfg.plugin.zeroExport.groups[group].pm_type);
+                if (obj.containsKey(F("pm_url")))
+                    getChar(obj, F("pm_url"), mCfg.plugin.zeroExport.groups[group].pm_url, ZEROEXPORT_GROUP_MAX_LEN_PM_URL);
+                if (obj.containsKey(F("pm_jsonPath")))
+                    getChar(obj, F("pm_jsonPath"), mCfg.plugin.zeroExport.groups[group].pm_jsonPath, ZEROEXPORT_GROUP_MAX_LEN_PM_JSONPATH);
+                if (obj.containsKey(F("pm_user")))
+                    getChar(obj, F("pm_user"), mCfg.plugin.zeroExport.groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER);
+                if (obj.containsKey(F("pm_pass")))
+                    getChar(obj, F("pm_pass"), mCfg.plugin.zeroExport.groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS);
+                // Inverters
+                if (obj.containsKey(F("inverters"))) {
+                    for(uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                        jsonZeroExportGroupInverter(obj[F("inverters")][inv], group, inv, set);
+                    }
+                }
+                // Battery
+                if (obj.containsKey(F("battEnabled")))
+                    getVal<bool>(obj, F("battEnabled"), &mCfg.plugin.zeroExport.groups[group].battEnabled);
+                if (obj.containsKey(F("battVoltageOn")))
+                    getVal<float>(obj, F("battVoltageOn"), &mCfg.plugin.zeroExport.groups[group].battVoltageOn);
+                if (obj.containsKey(F("battVoltageOff")))
+                    getVal<float>(obj, F("battVoltageOff"), &mCfg.plugin.zeroExport.groups[group].battVoltageOff);
+                // Advanced
+                if (obj.containsKey(F("refresh")))
+                    getVal<uint8_t>(obj, F("refresh"), &mCfg.plugin.zeroExport.groups[group].refresh);
+                if (obj.containsKey(F("powerTolerance")))
+                    getVal<uint8_t>(obj, F("powerTolerance"), &mCfg.plugin.zeroExport.groups[group].powerTolerance);
+                if (obj.containsKey(F("powerMax")))
+                    getVal<uint16_t>(obj, F("powerMax"), &mCfg.plugin.zeroExport.groups[group].powerMax);
+            }
+        }
+
+        void jsonZeroExport(JsonObject obj, bool set = false) {
+            if(set) {
+                obj[F("enabled")] = mCfg.plugin.zeroExport.enabled;
+                JsonArray grpArr = obj.createNestedArray(F("groups"));
+                for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                    jsonZeroExportGroup(grpArr.createNestedObject(), group, set);
+                }
+            }
+            else
+            {
+                if (obj.containsKey(F("enabled")))
+                    getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.enabled);
+                if (obj.containsKey(F("groups"))) {
+                    for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                        jsonZeroExportGroup(obj[F("groups")][group], group, set);
+                    }
+                }
+            }
+        }
+        #endif
+        // Plugin ZeroExport - Ende
 
         void jsonPlugin(JsonObject obj, bool set = false) {
             if(set) {
@@ -810,6 +1041,11 @@ class settings {
                 #endif
                 obj[F("cst_lnk")] = mCfg.plugin.customLink;
                 obj[F("cst_lnk_txt")] = mCfg.plugin.customLinkText;
+                // Plugin ZeroExport
+                #if defined(PLUGIN_ZEROEXPORT)
+                jsonZeroExport(obj.createNestedObject("zeroExport"), set);
+                #endif
+                // Plugin ZeroExport - Ende
             } else {
                 #if defined(PLUGIN_DISPLAY)
                 JsonObject disp = obj["disp"];
@@ -832,6 +1068,11 @@ class settings {
                 #endif
                 getChar(obj, F("cst_lnk"), mCfg.plugin.customLink, MAX_CUSTOM_LINK_LEN);
                 getChar(obj, F("cst_lnk_txt"), mCfg.plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
+                // Plugin ZeroExport
+                #if defined(PLUGIN_ZEROEXPORT)
+                jsonZeroExport(obj["zeroExport"], set);
+                #endif
+                // Plugin ZeroExport - Ende
             }
         }
 

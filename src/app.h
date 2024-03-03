@@ -77,10 +77,12 @@ typedef Simulator<HmSystemType> SimulatorType;
 typedef Display<HmSystemType, Radio> DisplayType;
 #endif
 
+// Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 #include "plugins/zeroExport/zeroExport.h"
 typedef ZeroExport<HmSystemType> ZeroExportType;
 #endif
+// Plugin ZeroExport - Ende
 
 class app : public IApp, public ah::Scheduler {
    public:
@@ -353,9 +355,11 @@ class app : public IApp, public ah::Scheduler {
         void setupLed();
         void updateLed();
 
-        #if defined(ESP32)
+        // Plugin ZeroExport
+        #if defined(PLUGIN_ZEROEXPORT)
         void zeroexport();
         #endif
+        // Plugin ZeroExport - Ende
 
         void tickReboot(void) {
             DPRINTLN(DBG_INFO, F("Rebooting..."));
@@ -423,7 +427,11 @@ class app : public IApp, public ah::Scheduler {
         CmtRadio<> mCmtRadio;
         #endif
 
+        #if defined(PLUGIN_ZEROEXPORT)
         char mVersion[17];
+        #else
+        char mVersion[12];
+        #endif
         char mVersionModules[12];
         settings mSettings;
         settings_t *mConfig = nullptr;
@@ -460,9 +468,11 @@ class app : public IApp, public ah::Scheduler {
         SimulatorType mSimulator;
         #endif /*ENABLE_SIMULATOR*/
 
+        // Plugin ZeroExport
         #if defined(PLUGIN_ZEROEXPORT)
-        ZeroExportType mzExport;
+        ZeroExportType mZeroExport;
         #endif
+        // Plugin ZeroExport - Ende
 };
 
 #endif /*__APP_H__*/
