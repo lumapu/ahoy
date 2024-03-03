@@ -1535,17 +1535,15 @@
                 // Plugin ZeroExport - Ende
 
                 /*ELIF_PLUGIN_ZEROEXPORT*/
-if ("ESP32-S3" != type) {
-// TODO: entfernen wenn ELIF funktioniert
-                    var e = document.getElementById("zeroExport");
-                    e.remove();
-
-                    var e = document.getElementById("zeroExport_button");
-                    e.textContent += " (only for ESP32-S3 available)";
-                    e.disabled = true;
-                    element.classList.add("disabled");
+// TODO: Erst eaktivieren wenn ELIF funktioniert
+//                    var e = document.getElementById("zeroExport");
+//                    e.remove();
+//
+//                    var e = document.getElementById("zeroExport_button");
+//                    e.textContent += " (only for ESP32-S3 available)";
+//                    e.disabled = true;
+//                    element.classList.add("disabled");
 // TODO: übersetzen? / Überflüssig? Das Modul ist so immer sichtbar und zeigt was es braucht.
-}
                 /*ENDIF_PLUGIN_ZEROEXPORT*/
 
             }
