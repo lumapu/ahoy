@@ -169,7 +169,7 @@ class RestApi {
             #ifndef ESP32
             DynamicJsonDocument json(ESP.getMaxFreeBlockSize() - 512);  // need some memory on heap
             #else
-            DynamicJsonDocument json(12000));  // does this work? I have no ESP32 :-(
+            DynamicJsonDocument json(12000);  // does this work? I have no ESP32 :-(
             #endif
             DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
             json.shrinkToFit();
