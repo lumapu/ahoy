@@ -274,7 +274,7 @@
                             <!--ENDIF_ESP32-->
                         </fieldset>
                     </div>
-
+                    <!--IF_PLUGIN_DISPLAY-->
                     <button type="button" class="s_collapsible">{#DISPLAY_CONFIG}</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -303,6 +303,7 @@
                             </div>
                         </fieldset>
                     </div>
+                    <!--ENDIF_PLUGIN_DISPLAY-->
 
                     <!-- Plugin ZeroExport -->
                     <button type="button" class="s_collapsible" id="zeroExport_button">{#ZE}</button>
@@ -358,6 +359,7 @@
             var maxInv = 0;
             var ts = 0;
 
+            /*IF_ESP8266*/
             var esp8266pins = [
                 [255, "{#PIN_OFF}"],
                 [0, "D3 (GPIO0)"],
@@ -378,6 +380,7 @@
                 [15, "D8 (GPIO15)"],
                 [16, "D0 (GPIO16 - {#PIN_NO_IRQ})"]
             ];
+            /*ENDIF_ESP8266*/
 
             /*IF_ESP32*/
             var esp32pins = [
@@ -409,6 +412,7 @@
                 [36, "VP (GPIO36, {#PIN_INPUT_ONLY})"],
                 [39, "VN (GPIO39, {#PIN_INPUT_ONLY})"]
             ];
+            /*IF_ESP32-S2*/
             var esp32sXpins = [
                 [255, "off / default"],
                 [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
@@ -457,6 +461,58 @@
                 [47, "GPIO47"],
                 [48, "GPIO48"],
             ];
+            /*ENDIF_ESP32-S2*/
+            /*IF_ESP32-S3*/
+            var esp32sXpins = [
+                [255, "off / default"],
+                [0,  "GPIO0 ({#PIN_DONT_USE} - BOOT)"],
+                [1,  "GPIO1"],
+                [2,  "GPIO2"],
+                [3,  "GPIO3"],
+                [4,  "GPIO4"],
+                [5,  "GPIO5"],
+                [6,  "GPIO6"],
+                [7,  "GPIO7"],
+                [8,  "GPIO8"],
+                [9,  "GPIO9"],
+                [10, "GPIO10"],
+                [11, "GPIO11"],
+                [12, "GPIO12"],
+                [13, "GPIO13"],
+                [14, "GPIO14"],
+                [15, "GPIO15"],
+                [16, "GPIO16"],
+                [17, "GPIO17"],
+                [18, "GPIO18"],
+                [19, "GPIO19 ({#PIN_DONT_USE} - USB-)"],
+                [20, "GPIO20 ({#PIN_DONT_USE} - USB+)"],
+                [21, "GPIO21"],
+                [26, "GPIO26 (PSRAM - {#PIN_NOT_AVAIL})"],
+                [27, "GPIO27 (FLASH - {#PIN_NOT_AVAIL})"],
+                [28, "GPIO28 (FLASH - {#PIN_NOT_AVAIL})"],
+                [29, "GPIO29 (FLASH - {#PIN_NOT_AVAIL})"],
+                [30, "GPIO30 (FLASH - {#PIN_NOT_AVAIL})"],
+                [31, "GPIO31 (FLASH - {#PIN_NOT_AVAIL})"],
+                [32, "GPIO32 (FLASH - {#PIN_NOT_AVAIL})"],
+                [33, "GPIO33 (not exposed on S3-WROOM modules)"],
+                [34, "GPIO34 (not exposed on S3-WROOM modules)"],
+                [35, "GPIO35"],
+                [36, "GPIO36"],
+                [37, "GPIO37"],
+                [38, "GPIO38"],
+                [39, "GPIO39"],
+                [40, "GPIO40"],
+                [41, "GPIO41"],
+                [42, "GPIO42"],
+                [43, "GPIO43"],
+                [44, "GPIO44"],
+                [45, "GPIO45 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [46, "GPIO46 ({#PIN_DONT_USE} - STRAPPING PIN)"],
+                [47, "GPIO47"],
+                [48, "GPIO48"],
+            ];
+            /*ENDIF_ESP32-S3*/
+            /*IF_ESP32-C3*/
             var esp32c3pins = [
                 [255, "off / default"],
                 [0,  "GPIO0"],
@@ -482,6 +538,7 @@
                 [20, "GPIO20 (RX)"],
                 [21, "GPIO21 (TX)"],
             ];
+            /*ENDIF_ESP32-C3*/
             /*ENDIF_ESP32*/
             var nrfPa = [
                 [0, "MIN ({#PIN_RECOMMENDED})"],
@@ -907,11 +964,19 @@
 
             function parsePinout(obj, type, system) {
                 var e = document.getElementById("pinout");
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
                 pins = [['led0', 'pinLed0', '{#LED_AT_LEAST_ONE_PRODUCING}'], ['led1', 'pinLed1', '{#LED_MQTT_CONNECTED}'], ['led2', 'pinLed2', '{#LED_NIGHT_TIME}']];
                 for(p of pins) {
@@ -943,11 +1008,19 @@
                 var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
                 en.checked = obj["en"];
 
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
 
                 e.replaceChildren (
@@ -979,8 +1052,15 @@
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
 
                 en.checked = obj["en"];
 
@@ -1025,12 +1105,20 @@
                 }
             }
 
+            /*IF_PLUGIN_DISPLAY*/
             function parseDisplay(obj, type, system) {
                 var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
-                if ("ESP32-S3" == system.chip_model || "ESP32-S2" == system.chip_model) pinList = esp32sXpins;
-                else if("ESP32-C3" == system["chip_model"]) pinList = esp32c3pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
                 /*ENDIF_ESP32*/
 
                 for(var i of ["disp_pwr"])
@@ -1166,6 +1254,7 @@
                 setHide("screenSaver",     !optionsMap.get(dispType)[2]);
                 setHide("pirPin",          !(optionsMap.get(dispType)[2] && (screenSaver==2))); // show pir pin only for motion screensaver
             }
+            /*ENDIF_PLUGIN_DISPLAY*/
 
             function tick() {
                 document.getElementById("date").innerHTML = toIsoDateStr((new Date((++ts) * 1000)));
@@ -1248,7 +1337,7 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
-// TODO: Hilfstexte -> Ã¼bersetzen mit lang.json
+// TODO: Hilfstexte -> übersetzen mit lang.json
                             ml("p", {}, "(3em)                - http://IP/status"),
                             ml("p", {}, "(pro3em)             - http://IP/rpc/Shelly.GetStatus"),
                             ml("p", {}, "(plus1pm)            - http://IP/rpc/Shelly.GetStatus"),
@@ -1259,7 +1348,7 @@
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
-// TODO: Hilfstexte -> Ã¼bersetzen mit lang.json
+// TODO: Hilfstexte -> übersetzen mit lang.json
 //                            ml("p", {}, "Only for HICHI needed!"),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
@@ -1296,10 +1385,10 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
-// Inhalt fÃ¼r pm_type aus config laden und in eine Funktion ausgliedern
+// Inhalt für pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: Ã¼bersetzen?
+// TODO: übersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
                 e.appendChild(opt("2", "Tasmota"));
@@ -1336,7 +1425,7 @@
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invTarget"+inv);
                     selDelAllOpt(e);
-// TODO: Ã¼bersetzen?
+// TODO: übersetzen?
                     e.appendChild(opt("-1", "---"));
                     e.appendChild(opt("0", "Sum"));
                     e.appendChild(opt("1", "L1"));
@@ -1425,7 +1514,7 @@
                 modal("{#ZE_GROUP_DELETE_MODAL}: " + obj.name, html);
 
                 function del() {
-// TODO: Es wÃ¤re gut, wenn die Defaultwerte nicht hier sondern wie in der settings.h gesetzt wÃ¼rden.
+// TODO: Es wäre gut, wenn die Defaultwerte nicht hier sondern wie in der settings.h gesetzt würden.
                     var o = new Object();
                     o.cmd  = "ze_save_group";
                     // General
@@ -1515,7 +1604,7 @@
                     ]));
                 }
 
-// TODO: Das Add sollte anders / Ã¼berhaupt gelÃ¶st werden
+// TODO: Das Add sollte anders / überhaupt gelöst werden
                 var add = new Object();
                 add.enabled = true;
                 add.id = obj.groups.length;
@@ -1546,7 +1635,7 @@
 //                    e.textContent += " (only for ESP32-S3 available)";
 //                    e.disabled = true;
 //                    element.classList.add("disabled");
-// TODO: Ã¼bersetzen? / ÃœberflÃ¼ssig? Das Modul ist so immer sichtbar und zeigt was es braucht.
+// TODO: übersetzen? / Überflüssig? Das Modul ist so immer sichtbar und zeigt was es braucht.
                 /*ENDIF_PLUGIN_ZEROEXPORT*/
 
             }
@@ -1567,7 +1656,9 @@
                     /*ENDIF_ESP32*/
 
                     parseSerial(root["serial"]);
+                    /*IF_PLUGIN_DISPLAY*/
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
+                    /*ENDIF_PLUGIN_DISPLAY*/
                     parseZeroExport(root["zeroExport"], root["system"]["esp_type"]);
 
                     getAjax("/api/inverter/list", parseIv);
