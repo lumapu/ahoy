@@ -11,159 +11,113 @@
 
 template <class HMSYSTEM>
 
+// TODO: Anbindung an MQTT für Logausgabe zuzüglich DBG-Ausgabe in json. Deshalb alle Debugausgaben ersetzten durch json, dazu sollte ein jsonObject an die Funktion übergeben werden, zu dem die Funktion dann ihren Teil hinzufügt.
+// TODO: Powermeter erweitern
+// TODO: Der Teil der noch in app.pp steckt komplett hier in die Funktion verschieben.
+
 class ZeroExport {
 
-//    bool enabled;                         // true
-//    uint8_t query_device;                 // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
-//    char monitor_url[ZEXPORT_ADDR_LEN];   //
-//    char json_path[ZEXPORT_ADDR_LEN];     //
-//    char tibber_pw[10];                   //
-//    uint8_t Iv;                           // Id gemäß anlegen
-//    float power_avg;                      //
-//    uint8_t count_avg;                    //
-//    double total_power;                   //
-//    unsigned long lastTime;               // tic toc
-//    double max_power;                     // 600 W
-//    bool two_percent;                     // P >= 2% von max_power
+    public:
 
-//  mCfg                                    // -> siehe oben
-//  mSys                                    // ->
-//  mConfig                                 // ->
-
-   public:
-    ZeroExport() {
-        mIsInitialized = false;
-    }
-
-    void setup(zeroExport_t *cfg, HMSYSTEM *sys, settings_t *config) {
-        mCfg     = cfg;
-        mSys     = sys;
-        mConfig  = config;
-
-        if (!mCfg->enabled) {
-            return;
+        ZeroExport() {
+            mIsInitialized = false;
         }
 
-        mIsInitialized = true;
-    }
+        void setup(zeroExport_t *cfg, HMSYSTEM *sys, settings_t *config, RestApiType *api) {
+            mCfg     = cfg;
+            mSys     = sys;
+            mConfig  = config;
+            mApi     = api;
 
-    void loop(void) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
+// TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
+//            mIsInitialized = true;
         }
 
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups[group].enabled) {
-                continue;
+        void loop(void) {
+            if ((!mIsInitialized) || (!mCfg->enabled)) {
+                return;
             }
+// TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
+return;
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                if (!mCfg->groups[group].enabled) {
+                    continue;
+                }
 
-            switch (mCfg->groups[group].state) {
-                case zeroExportState::RESET:
-//DBGPRINT(F("State::RESET: "));
-//DBGPRINTLN(String(group));
-                    mCfg->groups[group].lastRun = millis();
-                    // Weiter zum nächsten State
-                    mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
-                    break;
-                case zeroExportState::GETPOWERMETER:
-                    if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
-//DBGPRINT(F("State::GETPOWERMETER:"));
-//DBGPRINTLN(String(group));
-                        if (getPowermeterWatts(group)) {
-                            // Weiter zum nächsten State
-                            mCfg->groups[group].state = zeroExportState::GETINVERTERPOWER;
-                        } else {
-                            // Wartezeit wenn Keine Daten vom Powermeter
-                            mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                switch (mCfg->groups[group].state) {
+                    case zeroExportState::RESET:
+                        mCfg->groups[group].lastRun = millis();
+                        mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+                        break;
+                    case zeroExportState::GETPOWERMETER:
+                        if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
+                            if (getPowermeterWatts(group)) {
+                                mCfg->groups[group].state = zeroExportState::GETINVERTERDATA;
+                            } else {
+                                // Wartezeit wenn Keine Daten vom Powermeter
+                                mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                            }
                         }
-                    }
-                    break;
-                case zeroExportState::GETINVERTERPOWER:
-                    if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
-//DBGPRINT(F("State::GETINVERTERPOWER:"));
-//DBGPRINTLN(String(group));
-                        if (getInverterPowerWatts(group)) {
-                            // Weiter zum nächsten State
+                        break;
+                    case zeroExportState::GETINVERTERDATA:
+                        if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
+                            if (getInverterData(group)) {
+                                mCfg->groups[group].state = zeroExportState::BATTERYPROTECTION;
+                            } else {
+                                // Wartezeit wenn Keine Daten von Wechselrichtern
+                                mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                            }
+                        }
+                        break;
+                    case zeroExportState::BATTERYPROTECTION:
+                        if (batteryProtection(group)) {
+                            mCfg->groups[group].state = zeroExportState::CONTROL;
+                        //} else {
+                            // Wartezeit
+                        }
+                        break;
+                    case zeroExportState::CONTROL:
+                        if (controller(group)) {
+                            mCfg->groups[group].state = zeroExportState::SETCONTROL;
+                        //} else {
+                            // Wartezeit
+                        }
+                        break;
+                    case zeroExportState::SETCONTROL:
+                        if (setControl(group)) {
+                            mCfg->groups[group].state = zeroExportState::WAITACCEPT;
+                        //} else {
+                            // Wartezeit
+                        }
+                        break;
+                    case zeroExportState::WAITACCEPT:
+                        if (waitAccept(group)) {
                             mCfg->groups[group].state = zeroExportState::FINISH;
-                        } else {
-                            // Wartezeit wenn Keine Daten vom Powermeter
-                            mCfg->groups[group].lastRun = (millis() - (mCfg->groups[group].refresh * 100UL));
+                        //} else {
+                            // Wartezeit
                         }
-                    }
-                    break;
-/*
-                case 4:
-                    //
-                    mCfg->groups[group].state = zeroExportState::RESET;
-                    break;
-                case 5:
-                    //
-                    mCfg->groups[group].state = zeroExportState::RESET;
-                    break;
-*/
-                default:
-                    //
-//DBGPRINT(F("State::?: "));
-//DBGPRINTLN(String(group));
-                    mCfg->groups[group].state = zeroExportState::RESET;
-                    break;
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-            if (!mCfg->groups[group].powermeter.error) {
-DBGPRINTLN(String("ok verarbeiten."));
-            }
-
-            if (mCfg->groups[group].powermeter.error >= ZEROEXPORT_POWERMETER_MAX_ERRORS) {
-DBGPRINTLN(String("nok Notmodus."));
-            }
-*/
-
-/*
-            // getPowermeterGroup
-            mCfg->zeGroup[group].PowermeterSum = getPowermeterSum();
-            // getPowermeterPhase
-            for (uint8_t phase = 1; phase <= 3; phase++) {
-                mCfg->zeGroup[group].PowermeterPhase[phase] = getPowermeterPhase();
-            }
-            // getInverterPower
-            for (uint8_t inv = 0; inv < MAX; inv++) {
-                mCfg->zeGroup[group].InverterpowerGroup = getInverterpowerGroup();
-                for (uint8_t phase = 1; phase <= 3; phase++) {
-                    mCfg->zeGroup[group].InverterpowerPhase[phase] = getInverterpowerPhase();
+                        break;
+                    default:
+                        DBGPRINT(String("ze: "));
+                        DBGPRINTLN(mDocLog.as<String>());
+                        mDocLog.clear();
+                        mCfg->groups[group].state = zeroExportState::RESET;
+                        break;
                 }
             }
-            // calcPowerSum
-            mCfg->zeGroup[group].LimitSumNew = mCfg->zeGroup[group].LimitSumOld + mCfg->zeGroup[group].PowermeterSum;
-            // calcPowerPhase
-            for (uint8_t phase = 1; phase <= 3; phase++) {
-                mCfg->zeGroup[group].LimitPhaseNew[phase] = mCfg->zeGroup[group].LimitPhaseOld[phase] - mCfg->zeGroup[group].PowermeterPhase[phase];
-            }
-            // calcPowerInverter
-            for (uint8_t inv = 0; inv < MAX; inv++) {
-
-            }
-*/
         }
 
-        // setPower
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups[group].enabled) {
-                continue;
+        void tickerSecond() {
+// TODO: Warten ob benötigt, ggf ein bit setzen, das in der loop() abgearbeitet wird.
+            if ((!mIsInitialized) || (!mCfg->enabled)) {
+                return;
             }
+        }
+
+
+
+
+
 /*
 // TODO: Inverter sortieren nach Leistung
 // -> Aufsteigend bei Leistungserhöhung
@@ -210,52 +164,16 @@ DBGPRINTLN(String("nok Notmodus."));
 
             }
 */
-        }
 
-    }
-
-    void tickerSecond() {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
-
-
-
-
-
-        //DPRINTLN(DBG_INFO, (F("tickerSecond()")));
-//        if (millis() - mCfg->lastTime < mCfg->count_avg * 1000UL) {
-///            zero(); // just refresh when it is needed. To get cpu load low.
-//        }
-    }
-
-    // Sums up the power values ​​of all phases and returns them.
-    // If the value is negative, all power values ​​from the inverter are taken into account
-    double getPowertoSetnewValue()
-    {
-/*
-        float ivPower = 0;
-        Inverter<> *iv;
-        record_t<> *rec;
-        for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
-            iv = mSys->getInverterByPos(i);
-            rec = iv->getRecordStruct(RealTimeRunData_Debug);
-            if (iv == NULL)
-                continue;
-            ivPower += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
-        }
-*/
-//        return ((unsigned)(mCfg->total_power - mCfg->power_avg) >= mCfg->power_avg) ?  ivPower + mCfg->total_power : ivPower - mCfg->total_power;
-        return 0;
-    }
-    //C2T2-B91B
     private:
+/*
+// TODO: Vorlage für nachfolgende Funktion getPowermeterWatts. Funktionen erst zusammenführen, wenn keine weiteren Powermeter mehr kommen.
+    //C2T2-B91B
         HTTPClient httpClient;
 
         // TODO: Need to improve here. 2048 for a JSON Obj is to big!?
         bool zero()
         {
-/*
             httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
             httpClient.setUserAgent("Ahoy-Agent");
             httpClient.setConnectTimeout(1000);
@@ -308,7 +226,6 @@ DBGPRINTLN(String("nok Notmodus."));
                 return false;
             }
             httpClient.end();
-*/
             return true;
         }
 
@@ -316,47 +233,49 @@ DBGPRINTLN(String("nok Notmodus."));
         {
 
         }
+*/
 
-
-
+        // Powermeter
 
         bool getPowermeterWatts(uint8_t group) {
+            JsonObject logObj = mLog.createNestedObject("getPowermeterWatts");
+            logObj["grp"] = group;
+
             bool ret = false;
-DBGPRINT(String("getPowermeterWatts: "));
-DBGPRINTLN(String(group));
+
             switch (mCfg->groups[group].pm_type) {
                 case 1:
-                    ret = getPowermeterWattsShelly(group);
+                    ret = getPowermeterWattsShelly(logObj, group);
                     break;
-//                case 2:
-//                    ret = getPowermeterWattsTasmota(group);
-//                    break;
+                case 2:
+                    ret = getPowermeterWattsTasmota(logObj, group);
+                    break;
 //                case 3:
-//                    ret = getPowermeterWattsMqtt(group);
+//                    ret = getPowermeterWattsMqtt(logObj, group);
 //                    break;
 //                case 4:
-//                    ret = getPowermeterWattsHichi(group);
+//                    ret = getPowermeterWattsHichi(logObj, group);
 //                    break;
 //                case 5:
-//                    ret = getPowermeterWattsTibber(group);
+//                    ret = getPowermeterWattsTibber(logObj, group);
 //                    break;
-///                default:
-///                    ret = false;
-///                    break;
             }
+
             return ret;
         }
 
-        int getPowermeterWattsShelly(uint8_t group) {
+        int getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
             bool ret = false;
+
             HTTPClient http;
-//            httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            httpClient.setUserAgent("Ahoy-Agent");
+//            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            http.setUserAgent("Ahoy-Agent");
 // TODO: Ahoy-0.8.850024-zero
-//            httpClient.setConnectTimeout(1000);
-//            httpClient.setTimeout(1000);
-//            httpClient.addHeader("Content-Type", "application/json");
-//            httpClient.addHeader("Accept", "application/json");
+//            http.setConnectTimeout(1000);
+//            http.setTimeout(1000);
+//            http.addHeader("Content-Type", "application/json");
+//            http.addHeader("Accept", "application/json");
+// TODO: Erst aktivieren wenn Timing klar ist, Timeout reduzieren.
             http.begin(mCfg->groups[group].pm_url);
             if (http.GET() == HTTP_CODE_OK)
             {
@@ -366,8 +285,7 @@ DBGPRINTLN(String(group));
                 DeserializationError error = deserializeJson(doc, http.getString());
                 if (error)
                 {
-DBGPRINT(String("deserializeJson() failed: "));
-DBGPRINTLN(String(error.c_str()));
+                    logObj["error"] = "deserializeJson() failed: " + String(error.c_str());
                     return ret;
                 }
 
@@ -406,8 +324,6 @@ DBGPRINTLN(String(error.c_str()));
                 } else {
                     mCfg->groups[group].pmPowerL1 = 0;
                 }
-DBGPRINT(String("pmPowerL1: "));
-DBGPRINTLN(String(mCfg->groups[group].pmPowerL1));
 
                 // Shelly 3EM
                 if (doc.containsKey(F("emeters"))) {
@@ -431,8 +347,6 @@ DBGPRINTLN(String(mCfg->groups[group].pmPowerL1));
                 } else {
                     mCfg->groups[group].pmPowerL2 = 0;
                 }
-DBGPRINT(String("pmPowerL2: "));
-DBGPRINTLN(String(mCfg->groups[group].pmPowerL2));
 
                 // Shelly 3EM
                 if (doc.containsKey(F("emeters"))) {
@@ -456,35 +370,53 @@ DBGPRINTLN(String(mCfg->groups[group].pmPowerL2));
                 } else {
                     mCfg->groups[group].pmPowerL3 = 0;
                 }
-DBGPRINT(String("pmPowerL3: "));
-DBGPRINTLN(String(mCfg->groups[group].pmPowerL3));
 
-DBGPRINT(String("pmPower: "));
-DBGPRINTLN(String(mCfg->groups[group].pmPower));
+                logObj["pmPower"]   = mCfg->groups[group].pmPower;
+                logObj["pmPowerL1"] = mCfg->groups[group].pmPowerL1;
+                logObj["pmPowerL2"] = mCfg->groups[group].pmPowerL2;
+                logObj["pmPowerL3"] = mCfg->groups[group].pmPowerL3;
             }
             http.end();
 
             return ret;
         }
 
-        int getPowermeterWattsTasmota(void) {
-/*
-            HTTPClient http;
-            char url[100] = "http://";
-            strcat(url, mCfg->monitor_url);
-            strcat(url, "/cm?cmd=status%2010");
-            http.begin(url);
+        int getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
+// TODO: nicht komplett
+            bool ret = false;
 
-            if (http.GET() == 200) {
+            HTTPClient http;
+//            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+            http.setUserAgent("Ahoy-Agent");
+// TODO: Ahoy-0.8.850024-zero
+//            http.setConnectTimeout(1000);
+//            http.setTimeout(1000);
+//            http.addHeader("Content-Type", "application/json");
+//            http.addHeader("Accept", "application/json");
+// TODO: Erst aktivieren wenn Timing klar ist, Timeout reduzieren.
+            http.begin(mCfg->groups[group].pm_url);
+            if (http.GET() == HTTP_CODE_OK)
+            {
+
                 // Parsing
-                DynamicJsonDocument doc(384);
+                DynamicJsonDocument doc(2048);
                 DeserializationError error = deserializeJson(doc, http.getString());
-                if (error) {
-                    Serial.print("deserializeJson() failed: ");
-                    Serial.println(error.c_str());
-                    return 0;
+                if (error)
+                {
+                    logObj["error"] = "deserializeJson() failed: " + String(error.c_str());
+                    return ret;
                 }
 
+// TODO: Sum
+                    ret = true;
+
+// TODO: L1
+
+// TODO: L2
+
+// TODO: L3
+
+/*
                 JsonObject Tasmota_ENERGY = doc["StatusSNS"]["ENERGY"];
                 int Tasmota_Power = Tasmota_ENERGY["Power"]; // 0
                 return Tasmota_Power;
@@ -495,58 +427,101 @@ DBGPRINTLN(String(mCfg->groups[group].pmPower));
                 int Watts = ParsedData[TASMOTA_JSON_STATUS][TASMOTA_JSON_PAYLOAD_MQTT_PREFIX][TASMOTA_JSON_POWER_MQTT_LABEL].toInt();
                 return Watts;
                 */
+
+                logObj["pmPower"]   = mCfg->groups[group].pmPower;
+                logObj["pmPowerL1"] = mCfg->groups[group].pmPowerL1;
+                logObj["pmPowerL2"] = mCfg->groups[group].pmPowerL2;
+                logObj["pmPowerL3"] = mCfg->groups[group].pmPowerL3;
+            }
+            http.end();
+
+            return ret;
+        }
+
+        int getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
+// TODO: nicht komplett
+            bool ret = false;
+
+
+
+//                logObj["pmPower"]   = mCfg->groups[group].pmPower;
+//                logObj["pmPowerL1"] = mCfg->groups[group].pmPowerL1;
+//                logObj["pmPowerL2"] = mCfg->groups[group].pmPowerL2;
+//                logObj["pmPowerL3"] = mCfg->groups[group].pmPowerL3;
 //            }
 //            http.end();
-            return 0;
+
+            return ret;
         }
 
-        int getPowermeterWattsMqtt(void) {
-            // TODO:
-            return 0;
-        }
-
-        int getPowermeterWattsHichi(void) {
-            // TODO:
-            return 0;
-        }
-
-        int getPowermeterWattsTibber(void) {
-            // TODO:
-            return 0;
-        }
-
-
-
-        bool getInverterPowerWatts(uint8_t group) {
+        int getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
+// TODO: nicht komplett
             bool ret = false;
-DBGPRINT(String("getInverterPowerWatts: "));
-DBGPRINTLN(String(group));
+
+
+
+//                logObj["pmPower"]   = mCfg->groups[group].pmPower;
+//                logObj["pmPowerL1"] = mCfg->groups[group].pmPowerL1;
+//                logObj["pmPowerL2"] = mCfg->groups[group].pmPowerL2;
+//                logObj["pmPowerL3"] = mCfg->groups[group].pmPowerL3;
+//            }
+//            http.end();
+
+            return ret;
+        }
+
+        int getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
+// TODO: nicht komplett
+            bool ret = false;
+
+
+
+//                logObj["pmPower"]   = mCfg->groups[group].pmPower;
+//                logObj["pmPowerL1"] = mCfg->groups[group].pmPowerL1;
+//                logObj["pmPowerL2"] = mCfg->groups[group].pmPowerL2;
+//                logObj["pmPowerL3"] = mCfg->groups[group].pmPowerL3;
+//            }
+//            http.end();
+
+            return ret;
+        }
+
+        // Inverter
+
+        bool getInverterData(uint8_t group) {
+            JsonObject logObj = mLog.createNestedObject("getInverterPowerWatts");
+            logObj["grp"] = group;
+
+            bool ret = false;
+
+            JsonArray logArrInv = logObj.createNestedArray("iv");
+
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-DBGPRINT(String("iv: "));
-DBGPRINT(String(inv));
-DBGPRINT(String(" "));
+                JsonObject logObjInv = logArrInv.createNestedObject();
+                logObjInv["iv"] = inv;
+
                 // Wenn Inverter deaktiviert -> Eintrag ignorieren
                 if (!mCfg->groups[group].inverters[inv].enabled) {
-DBGPRINT(String("(ze disabled)."));
                     continue;
                 }
+
                 // Daten holen
                 Inverter<> *iv;
                 record_t<> *rec;
 // TODO: getInverterById
                 for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
                     iv = mSys->getInverterByPos(i);
+
                     // Wenn kein Inverter -> ignorieren
                     if (iv == NULL) {
                         continue;
                     }
+
                     // Wenn falscher Inverter -> ignorieren
                     if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) {
                         continue;
                     }
-DBGPRINT(String("("));
-DBGPRINT(String(iv->id));
-DBGPRINT(String("( gefunden)"));
+
                     // wenn Inverter deaktiviert -> Daten ignorieren
 //                    if (!iv->enabled()) {
 //DBGPRINT(String(" aber deaktiviert "));
@@ -567,28 +542,77 @@ DBGPRINT(String(" aber nicht erreichbar "));
 
 // TODO: gibts hier nen Timestamp? Wenn die Daten nicht aktueller sind als beim letzten Durchlauf dann brauch ich nix machen
 
-mCfg->groups[group].inverters[inv].power = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
-DBGPRINT(String("(P="));
-DBGPRINT(String(mCfg->groups[group].inverters[inv].power));
-DBGPRINT(String("W "));
+                    mCfg->groups[group].inverters[inv].power = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
+                    logObjInv["P_ac"] = mCfg->groups[group].inverters[inv].power;
 
-mCfg->groups[group].inverters[inv].limit = iv->actPowerLimit;
-DBGPRINT(String("Li="));
-DBGPRINT(String(mCfg->groups[group].inverters[inv].limit));
-DBGPRINT(String("% "));
+//mCfg->groups[group].inverters[inv].limit = iv->actPowerLimit;
+//DBGPRINT(String("Li="));
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limit));
+//DBGPRINT(String("% "));
 
-mCfg->groups[group].inverters[inv].limitAck = iv->powerLimitAck;
-DBGPRINT(String("Ack= "));
-DBGPRINT(String(mCfg->groups[group].inverters[inv].limitAck));
-DBGPRINT(String(" "));
+                    mCfg->groups[group].inverters[inv].limitAck = iv->powerLimitAck;
+//DBGPRINT(String("Ack= "));
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limitAck));
+//DBGPRINT(String(" "));
 
-mCfg->groups[group].inverters[inv].dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
-DBGPRINT(String("U="));
-DBGPRINT(String(mCfg->groups[group].inverters[inv].dcVoltage));
-DBGPRINT(String("V) "));
+                    mCfg->groups[group].inverters[inv].dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
+                    logObjInv["U_dc"] = mCfg->groups[group].inverters[inv].dcVoltage;
 // TODO: Eingang muss konfigurierbar sein
 
+                    ret = true;
+                }
+            }
 
+            return ret;
+        }
+
+        // Battery
+
+        bool batteryProtection(uint8_t group) {
+            JsonObject logObj = mLog.createNestedObject("batteryProtection");
+            logObj["grp"] = group;
+            bool ret = false;
+DBGPRINT(String("batteryProtection: ("));
+DBGPRINT(String(group));
+DBGPRINT(String("): "));
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+DBGPRINT(String("iv: "));
+DBGPRINT(String(inv));
+DBGPRINT(String(" "));
+                if (mCfg->groups[group].battEnabled) {
+                    // Konfigurationstest
+                    if (mCfg->groups[group].battVoltageOn <= mCfg->groups[group].battVoltageOff) {
+                        mCfg->groups[group].battSwitch = false;
+DBGPRINT(String("Konfigurationsfehler: battVoltageOn ist < battVoltageOff"));
+                        return false;
+                    }
+                    // Konfigurationstest
+                    if (mCfg->groups[group].battVoltageOn >= (mCfg->groups[group].battVoltageOff + 1)) {
+                        mCfg->groups[group].battSwitch = false;
+DBGPRINT(String("Konfigurationsfehler: battVoltageOn muss >= (battVoltageOff + 1)"));
+                        return false;
+                    }
+                    // Konfigurationstest
+                    if (mCfg->groups[group].battVoltageOn <= 22) {
+                        mCfg->groups[group].battSwitch = false;
+DBGPRINT(String("Konfigurationsfehler: battVoltageOn ist <= 22"));
+                        return false;
+                    }
+                    // Einschalten
+                    if (mCfg->groups[group].inverters[inv].dcVoltage > mCfg->groups[group].battVoltageOn) {
+                        mCfg->groups[group].battSwitch = true;
+                        ret = true;
+DBGPRINT(String("Einschalten"));
+                        continue;
+                    }
+                    // Ausschalten
+                    if (mCfg->groups[group].inverters[inv].dcVoltage < mCfg->groups[group].battVoltageOff) {
+                        mCfg->groups[group].battSwitch = false;
+DBGPRINT(String("Ausschalten"));
+                        return true;
+                    }
+                } else {
+                    mCfg->groups[group].battSwitch = false;
                     ret = true;
                 }
             }
@@ -596,20 +620,372 @@ DBGPRINTLN(String(""));
             return ret;
         }
 
+        // Controller
+
+        bool controller(uint8_t group) {
+// TODO: Die Funktion controller() soll die Regelabweichung berechnen und alle nötigen Korrekuren speichern
+            JsonObject logObj = mLog.createNestedObject("controller");
+            logObj["grp"] = group;
+
+// TODO: Regelparameter unter Advanced konfigurierbar? Aber erst wenn Regler komplett ingegriert.
+            const float Kp = 1;
+            const float Ki = 1;
+            const float Kd = 1;
+
+            unsigned long tsp = millis();
+
+            float xSum = 0;
+            float xL1  = 0;
+            float xL2  = 0;
+            float xL3  = 0;
+
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+
+                // Wenn Inverter disabled -> überspringen
+                if (!mCfg->groups[group].inverters[inv].enabled) {
+                    continue;
+                }
+
+// TODO: Wenn der Inverter nicht produziert -> überspringen
+
+                // Istwert
+                if (mCfg->groups[group].inverters[inv].target == 0) {
+                    // Sum
+                    xSum += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 1) {
+                    // L1
+                    xL1 += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 2) {
+                    // L2
+                    xL2 += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 3) {
+                    // L3
+                    xL3 += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 4) {
+                    // L1 + Sum
+                    xSum += mCfg->groups[group].inverters[inv].limit;
+                    xL1 += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 5) {
+                    // L2 + Sum
+                    xSum += mCfg->groups[group].inverters[inv].limit;
+                    xL2 += mCfg->groups[group].inverters[inv].limit;
+                }
+                if (mCfg->groups[group].inverters[inv].target == 6) {
+                    // L3 + Sum
+                    xSum += mCfg->groups[group].inverters[inv].limit;
+                    xL3 += mCfg->groups[group].inverters[inv].limit;
+                }
+            }
+            logObj["xSum"] = xSum;
+            logObj["xL1"] = xL1;
+            logObj["xL2"] = xL2;
+            logObj["xL3"] = xL3;
+
+            // Regelabweichung Sum
+            float e_Sum = mCfg->groups[group].pmPower - mCfg->groups[group].setPoint;
+            float e_L1  = mCfg->groups[group].pmPowerL1 - (mCfg->groups[group].setPoint / 3);
+            float e_L2  = mCfg->groups[group].pmPowerL2 - (mCfg->groups[group].setPoint / 3);
+            float e_L3  = mCfg->groups[group].pmPowerL3 - (mCfg->groups[group].setPoint / 3);
+
+            logObj["e_Sum"] = e_Sum;
+            logObj["e_L1"]  = e_L1;
+            logObj["e_L2"]  = e_L2;
+            logObj["e_L3"]  = e_L3;
+
+            // Regler
+            // P-Anteil
+            float yP_Sum = Kp * e_Sum;
+            float yP_L1  = Kp * e_L1;
+            float yP_L2  = Kp * e_L2;
+            float yP_L3  = Kp * e_L3;
+            // I-Anteil
+//            float esum = esum + e;
+//            float yI = Ki * Ta * esum;
+            float yI_Sum = 0;
+            float yI_L1 = 0;
+            float yI_L2 = 0;
+            float yI_L3 = 0;
+            // D-Anteil
+//            float yD = Kd * (e -ealt) / Ta;
+//            float ealt = e;
+            float yD_Sum = 0;
+            float yD_L1 = 0;
+            float yD_L2 = 0;
+            float yD_L3 = 0;
+            // PID-Anteil
+            float yPID_Sum = yP_Sum + yI_Sum + yD_Sum;
+            float yPID_L1  = yP_L1 + yI_L1 + yD_L1;
+            float yPID_L2  = yP_L2 + yI_L2 + yD_L2;
+            float yPID_L3  = yP_L3 + yI_L3 + yD_L3;
+            // Regelbegrenzung
+//            if (yPID < 5) yPID = 5;
+//            if (yPID > 95) yPID = 95;
+
+            logObj["yPID_Sum"] = yPID_Sum;
+            logObj["yPID_L1"]  = yPID_L1;
+            logObj["yPID_L2"]  = yPID_L2;
+            logObj["yPID_L3"]  = yPID_L3;
+
+            JsonArray logArrInv = logObj.createNestedArray("iv");
+
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                JsonObject logObjInv = logArrInv.createNestedObject();
+                logObjInv["iv"] = inv;
+
+                if (!mCfg->groups[group].inverters[inv].enabled) {
+                    continue;
+                }
+
+                // Inverterdaten
+                logObjInv["limit"] = mCfg->groups[group].inverters[inv].limit;
+                logObjInv["powerMin"] = mCfg->groups[group].inverters[inv].powerMin;
+                logObjInv["powerMax"] = mCfg->groups[group].inverters[inv].powerMax;
+                logObjInv["power"] = mCfg->groups[group].inverters[inv].power;
+
+                // limitNew berechnen
+                if (mCfg->groups[group].inverters[inv].target == 0) {
+                    // Sum
+                    mCfg->groups[group].inverters[inv].limitNew = (uint16_t)(mCfg->groups[group].inverters[inv].limit + (int16_t)yPID_Sum);
+                }
+                if (mCfg->groups[group].inverters[inv].target == 1) {
+                    // L1
+                    mCfg->groups[group].inverters[inv].limitNew = (uint16_t)(mCfg->groups[group].inverters[inv].limit + (int16_t)yPID_L1);
+                }
+                if (mCfg->groups[group].inverters[inv].target == 2) {
+                    // L2
+                    mCfg->groups[group].inverters[inv].limitNew = (uint16_t)(mCfg->groups[group].inverters[inv].limit + (int16_t)yPID_L2);
+                }
+                if (mCfg->groups[group].inverters[inv].target == 3) {
+                    // L3
+                    mCfg->groups[group].inverters[inv].limitNew = (uint16_t)(mCfg->groups[group].inverters[inv].limit + (int16_t)yPID_L3);
+                }
+                if (mCfg->groups[group].inverters[inv].target == 4) {
+                    // L1 + Sum
+                }
+                if (mCfg->groups[group].inverters[inv].target == 5) {
+                    // L2 + Sum
+                }
+                if (mCfg->groups[group].inverters[inv].target == 6) {
+                    // L3 + Sum
+                }
+            }
+
+            return true;
+        }
+
+        bool setControl(uint8_t group) {
+// TODO: Die Funktion setControl soll alle gespeicherten Aufgaben in der korrekten Reihenfolge abarbeiten.
+            JsonObject logObj = mLog.createNestedObject("setControl");
+            logObj["grp"] = group;
+
+            bool ret = true;
+
+            JsonArray logArrInv = logObj.createNestedArray("iv");
+            unsigned long tsp = millis();
+
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                JsonObject logObjInv = logArrInv.createNestedObject();
+                logObjInv["iv"] = inv;
+
+                if (!mCfg->groups[group].inverters[inv].enabled) {
+                    continue;
+                }
+
+                if (mCfg->groups[group].inverters[inv].limitNew != mCfg->groups[group].inverters[inv].limit) {
+
+                    // Wenn keine Freigabe für neues Limit vorhanden ist -> überspringen
+                    if (mCfg->groups[group].inverters[inv].limitTsp != 0) {
+                        continue;
+                    }
+
+                    // Begrenzen
+                    if (mCfg->groups[group].inverters[inv].limitNew <= mCfg->groups[group].inverters[inv].powerMin) {
+                        mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMin;
+                    }
+                    if (mCfg->groups[group].inverters[inv].limitNew >= mCfg->groups[group].inverters[inv].powerMax) {
+                        mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMax;
+                    }
+
+                    logObjInv["limitOld"] = mCfg->groups[group].inverters[inv].limit;
+                    logObjInv["limitNew"] = mCfg->groups[group].inverters[inv].limitNew;
+
+                    setLimit(group, inv);
+                    ret = false;
+                }
+            }
+
+            if (ret) {
+                logObj["todo"] = "- nothing todo - ";
+            }
+
+            return ret;
+        }
+
+        bool waitAccept(uint8_t group) {
+            JsonObject logObj = mLog.createNestedObject("waitAccept");
+            logObj["grp"] = group;
+
+            bool ret = true;
+
+            JsonArray logArrInv = logObj.createNestedArray("iv");
+            unsigned long tsp = millis();
+
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                JsonObject logObjInv = logArrInv.createNestedObject();
+                logObjInv["iv"] = inv;
+
+                if (!mCfg->groups[group].inverters[inv].enabled) {
+                    continue;
+                }
+
+                if (mCfg->groups[group].inverters[inv].limitAck) {
+                    mCfg->groups[group].inverters[inv].limitAck = 0;
+                    mCfg->groups[group].inverters[inv].limitTsp = 0;
+                    ret = false;
+                    continue;
+                }
+
+                if ((mCfg->groups[group].inverters[inv].limitTsp + 5000UL) < tsp) {
+                    mCfg->groups[group].inverters[inv].limitTsp = 0;
+                    ret = false;
+                    continue;
+                }
+
+            }
+
+            return true;
+        }
 
 
 
 
+
+
+
+
+
+
+// TODO: Hier folgen Unterfunktionen für SetControl die Erweitert werden müssen
+// setLimit, checkLimit
+// setPower, checkPower
+// setReboot, checkReboot
+
+        bool setLimit(uint8_t group, uint8_t inv) {
+DBGPRINT(String("setLimit: ("));
+DBGPRINT(String(group));
+DBGPRINT(String("): "));
+DBGPRINT(String("iv: ("));
+DBGPRINT(String(inv));
+DBGPRINT(String(") -> "));
+
+            // Limit verweigern wenn Abweichung < 5 W
+//            if ((mCfg->groups[group].inverters[inv].limitNew > mCfg->groups[group].inverters[inv].limit - 5) && (mCfg->groups[group].inverters[inv].limitNew < mCfg->groups[group].inverters[inv].limit + 5)) {
+// TODO: 5W Toleranz konfigurierbar?
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limit));
+//DBGPRINTLN(String(" W"));
+//                return true;
+//            }
+
+            // Limit speichern
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limit));
+//DBGPRINTLN(String(" W -> "));
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limitNew));
+//DBGPRINTLN(String(" W"));
+            mCfg->groups[group].inverters[inv].limit = mCfg->groups[group].inverters[inv].limitNew;
+            mCfg->groups[group].inverters[inv].limitTsp = millis();
+
+            // Limit übergeben
+            DynamicJsonDocument doc(512);
+            JsonObject obj = doc.to<JsonObject>();
+            obj["val"] = mCfg->groups[group].inverters[inv].limit;
+            obj["id"] = mCfg->groups[group].inverters[inv].id;
+            obj["path"] = "ctrl";
+            obj["cmd"] = "limit_nonpersistent_absolute";
+            String data;
+            serializeJsonPretty(obj, data);
+DBGPRINTLN(data);
+            mApi->ctrlRequest(obj);
+            return true;
+        }
+
+        bool checkLimitAllowed(uint8_t group, uint8_t inv) {
+//DBGPRINT(String("checkLimit: ("));
+//DBGPRINT(String(group));
+//DBGPRINT(String("): "));
+//DBGPRINT(String("iv: ("));
+//DBGPRINT(String(inv));
+//DBGPRINT(String(") -> "));
+//DBGPRINT(String(mCfg->groups[group].inverters[inv].limitAck));
+
+            if (mCfg->groups[group].inverters[inv].limitAck == 0) {
+                return true;
+            } else {
+                mCfg->groups[group].inverters[inv].limitAck = 0;
+                return false;
+            }
+        }
+
+
+
+/*
+// TODO: Vorlage für Berechnung
+        Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv);
+
+        DynamicJsonDocument doc(512);
+        JsonObject object = doc.to<JsonObject>();
+
+        double nValue = round(mZeroExport.getPowertoSetnewValue());
+        double twoPerVal = nValue <= (iv->getMaxPower() / 100 * 2 );
+
+        if(mConfig->plugin.zeroExport.two_percent && (nValue <= twoPerVal))
+            nValue = twoPerVal;
+
+        if(mConfig->plugin.zeroExport.max_power <= nValue)
+            nValue = mConfig->plugin.zeroExport.max_power;
+
+        if(iv->actPowerLimit == nValue) {
+            mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
+            return; // if PowerLimit same as befor, then skip
+        }
+
+        object["val"] = nValue;
+        object["id"] = mConfig->plugin.zeroExport.Iv;
+        object["path"] = "ctrl";
+        object["cmd"] = "limit_nonpersistent_absolute";
+
+        String data;
+        serializeJsonPretty(object, data);
+        DPRINTLN(DBG_INFO, data);
+        mApi.ctrlRequest(object);
+
+        mConfig->plugin.zeroExport.lastTime = millis();    // set last timestamp
+*/
 
         // private member variables
         bool mIsInitialized = false;
         zeroExport_t *mCfg;
         settings_t *mConfig;
         HMSYSTEM *mSys;
+        RestApiType *mApi;
+        StaticJsonDocument<5000> mDocLog;
+        JsonObject mLog = mDocLog.to<JsonObject>();
 };
 
 
 
+
+
+
+
+
+
+
+// TODO: Vorlagen für Powermeter-Analyse
 /*
 Shelly 1pm
 Der Shelly 1pm verfügt über keine eigene Spannungsmessung sondern geht von 220V * Korrekturfaktor aus. Dadurch wird die Leistungsmessung verfälscht und der Shelly ist ungeeignet.
@@ -631,16 +1007,9 @@ nok keine negativen Leistungswerte
 {"ble":{},"cloud":{"connected":false},"input:0":{"id":0,"state":false},"mqtt":{"connected":true},"switch:0":{"id":0, "source":"MQTT", "output":false, "apower":0.0, "voltage":235.9, "current":0.000, "aenergy":{"total":20393.619,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223441},"temperature":{"tC":34.6, "tF":94.3}},"sys":{"mac":"FCB467A66E3C","restart_required":false,"time":"17:17","unixtime":1709223443,"uptime":8644483,"ram_size":246256,"ram_free":143544,"fs_size":458752,"fs_free":147456,"cfg_rev":9,"kvs_rev":0,"schedule_rev":0,"webhook_rev":0,"available_updates":{"stable":{"version":"1.2.2"}}},"wifi":{"sta_ip":"192.168.100.88","status":"got ip","ssid":"Odyssee2001","rssi":-42},"ws":{"connected":false}}
 
 
-
-
-
-
-
-
-
-
-
-
+Tasmota
+http://192.168.100.81/cm?cmnd=Status0
+{"Status":{"Module":1,"DeviceName":"Tasmota","FriendlyName":["Tasmota"],"Topic":"Tasmota","ButtonTopic":"0","Power":0,"PowerOnState":3,"LedState":1,"LedMask":"FFFF","SaveData":1,"SaveState":1,"SwitchTopic":"0","SwitchMode":[0,0,0,0,0,0,0,0],"ButtonRetain":0,"SwitchRetain":0,"SensorRetain":0,"PowerRetain":0,"InfoRetain":0,"StateRetain":0},"StatusPRM":{"Baudrate":9600,"SerialConfig":"8N1","GroupTopic":"tasmotas","OtaUrl":"http://ota.tasmota.com/tasmota/release/tasmota.bin.gz","RestartReason":"Software/System restart","Uptime":"202T01:24:51","StartupUTC":"2023-08-13T15:21:13","Sleep":50,"CfgHolder":4617,"BootCount":27,"BCResetTime":"2023-02-04T16:45:38","SaveCount":150,"SaveAddress":"F5000"},"StatusFWR":{"Version":"11.1.0(tasmota)","BuildDateTime":"2022-05-05T03:23:22","Boot":31,"Core":"2_7_4_9","SDK":"2.2.2-dev(38a443e)","CpuFrequency":80,"Hardware":"ESP8266EX","CR":"378/699"},"StatusLOG":{"SerialLog":0,"WebLog":2,"MqttLog":0,"SysLog":0,"LogHost":"","LogPort":514,"SSId":["Odyssee2001",""],"TelePeriod":300,"Resolution":"558180C0","SetOption":["00008009","2805C80001000600003C5A0A190000000000","00000080","00006000","00004000"]},"StatusMEM":{"ProgramSize":658,"Free":344,"Heap":17,"ProgramFlashSize":1024,"FlashSize":1024,"FlashChipId":"14325E","FlashFrequency":40,"FlashMode":3,"Features":["00000809","87DAC787","043E8001","000000CF","010013C0","C000F989","00004004","00001000","04000020"],"Drivers":"1,2,3,4,5,6,7,8,9,10,12,16,18,19,20,21,22,24,26,27,29,30,35,37,45,56,62","Sensors":"1,2,3,4,5,6,53"},"StatusNET":{"Hostname":"Tasmota","IPAddress":"192.168.100.81","Gateway":"192.168.100.1","Subnetmask":"255.255.255.0","DNSServer1":"192.168.100.1","DNSServer2":"0.0.0.0","Mac":"4C:11:AE:11:F8:50","Webserver":2,"HTTP_API":1,"WifiConfig":4,"WifiPower":17.0},"StatusMQT":{"MqttHost":"192.168.100.80","MqttPort":1883,"MqttClientMask":"Tasmota","MqttClient":"Tasmota","MqttUser":"mqttuser","MqttCount":156,"MAX_PACKET_SIZE":1200,"KEEPALIVE":30,"SOCKET_TIMEOUT":4},"StatusTIM":{"UTC":"2024-03-02T16:46:04","Local":"2024-03-02T17:46:04","StartDST":"2024-03-31T02:00:00","EndDST":"2024-10-27T03:00:00","Timezone":"+01:00","Sunrise":"07:29","Sunset":"18:35"},"StatusSNS":{"Time":"2024-03-02T17:46:04","PV":{"Bezug":0.364,"Einspeisung":3559.439,"Leistung":-14}},"StatusSTS":{"Time":"2024-03-02T17:46:04","Uptime":"202T01:24:51","UptimeSec":17457891,"Heap":16,"SleepMode":"Dynamic","Sleep":50,"LoadAvg":19,"MqttCount":156,"POWER":"OFF","Wifi":{"AP":1,"SSId":"Odyssee2001","BSSId":"34:31:C4:22:92:74","Channel":6,"Mode":"11n","RSSI":100,"Signal":-50,"LinkCount":15,"Downtime":"0T00:08:22"}}}
 
 
 
