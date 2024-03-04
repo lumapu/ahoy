@@ -884,9 +884,9 @@
                     "de": "Gesamt"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_INVERTER_TWOPERCENT",
-                    "en": "2%",
-                    "de": "2%"
+                    "token": "ZE_GROUP_TAB_INVERTER_POWERMIN",
+                    "en": "Power (Min)",
+                    "de": "Leistung (Min)"
                 },
                 {
                     "token": "ZE_GROUP_TAB_INVERTER_POWERMAX",
@@ -917,6 +917,11 @@
                     "token": "ZE_GROUP_TAB_ADVANCED",
                     "en": "Advanced",
                     "de": "Erweitert"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_ADVANCED_SETPOINT",
+                    "en": "SetPoint (Watt):",
+                    "de": "Zielpunkt (Watt):"
                 },
                 {
                     "token": "ZE_GROUP_TAB_ADVANCED_REFRESH",

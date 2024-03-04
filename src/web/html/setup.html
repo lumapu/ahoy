@@ -1191,7 +1191,7 @@
                     ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_ENABLED}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_NAME}"),
                     ml("th", {}, "{#ZE_GROUP_TAB_INVERTER_SUM}"),
-                    ml("th", {style: "width: 10%;"}, "{#ZE_GROUP_TAB_INVERTER_TWOPERCENT}"),
+                    ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMIN}"),
                     ml("th", {style: "width: 15%;"}, "{#ZE_GROUP_TAB_INVERTER_POWERMAX}"),
                 ]));
 
@@ -1215,7 +1215,7 @@
                         ),
                         ml("td", {},
                             ml("div", {}, [
-                                ml("input", {name: "invTwoPercent"+inv, class: "text", id: "invTwoPercent"+inv, type: "checkbox"}, null)
+                                ml("input", {name: "invPowerMin"+inv, class: "text", id: "invPowerMin"+inv, type: "number", min: "0", max: "65535"}, null)
                             ]),
                         ),
                         ml("td", {},
@@ -1281,6 +1281,7 @@
                     ]),
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_SETPOINT}", ml("input", {name: "setPoint", class: "text", type: "number", min: "0", max: "65535", value: obj.setPoint}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_REFRESH}", ml("input", {name: "refresh", class: "text", type: "number", min: "0", max: "255", value: obj.refresh}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
@@ -1350,10 +1351,10 @@
                         }
                     }
                 }
-                // - twoPercent
+                // - powerMin
                 for (var inv = 0; inv < maxInv; inv++) {
-                    var e = document.getElementById("invTwoPercent"+inv);
-                    e.checked = (obj.inverters[inv].twoPercent);
+                    var e = document.getElementById("invPowerMin"+inv);
+                    e.value = (obj.inverters[inv].powerMin);
                 }
                 // - powerMax
                 for (var inv = 0; inv < maxInv; inv++) {
@@ -1387,7 +1388,7 @@
 		                q.id = e.options[e.selectedIndex].value;
                         var e = document.getElementById("invTarget"+inv);
 		                q.target = e.options[e.selectedIndex].value;
-                        q.twoPercent = document.getElementById("invTwoPercent"+inv).checked;
+                        q.powerMin = document.getElementById("invPowerMin"+inv).value;
                         q.powerMax = document.getElementById("invPowerMax"+inv).value;
                         o.inverters.push(q);
                     }
@@ -1396,6 +1397,7 @@
                     o.battVoltageOn = document.getElementsByName("battVoltageOn")[0].value;
                     o.battVoltageOff = document.getElementsByName("battVoltageOff")[0].value;
                     // Advanced
+                    o.setPoint = document.getElementsByName("setPoint")[0].value;
                     o.refresh = document.getElementsByName("refresh")[0].value;
                     o.powerTolerance = document.getElementsByName("powerTolerance")[0].value;
                     o.powerMax = document.getElementsByName("powerMax")[0].value;
@@ -1446,7 +1448,7 @@
 		                q.id = -1;
                         var e = document.getElementById("invTarget"+inv);
 		                q.target = -1;
-                        q.twoPercent = false;
+                        q.powerMin = 0;
                         q.powerMax = 0;
                         o.inverters.push(q);
                     }
@@ -1455,6 +1457,7 @@
                     o.battVoltageOn = 0;
                     o.battVoltageOff = 0;
                     // Advanced
+                    o.setPoint = 0;
                     o.refresh = 10;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
