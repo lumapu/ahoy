@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.90 - 2024-03-05
+* added preprocessor defines to HTML (from platform.ini) to reduce the HTML in size if modules aren't enabled
+* auto build minimal English versions of ESP8266 and ESP32
+
 ## 0.8.89 - 2024-03-02
 * merge PR: Collection of small fixes #1465
 * fix: show esp type on `/history` #1463
