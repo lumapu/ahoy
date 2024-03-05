@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.91 - 2024-03-05
+* fix javascript issues #1480
+
 ## 0.8.90 - 2024-03-05
 * added preprocessor defines to HTML (from platform.ini) to reduce the HTML in size if modules aren't enabled
 * auto build minimal English versions of ESP8266 and ESP32
