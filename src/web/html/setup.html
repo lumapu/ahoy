@@ -1107,7 +1107,6 @@
 
             /*IF_PLUGIN_DISPLAY*/
             function parseDisplay(obj, type, system) {
-                var pinList = esp8266pins;
                 /*IF_ESP32*/
                 var pinList = esp32pins;
                 /*IF_ESP32-S2*/
@@ -1119,6 +1118,8 @@
                 /*IF_ESP32-C3*/
                 pinList = esp32c3pins;
                 /*ENDIF_ESP32-C3*/
+                /*ELSE*/
+                var pinList = esp8266pins;
                 /*ENDIF_ESP32*/
 
                 for(var i of ["disp_pwr"])

@@ -14,23 +14,24 @@ def check(inp, lst, pattern):
         x = re.findall(pattern, line)
         if len(x) > 0:
             if line.find("ENDIF_") != -1:
-                if q.empty():
-                    error("missing open statement!")
-                if q.get() != x[0]:
-                    error("wrong close statement!")
-                keep = True
+                if not q.empty():
+                    e = q.get()
+                    if e[0] == x[0]:
+                        keep = e[1]
             elif line.find("IF_") != -1:
-                q.put(x[0])
+                q.put((x[0], keep))
                 if keep is True:
                     keep = x[0] in lst
             elif line.find("E") != -1:
                 if q.empty():
-                    error("missing open statement!")
-                keep = not keep
+                    error("(ELSE) missing open statement!")
+                e = q.get()
+                q.put(e)
+                if e[1] is True:
+                    keep = not keep
         else:
             if keep is True:
                 out.append(line)
-
     return out
 
 def conv(inp, lst):
