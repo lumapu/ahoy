@@ -1338,7 +1338,7 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
-// TODO: Hilfstexte -> übersetzen mit lang.json
+// TODO: Hilfstexte -> ï¿½bersetzen mit lang.json
                             ml("p", {}, "(3em)                - http://IP/status"),
                             ml("p", {}, "(pro3em)             - http://IP/rpc/Shelly.GetStatus"),
                             ml("p", {}, "(plus1pm)            - http://IP/rpc/Shelly.GetStatus"),
@@ -1349,7 +1349,7 @@
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
-// TODO: Hilfstexte -> übersetzen mit lang.json
+// TODO: Hilfstexte -> ï¿½bersetzen mit lang.json
 //                            ml("p", {}, "Only for HICHI needed!"),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
@@ -1386,10 +1386,10 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
-// Inhalt für pm_type aus config laden und in eine Funktion ausgliedern
+// Inhalt fï¿½r pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: übersetzen?
+// TODO: ï¿½bersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
                 e.appendChild(opt("2", "Tasmota"));
@@ -1426,7 +1426,7 @@
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invTarget"+inv);
                     selDelAllOpt(e);
-// TODO: übersetzen?
+// TODO: ï¿½bersetzen?
                     e.appendChild(opt("-1", "---"));
                     e.appendChild(opt("0", "Sum"));
                     e.appendChild(opt("1", "L1"));
@@ -1515,7 +1515,7 @@
                 modal("{#ZE_GROUP_DELETE_MODAL}: " + obj.name, html);
 
                 function del() {
-// TODO: Es wäre gut, wenn die Defaultwerte nicht hier sondern wie in der settings.h gesetzt würden.
+// TODO: Es wï¿½re gut, wenn die Defaultwerte nicht hier sondern wie in der settings.h gesetzt wï¿½rden.
                     var o = new Object();
                     o.cmd  = "ze_save_group";
                     // General
@@ -1605,7 +1605,7 @@
                     ]));
                 }
 
-// TODO: Das Add sollte anders / überhaupt gelöst werden
+// TODO: Das Add sollte anders / ï¿½berhaupt gelï¿½st werden
                 var add = new Object();
                 add.enabled = true;
                 add.id = obj.groups.length;
@@ -1628,15 +1628,13 @@
                 // Plugin ZeroExport - Ende
 
                 /*ELIF_PLUGIN_ZEROEXPORT*/
-// TODO: Erst eaktivieren wenn ELIF funktioniert
-//                    var e = document.getElementById("zeroExport");
-//                    e.remove();
-//
-//                    var e = document.getElementById("zeroExport_button");
-//                    e.textContent += " (only for ESP32-S3 available)";
-//                    e.disabled = true;
-//                    element.classList.add("disabled");
-// TODO: übersetzen? / Überflüssig? Das Modul ist so immer sichtbar und zeigt was es braucht.
+                    var e = document.getElementById("zeroExport");
+                    e.remove();
+
+                    var e = document.getElementById("zeroExport_button");
+                    e.textContent += " (only for ESP32-S3 available)";
+                    e.disabled = true;
+                    element.classList.add("disabled");
                 /*ENDIF_PLUGIN_ZEROEXPORT*/
 
             }
