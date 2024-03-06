@@ -305,8 +305,8 @@
                     </div>
                     <!--ENDIF_PLUGIN_DISPLAY-->
 
-                    <!-- Plugin ZeroExport -->
                     <button type="button" class="s_collapsible" id="zeroExport_button">{#ZE}</button>
+                    <!--IF_PLUGIN_ZEROEXPORT-->
                     <div class="s_content" id="zeroExport">
                         <fieldset class="mb-4">
                             <legend class="des">{#ZE}</legend>
@@ -318,7 +318,7 @@
                             <div id="ze_groups"></div>
                         </fieldset>
                     </div>
-                    <!-- Plugin ZeroExport - Ende -->
+                    <!--ENDIF_PLUGIN_ZEROEXPORT-->
 
                     <div class="row mb-4 mt-4">
                         <div class="col-8 col-sm-3">{#BTN_REBOOT_SUCCESSFUL_SAVE}</div>
@@ -1262,7 +1262,6 @@
             }
 
             /*IF_PLUGIN_ZEROEXPORT*/
-            // Plugin ZeroExport
             function ZeroExportGroup_Modal(obj, ivObj) {
 
                 // Tab_General
@@ -1564,13 +1563,11 @@
 
             }
 
-            // Plugin ZeroExport - Ende
             /*ENDIF_PLUGIN_ZEROEXPORT*/
 
             function parseZeroExport(obj, type) {
 
                 /*IF_PLUGIN_ZEROEXPORT*/
-                // Plugin ZeroExport
 
                 // enabled
                 document.getElementsByName("ze_enabled")[0].checked = obj["enabled"];
@@ -1623,20 +1620,12 @@
                     e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "{#BTN_INV_ADD}", class: "btn", onclick: function() { ZeroExportGroup_Modal(add); }}, null))));
                 }
 
-//                ivGlob(obj);
-
-                // Plugin ZeroExport - Ende
-
-                /*ELIF_PLUGIN_ZEROEXPORT*/
-                    var e = document.getElementById("zeroExport");
-                    e.remove();
-
+                /*ELSE*/
                     var e = document.getElementById("zeroExport_button");
                     e.textContent += " (only for ESP32-S3 available)";
                     e.disabled = true;
                     element.classList.add("disabled");
                 /*ENDIF_PLUGIN_ZEROEXPORT*/
-
             }
 
             function parse(root) {
