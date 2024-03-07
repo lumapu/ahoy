@@ -198,7 +198,7 @@ typedef struct {
 
 #if defined(PLUGIN_ZEROEXPORT)
 enum class zeroExportState : uint8_t {
-     RESET, GETPOWERMETER, GETINVERTERDATA, BATTERYPROTECTION, CONTROL, SETCONTROL, WAITACCEPT, FINISH
+     RESET, GETPOWERMETER, GETINVERTERDATA, BATTERYPROTECTION, CONTROL, SETCONTROL, FINISH
 };
 
 typedef enum {
@@ -247,7 +247,7 @@ typedef struct {
     uint16_t limit;
     uint16_t limitNew;
     unsigned long limitTsp;
-    bool limitAck;
+//    bool limitAck;
     float dcVoltage;
 //    uint16_t waitingTime;
 } zeroExportGroupInverter_t;
@@ -276,12 +276,22 @@ typedef struct {
 
 
     zeroExportState state;
+    zeroExportState stateNext;
     unsigned long lastRun;
     float pmPower;
     float pmPowerL1;
     float pmPowerL2;
     float pmPowerL3;
     bool battSwitch;
+    float grpPower;
+    float grpPowerL1;
+    float grpPowerL2;
+    float grpPowerL3;
+    float grpLimit;
+    float grpLimitL1;
+    float grpLimitL2;
+    float grpLimitL3;
+
 //    uint16_t power;             // Aktueller Verbrauch
 //    uint16_t powerLimitAkt;     // Aktuelles Limit
 //    uint16_t powerHyst;         // Hysterese

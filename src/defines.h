@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       910003
+#define VERSION_PATCH       910004
 
 //-------------------------------------
 typedef struct {
@@ -108,7 +108,7 @@ enum {
 
 #define MQTT_MAX_PACKET_SIZE    384
 
-#define PLUGIN_ZEROEXPORT
+//#define PLUGIN_ZEROEXPORT
 
 typedef struct {
     uint32_t rxFail;
