@@ -6,42 +6,50 @@
                 {
                     "token": "NAV_WIZARD",
                     "en": "Setup Wizard",
-                    "de": "Daten"
+                    "de": "Daten",
+                    "fr": "Assistant de configuration"
                 },
                 {
                     "token": "NAV_LIVE",
                     "en": "Live",
-                    "de": "Daten"
+                    "de": "Daten",
+                    "fr": "En direct"
                 },
                 {
                     "token": "NAV_HISTORY",
                     "en": "History",
-                    "de": "Verlauf"
+                    "de": "Verlauf",
+                    "fr": "Historique"
                 },
                 {
                     "token": "NAV_WEBSERIAL",
                     "en": "Webserial",
-                    "de": "Web Konsole"
+                    "de": "Web Konsole",
+                    "fr": "Web S&eacute;rie"
                 },
                 {
                     "token": "NAV_SETTINGS",
                     "en": "Settings",
-                    "de": "Einstellungen"
+                    "de": "Einstellungen",
+                    "fr": "Param&egrave;tres"
                 },
                 {
                     "token": "NAV_DOCUMENTATION",
                     "en": "Documentation",
-                    "de": "Dokumentation"
+                    "de": "Dokumentation",
+                    "fr": "Documentation"
                 },
                 {
                     "token": "NAV_SAVE",
                     "en": "save",
-                    "de": "speichern"
+                    "de": "speichern",
+                    "fr": "Enregistrer"
                 },
                 {
                     "token": "NAV_ABOUT",
                     "en": "About",
-                    "de": "&Uuml;ber"
+                    "de": "&Uuml;ber",
+                    "fr": "&agrave; propos"
                 }
             ]
         },
@@ -51,67 +59,80 @@
                 {
                     "token": "WELCOME",
                     "en": "Welcome to AhoyDTU",
-                    "de": "Willkommen bei AhoyDTU"
+                    "de": "Willkommen bei AhoyDTU",
+                    "fr": "Bienvenue sur AhoyDTU"
                 },
                 {
                     "token": "NETWORK_SETUP",
                     "en": "Network Setup",
-                    "de": "Netzwerkeinstellung"
+                    "de": "Netzwerkeinstellung",
+                    "fr": "Configuration du r&eacute;seau"
                 },
                 {
                     "token": "CHOOSE_WIFI",
                     "en": "Choose your WiFi Network",
-                    "de": "W&auml;hle dein WiFi Netzwerk aus"
+                    "de": "W&auml;hle dein WiFi Netzwerk aus",
+                    "fr": "Choisissez votre r&eacute;seau WiFi"
                 },
                 {
                     "token": "WIFI_MANUAL",
                     "en": "... or name it manually",
-                    "de": "... oder nenne es hier"
+                    "de": "... oder nenne es hier",
+                    "fr": "... ou nommez-le manuellement"
                 },
                 {
                     "token": "WIFI_PASSWORD",
                     "en": "WiFi Password",
-                    "de": "WiFi Passwort"
+                    "de": "WiFi Passwort",
+                    "fr": "Mot de passe WiFi"
                 },
                 {
                     "token": "STOP_WIZARD",
                     "en": "stop wizard",
-                    "de": "Einrichtung beenden"
+                    "de": "Einrichtung beenden",
+                    "fr": "Arr&ecirc;ter l'assistant"
                 },
                 {
                     "token": "BTN_NEXT",
                     "en": "next >>",
-                    "de": "prüfen >>"
+                    "de": "prüfen >>",
+                    "fr": "suivant >>"
                 },
                 {
                     "token": "TEST_CONNECTION",
                     "en": "Test Connection",
-                    "de": "Verbindung wird überprüft"
+                    "de": "Verbindung wird überprüft",
+                    "fr": "Tester la connexion"
                 },
                 {
                     "token": "TRY_TO_CONNECT",
                     "en": "AhoyDTU is trying to connect to your WiFi",
-                    "de": "AhoyDTU versucht eine Verindung mit deinem Netzwerk herzustellen"
+                    "de": "AhoyDTU versucht eine Verindung mit deinem Netzwerk herzustellen",
+                    "fr": "AhoyDTU essaie de se connecter &agrave; votre WiFi"
                 },
                 {
                     "token": "CONNECTING",
                     "en": "connecting ...",
-                    "de": "verbinde ..."
+                    "de": "verbinde ...",
+                    "fr": "connexion en cours ..."
                 },
                 {
                     "token": "NETWORK_SUCCESS",
                     "en": "success, got following IP in your network: ",
-                    "de": "Verindung erfolgreich. AhoyDTU hat die folgende IP bekommen: "
+                    "de": "Verbindung erfolgreich. AhoyDTU hat die folgende IP bekommen: ",
+                    "fr": "succ&egrave;s, voici l'adresse IP obtenue dans votre r&eacute;seau : "
                 },
                 {
                     "token": "BTN_FINISH",
                     "en": "Finish >>",
-                    "de": "Fertig >>"
+                    "de": "Fertig >>",
+                    "fr": "Terminer >>"
                 },
                 {
                     "token": "NUM_NETWORKS_FOUND",
                     "en": "Network(s) found",
-                    "de": "Netzwerk(e) gefunden"
+                    "de": "Netzwerk(e) gefunden",
+                    "fr": "R&eacute;seau(x) trouv&eacute;(s)"
                 }
             ]
         },
@@ -121,652 +142,782 @@
                 {
                     "token": "SETTINGS",
                     "en": "Settings",
-                    "de": "Einstellungen"
+                    "de": "Einstellungen",
+                    "fr": "Param&egrave;tres"
                 },
                 {
                     "token": "SYSTEM_CONFIG",
                     "en": "System Config",
-                    "de": "Systemkonfiguration"
+                    "de": "Systemkonfiguration",
+                    "fr": "Configuration du syst&egrave;me"
                 },
                 {
                     "token": "DEVICE_NAME",
                     "en": "Device Host Name",
-                    "de": "Name der DTU"
+                    "de": "Name der DTU",
+                    "fr": "Nom de l'h&ocirc;te du p&eacute;riph&eacute;rique"
                 },
                 {
                     "token": "REBOOT_AT_MIDNIGHT",
                     "en": "Reboot Ahoy at midnight",
-                    "de": "mitternachts neu starten"
+                    "de": "mitternachts neu starten",
+                    "fr": "Red&eacute;marrage Ahoy &agrave; minuit"
                 },
                 {
                     "token": "DARK_MODE",
                     "en": "Dark Mode",
-                    "de": "dunkler Modus"
+                    "de": "dunkler Modus",
+                    "fr": "Mode Sombre"
                 },
                 {
                     "token": "DARK_MODE_NOTE",
                     "en": "(empty browser cache or use CTRL + F5 after reboot to apply this setting)",
-                    "de": "(der Browser-Cache muss geleert oder STRG + F5 gedr&uuml;ckt werden, um diese Einstellung zu aktivieren)"
+                    "de": "(der Browser-Cache muss geleert oder STRG + F5 gedrückt werden, um diese Einstellung zu aktivieren)",
+                    "fr": "(vider le cache du navigateur ou utiliser CTRL + F5 apr&egrave;s le red&eacute;marrage pour appliquer ce param&egrave;tre)"
                 },
                 {
                     "token": "REGION",
                     "en": "Region",
-                    "de": "Region"
+                    "de": "Region",
+                    "fr": "R&eacute;gion"
                 },
                 {
                     "token": "TIMEZONE",
                     "en": "Timezone",
-                    "de": "Zeitzone"
+                    "de": "Zeitzone",
+                    "fr": "Fuseau horaire"
                 },
                 {
                     "token": "CUSTOM_LINK",
                     "en": "Custom link (leave empty to hide element in navigation)",
-                    "de": "benutzerspezifischer Link (leer lassen, um Element in Navigation auszublenden)"
+                    "de": "benutzerspezifischer Link (leer lassen, um Element in Navigation auszublenden)",
+                    "fr": "Lien personnalis&eacute; (laissez vide pour masquer l'&eacute;l&eacute;ment dans la navigation)"
                 },
                 {
                     "token": "CUSTOM_LINK_TEXT",
                     "en": "Custom link Text",
-                    "de": "Beschriftung des Links"
+                    "de": "Beschriftung des Links",
+                    "fr": "Texte du lien personnalis&eacute;"
                 },
                 {
                     "token": "PINOUT_CONFIG",
                     "en": "Pinout Configuration",
-                    "de": "Anschlusseinstellungen"
+                    "de": "Anschlusseinstellungen",
+                    "fr": "Configuration des broches"
                 },
                 {
                     "token": "RADIO",
                     "en": "Radio",
-                    "de": "Funkmodul"
+                    "de": "Funkmodul",
+                    "fr": "Radio"
                 },
                 {
                     "token": "SERIAL_CONSOLE",
                     "en": "Serial console",
-                    "de": "Serielle Konsole"
+                    "de": "Serielle Konsole",
+                    "fr": "Console S&eacute;rie"
                 },
                 {
                     "token": "LOG_PRINT_INVERTER_DATA",
                     "en": "print inverter data",
-                    "de": "Livedaten ausgeben"
+                    "de": "Livedaten ausgeben",
+                    "fr": "Afficher les donn&eacute;es de l'onduleur"
                 },
                 {
                     "token": "LOG_SERIAL_DEBUG",
                     "en": "Serial Debug",
-                    "de": "Entwicklerinformationen ausgeben"
+                    "de": "Entwicklerinformationen ausgeben",
+                    "fr": "D&eacute;bogage S&eacute;rie"
                 },
                 {
                     "token": "LOG_PRIVACY_MODE",
                     "en": "Privacy Mode",
-                    "de": "Privatsph&auml;renmodus"
+                    "de": "Privatsph&auml;renmodus",
+                    "fr": "Mode de Confidentialit&eacute;"
                 },
                 {
                     "token": "LOG_PRINT_TRACES",
                     "en": "Print whole traces in Log",
-                    "de": "alle Informationen in Log schreiben"
+                    "de": "alle Informationen in Log schreiben",
+                    "fr": "Imprimer toutes les traces dans le journal"
                 },
                 {
                     "token": "LOG_TO_MQTT",
                     "en": "Send Serial debug over MqTT",
-                    "de": "sende serielles Log &uuml;ber MqTT"
+                    "de": "sende serielles Log &uuml;ber MqTT",
+                    "fr": "Envoyer le d&eacute;bogage s&eacute;rie sur MqTT"
                 },
                 {
                     "token": "NETWORK",
                     "en": "Network",
-                    "de": "Netzwerk"
+                    "de": "Netzwerk",
+                    "fr": "R&eacute;seau"
                 },
                 {
                     "token": "AP_PWD",
                     "en": "AP Password (min. length: 8)",
-                    "de": "AP Passwort (min. L&auml;nge: 8 Zeichen)"
+                    "de": "AP Passwort (min. L&auml;nge: 8 Zeichen)",
+                    "fr": "Mot de passe AP (longueur minimale : 8)"
                 },
                 {
                     "token": "SEARCH_NETWORKS",
                     "en": "Search Networks",
-                    "de": "Netzwerke suchen"
+                    "de": "Netzwerke suchen",
+                    "fr": "Rechercher des r&eacute;seaux"
                 },
                 {
                     "token": "BTN_SCAN",
                     "en": "scan",
-                    "de": "Suche starten"
+                    "de": "Suche starten",
+                    "fr": "balayer"
                 },
                 {
                     "token": "AVAIL_NETWORKS",
                     "en": "Avail Networks",
-                    "de": "Verf&uuml;gbare Netzwerke"
+                    "de": "Verf&uuml;gbare Netzwerke",
+                    "fr": "R&eacute;seaux disponibles"
                 },
                 {
                     "token": "NETWORK_NOT_SCANNED",
                     "en": "not scanned",
-                    "de": "nicht gesucht"
+                    "de": "nicht gesucht",
+                    "fr": "non scann&eacute;"
                 },
                 {
                     "token": "SSID_HIDDEN",
                     "en": "SSID is hidden",
-                    "de": "SSID ist versteckt"
+                    "de": "SSID ist versteckt",
+                    "fr": "SSID est cach&eacute;e"
                 },
                 {
                     "token": "PASSWORD",
                     "en": "Password",
-                    "de": "Passwort"
+                    "de": "Passwort",
+                    "fr": "Mot de passe"
                 },
                 {
                     "token": "STATIC_IP",
                     "en": "Static IP (optional)",
-                    "de": "Statische IP (optional)"
+                    "de": "Statische IP (optional)",
+                    "fr": "IP statique (optionnel)"
                 },
                 {
                     "token": "NETWORK_HINT_BLANK",
                     "en": "Leave fields blank for DHCP<br/>The following fields are parsed in this format: 192.168.4.1",
-                    "de": "Felder leer lassen um in den DHCP Modus zu wechseln.<br/>Das Format der IP Adressen ist: 192.168.4.1"
+                    "de": "Felder leer lassen um in den DHCP Modus zu wechseln.<br/>Das Format der IP Adressen ist: 192.168.4.1",
+                    "fr": "Laissez les champs vides pour le DHCP<br/>Les champs suivants sont analys&eacute;s dans ce format : 192.168.4.1"
                 },
                 {
                     "token": "IP_ADDRESS",
                     "en": "IP Address",
-                    "de": "IP Adresse"
+                    "de": "IP Adresse",
+                    "fr": "Adresse IP"
                 },
                 {
                     "token": "SUBMASK",
                     "en": "Submask",
-                    "de": "Subnetzmaske"
+                    "de": "Subnetzmaske",
+                    "fr": "Masque de sous-r&eacute;seau"
                 },
                 {
                     "token": "PROTECTION",
                     "en": "Protection",
-                    "de": "Zugriffsschutz"
+                    "de": "Zugriffsschutz",
+                    "fr": "Protection"
                 },
                 {
                     "token": "ADMIN_PASSWORD",
                     "en": "Admin Password",
-                    "de": "Administratorpasswort"
+                    "de": "Administratorpasswort",
+                    "fr": "Mot de passe administrateur"
                 },
                 {
                     "token": "PROTECTION_NOTE",
                     "en": "Select pages which should be protected by password",
-                    "de": "Ausw&auml;hlen, welche Bereiche passwortgesch&uuml;tzt werden sollen"
+                    "de": "Ausw&auml;hlen, welche Bereiche passwortgesch&uuml;tzt werden sollen",
+                    "fr": "S&eacute;lectionnez les pages qui doivent &ecirc;tre prot&eacute;g&eacute;es par mot de passe"
                 },
                 {
                     "token": "INVERTER",
                     "en": "Inverter",
-                    "de": "Wechselrichter"
+                    "de": "Wechselrichter",
+                    "fr": "Onduleur"
                 },
                 {
                     "token": "INTERVAL",
                     "en": "Interval",
-                    "de": "Intervall"
+                    "de": "Intervall",
+                    "fr": "Intervalle"
                 },
                 {
                     "token": "INV_RESET_MIDNIGHT",
                     "en": "Reset values and YieldDay at midnight",
-                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen"
+                    "de": "Werte und Gesamtertrag um Mitternacht zur&uuml;cksetzen",
+                    "fr": "R&eacute;initialiser les valeurs et le rendement quotidien &agrave; minuit"
                 },
                 {
                     "token": "INV_PAUSE_SUNSET",
                     "en": "Reset values at sunset",
-                    "de": "Werte bei Sonnenuntergang zur&uuml;cksetzen"
+                    "de": "Werte bei Sonnenuntergang zur&uuml;cksetzen",
+                    "fr": "R&eacute;initialiser les valeurs au coucher du soleil"
                 },
                 {
                     "token": "INV_RESET_NOT_AVAIL",
                     "en": "Reset values when inverter status is 'not available'",
-                    "de": "Werte zur&uuml;cksetzen, sobald der Wechselrichter nicht erreichbar ist"
+                    "de": "Werte zur&uuml;cksetzen, sobald der Wechselrichter nicht erreichbar ist",
+                    "fr": "R&eacute;initialiser les valeurs lorsque l'&eacute;tat de l'onduleur est 'non disponible'"
                 },
                 {
                     "token": "INV_RESET_MAX_MIDNIGHT",
                     "en": "Reset 'max' values at midnight",
-                    "de": "Maximalwerte mitternachts zur&uuml;cksetzen"
+                    "de": "Maximalwerte mitternachts zur&uuml;cksetzen",
+                    "fr": "R&eacute;initialiser les valeurs 'max' &agrave; minuit"
                 },
                 {
                     "token": "INV_START_WITHOUT_TIME",
                     "en": "Start without time sync (useful in AP-Only-Mode)",
-                    "de": "Kommunikation starten ohne g&uuml;ltige Zeit (sinnvoll im AP Modus)"
+                    "de": "Kommunikation starten ohne g&uuml;ltige Zeit (sinnvoll im AP Modus)",
+                    "fr": "D&eacute;marrer sans synchronisation de l'heure (utile en mode AP uniquement)"
                 },
                 {
                     "token": "INV_READ_GRID_PROFILE",
                     "en": "Read Grid Profile",
-                    "de": "Grid-Profil auslesen"
+                    "de": "Grid-Profil auslesen",
+                    "fr": "Lire le profil du r&eacute;seau"
                 },
                 {
                     "token": "NTP_INTERVAL",
                     "en": "NTP Interval (in minutes, min. 5 minutes)",
-                    "de": "NTP Intervall (in Minuten, min. 5 Minuten)"
+                    "de": "NTP Intervall (in Minuten, min. 5 Minuten)",
+                    "fr": "Intervalle NTP (en minutes, min. 5 minutes)"
                 },
                 {
                     "token": "NTP_SET_SYS_TIME",
                     "en": "set system time",
-                    "de": "Systemzeit setzen"
+                    "de": "Systemzeit setzen",
+                    "fr": "r&eacute;gler l'heure du syst&egrave;me"
                 },
                 {
                     "token": "BTN_FROM_BROWSER",
                     "en": "from browser",
-                    "de": "vom Browser &uuml;bernehmen"
+                    "de": "vom Browser &uuml;bernehmen",
+                    "fr": "du navigateur"
                 },
                 {
                     "token": "BTN_SYNC_NTP",
                     "en": "sync NTP",
-                    "de": "NTP synchronisieren"
+                    "de": "NTP synchronisieren",
+                    "fr": "synchroniser NTP"
                 },
                 {
                     "token": "NTP_SYS_TIME",
                     "en": "System Time",
-                    "de": "Systemzeit"
+                    "de": "Systemzeit",
+                    "fr": "Heure syst&egrave;me"
                 },
                 {
                     "token": "SUNRISE_SUNSET",
                     "en": "Sunrise & Sunset",
-                    "de": "Sonnenaufgang & -untergang"
+                    "de": "Sonnenaufgang & -untergang",
+                    "fr": "Lever & Coucher du soleil"
                 },
                 {
                     "token": "LATITUDE",
                     "en": "Latitude (decimal)",
-                    "de": "Breitengrad (dezimal)"
+                    "de": "Breitengrad (dezimal)",
+                    "fr": "Latitude (d&eacute;cimale)"
                 },
                 {
                     "token": "LONGITUDE",
                     "en": "Longitude (decimal)",
-                    "de": "L&auml;ngengrad (dezimal)"
+                    "de": "L&auml;ngengrad (dezimal)",
+                    "fr": "Longitude (d&eacute;cimale)"
                 },
                 {
                     "token": "OFFSET_SUNRISE",
                     "en": "Offset (sunrise)",
-                    "de": "Zeitversatz (Sonnenaufgang)"
+                    "de": "Zeitversatz (Sonnenaufgang)",
+                    "fr": "D&eacute;calage (lever du soleil)"
                 },
                 {
                     "token": "OFFSET_SUNSET",
                     "en": "Offset (sunset)",
-                    "de": "Zeitversatz (Sonnenuntergang)"
+                    "de": "Zeitversatz (Sonnenuntergang)",
+                    "fr": "D&eacute;calage (coucher du soleil)"
                 },
                 {
                     "token": "MQTT_USER",
                     "en": "Username (optional)",
-                    "de": "Benutzername (optional)"
+                    "de": "Benutzername (optional)",
+                    "fr": "Nom d'utilisateur (optionnel)"
                 },
                 {
                     "token": "MQTT_PASSWORD",
                     "en": "Password (optional)",
-                    "de": "Passwort (optional)"
+                    "de": "Passwort (optional)",
+                    "fr": "Mot de passe (optionnel)"
                 },
                 {
                     "token": "MQTT_NOTE",
                     "en": "Send Inverter data in a fixed interval, even if there is no change. A value of '0' disables the fixed interval. The data is published once it was successfully received from inverter. (default: 0)",
-                    "de": "Wechselrichterdaten in fixem Intervall schicken, auch wenn es keine &Auml;nderung gab. Ein Wert von '0' deaktiviert das fixe Intervall, die Wechselrichterdaten werden &uuml;bertragen, sobald neue zur Verf&uuml;gung stehen. (Standard: 0)"
+                    "de": "Wechselrichterdaten in fixem Intervall schicken, auch wenn es keine &Auml;nderung gab. Ein Wert von '0' deaktiviert das fixe Intervall, die Wechselrichterdaten werden &uuml;bertragen, sobald neue zur Verf&uuml;gung stehen. (Standard: 0)",
+                    "fr": "Envoyer les donn&eacute;es de l'onduleur &agrave; intervalles r&eacute;guliers, m&ecirc;me s'il n'y a pas de changement. Une valeur de '0' d&eacute;sactive l'intervalle fixe. Les donn&eacute;es sont publi&eacute;es une fois qu'elles ont &eacute;t&eacute; re&ccedil;ues avec succ&egrave;s de l'onduleur. (par d&eacute;faut : 0)"
                 },
                 {
                     "token": "DISPLAY_CONFIG",
                     "en": "Display Config",
-                    "de": "Display Konfiguration"
+                    "de": "Display Konfiguration",
+                    "fr": "Configuration de l'affichage"
                 },
                 {
                     "token": "DISP_OFF_INV",
                     "en": "Turn off while inverters are offline",
-                    "de": "Schalte das Display aus, w&auml;hrend die Wechselrichter aus sind"
+                    "de": "Schalte das Display aus, w&auml;hrend die Wechselrichter aus sind",
+                    "fr": "&eacute;teindre lorsque les onduleurs sont hors ligne"
                 },
                 {
                     "token": "DISP_LUMINANCE",
                     "en": "Luminance",
-                    "de": "Helligkeit"
+                    "de": "Helligkeit",
+                    "fr": "Luminosit&eacute;"
                 },
                 {
                     "token": "DISP_PINOUT",
                     "en": "Pinout",
-                    "de": "Anschlusseinstellungen"
+                    "de": "Anschlusseinstellungen",
+                    "fr": "Brochage"
                 },
                 {
                     "token": "GRAPH_OPTIONS",
                     "en": "Graph options",
-                    "de": "Graph Einstellungen"
+                    "de": "Graph Einstellungen",
+                    "fr": "Options du graphique"
                 },
                 {
                     "token": "GRAPH_SHOW_RATIO",
                     "en": "Graph show ratio (0-100%)",
-                    "de": "Graph Anzeigeverh&auml;ltnis (0-100%)"
+                    "de": "Graph Anzeigeverh&auml;ltnis (0-100%)",
+                    "fr": "Ratio d'affichage du graphique (0-100%)"
                 },
                 {
                     "token": "GRAPH_POSITION",
                     "en": "Graph pos (from/to)",
-                    "de": "Graph Position (von/bis)"
+                    "de": "Graph Position (von/bis)",
+                    "fr": "Position du graphique (de/&agrave;)"
                 },
                 {
                     "token": "GRAPH_LINES_1_2",
                     "en": "Line 1-2",
-                    "de": "Zeile 1-2"
+                    "de": "Zeile 1-2",
+                    "fr": "Ligne 1-2"
                 },
                 {
                     "token": "GRAPH_LINES_2_3",
                     "en": "Line 2-3",
-                    "de": "Zeile 2-3"
+                    "de": "Zeile 2-3",
+                    "fr": "Ligne 2-3"
                 },
                 {
                     "token": "GRAPH_LINES_1_3",
                     "en": "Line 1-3",
-                    "de": "Zeile 1-3"
+                    "de": "Zeile 1-3",
+                    "fr": "Ligne 1-3"
                 },
                 {
                     "token": "GRAPH_LINES_2_4",
                     "en": "Line 2-4",
-                    "de": "Zeile 2-4"
+                    "de": "Zeile 2-4",
+                    "fr": "Ligne 2-4"
                 },
                 {
                     "token": "GRAPH_LINES_1_4",
                     "en": "Line 1-4",
-                    "de": "Zeile 1-4"
+                    "de": "Zeile 1-4",
+                    "fr": "Ligne 1-4"
                 },
                 {
                     "token": "BTN_SAVE",
                     "en": "save",
-                    "de": "speichern"
+                    "de": "speichern",
+                    "fr": "enregistrer"
                 },
                 {
                     "token": "BTN_SEND",
                     "en": "send",
-                    "de": "senden"
+                    "de": "senden",
+                    "fr": "envoyer"
                 },
                 {
                     "token": "BTN_REBOOT_SUCCESSFUL_SAVE",
                     "en": "Reboot device after successful save",
-                    "de": "Nach erfolgreichem Speichern AhoyDTU neu starten"
+                    "de": "Nach erfolgreichem Speichern AhoyDTU neu starten",
+                    "fr": "Red&eacute;marrer l'appareil apr&egrave;s l'enregistrement r&eacute;ussi"
                 },
                 {
                     "token": "BTN_ERASE",
                     "en": "ERASE SETTINGS (not WiFi)",
-                    "de": "Einstellungen zur&uuml;cksetzen (nicht WiFi)"
+                    "de": "Einstellungen zur&uuml;cksetzen (nicht WiFi)",
+                    "fr": "EFFACER LES PARAM&egrave;TRES (pas de WiFi)"
                 },
                 {
                     "token": "IM_EXPORT",
                     "en": "Import / Export JSON Settings",
-                    "de": "Import / Export JSON Einstellungen"
+                    "de": "Import / Export JSON Einstellungen",
+                    "fr": "Importer / Exporter les param&egrave;tres JSON"
                 },
                 {
                     "token": "IMPORT",
                     "en": "Import",
-                    "de": "Import"
+                    "de": "Import",
+                    "fr": "Importer"
                 },
                 {
                     "token": "EXPORT",
                     "en": "Export",
-                    "de": "Export"
+                    "de": "Export",
+                    "fr": "Exporter"
                 },
                 {
                     "token": "BTN_EXPORT",
                     "en": "Export settings (JSON file)",
-                    "de": "Einstellungen exportieren (JSON Datei)"
+                    "de": "Einstellungen exportieren (JSON Datei)",
+                    "fr": "Exporter les param&egrave;tres (fichier JSON)"
                 },
                 {
                     "token": "EXPORT_NOTE",
                     "en": "(only values, passwords will be skipped!)",
-                    "de": "(nur Werte, Passw&ouml;rter werden nicht mit exportiert!)"
+                    "de": "(nur Werte, Passw&ouml;rter werden nicht mit exportiert!)",
+                    "fr": "(seuls les valeurs, les mots de passe seront ignor&eacute;s !)"
                 },
                 {
                     "token": "PIN_OFF",
                     "en": "off / default",
-                    "de": "aus / Standard"
+                    "de": "aus / Standard",
+                    "fr": "&eacute;teint / par d&eacute;faut"
                 },
                 {
                     "token": "PIN_NO_IRQ",
                     "en": "no IRQ!",
-                    "de": "kein Interrupt!"
+                    "de": "kein Interrupt!",
+                    "fr": "pas de IRQ !"
                 },
                 {
                     "token": "PIN_INPUT_ONLY",
                     "en": "in only",
-                    "de": "nur Eingang"
+                    "de": "nur Eingang",
+                    "fr": "entr&eacute;e uniquement"
                 },
                 {
                     "token": "PIN_DONT_USE",
                     "en": "DONT USE",
-                    "de": "nicht benutzen"
+                    "de": "nicht benutzen",
+                    "fr": "NE PAS UTILISER"
                 },
                 {
                     "token": "PIN_NOT_AVAIL",
                     "en": "not available",
-                    "de": "nicht verf&uuml;gbar"
+                    "de": "nicht verf&uuml;gbar",
+                    "fr": "non disponible"
                 },
                 {
                     "token": "PIN_RECOMMENDED",
                     "en": "recommended",
-                    "de": "empfohlen"
+                    "de": "empfohlen",
+                    "fr": "recommand&eacute;"
                 },
                 {
                     "token": "PIN_EXPERIMENTAL",
                     "en": "experimental",
-                    "de": "experimentell"
+                    "de": "experimentell",
+                    "fr": "exp&eacute;rimental"
                 },
                 {
                     "token": "PIN_LOW_ACTIVE",
                     "en": "low active",
-                    "de": "low aktiv"
+                    "de": "low aktiv",
+                    "fr": "bas actif"
                 },
                 {
                     "token": "PIN_HIGH_ACTIVE",
                     "en": "high active",
-                    "de": "high aktiv"
+                    "de": "high aktiv",
+                    "fr": "haut actif"
                 },
                 {
                     "token": "NETWORK_SCANNING",
                     "en": "scanning ...",
-                    "de": "suche ..."
+                    "de": "suche ...",
+                    "fr": "analyse en cours ..."
                 },
                 {
                     "token": "ERROR",
                     "en": "Error:",
-                    "de": "Fehler:"
+                    "de": "Fehler:",
+                    "fr": "Erreur :"
                 },
                 {
                     "token": "NTP_COMMAND_EXE",
                     "en": "command executed, set new time ...",
-                    "de": "Befehl ausgef&uuml;hrt, setze neue Zeit ..."
+                    "de": "Befehl ausgef&uuml;hrt, setze neue Zeit ...",
+                    "fr": "commande ex&eacute;cut&eacute;e, d&eacute;finir une nouvelle heure ..."
                 },
                 {
                     "token": "NTP_SYNCED_AT",
                     "en": "synced at",
-                    "de": "synchronisiert um"
+                    "de": "synchronisiert um",
+                    "fr": "synchronis&eacute; &agrave;"
                 },
                 {
                     "token": "NTP_DIFF",
                     "en": "difference",
-                    "de": "Unterschied"
+                    "de": "Unterschied",
+                    "fr": "diff&eacute;rence"
                 },
                 {
                     "token": "MQTT_EXE",
                     "en": "command executed",
-                    "de": "Befehl ausgef&uuml;hrt"
+                    "de": "Befehl ausgef&uuml;hrt",
+                    "fr": "commande ex&eacute;cut&eacute;e"
                 },
                 {
                     "token": "IMPORT_UPLOAD_STARTED",
                     "en": "upload started",
-                    "de": "Hochladen gestartet"
+                    "de": "Hochladen gestartet",
+                    "fr": "t&eacute;l&eacute;chargement d&eacute;marr&eacute;"
                 },
                 {
                     "token": "INV_EDIT",
                     "en": "Edit",
-                    "de": "Bearbeiten"
+                    "de": "Bearbeiten",
+                    "fr": "Modifier"
                 },
                 {
                     "token": "INV_DELETE",
                     "en": "Delete",
-                    "de": "L&ouml;schen"
+                    "de": "L&ouml;schen",
+                    "fr": "Supprimer"
                 },
                 {
                     "token": "ENABLED",
                     "en": "enabled",
-                    "de": "aktiviert"
+                    "de": "aktiviert",
+                    "fr": "activ&eacute;"
                 },
                 {
                     "token": "DISABLED",
                     "en": "disabled",
-                    "de": "deaktiviert"
+                    "de": "deaktiviert",
+                    "fr": "d&eacute;sactiv&eacute;"
                 },
                 {
                     "token": "BTN_INV_ADD",
                     "en": "add Inverter",
-                    "de": "Wechselrichter hinzufuegen"
+                    "de": "Wechselrichter hinzufuegen",
+                    "fr": "ajouter un onduleur"
                 },
                 {
                     "token": "INV_INPUT",
                     "en": "Input",
-                    "de": "Eingang"
+                    "de": "Eingang",
+                    "fr": "Entr&eacute;e"
                 },
                 {
                     "token": "INV_MAX_MODULE_POWER",
                     "en": "Max Module Power",
-                    "de": "Maximale Panelleistung"
+                    "de": "Maximale Panelleistung",
+                    "fr": "Puissance maximale du module"
                 },
                 {
                     "token": "INV_YIELD_CORR",
                     "en": "Yield Correction",
-                    "de": "Ertragskorrektur"
+                    "de": "Ertragskorrektur",
+                    "fr": "Correction du rendement"
                 },
                 {
                     "token": "TAB_GENERAL",
                     "en": "General",
-                    "de": "Allgemein"
+                    "de": "Allgemein",
+                    "fr": "G&eacute;n&eacute;ral"
                 },
                 {
                     "token": "TAB_INPUTS",
                     "en": "Inputs",
-                    "de": "Eingaenge"
+                    "de": "Eingaenge",
+                    "fr": "Entr&eacute;es"
                 },
                 {
                     "token": "TAB_RADIO",
                     "en": "Radio",
-                    "de": "Funkmodul"
+                    "de": "Funkmodul",
+                    "fr": "Radio"
                 },
                 {
                     "token": "TAB_ADVANCED",
                     "en": "Advanced",
-                    "de": "Erweitert"
+                    "de": "Erweitert",
+                    "fr": "Avanc&eacute;"
                 },
                 {
                     "token": "INV_ENABLE",
                     "en": "Enabled",
-                    "de": "aktiviert"
+                    "de": "aktiviert",
+                    "fr": "activ&eacute;"
                 },
                 {
                     "token": "INV_SERIAL",
                     "en": "Serial",
-                    "de": "Seriennummer"
+                    "de": "Seriennummer",
+                    "fr": "S&eacute;rie"
                 },
                 {
                     "token": "INV_FREQUENCY",
                     "en": "Frequency",
-                    "de": "Frequenz"
+                    "de": "Frequenz",
+                    "fr": "Fr&eacute;quence"
                 },
                 {
                     "token": "INV_POWER_LEVEL",
                     "en": "Power Level",
-                    "de": "Sendeleistung"
+                    "de": "Sendeleistung",
+                    "fr": "Niveau de puissance"
                 },
                 {
                     "token": "INV_PAUSE_DURING_NIGHT",
                     "en": "Pause communication during night (lat. and lon. need to be set)",
-                    "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"
+                    "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein",
+                    "fr": "Pause de communication pendant la nuit (lat. et lon. doivent &ecirc;tre d&eacute;finis)"
                 },
                 {
                     "token": "BTN_SAVE",
                     "en": "save",
-                    "de": "speichern"
+                    "de": "speichern",
+                    "fr": "enregistrer"
                 },
                 {
                     "token": "INV_EDIT_MODAL",
                     "en": "Edit inverter",
-                    "de": "Wechselrichter editieren"
+                    "de": "Wechselrichter editieren",
+                    "fr": "Modifier l'onduleur"
                 },
                 {
                     "token": "INV_DELETE_SURE",
                     "en": "do you really want to delete inverter?",
-                    "de": "Willst du den Wechselrichter wirklich l&ouml;schen?"
+                    "de": "Willst du den Wechselrichter wirklich l&ouml;schen?",
+                    "fr": "voulez-vous vraiment supprimer l'onduleur ?"
                 },
                 {
                     "token": "BTN_YES",
                     "en": "yes",
-                    "de": "ja"
+                    "de": "ja",
+                    "fr": "oui"
                 },
                 {
                     "token": "INV_DELETE_MODAL",
                     "en": "Delete inverter",
-                    "de": "Wechselrichter l&ouml;schen "
+                    "de": "Wechselrichter l&ouml;schen ",
+                    "fr": "Supprimer l'onduleur"
                 },
                 {
                     "token": "NTP_MINUTES",
                     "en": "minutes",
-                    "de": "Minuten"
+                    "de": "Minuten",
+                    "fr": "minutes"
                 },
                 {
                     "token": "LED_AT_LEAST_ONE_PRODUCING",
                     "en": "At least one inverter is producing",
-                    "de": "mindestens ein Wechselrichter produziert"
+                    "de": "mindestens ein Wechselrichter produziert",
+                    "fr": "Au moins un onduleur produit"
                 },
                 {
                     "token": "LED_MQTT_CONNECTED",
                     "en": "MqTT connected",
-                    "de": "MqTT verbunden"
+                    "de": "MqTT verbunden",
+                    "fr": "MQTT connect&eacute;"
                 },
                 {
                     "token": "LED_NIGHT_TIME",
                     "en": "Night time",
-                    "de": "Nachtschaltung"
+                    "de": "Nachtschaltung",
+                    "fr": "Nuit"
                 },
                 {
                     "token": "LED_POLARITY",
                     "en": "LED polarity",
-                    "de": "LED Polarit&auml;t"
+                    "de": "LED Polarit&auml;t",
+                    "fr": "Polarit&eacute; de la LED"
                 },
                 {
                     "token": "LED_LUMINANCE",
                     "en": "LED luminance",
-                    "de": "LED Helligkeit"
+                    "de": "LED Helligkeit",
+                    "fr": "Luminosit&eacute; de la LED"
                 },
                 {
                     "token": "NRF24_ENABLE",
                     "en": "NRF24 radio enable",
-                    "de": "NRF24 Funkmodul aktivieren"
+                    "de": "NRF24 Funkmodul aktivieren",
+                    "fr": "Activation de la radio NRF24"
                 },
                 {
                     "token": "CMT_ENABLE",
                     "en": "CMT2300A radio enable",
-                    "de": "CMT2300A Funkmodul aktivieren"
+                    "de": "CMT2300A Funkmodul aktivieren",
+                    "fr": "Activation de la radio CMT2300A"
                 },
                 {
                     "token": "DISP_NONE",
                     "en": "None",
-                    "de": "keins"
+                    "de": "keins",
+                    "fr": "Aucun"
                 },
                 {
                     "token": "DISP_TYPE",
                     "en": "Type",
-                    "de": "Typ"
+                    "de": "Typ",
+                    "fr": "Type"
                 },
                 {
                     "token": "DISP_ROTATION",
                     "en": "Rotation",
-                    "de": "Drehung"
+                    "de": "Drehung",
+                    "fr": "Rotation"
                 },
                 {
                     "token": "DISP_SCREENSAVER_OFF",
                     "en": "off",
-                    "de": "aus"
+                    "de": "aus",
+                    "fr": "&eacute;teint"
                 },
                 {
                     "token": "DISP_PIXEL_SHIFT",
                     "en": "pixel shift",
-                    "de": "Bildversatz"
+                    "de": "Bildversatz",
+                    "fr": "D&eacute;calage de pixel"
                 },
                 {
                     "token": "DISP_MOTION_SENS",
                     "en": "motion sensor",
-                    "de": "Bewegungssensor"
+                    "de": "Bewegungssensor",
+                    "fr": "capteur de mouvement"
                 },
                 {
                     "token": "DISP_SCREENSAVER",
                     "en": "Screensaver (OLED only)",
-                    "de": "Bildschirmschoner (nur OLED)"
+                    "de": "Bildschirmschoner (nur OLED)",
+                    "fr": "&eacute;conomiseur d'&eacute;cran (uniquement OLED)"
                 },
                 {
                     "token": "NETWORK_PLEASE_SELECT",
                     "en": "please select network",
-                    "de": "bitte Netzwerk ausw&auml;hlen"
+                    "de": "bitte Netzwerk ausw&auml;hlen",
+                    "fr": "veuillez s&eacute;lectionner le r&eacute;seau"
                 },
                 {
                     "token": "NO_NETWORK_FOUND",
                     "en": "no network found",
-                    "de": "kein Netzwerk gefunden"
+                    "de": "kein Netzwerk gefunden",
+                    "fr": "aucun r&eacute;seau trouv&eacute;"
                 }
             ]
         },
@@ -776,92 +927,110 @@
                 {
                     "token": "UNKNOWN",
                     "en": "unknown",
-                    "de": "unbekannt"
+                    "de": "unbekannt",
+                    "fr": "inconnu"
                 },
                 {
                     "token": "CONNECTED",
                     "en": "connected",
-                    "de": "verbunden"
+                    "de": "verbunden",
+                    "fr": "connect&eacute;"
                 },
                 {
                     "token": "NOT",
                     "en": "not",
-                    "de": "nicht"
+                    "de": "nicht",
+                    "fr": "non"
                 },
                 {
                     "token": "IRQ_WORKING",
                     "en": "Interrupt Pin working",
-                    "de": "Interrupt Pin funktioniert"
+                    "de": "Interrupt Pin funktioniert",
+                    "fr": "Broche d'interruption fonctionne"
                 },
                 {
                     "token": "NRF24_DATA_RATE",
                     "en": "NRF24 Data Rate",
-                    "de": "NRF24 Geschwindigkeit"
+                    "de": "NRF24 Geschwindigkeit",
+                    "fr": "D&eacute;bit de donn&eacute;es NRF24"
                 },
                 {
                     "token": "NOT_ENABLED",
                     "en": "not enabled",
-                    "de": "nicht aktiviert"
+                    "de": "nicht aktiviert",
+                    "fr": "non activ&eacute;"
                 },
                 {
                     "token": "NRF24_RADIO",
                     "en": "Radio NRF24",
-                    "de": "NRF24 Funkmodul"
+                    "de": "NRF24 Funkmodul",
+                    "fr": "Radio NRF24"
                 },
                 {
                     "token": "CMT_RADIO",
                     "en": "Radio CMT",
-                    "de": "CMT2300A Funkmodul"
+                    "de": "CMT2300A Funkmodul",
+                    "fr": "Radio CMT"
                 },
                 {
                     "token": "TRUE",
                     "en": "true",
-                    "de": "ja"
+                    "de": "ja",
+                    "fr": "vrai"
                 },
                 {
                     "token": "FALSE",
                     "en": "false",
-                    "de": "nein"
+                    "de": "nein",
+                    "fr": "faux"
                 },
                 {
                     "token": "ENABLED",
                     "en": "enabled",
-                    "de": "aktiviert"
+                    "de": "aktiviert",
+                    "fr": "activ&eacute;"
                 },
                 {
                     "token": "SUN",
                     "en": "Sun",
-                    "de": "Sonne"
+                    "de": "Sonne",
+                    "fr": "Soleil"
                 },
                 {
                     "token": "SUNRISE",
                     "en": "sunrise",
-                    "de": "Sonnenaufgang"
+                    "de": "Sonnenaufgang",
+                    "fr": "lever du soleil"
                 },
                 {
                     "token": "SUNSET",
                     "en": "sunset",
-                    "de": "Sonnenuntergang"
+                    "de": "Sonnenuntergang",
+                    "fr": "coucher du soleil"
                 },
                 {
                     "token": "COMMUNICATION_START",
                     "en": "Communication start",
-                    "de": "Start der Kommunikation"
+                    "de": "Start der Kommunikation",
+                    "fr": "D&eacute;but de la communication"
                 },
                 {
                     "token": "COMMUNICATION_STOP",
                     "en": "Communication stop",
-                    "de": "Ende der Kommunikation"
+                    "de": "Ende der Kommunikation",
+                    "fr": "Fin de la communication"
                 },
                 {
                     "token": "NIGHT_BEHAVE",
                     "en": "Night behaviour",
-                    "de": "Verhalten bei Nacht"
+                    "de": "Verhalten bei Nacht",
+                    "fr": "Comportement nocturne"
                 },
                 {
                     "token": "COMMUNICATING",
                     "en": "communicating",
-                    "de": "aktiv"
+                    "de": "aktiv",
+                    "fr": "en communication"
                 }
             ]
         },
@@ -871,47 +1040,56 @@
                 {
                     "token": "BTN_CLEAR",
                     "en": "clear",
-                    "de": "l&ouml;schen"
+                    "de": "l&ouml;schen",
+                    "fr": "effacer"
                 },
                 {
                     "token": "BTN_AUTOSCROLL",
                     "en": "autoscroll",
-                    "de": "automatisch scrollen"
+                    "de": "automatisch scrollen",
+                    "fr": "D&Eacute;F'ILEMENT AUTOMATIQUE"
                 },
                 {
                     "token": "BTN_MANUALSCROLL",
                     "en": "manual scroll",
-                    "de": "manuell scrollen"
+                    "de": "manuell scrollen",
+                    "fr": "D&Eacute;FILEMENT MANUEL"
                 },
                 {
                     "token": "BTN_COPY",
                     "en": "copy",
-                    "de": "kopieren"
+                    "de": "kopieren",
+                    "fr": "copier"
                 },
                 {
                     "token": "CONSOLE_ACTIVE",
                     "en": "console active",
-                    "de": "Konsole aktiv"
+                    "de": "Konsole aktiv",
+                    "fr": "console active"
                 },
                 {
                     "token": "UPTIME",
                     "en": "uptime",
-                    "de": "Laufzeit"
+                    "de": "Laufzeit",
+                    "fr": "temps de fonctionnement"
                 },
                 {
                     "token": "DAYS",
                     "en": "days",
-                    "de": "Tage"
+                    "de": "Tage",
+                    "fr": "jours"
                 },
                 {
                     "token": "COPIED_TO_CLIPBOARD",
                     "en": "Copied to clipboard",
-                    "de": "in die Zwischenablage kopiert"
+                    "de": "in die Zwischenablage kopiert",
+                    "fr": "Copi&eacute; dans le presse-papiers"
                 },
                 {
                     "token": "CLIPBOARD_FAILED",
                     "en": "Copy failed",
-                    "de": "kopieren fehlgeschlagen"
+                    "de": "kopieren fehlgeschlagen",
+                    "fr": "Echec de la copie"
                 }
             ]
         },
@@ -921,172 +1099,200 @@
                 {
                     "token": "SUPPORT",
                     "en": "Support this project",
-                    "de": "Dieses Projekt unterst&uuml;tzen"
+                    "de": "Dieses Projekt unterst&uuml;tzen",
+                    "fr": "Soutenir ce projet"
                 },
                 {
                     "token": "CHANGELOG",
                     "en": "Changelog",
-                    "de": "&Auml;nderungshistorie"
+                    "de": "&Auml;nderungshistorie",
+                    "fr": "Journal des modifications"
                 },
                 {
                     "token": "DISCUSS",
                     "en": "Discuss with us on",
-                    "de": "Diskutiere mit uns bei"
+                    "de": "Diskutiere mit uns bei",
+                    "fr": "Discuter avec nous sur"
                 },
                 {
                     "token": "REPORT",
                     "en": "Report",
-                    "de": "Melde "
+                    "de": "Melde ",
+                    "fr": "Rapport"
                 },
                 {
                     "token": "ISSUES",
                     "en": "Issues",
-                    "de": "Fehler "
+                    "de": "Fehler ",
+                    "fr": "Probl&egrave;mes"
                 },
                 {
                     "token": "CONTRIBUTE",
                     "en": "Contribute to",
-                    "de": "Unterst&uuml;tze bei"
+                    "de": "Unterst&uuml;tze bei",
+                    "fr": "Contribuer &agrave;"
                 },
                 {
                     "token": "DOCUMENTATION",
                     "en": "documentation",
-                    "de": "der Dokumentation"
+                    "de": "der Dokumentation",
+                    "fr": "documentation"
                 },
                 {
                     "token": "DEV_FIRMWARE",
                     "en": "development firmware",
-                    "de": "Entwicklerversionen der Firmware"
+                    "de": "Entwicklerversionen der Firmware",
+                    "fr": "micrologiciel de d&eacute;veloppement"
                 },
                 {
                     "token": "DEV_CHANGELOG",
                     "en": "Development Changelog",
-                    "de": "&Auml;nderungshistorie der Entwicklerversionen"
+                    "de": "&Auml;nderungshistorie der Entwicklerversionen",
+                    "fr": "Journal des modifications de d&eacute;veloppement"
                 },
                 {
                     "token": "DON_MAKE",
                     "en": "make a",
-                    "de": "Unterst&uuml;ze mit"
-                },
-                {
-                    "token": "DON_MAKE",
-                    "en": "make a",
-                    "de": "Unterst&uuml;ze z.B. mit"
+                    "de": "Unterst&uuml;ze z.B. mit",
+                    "fr": "faire un"
                 },
                 {
                     "token": "DONATION",
                     "en": "donation",
-                    "de": "Paypal"
+                    "de": "Paypal",
+                    "fr": "don"
                 },
                 {
                     "token": "COMMAND_EXE",
                     "en": "command executed",
-                    "de": "Befehl ausgef&uuml;hrt"
+                    "de": "Befehl ausgef&uuml;hrt",
+                    "fr": "commande ex&eacute;cut&eacute;e"
                 },
                 {
                     "token": "ERROR",
                     "en": "Error",
-                    "de": "Fehler"
+                    "de": "Fehler",
+                    "fr": "Erreur"
                 },
                 {
                     "token": "DAY",
                     "en": "day",
-                    "de": "Tag"
+                    "de": "Tag",
+                    "fr": "jour"
                 },
                 {
                     "token": "S",
                     "en": "s",
-                    "de": "e"
+                    "de": "e",
+                    "fr": "s"
                 },
                 {
                     "token": "NTP_UNREACH",
                     "en": "NTP timeserver unreachable",
-                    "de": "NTP Zeitserver nicht erreichbar"
+                    "de": "NTP Zeitserver nicht erreichbar",
+                    "fr": "Serveur de temps NTP inaccessible"
                 },
                 {
                     "token": "POLLING_STOP",
                     "en": "Polling inverter(s), will pause at sunset",
-                    "de": "Abfrage der Wechselrichter wird zum Sonnenuntergang stoppen"
+                    "de": "Abfrage der Wechselrichter wird zum Sonnenuntergang stoppen",
+                    "fr": "Interrogation de l'onduleur(s), fera une pause au coucher du soleil"
                 },
                 {
                     "token": "NIGHT_TIME",
                     "en": "Night time, inverter polling disabled",
-                    "de": "Wechselrichterabfrage deaktiviert (Nacht)"
+                    "de": "Wechselrichterabfrage deaktiviert (Nacht)",
+                    "fr": "Temps de nuit, interrogation de l'onduleur d&eacute;sactiv&eacute;e"
                 },
                 {
                     "token": "PAUSED_AT",
                     "en": "paused at",
-                    "de": "pausiert um"
+                    "de": "pausiert um",
+                    "fr": "en pause &agrave;"
                 },
                 {
                     "token": "START_AT",
                     "en": "will start polling at",
-                    "de": "Abfrage startet am"
+                    "de": "Abfrage startet am",
+                    "fr": "d&eacute;marrera l'interrogation &agrave;"
                 },
                 {
                     "token": "DISABLED",
                     "en": "disabled",
-                    "de": "deaktiviert"
+                    "de": "deaktiviert",
+                    "fr": "d&eacute;sactiv&eacute;"
                 },
                 {
                     "token": "NOT_YET_AVAIL",
                     "en": "not yet available",
-                    "de": "gerade nicht verf&uuml;gbar"
+                    "de": "gerade nicht verf&uuml;gbar",
+                    "fr": "pas encore disponible"
                 },
                 {
                     "token": "AVAIL",
                     "en": "available and is",
-                    "de": "verf&uuml;gbar und"
+                    "de": "verf&uuml;gbar und",
+                    "fr": "disponible et est"
                 },
                 {
                     "token": "AVAIL_NO_DATA",
                     "en": "available but no data was received until now",
-                    "de": "verf&uuml;gbar, aber bis jetzt keine Daten empfangen"
+                    "de": "verf&uuml;gbar, aber bis jetzt keine Daten empfangen",
+                    "fr": "disponible mais aucune donn&eacute;e n'a &eacute;t&eacute; re&ccedil;ue jusqu'&agrave; pr&eacute;sent"
                 },
                 {
                     "token": "NOT_PRODUCING",
                     "en": "not producing",
-                    "de": "produziert nicht"
+                    "de": "produziert nicht",
+                    "fr": "ne produit pas"
                 },
                 {
                     "token": "PRODUCING",
                     "en": "producing",
-                    "de": "produziert"
+                    "de": "produziert",
+                    "fr": "produit"
                 },
                 {
                     "token": "INVERTER",
                     "en": "Inverter",
-                    "de": "Wechselrichter"
+                    "de": "Wechselrichter",
+                    "fr": "Onduleur"
                 },
                 {
                     "token": "IS",
                     "en": "is",
-                    "de": "ist"
+                    "de": "ist",
+                    "fr": "est"
                 },
                 {
                     "token": "LAST_SUCCESS",
                     "en": "last successful transmission",
-                    "de": "letzte erfolgreiche &Uuml;bertragung"
+                    "de": "letzte erfolgreiche &Uuml;bertragung",
+                    "fr": "derni&egrave;re transmission r&eacute;ussie"
                 },
                 {
                     "token": "UPDATE_AVAIL",
                     "en": "Update available, current released version",
-                    "de": "Update verf&uuml;gbar, aktuell ver&ouml;ffentlichte Version"
+                    "de": "Update verf&uuml;gbar, aktuell ver&ouml;ffentlichte Version",
+                    "fr": "Mise &agrave; jour disponible, version actuellement publi&eacute;e"
                 },
                 {
                     "token": "USING_DEV_VERSION",
                     "en": "You are using development version",
-                    "de": "Du verwendest eine Entwicklerversion"
+                    "de": "Du verwendest eine Entwicklerversion",
+                    "fr": "Vous utilisez une version de d&eacute;veloppement"
                 },
                 {
                     "token": "DEV_ISSUE_RELEASE_VERSION",
                     "en": "In case of issues you may want to try the current stable release",
-                    "de": "Wenn du Fehler feststellst solltest du die aktuelle Releaseversion verwenden"
+                    "de": "Wenn du Fehler feststellst solltest du die aktuelle Releaseversion verwenden",
+                    "fr": "En cas de probl&egrave;mes, vous voudrez peut-&ecirc;tre essayer la version stable actuelle"
                 },
                 {
                     "token": "RELEASE_INSTALLED",
                     "en": "You are using the current stable release",
-                    "de": "Du verwendest das aktuelle Release"
+                    "de": "Du verwendest das aktuelle Release",
+                    "fr": "Vous utilisez la version stable actuelle"
                 }
             ]
         },
@@ -1096,52 +1302,62 @@
                 {
                     "token": "SELECT_FILE",
                     "en": "Select firmware file",
-                    "de": "Firmware Datei ausw&auml;hlen"
+                    "de": "Firmware Datei ausw&auml;hlen",
+                    "fr": "S&eacute;lectionner le fichier de micrologiciel"
                 },
                 {
                     "token": "BTN_UPDATE",
                     "en": "Update",
-                    "de": "aktualisieren"
+                    "de": "aktualisieren",
+                    "fr": "Mettre &agrave; jour"
                 },
                 {
                     "token": "BTN_UPDATE",
                     "en": "Update",
-                    "de": "aktualisieren"
+                    "de": "aktualisieren",
+                    "fr": "Mettre &agrave; jour"
                 },
                 {
                     "token": "DOWNLOADS",
                     "en": "Download latest Release and Development versions (without login)",
-                    "de": "Lade die letzte Releaseversion oder Entwicklerversion herunter (ohne Login)"
+                    "de": "Lade die letzte Releaseversion oder Entwicklerversion herunter (ohne Login)",
+                    "fr": "T&eacute;l&eacute;chargez les derni&egrave;res versions de release et de d&eacute;veloppement (sans connexion)"
                 },
                 {
                     "token": "INSTALLED_VERSION",
                     "en": "installed version (original filename)",
-                    "de": "aktuell installierte Version"
+                    "de": "aktuell installierte Version",
+                    "fr": "version install&eacute;e (nom de fichier original)"
                 },
                 {
                     "token": "UPDATE_STARTED",
                     "en": "update started",
-                    "de": "Aktualisierung gestartet"
+                    "de": "Aktualisierung gestartet",
+                    "fr": "Mise &agrave; jour d&eacute;marr&eacute;e"
                 },
                 {
                     "token": "UPDATE_MODAL",
                     "en": "Warning",
-                    "de": "Warnung"
+                    "de": "Warnung",
+                    "fr": "Avertissement"
                 },
                 {
                     "token": "WARN_DIFF_ENV",
                     "en": "your environment may not match the update file!",
-                    "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!"
+                    "de": "Die ausgew&auml;hlte Firmware passt u.U. nicht zum Chipsatz!",
+                    "fr": "Votre environnement peut ne pas correspondre au fichier de mise &agrave; jour!"
                 },
                 {
                     "token": "CONTIUE",
                     "en": "continue",
-                    "de": "fortfahren"
+                    "de": "fortfahren",
+                    "fr": "continuer"
                 },
                 {
                     "token": "CANCEL",
                     "en": "cancel",
-                    "de": "abbrechen"
+                    "de": "abbrechen",
+                    "fr": "annuler"
                 }
             ]
         },
@@ -1151,342 +1367,410 @@
                 {
                     "token": "EVERY",
                     "en": "Every",
-                    "de": "Alle"
+                    "de": "Alle",
+                    "fr": "Toutes"
                 },
                 {
                     "token": "UPDATE_SECS",
                     "en": "seconds the values are updated",
-                    "de": "Sekunden werden die Daten aktualisiert"
+                    "de": "Sekunden werden die Daten aktualisiert",
+                    "fr": "secondes les valeurs sont mises &agrave; jour"
                 },
                 {
                     "token": "TOTAL",
                     "en": "TOTAL",
-                    "de": "GESAMT"
+                    "de": "GESAMT",
+                    "fr": "TOTAL"
                 },
                 {
                     "token": "AC_POWER",
                     "en": "AC Power",
-                    "de": "AC Leistung"
+                    "de": "AC Leistung",
+                    "fr": "Puissance AC"
                 },
                 {
                     "token": "YIELD_DAY",
                     "en": "Yield Day",
-                    "de": "Tagesertrag"
+                    "de": "Tagesertrag",
+                    "fr": "Rendement journalier"
                 },
                 {
                     "token": "YIELD_TOTAL",
                     "en": "Yield Total",
-                    "de": "Gesamtertrag"
+                    "de": "Gesamtertrag",
+                    "fr": "Rendement total"
                 },
                 {
                     "token": "MAX_POWER",
                     "en": "Max Power",
-                    "de": "Maximale Leistung"
+                    "de": "Maximale Leistung",
+                    "fr": "Puissance maximale"
                 },
                 {
                     "token": "DC_POWER",
                     "en": "DC Power",
-                    "de": "DC Leistung"
+                    "de": "DC Leistung",
+                    "fr": "Puissance DC"
                 },
                 {
                     "token": "REACTIVE_POWER",
                     "en": "Reactive Power",
-                    "de": "Blindleistung"
+                    "de": "Blindleistung",
+                    "fr": "Puissance r&eacute;active"
                 },
                 {
                     "token": "ACTIVE_POWER_CONTROL",
                     "en": "Active Power Control",
-                    "de": "Leistungsbegrenzung"
+                    "de": "Leistungsbegrenzung",
+                    "fr": "Contr&ocirc;le de la puissance active"
                 },
                 {
                     "token": "APC",
                     "en": "APC",
-                    "de": "Limit"
+                    "de": "Limit",
+                    "fr": "PLA"
                 },
                 {
                     "token": "ALARMS",
                     "en": "Alarms",
-                    "de": "Meldungen"
+                    "de": "Meldungen",
+                    "fr": "Alarmes"
                 },
                 {
                     "token": "MAX_AC_POWER",
                     "en": "Max AC Power",
-                    "de": "Max AC Leistung"
+                    "de": "Max AC Leistung",
+                    "fr": "Puissance AC maximale"
                 },
                 {
                     "token": "DC_POWER",
                     "en": "DC Power",
-                    "de": "DC Leistung"
+                    "de": "DC Leistung",
+                    "fr": "Puissance DC"
                 },
                 {
                     "token": "DC_VOLTAGE",
                     "en": "DC Voltage",
-                    "de": "DC Spannung"
+                    "de": "DC Spannung",
+                    "fr": "Tension DC"
                 },
                 {
                     "token": "AC_VOLTAGE",
                     "en": "AC Voltage",
-                    "de": "Netzspannung"
+                    "de": "Netzspannung",
+                    "fr": "Tension AC"
                 },
                 {
                     "token": "AC_CURRENT",
                     "en": "AC Current",
-                    "de": "AC Strom"
+                    "de": "AC Strom",
+                    "fr": "Courant AC"
                 },
                 {
                     "token": "FREQUENCY",
                     "en": "Frequency",
-                    "de": "Frequenz"
+                    "de": "Frequenz",
+                    "fr": "Fr&eacute;quence"
                 },
                 {
                     "token": "EFFICIENCY",
                     "en": "Efficiency",
-                    "de": "Effizienz"
+                    "de": "Effizienz",
+                    "fr": "Efficacit&eacute;"
                 },
                 {
                     "token": "POWER_FACTOR",
                     "en": "Power Factor",
-                    "de": "Leistungsfaktor"
+                    "de": "Leistungsfaktor",
+                    "fr": "Facteur de puissance"
                 },
                 {
                     "token": "IRRADIATION",
                     "en": "Irradiation",
-                    "de": "Einstrahlung"
+                    "de": "Einstrahlung",
+                    "fr": "Irradiation"
                 },
                 {
                     "token": "DC_CURRENT",
                     "en": "DC Current",
-                    "de": "DC Strom"
+                    "de": "DC Strom",
+                    "fr": "Courant DC"
                 },
                 {
                     "token": "LAST_RECEIVED",
                     "en": "Last received data requested at",
-                    "de": "Zuletzt empfangene Daten wurden angefragt am"
+                    "de": "Zuletzt empfangene Daten wurden angefragt am",
+                    "fr": "Derni&egrave;res donn&eacute;es re&ccedil;ues demand&eacute;es &agrave;"
                 },
                 {
                     "token": "NOTHING_RECEIVED",
                     "en": "nothing received",
-                    "de": "nichts empfangen"
+                    "de": "nichts empfangen",
+                    "fr": "rien re&ccedil;u"
                 },
                 {
                     "token": "ALARMS_MODAL",
                     "en": "Alarms of inverter",
-                    "de": "Meldungen von Wechselrichter"
+                    "de": "Meldungen von Wechselrichter",
+                    "fr": "Alarmes de l'onduleur"
                 },
                 {
                     "token": "SERIAL",
                     "en": "Serial",
-                    "de": "Seriennummer"
+                    "de": "Seriennummer",
+                    "fr": "S&eacute;rie"
                 },
                 {
                     "token": "BTN_SHOW",
                     "en": "show",
-                    "de": "anzeigen"
+                    "de": "anzeigen",
+                    "fr": "montrer"
                 },
                 {
                     "token": "EVENT",
                     "en": "Event",
-                    "de": "Ereignis"
+                    "de": "Ereignis",
+                    "fr": "&eacute;v&eacute;nement"
                 },
                 {
                     "token": "END",
                     "en": "End",
-                    "de": "Ende"
+                    "de": "Ende",
+                    "fr": "Fin"
                 },
                 {
                     "token": "HW_NUMBER",
                     "en": "Hardware Number",
-                    "de": "Hardware Nummer"
+                    "de": "Hardware Nummer",
+                    "fr": "Num&eacute;ro de mat&eacute;riel"
                 },
                 {
                     "token": "INV_INFO",
                     "en": "Info for inverter",
-                    "de": "Info f&uuml;r Wechselrichter"
+                    "de": "Info f&uuml;r Wechselrichter",
+                    "fr": "Info pour l'onduleur"
                 },
                 {
                     "token": "VALUE",
                     "en": "Value",
-                    "de": "Wert"
+                    "de": "Wert",
+                    "fr": "Valeur"
                 },
                 {
                     "token": "RANGE",
                     "en": "Range",
-                    "de": "Bereich"
+                    "de": "Bereich",
+                    "fr": "Plage"
                 },
                 {
                     "token": "DEFAULT",
                     "en": "Default",
-                    "de": "Standard"
+                    "de": "Standard",
+                    "fr": "D&eacute;faut"
                 },
                 {
                     "token": "PROFILE_NOT_READ",
                     "en": "Profile was not read until now, maybe turned off",
-                    "de": "Grid-Profil wurde bis jetzt noch nicht gelesen oder das Auslesen ist nicht aktiv"
+                    "de": "Grid-Profil wurde bis jetzt noch nicht gelesen oder das Auslesen ist nicht aktiv",
+                    "fr": "Le profil n'a pas &eacute;t&eacute; lu jusqu'&agrave; pr&eacute;sent, peut-&ecirc;tre &eacute;teint"
                 },
                 {
                     "token": "UNKNOWN_PROFILE",
                     "en": "Unknown Profile",
-                    "de": "Unbekanntes Profil"
+                    "de": "Unbekanntes Profil",
+                    "fr": "Profil inconnu"
                 },
                 {
                     "token": "OPEN_ISSUE",
                     "en": "Please open a new issue at https://github.com/lumapu/ahoy and copy the raw data into it",
-                    "de": "Bitte erstelle einen neuen Issue auf https://github.com/lumapu/ahoy und kopiere die Rohdaten hinein"
+                    "de": "Bitte erstelle einen neuen Issue auf https://github.com/lumapu/ahoy und kopiere die Rohdaten hinein",
+                    "fr": "Veuillez ouvrir un nouveau probl&egrave;me sur https://github.com/lumapu/ahoy et copier les donn&eacute;es brutes dedans"
                 },
                 {
                     "token": "PROFILE_MODAL",
                     "en": "Grid Profile for inverter",
-                    "de": "Grid-Profil f&uuml;r Wechselrichter"
+                    "de": "Grid-Profil f&uuml;r Wechselrichter",
+                    "fr": "Profil de r&eacute;seau pour onduleur"
                 },
                 {
                     "token": "TX_COUNT",
                     "en": "TX count",
-                    "de": "Sendez&auml;hler"
+                    "de": "Sendez&auml;hler",
+                    "fr": "Nombre de transmissions"
                 },
                 {
                     "token": "RX_SUCCESS",
                     "en": "RX success",
-                    "de": "erfolgreicher Empfang"
+                    "de": "erfolgreicher Empfang",
+                    "fr": "R&eacute;ception r&eacute;ussie"
                 },
                 {
                     "token": "RX_FAIL",
                     "en": "RX fail",
-                    "de": "fehlgeschlagener Empfang"
+                    "de": "fehlgeschlagener Empfang",
+                    "fr": "&eacute;chec de r&eacute;ception"
                 },
                 {
                     "token": "RX_NO_ANSWER",
                     "en": "RX no answer",
-                    "de": "keine Antwort"
+                    "de": "keine Antwort",
+                    "fr": "Pas de r&eacute;ponse"
                 },
                 {
                     "token": "RX_FRAGMENTS",
                     "en": "RX fragments",
-                    "de": "empfangene Fragmente"
+                    "de": "empfangene Fragmente",
+                    "fr": "Fragments re&ccedil;us"
                 },
                 {
                     "token": "TX_RETRANSMITS",
                     "en": "TX retransmits",
-                    "de": "erneute Sendeversuche"
+                    "de": "erneute Sendeversuche",
+                    "fr": "Retransmissions TX"
                 },
                 {
                     "token": "INV_LOSS_RATE",
                     "en": "Inverter loss rate",
-                    "de": "Wechselrichter Verlustrate"
+                    "de": "Wechselrichter Verlustrate",
+                    "fr": "Taux de perte de l'onduleur"
                 },
                 {
                     "token": "DTU_LOSS_RATE",
                     "en": "DTU loss rate",
-                    "de": "DTU Verlustrate"
+                    "de": "DTU Verlustrate",
+                    "fr": "Taux de perte du DTU"
                 },
                 {
                     "token": "RADIO_STAT_MODAL",
                     "en": "Radio statistics for inverter",
-                    "de": "Funkstatistik f&uuml;r Wechselrichter"
+                    "de": "Funkstatistik f&uuml;r Wechselrichter",
+                    "fr": "Statistiques radio pour onduleur"
                 },
                 {
                     "token": "LOST_1",
                     "en": "lost",
-                    "de": ""
+                    "de": "",
+                    "fr": "perdu"
                 },
                 {
                     "token": "LOST_2",
                     "en": "of",
-                    "de": "von"
+                    "de": "von",
+                    "fr": "de"
                 },
                 {
                     "token": "LOST_3",
                     "en": "",
-                    "de": "verloren"
+                    "de": "verloren",
+                    "fr": ""
                 },
                 {
                     "token": "LIMIT_VALUE",
                     "en": "Limit Value",
-                    "de": "Wert der Leistungsbegrenzung"
+                    "de": "Wert der Leistungsbegrenzung",
+                    "fr": "Valeur limite"
                 },
                 {
                     "token": "KEEP_LIMIT",
                     "en": "Keep limit over inverter restart",
-                    "de": "Leistungsbegrenzung dauerhaft speichern (im Wechselrichter)"
+                    "de": "Leistungsbegrenzung dauerhaft speichern (im Wechselrichter)",
+                    "fr": "Conserver la limite lors du red&eacute;marrage de l'onduleur"
                 },
                 {
                     "token": "BTN_APPLY",
                     "en": "Apply",
-                    "de": "anwenden"
+                    "de": "anwenden",
+                    "fr": "Appliquer"
                 },
                 {
                     "token": "CONTROL",
                     "en": "Control",
-                    "de": "Ansteuern"
+                    "de": "Ansteuern",
+                    "fr": "Contr&ocirc;le"
                 },
                 {
                     "token": "RESTART",
                     "en": "restart",
-                    "de": "neustarten"
+                    "de": "neustarten",
+                    "fr": "red&eacute;marrer"
                 },
                 {
                     "token": "TURN_OFF",
                     "en": "turn off",
-                    "de": "ausschalten"
+                    "de": "ausschalten",
+                    "fr": "&eacute;teindre"
                 },
                 {
                     "token": "TURN_ON",
                     "en": "turn on",
-                    "de": "anschalten"
+                    "de": "anschalten",
+                    "fr": "allumer"
                 },
                 {
                     "token": "RESULT",
                     "en": "Result",
-                    "de": "Status"
+                    "de": "Status",
+                    "fr": "R&eacute;sultat"
                 },
                 {
                     "token": "POWER_LIMIT_MODAL",
                     "en": "Active Power Control for inverter",
-                    "de": "Leistungsbegrenzung f&uuml;r Wechselrichter"
+                    "de": "Leistungsbegrenzung f&uuml;r Wechselrichter",
+                    "fr": "Contr&ocirc;le de la puissance active pour onduleur"
                 },
                 {
                     "token": "CMD_RECEIVED_WAIT_ACK",
                     "en": "received command, waiting for inverter acknowledge ...",
-                    "de": "Befehl erhalten, warte auf Best&auml;igung vom Wechselrichter ..."
+                    "de": "Befehl erhalten, warte auf Best&auml;igung vom Wechselrichter ...",
+                    "fr": "commande re&ccedil;ue, en attente de l'accus&eacute; de r&eacute;ception de l'onduleur ..."
                 },
                 {
                     "token": "COMMAND_RECEIVED",
                     "en": "command received",
-                    "de": "Befehl erhalten"
+                    "de": "Befehl erhalten",
+                    "fr": "commande re&ccedil;ue"
                 },
                 {
                     "token": "ERROR",
                     "en": "Error",
-                    "de": "Fehler"
+                    "de": "Fehler",
+                    "fr": "Erreur"
                 },
                 {
                     "token": "INV_ACK",
                     "en": "inverter acknowledged active power control command",
-                    "de": "Wechselrichter hat die Leistungsbegrenzung akzeptiert"
+                    "de": "Wechselrichter hat die Leistungsbegrenzung akzeptiert",
+                    "fr": "l'onduleur a reconnu la commande de contr&ocirc;le de la puissance active"
                 },
                 {
                     "token": "ERR_AUTH",
                     "en": "authentication error",
-                    "de": "Authentifizierungsfehler"
+                    "de": "Authentifizierungsfehler",
+                    "fr": "erreur d'authentification"
                 },
                 {
                     "token": "ERR_INDEX",
                     "en": "inverter index invalid",
-                    "de": "Wechselrichterindex ungültig"
+                    "de": "Wechselrichterindex ungültig",
+                    "fr": "index de l'onduleur non valide"
                 },
                 {
                     "token": "ERR_UNKNOWN_CMD",
                     "en": "unknown cmd",
-                    "de": "unbekanntes Kommando"
+                    "de": "unbekanntes Kommando",
+                    "fr": "commande inconnue"
                 },
                 {
                     "token": "ERR_LIMIT_NOT_ACCEPT",
                     "en": "inverter does not accept dev control request at this moment",
-                    "de": "Leistungsbegrenzung / Ansteuerung aktuell nicht m&ouml;glich"
+                    "de": "Leistungsbegrenzung / Ansteuerung aktuell nicht m&ouml;glich",
+                    "fr": "l'onduleur n'accepte pas la demande de contr&ocirc;le de p&eacute;riph&eacute;rique pour le moment"
                 },
                 {
                     "token": "ERR_PROTECTED",
                     "en": "not logged in, command not possible!",
-                    "de": "nicht angemeldet, Kommando nicht m&ouml;glich!"
+                    "de": "nicht angemeldet, Kommando nicht m&ouml;glich!",
+                    "fr": "non connect&eacute;, commande non possible !"
                 }
             ]
         },
@@ -1496,27 +1780,32 @@
                 {
                     "token": "SAVE_SETTINGS",
                     "en": "Saving settings...",
-                    "de": "Einstellungen werden gespeichert ..."
+                    "de": "Einstellungen werden gespeichert ...",
+                    "fr": "Enregistrement des param&egrave;tres..."
                 },
                 {
                     "token": "SUCCESS_SAVED_RELOAD",
                     "en": "Settings successfully saved. Automatic page reload in 3 seconds.",
-                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung in 3 Sekunden"
+                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung in 3 Sekunden",
+                    "fr": "Param&egrave;tres enregistr&eacute;s avec succ&egrave;s. Rechargement automatique de la page dans 3 secondes."
                 },
                 {
                     "token": "SUCCESS_SAVED_REBOOT",
                     "en": "Settings successfully saved. Rebooting. Automatic redirect in",
-                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung nach Reboot in"
+                    "de": "Einstellungen erfolgreich gespeichert. Automatische Weiterleitung nach Reboot in",
+                    "fr": "Param&egrave;tres enregistr&eacute;s avec succ&egrave;s. Red&eacute;marrage. Redirection automatique dans"
                 },
                 {
                     "token": "SECONDS",
                     "en": "seconds",
-                    "de": "Sekunden"
+                    "de": "Sekunden",
+                    "fr": "secondes"
                 },
                 {
                     "token": "FAILED_SAVE",
                     "en": "Failed saving settings",
-                    "de": "Fehler beim Speichern"
+                    "de": "Fehler beim Speichern",
+                    "fr": "&eacute;chec de l'enregistrement des param&egrave;tres"
                 }
             ]
         },
@@ -1526,37 +1815,44 @@
                 {
                     "token": "TOTAL_POWER",
                     "en": "Total Power",
-                    "de": "Gesamtleistung"
+                    "de": "Gesamtleistung",
+                    "fr": "Puissance totale"
                 },
                 {
                     "token": "TOTAL_YIELD_PER_DAY",
                     "en": "Total Yield per day",
-                    "de": "Gesamtertrag pro Tag"
+                    "de": "Gesamtertrag pro Tag",
+                    "fr": "Rendement total par jour"
                 },
                 {
                     "token": "MAX_DAY",
                     "en": "maximum day",
-                    "de": "Tagesmaximum"
+                    "de": "Tagesmaximum",
+                    "fr": "Jour maximum"
                 },
                 {
                     "token": "LAST_VALUE",
                     "en": "last value",
-                    "de": "letzter Wert"
+                    "de": "letzter Wert",
+                    "fr": "derni&egrave;re valeur"
                 },
                 {
                     "token": "MAXIMUM",
                     "en": "maximum value",
-                    "de": "Maximalwert"
+                    "de": "Maximalwert",
+                    "fr": "valeur maximale"
                 },
                 {
                     "token": "UPDATED",
                     "en": "Updated every",
-                    "de": "aktualisiert alle"
+                    "de": "aktualisiert alle",
+                    "fr": "Mise &agrave; jour toutes les"
                 },
                 {
                     "token": "SECONDS",
                     "en": "seconds",
-                    "de": "Sekunden"
+                    "de": "Sekunden",
+                    "fr": "secondes"
                 }
             ]
         }

@@ -232,6 +232,8 @@ def main():
     lang = "en"
     if env['PIOENV'][-3:] == "-de":
         lang = "de"
+    if env['PIOENV'][-3:] == "-fr":
+        lang = "fr"
 
 
     # go throw the array
