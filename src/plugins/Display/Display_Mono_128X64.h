@@ -108,7 +108,7 @@ class DisplayMono128X64 : public DisplayMono {
                     int8_t moon_pos = -1;
                     setLineFont(l_Status);
                     if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
-                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, STR_NO_INVERTER);
                     else if (0 == mDisplayData->nrSleeping) {
                         snprintf(mFmtText, DISP_FMT_TEXT_LEN, "  ");
                         sun_pos = 0;

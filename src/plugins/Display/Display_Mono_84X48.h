@@ -90,7 +90,7 @@ class DisplayMono84X48 : public DisplayMono {
                 // print status of inverters
                 else {
                     if (0 == mDisplayData->nrSleeping + mDisplayData->nrProducing)
-                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, "no inverter");
+                        snprintf(mFmtText, DISP_FMT_TEXT_LEN, STR_NO_INVERTER);
                     else if (0 == mDisplayData->nrSleeping)
                         snprintf(mFmtText, DISP_FMT_TEXT_LEN, "\x86");      // sun symbol
                     else if (0 == mDisplayData->nrProducing)
