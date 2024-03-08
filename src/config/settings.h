@@ -241,15 +241,14 @@ typedef struct {
     int8_t target;
     uint16_t powerMin;
     uint16_t powerMax;
-
+    //
 
     float power;
     uint16_t limit;
     uint16_t limitNew;
     unsigned long limitTsp;
-//    bool limitAck;
     float dcVoltage;
-//    uint16_t waitingTime;
+    bool state;
 } zeroExportGroupInverter_t;
 
 typedef struct {
@@ -273,7 +272,7 @@ typedef struct {
     uint8_t refresh;
     uint8_t powerTolerance;
     uint16_t powerMax;
-
+    //
 
     zeroExportState state;
     zeroExportState stateNext;
@@ -287,10 +286,10 @@ typedef struct {
     float grpPowerL1;
     float grpPowerL2;
     float grpPowerL3;
-    float grpLimit;
-    float grpLimitL1;
-    float grpLimitL2;
-    float grpLimitL3;
+//    float grpLimit;
+//    float grpLimitL1;
+//    float grpLimitL2;
+//    float grpLimitL3;
 
 //    uint16_t power;             // Aktueller Verbrauch
 //    uint16_t powerLimitAkt;     // Aktuelles Limit

@@ -126,7 +126,7 @@ void app::setup() {
     #if defined(PLUGIN_ZEROEXPORT)
 // TODO: aufräumen
 //    if (mConfig->plugin.zeroExport.enabled) {
-        mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi);
+        mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
 //    }
     #endif
     // Plugin ZeroExport - Ende

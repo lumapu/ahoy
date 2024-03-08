@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       910004
+#define VERSION_PATCH       910006
 
 //-------------------------------------
 typedef struct {
