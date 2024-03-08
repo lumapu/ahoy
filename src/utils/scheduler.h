@@ -125,8 +125,8 @@ namespace ah {
                         mTicker[i].timeout = timeout;
                         mTicker[i].reload = reload;
                         mTicker[i].isTimestamp = isTimestamp;
-                        memset(mTicker[i].name, 0, 6);
-                        strncpy(mTicker[i].name, name, (strlen(name) < 6) ? strlen(name) : 5);
+                        strncpy(mTicker[i].name, name, 5);
+                        mTicker[i].name[5]=0;
                         if(mMax == i)
                             mMax = i + 1;
                         return i;

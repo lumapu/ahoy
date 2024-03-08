@@ -13,7 +13,7 @@
 //-------------------------------------
 #define VERSION_MAJOR       0
 #define VERSION_MINOR       8
-#define VERSION_PATCH       88
+#define VERSION_PATCH       91
 
 //-------------------------------------
 typedef struct {
@@ -109,7 +109,7 @@ enum {
 
 typedef struct {
     uint32_t rxFail;
-    uint32_t rxFailNoAnser;
+    uint32_t rxFailNoAnswer;
     uint32_t rxSuccess;
     uint32_t frmCnt;
     uint32_t txCnt;

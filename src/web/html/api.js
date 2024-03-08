@@ -84,10 +84,12 @@ function topnav() {
 }
 
 function parseNav(obj) {
-    for(i = 0; i < 13; i++) {
+    for(i = 0; i < 14; i++) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
+        if(null == l)
+            continue
         if(12 == i) {
             if(obj.cst_lnk.length > 0) {
                 l.href = obj.cst_lnk

@@ -1,5 +1,17 @@
 # Development Changes
 
+## 0.8.91 - 2024-03-05
+* fix javascript issues #1480
+
+## 0.8.90 - 2024-03-05
+* added preprocessor defines to HTML (from platform.ini) to reduce the HTML in size if modules aren't enabled
+* auto build minimal English versions of ESP8266 and ESP32
+
+## 0.8.89 - 2024-03-02
+* merge PR: Collection of small fixes #1465
+* fix: show esp type on `/history` #1463
+* improved HMS-400-1T support (serial number 1125...) #1460
+
 ## 0.8.88 - 2024-02-28
 * fix MqTT statistic data overflow #1458
 * add HMS-400-1T support (serial number 1125...) #1460
@@ -265,7 +277,7 @@
 
 ## 0.8.39 - 2024-01-01
 * fix MqTT dis_night_comm in the morning #1309 #1286
-* seperated offset for sunrise and sunset #1308
+* separated offset for sunrise and sunset #1308
 * powerlimit (active power control) now has one decimal place (MqTT / API) #1199
 * merge Prometheus metrics fix #1310
 * merge MI grid profile request #1306
@@ -478,7 +490,7 @@
 ## 0.7.61 - 2023-10-01
 * merged `hmPayload` and `hmsPayload` into single class
 * merged generic radio functions into new parent class `radio.h`
-* moved radio statistics into the inverter - each inverter has now seperate statistics which can be accessed by click on the footer in `/live`
+* moved radio statistics into the inverter - each inverter has now separate statistics which can be accessed by click on the footer in `/live`
 * fix compiler warnings #1191
 * fix ePaper logo during night time #1151
 

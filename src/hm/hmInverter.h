@@ -288,32 +288,30 @@ class Inverter {
                 uint8_t  end = ptr + rec->assign[pos].num;
                 uint16_t div = rec->assign[pos].div;
 
-                if(NULL != rec) {
-                    if(CMD_CALC != div) {
-                        uint32_t val = 0;
-                        do {
-                            val <<= 8;
-                            val |= buf[ptr];
-                        } while(++ptr != end);
+                if(CMD_CALC != div) {
+                    uint32_t val = 0;
+                    do {
+                        val <<= 8;
+                        val |= buf[ptr];
+                    } while(++ptr != end);
 
-                        if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
-                            // temperature, Qvar, and power factor are a signed values
-                            rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
-                        } else if (FLD_YT == rec->assign[pos].fieldId) {
-                            rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
-                        } else if (FLD_YD == rec->assign[pos].fieldId) {
-                            float actYD = (REC_TYP)(val) / (REC_TYP)(div);
-                            uint8_t idx = rec->assign[pos].ch - 1;
-                            if (mLastYD[idx] > actYD)
-                                mOffYD[idx] += mLastYD[idx];
-                            mLastYD[idx] = actYD;
-                            rec->record[pos] = mOffYD[idx] + actYD;
-                        } else {
-                            if ((REC_TYP)(div) > 1)
-                                rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
-                            else
-                                rec->record[pos] = (REC_TYP)(val);
-                        }
+                    if ((FLD_T == rec->assign[pos].fieldId) || (FLD_Q == rec->assign[pos].fieldId) || (FLD_PF == rec->assign[pos].fieldId)) {
+                        // temperature, Qvar, and power factor are a signed values
+                        rec->record[pos] = ((REC_TYP)((int16_t)val)) / (REC_TYP)(div);
+                    } else if (FLD_YT == rec->assign[pos].fieldId) {
+                        rec->record[pos] = ((REC_TYP)(val) / (REC_TYP)(div)) + ((REC_TYP)config->yieldCor[rec->assign[pos].ch-1]);
+                    } else if (FLD_YD == rec->assign[pos].fieldId) {
+                        float actYD = (REC_TYP)(val) / (REC_TYP)(div);
+                        uint8_t idx = rec->assign[pos].ch - 1;
+                        if (mLastYD[idx] > actYD)
+                            mOffYD[idx] += mLastYD[idx];
+                        mLastYD[idx] = actYD;
+                        rec->record[pos] = mOffYD[idx] + actYD;
+                    } else {
+                        if ((REC_TYP)(div) > 1)
+                            rec->record[pos] = (REC_TYP)(val) / (REC_TYP)(div);
+                        else
+                            rec->record[pos] = (REC_TYP)(val);
                     }
                 }
 
