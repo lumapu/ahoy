@@ -99,8 +99,9 @@
 						this.svg = document.createElementNS(svgns, "svg");
 						this.svg.setAttribute("class", "container");
 						this.svg.setAttribute("id", this.namePrefix + "_svg");
-						this.svg.setAttribute("width", String(this.datapoints * 2 + 50));
-						this.svg.setAttribute("height", String(this.mChartHight + 20));
+						this.svg.setAttribute("viewBox", "0 0 " + String(this.datapoints * 2 + 50) + " " + String(this.mChartHight + 20));
+                        this.svg.setAttribute("width", "100%");
+                        this.svg.setAttribute("height", "100%");
 						// Gradient Line
 						let defLgLine = document.createElementNS(svgns, "defs");
 						{
