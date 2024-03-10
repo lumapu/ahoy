@@ -24,6 +24,11 @@ class ZeroExport {
          */
         ZeroExport() {
             mIsInitialized = false;
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    mIv[group][inv] = nullptr;
+                }
+            }
         }
 
         /**
@@ -60,10 +65,13 @@ return;
                 }
 
                 switch (mCfg->groups[group].state) {
+
+
                     case zeroExportState::RESET:
                         mCfg->groups[group].lastRun = millis();
                         mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
                         break;
+
                     case zeroExportState::GETPOWERMETER:
                         if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
                             if (getPowermeterWatts(group)) {
@@ -77,6 +85,7 @@ return;
                             }
                         }
                         break;
+
                     case zeroExportState::GETINVERTERDATA:
                         if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
                             if (getInverterData(group)) {
@@ -90,6 +99,7 @@ return;
                             }
                         }
                         break;
+
                     case zeroExportState::BATTERYPROTECTION:
                         if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
                             if (batteryProtection(group)) {
@@ -103,6 +113,7 @@ return;
                             }
                         }
                         break;
+
                     case zeroExportState::CONTROL:
                         if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
                             if (controller(group)) {
@@ -116,6 +127,7 @@ return;
                             }
                         }
                         break;
+
                     case zeroExportState::SETCONTROL:
                         if ((millis() - mCfg->groups[group].lastRun) > (mCfg->groups[group].refresh * 1000UL)) {
                             if (setControl(group)) {
@@ -129,6 +141,7 @@ return;
                             }
                         }
                         break;
+
                     default:
 // TODO: Debug Webserial. Deaktiviert um CPU-Last zu verringern.
                         DBGPRINTLN(String("ze: "));
@@ -579,10 +592,11 @@ return;
                         continue;;
                     }
                     // wenn Inverter nicht produziert -> Daten ignorieren
+                    cfgGroupInv->state = iv->isProducing();
                     logObjInv["Producing"] = iv->isProducing();
-                    if (!iv->isProducing()) {
-                        continue;;
-                    }
+//                    if (!iv->isProducing()) {
+//                        continue;;
+//                    }
 
                     // Daten abrufen
                     rec = iv->getRecordStruct(RealTimeRunData_Debug);
@@ -591,10 +605,6 @@ return;
 
                     cfgGroupInv->power = iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                     logObjInv["P_ac"] = cfgGroupInv->power;
-
-//mCfg->groups[group].inverters[inv].limit = iv->actPowerLimit;
-
-//                    cfgGroupInv->limitAck = iv->powerLimitAck;
 
                     cfgGroupInv->dcVoltage = iv->getChannelFieldValue(CH1, FLD_UDC, rec);
                     logObjInv["U_dc"] = cfgGroupInv->dcVoltage;
@@ -644,21 +654,21 @@ return;
                 // Config - parameter check
                 if (cfgGroup->battVoltageOn <= cfgGroup->battVoltageOff) {
                     cfgGroup->battSwitch = false;
-                    logObj["error"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= battVoltageOff(" + (String)cfgGroup->battVoltageOff + ")";
+                    logObj["err"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= battVoltageOff(" + (String)cfgGroup->battVoltageOff + ")";
                     return true;
                 }
 
                 // Config - parameter check
                 if (cfgGroup->battVoltageOn <= (cfgGroup->battVoltageOff + 1)) {
                     cfgGroup->battSwitch = false;
-                    logObj["error"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= battVoltageOff(" + (String)cfgGroup->battVoltageOff + " + 1V)";
+                    logObj["err"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= battVoltageOff(" + (String)cfgGroup->battVoltageOff + " + 1V)";
                     return true;
                 }
 
                 // Config - parameter check
                 if (cfgGroup->battVoltageOn <= 22) {
                     cfgGroup->battSwitch = false;
-                    logObj["error"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= 22V)";
+                    logObj["err"] = "Config - battVoltageOn(" + (String)cfgGroup->battVoltageOn + ") <= 22V)";
                     return true;
                 }
 
@@ -848,13 +858,17 @@ return;
                 }
 
                 if ((cfgGroup->battSwitch) && (!cfgGroupInv->state)) {
-                    setPower(&logObj, group, inv, 1);
-                    return false;
+                    setPower(&logObj, group, inv, true);
+                    continue;
                 }
 
                 if ((!cfgGroup->battSwitch) && (cfgGroupInv->state)) {
-                    setPower(&logObj, group, inv, 0);
-                    return false;
+                    setPower(&logObj, group, inv, false);
+                    continue;
+                }
+
+                if (!cfgGroupInv->state) {
+                    continue;
                 }
 
                 if (cfgGroupInv->power < ivPmin[cfgGroupInv->target]) {
@@ -972,12 +986,6 @@ return;
             objLog["grp"] = group;
             objLog["iv"] = inv;
 
-            // Reject limit if difference < 5 W
-            if ((cfgGroupInv->limitNew > cfgGroupInv->limit + 5) && (cfgGroupInv->limitNew < cfgGroupInv->limit - 5)) {
-                objLog["err"] = "Diff < 5W";
-                return false;
-            }
-
             // Restriction LimitNew >= Pmin
             if (cfgGroupInv->limitNew < cfgGroupInv->powerMin) {
                 cfgGroupInv->limitNew = cfgGroupInv->powerMin;
@@ -986,6 +994,12 @@ return;
             // Restriction LimitNew <= Pmax
             if (cfgGroupInv->limitNew > cfgGroupInv->powerMax) {
                 cfgGroupInv->limitNew = cfgGroupInv->powerMax;
+            }
+
+            // Reject limit if difference < 5 W
+            if ((cfgGroupInv->limitNew > cfgGroupInv->limit + 5) && (cfgGroupInv->limitNew < cfgGroupInv->limit - 5)) {
+                objLog["err"] = "Diff < 5W";
+                return false;
             }
 
             cfgGroupInv->limit = cfgGroupInv->limitNew;
@@ -1024,7 +1038,7 @@ return;
             objLog["iv"] = inv;
 
 //            cfgGroupInv->limit = cfgGroupInv->limitNew;
-            cfgGroupInv->limitTsp = millis();
+            cfgGroupInv->limitTsp = millis() + 30000;
 
 //            objLog["P"] = cfgGroupInv->limit;
             objLog["tsp"] = cfgGroupInv->limitTsp;
@@ -1058,7 +1072,7 @@ return;
             objLog["iv"] = inv;
 
 //            cfgGroupInv->limit = cfgGroupInv->limitNew;
-            cfgGroupInv->limitTsp = millis();
+            cfgGroupInv->limitTsp = millis() + 30000;
 
 //            objLog["P"] = cfgGroupInv->limit;
             objLog["tsp"] = cfgGroupInv->limitTsp;
@@ -1120,6 +1134,8 @@ return;
         StaticJsonDocument<5000> mDocLog;
         JsonObject mLog = mDocLog.to<JsonObject>();
         PubMqttType *mMqtt;
+
+        Inverter<> *mIv[ZEROEXPORT_MAX_GROUPS][ZEROEXPORT_GROUP_MAX_INVERTERS];
 };
 
 
