@@ -16,7 +16,7 @@
     #define STR_VERSION               "Version"
     #define STR_ACTIVE_INVERTERS      "aktive WR"
     #define STR_TODAY                 "heute"
-    #define STR_TODAY                 "Gesamt"
+    #define STR_TOTAL                 "Gesamt"
 #elif LANG_FR
     #define STR_MONTHNAME_3_CHAR_LIST "ErrJanFevMarAvrMaiJunJulAouSepOctNovDec"
     #define STR_DAYNAME_3_CHAR_LIST   "ErrDimLunMarMerJeuVenSam"
@@ -27,7 +27,7 @@
     #define STR_VERSION               "Version"
     #define STR_ACTIVE_INVERTERS      "active Inv"
     #define STR_TODAY                 "today"
-    #define STR_TODAY                 "total"
+    #define STR_TOTAL                 "total"
 #else
     #define STR_MONTHNAME_3_CHAR_LIST "ErrJanFebMarAprMayJunJulAugSepOctNovDec"
     #define STR_DAYNAME_3_CHAR_LIST   "ErrSunMonTueWedThuFriSat"
@@ -38,7 +38,7 @@
     #define STR_VERSION               "Version"
     #define STR_ACTIVE_INVERTERS      "active Inv"
     #define STR_TODAY                 "today"
-    #define STR_TODAY                 "total"
+    #define STR_TOTAL                 "total"
 #endif
 
 #endif /*__PLUGIN_LANG_H__*/
