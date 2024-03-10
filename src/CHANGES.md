@@ -4,6 +4,7 @@
 * fix read back of limit value, now with one decimal place
 * added grid profile for Mexico #1493
 * added language to display on compile time #1484, #1255, #1479
+* added new environment `esp8266-all` which replace the original `esp8266`. The original now only have `MqTT` support but `Display` and `History` plugins are not included any more #1451
 
 ## 0.8.91 - 2024-03-05
 * fix javascript issues #1480

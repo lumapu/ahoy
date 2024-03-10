@@ -24,6 +24,7 @@ jobs:
       matrix:
         variant:
           - esp8266
+          - esp8266-all
           - esp8266-minimal
           - esp8266-prometheus
           - esp8285
@@ -87,6 +88,7 @@ jobs:
       matrix:
         variant:
           - esp8266-de
+          - esp8266-all-de
           - esp8266-prometheus-de
           - esp8285-de
           - esp32-wroom32-de
