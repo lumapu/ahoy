@@ -4,6 +4,12 @@
   "new_install_prompt_erase": true,
   "builds": [
     {
+      "chipFamily": "ESP8266",
+      "parts": [
+        { "path": "/firmware/240217_ahoy_0.8.83_5ebfe5a_esp8266.bin", "offset": 0 }
+      ]
+    },
+    {
       "chipFamily": "ESP32",
       "parts": [
         { "path": "/firmware/bootloader.bin", "offset": 4096 },
@@ -13,9 +19,12 @@
       ]
     },
     {
-      "chipFamily": "ESP8266",
+      "chipFamily": "ESP32-C3",
       "parts": [
-        { "path": "/firmware/240217_ahoy_0.8.83_5ebfe5a_esp8266.bin", "offset": 0 }
+        { "path": "/firmware/bootloader.bin", "offset": 0 },
+        { "path": "/firmware/partitions.bin", "offset": 32768 },
+        { "path": "/firmware/ota.bin", "offset": 57344 },
+        { "path": "/firmware/240217_ahoy_0.8.83_5ebfe5a_esp32-c3-mini.bin", "offset": 65536 }
       ]
     }
   ]
