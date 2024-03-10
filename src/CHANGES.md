@@ -2,6 +2,7 @@
 
 ## 0.8.92 - 2024-03-10
 * fix read back of limit value, now with one decimal place
+* added grid profile for Mexico #1493
 
 ## 0.8.91 - 2024-03-05
 * fix javascript issues #1480
