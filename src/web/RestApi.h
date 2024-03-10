@@ -499,7 +499,7 @@ class RestApi {
             obj[F("name")]             = String(iv->config->name);
             obj[F("serial")]           = String(iv->config->serial.u64, HEX);
             obj[F("version")]          = String(iv->getFwVersion());
-            obj[F("power_limit_read")] = iv->actPowerLimit;
+            obj[F("power_limit_read")] = ah::round1(iv->getChannelFieldValue(CH0, FLD_ACT_ACTIVE_PWR_LIMIT, iv->getRecordStruct(SystemConfigPara)));
             obj[F("power_limit_ack")]  = iv->powerLimitAck;
             obj[F("max_pwr")]          = iv->getMaxPower();
             obj[F("ts_last_success")]  = rec->ts;
