@@ -50,9 +50,8 @@ class RestApi {
             #endif
             mConfig   = config;
             #if defined(ENABLE_HISTORY_LOAD_DATA)
-            //Vart67: Debugging history graph (loading data into graph storage
             mSrv->on("/api/addYDHist",
-                             HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1),
+                             HTTP_POST, std::bind(&RestApi::onApiPost, this, std::placeholders::_1),
                                         std::bind(&RestApi::onApiPostYDHist,this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
             #endif
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
@@ -913,7 +912,7 @@ class RestApi {
         void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriode((uint8_t)HistoryStorageType::POWER);
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
@@ -930,7 +929,7 @@ class RestApi {
         void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
             getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriode((uint8_t)HistoryStorageType::POWER_DAY);
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER_DAY, fld);
@@ -947,8 +946,8 @@ class RestApi {
 
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
-            #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mApp->getHistoryPeriode((uint8_t)HistoryStorageType::YIELD);
+            #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);

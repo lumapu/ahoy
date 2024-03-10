@@ -30,8 +30,7 @@
                         {#UPDATED} <span id="pwrDayRefresh"></span> {#SECONDS}
                     </p>
                 </div>
-
-                <!--
+                <!--IF_ENABLE_HISTORY_YIELD_PER_DAY-->
                 <h3>{#TOTAL_YIELD_PER_DAY}</h3>
                 <div class="chartDivContainer">
                     <div class="chartDiv" id="ydChart"> </div>
@@ -39,7 +38,8 @@
                         {#MAXIMUM}: <span id="ydMax"></span> Wh<br />
                     </p>
                 </div>
-
+                <!--ENDIF_ENABLE_HISTORY_YIELD_PER_DAY-->
+                <!--IF_ENABLE_HISTORY_LOAD_DATA-->
                 <h4 style="margin-bottom:0px;">Insert data into Yield per day history</h4>
                 <fieldset style="padding: 1px;">
                     <legend class="des" style="margin-top: 0px;">Insert data (*.json) i.e. from a saved "/api/yieldDayHistory" call
@@ -50,7 +50,7 @@
                         <input type="file" name="insert" style="width: 80%;">
                     </form>
                 </fieldset>
-                -->
+                <!--ENDIF_ENABLE_HISTORY_LOAD_DATA-->
             </div>
         </div>
         {#HTML_FOOTER}
@@ -151,19 +151,9 @@
 						}
 						this.svg.appendChild(defLg);
 
-						let chartFrame = document.createElementNS(svgns, "rect");
-						chartFrame.setAttribute("id", this.namePrefix + "_chartFrame");
-						chartFrame.setAttribute("class", "chartFrame");
-						chartFrame.setAttribute("x", "0");
-						chartFrame.setAttribute("y", "0");
-						chartFrame.setAttribute("width", String(this.datapoints * 2));
-						chartFrame.setAttribute("height", String(this.mChartHight));
-						this.svg.appendChild(chartFrame);
-
 						// Group chart content
 						let chartContent = document.createElementNS(svgns, "g");
 						chartContent.setAttribute("id", this.namePrefix + "_svgChartContent");
-						chartFrame.setAttribute("transform", "translate(29, 5)");
 						chartContent.setAttribute("transform", "translate(30, 5)");
 
 						// Graph values in a polyline

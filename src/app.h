@@ -314,9 +314,9 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
-        uint32_t getHistoryPeriode(uint8_t type) override {
+        uint32_t getHistoryPeriod(uint8_t type) override {
             #if defined(ENABLE_HISTORY)
-                return mHistory.getPeriode((HistoryStorageType)type);
+                return mHistory.getPeriod((HistoryStorageType)type);
             #else
                 return 0;
             #endif

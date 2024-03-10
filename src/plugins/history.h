@@ -26,8 +26,8 @@ class HistoryData {
     private:
         struct storage_t {
             uint16_t refreshCycle = 0;
-            uint16_t loopCnt;
-            uint16_t listIdx; // index for next Element to write into WattArr
+            uint16_t loopCnt = 0;
+            uint16_t listIdx = 0; // index for next Element to write into WattArr
             // ring buffer for watt history
             std::array<uint16_t, (HISTORY_DATA_ARR_LENGTH + 1)> data;
 
@@ -45,13 +45,12 @@ class HistoryData {
             mConfig = config;
             mTs = ts;
 
-            mCurPwr.reset();
             mCurPwr.refreshCycle = mConfig->inst.sendInterval;
-            mCurPwrDay.reset();
             mCurPwrDay.refreshCycle = mConfig->inst.sendInterval;
-            mYieldDay.reset();
+            #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
             mYieldDay.refreshCycle = 60;
-			mLastValueTs = 0;
+            #endif
+            mLastValueTs = 0;
             mPgPeriod=0;
             mMaximumDay = 0;
         }
@@ -60,7 +59,7 @@ class HistoryData {
             float curPwr = 0;
             //float maxPwr = 0;
             float yldDay = -0.1;
-			uint32_t ts = 0;
+            uint32_t ts = 0;
 
             for (uint8_t i = 0; i < mSys->getNumInverters(); i++) {
                 Inverter<> *iv = mSys->getInverterByPos(i);
@@ -70,14 +69,14 @@ class HistoryData {
                 curPwr += iv->getChannelFieldValue(CH0, FLD_PAC, rec);
                 //maxPwr += iv->getChannelFieldValue(CH0, FLD_MP, rec);
                 yldDay += iv->getChannelFieldValue(CH0, FLD_YD, rec);
-				if (rec->ts > ts)
-					ts = rec->ts;
+                if (rec->ts > ts)
+                    ts = rec->ts;
             }
 
             if ((++mCurPwr.loopCnt % mCurPwr.refreshCycle) == 0) {
                 mCurPwr.loopCnt = 0;
                 if (curPwr > 0) {
-					mLastValueTs = ts;
+                    mLastValueTs = ts;
                     addValue(&mCurPwr, roundf(curPwr));
                     if (curPwr > mMaximumDay)
                         mMaximumDay = roundf(curPwr);
@@ -94,18 +93,18 @@ class HistoryData {
                 }
             }
 
+            #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
             if((++mYieldDay.loopCnt % mYieldDay.refreshCycle) == 0) {
-				mYieldDay.loopCnt = 0;
-				if (*mTs > mApp->getSunset())
-				{
+                mYieldDay.loopCnt = 0;
+                if (*mTs > mApp->getSunset()) {
                     if ((!mDayStored) && (yldDay > 0)) {
                         addValue(&mYieldDay, roundf(yldDay));
                         mDayStored = true;
                     }
-				}
-				else if (*mTs > mApp->getSunrise())
+                } else if (*mTs > mApp->getSunrise())
                     mDayStored = false;
-			}
+            }
+            #endif
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {
@@ -113,10 +112,12 @@ class HistoryData {
             uint16_t idx=i;
             DPRINTLN(DBG_VERBOSE, F("valueAt ") + String((uint8_t)type) + " i=" + String(i));
 
+            idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
             switch (type) {
+                default:
+                    [[fallthrough]];
                 case HistoryStorageType::POWER:
                     s = &mCurPwr;
-                    idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
                     break;
                 case HistoryStorageType::POWER_DAY:
                     s = &mCurPwrDay;
@@ -124,12 +125,10 @@ class HistoryData {
                     break;
                 case HistoryStorageType::YIELD:
                     s = &mYieldDay;
-                    idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
                     break;
             }
-            if (s)
+
             return s->data[idx];
-            return 0;
         }
 
         uint16_t getMaximumDay() {
@@ -150,13 +149,17 @@ class HistoryData {
                     return mCurPwr.refreshCycle;
                     break;
                 case HistoryStorageType::POWER_DAY:
-					return mPgPeriod / HISTORY_DATA_ARR_LENGTH;
-					break;
+                    return mPgPeriod / HISTORY_DATA_ARR_LENGTH;
+                    break;
                 case HistoryStorageType::YIELD:
                     return (60 * 60 * 24);  // 1 day
                     break;
             }
             return 0;
+        }
+
+        bool isDataValid(void) {
+            return ((0 != mPgStartTime) && (0 != mPgEndTime));
         }
 
         #if defined(ENABLE_HISTORY_LOAD_DATA)
@@ -165,15 +168,19 @@ class HistoryData {
             if (valueType<2) {
                 storage_t *s=NULL;
                 switch (historyType) {
+                    default:
+                        [[fallthrough]];
                     case HistoryStorageType::POWER:
                         s = &mCurPwr;
                         break;
                     case HistoryStorageType::POWER_DAY:
                         s = &mCurPwrDay;
                         break;
+                    #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
                     case HistoryStorageType::YIELD:
                         s = &mYieldDay;
                         break;
+                    #endif
                 }
                 if (s)
                 {
@@ -275,10 +282,12 @@ class HistoryData {
 
         storage_t mCurPwr;
         storage_t mCurPwrDay;
+        #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
         storage_t mYieldDay;
+        #endif
         bool mDayStored = false;
         uint16_t mMaximumDay = 0;
-		uint32_t mLastValueTs = 0;
+        uint32_t mLastValueTs = 0;
         enum class PowerGraphState {
             NO_TIME_SYNC,
             IN_PERIOD,
