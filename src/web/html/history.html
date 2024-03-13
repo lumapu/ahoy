@@ -12,32 +12,13 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <h3>{#TOTAL_POWER}</h3>
-                {#LAST} <span id="pwrNumValues"></span> {#VALUES}
-                <div class="chartDivContainer">
-                    <div class="chartDiv" id="pwrChart">  </div>
-                    <p>
-                        {#LAST_VALUE}: <span id="pwrLast"></span> W.<br />
-                        {#MAXIMUM}: <span id="pwrMax"></span> W.
-                        {#UPDATED} <span id="pwrRefresh"></span> {#SECONDS}
-                    </p>
-                </div>
-                <h3>{#TOTAL_POWER_DAY}</h3>
-                <div class="chartDivContainer">
-                    <div class="chartDiv" id="pwrDayChart"> </div>
-                    <p>
-                        {#MAX_DAY}: <span id="pwrDayMaxDay"></span> W. <br />
-                        {#UPDATED} <span id="pwrDayRefresh"></span> {#SECONDS}
-                    </p>
-                </div>
+                <h3>Total Power</h3>
+                <div class="chartDiv" id="pwrChart"></div>
+                <h3>Total Power Today</h3>
+                <div class="chartDiv" id="pwrDayChart"></div>
                 <!--IF_ENABLE_HISTORY_YIELD_PER_DAY-->
-                <h3>{#TOTAL_YIELD_PER_DAY}</h3>
-                <div class="chartDivContainer">
-                    <div class="chartDiv" id="ydChart"> </div>
-                    <p>
-                        {#MAXIMUM}: <span id="ydMax"></span> Wh<br />
-                    </p>
-                </div>
+                <h3>Total Yield per day</h3>
+                <div class="chartDiv" id="ydChart"></div>
                 <!--ENDIF_ENABLE_HISTORY_YIELD_PER_DAY-->
                 <!--IF_ENABLE_HISTORY_LOAD_DATA-->
                 <h4 style="margin-bottom:0px;">Insert data into Yield per day history</h4>
@@ -56,310 +37,150 @@
         {#HTML_FOOTER}
 
         <script type="text/javascript">
-				var powerHistObj = null;
-				var powerHistDayObj = null;
-				var ydHistObj = null;
+            const height = 250
+            var once = true
 
+            function calcScale(obj) {
+                let s = {}
+                s.x_mul = 60
+                s.ts_start = obj.lastValueTs - (obj.refresh * obj.value.length)
+                s.ts_dur = obj.lastValueTs - s.ts_start
+                s.ts_pad = (s.ts_dur < 1800) ? s.ts_start % 300 : s.ts_start % 1800
+                s.ts_dur -= s.ts_pad
+                while(s.x_mul * 10 <= s.ts_dur)
+                    s.x_mul += (s.x_mul == 60) ? 240 : ((s.x_mul < 1800) ? 300 : 1800)
+                s.x_step = Math.ceil(s.ts_dur / s.x_mul)
+                s.x_max = s.x_mul * s.x_step
 
+                s.y_mul = 10
+                while(s.y_mul * 10 <= obj.max)
+                    s.y_mul += (s.y_mul < 100) ? 10 : 100
+                s.y_step = Math.ceil(obj.max / s.y_mul)
+                s.y_max = s.y_mul * s.y_step
+                return s
+            }
 
-				Number.prototype.pad = function (size) {
-					var s = String(this);
-					while (s.length < (size || 2)) { s = "0" + s; }
-					return s;
-				}
+            function setupSvg(id, obj) {
+                let scale = calcScale(obj)
+                let n = obj.value.length
+                return mlNs("svg", {class: "container", id: id+"_svg", viewBox: "0 0 "+String(n*2+50)+" "+String(height+20), width: "100%", height: "100%"}, [
+                    mlNs("defs", {}, [
+                        mlNs("linearGradient", {id: "gLine", x1: 0, y1: 0, x2: 0, y2: "100%"}, [
+                            mlNs("stop", {offset: 0, "stop-color": "#006ec0"}),
+                            mlNs("stop", {offset: "80%", "stop-color": "#5050ff"}),
+                            mlNs("stop", {offset: "100%", "stop-color": "gray"})
+                        ]),
+                        mlNs("linearGradient", {id: "gFill", x1: 0, y1: 0, x2: 0, y2: "100%"}, [
+                            mlNs("stop", {offset: 0, "stop-color": "#006ec0"}),
+                            mlNs("stop", {offset: "50%", "stop-color": "#0034c0"}),
+                            mlNs("stop", {offset: "100%", "stop-color": "#e0e0e0"})
+                        ])
+                    ]),
+                    ...gridText(n*2, scale),
+                    mlNs("g", {transform: "translate(30, 5)"}, [
+                        ...grid(n*2, scale),
+                        ...poly(obj, scale)
+                    ])
+                ])
+            }
 
-				class powChart {
-					static objcnt = 0;  // to give each object elemets a unique name prefix
+            function gridText(x2, scale) {
+                let g = []
+                let div = height / scale.y_max
+                for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
+                    g.push(mlNs("text", {x: 0, y: height-(i*div)+9}, String(i)))
+                }
+                div = x2 / scale.x_max
+                for(let i = 0; i < scale.x_max; i++) {
+                    if((i + scale.ts_pad) % scale.x_mul == 0) {
+                        let d = new Date((scale.ts_start + i) * 1000)
+                        g.push(mlNs("text", {x: (i*div)+17, y: height+20}, ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2)))
+                    }
+                }
+                return g
+            }
 
-					constructor(namePrefix) {
-						// configurable vars
-						this.mChartHight = 250;
-						this.datapoints = 256;
-						this.xGridDist = 50;
-						this.yGridDist = 100;
-						// info vars
-						this.maxValue = 0;
-						this.mLastValue = 0;
-						// intern vars
-						this.svg = null;
-						this.refreshIntervall = 30;	// seconds
-						this.lastValueTs = 0;		// Timestmp of last value
+            function grid(x2, scale) {
+                let g = []
+                let div = height / scale.y_max
+                for(let i = 0; i <= scale.y_max; i += scale.y_mul) {
+                    g.push(mlNs("line", {x1: 0, x2: x2, y1: height-i*div, y2: height-i*div, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
+                }
+                div = x2 / scale.x_max
+                for(let i = 0; i <= scale.x_max; i++) {
+                    if((i + scale.ts_pad) % scale.x_mul == 0) {
+                        g.push(mlNs("line", {x1: (i*div), x2: (i*div), y1: 0, y2: height, "stroke-width": 1, "stroke-dasharray": "1,3", stroke: "#aaa"}))
+                    }
+                }
+                return g
+            }
 
-						++this.objcnt;
-						if (namePrefix === undefined)
-							this.namePrefix = "powChart" + this.objcnt;
-						else
-							this.namePrefix = namePrefix;
-					}
-
-					init(numDatapoints) {
-						this.datapoints = numDatapoints;
-						// generate svg
-                        const svgns = "http://www.w3.org/2000/svg";
-						this.svg = document.createElementNS(svgns, "svg");
-						this.svg.setAttribute("class", "container");
-						this.svg.setAttribute("id", this.namePrefix + "_svg");
-						this.svg.setAttribute("viewBox", "0 0 " + String(this.datapoints * 2 + 50) + " " + String(this.mChartHight + 20));
-                        this.svg.setAttribute("width", "100%");
-                        this.svg.setAttribute("height", "100%");
-						// Gradient Line
-						let defLgLine = document.createElementNS(svgns, "defs");
-						{
-							let lg = document.createElementNS(svgns, "linearGradient")
-							lg.setAttribute("id", "verlVertLine");
-							lg.setAttribute("x1", "0%");
-							lg.setAttribute("y1", "0%");
-							lg.setAttribute("x2", "0%");
-							lg.setAttribute("y2", "100%");
-							let s1 = document.createElementNS(svgns, "stop")
-							s1.setAttribute("offset", "0%");
-							s1.setAttribute("stop-color", "blue");
-							let s2 = document.createElementNS(svgns, "stop")
-							s2.setAttribute("offset", "80%");
-							s2.setAttribute("stop-color", "#5050FF");
-							let s3 = document.createElementNS(svgns, "stop")
-							s3.setAttribute("offset", "100%");
-							s3.setAttribute("stop-color", "gray");
-							lg.appendChild(s1);
-							lg.appendChild(s2);
-							lg.appendChild(s3);
-							defLgLine.appendChild(lg);
-						}
-						this.svg.appendChild(defLgLine);
-						// Gradient Fill
-						let defLg = document.createElementNS(svgns, "defs");
-						{
-							let lg = document.createElementNS(svgns, "linearGradient")
-							lg.setAttribute("id", "verlVertFill");
-							lg.setAttribute("x1", "0%");
-							lg.setAttribute("y1", "0%");
-							lg.setAttribute("x2", "0%");
-							lg.setAttribute("y2", "100%");
-							let s1 = document.createElementNS(svgns, "stop")
-							s1.setAttribute("offset", "0%");
-							s1.setAttribute("stop-color", "#A0A0FF");
-							let s2 = document.createElementNS(svgns, "stop")
-							s2.setAttribute("offset", "50%");
-							s2.setAttribute("stop-color", "#C0C0FF");
-							let s3 = document.createElementNS(svgns, "stop")
-							s3.setAttribute("offset", "100%");
-							s3.setAttribute("stop-color", "#E0E0F0");
-							lg.appendChild(s1);
-							lg.appendChild(s2);
-							lg.appendChild(s3);
-							defLgLine.appendChild(lg);
-						}
-						this.svg.appendChild(defLg);
-
-						// Group chart content
-						let chartContent = document.createElementNS(svgns, "g");
-						chartContent.setAttribute("id", this.namePrefix + "_svgChartContent");
-						chartContent.setAttribute("transform", "translate(30, 5)");
-
-						// Graph values in a polyline
-						let poly = document.createElementNS(svgns, "polyline");
-						poly.setAttribute("id", this.namePrefix + "Poly");
-						poly.setAttribute("stroke", "url(#verlVertLine)");
-						poly.setAttribute("fill", "none");
-						chartContent.appendChild(poly);
-                        // hidden polyline for fill
-                        let polyFill = document.createElementNS(svgns, "polyline");
-                        polyFill.setAttribute("id", this.namePrefix + "PolyFill");
-                        polyFill.setAttribute("stroke", "none");
-                        polyFill.setAttribute("fill", "url(#verlVertFill)");
-                        chartContent.appendChild(polyFill);
-
-						// X-grid lines
-						let numXGridLines = (this.mChartHight / this.xGridDist);
-						for (let i = 0; i < numXGridLines; i++) {
-							let line = document.createElementNS(svgns, "line");
-							line.setAttribute("id", this.namePrefix + "XGrid" + i);
-							line.setAttribute("x1", String(0));
-							line.setAttribute("x2", String(this.datapoints * 2));
-							line.setAttribute("y1", String(this.mChartHight - (i + 1) * this.xGridDist));
-							line.setAttribute("y2", String(this.mChartHight - (i + 1) * this.xGridDist));
-							line.setAttribute("stroke-width", "1");
-							line.setAttribute("stroke-dasharray", "1,1");
-							line.setAttribute("stroke", "#A0A0A0");
-							chartContent.appendChild(line);
-							let text = document.createElementNS(svgns, "text");
-							text.setAttribute("id", this.namePrefix + "XGridText" + i);
-							text.setAttribute("x", "0");
-							text.setAttribute("y", String(this.mChartHight + 10 - (i + 1) * this.xGridDist));
-							text.innerHTML = (i + 1) * this.xGridDist;
-							this.svg.appendChild(text);
-                        }
-						// Y-grid lines
-						let numYGridLines = (this.datapoints / this.yGridDist) * 2;
-						for (let i = numYGridLines; i > 0; i--) {
-							let line = document.createElementNS(svgns, "line");
-							line.setAttribute("id", this.namePrefix + "YGrid" + i);
-							line.setAttribute("x1", String((i) * this.yGridDist) - 1);
-							line.setAttribute("x2", String((i) * this.yGridDist) - 1);
-							line.setAttribute("y1", String(0));
-							line.setAttribute("y2", String(this.mChartHight));
-							line.setAttribute("stroke-width", "1");
-							line.setAttribute("stroke-dasharray", "1,3");
-							line.setAttribute("stroke", "#A0A0A0");
-							chartContent.appendChild(line);
-							let text = document.createElementNS(svgns, "text");
-							text.setAttribute("id", this.namePrefix + "YGridText" + i);
-							text.setAttribute("x", String((i) * this.yGridDist + 15));
-							text.setAttribute("y", String(this.mChartHight + 17));
-							text.innerHTML = "";
-							this.svg.appendChild(text);
-                        }
-						//
-						this.svg.appendChild(chartContent);
-					};
-
-					getContainer() { return this.svg; };
-
-					setXScale(refreshIntervall, lastValueTs) {
-						this.refreshIntervall = refreshIntervall;
-						this.lastValueTs = lastValueTs;
-					}
-
-					update(values, maxVal) {
-						if (maxVal === undefined) {
-							this.maxValue = 0;
-							for (let val in values)
-								if (val > this.maxValue) this.maxValue = val;
-						}
-						else
-							this.maxValue = maxVal;
-
-                        // normalize data to chart
-						let divider = this.maxValue / this.mChartHight;
-                        if (divider == 0)
-                            divider = 1;
-
-                        let firstValPos = -1;  // position of first value >0 W
-						let lastValPos = -1;   // position of last value >0 W
-						let points = "";
-                        for (let i = 0; i < this.datapoints; i++) {
-                            let val = values[i];
-                            if (val > 0) {
-                                this.mLastValue = val;
-                                lastValPos = i;
-                                if (firstValPos < 0)
-                                    firstValPos = i;
-                                val = val / divider;
-                                points += ' ' + String(i * 2) + ',' + String(this.mChartHight - val);
-                            }
-                        }
-						let poly = document.getElementById(this.namePrefix + "Poly");
-						poly.setAttribute("points", points);
-                        // "close" polyFill-line down to the x-axis
-                        points += ' ' + +String(lastValPos  * 2) + ',' + String(this.mChartHight);
-                        points += ' ' + +String(firstValPos * 2) + ',' + String(this.mChartHight);
-                        let polyFill = document.getElementById(this.namePrefix + "PolyFill");
-                        polyFill.setAttribute("points", points);
-
-						// X-Grid lines
-						let numXGridLines = (this.mChartHight / this.xGridDist);
-						let dist = (this.maxValue / numXGridLines);
-						for (let i = 0; i < numXGridLines; i++) {
-							let tex = document.getElementById(this.namePrefix + "XGridText" + i);
-							tex.innerHTML = ((i + 1) * dist).toFixed(0);
-						}
-
-						// Y-Grid lines
-						if (isNaN(this.lastValueTs) || this.lastValueTs == 0)
-							this.lastValueTs = Date.now();
-						let date = new Date(this.lastValueTs);
-						let numYGridLines = (this.datapoints / this.yGridDist) * 2;
-						for (let i = numYGridLines; i > 0; i--) {
-							let tex = document.getElementById(this.namePrefix + "YGridText" + i);
-							if (this.refreshIntervall > 8600) // Display date
-								tex.innerHTML = date.getDate() + "." + (date.getMonth() + 1).pad(2);
-							else 							// Display time
-								tex.innerHTML = date.getHours() + ":" + date.getMinutes().pad(2);
-							date = new Date(date.getTime() - (this.refreshIntervall * (this.yGridDist / 2) * 1000));
-						}
-					};
-				}// class powChart
-
+            function poly(obj, scale) {
+                let pts = ""
+                let i = 0, first = -1, last = -1, lastVal = 0
+                let div = scale.y_max / height
+                if(div == 0)
+                    div = 1
+                for (val of obj.value) {
+                    if(val > 0) {
+                        lastVal = val
+                        pts += " " + String(i) + "," + String(height - val / div)
+                        if(first < 0)
+                            first = i
+                        last = i
+                    }
+                    i += 2
+                }
+                let pts2 = pts + " " + String(last) + "," + String(height)
+                pts2 += " " + String(first) + "," + String(height)
+                return [
+                    mlNs("polyline", {stroke: "url(#gLine)", fill: "none", points: pts}),
+                    mlNs("polyline", {stroke: "none", fill: "url(#gFill)", points: pts2}),
+                    mlNs("text", {x: i*.8, y: 10}, "Maximum: " + String(obj.max) + "W"),
+                    mlNs("text", {x: i*.8, y: 25}, "Last: " + String(lastVal) + "W")
+                ]
+            }
 
 
             function parsePowerHistory(obj){
+                if(once) {
+                    once = false
+                    parseNav(obj.generic);
+                    window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
+                    setTimeout(() => {
+                        window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", refresh * 1000)
+                    }, 200)
+                    /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                    setTimeout(() => {
+                        window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", refresh * 1000)
+                    }, 400)
+                    /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                }
                 if (null != obj) {
-                    let refresh = obj.refresh
-                    let maximum = obj.max;
-                    let addNextChart=false;
-                    if (powerHistObj == null) {
-                        powerHistObj = new powChart("ph");
-                        powerHistObj.init(obj.value.length);
-                        document.getElementById("pwrChart").appendChild(powerHistObj.getContainer());
-                        // Regular update:
-                        window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", refresh * 1000);
-                        // one after the other
-                        addNextChart=true;
-                    }
-                    powerHistObj.setXScale(refresh, obj.lastValueTs * 1000);
-                    powerHistObj.update(obj.value, maximum);
-
-                    document.getElementById("pwrLast").innerHTML = powerHistObj.mLastValue;
-                    //document.getElementById("pwrMaxDay").innerHTML = obj.maxDay;
-                    document.getElementById("pwrMax").innerHTML = maximum;
-                    document.getElementById("pwrRefresh").innerHTML = refresh;
-                    document.getElementById("pwrNumValues").innerHTML = obj.value.length;
-                    if (addNextChart)
-                        setTimeout(() => { getAjax("/api/powerHistoryDay", parsePowerHistoryDay); }, 50);
+                    let svg = setupSvg("ph", obj);
+                    document.getElementById("pwrChart").replaceChildren(svg);
+                    setTimeout(() => { getAjax("/api/powerHistoryDay", parsePowerHistoryDay) }, 50);
                 }
             }
 
             function parsePowerHistoryDay(obj) {
                 if (null != obj) {
-                    let refresh = obj.refresh
-                    if (refresh<30)
-                        refresh = 30;
-                    let maximum = obj.max;
-                    let addNextChart = false;
-                    if (powerHistDayObj == null) {
-                        powerHistDayObj = new powChart("phDay");
-                        powerHistDayObj.init(obj.value.length);
-                        document.getElementById("pwrDayChart").appendChild(powerHistDayObj.getContainer());
-                        // Regular update:
-                        window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", refresh * 1000);
-                        // one after the other
-                        addNextChart = false; // if true: add YieldDayHistory
-                    }
-                    powerHistDayObj.setXScale(refresh, obj.lastValueTs * 1000);
-                    powerHistDayObj.update(obj.value, maximum);
-
-                    //document.getElementById("pwrDayLast").innerHTML = powerHistDayObj.mLastValue;
-                    document.getElementById("pwrDayMaxDay").innerHTML = obj.maxDay;
-                    //document.getElementById("pwrDayMax").innerHTML = maximum;
-                    document.getElementById("pwrDayRefresh").innerHTML = refresh;
-                    if (addNextChart)
-                        setTimeout(() => { getAjax("/api/yieldDayHistory", parseYieldDayHistory); }, 50);
-                    else
-                        parseNav(obj.generic);
+                    let svg = setupSvg("phDay", obj);
+                    document.getElementById("pwrDayChart").replaceChildren(svg);
+                    /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
+                    setTimeout(() => { getAjax("/api/yieldDayHistory", parseYieldDayHistory) }, 50);
+                    /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
                 }
             }
 
-
+            /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
             function parseYieldDayHistory(obj) {
                 if (null != obj) {
-                    parseNav(obj.generic);
-                    let refresh = obj.refresh
-                    let maximum = obj.max;
-                    let addNextChart = false;
-                	if (ydHistObj == null) {
-                        ydHistObj = new powChart("yd");
-                        ydHistObj.init(obj.value.length);
-                        document.getElementById("ydChart").appendChild(ydHistObj.getContainer());
-                        // Regular update:
-                        window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", refresh * 500);
-                        addNextChart = true;
-                    }
-                    ydHistObj.setXScale(refresh, obj.lastValueTs * 1000);
-                    ydHistObj.update(obj.value, maximum);
-
-                    document.getElementById("ydMax").innerHTML = maximum;
+                    let svg = setupSvg("phDay", obj);
+                    document.getElementById("pwrDayChart").replaceChildren(svg);
                 }
             }
+            /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
 
             getAjax("/api/powerHistory", parsePowerHistory);
         </script>

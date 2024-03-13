@@ -108,27 +108,29 @@ class HistoryData {
         }
 
         uint16_t valueAt(HistoryStorageType type, uint16_t i) {
-            storage_t *s=NULL;
+            storage_t *s = nullptr;
             uint16_t idx=i;
             DPRINTLN(DBG_VERBOSE, F("valueAt ") + String((uint8_t)type) + " i=" + String(i));
 
-            idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
             switch (type) {
                 default:
                     [[fallthrough]];
                 case HistoryStorageType::POWER:
                     s = &mCurPwr;
+                    idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
                     break;
                 case HistoryStorageType::POWER_DAY:
                     s = &mCurPwrDay;
-                    idx = i;
                     break;
+                #if defined(ENABLE_HISTORY_YIELD_PER_DAY)
                 case HistoryStorageType::YIELD:
                     s = &mYieldDay;
+                    idx = (s->listIdx + i) % HISTORY_DATA_ARR_LENGTH;
                     break;
+                #endif
             }
 
-            return s->data[idx];
+            return (nullptr == s) ? 0 : s->data[idx];
         }
 
         uint16_t getMaximumDay() {
@@ -142,7 +144,7 @@ class HistoryData {
             return mLastValueTs;
         }
 
-        uint32_t getPeriode(HistoryStorageType type) {
+        uint32_t getPeriod(HistoryStorageType type) {
             DPRINTLN(DBG_VERBOSE, F("getPeriode ") + String((uint8_t)type));
             switch (type) {
                 case HistoryStorageType::POWER:
@@ -163,10 +165,9 @@ class HistoryData {
         }
 
         #if defined(ENABLE_HISTORY_LOAD_DATA)
-        /* For filling data from outside */
         void addValue(HistoryStorageType historyType, uint8_t valueType, uint32_t value) {
-            if (valueType<2) {
-                storage_t *s=NULL;
+            if (valueType < 2) {
+                storage_t *s = NULL;
                 switch (historyType) {
                     default:
                         [[fallthrough]];
@@ -182,12 +183,10 @@ class HistoryData {
                         break;
                     #endif
                 }
-                if (s)
-                {
-                    if (valueType==0)
+                if (s) {
+                    if (0 == valueType)
                         addValue(s, value);
-                    if (valueType==1)
-                    {
+                    else {
                         if (historyType == HistoryStorageType::POWER)
                             s->refreshCycle = value;
                         if (historyType == HistoryStorageType::POWER_DAY)
@@ -196,8 +195,7 @@ class HistoryData {
                 }
                 return;
             }
-            if (valueType == 2)
-            {
+            if (2 == valueType) {
                 if (historyType == HistoryStorageType::POWER)
                     mLastValueTs = value;
                 if (historyType == HistoryStorageType::POWER_DAY)

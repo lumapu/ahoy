@@ -110,7 +110,7 @@ class DisplayMono {
         }
 
         // add new value to power graph and maintain state engine for period times
-        /*void addPowerGraphEntry(float val) {
+        void addPowerGraphEntry(float val) {
             if (nullptr == mPgData)  // power graph not initialized
                 return;
 
@@ -163,7 +163,7 @@ class DisplayMono {
                 mPgData[mPgLastPos] = std::max(mPgData[mPgLastPos], val); // update current datapoint to maximum of all seen values (= envelope curve)
                 mPgMaxPwr = std::max(mPgMaxPwr, val);                     // update max value of stored data for scaling of y-axis
             }
-        }*/
+        }
 
         // plot power graph to given display offset
         void plotPowerGraph(uint8_t xoff, uint8_t yoff) {
@@ -296,15 +296,15 @@ class DisplayMono {
         uint8_t mPgWidth = 0;
 
     private:
-        //float  *mPgData = nullptr;
+        float  *mPgData = nullptr;
         uint8_t mPgHeight = 0;
         float   mPgMaxPwr = 0.0;
-        //uint32_t mPgStartTime = 0;
-        //uint32_t mPgEndTime = 0;
-        //uint32_t mPgPeriod = 0;  // seconds
+        uint32_t mPgStartTime = 0;
+        uint32_t mPgEndTime = 0;
+        uint32_t mPgPeriod = 0;  // seconds
         uint8_t  mPgLastPos = 0;
         uint32_t mPgLastTime = 0;
-        //PowerGraphState mPgState = PowerGraphState::NO_TIME_SYNC;
+        PowerGraphState mPgState = PowerGraphState::NO_TIME_SYNC;
 
         uint16_t mDispHeight = 0;
         uint8_t mLuminance = 0;

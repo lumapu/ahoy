@@ -921,13 +921,12 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("maxDay")] = mApp->getHistoryMaxDay();
             obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER);
             #endif /*ENABLE_HISTORY*/
         }
 
         void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
-            getGeneric(request, obj.createNestedObject(F("generic")));
+            //getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY)
             obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
             uint16_t max = 0;
@@ -938,14 +937,13 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("maxDay")] = mApp->getHistoryMaxDay();
             obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER_DAY);
             #endif /*ENABLE_HISTORY*/
         }
 
 
         void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
-            getGeneric(request, obj.createNestedObject(F("generic")));
+            //getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
             obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
             uint16_t max = 0;

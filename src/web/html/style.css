@@ -34,14 +34,15 @@ textarea {
 }
 
 svg polyline {
-    fill-opacity: .5;
-    stroke-width: 1;
+	fill-opacity: .5;
+	stroke-width:	1;
 }
 
 svg text {
-    font-size: x-small;
-    fill: var(--chart-text);
+	font-size: x-small;
+	fill: var(--chart-text);
 }
+
 
 div.chartDivContainer {
     padding: 1px;
