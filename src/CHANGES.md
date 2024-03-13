@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.93 - 2024-03-14
+* improved history graph in WebUI #1491
+* merge PR: 1491
+
 ## 0.8.92 - 2024-03-10
 * fix read back of limit value, now with one decimal place
 * added grid profile for Mexico #1493
