@@ -779,6 +779,16 @@
                     "de": "Aktiviert"
                 },
                 {
+                    "token": "ZE_LOG_OVER_WEBSERIAL",
+                    "en": "Log over Webserial",
+                    "de": "Log in Webserial"
+                },
+                {
+                    "token": "ZE_LOG_OVER_MQTT",
+                    "en": "Log over MQTT",
+                    "de": "Log in MQTT"
+                },
+                {
                     "token": "ZE_GROUP_ENABLED",
                     "en": "State:",
                     "de": "Status:"

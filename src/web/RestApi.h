@@ -718,6 +718,8 @@ class RestApi {
         #if defined(PLUGIN_ZEROEXPORT)
         void getZeroExport(JsonObject obj) {
             obj[F("enabled")] = (bool) mConfig->plugin.zeroExport.enabled;
+            obj[F("log_over_webserial")] = (bool) mConfig->plugin.zeroExport.log_over_webserial;
+            obj[F("log_over_mqtt")] = (bool) mConfig->plugin.zeroExport.log_over_mqtt;
             // Groups
             obj[F("max_groups")] = ZEROEXPORT_MAX_GROUPS;
             JsonArray arrGroup = obj.createNestedArray(F("groups"));

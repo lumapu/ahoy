@@ -186,6 +186,8 @@ typedef struct {
 #endif
 
 // Plugin ZeroExport
+#if defined(PLUGIN_ZEROEXPORT)
+
 #define ZEROEXPORT_MAX_GROUPS                       6
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
@@ -196,9 +198,22 @@ typedef struct {
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
 
-#if defined(PLUGIN_ZEROEXPORT)
 enum class zeroExportState : uint8_t {
-     RESET, GETPOWERMETER, GETINVERTERDATA, BATTERYPROTECTION, CONTROL, SETCONTROL, FINISH
+    INIT,
+    WAIT,
+    WAITREFRESH,
+    GETINVERTERACKS,
+    GETINVERTERDATA,
+    BATTERYPROTECTION,
+    GETPOWERMETER,
+	CONTROLLER,
+	PROGNOSE,
+	AUFTEILEN,
+	SETLIMIT,
+	SETPOWER,
+	SETREBOOT,
+    FINISH,
+    ERROR
 };
 
 typedef enum {
@@ -246,6 +261,9 @@ typedef struct {
     float power;
     uint16_t limit;
     uint16_t limitNew;
+    bool waitLimitAck;
+    bool waitPowerAck;
+    bool waitRebootAck;
     unsigned long limitTsp;
     float dcVoltage;
     bool state;
@@ -274,9 +292,13 @@ typedef struct {
     uint16_t powerMax;
     //
 
+    zeroExportState stateLast;
     zeroExportState state;
     zeroExportState stateNext;
     unsigned long lastRun;
+    unsigned long lastRefresh;
+//    bool waitForAck;
+
     float pmPower;
     float pmPowerL1;
     float pmPowerL2;
@@ -298,6 +320,8 @@ typedef struct {
 
 typedef struct {
     bool enabled;
+    bool log_over_webserial;
+    bool log_over_mqtt;
     zeroExportGroup_t groups[ZEROEXPORT_MAX_GROUPS];
 
 
@@ -314,6 +338,7 @@ typedef struct {
 //    double max_power;
 //    bool two_percent;   // ask if not go lower then 2%
 } zeroExport_t;
+
 #endif
 // Plugin ZeroExport - Ende
 
@@ -624,6 +649,8 @@ class settings {
             // Plugin ZeroExport
             #if defined(PLUGIN_ZEROEXPORT)
             mCfg.plugin.zeroExport.enabled = false;
+            mCfg.plugin.zeroExport.log_over_webserial = false;
+            mCfg.plugin.zeroExport.log_over_mqtt = false;
             for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 // General
                 mCfg.plugin.zeroExport.groups[group].enabled = false;
@@ -641,6 +668,10 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].target = -1;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin = 10;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax = 600;
+                    //
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitLimitAck = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitPowerAck = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitRebootAck = false;
                 }
                 // Battery
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
@@ -651,9 +682,10 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].refresh = 10;
                 mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
                 mCfg.plugin.zeroExport.groups[group].powerMax = 600;
-//
-                mCfg.plugin.zeroExport.groups[group].state = zeroExportState::RESET;
+                //
+                mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
+                mCfg.plugin.zeroExport.groups[group].lastRefresh = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPower = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPowerL1 = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPowerL2 = 0;
@@ -1017,6 +1049,8 @@ class settings {
         void jsonZeroExport(JsonObject obj, bool set = false) {
             if(set) {
                 obj[F("enabled")] = mCfg.plugin.zeroExport.enabled;
+                obj[F("log_over_webserial")] = mCfg.plugin.zeroExport.log_over_webserial;
+                obj[F("log_over_mqtt")] = mCfg.plugin.zeroExport.log_over_mqtt;
                 JsonArray grpArr = obj.createNestedArray(F("groups"));
                 for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                     jsonZeroExportGroup(grpArr.createNestedObject(), group, set);
@@ -1026,6 +1060,10 @@ class settings {
             {
                 if (obj.containsKey(F("enabled")))
                     getVal<bool>(obj, F("enabled"), &mCfg.plugin.zeroExport.enabled);
+                if (obj.containsKey(F("log_over_webserial")))
+                    getVal<bool>(obj, F("log_over_webserial"), &mCfg.plugin.zeroExport.log_over_webserial);
+                if (obj.containsKey(F("log_over_mqtt")))
+                    getVal<bool>(obj, F("log_over_mqtt"), &mCfg.plugin.zeroExport.log_over_mqtt);
                 if (obj.containsKey(F("groups"))) {
                     for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                         jsonZeroExportGroup(obj[F("groups")][group], group, set);

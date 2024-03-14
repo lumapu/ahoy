@@ -73,9 +73,16 @@ void app::setup() {
 
     mCommunication.setup(&mTimestamp, &mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace);
     mCommunication.addPayloadListener(std::bind(&app::payloadEventListener, this, std::placeholders::_1, std::placeholders::_2));
-    #if defined(ENABLE_MQTT)
-    mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) { mMqtt.setPowerLimitAck(iv); });
-    #endif
+    #if defined(PLUGIN_ZEROEXPORT) || defined(ENABLE_MQTT)
+    mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) {
+        #if defined(PLUGIN_ZEROEXPORT)
+            mZeroExport.resetWaitLimitAck(iv);
+        #endif /*PLUGIN_ZEROEXPORT*/
+        #if defined(ENABLE_MQTT)
+            mMqtt.setPowerLimitAck(iv);
+        #endif
+    });
+    #endif /*defined(PLUGIN_ZEROEXPORT) || defined(ENABLE_MQTT)*/
     mSys.setup(&mTimestamp, &mConfig->inst, this);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         initInverter(i);
@@ -124,10 +131,7 @@ void app::setup() {
 
     // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
-// TODO: aufräumen
-//    if (mConfig->plugin.zeroExport.enabled) {
-        mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
-//    }
+    mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
     #endif
     // Plugin ZeroExport - Ende
 
@@ -216,10 +220,7 @@ void app::regularTickers(void) {
 
     // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
-// TODO: aufräumen
-//    if (mConfig->plugin.zeroExport.enabled) {
-        everySec(std::bind(&ZeroExportType::tickerSecond, &mZeroExport), "ZeroExport");
-//    }
+    everySec(std::bind(&ZeroExportType::tickerSecond, &mZeroExport), "ZeroExport");
     #endif
     // Plugin ZeroExport - Ende
 
@@ -479,13 +480,13 @@ void app::tickSend(void) {
             });
 
             // Plugin ZeroExport
-            #if defined(PLUGIN_ZEROEXPORT)
+//            #if defined(PLUGIN_ZEROEXPORT)
 // TODO: aufräumen
-            if(mConfig->nrf.enabled || mConfig->cmt.enabled) {
-                mZeroExport.loop();
+//            if(mConfig->nrf.enabled || mConfig->cmt.enabled) {
+//                mZeroExport.loop();
 //                zeroexport();
-            }
-            #endif
+//            }
+//            #endif
             // Plugin ZeroExport - Ende
         }
     }
@@ -548,7 +549,7 @@ void app:: zeroIvValues(bool checkAvail, bool skipYieldDay) {
 //-----------------------------------------------------------------------------
 void app::resetSystem(void) {
     #if defined(PLUGIN_ZEROEXPORT)
-    snprintf(mVersion, sizeof(mVersion), "zero-%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
+    snprintf(mVersion, sizeof(mVersion), "%d.%d.%d-zero", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
     #else
     snprintf(mVersion, sizeof(mVersion), "%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
     #endif

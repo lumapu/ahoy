@@ -314,6 +314,10 @@
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#ZE_ENABLED}</div>
                                 <div class="col-12 col-sm-9"><input type="checkbox" name="ze_enabled"/></div>
+                                <div class="col-12 col-sm-3 my-2">{#ZE_LOG_OVER_WEBSERIAL}</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="ze_log_over_webserial"/></div>
+                                <div class="col-12 col-sm-3 my-2">{#ZE_LOG_OVER_MQTT}</div>
+                                <div class="col-12 col-sm-9"><input type="checkbox" name="ze_log_over_mqtt"/></div>
                             </div>
                             <div id="ze_groups"></div>
                         </fieldset>
@@ -1563,7 +1567,6 @@
                 }
 
             }
-
             /*ENDIF_PLUGIN_ZEROEXPORT*/
 
             function parseZeroExport(obj, type) {
@@ -1572,6 +1575,12 @@
 
                 // enabled
                 document.getElementsByName("ze_enabled")[0].checked = obj["enabled"];
+
+                // log_over_webserial
+                document.getElementsByName("ze_log_over_webserial")[0].checked = obj["log_over_webserial"];
+
+                // log_over_mqtt
+                document.getElementsByName("ze_log_over_mqtt")[0].checked = obj["log_over_mqtt"];
 
                 // groups
                 maxGroups = obj["max_groups"];
