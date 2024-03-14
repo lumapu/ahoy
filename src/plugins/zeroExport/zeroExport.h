@@ -46,9 +46,9 @@ class ZeroExport {
             mApi     = api;
             mMqtt    = mqtt;
 
-            mIsInitialized = true;
+//            mIsInitialized = true;
 // TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
-//            mIsInitialized = false;
+            mIsInitialized = false;
         }
 
         /** loop
