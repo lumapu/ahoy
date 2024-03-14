@@ -949,6 +949,21 @@
                     "de": "Gruppe Leistung Max (Watt):"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_ADVANCED_KP",
+                    "en": "Kp:",
+                    "de": "Kp:"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_ADVANCED_KI",
+                    "en": "Ki:",
+                    "de": "Ki:"
+                },
+                {
+                    "token": "ZE_GROUP_TAB_ADVANCED_KD",
+                    "en": "Kd:",
+                    "de": "Kd:"
+                },
+                {
                     "token": "ZE_GROUP_EDIT_BTN_SAVE",
                     "en": "save",
                     "de": "speichern"

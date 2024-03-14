@@ -46,9 +46,9 @@ class ZeroExport {
             mApi     = api;
             mMqtt    = mqtt;
 
-//            mIsInitialized = true;
+            mIsInitialized = true;
 // TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
-            mIsInitialized = false;
+//            mIsInitialized = false;
         }
 
         /** loop
@@ -393,6 +393,12 @@ mCfg->groups[group].lastRefresh = millis();;
                 }
             }
 
+            if (wait) {
+                if (mCfg->groups[group].lastRun > (millis() - 30000UL)) {
+                    wait = false;
+                }
+            }
+
             mLog["wait"] = wait;
 
             // Next
@@ -660,28 +666,57 @@ mCfg->groups[group].lastRefresh = millis();;
 
             // Regler
 // TODO: Regelparameter unter Advanced konfigurierbar? Aber erst wenn Regler komplett ingegriert.
-            const float Kp = -1;
-            const float Ki = -1;
-            const float Kd = -1;
+            float Kp = mCfg->groups[group].Kp;
+            float Ki = mCfg->groups[group].Ki;
+            float Kd = mCfg->groups[group].Kd;
+            unsigned long Ta = bTsp - mCfg->groups[group].lastRefresh;
+            mLog["Kp"] = Kp;
+            mLog["Ki"] = Ki;
+            mLog["Kd"] = Kd;
+            mLog["Ta"] = Ta;
             // - P-Anteil
             float yP  = Kp * e;
             float yP1 = Kp * e1;
             float yP2 = Kp * e2;
             float yP3 = Kp * e3;
+            mLog["yP"]  = yP;
+            mLog["yP1"] = yP1;
+            mLog["yP2"] = yP2;
+            mLog["yP3"] = yP3;
             // - I-Anteil
-//            float esum = esum + e;
-//            float yI = Ki * Ta * esum;
-            float yI  = 0;
-            float yI1 = 0;
-            float yI2 = 0;
-            float yI3 = 0;
+            mCfg->groups[group].eSum  += e;
+            mCfg->groups[group].eSum1 += e1;
+            mCfg->groups[group].eSum2 += e2;
+            mCfg->groups[group].eSum3 += e3;
+            mLog["esum"]  = mCfg->groups[group].eSum;
+            mLog["esum1"] = mCfg->groups[group].eSum1;
+            mLog["esum2"] = mCfg->groups[group].eSum2;
+            mLog["esum3"] = mCfg->groups[group].eSum3;
+            float yI  = Ki * Ta * mCfg->groups[group].eSum;
+            float yI1 = Ki * Ta * mCfg->groups[group].eSum1;
+            float yI2 = Ki * Ta * mCfg->groups[group].eSum2;
+            float yI3 = Ki * Ta * mCfg->groups[group].eSum3;
+            mLog["yI"]  = yI;
+            mLog["yI1"] = yI1;
+            mLog["yI2"] = yI2;
+            mLog["yI3"] = yI3;
             // - D-Anteil
-//            float yD = Kd * (e -ealt) / Ta;
-//            float ealt = e;
-            float yD  = 0;
-            float yD1 = 0;
-            float yD2 = 0;
-            float yD3 = 0;
+            mLog["ealt"]  = mCfg->groups[group].eOld;
+            mLog["ealt1"] = mCfg->groups[group].eOld1;
+            mLog["ealt2"] = mCfg->groups[group].eOld2;
+            mLog["ealt3"] = mCfg->groups[group].eOld3;
+            float yD  = Kd * (e  - mCfg->groups[group].eOld) / Ta;
+            float yD1 = Kd * (e1 - mCfg->groups[group].eOld1) / Ta;
+            float yD2 = Kd * (e2 - mCfg->groups[group].eOld2) / Ta;
+            float yD3 = Kd * (e3 - mCfg->groups[group].eOld3) / Ta;
+            mLog["yD"]  = yD;
+            mLog["yD1"] = yD1;
+            mLog["yD2"] = yD2;
+            mLog["yD3"] = yD3;
+            mCfg->groups[group].eOld  = e;
+            mCfg->groups[group].eOld1 = e1;
+            mCfg->groups[group].eOld2 = e2;
+            mCfg->groups[group].eOld3 = e3;
             // - PID-Anteil
             float yPID  = yP  + yI  + yD;
             float yPID1 = yP1 + yI1 + yD1;

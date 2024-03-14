@@ -299,6 +299,18 @@ typedef struct {
     unsigned long lastRefresh;
 //    bool waitForAck;
 
+    float eSum;
+    float eSum1;
+    float eSum2;
+    float eSum3;
+    float eOld;
+    float eOld1;
+    float eOld2;
+    float eOld3;
+    float Kp;
+    float Ki;
+    float Kd;
+
     float pmPower;
     float pmPowerL1;
     float pmPowerL2;
@@ -682,6 +694,9 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].refresh = 10;
                 mCfg.plugin.zeroExport.groups[group].powerTolerance = 10;
                 mCfg.plugin.zeroExport.groups[group].powerMax = 600;
+                mCfg.plugin.zeroExport.groups[group].Kp = -1;
+                mCfg.plugin.zeroExport.groups[group].Ki = 0;
+                mCfg.plugin.zeroExport.groups[group].Kd = 0;
                 //
                 mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
@@ -1004,6 +1019,9 @@ class settings {
                 obj[F("refresh")] = mCfg.plugin.zeroExport.groups[group].refresh;
                 obj[F("powerTolerance")] = mCfg.plugin.zeroExport.groups[group].powerTolerance;
                 obj[F("powerMax")] = mCfg.plugin.zeroExport.groups[group].powerMax;
+                obj[F("Kp")] = mCfg.plugin.zeroExport.groups[group].Kp;
+                obj[F("Ki")] = mCfg.plugin.zeroExport.groups[group].Ki;
+                obj[F("Kd")] = mCfg.plugin.zeroExport.groups[group].Kd;
             } else {
                 // General
                 if (obj.containsKey(F("enabled")))
@@ -1043,6 +1061,12 @@ class settings {
                     getVal<uint8_t>(obj, F("powerTolerance"), &mCfg.plugin.zeroExport.groups[group].powerTolerance);
                 if (obj.containsKey(F("powerMax")))
                     getVal<uint16_t>(obj, F("powerMax"), &mCfg.plugin.zeroExport.groups[group].powerMax);
+                if (obj.containsKey(F("Kp")))
+                    getVal<float>(obj, F("Kp"), &mCfg.plugin.zeroExport.groups[group].Kp);
+                if (obj.containsKey(F("Ki")))
+                    getVal<float>(obj, F("Ki"), &mCfg.plugin.zeroExport.groups[group].Ki);
+                if (obj.containsKey(F("Kd")))
+                    getVal<float>(obj, F("Kd"), &mCfg.plugin.zeroExport.groups[group].Kd);
             }
         }
 

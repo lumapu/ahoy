@@ -755,6 +755,9 @@ class RestApi {
                 objGroup[F("refresh")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].refresh;
                 objGroup[F("powerTolerance")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].powerTolerance;
                 objGroup[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].powerMax;
+                objGroup[F("Kp")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Kp);
+                objGroup[F("Ki")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Ki);
+                objGroup[F("Kd")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Kd);
             }
         }
         #endif
@@ -1017,6 +1020,9 @@ class RestApi {
                 mConfig->plugin.zeroExport.groups[group].refresh = jsonIn[F("refresh")];
                 mConfig->plugin.zeroExport.groups[group].powerTolerance = jsonIn[F("powerTolerance")];
                 mConfig->plugin.zeroExport.groups[group].powerMax = jsonIn[F("powerMax")];
+                mConfig->plugin.zeroExport.groups[group].Kp = jsonIn[F("Kp")];
+                mConfig->plugin.zeroExport.groups[group].Ki = jsonIn[F("Ki")];
+                mConfig->plugin.zeroExport.groups[group].Kd = jsonIn[F("Kd")];
                 // Global
                 mApp->saveSettings(false); // without reboot
             }

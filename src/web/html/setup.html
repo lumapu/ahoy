@@ -1379,6 +1379,9 @@
                         divRow("{#ZE_GROUP_TAB_ADVANCED_REFRESH}", ml("input", {name: "refresh", class: "text", type: "number", min: "0", max: "255", value: obj.refresh}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "-5", max: "0", step: "0.01", value: obj.Kp}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KI}", ml("input", {name: "Ki", class: "text", type: "number", min: "-5", max: "0", step: "0.01", value: obj.Ki}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_KD}", ml("input", {name: "Kd", class: "text", type: "number", min: "-5", max: "0", step: "0.01", value: obj.Kd}, null)),
                     ]),
                     // Global
                     ml("div", {class: "row mt-5"}, [
@@ -1495,6 +1498,9 @@
                     o.refresh = document.getElementsByName("refresh")[0].value;
                     o.powerTolerance = document.getElementsByName("powerTolerance")[0].value;
                     o.powerMax = document.getElementsByName("powerMax")[0].value;
+                    o.Kp = document.getElementsByName("Kp")[0].value;
+                    o.Ki = document.getElementsByName("Ki")[0].value;
+                    o.Kd = document.getElementsByName("Kd")[0].value;
                     // Global
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
@@ -1555,6 +1561,9 @@
                     o.refresh = 10;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
+                    o.Kp = -1;
+                    o.Ki = 0;
+                    o.Kd = 0;
                     // Global
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
