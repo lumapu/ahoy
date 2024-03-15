@@ -46,7 +46,6 @@ class ZeroExport {
             mApi     = api;
             mMqtt    = mqtt;
 
-//            mIsInitialized = true;
 // TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
             mIsInitialized = false;
         }
@@ -67,6 +66,10 @@ class ZeroExport {
                 switch (mCfg->groups[group].state) {
                     case zeroExportState::INIT:
                         if (groupInit(group)) sendLog();
+//#if defined(ZEROEXPORT_DEV_POWERMETER)
+//mCfg->groups[group].state = zeroExportState::WAITREFRESH;
+//mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+//#endif
                         break;
                     case zeroExportState::WAIT:
                         if (groupWait(group)) sendLog();
@@ -85,6 +88,11 @@ class ZeroExport {
                         break;
                     case zeroExportState::GETPOWERMETER:
                         if (groupGetPowermeter(group)) sendLog();
+#if defined(ZEROEXPORT_DEV_POWERMETER)
+mCfg->groups[group].state = zeroExportState::WAITREFRESH;
+mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+mCfg->groups[group].lastRefresh = millis();;
+#endif
                         break;
                     case zeroExportState::CONTROLLER:
                         if (groupController(group)) sendLog();
@@ -100,9 +108,17 @@ class ZeroExport {
                         break;
                     case zeroExportState::SETPOWER:
                         if (groupSetPower(group)) sendLog();
+// waitForAck fehlt noch
+mCfg->groups[group].state = zeroExportState::WAIT;
+mCfg->groups[group].stateNext = zeroExportState::WAIT;
+mCfg->groups[group].lastRefresh = millis();;
                         break;
                     case zeroExportState::SETREBOOT:
                         if (groupSetReboot(group)) sendLog();
+// waitForAck fehlt noch
+mCfg->groups[group].lastRefresh = millis();;
+mCfg->groups[group].state = zeroExportState::WAIT;
+mCfg->groups[group].stateNext = zeroExportState::WAIT;
                         break;
                     case zeroExportState::FINISH:
                         mCfg->groups[group].state = zeroExportState::WAITREFRESH;
@@ -110,9 +126,6 @@ class ZeroExport {
 mCfg->groups[group].lastRefresh = millis();;
                         break;
                     case zeroExportState::ERROR:
-                        mCfg->groups[group].state = zeroExportState::INIT;
-                        mCfg->groups[group].stateNext = zeroExportState::INIT;
-                        break;
                     default:
                         mCfg->groups[group].state = zeroExportState::INIT;
                         mCfg->groups[group].stateNext = zeroExportState::INIT;
@@ -258,6 +271,7 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["E"] = eTsp;
             mLog["D"] = eTsp - bTsp;
             mCfg->groups[group].lastRun = eTsp;
+            mCfg->groups[group].lastRefresh = eTsp;
             return doLog;
         }
 
@@ -296,6 +310,7 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["E"] = eTsp;
             mLog["D"] = eTsp - bTsp;
             mCfg->groups[group].lastRun = eTsp;
+            mCfg->groups[group].lastRefresh = eTsp;
             return result;
         }
 
@@ -312,7 +327,7 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["B"] = bTsp;
 
             // Wait Refreshtime
-            if (mCfg->groups[group].lastRefresh >= (bTsp - (mCfg->groups[group].refresh * 1000UL))) {
+            if (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL) >= bTsp) {
                 return result;
             }
 
@@ -321,14 +336,18 @@ mCfg->groups[group].lastRefresh = millis();;
             result = true;
 
             // Next
+#if defined(ZEROEXPORT_DEV_POWERMETER)
+mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
+#else
             mCfg->groups[group].state = zeroExportState::GETINVERTERACKS;
             mCfg->groups[group].stateNext = zeroExportState::GETINVERTERACKS;
             mLog["next"] = "GETINVERTERACKS";
+#endif
 
             unsigned long eTsp = millis();
             mLog["E"] = eTsp;
             mLog["D"] = eTsp - bTsp;
-//            mCfg->groups[group].lastRefresh = eTsp;
             mCfg->groups[group].lastRun = eTsp;
             return result;
         }
@@ -393,11 +412,11 @@ mCfg->groups[group].lastRefresh = millis();;
                 }
             }
 
-            if (wait) {
-                if (mCfg->groups[group].lastRun > (millis() - 30000UL)) {
-                    wait = false;
-                }
-            }
+//            if (wait) {
+//                if (mCfg->groups[group].lastRun > (millis() - 30000UL)) {
+//                    wait = false;
+//                }
+//            }
 
             mLog["wait"] = wait;
 
@@ -446,6 +465,11 @@ mCfg->groups[group].lastRefresh = millis();;
                     continue;
                 }
 
+                if (!mIv[group][inv]->isAvailable())
+                {
+                    continue;
+                }
+
                 // Get Pac
                 record_t<> *rec;
                 rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
@@ -479,6 +503,8 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["B"] = bTsp;
 
             mCfg->groups[group].stateLast = zeroExportState::BATTERYPROTECTION;
+            mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+            mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
 
             doLog = true;
 
@@ -521,6 +547,15 @@ mCfg->groups[group].lastRefresh = millis();;
                         continue;
                     }
 
+if (!mIv[group][inv]->isAvailable()) {
+                        if (U > 0) {
+                            continue;
+                        }
+                        U = 0;
+                        id = cfgGroupInv->id;
+                        continue;
+                    }
+
                     // Get U
                     record_t<> *rec;
                     rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
@@ -542,12 +577,16 @@ mCfg->groups[group].lastRefresh = millis();;
                 if (U > mCfg->groups[group].battVoltageOn) {
                     mCfg->groups[group].battSwitch = true;
                     mLog["action"] = "On";
+                    mCfg->groups[group].state = zeroExportState::SETPOWER;
+                    mCfg->groups[group].stateNext = zeroExportState::SETPOWER;
                 }
 
                 // Switch to OFF
                 if (U < mCfg->groups[group].battVoltageOff) {
                     mCfg->groups[group].battSwitch = false;
                     mLog["action"] = "Off";
+                    mCfg->groups[group].state = zeroExportState::SETPOWER;
+                    mCfg->groups[group].stateNext = zeroExportState::SETPOWER;
                 }
             } else {
                 mLog["en"] = false;
@@ -557,9 +596,9 @@ mCfg->groups[group].lastRefresh = millis();;
 
             mLog["sw"] = mCfg->groups[group].battSwitch;
 
-            // Next
-            mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
-            mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
+//            // Next
+//            mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+//            mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
 
             unsigned long eTsp = millis();
             mLog["E"] = eTsp;
@@ -1424,9 +1463,6 @@ result = true;
             http.end();
 
             long int eTsp = millis();
-            logObj["b"] = bTsp;
-            logObj["e"] = eTsp;
-            logObj["d"] = eTsp - bTsp;
             logObj["P"]  = mCfg->groups[group].pmPower;
             logObj["P1"] = mCfg->groups[group].pmPowerL1;
             logObj["P2"] = mCfg->groups[group].pmPowerL2;

@@ -924,6 +924,16 @@
                     "de": "Spannung Aus (Volt):"
                 },
                 {
+                    "token": "ZE_GROUP_TAB_BATTERY_ONOFF",
+                    "en": "Power:",
+                    "de": "Power:"
+                },
+                {
+                    "token": "BTN_ONOFF",
+                    "en": "On",
+                    "de": "Ein"
+                },
+                {
                     "token": "ZE_GROUP_TAB_ADVANCED",
                     "en": "Advanced",
                     "de": "Erweitert"

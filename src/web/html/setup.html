@@ -1266,6 +1266,22 @@
             }
 
             /*IF_PLUGIN_ZEROEXPORT*/
+            function apiCbBattOnOff(obj) {
+//                var e = document.getElementById("battSwitch");
+//                e.value = "88";
+//                selDelAllOpt(e);
+//                if(obj["success"])
+//                    e.appendChild(opt("-1", "{#NETWORK_SCANNING}"))
+//                else
+//                    e.appendChild(opt("-1", "{#ERROR} " + obj["error"]));
+            }
+
+            function battOnOff() {
+                var obj = {cmd: "ze_batt_onff", token: "*"}
+                getAjax("/api/setup", apiCbBattOnOff, "POST", JSON.stringify(obj));
+//                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
+            }
+
             function ZeroExportGroup_Modal(obj, ivObj) {
 
                 // Tab_General
@@ -1371,7 +1387,7 @@
                         divRow("{#ZE_GROUP_TAB_BATTERY_BATTENABLED}", cb_battEnabled),
                         divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
                         divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
-// TODO: Hier muss ein Button hin, mit dem Switch ein/ausgeschaltet werden kann.
+                        divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
                     ]),
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [

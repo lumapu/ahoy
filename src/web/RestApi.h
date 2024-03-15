@@ -992,6 +992,15 @@ class RestApi {
             }
             // Plugin ZeroExport
             #if defined(PLUGIN_ZEROEXPORT)
+            else if(F("ze_batt_onff") == jsonIn[F("cmd")]) {
+                uint8_t group = jsonIn[F("id")];
+//                if (mConfig->plugin.zeroExport.groups[group].battSwitch) {
+//                    mConfig->plugin.zeroExport.groups[group].battSwitch = false;
+//                } else {
+                    mConfig->plugin.zeroExport.groups[group].battSwitch = true;
+//                }
+//                mConfig->plugin.zeroExport.groups[group].battSwitch = jsonIn[F("battSwitch")];
+            }
             else if(F("ze_save_group") == jsonIn[F("cmd")]) {
                 // General
                 uint8_t group = jsonIn[F("id")];
