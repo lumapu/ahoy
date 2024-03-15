@@ -66,10 +66,6 @@ class ZeroExport {
                 switch (mCfg->groups[group].state) {
                     case zeroExportState::INIT:
                         if (groupInit(group)) sendLog();
-//#if defined(ZEROEXPORT_DEV_POWERMETER)
-//mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-//mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
-//#endif
                         break;
                     case zeroExportState::WAIT:
                         if (groupWait(group)) sendLog();
@@ -288,7 +284,7 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["B"] = bTsp;
 
             // Wait 60s
-            if (mCfg->groups[group].lastRun >= (bTsp - 60000UL)) {
+            if (bTsp <= (mCfg->groups[group].lastRun + 60000UL)) {
                 return result;
             }
 
@@ -327,7 +323,7 @@ mCfg->groups[group].lastRefresh = millis();;
             mLog["B"] = bTsp;
 
             // Wait Refreshtime
-            if (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL) >= bTsp) {
+            if (bTsp <= (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL))) {
                 return result;
             }
 
@@ -336,14 +332,15 @@ mCfg->groups[group].lastRefresh = millis();;
             result = true;
 
             // Next
-#if defined(ZEROEXPORT_DEV_POWERMETER)
-mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
-mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
-#else
+            #if defined(ZEROEXPORT_DEV_POWERMETER)
+            mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
+            mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
+            mLog["next"] = "WAITREFRESH";
+            #else
             mCfg->groups[group].state = zeroExportState::GETINVERTERACKS;
             mCfg->groups[group].stateNext = zeroExportState::GETINVERTERACKS;
             mLog["next"] = "GETINVERTERACKS";
-#endif
+            #endif
 
             unsigned long eTsp = millis();
             mLog["E"] = eTsp;
@@ -364,9 +361,9 @@ mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
             mLog["type"] = "groupGetInverterAcks";
             mLog["B"] = bTsp;
 
-            // Wait 100ms
+            // Wait 250ms
             if (mCfg->groups[group].stateLast == zeroExportState::GETINVERTERACKS) {
-                if (mCfg->groups[group].lastRun >= (bTsp - 100UL)) {
+                if (bTsp <= (mCfg->groups[group].lastRun + 250UL)) {
                     return doLog;
                 }
             }
@@ -1347,12 +1344,12 @@ result = true;
         bool getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
             bool result = false;
 
+            logObj["mod"]  = "getPowermeterWattsShelly";
+
             mCfg->groups[group].pmPower   = 0;
             mCfg->groups[group].pmPowerL1 = 0;
             mCfg->groups[group].pmPowerL2 = 0;
             mCfg->groups[group].pmPowerL3 = 0;
-
-            long int bTsp = millis();
 
             HTTPClient http;
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -1462,7 +1459,6 @@ result = true;
             }
             http.end();
 
-            long int eTsp = millis();
             logObj["P"]  = mCfg->groups[group].pmPower;
             logObj["P1"] = mCfg->groups[group].pmPowerL1;
             logObj["P2"] = mCfg->groups[group].pmPowerL2;
@@ -1475,8 +1471,16 @@ result = true;
          * getPowermeterWattsTasmota
          */
         bool getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
+            bool result = false;
+
+            logObj["mod"]  = "getPowermeterWattsTasmota";
+
+            mCfg->groups[group].pmPower   = 0;
+            mCfg->groups[group].pmPowerL1 = 0;
+            mCfg->groups[group].pmPowerL2 = 0;
+            mCfg->groups[group].pmPowerL3 = 0;
+
 // TODO: nicht komplett
-            bool ret = false;
 
             HTTPClient http;
             http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -1497,11 +1501,11 @@ result = true;
                 if (error)
                 {
                     logObj["error"] = "deserializeJson() failed: " + String(error.c_str());
-                    return ret;
+                    return result;
                 }
 
 // TODO: Sum
-                    ret = true;
+                    result = true;
 
 // TODO: L1
 
@@ -1528,64 +1532,100 @@ result = true;
             }
             http.end();
 
-            return ret;
+            return result;
         }
 
         /**
          * getPowermeterWattsMqtt
          */
         bool getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-// TODO: nicht komplett
-            bool ret = false;
+            bool result = false;
+
+            logObj["mod"]  = "getPowermeterWattsMqtt";
+
+            mCfg->groups[group].pmPower   = 0;
+            mCfg->groups[group].pmPowerL1 = 0;
+            mCfg->groups[group].pmPowerL2 = 0;
+            mCfg->groups[group].pmPowerL3 = 0;
+
+// Hier neuer Code - Anfang
+// TODO: Noch nicht komplett
+
+
+                        result = true;
 
 
 
-//                logObj["P"]   = mCfg->groups[group].pmPower;
-//                logObj["P1"] = mCfg->groups[group].pmPowerL1;
-//                logObj["P2"] = mCfg->groups[group].pmPowerL2;
-//                logObj["P3"] = mCfg->groups[group].pmPowerL3;
-//            }
-//            http.end();
+// Hier neuer Code - Ende
 
-            return ret;
+            logObj["P"]  = mCfg->groups[group].pmPower;
+            logObj["P1"] = mCfg->groups[group].pmPowerL1;
+            logObj["P2"] = mCfg->groups[group].pmPowerL2;
+            logObj["P3"] = mCfg->groups[group].pmPowerL3;
+
+            return result;
         }
 
         /**
          * getPowermeterWattsHichi
          */
         bool getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
-// TODO: nicht komplett
-            bool ret = false;
+            bool result = false;
+
+            logObj["mod"]  = "getPowermeterWattsHichi";
+
+            mCfg->groups[group].pmPower   = 0;
+            mCfg->groups[group].pmPowerL1 = 0;
+            mCfg->groups[group].pmPowerL2 = 0;
+            mCfg->groups[group].pmPowerL3 = 0;
+
+// Hier neuer Code - Anfang
+// TODO: Noch nicht komplett
+
+
+                        result = true;
 
 
 
-//                logObj["P"]   = mCfg->groups[group].pmPower;
-//                logObj["P1"] = mCfg->groups[group].pmPowerL1;
-//                logObj["P2"] = mCfg->groups[group].pmPowerL2;
-//                logObj["P3"] = mCfg->groups[group].pmPowerL3;
-//            }
-//            http.end();
+// Hier neuer Code - Ende
 
-            return ret;
+            logObj["P"]  = mCfg->groups[group].pmPower;
+            logObj["P1"] = mCfg->groups[group].pmPowerL1;
+            logObj["P2"] = mCfg->groups[group].pmPowerL2;
+            logObj["P3"] = mCfg->groups[group].pmPowerL3;
+
+            return result;
         }
 
         /**
          * getPowermeterWattsTibber
          */
         bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
-// TODO: nicht komplett
-            bool ret = false;
+            bool result = false;
+
+            logObj["mod"]  = "getPowermeterWattsTibber";
+
+            mCfg->groups[group].pmPower   = 0;
+            mCfg->groups[group].pmPowerL1 = 0;
+            mCfg->groups[group].pmPowerL2 = 0;
+            mCfg->groups[group].pmPowerL3 = 0;
+
+// Hier neuer Code - Anfang
+// TODO: Noch nicht komplett
+
+
+                        result = true;
 
 
 
-//                logObj["P"]   = mCfg->groups[group].pmPower;
-//                logObj["P1"] = mCfg->groups[group].pmPowerL1;
-//                logObj["P2"] = mCfg->groups[group].pmPowerL2;
-//                logObj["P3"] = mCfg->groups[group].pmPowerL3;
-//            }
-//            http.end();
+// Hier neuer Code - Ende
 
-            return ret;
+            logObj["P"]  = mCfg->groups[group].pmPower;
+            logObj["P1"] = mCfg->groups[group].pmPowerL1;
+            logObj["P2"] = mCfg->groups[group].pmPowerL2;
+            logObj["P3"] = mCfg->groups[group].pmPowerL3;
+
+            return result;
         }
 
 /*
