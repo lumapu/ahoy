@@ -40,20 +40,20 @@ class DisplayMono128X32 : public DisplayMono {
 
                 printText(mFmtText, 0);
             } else {
-                printText("offline", 0);
+                printText(STR_OFFLINE, 0);
             }
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "today: %4.0f Wh", mDisplayData->totalYieldDay);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s: %4.0f Wh", STR_TODAY, mDisplayData->totalYieldDay);
             printText(mFmtText, 1);
 
-            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "total: %.1f kWh", mDisplayData->totalYieldTotal);
+            snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s: %.1f kWh", STR_TOTAL, mDisplayData->totalYieldTotal);
             printText(mFmtText, 2);
 
             IPAddress ip = WiFi.localIP();
             if (!(mExtra % 10) && (ip))
                 printText(ip.toString().c_str(), 3);
             else if (!(mExtra % 5)) {
-                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%d Inverter on", mDisplayData->nrProducing);
+                snprintf(mFmtText, DISP_FMT_TEXT_LEN, "%s: %d", STR_ACTIVE_INVERTERS, mDisplayData->nrProducing);
                 printText(mFmtText, 3);
             } else if (0 != mDisplayData->utcTs)
                 printText(ah::getTimeStr(mDisplayData->utcTs).c_str(), 3);

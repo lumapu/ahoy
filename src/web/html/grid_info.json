@@ -14,6 +14,7 @@
         {"0x0d04": "NF_EN_50549-1:2019"},
         {"0x1000": "ES_RD1699"},
         {"0x1200": "EU_EN50438"},
+        {"0x1300": "MEX_NOM_220V"},
         {"0x2600": "BE_C10_26"},
         {"0x2900": "NL_NEN-EN50549-1_2019"},
         {"0x2a00": "PL_PN-EN 50549-1:2019"},
@@ -35,6 +36,44 @@
         {"0xb0": "Watt Power Factor"}
     ],
     "group": [
+        {
+            "0x0000": [
+                {
+                    "name": "Nominal Voltage",
+                    "div": 10,
+                    "def": 220,
+                    "unit": "V"
+                },
+                {
+                    "name": "Low Voltage 1",
+                    "div": 10,
+                    "min": 170,
+                    "max": 195.5,
+                    "def": 184,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 1",
+                    "div": 10,
+                    "min": 253,
+                    "max": 275,
+                    "def": 270,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                }
+            ]
+        },
         {
             "0x0003": [
                 {

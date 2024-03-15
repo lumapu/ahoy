@@ -61,6 +61,23 @@ function ml(tagName, ...args) {
     return nester(el, args[1])
 }
 
+function mlNs(tagName, ...args) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+    if(args[0]) {
+        for(var name in args[0]) {
+            if(name.indexOf("on") === 0) {
+                el.addEventListener(name.substr(2).toLowerCase(), args[0][name], false)
+            } else {
+                el.setAttribute(name, args[0][name]);
+            }
+        }
+    }
+    if (!args[1]) {
+        return el;
+    }
+    return nester(el, args[1])
+}
+
 function nester(el, n) {
     if (typeof n === "string") {
         el.innerHTML = n;
@@ -84,10 +101,12 @@ function topnav() {
 }
 
 function parseNav(obj) {
-    for(i = 0; i < 13; i++) {
+    for(i = 0; i < 14; i++) {
         if(i == 2)
             continue;
         var l = document.getElementById("nav"+i);
+        if(null == l)
+            continue
         if(12 == i) {
             if(obj.cst_lnk.length > 0) {
                 l.href = obj.cst_lnk

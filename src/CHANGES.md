@@ -1,5 +1,22 @@
 # Development Changes
 
+## 0.8.93 - 2024-03-14
+* improved history graph in WebUI #1491
+* merge PR: 1491
+
+## 0.8.92 - 2024-03-10
+* fix read back of limit value, now with one decimal place
+* added grid profile for Mexico #1493
+* added language to display on compile time #1484, #1255, #1479
+* added new environment `esp8266-all` which replace the original `esp8266`. The original now only have `MqTT` support but `Display` and `History` plugins are not included any more #1451
+
+## 0.8.91 - 2024-03-05
+* fix javascript issues #1480
+
+## 0.8.90 - 2024-03-05
+* added preprocessor defines to HTML (from platform.ini) to reduce the HTML in size if modules aren't enabled
+* auto build minimal English versions of ESP8266 and ESP32
+
 ## 0.8.89 - 2024-03-02
 * merge PR: Collection of small fixes #1465
 * fix: show esp type on `/history` #1463

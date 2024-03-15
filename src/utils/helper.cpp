@@ -5,6 +5,12 @@
 
 #include "helper.h"
 #include "dbg.h"
+#include "../plugins/plugin_lang.h"
+
+#define dt_SHORT_STR_LEN_i18n  3 // the length of short strings
+static char buffer_i18n[dt_SHORT_STR_LEN_i18n + 1];  // must be big enough for longest string and the terminating null
+const char monthShortNames_P[] PROGMEM = STR_MONTHNAME_3_CHAR_LIST;
+const char dayShortNames_P[] PROGMEM = STR_DAYNAME_3_CHAR_LIST;
 
 namespace ah {
     void ip2Arr(uint8_t ip[], const char *ipStr) {
@@ -26,6 +32,10 @@ namespace ah {
             str[0] = '\0';
         else
             snprintf(str, 16, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    }
+
+    double round1(double value) {
+        return (int)(value * 10 + 0.5) / 10.0;
     }
 
     double round3(double value) {
@@ -78,6 +88,31 @@ namespace ah {
             uint16_t m = t % 1000;
             t = t / 1000;
             sprintf(str, "%02d:%02d:%02d.%03d", hour(t), minute(t), second(t), m);
+        }
+        return String(str);
+    }
+
+    static char* monthShortStr_i18n(uint8_t month) {
+        for (int i=0; i < dt_SHORT_STR_LEN_i18n; i++)
+            buffer_i18n[i] = pgm_read_byte(&(monthShortNames_P[i + month * dt_SHORT_STR_LEN_i18n]));
+        buffer_i18n[dt_SHORT_STR_LEN_i18n] = 0;
+        return buffer_i18n;
+    }
+
+    static char* dayShortStr_i18n(uint8_t day) {
+        for (int i=0; i < dt_SHORT_STR_LEN_i18n; i++)
+            buffer_i18n[i] = pgm_read_byte(&(dayShortNames_P[i + day * dt_SHORT_STR_LEN_i18n]));
+        buffer_i18n[dt_SHORT_STR_LEN_i18n] = 0;
+        return buffer_i18n;
+    }
+
+    String getDateTimeStrShort_i18n(time_t t) {
+        char str[20];
+        if(0 == t)
+            sprintf(str, "n/a");
+        else {
+            sprintf(str, "%3s ", dayShortStr_i18n(dayOfWeek(t)));
+            sprintf(str+4, "%2d.%3s %02d:%02d", day(t), monthShortStr_i18n(month(t)), hour(t), minute(t));
         }
         return String(str);
     }

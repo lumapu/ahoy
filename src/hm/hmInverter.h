@@ -335,7 +335,7 @@ class Inverter {
                         // eg. hw version ...
                     } else if (rec->assign == SystemConfigParaAssignment) {
                         DPRINTLN(DBG_DEBUG, "add config");
-                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos){
+                        if (getPosByChFld(0, FLD_ACT_ACTIVE_PWR_LIMIT, rec) == pos) {
                             actPowerLimit = rec->record[pos];
                             DPRINT(DBG_DEBUG, F("Inverter actual power limit: "));
                             DPRINTLN(DBG_DEBUG, String(actPowerLimit, 1));

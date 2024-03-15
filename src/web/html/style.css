@@ -33,12 +33,16 @@ textarea {
     color: var(--fg2);
 }
 
-svg rect {fill: #00A;}
-svg.chart {
-    background: #f2f2f2;
-    border: 2px solid gray;
-    padding: 1px;
+svg polyline {
+	fill-opacity: .5;
+	stroke-width:	1;
 }
+
+svg text {
+	font-size: x-small;
+	fill: var(--chart-text);
+}
+
 
 div.chartDivContainer {
     padding: 1px;

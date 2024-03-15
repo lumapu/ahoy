@@ -46,9 +46,9 @@ class ahoyeth {
         void onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info);
 
     private:
-        #if defined(CONFIG_IDF_TARGET_ESP32S3)
+        //#if defined(CONFIG_IDF_TARGET_ESP32S3)
         EthSpi mEthSpi;
-        #endif
+        //#endif
         settings_t *mConfig = nullptr;
 
         uint32_t *mUtcTimestamp;

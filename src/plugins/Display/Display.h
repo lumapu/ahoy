@@ -9,6 +9,7 @@
 #include "../../hm/hmSystem.h"
 #include "../../hm/hmRadio.h"
 #include "../../utils/helper.h"
+#include "../plugin_lang.h"
 #include "Display_Mono.h"
 #include "Display_Mono_128X32.h"
 #include "Display_Mono_128X64.h"

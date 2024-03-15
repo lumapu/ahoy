@@ -1,10 +1,8 @@
 //-----------------------------------------------------------------------------
-// 2023 Ahoy, https://www.mikrocontroller.net/topic/525778
+// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
 // Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 //-----------------------------------------------------------------------------
 
-
-#if defined(CONFIG_IDF_TARGET_ESP32S3)
 #if defined(ETHERNET)
 #ifndef __ETH_SPI_H__
 #define __ETH_SPI_H__
@@ -138,4 +136,3 @@ class EthSpi {
 
 #endif /*__ETH_SPI_H__*/
 #endif /*ETHERNET*/
-#endif /*CONFIG_IDF_TARGET_ESP32S3*/

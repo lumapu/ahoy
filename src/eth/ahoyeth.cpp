@@ -31,12 +31,12 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
 
     Serial.flush();
-    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    //#if defined(CONFIG_IDF_TARGET_ESP32S3)
     mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
-    #else
+    //#else
     //ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLK_MODE);
-    ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, DEF_ETH_MOSI_PIN, ETH_PHY_TYPE, ETH_CLK_MODE);
-    #endif
+    //ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, DEF_ETH_MOSI_PIN, ETH_PHY_TYPE, ETH_CLK_MODE);
+    //#endif
 
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
