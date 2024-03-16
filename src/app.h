@@ -299,7 +299,7 @@ class app : public IApp, public ah::Scheduler {
                 #if defined(ETHERNET)
                 mEth.updateNtpTime();
                 #else /* defined(ETHERNET) */
-                mWifi.getNtpTime();
+                mWifi.updateNtpTime();
                 #endif /* defined(ETHERNET) */
             }
             else
@@ -389,10 +389,8 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickNtpUpdate(void);
-        #if defined(ETHERNET)
         void onNtpUpdate(bool gotTime);
         bool mNtpReceived = false;
-        #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
         void triggerTickSend() override {

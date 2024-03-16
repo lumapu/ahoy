@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.95 - 2024-03-17
+* fix NTP issues #1440 #1497 #1499
+
 ## 0.8.94 - 2024-03-16
 * switched AsyncWebServer library
 * Ethernet version now uses same AsyncWebServer library as Wifi version
