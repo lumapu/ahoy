@@ -1,26 +1,26 @@
 diff --git a/src/AsyncWebSocket.cpp b/src/AsyncWebSocket.cpp
-index 12be5f8..cffeed7 100644
+index 6e88da9..09359c3 100644
 --- a/src/AsyncWebSocket.cpp
 +++ b/src/AsyncWebSocket.cpp
-@@ -737,7 +737,7 @@ void AsyncWebSocketClient::binary(const __FlashStringHelper *data, size_t len)
- IPAddress AsyncWebSocketClient::remoteIP() const
- {
-     if (!_client)
--        return IPAddress(0U);
-+        return IPAddress();
+@@ -827,7 +827,7 @@ void AsyncWebSocketClient::binary(AsyncWebSocketMessageBuffer * buffer)
  
+ IPAddress AsyncWebSocketClient::remoteIP() {
+     if(!_client) {
+-        return IPAddress((uint32_t)0);
++        return IPAddress();
+     }
      return _client->remoteIP();
  }
 diff --git a/src/WebResponses.cpp b/src/WebResponses.cpp
-index 22a549f..e0b36b3 100644
+index a22e991..babef18 100644
 --- a/src/WebResponses.cpp
 +++ b/src/WebResponses.cpp
-@@ -318,7 +318,7 @@ size_t AsyncAbstractResponse::_ack(AsyncWebServerRequest *request, size_t len, u
+@@ -317,7 +317,7 @@ size_t AsyncAbstractResponse::_ack(AsyncWebServerRequest *request, size_t len, u
            free(buf);
            return 0;
        }
--      outLen = sprintf_P((char*)buf+headLen, PSTR("%x"), readLen) + headLen;
-+      outLen = sprintf_P((char*)buf+headLen, PSTR("%04x"), readLen) + headLen;
+-      outLen = sprintf((char*)buf+headLen, "%x", readLen) + headLen;
++      outLen = sprintf((char*)buf+headLen, "%04x", readLen) + headLen;
        while(outLen < headLen + 4) buf[outLen++] = ' ';
        buf[outLen++] = '\r';
        buf[outLen++] = '\n';

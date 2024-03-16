@@ -350,8 +350,9 @@ class RestApi {
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
-
+            #if !defined(ETHERNET)
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
+            #endif
             obj[F("ts_uptime")]   = mApp->getUptime();
             obj[F("ts_now")]      = mApp->getTimestamp();
             obj[F("version")]     = String(mApp->getVersion());
@@ -378,12 +379,13 @@ class RestApi {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("ap_pwd")]       = mConfig->sys.apPwd;
             obj[F("hidd")]         = mConfig->sys.isHidden;
+            obj[F("mac")]          = WiFi.macAddress();
+            obj[F("wifi_channel")] = WiFi.channel();
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
-            obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
@@ -393,7 +395,6 @@ class RestApi {
             obj[F("heap_free")]    = mHeapFree;
             obj[F("sketch_total")] = ESP.getFreeSketchSpace();
             obj[F("sketch_used")]  = ESP.getSketchSize() / 1024; // in kb
-            obj[F("wifi_channel")] = WiFi.channel();
             getGeneric(request, obj);
 
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
@@ -426,9 +427,9 @@ class RestApi {
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
             //obj[F("littlefs_used")] = LittleFS.usedBytes();
 
-            uint8_t max;
+            /*uint8_t max;
             mApp->getSchedulerInfo(&max);
-            obj[F("schMax")] = max;
+            obj[F("schMax")] = max;*/
         }
 
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {

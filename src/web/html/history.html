@@ -12,12 +12,12 @@
         {#HTML_NAV}
         <div id="wrapper">
             <div id="content">
-                <h3>Total Power</h3>
+                <h3>{#TOTAL_POWER}</h3>
                 <div class="chartDiv" id="pwrChart"></div>
-                <h3>Total Power Today</h3>
+                <h3>{#TOTAL_POWER_DAY}</h3>
                 <div class="chartDiv" id="pwrDayChart"></div>
                 <!--IF_ENABLE_HISTORY_YIELD_PER_DAY-->
-                <h3>Total Yield per day</h3>
+                <h3>{#TOTAL_YIELD_PER_DAY}</h3>
                 <div class="chartDiv" id="ydChart"></div>
                 <!--ENDIF_ENABLE_HISTORY_YIELD_PER_DAY-->
                 <!--IF_ENABLE_HISTORY_LOAD_DATA-->
@@ -136,8 +136,8 @@
                 return [
                     mlNs("polyline", {stroke: "url(#gLine)", fill: "none", points: pts}),
                     mlNs("polyline", {stroke: "none", fill: "url(#gFill)", points: pts2}),
-                    mlNs("text", {x: i*.8, y: 10}, "Maximum: " + String(obj.max) + "W"),
-                    mlNs("text", {x: i*.8, y: 25}, "Last: " + String(lastVal) + "W")
+                    mlNs("text", {x: i*.8, y: 10}, "{#MAX_DAY}: " + String(obj.max) + "W"),
+                    mlNs("text", {x: i*.8, y: 25}, "{#LAST_VALUE}: " + String(lastVal) + "W")
                 ]
             }
 
@@ -145,7 +145,9 @@
             function parsePowerHistory(obj){
                 if(once) {
                     once = false
-                    parseNav(obj.generic);
+                    parseNav(obj.generic)
+                    parseESP(obj.generic)
+                    parseRssi(obj.generic)
                     window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
                     setTimeout(() => {
                         window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", refresh * 1000)

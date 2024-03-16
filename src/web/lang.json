@@ -1529,16 +1529,6 @@
                     "de": "Gesamtleistung"
                 },
                 {
-                    "token": "LAST",
-                    "en": "Last",
-                    "de": "Die letzten"
-                },
-                {
-                    "token": "VALUES",
-                    "en": "values",
-                    "de": "Werte"
-                },
-                {
                     "token": "TOTAL_POWER_DAY",
                     "en": "Total Power Today",
                     "de": "Gesamtleistung heute"
@@ -1557,21 +1547,6 @@
                     "token": "LAST_VALUE",
                     "en": "Last value",
                     "de": "Letzter Wert"
-                },
-                {
-                    "token": "MAXIMUM",
-                    "en": "Maximum value",
-                    "de": "Maximalwert"
-                },
-                {
-                    "token": "UPDATED",
-                    "en": "Updated every",
-                    "de": "Aktualisiert alle"
-                },
-                {
-                    "token": "SECONDS",
-                    "en": "seconds",
-                    "de": "Sekunden"
                 }
             ]
         }

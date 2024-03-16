@@ -9,6 +9,7 @@
 
 #include "../utils/dbg.h"
 #include <Arduino.h>
+#include <list>
 #include <WiFiUdp.h>
 #include <DNSServer.h>
 #include "ESPAsyncWebServer.h"

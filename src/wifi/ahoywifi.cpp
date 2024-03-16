@@ -198,7 +198,7 @@ void ahoywifi::tickWifiLoop() {
             if (!MDNS.begin(mConfig->sys.deviceName)) {
                 DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
             } else {
-                DBGPRINT(F("[WiFi] mDNS established: "));
+                DBGPRINT(F("mDNS established: "));
                 DBGPRINT(mConfig->sys.deviceName);
                 DBGPRINTLN(F(".local"));
             }
