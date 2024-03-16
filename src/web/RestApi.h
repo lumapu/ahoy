@@ -17,11 +17,7 @@
 #include "../utils/helper.h"
 #include "lang.h"
 #include "AsyncJson.h"
-#if defined(ETHERNET)
-#include "AsyncWebServer_ESP32_W5500.h"
-#else
 #include "ESPAsyncWebServer.h"
-#endif
 
 #include "plugins/history.h"
 
@@ -49,6 +45,11 @@ class RestApi {
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
             mConfig   = config;
+            #if defined(ENABLE_HISTORY_LOAD_DATA)
+            mSrv->on("/api/addYDHist",
+                             HTTP_POST, std::bind(&RestApi::onApiPost, this, std::placeholders::_1),
+                                        std::bind(&RestApi::onApiPostYDHist,this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+            #endif
             mSrv->on("/api", HTTP_POST, std::bind(&RestApi::onApiPost,     this, std::placeholders::_1)).onBody(
                                         std::bind(&RestApi::onApiPostBody, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
             mSrv->on("/api", HTTP_GET,  std::bind(&RestApi::onApi,         this, std::placeholders::_1));
@@ -103,6 +104,8 @@ class RestApi {
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
             else if (path == "powerHistory")  getPowerHistory(request, root);
+            else if (path == "powerHistoryDay")  getPowerHistoryDay(request, root);
+            else if (path == "yieldDayHistory") getYieldDayHistory(request, root);
             else {
                 if(path.substring(0, 12) == "inverter/id/")
                     getInverter(root, request->url().substring(17).toInt());
@@ -137,7 +140,94 @@ class RestApi {
             #endif
         }
 
-        void onApiPostBody(AsyncWebServerRequest *request, const uint8_t *data, size_t len, size_t index, size_t total) {
+        #if defined(ENABLE_HISTORY_LOAD_DATA)
+        // VArt67: For debugging history graph. Loading data into graph
+        void onApiPostYDHist(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, size_t final) {
+            uint32_t total = request->contentLength();
+            DPRINTLN(DBG_DEBUG, "[onApiPostYieldDHistory ] " + filename + " index:" + index + " len:" + len + " total:" + total + " final:" + final);
+
+            if (0 == index) {
+                if (NULL != mTmpBuf)
+                    delete[] mTmpBuf;
+                mTmpBuf = new uint8_t[total + 1];
+                mTmpSize = total;
+            }
+            if (mTmpSize >= (len + index))
+                memcpy(&mTmpBuf[index], data, len);
+
+            if (!final)
+                return;  // not last frame - nothing to do
+
+            mTmpSize = len + index;  // correct the total size
+            mTmpBuf[mTmpSize] = 0;
+
+            #ifndef ESP32
+            DynamicJsonDocument json(ESP.getMaxFreeBlockSize() - 512);  // need some memory on heap
+            #else
+            DynamicJsonDocument json(12000);  // does this work? I have no ESP32 :-(
+            #endif
+            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            json.shrinkToFit();
+            JsonObject obj = json.as<JsonObject>();
+
+            // Debugging
+            // mTmpBuf[mTmpSize] = 0;
+            // DPRINTLN(DBG_DEBUG, (const char *)mTmpBuf);
+
+            if (!err && obj) {
+                // insert data into yieldDayHistory object
+                HistoryStorageType dataType;
+                if (obj["maxDay"] > 0)  // this is power history data
+                {
+                    dataType = HistoryStorageType::POWER;
+                    if (obj["refresh"] > 60)
+                        dataType = HistoryStorageType::POWER_DAY;
+
+                }
+                else
+                    dataType = HistoryStorageType::YIELD;
+
+                size_t cnt = obj[F("value")].size();
+                DPRINTLN(DBG_DEBUG, "ArraySize: " + String(cnt));
+
+                for (uint16_t i = 0; i < cnt; i++) {
+                    uint16_t val = obj[F("value")][i];
+                    mApp->addValueToHistory((uint8_t)dataType, 0, val);
+                    // DPRINT(DBG_VERBOSE, "value " + String(i) + ": " + String(val) + ", ");
+                }
+                uint32_t refresh = obj[F("refresh")];
+                mApp->addValueToHistory((uint8_t)dataType, 1, refresh);
+                if (dataType != HistoryStorageType::YIELD) {
+                    uint32_t ts = obj[F("lastValueTs")];
+                    mApp->addValueToHistory((uint8_t)dataType, 2, ts);
+                }
+
+            } else {
+                switch (err.code()) {
+                    case DeserializationError::Ok:
+                        break;
+                    case DeserializationError::IncompleteInput:
+                        DPRINTLN(DBG_DEBUG, F("Incomplete input"));
+                        break;
+                    case DeserializationError::InvalidInput:
+                        DPRINTLN(DBG_DEBUG, F("Invalid input"));
+                        break;
+                    case DeserializationError::NoMemory:
+                        DPRINTLN(DBG_DEBUG, F("Not enough memory ") + String(json.capacity()) + " bytes");
+                        break;
+                    default:
+                        DPRINTLN(DBG_DEBUG, F("Deserialization failed"));
+                        break;
+                }
+            }
+
+            request->send(204);  // Success with no page load
+            delete[] mTmpBuf;
+            mTmpBuf = NULL;
+        }
+        #endif
+
+        void onApiPostBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
             DPRINTLN(DBG_VERBOSE, "onApiPostBody");
 
             if(0 == index) {
@@ -207,6 +297,8 @@ class RestApi {
             ep[F("live")]             = url + F("live");
             #if defined(ENABLE_HISTORY)
             ep[F("powerHistory")]     = url + F("powerHistory");
+            ep[F("powerHistoryDay")]  = url + F("powerHistoryDay");
+            ep[F("yieldDayHistory")]  = url + F("yieldDayHistory");
             #endif
         }
 
@@ -258,8 +350,9 @@ class RestApi {
 
         void getGeneric(AsyncWebServerRequest *request, JsonObject obj) {
             mApp->resetLockTimeout();
-
+            #if !defined(ETHERNET)
             obj[F("wifi_rssi")]   = (WiFi.status() != WL_CONNECTED) ? 0 : WiFi.RSSI();
+            #endif
             obj[F("ts_uptime")]   = mApp->getUptime();
             obj[F("ts_now")]      = mApp->getTimestamp();
             obj[F("version")]     = String(mApp->getVersion());
@@ -286,12 +379,13 @@ class RestApi {
             obj[F("ssid")]         = mConfig->sys.stationSsid;
             obj[F("ap_pwd")]       = mConfig->sys.apPwd;
             obj[F("hidd")]         = mConfig->sys.isHidden;
+            obj[F("mac")]          = WiFi.macAddress();
+            obj[F("wifi_channel")] = WiFi.channel();
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
             obj[F("sched_reboot")] = (bool)mConfig->sys.schedReboot;
 
-            obj[F("mac")]          = WiFi.macAddress();
             obj[F("hostname")]     = mConfig->sys.deviceName;
             obj[F("pwd_set")]      = (strlen(mConfig->sys.adminPwd) > 0);
             obj[F("prot_mask")]    = mConfig->sys.protectionMask;
@@ -333,9 +427,9 @@ class RestApi {
             //obj[F("littlefs_total")] = LittleFS.totalBytes();
             //obj[F("littlefs_used")] = LittleFS.usedBytes();
 
-            uint8_t max;
+            /*uint8_t max;
             mApp->getSchedulerInfo(&max);
-            obj[F("schMax")] = max;
+            obj[F("schMax")] = max;*/
         }
 
         void getHtmlSystem(AsyncWebServerRequest *request, JsonObject obj) {
@@ -499,7 +593,7 @@ class RestApi {
             obj[F("name")]             = String(iv->config->name);
             obj[F("serial")]           = String(iv->config->serial.u64, HEX);
             obj[F("version")]          = String(iv->getFwVersion());
-            obj[F("power_limit_read")] = iv->actPowerLimit;
+            obj[F("power_limit_read")] = ah::round1(iv->getChannelFieldValue(CH0, FLD_ACT_ACTIVE_PWR_LIMIT, iv->getRecordStruct(SystemConfigPara)));
             obj[F("power_limit_ack")]  = iv->powerLimitAck;
             obj[F("max_pwr")]          = iv->getMaxPower();
             obj[F("ts_last_success")]  = rec->ts;
@@ -873,7 +967,7 @@ class RestApi {
         void getPowerHistory(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
             #if defined(ENABLE_HISTORY)
-            obj[F("refresh")] = mConfig->inst.sendInterval;
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER);
             uint16_t max = 0;
             for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
                 uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER, fld);
@@ -882,9 +976,39 @@ class RestApi {
                     max = value;
             }
             obj[F("max")] = max;
-            obj[F("maxDay")] = mApp->getHistoryMaxDay();
-            #else
-            obj[F("refresh")] = 86400;  // 1 day;
+            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER);
+            #endif /*ENABLE_HISTORY*/
+        }
+
+        void getPowerHistoryDay(AsyncWebServerRequest *request, JsonObject obj){
+            //getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ENABLE_HISTORY)
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::POWER_DAY);
+            uint16_t max = 0;
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::POWER_DAY, fld);
+                obj[F("value")][fld] = value;
+                if (value > max)
+                    max = value;
+            }
+            obj[F("max")] = max;
+            obj[F("lastValueTs")] = mApp->getHistoryLastValueTs((uint8_t)HistoryStorageType::POWER_DAY);
+            #endif /*ENABLE_HISTORY*/
+        }
+
+
+        void getYieldDayHistory(AsyncWebServerRequest *request, JsonObject obj) {
+            //getGeneric(request, obj.createNestedObject(F("generic")));
+            #if defined(ENABLE_HISTORY) && defined(ENABLE_HISTORY_YIELD_PER_DAY)
+            obj[F("refresh")] = mApp->getHistoryPeriod((uint8_t)HistoryStorageType::YIELD);
+            uint16_t max = 0;
+            for (uint16_t fld = 0; fld < HISTORY_DATA_ARR_LENGTH; fld++) {
+                uint16_t value = mApp->getHistoryValue((uint8_t)HistoryStorageType::YIELD, fld);
+                obj[F("value")][fld] = value;
+                if (value > max)
+                    max = value;
+            }
+            obj[F("max")] = max;
             #endif /*ENABLE_HISTORY*/
         }
 

@@ -61,6 +61,23 @@ function ml(tagName, ...args) {
     return nester(el, args[1])
 }
 
+function mlNs(tagName, ...args) {
+    var el = document.createElementNS("http://www.w3.org/2000/svg", tagName);
+    if(args[0]) {
+        for(var name in args[0]) {
+            if(name.indexOf("on") === 0) {
+                el.addEventListener(name.substr(2).toLowerCase(), args[0][name], false)
+            } else {
+                el.setAttribute(name, args[0][name]);
+            }
+        }
+    }
+    if (!args[1]) {
+        return el;
+    }
+    return nester(el, args[1])
+}
+
 function nester(el, n) {
     if (typeof n === "string") {
         el.innerHTML = n;

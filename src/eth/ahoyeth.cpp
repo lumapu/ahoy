@@ -25,16 +25,13 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     mUtcTimestamp = utcTimestamp;
     mOnNetworkCB = onNetworkCB;
     mOnTimeCB = onTimeCB;
+    mEthConnected = false;
 
     Serial.flush();
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
 
     Serial.flush();
-    #if defined(CONFIG_IDF_TARGET_ESP32S3)
     mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
-    #else
-    ETH.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, ETH_SPI_CLOCK_MHZ, ETH_SPI_HOST);
-    #endif
 
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);
@@ -50,11 +47,6 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
 
 //-----------------------------------------------------------------------------
 bool ahoyeth::updateNtpTime(void) {
-    DPRINTLN(DBG_DEBUG, F(__FUNCTION__)); Serial.flush();
-    Serial.printf("ETH.linkUp()=%s\n", ETH.linkUp() ? "up" : "down");
-    Serial.print("ETH.localIP()=");
-    Serial.println(ETH.localIP());
-    Serial.printf("Go on? %s\n", (!ETH.localIP()) ? "No..." : "Yes...");
     if (!ETH.localIP())
         return false;
 
@@ -130,131 +122,57 @@ void ahoyeth::welcome(String ip, String mode) {
 }
 
 void ahoyeth::onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info) {
-    AWS_LOG(F("[ETH]: Got event..."));
+    DPRINTLN(DBG_VERBOSE, F("[ETH]: Got event..."));
     switch (event) {
-#if ( ( defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 2) ) && ( ARDUINO_ESP32_GIT_VER != 0x46d5afb1 ) )
-    // For breaking core v2.0.0
-    // Why so strange to define a breaking enum arduino_event_id_t in WiFiGeneric.h
-    // compared to the old system_event_id_t, now in tools/sdk/esp32/include/esp_event/include/esp_event_legacy.h
-    // You can preserve the old enum order and just adding new items to do no harm
-    case ARDUINO_EVENT_ETH_START:
-        AWS_LOG(F("\nETH Started"));
-        //set eth hostname here
-        if(String(mConfig->sys.deviceName) != "")
-            ETH.setHostname(mConfig->sys.deviceName);
-        else
-            ETH.setHostname("ESP32_W5500");
-        break;
+        case ARDUINO_EVENT_ETH_START:
+            DPRINTLN(DBG_VERBOSE, F("ETH Started"));
 
-    case ARDUINO_EVENT_ETH_CONNECTED:
-        AWS_LOG(F("ETH Connected"));
-        break;
+            if(String(mConfig->sys.deviceName) != "")
+                ETH.setHostname(mConfig->sys.deviceName);
+            else
+                ETH.setHostname(F("ESP32_W5500"));
+            break;
 
-    case ARDUINO_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected) {
-            #if defined (CONFIG_IDF_TARGET_ESP32S3)
-            AWS_LOG3(F("ETH MAC: "), mEthSpi.macAddress(), F(", IPv4: "), ETH.localIP());
-            #else
-            AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
-            #endif
+        case ARDUINO_EVENT_ETH_CONNECTED:
+            DPRINTLN(DBG_VERBOSE, F("ETH Connected"));
+            break;
 
-            if (ETH.fullDuplex()) {
-                AWS_LOG0(F("FULL_DUPLEX, "));
-            } else {
-                AWS_LOG0(F("HALF_DUPLEX, "));
+        case ARDUINO_EVENT_ETH_GOT_IP:
+            if (!mEthConnected) {
+                /*DPRINT(DBG_INFO, F("ETH MAC: "));
+                DBGPRINT(mEthSpi.macAddress());*/
+                welcome(ETH.localIP().toString(), F(" (Station)"));
+
+                mEthConnected = true;
+                mOnNetworkCB(true);
             }
 
-            AWS_LOG1(ETH.linkSpeed(), F("Mbps"));
-
-            ESP32_W5500_eth_connected = true;
-            mOnNetworkCB(true);
-        }
-        if (!MDNS.begin(mConfig->sys.deviceName)) {
-            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
-        } else {
-            DBGPRINT(F("[WiFi] mDNS established: "));
-            DBGPRINT(mConfig->sys.deviceName);
-            DBGPRINTLN(F(".local"));
-        }
-        break;
-
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-      AWS_LOG("ETH Disconnected");
-      ESP32_W5500_eth_connected = false;
-      mUdp.close();
-      mOnNetworkCB(false);
-      break;
-
-    case ARDUINO_EVENT_ETH_STOP:
-      AWS_LOG("\nETH Stopped");
-      ESP32_W5500_eth_connected = false;
-      mUdp.close();
-      mOnNetworkCB(false);
-      break;
-
-#else
-
-    // For old core v1.0.6-
-    // Core v2.0.0 defines a stupid enum arduino_event_id_t, breaking any code for ESP32_W5500 written for previous core
-    // Why so strange to define a breaking enum arduino_event_id_t in WiFiGeneric.h
-    // compared to the old system_event_id_t, now in tools/sdk/esp32/include/esp_event/include/esp_event_legacy.h
-    // You can preserve the old enum order and just adding new items to do no harm
-    case SYSTEM_EVENT_ETH_START:
-        AWS_LOG(F("\nETH Started"));
-        //set eth hostname here
-        if(String(mConfig->sys.deviceName) != "")
-            ETH.setHostname(mConfig->sys.deviceName);
-        else
-            ETH.setHostname("ESP32_W5500");
-        break;
-
-    case SYSTEM_EVENT_ETH_CONNECTED:
-        AWS_LOG(F("ETH Connected"));
-        break;
-
-    case SYSTEM_EVENT_ETH_GOT_IP:
-        if (!ESP32_W5500_eth_connected) {
-            AWS_LOG3(F("ETH MAC: "), ETH.macAddress(), F(", IPv4: "), ETH.localIP());
-
-            if (ETH.fullDuplex()) {
-                AWS_LOG0(F("FULL_DUPLEX, "));
+            if (!MDNS.begin(mConfig->sys.deviceName)) {
+                DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
             } else {
-                AWS_LOG0(F("HALF_DUPLEX, "));
+                DBGPRINT(F("mDNS established: "));
+                DBGPRINT(mConfig->sys.deviceName);
+                DBGPRINTLN(F(".local"));
             }
+            break;
 
-            AWS_LOG1(ETH.linkSpeed(), F("Mbps"));
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+            DPRINTLN(DBG_INFO, F("ETH Disconnected"));
+            mEthConnected = false;
+            mUdp.close();
+            mOnNetworkCB(false);
+            break;
 
-            ESP32_W5500_eth_connected = true;
-            mOnNetworkCB(true);
-        }
-        if (!MDNS.begin(mConfig->sys.deviceName)) {
-            DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
-        } else {
-            DBGPRINT(F("[WiFi] mDNS established: "));
-            DBGPRINT(mConfig->sys.deviceName);
-            DBGPRINTLN(F(".local"));
-        }
-        break;
+        case ARDUINO_EVENT_ETH_STOP:
+            DPRINTLN(DBG_INFO, F("ETH Stopped"));
+            mEthConnected = false;
+            mUdp.close();
+            mOnNetworkCB(false);
+            break;
 
-    case SYSTEM_EVENT_ETH_DISCONNECTED:
-        AWS_LOG("ETH Disconnected");
-        ESP32_W5500_eth_connected = false;
-        mUdp.close();
-        mOnNetworkCB(false);
-        break;
-
-    case SYSTEM_EVENT_ETH_STOP:
-        AWS_LOG("\nETH Stopped");
-        ESP32_W5500_eth_connected = false;
-        mUdp.close();
-        mOnNetworkCB(false);
-        break;
-#endif
-
-    default:
-
-      break;
-  }
+        default:
+            break;
+    }
 
 }
 

@@ -306,7 +306,7 @@ class app : public IApp, public ah::Scheduler {
                 #if defined(ETHERNET)
                 mEth.updateNtpTime();
                 #else /* defined(ETHERNET) */
-                mWifi.getNtpTime();
+                mWifi.updateNtpTime();
                 #endif /* defined(ETHERNET) */
             }
             else
@@ -321,6 +321,14 @@ class app : public IApp, public ah::Scheduler {
             #endif
         }
 
+        uint32_t getHistoryPeriod(uint8_t type) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.getPeriod((HistoryStorageType)type);
+            #else
+                return 0;
+            #endif
+        }
+
         uint16_t getHistoryMaxDay() override {
             #if defined(ENABLE_HISTORY)
                 return mHistory.getMaximumDay();
@@ -328,6 +336,21 @@ class app : public IApp, public ah::Scheduler {
                 return 0;
             #endif
         }
+
+        uint32_t getHistoryLastValueTs(uint8_t type) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.getLastValueTs((HistoryStorageType)type);
+            #else
+                return 0;
+            #endif
+        }
+        #if defined(ENABLE_HISTORY_LOAD_DATA)
+        void addValueToHistory(uint8_t historyType, uint8_t valueType, uint32_t value) override {
+            #if defined(ENABLE_HISTORY)
+                return mHistory.addValue((HistoryStorageType)historyType, valueType, value);
+            #endif
+        }
+        #endif
 
     private:
         #define CHECK_AVAIL     true
@@ -379,10 +402,8 @@ class app : public IApp, public ah::Scheduler {
         }
 
         void tickNtpUpdate(void);
-        #if defined(ETHERNET)
         void onNtpUpdate(bool gotTime);
         bool mNtpReceived = false;
-        #endif /* defined(ETHERNET) */
         void updateNtp(void);
 
         void triggerTickSend() override {

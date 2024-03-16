@@ -9,6 +9,7 @@
 
 #include "../utils/dbg.h"
 #include <Arduino.h>
+#include <list>
 #include <WiFiUdp.h>
 #include <DNSServer.h>
 #include "ESPAsyncWebServer.h"
@@ -20,13 +21,14 @@ class app;
 class ahoywifi {
     public:
         typedef std::function<void(bool)> appWifiCb;
+        typedef std::function<void(bool)> OnTimeCB;
 
         ahoywifi();
 
 
-        void setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb);
+        void setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb, OnTimeCB onTimeCB);
         void tickWifiLoop(void);
-        bool getNtpTime(void);
+        bool updateNtpTime(void);
         void scanAvailNetworks(void);
         bool getAvailNetworks(JsonObject obj);
         void setStopApAllowedMode(bool allowed) {
@@ -73,6 +75,7 @@ class ahoywifi {
 
         settings_t *mConfig = nullptr;
         appWifiCb mAppWifiCb;
+        OnTimeCB mOnTimeCb;
 
         DNSServer mDns;
         IPAddress mApIp;

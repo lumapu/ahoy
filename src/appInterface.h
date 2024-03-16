@@ -7,11 +7,7 @@
 #define __IAPP_H__
 
 #include "defines.h"
-#if defined(ETHERNET)
-#include "AsyncWebServer_ESP32_W5500.h"
-#else
 #include "ESPAsyncWebServer.h"
-#endif
 
 // abstract interface to App. Make members of App accessible from child class
 // like web or API without forward declaration
@@ -67,8 +63,12 @@ class IApp {
         virtual bool isProtected(const char *clientIp, const char *token, bool askedFromWeb) const = 0;
 
         virtual uint16_t getHistoryValue(uint8_t type, uint16_t i) = 0;
+        virtual uint32_t getHistoryPeriod(uint8_t type) = 0;
         virtual uint16_t getHistoryMaxDay() = 0;
-
+        virtual uint32_t getHistoryLastValueTs(uint8_t type) = 0;
+        #if defined(ENABLE_HISTORY_LOAD_DATA)
+        virtual void addValueToHistory(uint8_t historyType, uint8_t valueType, uint32_t value) = 0;
+        #endif
         virtual void* getRadioObj(bool nrf) = 0;
 };
 

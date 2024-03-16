@@ -23,7 +23,10 @@ jobs:
     strategy:
       matrix:
         variant:
+          - opendtufusion
+          - opendtufusion-ethernet
           - esp8266
+          - esp8266-all
           - esp8266-minimal
           - esp8266-prometheus
           - esp8285
@@ -33,8 +36,6 @@ jobs:
           - esp32-wroom32-ethernet
           - esp32-s2-mini
           - esp32-c3-mini
-          - opendtufusion
-          - opendtufusion-ethernet
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0
@@ -86,7 +87,10 @@ jobs:
     strategy:
       matrix:
         variant:
+          - opendtufusion-de
+          - opendtufusion-ethernet-de
           - esp8266-de
+          - esp8266-all-de
           - esp8266-prometheus-de
           - esp8285-de
           - esp32-wroom32-de
@@ -94,8 +98,6 @@ jobs:
           - esp32-wroom32-ethernet-de
           - esp32-s2-mini-de
           - esp32-c3-mini-de
-          - opendtufusion-de
-          - opendtufusion-ethernet-de
     steps:
     - uses: actions/checkout@v4
     - uses: benjlevesque/short-sha@v3.0

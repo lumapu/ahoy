@@ -35,6 +35,6 @@ def check(inp, lst, pattern):
     return out
 
 def conv(inp, lst):
-    print(lst)
+    #print(lst)
     out = check(inp, lst, r'\/\*(?:IF_|ELS|ENDIF_)([A-Z0-9\-_]+)?\*\/')
     return check(out, lst, r'\<\!\-\-(?:IF_|ELS|ENDIF_)([A-Z0-9\-_]+)?\-\-\>')

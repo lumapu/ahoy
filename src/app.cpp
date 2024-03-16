@@ -63,7 +63,7 @@ void app::setup() {
     #endif // ETHERNET
 
     #if !defined(ETHERNET)
-        mWifi.setup(mConfig, &mTimestamp, std::bind(&app::onNetwork, this, std::placeholders::_1));
+        mWifi.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
         #if !defined(AP_ONLY)
             everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
         #endif
@@ -152,7 +152,6 @@ void app::setup() {
     });
     #endif /*ENABLE_SIMULATOR*/
 
-
     esp_task_wdt_reset();
     regularTickers();
 }
@@ -190,7 +189,7 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
-    DPRINTLN(DBG_DEBUG, F("onNetwork"));
+    DPRINTLN(DBG_INFO, F("onNetwork"));
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
@@ -238,11 +237,9 @@ void app::regularTickers(void) {
     #endif /*ENABLE_SIMULATOR*/
 }
 
-#if defined(ETHERNET)
 void app::onNtpUpdate(bool gotTime) {
     mNtpReceived = true;
 }
-#endif /* defined(ETHERNET) */
 
 //-----------------------------------------------------------------------------
 void app::updateNtp(void) {
@@ -283,30 +280,30 @@ void app::updateNtp(void) {
 //-----------------------------------------------------------------------------
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
-    bool isOK = false;
 
     #if defined(ETHERNET)
-    if (!mNtpReceived)
-        mEth.updateNtpTime();
-    else {
-        mNtpReceived = false;
-        isOK = true;
-    }
-    #else
-    isOK = mWifi.getNtpTime();
+        if (!mNtpReceived)
+            mEth.updateNtpTime();
+        else
+            mNtpReceived = false;
+        #else
+        if (!mNtpReceived)
+            mWifi.updateNtpTime();
+        else
+            mNtpReceived = false;
     #endif
-    if (isOK) {
-        this->updateNtp();
-        nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h
 
-        // immediately start communicating
-        if (mSendFirst) {
-            mSendFirst = false;
-            once(std::bind(&app::tickSend, this), 1, "senOn");
-        }
+    updateNtp();
+    nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h
 
-        mMqttReconnect = false;
+    // immediately start communicating
+    if (mSendFirst) {
+        mSendFirst = false;
+        once(std::bind(&app::tickSend, this), 1, "senOn");
     }
+
+    mMqttReconnect = false;
+
     once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
 }
 
@@ -608,10 +605,7 @@ void app::resetSystem(void) {
     mSaveReboot = false;
 
     mNetworkConnected = false;
-
-#if defined(ETHERNET)
     mNtpReceived = false;
-#endif
 }
 
 //-----------------------------------------------------------------------------

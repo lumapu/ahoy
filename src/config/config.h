@@ -77,6 +77,9 @@
     #ifndef DEF_ETH_CS_PIN
         #define DEF_ETH_CS_PIN      15
     #endif
+    #ifndef DEF_ETH_RST_PIN
+        #define DEF_ETH_RST_PIN     2
+    #endif
 #else /* defined(ETHERNET) */
 // time in seconds how long the station info (ssid + pwd) will be tried
 #define WIFI_TRY_CONNECT_TIME   30

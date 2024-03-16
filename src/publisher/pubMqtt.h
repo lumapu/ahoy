@@ -16,6 +16,10 @@
 #endif
 
 #include <array>
+#if defined(ETHERNET)
+#include "../eth/ahoyeth.h"
+#endif
+
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include <espMqttClient.h>

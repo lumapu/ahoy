@@ -30,10 +30,11 @@ ahoywifi::ahoywifi() : mApIp(192, 168, 4, 1) {}
 */
 
 //-----------------------------------------------------------------------------
-void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb) {
+void ahoywifi::setup(settings_t *config, uint32_t *utcTimestamp, appWifiCb cb, OnTimeCB onTimeCb) {
     mConfig = config;
     mUtcTimestamp = utcTimestamp;
     mAppWifiCb = cb;
+    mOnTimeCb = onTimeCb;
 
     mGotDisconnect = false;
     mStaConn = DISCONNECTED;
@@ -198,7 +199,7 @@ void ahoywifi::tickWifiLoop() {
             if (!MDNS.begin(mConfig->sys.deviceName)) {
                 DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
             } else {
-                DBGPRINT(F("[WiFi] mDNS established: "));
+                DBGPRINT(F("mDNS established: "));
                 DBGPRINT(mConfig->sys.deviceName);
                 DBGPRINTLN(F(".local"));
             }
@@ -275,7 +276,7 @@ void ahoywifi::setupStation(void) {
 
 
 //-----------------------------------------------------------------------------
-bool ahoywifi::getNtpTime(void) {
+bool ahoywifi::updateNtpTime(void) {
     if(IN_STA_MODE != mStaConn)
         return false;
 
@@ -302,6 +303,7 @@ bool ahoywifi::getNtpTime(void) {
 
                 *mUtcTimestamp = secsSince1900 - 2208988800UL; // UTC time
                 DPRINTLN(DBG_INFO, "[NTP]: " + ah::getDateTimeStr(*mUtcTimestamp) + " UTC");
+                mOnTimeCb(true);
                 return true;
             } else
                 delay(10);

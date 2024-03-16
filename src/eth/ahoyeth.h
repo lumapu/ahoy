@@ -9,16 +9,16 @@
 
 #include <functional>
 
+#include "../utils/dbg.h"
 #include <Arduino.h>
 #include <AsyncUDP.h>
 #include <DNSServer.h>
 
 #include "ethSpi.h"
+#include <ETH.h>
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include "../config/settings.h"
-
-#include "AsyncWebServer_ESP32_W5500.h"
 
 
 class app;
@@ -46,9 +46,9 @@ class ahoyeth {
         void onEthernetEvent(WiFiEvent_t event, arduino_event_info_t info);
 
     private:
-        #if defined(CONFIG_IDF_TARGET_ESP32S3)
+        //#if defined(CONFIG_IDF_TARGET_ESP32S3)
         EthSpi mEthSpi;
-        #endif
+        //#endif
         settings_t *mConfig = nullptr;
 
         uint32_t *mUtcTimestamp;
@@ -57,6 +57,7 @@ class ahoyeth {
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;
+        bool mEthConnected;
 
 };
 

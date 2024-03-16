@@ -16,11 +16,7 @@
 #include "../appInterface.h"
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
-#if defined(ETHERNET)
-#include "AsyncWebServer_ESP32_W5500.h"
-#else /* defined(ETHERNET) */
 #include "ESPAsyncWebServer.h"
-#endif /* defined(ETHERNET) */
 #include "html/h/api_js.h"
 #include "html/h/colorBright_css.h"
 #include "html/h/colorDark_css.h"

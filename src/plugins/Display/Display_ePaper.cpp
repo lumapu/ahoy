@@ -8,6 +8,7 @@
 #include "../../utils/helper.h"
 #include "imagedata.h"
 #include "defines.h"
+#include "../plugin_lang.h"
 
 #if defined(ESP32)
 
@@ -120,7 +121,7 @@ void DisplayEPaper::headlineIP() {
         if ((WiFi.isConnected() == true) && (WiFi.localIP() > 0)) {
             snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%s", WiFi.localIP().toString().c_str());
         } else {
-            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "WiFi not connected");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, STR_NO_WIFI);
         }
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -162,7 +163,7 @@ void DisplayEPaper::versionFooter() {
     _display->setPartialWindow(0, _display->height() - mHeadFootPadding, _display->width(), mHeadFootPadding);
     _display->fillScreen(GxEPD_BLACK);
     do {
-        snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "Version: %s", _version);
+        snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%s: %s", STR_VERSION, _version);
 
         _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
         uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -183,7 +184,7 @@ void DisplayEPaper::offlineFooter() {
     _display->fillScreen(GxEPD_BLACK);
     do {
         if (NULL != mUtcTs) {
-            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "offline");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, STR_OFFLINE);
 
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             uint16_t x = ((_display->width() - tbw) / 2) - tbx;
@@ -213,7 +214,7 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
             snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "%.0f W", totalPower);
             _changed = true;
         } else
-            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, "offline");
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, STR_OFFLINE);
 
         if ((totalPower == 0) && (mEnPowerSave)) {
             _display->fillRect(0, mHeadFootPadding, 200, 200, GxEPD_BLACK);
@@ -268,7 +269,7 @@ void DisplayEPaper::actualPowerPaged(float totalPower, float totalYieldDay, floa
             // Inverter online
             _display->setFont(&FreeSans12pt7b);
             y = _display->height() - (mHeadFootPadding + 10);
-            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, " %d online", isprod);
+            snprintf(_fmtText, EPAPER_MAX_TEXT_LEN, " %d %s", isprod, STR_ONLINE);
             _display->getTextBounds(_fmtText, 0, 0, &tbx, &tby, &tbw, &tbh);
             _display->drawInvertedBitmap(10, y - tbh, myWR, 20, 20, GxEPD_BLACK);
             x = ((_display->width() - tbw - 20) / 2) - tbx;

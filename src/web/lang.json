@@ -1754,34 +1754,24 @@
                     "de": "Gesamtleistung"
                 },
                 {
+                    "token": "TOTAL_POWER_DAY",
+                    "en": "Total Power Today",
+                    "de": "Gesamtleistung heute"
+                },
+                {
                     "token": "TOTAL_YIELD_PER_DAY",
                     "en": "Total Yield per day",
                     "de": "Gesamtertrag pro Tag"
                 },
                 {
                     "token": "MAX_DAY",
-                    "en": "maximum day",
+                    "en": "Maximum day",
                     "de": "Tagesmaximum"
                 },
                 {
                     "token": "LAST_VALUE",
-                    "en": "last value",
-                    "de": "letzter Wert"
-                },
-                {
-                    "token": "MAXIMUM",
-                    "en": "maximum value",
-                    "de": "Maximalwert"
-                },
-                {
-                    "token": "UPDATED",
-                    "en": "Updated every",
-                    "de": "aktualisiert alle"
-                },
-                {
-                    "token": "SECONDS",
-                    "en": "seconds",
-                    "de": "Sekunden"
+                    "en": "Last value",
+                    "de": "Letzter Wert"
                 }
             ]
         }
