@@ -3,7 +3,7 @@
 ## 0.8.94 - 2024-03-16
 * switched AsyncWebServer library
 * Ethernet version now uses same AsyncWebServer library as Wifi version
-* fix languange of `/history`
+* fix translation of `/history`
 * fix RSSI on `/history` #1463
 
 ## 0.8.93 - 2024-03-14
