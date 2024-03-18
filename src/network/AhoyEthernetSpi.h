@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
-// 2024 Ahoy, https://www.mikrocontroller.net/topic/525778
-// Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
 #if defined(ETHERNET)
@@ -18,10 +18,10 @@
 void tcpipInit();
 void add_esp_interface_netif(esp_interface_t interface, esp_netif_t* esp_netif);
 
-class EthSpi {
+class AhoyEthernetSpi {
     public:
 
-        EthSpi() :
+        AhoyEthernetSpi() :
             eth_handle(nullptr),
             eth_netif(nullptr) {}
 

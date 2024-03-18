@@ -724,6 +724,11 @@
                     "de": "CMT2300A Funkmodul aktivieren"
                 },
                 {
+                    "token": "ETH_ENABLE",
+                    "en": "Ethernet enable",
+                    "de": "Ethernet aktivieren"
+                },
+                {
                     "token": "DISP_NONE",
                     "en": "None",
                     "de": "keins"

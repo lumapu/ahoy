@@ -31,7 +31,7 @@ void ahoyeth::setup(settings_t *config, uint32_t *utcTimestamp, OnNetworkCB onNe
     WiFi.onEvent([this](WiFiEvent_t event, arduino_event_info_t info) -> void { this->onEthernetEvent(event, info); });
 
     Serial.flush();
-    mEthSpi.begin(DEF_ETH_MISO_PIN, DEF_ETH_MOSI_PIN, DEF_ETH_SCK_PIN, DEF_ETH_CS_PIN, DEF_ETH_IRQ_PIN, DEF_ETH_RST_PIN);
+    mEthSpi.begin(config->sys.eth.pinMiso, config->sys.eth.pinMosi, config->sys.eth.pinSclk, config->sys.eth.pinCs, config->sys.eth.pinIrq, config->sys.eth.pinRst);
 
     if(mConfig->sys.ip.ip[0] != 0) {
         IPAddress ip(mConfig->sys.ip.ip);

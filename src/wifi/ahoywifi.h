@@ -63,7 +63,7 @@ class ahoywifi {
         void connectionEvent(WiFiStatus_t status);
         bool isTimeout(uint8_t timeout) {  return (mCnt % timeout) == 0; }
 
-#if defined(ESP8266)
+        #if defined(ESP8266)
         void onConnect(const WiFiEventStationModeConnected& event);
         void onGotIP(const WiFiEventStationModeGotIP& event);
         void onDisconnect(const WiFiEventStationModeDisconnected& event);

@@ -381,6 +381,8 @@ class RestApi {
             obj[F("hidd")]         = mConfig->sys.isHidden;
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("wifi_channel")] = WiFi.channel();
+            #else
+            getEthernet(obj.createNestedObject(F("eth")));
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
@@ -759,6 +761,18 @@ class RestApi {
                 obj[F("sn")]          = String(mRadioCmt->getDTUSn(), HEX);
                 obj[F("irqOk")]       = mRadioCmt->mIrqOk;
             }
+        }
+        #endif
+
+        #if defined(ETHERNET)
+        void getEthernet(JsonObject obj) {
+            obj[F("en")]           = mConfig->sys.eth.enabled;
+            obj[F("cs")]           = mConfig->sys.eth.pinCs;
+            obj[F("sclk")]         = mConfig->sys.eth.pinSclk;
+            obj[F("miso")]         = mConfig->sys.eth.pinMiso;
+            obj[F("mosi")]         = mConfig->sys.eth.pinMosi;
+            obj[F("irq")]          = mConfig->sys.eth.pinIrq;
+            obj[F("reset")]        = mConfig->sys.eth.pinRst;
         }
         #endif
 
