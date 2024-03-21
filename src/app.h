@@ -39,7 +39,11 @@
 #if defined(ETHERNET)
     #include "network/AhoyEthernet.h"
 #else /* defined(ETHERNET) */
-    #include "network/AhoyWifiEsp32.h"
+    #if defined(ESP32)
+        #include "network/AhoyWifiEsp32.h"
+    #else
+        #include "network/AhoyWifiEsp8266.h"
+    #endif
     #include "utils/improv.h"
 #endif /* defined(ETHERNET) */
 

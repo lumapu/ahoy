@@ -7,17 +7,10 @@
 #define __AHOY_NETWORK_H__
 
 #include "AhoyNetworkHelper.h"
-#include <AsyncUDP.h>
 #include "../config/settings.h"
 #include "../utils/helper.h"
 #include "AhoyWifiAp.h"
 #include "AsyncJson.h"
-
-#if defined(ESP32)
-#include <ESPmDNS.h>
-#else
-#include <ESP8266mDNS.h>
-#endif
 
 #define NTP_PACKET_SIZE 48
 
@@ -46,15 +39,15 @@ class AhoyNetwork {
             #else
             wifiConnectHandler = WiFi.onStationModeConnected(
                 [this](const WiFiEventStationModeConnected& event) -> void {
-                OnEvent(SYSTEM_EVENT_STA_CONNECTED);
+                OnEvent((WiFiEvent_t)SYSTEM_EVENT_STA_CONNECTED);
             });
             wifiGotIPHandler = WiFi.onStationModeGotIP(
                 [this](const WiFiEventStationModeGotIP& event) -> void {
-                OnEvent(SYSTEM_EVENT_STA_GOT_IP);
+                OnEvent((WiFiEvent_t)SYSTEM_EVENT_STA_GOT_IP);
             });
             wifiDisconnectHandler = WiFi.onStationModeDisconnected(
                 [this](const WiFiEventStationModeDisconnected& event) -> void {
-                OnEvent(SYSTEM_EVENT_STA_DISCONNECTED);
+                OnEvent((WiFiEvent_t)SYSTEM_EVENT_STA_DISCONNECTED);
             });
             #endif
         }
@@ -194,8 +187,14 @@ class AhoyNetwork {
         NetworkState mStatus = NetworkState::DISCONNECTED;
 
         AhoyWifiAp mAp;
-        AsyncUDP mUdp; // for time server
         DNSServer mDns;
+
+        #if defined(ESP32)
+            AsyncUDP mUdp; // for time server
+        #else
+            WiFiUDP mUdp; // for time server
+            WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
+        #endif
 };
 
 #endif /*__AHOY_NETWORK_H__*/

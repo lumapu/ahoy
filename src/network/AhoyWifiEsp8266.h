@@ -3,14 +3,14 @@
 // Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
 //-----------------------------------------------------------------------------
 
-#ifndef __AHOY_WIFI_ESP32_H__
-#define __AHOY_WIFI_ESP32_H__
+#ifndef __AHOY_WIFI_ESP8266_H__
+#define __AHOY_WIFI_ESP8266_H__
 
-#if defined(ESP32) && !defined(ETHERNET)
+#if defined(ESP8266)
 #include <functional>
-#include <AsyncUDP.h>
-#include <Wifi.h>
+#include <WiFiUdp.h>
 #include "AhoyNetwork.h"
+#include "ESPAsyncWebServer.h"
 
 class AhoyWifi : public AhoyNetwork {
     public:
@@ -23,9 +23,7 @@ class AhoyWifi : public AhoyNetwork {
             });
 
             WiFi.setHostname(mConfig->sys.deviceName);
-            WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-            WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
-            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
+            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
 
             DBGPRINT(F("connect to network '")); Serial.flush();
             DBGPRINT(mConfig->sys.stationSsid);
@@ -108,5 +106,5 @@ class AhoyWifi : public AhoyNetwork {
         bool mScanActive = false;
 };
 
-#endif /*ESP32 & !ETHERNET*/
-#endif /*__AHOY_WIFI_ESP32_H__*/
+#endif /*ESP8266*/
+#endif /*__AHOY_WIFI_ESP8266_H__*/
