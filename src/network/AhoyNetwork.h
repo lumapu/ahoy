@@ -189,10 +189,8 @@ class AhoyNetwork {
         AhoyWifiAp mAp;
         DNSServer mDns;
 
-        #if defined(ESP32)
-            AsyncUDP mUdp; // for time server
-        #else
-            WiFiUDP mUdp; // for time server
+        AsyncUDP mUdp; // for time server
+        #if defined(ESP8266)
             WiFiEventHandler wifiConnectHandler, wifiDisconnectHandler, wifiGotIPHandler;
         #endif
 };
