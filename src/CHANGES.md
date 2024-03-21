@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.96 - 2024-03-21
+* fix precision of power limit in `/live` #1517
+* fix translation of `Werte ausgeben` in `settings` #1507
+* add grid profile #1518
+
 ## 0.8.95 - 2024-03-17
 * fix NTP issues #1440 #1497 #1499
 

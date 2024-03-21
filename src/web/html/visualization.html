@@ -116,7 +116,7 @@
                 if(65535 != obj.power_limit_read) {
                     pwrLimit = obj.power_limit_read + "&nbsp;%";
                     if(0 != obj.max_pwr)
-                        pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100) + "&nbsp;W";
+                        pwrLimit += ", " + (obj.max_pwr * obj.power_limit_read / 100).toFixed(1) + "&nbsp;W";
                 }
 
                 var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
