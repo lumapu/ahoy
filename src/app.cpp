@@ -53,17 +53,16 @@ void app::setup() {
         mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, mConfig->sys.region);
     }
     #endif
+
     #ifdef ETHERNET
         delay(1000);
-        mEth.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
+        mNetwork = (AhoyNetwork*) new AhoyEthernet();
+    #else
+        mNetwork = (AhoyNetwork*) new AhoyWifi();
     #endif // ETHERNET
-
-    #if !defined(ETHERNET)
-        mWifi.setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
-        #if !defined(AP_ONLY)
-            everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-        #endif
-    #endif /* defined(ETHERNET) */
+    mNetwork->setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
+    mNetwork->begin();
+    everySec(std::bind(&AhoyNetwork::tickNetworkLoop, mNetwork), "net");
 
     esp_task_wdt_reset();
 
@@ -89,7 +88,7 @@ void app::setup() {
     #if defined(ENABLE_MQTT)
     mMqttEnabled = (mConfig->mqtt.broker[0] > 0);
     if (mMqttEnabled) {
-        mMqtt.setup(&mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
+        mMqtt.setup(this, &mConfig->mqtt, mConfig->sys.deviceName, mVersion, &mSys, &mTimestamp, &mUptime);
         mMqtt.setSubscriptionCb(std::bind(&app::mqttSubRxCb, this, std::placeholders::_1));
         mCommunication.addAlarmListener([this](Inverter<> *iv) { mMqtt.alarmEvent(iv); });
     }
@@ -171,12 +170,6 @@ void app::onNetwork(bool gotIp) {
     mMqttReconnect = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
-    #if !defined(ETHERNET)
-    if (WIFI_AP == WiFi.getMode()) {
-        mMqttEnabled = false;
-    }
-    everySec(std::bind(&ahoywifi::tickWifiLoop, &mWifi), "wifiL");
-    #endif /* !defined(ETHERNET) */
 }
 
 //-----------------------------------------------------------------------------
@@ -248,17 +241,10 @@ void app::updateNtp(void) {
 void app::tickNtpUpdate(void) {
     uint32_t nxtTrig = 5;  // default: check again in 5 sec
 
-    #if defined(ETHERNET)
-        if (!mNtpReceived)
-            mEth.updateNtpTime();
-        else
-            mNtpReceived = false;
-        #else
-        if (!mNtpReceived)
-            mWifi.updateNtpTime();
-        else
-            mNtpReceived = false;
-    #endif
+    if (!mNtpReceived)
+        mNetwork->updateNtpTime();
+    else
+        mNtpReceived = false;
 
     updateNtp();
     nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h

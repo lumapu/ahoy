@@ -893,7 +893,7 @@ class RestApi {
             mApp->getAvailNetworks(obj);
         }
         void getWifiIp(JsonObject obj) {
-            obj[F("ip")] = mApp->getStationIp();
+            obj[F("ip")] = mApp->getIp();
         }
         #endif /* !defined(ETHERNET) */
 
@@ -1048,7 +1048,7 @@ class RestApi {
                 snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", jsonIn[F("ssid")].as<const char*>());
                 snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", jsonIn[F("pwd")].as<const char*>());
                 mApp->saveSettings(false); // without reboot
-                mApp->setStopApAllowedMode(false);
+                //mApp->setStopApAllowedMode(false);
                 mApp->setupStation();
             }
             #endif /* !defined(ETHERNET */

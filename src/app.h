@@ -37,9 +37,9 @@
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
-    #include "eth/ahoyeth.h"
+    #include "network/AhoyEthernet.h"
 #else /* defined(ETHERNET) */
-    #include "wifi/ahoywifi.h"
+    #include "network/AhoyWifiEsp32.h"
     #include "utils/improv.h"
 #endif /* defined(ETHERNET) */
 
@@ -164,30 +164,29 @@ class app : public IApp, public ah::Scheduler {
 
         #if !defined(ETHERNET)
         void scanAvailNetworks() override {
-            mWifi.scanAvailNetworks();
+            mNetwork->scanAvailNetworks();
         }
 
         bool getAvailNetworks(JsonObject obj) override {
-            return mWifi.getAvailNetworks(obj);
+            return mNetwork->getAvailNetworks(obj);
         }
 
         void setupStation(void) override {
-            mWifi.setupStation();
+            mNetwork->begin();
         }
 
-        void setStopApAllowedMode(bool allowed) override {
+        /*void setStopApAllowedMode(bool allowed) override {
             mWifi.setStopApAllowedMode(allowed);
-        }
-
-        String getStationIp(void) override {
-            return mWifi.getStationIp();
-        }
+        }*/
 
         bool getWasInCh12to14(void) const override {
-            return mWifi.getWasInCh12to14();
+            return false; // @todo  mWifi.getWasInCh12to14();
         }
-
         #endif /* !defined(ETHERNET) */
+
+        String getIp(void) override {
+            return mNetwork->getIp();
+        }
 
         void setRebootFlag() override {
             once(std::bind(&app::tickReboot, this), 3, "rboot");
@@ -295,13 +294,7 @@ class app : public IApp, public ah::Scheduler {
             DPRINT(DBG_DEBUG, F("setTimestamp: "));
             DBGPRINTLN(String(newTime));
             if(0 == newTime)
-            {
-                #if defined(ETHERNET)
-                mEth.updateNtpTime();
-                #else /* defined(ETHERNET) */
-                mWifi.updateNtpTime();
-                #endif /* defined(ETHERNET) */
-            }
+                mNetwork->updateNtpTime();
             else
                 Scheduler::setTimestamp(newTime);
         }
@@ -414,11 +407,7 @@ class app : public IApp, public ah::Scheduler {
 
         bool mShowRebootRequest = false;
 
-        #if defined(ETHERNET)
-        ahoyeth mEth;
-        #else /* defined(ETHERNET) */
-        ahoywifi mWifi;
-        #endif /* defined(ETHERNET) */
+        AhoyNetwork *mNetwork;
         WebType mWeb;
         RestApiType mApi;
         Protection *mProtection = nullptr;

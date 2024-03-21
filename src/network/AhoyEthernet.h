@@ -6,77 +6,64 @@
 #ifndef __AHOY_ETHERNET_H__
 #define __AHOY_ETHERNET_H__
 
+#if defined(ETHERNET)
 #include <functional>
 #include <AsyncUDP.h>
 #include <ETH.h>
 #include "AhoyEthernetSpi.h"
-#include "AhoyEthernet.h"
+#include "AhoyNetwork.h"
 
 class AhoyEthernet : public AhoyNetwork {
     public:
         void begin() override {
+            mAp.enable();
+
+            // static IP
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
                 return ETH.config(ip, gateway, mask, dns1, dns2);
             });
+
+            ETH.setHostname(mConfig->sys.deviceName);
         }
 
         void tickNetworkLoop() override {
-            switch(mState) {
+            if(mAp.isEnabled())
+                mAp.tickLoop();
+
+            switch(mStatus) {
                 case NetworkState::DISCONNECTED:
+                    if(mConnected) {
+                        mConnected = false;
+                        mOnNetworkCB(false);
+                        mAp.enable();
+                    }
+                    break;
+
+                case NetworkState::CONNECTED:
+                    break;
+
+                case NetworkState::GOT_IP:
+                    mAp.disable();
+
+                    if(!mConnected) {
+                        mConnected = true;
+                        ah::welcome(ETH.localIP().toString(), F("Station"));
+                        MDNS.begin(mConfig->sys.deviceName);
+                        mOnNetworkCB(true);
+                    }
                     break;
             }
         }
 
-    private:
+        String getIp(void) override {
+            return ETH.localIP().toString();
+        }
 
-        /*switch (event) {
-            case ARDUINO_EVENT_ETH_START:
-                DPRINTLN(DBG_VERBOSE, F("ETH Started"));
-
-                if(String(mConfig->sys.deviceName) != "")
-                    ETH.setHostname(mConfig->sys.deviceName);
-                else
-                    ETH.setHostname(F("ESP32_W5500"));
-                break;
-
-            case ARDUINO_EVENT_ETH_CONNECTED:
-                DPRINTLN(DBG_VERBOSE, F("ETH Connected"));
-                break;
-
-            case ARDUINO_EVENT_ETH_GOT_IP:
-                if (!mEthConnected) {
-                    welcome(ETH.localIP().toString(), F(" (Station)"));
-
-                    mEthConnected = true;
-                    mOnNetworkCB(true);
-                }
-
-                if (!MDNS.begin(mConfig->sys.deviceName)) {
-                    DPRINTLN(DBG_ERROR, F("Error setting up MDNS responder!"));
-                } else {
-                    DBGPRINT(F("mDNS established: "));
-                    DBGPRINT(mConfig->sys.deviceName);
-                    DBGPRINTLN(F(".local"));
-                }
-                break;
-
-            case ARDUINO_EVENT_ETH_DISCONNECTED:
-                DPRINTLN(DBG_INFO, F("ETH Disconnected"));
-                mEthConnected = false;
-                mUdp.close();
-                mOnNetworkCB(false);
-                break;
-
-            case ARDUINO_EVENT_ETH_STOP:
-                DPRINTLN(DBG_INFO, F("ETH Stopped"));
-                mEthConnected = false;
-                mUdp.close();
-                mOnNetworkCB(false);
-                break;
-
-            default:
-                break;
-        }*/
+        void scanAvailNetworks(void) override {};
+        bool getAvailNetworks(JsonObject obj) override {
+            return false;
+        }
 };
 
+#endif /*ETHERNET*/
 #endif /*__AHOY_ETHERNET_H__*/

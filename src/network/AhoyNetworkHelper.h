@@ -13,17 +13,7 @@
 #include <DNSServer.h>
 
 namespace ah {
-    void welcome(String ip, String info) {
-        DBGPRINTLN(F("\n\n-------------------"));
-        DBGPRINTLN(F("Welcome to AHOY!"));
-        DBGPRINT(F("\npoint your browser to http://"));
-        DBGPRINT(ip);
-        DBGPRINT(" (");
-        DBGPRINT(info);
-        DBGPRINTLN(")");
-        DBGPRINTLN(F("to configure your device"));
-        DBGPRINTLN(F("-------------------\n"));
-    }
+    void welcome(String ip, String info);
 }
 
 #endif /*__AHOY_NETWORK_HELPER_H__*/

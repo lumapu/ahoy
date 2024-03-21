@@ -25,10 +25,10 @@ class AhoyWifiAp {
         }
 
         void enable() {
+            if(mEnabled)
+                return;
+
             ah::welcome(mIp.toString(), String(F("Password: ") + String(mCfg->apPwd)));
-            if('\0' == mCfg->deviceName[0])
-                snprintf(mCfg->deviceName, DEVNAME_LEN, "%s", DEF_DEVICE_NAME);
-            WiFi.hostname(mCfg->deviceName);
 
             #if defined(ETHERNET)
             WiFi.mode(WIFI_AP);
@@ -45,6 +45,9 @@ class AhoyWifiAp {
         }
 
         void disable() {
+            if(!mEnabled)
+                return;
+
             mDns.stop();
             WiFi.softAPdisconnect();
             #if defined(ETHERNET)
@@ -56,7 +59,7 @@ class AhoyWifiAp {
             mEnabled = false;
         }
 
-        bool getEnable() const {
+        bool isEnabled() const {
             return mEnabled;
         }
 

@@ -91,10 +91,11 @@ typedef struct {
     char stationSsid[SSID_LEN];
     char stationPwd[PWD_LEN];
     bool isHidden;
+#else
+    cfgEth_t eth;
 #endif /* !defined(ETHERNET) */
 
     cfgIp_t ip;
-    cfgEth_t eth;
 } cfgSys_t;
 
 typedef struct {
