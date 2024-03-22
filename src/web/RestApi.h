@@ -332,7 +332,7 @@ class RestApi {
                     if(-1 != i) {
                         i+=5;
                         String sn = tmp.substring(i, tmp.indexOf("\"", i)-1);
-                        tmp.replace(sn, String(atoll(sn.c_str()), HEX));
+                        tmp.replace(sn, String(sn) + ",\"note\":\"" + String(atoll(sn.c_str()),  HEX) + "\"");
                     }
                 }
                 response = request->beginResponse(200, F("application/json; charset=utf-8"), tmp);

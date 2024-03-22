@@ -804,7 +804,7 @@
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
 
-                var ser = ml("input", {name: "ser", class: "text", type: "number", max: 138999999999, value: obj.serial}, null);
+                var ser = ml("input", {name: "ser", class: "text", type: "text", pattern: "[0-9a-fA-F]{12}", value: obj.serial}, null);
                 var html = ml("div", {}, [
                     tabs(["{#TAB_GENERAL}", "{#TAB_INPUTS}", "{#TAB_RADIO}", "{#TAB_ADVANCED}"]),
                     ml("div", {id: "div{#TAB_GENERAL}", class: "tab-content"}, [
