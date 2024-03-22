@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "SML.h"
-#include "SMLCRCTable.h"
+#include "sml.h"
+#include "smlCrcTable.h"
 
 #ifdef SML_DEBUG
 char logBuff[200];
@@ -80,7 +80,7 @@ void pushListBuffer(unsigned char byte)
 
 void reduceList()
 {
-  if (currentLevel <= MAX_TREE_SIZE && nodes[currentLevel] > 0)
+  if (currentLevel >= 0 && nodes[currentLevel] > 0)
     nodes[currentLevel]--;
 }
 
@@ -171,7 +171,7 @@ void checkMagicByte(unsigned char &byte)
       // Datatype Octet String
       setState(SML_HDATA, (byte & 0x0F) << 4);
     }
-    else if (byte >= 0xF0 /*&& byte <= 0xFF*/) {
+    else if (byte >= 0xF0 && byte <= 0xFF) {
       /* Datatype List of ...*/
       setState(SML_LISTEXTENDED, (byte & 0x0F) << 4);
     }
@@ -402,4 +402,20 @@ void smlOBISAmpere(double &a)
   smlOBISByUnit(val, sc, SML_AMPERE);
   a = val;
   smlPow(a, sc);
+}
+
+void smlOBISHertz(double &h)
+{
+  long long int val;
+  smlOBISByUnit(val, sc, SML_HERTZ);
+  h = val;
+  smlPow(h, sc);
+}
+
+void smlOBISDegree(double &d)
+{
+  long long int val;
+  smlOBISByUnit(val, sc, SML_DEGREE);
+  d = val;
+  smlPow(d, sc);
 }

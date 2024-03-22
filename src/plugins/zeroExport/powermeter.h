@@ -9,7 +9,15 @@
 #include <list>
 
 #include "SML.h"
+#include <Base64.h>
 #include "config/settings.h"
+
+typedef struct {
+    const unsigned char OBIS[6];
+    void (*Fn)(double&);
+    float* Arg;
+} OBISHandler;
+
 
 class powermeter {
    public:
@@ -50,6 +58,11 @@ class powermeter {
                 break;
             case 5:
                 result = getPowermeterWattsTibber(logObj, group);
+                 if (result) {
+                    logObj["export"]  = String(_powerMeterExport);
+                    logObj["import"]  = String(_powerMeterImport);
+                    logObj["power"]  = String(_powerMeter1Power);
+                }
                 break;
         }
         if (!result) {
@@ -380,25 +393,83 @@ class powermeter {
      * @param logObj
      * @param group
      * @returns true/false
+     * @TODO: Username & Passwort wird mittels base64 verschlüsselt. Dies wird für die Authentizierung benötigt. Wichtig diese im WebUI unkenntlich zu machen und base64 im eeprom zu speichern, statt klartext.
      */
+
+    sml_states_t currentState;
+
+    float _powerMeter1Power = 0.0;
+    float _powerMeter2Power = 0.0;
+    float _powerMeter3Power = 0.0;
+
+    float _powerMeterImport = 0.0;
+    float _powerMeterExport = 0.0;
+
+    const std::list<OBISHandler> smlHandlerList{
+        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},
+        {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
+        {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}
+    };
+
+
     bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
         bool result = false;
 
-        logObj["mod"] = "getPowermeterWattsTibber";
-
-        mCfg->groups[group].pmPower = 0;
+        mCfg->groups[group].pmPower   = 0;
         mCfg->groups[group].pmPowerL1 = 0;
         mCfg->groups[group].pmPowerL2 = 0;
         mCfg->groups[group].pmPowerL3 = 0;
 
-        result = true;
+        HTTPClient http;
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setUserAgent("Ahoy-Agent");
+        http.setConnectTimeout(500);
+        http.setTimeout(500);
+        http.addHeader("Content-Type", "application/json");
+        http.addHeader("Accept", "application/json");
 
-        logObj["P"] = mCfg->groups[group].pmPower;
-        logObj["P1"] = mCfg->groups[group].pmPowerL1;
-        logObj["P2"] = mCfg->groups[group].pmPowerL2;
-        logObj["P3"] = mCfg->groups[group].pmPowerL3;
+        String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
+        String auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
 
-        return result;
+        http.begin(url);
+        http.addHeader("Authorization", "Basic " + auth);
+
+        if (http.GET() == HTTP_CODE_OK)
+        {
+            String myString = http.getString();
+
+            char floatBuffer[20];
+            double readVal = 0;
+
+            unsigned char c;
+            for (int i = 0; i < http.getSize(); ++i)
+            {
+                c = myString[i];
+                sml_states_t smlCurrentState = smlState(c);
+
+                switch(smlCurrentState)
+                {
+                    case SML_FINAL:
+                            mCfg->groups[group].pmPower = _powerMeter1Power;
+                            /*mCfg->groups[group].pmPower = _powerMeterImport;
+                            mCfg->groups[group].pmPower = _powerMeterExport;*/
+                        return true;
+                        break;
+                    case SML_LISTEND:
+                        // check handlers on last received list
+                        for (auto &handler: smlHandlerList)
+                        {
+                            if (smlOBISCheck(handler.OBIS)) {
+                                handler.Fn(readVal);
+                                *handler.Arg = readVal;
+                            }
+                        }
+                    break;
+                }
+            }
+        }
+        http.end();
+        return false;
     }
 
    private:
