@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.97 - 2024-03-22
+* add support for newest generation of inverters with A-F in their serial number
+* fix NTP and sunrise / sunset
+* set default coordinates to the mid of Germany #1516
+
 ## 0.8.96 - 2024-03-21
 * fix precision of power limit in `/live` #1517
 * fix translation of `Werte ausgeben` in `settings` #1507
