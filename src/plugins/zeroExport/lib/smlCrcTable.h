@@ -5,14 +5,6 @@
 
 #ifdef ARDUINO
 #include <Arduino.h>
-
-
-/*
- * This mysterious table is just the CRC of each possible byte. It can be
- * computed using the standard bit-at-a-time methods. The polynomial can
- * be seen in entry 128, 0x8408. This corresponds to x^0 + x^5 + x^12.
- * Add the implicit x^16, and you have the standard CRC-CCITT.
- */
 static const uint16_t smlCrcTable[256] PROGMEM =
 #else
 static const uint16_t smlCrcTable[256] =
