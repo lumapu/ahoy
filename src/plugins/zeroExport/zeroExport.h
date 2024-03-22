@@ -50,9 +50,6 @@ class ZeroExport {
             mMqtt    = mqtt;
 
             mIsInitialized = mPowermeter.setup(mCfg);
-
-// TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
-            mIsInitialized = false;
         }
 
         /** loop
@@ -916,7 +913,7 @@ result = true;
                 mLog[String(i)] = String(i) + String(" grpTarget: ") + String(grpTarget[i]) + String(": ivPmin: ") + String(ivPmin[i]) + String(": ivPmax: ") + String(ivPmax[i]) + String(": ivId_Pmin: ") + String(ivId_Pmin[i]) + String(": ivId_Pmax: ") + String(ivId_Pmax[i]);
             }
 
-            for (uint8_t i = 7; i > 0; --i) {
+            for (int8_t i = (7 - 1); i >= 0; i--) {
                 if (!grpTarget[i]) {
                     continue;
                 }

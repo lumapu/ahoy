@@ -1349,6 +1349,14 @@
                         divRow("{#ZE_GROUP_TAB_GENERAL_GRUPPE}", String(obj.id)),
                         divRow("{#ZE_GROUP_TAB_GENERAL_ENABLE}", cbEnabled),
                         divRow("{#ZE_GROUP_TAB_GENERAL_NAME}", ml("input", {name: "name", class: "text", type: "text", value: obj.name}, null)),
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                        divRow("Hinweis: ",
+                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                        ),
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                        divRow("ACHTUNG: ",
+                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                        ),
                     ]),
                     // Powermeter
                     ml("div", {id: "div{#ZE_GROUP_TAB_POWERMETER}", class: "tab-content hide"}, [
@@ -1357,19 +1365,9 @@
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
-// TODO: Hilfstexte -> �bersetzen mit lang.json
-                            ml("p", {}, "(3em)                - http://IP/status"),
-                            ml("p", {}, "(pro3em)             - http://IP/rpc/Shelly.GetStatus"),
-                            ml("p", {}, "(plus1pm)            - http://IP/rpc/Shelly.GetStatus"),
-                            ml("p", {}, "(plus2pm)            - http://IP/rpc/Shelly.GetStatus"),
-                            ml("p", {}, "(plus1pmAlternative) - http://IP/rpc/switch.GetStatus?id=0"),
-                            ml("p", {}, "(plus2pmAlternative) - http://IP/rpc/switch.GetStatus?id=0"),
-//                            ml("p", {}, "A JSON-Format is required to work properly.<br>HICHI:  http://IP_Address/cm?cmnd=status%208"),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
-// TODO: Hilfstexte -> �bersetzen mit lang.json
-//                            ml("p", {}, "Only for HICHI needed!"),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
                             ml("input", {name: "pm_user", class: "text", type: "text", value: obj.pm_user}, null),
@@ -1377,10 +1375,26 @@
                         divRow("{#ZE_GROUP_TAB_POWERMETER_PASS}",
                             ml("input", {name: "pm_pass", class: "text", type: "text", value: obj.pm_pass}, null),
                         ),
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                        divRow("Hinweis: ",
+                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                        ),
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                        divRow("ACHTUNG: ",
+                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                        ),
                     ]),
                     // Inverter
                     ml("div", {id: "div{#ZE_GROUP_TAB_INVERTER}", class: "tab-content hide"}, [
                         ml("table", {class: "table"}, ml("tbody", {}, lines)),
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                        divRow("Hinweis: ",
+                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                        ),
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                        divRow("ACHTUNG: ",
+                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                        ),
                     ]),
                     // Battery
                     ml("div", {id: "div{#ZE_GROUP_TAB_BATTERY}", class: "tab-content hide"}, [
@@ -1388,6 +1402,14 @@
                         divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEON}", ml("input", {name: "battVoltageOn", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOn}, null)),
                         divRow("{#ZE_GROUP_TAB_BATTERY_BATTVOLTAGEOFF}", ml("input", {name: "battVoltageOff", class: "text", type: "number", min: "0", max: "100", step: "0.1", value: obj.battVoltageOff}, null)),
                         divRow("{#ZE_GROUP_TAB_BATTERY_ONOFF}", ml("input", {name: "battSwitch", id: "battSwitch", class: "btn", type: "button", value: "{#BTN_ONOFF}", onclick: battOnOff()}, null)),
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                        divRow("Hinweis: ",
+                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                        ),
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                        divRow("ACHTUNG: ",
+                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                        ),
                     ]),
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
@@ -1398,11 +1420,19 @@
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KP}", ml("input", {name: "Kp", class: "text", type: "number", min: "-1", max: "0", step: "0.001", value: obj.Kp}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KI}", ml("input", {name: "Ki", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Ki}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_KD}", ml("input", {name: "Kd", class: "text", type: "number", min: "-0.01", max: "0", step: "0.001", value: obj.Kd}, null)),
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                        divRow("Hinweis: ",
+                            ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                        ),
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                        divRow("ACHTUNG: ",
+                            ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                        ),
                     ]),
                     // Global
                     ml("div", {class: "row mt-5"}, [
                         ml("div", {class: "col-8", id: "res"}, ""),
-                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "{#ZE_GROUP_EDIT_BTN_SAVE}", class: "btn", onclick: function() { save(); }}, null))
+                        ml("div", {class: "col-4 a-r"}, ml("input", {type: "button", value: "{#ZE_GROUP_EDIT_BTN_SAVE}", class: "btn", onclick: function() { save(); }}, null)),
                     ])
                 ]);
 
@@ -1651,6 +1681,18 @@
                 var e = document.getElementById("ze_groups");
                 e.innerHTML = ""; // remove all childs
                 e.append(ml("table", {class: "table"}, ml("tbody", {}, lines)));
+// TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
+                e.append(
+                    divRow("Hinweis: ",
+                        ml("a", {href: "https://docs.ahoydtu.de/de/latest/zeroExport.html"}, "Bitte beachten Sie die Ausf&uuml;llhinweise in der Dokumentation."),
+                    ),
+                );
+// TODO: Hinweis Github/Discord - Entfernen wenn erledigt
+                e.append(
+                    divRow("ACHTUNG: ",
+                        ml("a", {href: "https://discord.com/channels/984173303147155506/1211365440253726851"}, "Bitte auf Github keine Issues zu Zero eröffnen, sondern direkt im Discord melden."),
+                    ),
+                );
                 if(maxGroups > obj.groups.length) {
                     e.append(ml("div", {class: "row my-3"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", value: "{#BTN_INV_ADD}", class: "btn", onclick: function() { ZeroExportGroup_Modal(add); }}, null))));
                 }
