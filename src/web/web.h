@@ -37,7 +37,8 @@
     #include "html/h/history_html.h"
 #endif
 
-#define WEB_SERIAL_BUF_SIZE 2048
+//#define WEB_SERIAL_BUF_SIZE 2048
+#define WEB_SERIAL_BUF_SIZE 3072
 
 const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
 

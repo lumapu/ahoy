@@ -5,9 +5,12 @@
 
 #include <HTTPClient.h>
 #include <string.h>
+#include <base64.h>
+
 #include "AsyncJson.h"
 
-#include "SML.h"
+#include "powermeter.h"
+//#include "SML.h"
 
 template <class HMSYSTEM>
 
@@ -46,6 +49,8 @@ class ZeroExport {
             mApi     = api;
             mMqtt    = mqtt;
 
+            mIsInitialized = mPowermeter.setup(mCfg);
+
 // TODO: Sicherheitsreturn weil noch Sicherheitsfunktionen fehlen.
             mIsInitialized = false;
         }
@@ -57,6 +62,8 @@ class ZeroExport {
             if ((!mIsInitialized) || (!mCfg->enabled)) {
                 return;
             }
+
+            mPowermeter.loop();
 
             for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 if (!mCfg->groups[group].enabled) {
@@ -84,11 +91,6 @@ class ZeroExport {
                         break;
                     case zeroExportState::GETPOWERMETER:
                         if (groupGetPowermeter(group)) sendLog();
-#if defined(ZEROEXPORT_DEV_POWERMETER)
-mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
-mCfg->groups[group].lastRefresh = millis();;
-#endif
                         break;
                     case zeroExportState::CONTROLLER:
                         if (groupController(group)) sendLog();
@@ -117,14 +119,13 @@ mCfg->groups[group].state = zeroExportState::WAIT;
 mCfg->groups[group].stateNext = zeroExportState::WAIT;
                         break;
                     case zeroExportState::FINISH:
-                        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-                        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
-mCfg->groups[group].lastRefresh = millis();;
-                        break;
                     case zeroExportState::ERROR:
                     default:
                         mCfg->groups[group].state = zeroExportState::INIT;
                         mCfg->groups[group].stateNext = zeroExportState::INIT;
+                        if (millis() > (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL))) {
+                            mCfg->groups[group].lastRefresh = millis();
+                        }
                         break;
                 }
             }
@@ -138,6 +139,24 @@ mCfg->groups[group].lastRefresh = millis();;
             if ((!mIsInitialized) || (!mCfg->enabled)) {
                 return;
             }
+
+            // Wait for ACK
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    // Limit
+                    if (mCfg->groups[group].inverters[inv].waitLimitAck > 0) {
+                        mCfg->groups[group].inverters[inv].waitLimitAck--;
+                    }
+                    // Power
+                    if (mCfg->groups[group].inverters[inv].waitPowerAck > 0) {
+                        mCfg->groups[group].inverters[inv].waitPowerAck--;
+                    }
+                    // Reboot
+                    if (mCfg->groups[group].inverters[inv].waitRebootAck > 0) {
+                        mCfg->groups[group].inverters[inv].waitRebootAck--;
+                    }
+                }
+            }
         }
 
         /** resetWaitLimitAck
@@ -146,7 +165,6 @@ mCfg->groups[group].lastRefresh = millis();;
          */
         void resetWaitLimitAck(Inverter<> *iv) {
             for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-//                bool doLog = false;
                 for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     if (iv->id == (uint8_t)mCfg->groups[group].inverters[inv].id) {
                         mLog["group"] = group;
@@ -154,16 +172,13 @@ mCfg->groups[group].lastRefresh = millis();;
                         unsigned long bTsp = millis();
                         mLog["B"] = bTsp;
                         mLog["id"] = iv->id;
-                        mCfg->groups[group].inverters[inv].waitLimitAck = false;
-                        mLog["iv"] = inv;
-                        mLog["wait"] = false;
-//                        doLog = true;
+                        mCfg->groups[group].inverters[inv].waitLimitAck = 0;
+                        mLog["inv"] = inv;
+                        mLog["wait"] = 0;
                         unsigned long eTsp = millis();
                         mLog["E"] = eTsp;
                         mLog["D"] = eTsp - bTsp;
-//                        if (doLog) {
-                            sendLog();
-//                        }
+                        sendLog();
                     }
                 }
             }
@@ -177,7 +192,18 @@ mCfg->groups[group].lastRefresh = millis();;
             for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                        mCfg->groups[group].inverters[inv].waitPowerAck = false;
+                        mLog["group"] = group;
+                        mLog["type"] = "resetWaitPowerAck";
+                        unsigned long bTsp = millis();
+                        mLog["B"] = bTsp;
+                        mLog["id"] = iv->id;
+                        mCfg->groups[group].inverters[inv].waitPowerAck = 0;
+                        mLog["inv"] = inv;
+                        mLog["wait"] = 0;
+                        unsigned long eTsp = millis();
+                        mLog["E"] = eTsp;
+                        mLog["D"] = eTsp - bTsp;
+                        sendLog();
                     }
                 }
             }
@@ -191,7 +217,18 @@ mCfg->groups[group].lastRefresh = millis();;
             for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                        mCfg->groups[group].inverters[inv].waitRebootAck = false;
+                        mLog["group"] = group;
+                        mLog["type"] = "resetWaitRebootAck";
+                        unsigned long bTsp = millis();
+                        mLog["B"] = bTsp;
+                        mLog["id"] = iv->id;
+                        mCfg->groups[group].inverters[inv].waitRebootAck = 0;
+                        mLog["inv"] = inv;
+                        mLog["wait"] = 0;
+                        unsigned long eTsp = millis();
+                        mLog["E"] = eTsp;
+                        mLog["D"] = eTsp - bTsp;
+                        sendLog();
                     }
                 }
             }
@@ -393,18 +430,18 @@ mCfg->groups[group].lastRefresh = millis();;
                     wait = true;
                 }
                 // waitLimitAck
-                if (mCfg->groups[group].inverters[inv].waitLimitAck) {
-                    logObj["limit"] = true;
+                if (mCfg->groups[group].inverters[inv].waitLimitAck > 0) {
+                    logObj["limit"] = mCfg->groups[group].inverters[inv].waitLimitAck;
                     wait = true;
                 }
                 // waitPowerAck
-                if (mCfg->groups[group].inverters[inv].waitPowerAck) {
-                    logObj["power"] = true;
+                if (mCfg->groups[group].inverters[inv].waitPowerAck > 0) {
+                    logObj["power"] = mCfg->groups[group].inverters[inv].waitPowerAck;
                     wait = true;
                 }
                 // waitRebootAck
-                if (mCfg->groups[group].inverters[inv].waitRebootAck) {
-                    logObj["reboot"] = true;
+                if (mCfg->groups[group].inverters[inv].waitRebootAck > 0) {
+                    logObj["reboot"] = mCfg->groups[group].inverters[inv].waitRebootAck;
                     wait = true;
                 }
             }
@@ -567,7 +604,7 @@ if (!mIv[group][inv]->isAvailable()) {
                     }
                 }
 
-                mLog["iv"] = id;
+                mLog["inv"] = id;
                 mLog["U"] = U;
 
                 // Switch to ON
@@ -621,34 +658,21 @@ if (!mIv[group][inv]->isAvailable()) {
             doLog = true;
 
             bool result = false;
-            switch (mCfg->groups[group].pm_type) {
-                case 1:
-                    result = getPowermeterWattsShelly(mLog, group);
-                    break;
-                case 2:
-                    result = getPowermeterWattsTasmota(mLog, group);
-                    break;
-                case 3:
-                    result = getPowermeterWattsMqtt(mLog, group);
-                    break;
-                case 4:
-                    result = getPowermeterWattsHichi(mLog, group);
-                    break;
-                case 5:
-                    result = getPowermeterWattsTibber(mLog, group);
-                    break;
-            }
-            if (!result) {
-                mLog["err"] = "type: " + String(mCfg->groups[group].pm_type);
-            }
+            result = mPowermeter.getData(mLog, group);
 
 // TODO: eventuell muss hier geprüft werden ob die Daten vom Powermeter plausibel sind.
 
             // Next
+            #if defined(ZEROEXPORT_DEV_POWERMETER)
+            mCfg->groups[group].state = zeroExportState::WAITREFRESH;
+            mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+            mCfg->groups[group].lastRefresh = millis();;
+            #else
             if (result) {
                 mCfg->groups[group].state = zeroExportState::CONTROLLER;
                 mCfg->groups[group].stateNext = zeroExportState::CONTROLLER;
             }
+            #endif
 
             unsigned long eTsp = millis();
             mLog["E"] = eTsp;
@@ -920,12 +944,13 @@ result = true;
                 // Leistung erhöhen
                 if (*deltaP > 0) {
                     // Toleranz
-                    if (*deltaP < mCfg->groups[group].powerTolerance) {
+                    if (*deltaP < (float)mCfg->groups[group].powerTolerance) {
                         continue;
                     }
                     mLog["+deltaP"] = *deltaP;
                     zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[ivId_Pmin[i]];
-                    cfgGroupInv->limitNew = (uint16_t)((float)cfgGroupInv->limit + *deltaP);
+                    cfgGroupInv->limitNew = cfgGroupInv->limit + *deltaP;
+//                    cfgGroupInv->limitNew = (uint16_t)((float)cfgGroupInv->limit + *deltaP);
 //                    if (i != 0) {
 //                        cfgGroup->grpPower - *deltaP;
 //                    }
@@ -951,7 +976,8 @@ result = true;
                     }
                     mLog["-deltaP"] = *deltaP;
                     zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[ivId_Pmax[i]];
-                    cfgGroupInv->limitNew = (uint16_t)((float)cfgGroupInv->limit + *deltaP);
+                    cfgGroupInv->limitNew = cfgGroupInv->limit + *deltaP;
+//                    cfgGroupInv->limitNew = (uint16_t)((float)cfgGroupInv->limit + *deltaP);
 //                    if (i != 0) {
 //                        cfgGroup->grpPower - *deltaP;
 //                    }
@@ -1031,7 +1057,6 @@ result = true;
                 }
 
 				// do
-                doLog = true;
 //                wait = true;
 
                 // Set Power on/off
@@ -1066,16 +1091,24 @@ result = true;
 //                    return false;
 //                }
 
+				// Nothing todo
+                if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) {
+                    continue;
+                }
+
+                doLog = true;
+
                 mCfg->groups[group].inverters[inv].limit = mCfg->groups[group].inverters[inv].limitNew;
-                mLog["limit"] = mCfg->groups[group].inverters[inv].limit;
+                mLog["limit"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
 
 				// wait for Ack
-                mCfg->groups[group].inverters[inv].waitLimitAck = true;
+                mCfg->groups[group].inverters[inv].waitLimitAck = 60;
+                mLog["wait"] = mCfg->groups[group].inverters[inv].waitLimitAck;
 
 				// send Command
                 DynamicJsonDocument doc(512);
                 JsonObject obj = doc.to<JsonObject>();
-                obj["val"] = mCfg->groups[group].inverters[inv].limit;
+                obj["val"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
                 obj["id"] = mCfg->groups[group].inverters[inv].id;
                 obj["path"] = "ctrl";
                 obj["cmd"] = "limit_nonpersistent_absolute";
@@ -1145,7 +1178,8 @@ result = true;
                 mLog["action"] = String("switch to: ") + String(mCfg->groups[group].battSwitch);
 
 				// wait for Ack
-                mCfg->groups[group].inverters[inv].waitPowerAck = true;
+                mCfg->groups[group].inverters[inv].waitPowerAck = 120;
+                mLog["wait"] = mCfg->groups[group].inverters[inv].waitPowerAck;
 
 				// send Command
                 DynamicJsonDocument doc(512);
@@ -1215,7 +1249,8 @@ result = true;
                 mLog["action"] = String("reboot");
 
 				// wait for Ack
-                mCfg->groups[group].inverters[inv].waitRebootAck = true;
+                mCfg->groups[group].inverters[inv].waitRebootAck = 120;
+                mLog["wait"] = mCfg->groups[group].inverters[inv].waitRebootAck;
 
 				// send Command
                 DynamicJsonDocument doc(512);
@@ -1262,10 +1297,6 @@ result = true;
 
             mDocLog.clear();
         }
-
-
-
-
 
 /*
 // TODO: Vorlage für nachfolgende Funktion getPowermeterWatts. Funktionen erst zusammenführen, wenn keine weiteren Powermeter mehr kommen.
@@ -1336,298 +1367,6 @@ result = true;
         }
 */
 
-        // Powermeter
-
-        /**
-         * getPowermeterWattsShelly
-         */
-        bool getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
-            bool result = false;
-
-            logObj["mod"]  = "getPowermeterWattsShelly";
-
-            mCfg->groups[group].pmPower   = 0;
-            mCfg->groups[group].pmPowerL1 = 0;
-            mCfg->groups[group].pmPowerL2 = 0;
-            mCfg->groups[group].pmPowerL3 = 0;
-
-            HTTPClient http;
-            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            http.setUserAgent("Ahoy-Agent");
-// TODO: Ahoy-0.8.850024-zero
-            http.setConnectTimeout(500);
-            http.setTimeout(500);
-            http.addHeader("Content-Type", "application/json");
-            http.addHeader("Accept", "application/json");
-// TODO: Timeout von 1000 reduzieren?
-            http.begin(mCfg->groups[group].pm_url);
-            if (http.GET() == HTTP_CODE_OK)
-            {
-
-                // Parsing
-                DynamicJsonDocument doc(2048);
-                DeserializationError error = deserializeJson(doc, http.getString());
-                if (error)
-                {
-                    logObj["err"] = "deserializeJson: " + String(error.c_str());
-                    return false;
-                } else {
-
-                    // Shelly 3EM
-                    if (doc.containsKey(F("total_power"))) {
-                        mCfg->groups[group].pmPower = doc["total_power"];
-                        result = true;
-                    // Shelly pro 3EM
-                    } else if (doc.containsKey(F("em:0"))) {
-                        mCfg->groups[group].pmPower = doc["em:0"]["total_act_power"];
-                        result = true;
-                    // Keine Daten
-                    } else {
-                        mCfg->groups[group].pmPower = 0;
-                    }
-
-                    // Shelly 3EM
-                    if (doc.containsKey(F("emeters"))) {
-                        mCfg->groups[group].pmPowerL1 = doc["emeters"][0]["power"];
-                        result = true;
-                    // Shelly pro 3EM
-                    } else if (doc.containsKey(F("em:0"))) {
-                        mCfg->groups[group].pmPowerL1 = doc["em:0"]["a_act_power"];
-                        result = true;
-                    // Shelly plus1pm plus2pm
-                    } else if (doc.containsKey(F("switch:0"))) {
-                        mCfg->groups[group].pmPowerL1 = doc["switch:0"]["apower"];
-                        mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
-                        result = true;
-                    // Shelly Alternative
-                    } else if (doc.containsKey(F("apower"))) {
-                        mCfg->groups[group].pmPowerL1 = doc["apower"];
-                        mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
-                        result = true;
-                    // Keine Daten
-                    } else {
-                        mCfg->groups[group].pmPowerL1 = 0;
-                    }
-
-                    // Shelly 3EM
-                    if (doc.containsKey(F("emeters"))) {
-                        mCfg->groups[group].pmPowerL2 = doc["emeters"][1]["power"];
-                        result = true;
-                    // Shelly pro 3EM
-                    } else if (doc.containsKey(F("em:0"))) {
-                        mCfg->groups[group].pmPowerL2 = doc["em:0"]["b_act_power"];
-                        result = true;
-                    // Shelly plus1pm plus2pm
-                    } else if (doc.containsKey(F("switch:1"))) {
-                        mCfg->groups[group].pmPowerL2 = doc["switch.1"]["apower"];
-                        mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
-                        result = true;
-//                // Shelly Alternative
-//                } else if (doc.containsKey(F("apower"))) {
-//                    mCfg->groups[group].pmPowerL2 = doc["apower"];
-//                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
-//                    ret = true;
-                    // Keine Daten
-                    } else {
-                        mCfg->groups[group].pmPowerL2 = 0;
-                    }
-
-                    // Shelly 3EM
-                    if (doc.containsKey(F("emeters"))) {
-                        mCfg->groups[group].pmPowerL3 = doc["emeters"][2]["power"];
-                        result = true;
-                    // Shelly pro 3EM
-                    } else if (doc.containsKey(F("em:0"))) {
-                        mCfg->groups[group].pmPowerL3 = doc["em:0"]["c_act_power"];
-                        result = true;
-                    // Shelly plus1pm plus2pm
-                    } else if (doc.containsKey(F("switch:2"))) {
-                        mCfg->groups[group].pmPowerL3 = doc["switch:2"]["apower"];
-                        mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
-                        result = true;
-//                // Shelly Alternative
-//                } else if (doc.containsKey(F("apower"))) {
-//                    mCfg->groups[group].pmPowerL3 = doc["apower"];
-//                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
-//                    result = true;
-                    // Keine Daten
-                    } else {
-                        mCfg->groups[group].pmPowerL3 = 0;
-                    }
-                }
-
-            }
-            http.end();
-
-            logObj["P"]  = mCfg->groups[group].pmPower;
-            logObj["P1"] = mCfg->groups[group].pmPowerL1;
-            logObj["P2"] = mCfg->groups[group].pmPowerL2;
-            logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
-            return result;
-        }
-
-        /**
-         * getPowermeterWattsTasmota
-         */
-        bool getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
-            bool result = false;
-
-            logObj["mod"]  = "getPowermeterWattsTasmota";
-
-            mCfg->groups[group].pmPower   = 0;
-            mCfg->groups[group].pmPowerL1 = 0;
-            mCfg->groups[group].pmPowerL2 = 0;
-            mCfg->groups[group].pmPowerL3 = 0;
-
-// TODO: nicht komplett
-
-            HTTPClient http;
-            http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-            http.setUserAgent("Ahoy-Agent");
-// TODO: Ahoy-0.8.850024-zero
-            http.setConnectTimeout(500);
-            http.setTimeout(500);
-            http.addHeader("Content-Type", "application/json");
-            http.addHeader("Accept", "application/json");
-// TODO: Timeout von 1000 reduzieren?
-            http.begin(mCfg->groups[group].pm_url);
-            if (http.GET() == HTTP_CODE_OK)
-            {
-
-                // Parsing
-                DynamicJsonDocument doc(2048);
-                DeserializationError error = deserializeJson(doc, http.getString());
-                if (error)
-                {
-                    logObj["error"] = "deserializeJson() failed: " + String(error.c_str());
-                    return result;
-                }
-
-// TODO: Sum
-                    result = true;
-
-// TODO: L1
-
-// TODO: L2
-
-// TODO: L3
-
-/*
-                JsonObject Tasmota_ENERGY = doc["StatusSNS"]["ENERGY"];
-                int Tasmota_Power = Tasmota_ENERGY["Power"]; // 0
-                return Tasmota_Power;
-*/
-                /*
-                String url = "http://" + String(TASMOTA_IP) + "/cm?cmnd=status%2010";
-                ParsedData = http.get(url).json();
-                int Watts = ParsedData[TASMOTA_JSON_STATUS][TASMOTA_JSON_PAYLOAD_MQTT_PREFIX][TASMOTA_JSON_POWER_MQTT_LABEL].toInt();
-                return Watts;
-                */
-
-                logObj["P"]   = mCfg->groups[group].pmPower;
-                logObj["P1"] = mCfg->groups[group].pmPowerL1;
-                logObj["P2"] = mCfg->groups[group].pmPowerL2;
-                logObj["P3"] = mCfg->groups[group].pmPowerL3;
-            }
-            http.end();
-
-            return result;
-        }
-
-        /**
-         * getPowermeterWattsMqtt
-         */
-        bool getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-            bool result = false;
-
-            logObj["mod"]  = "getPowermeterWattsMqtt";
-
-            mCfg->groups[group].pmPower   = 0;
-            mCfg->groups[group].pmPowerL1 = 0;
-            mCfg->groups[group].pmPowerL2 = 0;
-            mCfg->groups[group].pmPowerL3 = 0;
-
-// Hier neuer Code - Anfang
-// TODO: Noch nicht komplett
-
-
-                        result = true;
-
-
-
-// Hier neuer Code - Ende
-
-            logObj["P"]  = mCfg->groups[group].pmPower;
-            logObj["P1"] = mCfg->groups[group].pmPowerL1;
-            logObj["P2"] = mCfg->groups[group].pmPowerL2;
-            logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
-            return result;
-        }
-
-        /**
-         * getPowermeterWattsHichi
-         */
-        bool getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
-            bool result = false;
-
-            logObj["mod"]  = "getPowermeterWattsHichi";
-
-            mCfg->groups[group].pmPower   = 0;
-            mCfg->groups[group].pmPowerL1 = 0;
-            mCfg->groups[group].pmPowerL2 = 0;
-            mCfg->groups[group].pmPowerL3 = 0;
-
-// Hier neuer Code - Anfang
-// TODO: Noch nicht komplett
-
-
-                        result = true;
-
-
-
-// Hier neuer Code - Ende
-
-            logObj["P"]  = mCfg->groups[group].pmPower;
-            logObj["P1"] = mCfg->groups[group].pmPowerL1;
-            logObj["P2"] = mCfg->groups[group].pmPowerL2;
-            logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
-            return result;
-        }
-
-        /**
-         * getPowermeterWattsTibber
-         */
-        bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
-            bool result = false;
-
-            logObj["mod"]  = "getPowermeterWattsTibber";
-
-            mCfg->groups[group].pmPower   = 0;
-            mCfg->groups[group].pmPowerL1 = 0;
-            mCfg->groups[group].pmPowerL2 = 0;
-            mCfg->groups[group].pmPowerL3 = 0;
-
-// Hier neuer Code - Anfang
-// TODO: Noch nicht komplett
-
-
-                        result = true;
-
-
-
-// Hier neuer Code - Ende
-
-            logObj["P"]  = mCfg->groups[group].pmPower;
-            logObj["P1"] = mCfg->groups[group].pmPowerL1;
-            logObj["P2"] = mCfg->groups[group].pmPowerL2;
-            logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
-            return result;
-        }
-
 /*
 // TODO: Vorlage für Berechnung
         Inverter<> *iv = mSys.getInverterByPos(mConfig->plugin.zeroExport.Iv);
@@ -1671,56 +1410,11 @@ result = true;
         StaticJsonDocument<5000> mDocLog;
         JsonObject mLog = mDocLog.to<JsonObject>();
         PubMqttType *mMqtt;
+        powermeter mPowermeter;
 
         Inverter<> *mIv[ZEROEXPORT_MAX_GROUPS][ZEROEXPORT_GROUP_MAX_INVERTERS];
 };
 
-
-
-
-
-
-
-
-
-
-// TODO: Vorlagen für Powermeter-Analyse
-/*
-Shelly 1pm
-Der Shelly 1pm verfügt über keine eigene Spannungsmessung sondern geht von 220V * Korrekturfaktor aus. Dadurch wird die Leistungsmessung verfälscht und der Shelly ist ungeeignet.
-
-
-http://192.168.xxx.xxx/status
-Shelly 3em (oder em3) :
-ok
-{"wifi_sta":{"connected":true,"ssid":"Odyssee2001","ip":"192.168.100.85","rssi":-23},"cloud":{"enabled":false,"connected":false},"mqtt":{"connected":true},"time":"17:13","unixtime":1709223219,"serial":27384,"has_update":false,"mac":"3494547B94EE","cfg_changed_cnt":1,"actions_stats":{"skipped":0},"relays":[{"ison":false,"has_timer":false,"timer_started":0,"timer_duration":0,"timer_remaining":0,"overpower":false,"is_valid":true,"source":"input"}],"emeters":[{"power":51.08,"pf":0.27,"current":0.78,"voltage":234.90,"is_valid":true,"total":1686297.2,"total_returned":428958.4},{"power":155.02,"pf":0.98,"current":0.66,"voltage":235.57,"is_valid":true,"total":878905.6,"total_returned":4.1},{"power":6.75,"pf":0.26,"current":0.11,"voltage":234.70,"is_valid":true,"total":206151.1,"total_returned":0.0}],"total_power":212.85,"emeter_n":{"current":0.00,"ixsum":1.29,"mismatch":false,"is_valid":false},"fs_mounted":true,"v_data":1,"ct_calst":0,"update":{"status":"idle","has_update":false,"new_version":"20230913-114244/v1.14.0-gcb84623","old_version":"20230913-114244/v1.14.0-gcb84623","beta_version":"20231107-165007/v1.14.1-rc1-g0617c15"},"ram_total":49920,"ram_free":30192,"fs_size":233681,"fs_free":154616,"uptime":13728721}
-
-
-Shelly plus 2pm :
-ok
-{"ble":{},"cloud":{"connected":false},"input:0":{"id":0,"state":false},"input:1":{"id":1,"state":false},"mqtt":{"connected":true},"switch:0":{"id":0, "source":"MQTT", "output":false, "apower":0.0, "voltage":237.0, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":62758.285,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223337},"temperature":{"tC":35.5, "tF":96.0}},"switch:1":{"id":1, "source":"MQTT", "output":false, "apower":0.0, "voltage":237.1, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":61917.211,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223337},"temperature":{"tC":35.5, "tF":96.0}},"sys":{"mac":"B0B21C10A478","restart_required":false,"time":"17:15","unixtime":1709223338,"uptime":8746115,"ram_size":245016,"ram_free":141004,"fs_size":458752,"fs_free":135168,"cfg_rev":7,"kvs_rev":0,"schedule_rev":0,"webhook_rev":0,"available_updates":{"stable":{"version":"1.2.2"}}},"wifi":{"sta_ip":"192.168.100.87","status":"got ip","ssid":"Odyssee2001","rssi":-62},"ws":{"connected":false}}
-
-http://192.168.xxx.xxx/rpc/Shelly.GetStatus
-Shelly plus 1pm :
-nok keine negativen Leistungswerte
-{"ble":{},"cloud":{"connected":false},"input:0":{"id":0,"state":false},"mqtt":{"connected":true},"switch:0":{"id":0, "source":"MQTT", "output":false, "apower":0.0, "voltage":235.9, "current":0.000, "aenergy":{"total":20393.619,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223441},"temperature":{"tC":34.6, "tF":94.3}},"sys":{"mac":"FCB467A66E3C","restart_required":false,"time":"17:17","unixtime":1709223443,"uptime":8644483,"ram_size":246256,"ram_free":143544,"fs_size":458752,"fs_free":147456,"cfg_rev":9,"kvs_rev":0,"schedule_rev":0,"webhook_rev":0,"available_updates":{"stable":{"version":"1.2.2"}}},"wifi":{"sta_ip":"192.168.100.88","status":"got ip","ssid":"Odyssee2001","rssi":-42},"ws":{"connected":false}}
-
-
-Tasmota
-http://192.168.100.81/cm?cmnd=Status0
-{"Status":{"Module":1,"DeviceName":"Tasmota","FriendlyName":["Tasmota"],"Topic":"Tasmota","ButtonTopic":"0","Power":0,"PowerOnState":3,"LedState":1,"LedMask":"FFFF","SaveData":1,"SaveState":1,"SwitchTopic":"0","SwitchMode":[0,0,0,0,0,0,0,0],"ButtonRetain":0,"SwitchRetain":0,"SensorRetain":0,"PowerRetain":0,"InfoRetain":0,"StateRetain":0},"StatusPRM":{"Baudrate":9600,"SerialConfig":"8N1","GroupTopic":"tasmotas","OtaUrl":"http://ota.tasmota.com/tasmota/release/tasmota.bin.gz","RestartReason":"Software/System restart","Uptime":"202T01:24:51","StartupUTC":"2023-08-13T15:21:13","Sleep":50,"CfgHolder":4617,"BootCount":27,"BCResetTime":"2023-02-04T16:45:38","SaveCount":150,"SaveAddress":"F5000"},"StatusFWR":{"Version":"11.1.0(tasmota)","BuildDateTime":"2022-05-05T03:23:22","Boot":31,"Core":"2_7_4_9","SDK":"2.2.2-dev(38a443e)","CpuFrequency":80,"Hardware":"ESP8266EX","CR":"378/699"},"StatusLOG":{"SerialLog":0,"WebLog":2,"MqttLog":0,"SysLog":0,"LogHost":"","LogPort":514,"SSId":["Odyssee2001",""],"TelePeriod":300,"Resolution":"558180C0","SetOption":["00008009","2805C80001000600003C5A0A190000000000","00000080","00006000","00004000"]},"StatusMEM":{"ProgramSize":658,"Free":344,"Heap":17,"ProgramFlashSize":1024,"FlashSize":1024,"FlashChipId":"14325E","FlashFrequency":40,"FlashMode":3,"Features":["00000809","87DAC787","043E8001","000000CF","010013C0","C000F989","00004004","00001000","04000020"],"Drivers":"1,2,3,4,5,6,7,8,9,10,12,16,18,19,20,21,22,24,26,27,29,30,35,37,45,56,62","Sensors":"1,2,3,4,5,6,53"},"StatusNET":{"Hostname":"Tasmota","IPAddress":"192.168.100.81","Gateway":"192.168.100.1","Subnetmask":"255.255.255.0","DNSServer1":"192.168.100.1","DNSServer2":"0.0.0.0","Mac":"4C:11:AE:11:F8:50","Webserver":2,"HTTP_API":1,"WifiConfig":4,"WifiPower":17.0},"StatusMQT":{"MqttHost":"192.168.100.80","MqttPort":1883,"MqttClientMask":"Tasmota","MqttClient":"Tasmota","MqttUser":"mqttuser","MqttCount":156,"MAX_PACKET_SIZE":1200,"KEEPALIVE":30,"SOCKET_TIMEOUT":4},"StatusTIM":{"UTC":"2024-03-02T16:46:04","Local":"2024-03-02T17:46:04","StartDST":"2024-03-31T02:00:00","EndDST":"2024-10-27T03:00:00","Timezone":"+01:00","Sunrise":"07:29","Sunset":"18:35"},"StatusSNS":{"Time":"2024-03-02T17:46:04","PV":{"Bezug":0.364,"Einspeisung":3559.439,"Leistung":-14}},"StatusSTS":{"Time":"2024-03-02T17:46:04","Uptime":"202T01:24:51","UptimeSec":17457891,"Heap":16,"SleepMode":"Dynamic","Sleep":50,"LoadAvg":19,"MqttCount":156,"POWER":"OFF","Wifi":{"AP":1,"SSId":"Odyssee2001","BSSId":"34:31:C4:22:92:74","Channel":6,"Mode":"11n","RSSI":100,"Signal":-50,"LinkCount":15,"Downtime":"0T00:08:22"}}}
-
-
-
-
-
-
-
-
-
-
-*/
-
 #endif /*__ZEROEXPORT__*/
 
-#endif /* #if defined(ESP32) */
+#endif /* #if defined(PLUGIN_ZEROEXPORT) */

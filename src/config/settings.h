@@ -188,7 +188,7 @@ typedef struct {
 // Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 
-#define ZEROEXPORT_DEV_POWERMETER
+//#define ZEROEXPORT_DEV_POWERMETER
 #define ZEROEXPORT_MAX_GROUPS                       6
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
@@ -260,11 +260,11 @@ typedef struct {
     //
 
     float power;
-    uint16_t limit;
-    uint16_t limitNew;
-    bool waitLimitAck;
-    bool waitPowerAck;
-    bool waitRebootAck;
+    float limit;
+    float limitNew;
+    uint8_t waitLimitAck;
+    uint8_t waitPowerAck;
+    uint8_t waitRebootAck;
     unsigned long limitTsp;
     float dcVoltage;
     bool state;
@@ -311,6 +311,13 @@ typedef struct {
     float Kp;
     float Ki;
     float Kd;
+
+float pm_P[5];
+float pm_P1[5];
+float pm_P2[5];
+float pm_P3[5];
+uint8_t pm_iIn = 0;
+uint8_t pm_iOut = 0;
 
     float pmPower;
     float pmPowerL1;

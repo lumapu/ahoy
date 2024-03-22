@@ -83,6 +83,17 @@ void app::setup() {
         #endif
     });
     #endif /*defined(PLUGIN_ZEROEXPORT) || defined(ENABLE_MQTT)*/
+    #if defined(PLUGIN_ZEROEXPORT)
+    mCommunication.addPowerPowerAckListener([this] (Inverter<> *iv) {
+        mZeroExport.resetWaitPowerAck(iv);
+    });
+    #endif /*PLUGIN_ZEROEXPORT*/
+    #if defined(PLUGIN_ZEROEXPORT)
+    mCommunication.addPowerRebootAckListener([this] (Inverter<> *iv) {
+        mZeroExport.resetWaitRebootAck(iv);
+    });
+    #endif /*PLUGIN_ZEROEXPORT*/
+
     mSys.setup(&mTimestamp, &mConfig->inst, this);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         initInverter(i);
@@ -132,7 +143,7 @@ void app::setup() {
     // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
     mZeroExport.setup(&mConfig->plugin.zeroExport, &mSys, mConfig, &mApi, &mMqtt);
-    #endif
+    #endif /*PLUGIN_ZEROEXPORT*/
     // Plugin ZeroExport - Ende
 
     #if defined(ENABLE_HISTORY)
