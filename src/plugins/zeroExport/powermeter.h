@@ -7,9 +7,8 @@
 #define __POWERMETER_H__
 
 #include <AsyncJson.h>
-#include <Base64.h>
-#include <HTTPClient.h>
 #include <base64.h>
+#include <HTTPClient.h>
 #include <string.h>
 
 #include <list>
