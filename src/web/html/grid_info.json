@@ -10,6 +10,7 @@
         {"0x0908": "France_VFR2014"},
         {"0x0a00": "DE NF_EN_50549-1:2019"},
         {"0x0c00": "AT_TOR_Erzeuger_default"},
+        {"0x0c04": "AT_TOR_Erzeuger_default"},
         {"0x0d00": "FR_VFR2019"},
         {"0x0d04": "NF_EN_50549-1:2019"},
         {"0x1000": "ES_RD1699"},
@@ -248,6 +249,78 @@
                     "min": 250,
                     "max": 270,
                     "def": 253,
+                    "unit": "V"
+                }
+            ]
+        },
+        {
+            "0x000b": [
+                {
+                    "name": "Nominal Voltage",
+                    "div": 10,
+                    "def": 230,
+                    "unit": "V"
+                },
+                {
+                    "name": "Low Voltage 1",
+                    "div": 10,
+                    "min": 170,
+                    "max": 184,
+                    "def": 184,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 1.5,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 1",
+                    "div": 10,
+                    "min": 253,
+                    "max": 270,
+                    "def": 255.3,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV1 Maximum Trip Time",
+                    "div": 10,
+                    "def": 0.1,
+                    "unit": "s"
+                },
+                {
+                    "name": "Low Voltage 2",
+                    "div": 10,
+                    "def": 57.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "LV2 Maximum Trip Time",
+                    "div": 100,
+                    "def": 0.5,
+                    "unit": "s"
+                },
+                {
+                    "name": "High Voltage 2",
+                    "div": 10,
+                    "min": 264.5,
+                    "max": 275,
+                    "def": 264.5,
+                    "unit": "V"
+                },
+                {
+                    "name": "HV2 Maximum Trip Time",
+                    "div": 100,
+                    "def": 0.08,
+                    "unit": "s"
+                },
+                {
+                    "name": "10mins Average High Voltage",
+                    "div": 10,
+                    "min": 245,
+                    "max": 255.3,
+                    "def": 255.3,
                     "unit": "V"
                 }
             ]
@@ -801,6 +874,35 @@
                     "min": 5,
                     "max": 18,
                     "def": 5.33,
+                    "unit": "Pn%/V"
+                }
+            ]
+        },
+        {
+            "0x6004": [
+                {
+                    "name": "VW Function Activated",
+                    "div": 1,
+                    "min": 0,
+                    "max": 1,
+                    "def": 1
+                },
+                {
+                    "name": "Start of Voltage Watt Droop",
+                    "div": 10,
+                    "def": 253,
+                    "unit": "V"
+                },
+                {
+                    "name": "End of Voltage Watt Droop",
+                    "div": 10,
+                    "def": 257.6,
+                    "unit": "V"
+                },
+                {
+                    "name": "VW Droop Slope",
+                    "div": 100,
+                    "def": 21.74,
                     "unit": "Pn%/V"
                 }
             ]

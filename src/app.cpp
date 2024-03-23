@@ -197,8 +197,13 @@ void app::regularTickers(void) {
     #endif /*ENABLE_SIMULATOR*/
 }
 
+//-----------------------------------------------------------------------------
 void app::onNtpUpdate(bool gotTime) {
     mNtpReceived = true;
+    if ((0 == mSunrise) && (0.0 != mConfig->sun.lat) && (0.0 != mConfig->sun.lon)) {
+        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
+        tickCalcSunrise();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -229,10 +234,8 @@ void app::updateNtp(void) {
         }
     }
 
-    if ((0 == mSunrise) && (0.0 != mConfig->sun.lat) && (0.0 != mConfig->sun.lon)) {
-        mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
-        tickCalcSunrise();
-    }
+    if(mNtpReceived)
+        onNtpUpdate(true);
 
     mMqttReconnect = false;
 }

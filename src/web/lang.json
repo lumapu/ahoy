@@ -186,7 +186,7 @@
                 {
                     "token": "LOG_PRINT_INVERTER_DATA",
                     "en": "print inverter data",
-                    "de": "Livedaten ausgeben"
+                    "de": "Inverterwerte ausgeben"
                 },
                 {
                     "token": "LOG_SERIAL_DEBUG",

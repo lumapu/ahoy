@@ -452,8 +452,8 @@ class settings {
             mCfg.ntp.port = DEF_NTP_PORT;
             mCfg.ntp.interval = 720;
 
-            mCfg.sun.lat         = 0.0;
-            mCfg.sun.lon         = 0.0;
+            mCfg.sun.lat         = 51.1; // mid of Germany
+            mCfg.sun.lon         = 10.5; // mid of Germany
             mCfg.sun.offsetSecMorning = 0;
             mCfg.sun.offsetSecEvening = 0;
 
