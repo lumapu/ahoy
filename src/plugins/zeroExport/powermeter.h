@@ -1,23 +1,27 @@
+//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
+//-----------------------------------------------------------------------------
+
 #ifndef __POWERMETER_H__
 #define __POWERMETER_H__
 
 #include <AsyncJson.h>
+#include <Base64.h>
 #include <HTTPClient.h>
 #include <base64.h>
 #include <string.h>
 
 #include <list>
 
-#include "SML.h"
-#include <Base64.h>
+#include <SML.h>
 #include "config/settings.h"
 
 typedef struct {
     const unsigned char OBIS[6];
-    void (*Fn)(double&);
-    float* Arg;
+    void (*Fn)(double &);
+    float *Arg;
 } OBISHandler;
-
 
 class powermeter {
    public:
@@ -58,11 +62,11 @@ class powermeter {
                 break;
             case 5:
                 result = getPowermeterWattsTibber(logObj, group);
-                 if (result) {
-                    logObj["export"]  = String(_powerMeterExport);
-                    logObj["import"]  = String(_powerMeterImport);
-                    logObj["power"]  = String(_powerMeter1Power);
-                }
+                //                 if (result) {
+                //                    logObj["export"]  = String(_powerMeterExport);
+                //                    logObj["import"]  = String(_powerMeterImport);
+                //                    logObj["power"]  = String(_powerMeter1Power);
+                //                }
                 break;
         }
         if (!result) {
@@ -408,14 +412,12 @@ class powermeter {
     const std::list<OBISHandler> smlHandlerList{
         {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
-        {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}
-    };
-
+        {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
     bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
         bool result = false;
 
-        mCfg->groups[group].pmPower   = 0;
+        mCfg->groups[group].pmPower = 0;
         mCfg->groups[group].pmPowerL1 = 0;
         mCfg->groups[group].pmPowerL2 = 0;
         mCfg->groups[group].pmPowerL3 = 0;
@@ -423,8 +425,8 @@ class powermeter {
         HTTPClient http;
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         http.setUserAgent("Ahoy-Agent");
-        http.setConnectTimeout(500);
-        http.setTimeout(500);
+        http.setConnectTimeout(1000);
+        http.setTimeout(1000);
         http.addHeader("Content-Type", "application/json");
         http.addHeader("Accept", "application/json");
 
@@ -434,42 +436,49 @@ class powermeter {
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK)
-        {
+        if (http.GET() == HTTP_CODE_OK) {
             String myString = http.getString();
 
             char floatBuffer[20];
             double readVal = 0;
 
             unsigned char c;
-            for (int i = 0; i < http.getSize(); ++i)
-            {
+            for (int i = 0; i < http.getSize(); ++i) {
                 c = myString[i];
                 sml_states_t smlCurrentState = smlState(c);
 
-                switch(smlCurrentState)
-                {
+                switch (smlCurrentState) {
                     case SML_FINAL:
-                            mCfg->groups[group].pmPower = _powerMeter1Power;
-                            /*mCfg->groups[group].pmPower = _powerMeterImport;
-                            mCfg->groups[group].pmPower = _powerMeterExport;*/
-                        return true;
+                        mCfg->groups[group].pmPower = _powerMeter1Power;
+                        mCfg->groups[group].pmPowerL1 = _powerMeter1Power / 3;
+                        mCfg->groups[group].pmPowerL2 = _powerMeter1Power / 3;
+                        mCfg->groups[group].pmPowerL3 = _powerMeter1Power / 3;
+                        /*mCfg->groups[group].pmPower = _powerMeterImport;
+                        mCfg->groups[group].pmPower = _powerMeterExport;*/
+// TODO: Ein return an dieser Stelle verhindert das ordnungsgemäße http.end()
+                        result = true;
+//                        return true;
                         break;
                     case SML_LISTEND:
                         // check handlers on last received list
-                        for (auto &handler: smlHandlerList)
-                        {
+                        for (auto &handler : smlHandlerList) {
                             if (smlOBISCheck(handler.OBIS)) {
                                 handler.Fn(readVal);
                                 *handler.Arg = readVal;
                             }
                         }
-                    break;
+                        break;
                 }
             }
         }
         http.end();
-        return false;
+
+        logObj["P"] = mCfg->groups[group].pmPower;
+        logObj["P1"] = mCfg->groups[group].pmPowerL1;
+        logObj["P2"] = mCfg->groups[group].pmPowerL2;
+        logObj["P3"] = mCfg->groups[group].pmPowerL3;
+
+        return result;
     }
 
    private:
