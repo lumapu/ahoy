@@ -162,7 +162,6 @@ void app::loop(void) {
 
 //-----------------------------------------------------------------------------
 void app::onNetwork(bool gotIp) {
-    DPRINTLN(DBG_INFO, F("onNetwork"));
     mNetworkConnected = gotIp;
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers

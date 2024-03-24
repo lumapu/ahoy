@@ -173,7 +173,9 @@ class AhoyNetwork {
         enum class NetworkState : uint8_t {
             DISCONNECTED,
             CONNECTED,
-            GOT_IP
+            GOT_IP,
+            SCAN_READY, // ESP8266
+            CONNECTING // ESP8266
         };
 
     protected:
