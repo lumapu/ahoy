@@ -1,5 +1,7 @@
 # Development Changes
 
+## 0.8.98 - 2024-03-23
+
 ## 0.8.97 - 2024-03-22
 * add support for newest generation of inverters with A-F in their serial number
 * fix NTP and sunrise / sunset

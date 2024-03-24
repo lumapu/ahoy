@@ -23,12 +23,14 @@ class AhoyWifi : public AhoyNetwork {
             });
 
             WiFi.setHostname(mConfig->sys.deviceName);
-            WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-            WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
-            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
+            #if !defined(AP_ONLY)
+                WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+                WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+                WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
 
-            DBGPRINT(F("connect to network '")); Serial.flush();
-            DBGPRINT(mConfig->sys.stationSsid);
+                DBGPRINT(F("connect to network '")); Serial.flush();
+                DBGPRINT(mConfig->sys.stationSsid);
+            #endif
         }
 
         void tickNetworkLoop() override {

@@ -23,10 +23,12 @@ class AhoyWifi : public AhoyNetwork {
             });
 
             WiFi.setHostname(mConfig->sys.deviceName);
-            WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
+            #if !defined(AP_ONLY)
+                WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd);
 
-            DBGPRINT(F("connect to network '")); Serial.flush();
-            DBGPRINT(mConfig->sys.stationSsid);
+                DBGPRINT(F("connect to network '")); Serial.flush();
+                DBGPRINT(mConfig->sys.stationSsid);
+            #endif
         }
 
         void tickNetworkLoop() override {
