@@ -80,8 +80,39 @@ class AhoyNetwork {
         virtual void begin() = 0;
         virtual void tickNetworkLoop() = 0;
         virtual String getIp(void) = 0;
-        virtual void scanAvailNetworks(void) = 0;
-        virtual bool getAvailNetworks(JsonObject obj) = 0;
+
+        virtual bool getWasInCh12to14() {
+            return false;
+        }
+
+        #if !defined(ETHERNET)
+        void scanAvailNetworks(void) {
+            if(!mScanActive) {
+                mScanActive = true;
+                WiFi.scanNetworks(true);
+            }
+        }
+
+        bool getAvailNetworks(JsonObject obj) {
+            JsonArray nets = obj.createNestedArray(F("networks"));
+
+            int n = WiFi.scanComplete();
+            if (n < 0)
+                return false;
+            if(n > 0) {
+                int sort[n];
+                sortRSSI(&sort[0], n);
+                for (int i = 0; i < n; ++i) {
+                    nets[i][F("ssid")] = WiFi.SSID(sort[i]);
+                    nets[i][F("rssi")] = WiFi.RSSI(sort[i]);
+                }
+            }
+            mScanActive = false;
+            WiFi.scanDelete();
+
+            return true;
+        }
+        #endif
 
     protected:
         void setupIp(std::function<bool(IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2)> cb) {
@@ -169,6 +200,17 @@ class AhoyNetwork {
             mUdp.close();
         }
 
+        #if !defined(ETHERNET)
+        void sortRSSI(int *sort, int n) {
+            for (int i = 0; i < n; i++)
+                sort[i] = i;
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
+                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
+                        std::swap(sort[i], sort[j]);
+        }
+        #endif
+
     protected:
         enum class NetworkState : uint8_t {
             DISCONNECTED,
@@ -182,6 +224,7 @@ class AhoyNetwork {
         settings_t *mConfig = nullptr;
         uint32_t *mUtcTimestamp = nullptr;
         bool mConnected = false;
+        bool mScanActive = false;
 
         OnNetworkCB mOnNetworkCB;
         OnTimeCB mOnTimeCB;

@@ -18,12 +18,16 @@ class AhoyEthernet : public AhoyNetwork {
         void begin() override {
             mAp.enable();
 
+            if(!mConfig->sys.eth.enabled)
+                return;
+
+            mEthSpi.begin(mConfig->sys.eth.pinMiso, mConfig->sys.eth.pinMosi, mConfig->sys.eth.pinSclk, mConfig->sys.eth.pinCs, mConfig->sys.eth.pinIrq, mConfig->sys.eth.pinRst);
+            ETH.setHostname(mConfig->sys.deviceName);
+
             // static IP
             setupIp([this](IPAddress ip, IPAddress gateway, IPAddress mask, IPAddress dns1, IPAddress dns2) -> bool {
                 return ETH.config(ip, gateway, mask, dns1, dns2);
             });
-
-            ETH.setHostname(mConfig->sys.deviceName);
         }
 
         void tickNetworkLoop() override {
@@ -43,9 +47,8 @@ class AhoyEthernet : public AhoyNetwork {
                     break;
 
                 case NetworkState::GOT_IP:
-                    mAp.disable();
-
                     if(!mConnected) {
+                        mAp.disable();
                         mConnected = true;
                         ah::welcome(ETH.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
@@ -59,10 +62,8 @@ class AhoyEthernet : public AhoyNetwork {
             return ETH.localIP().toString();
         }
 
-        void scanAvailNetworks(void) override {};
-        bool getAvailNetworks(JsonObject obj) override {
-            return false;
-        }
+    private:
+        AhoyEthernetSpi mEthSpi;
 };
 
 #endif /*ETHERNET*/

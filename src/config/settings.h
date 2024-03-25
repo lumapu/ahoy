@@ -405,13 +405,17 @@ class settings {
             else {
                 snprintf(mCfg.sys.stationSsid, SSID_LEN, FB_WIFI_SSID);
                 snprintf(mCfg.sys.stationPwd,  PWD_LEN,  FB_WIFI_PWD);
-                snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
                 mCfg.sys.isHidden = false;
             }
             #endif
+            snprintf(mCfg.sys.apPwd,       PWD_LEN,  WIFI_AP_PWD);
 
             #if defined(ETHERNET)
-            mCfg.sys.eth.enabled = false;
+                #if defined(DEF_ETH_ENABLED)
+                mCfg.sys.eth.enabled = true;
+                #else
+                mCfg.sys.eth.enabled = false;
+                #endif
             mCfg.sys.eth.pinCs   = DEF_ETH_CS_PIN;
             mCfg.sys.eth.pinSclk = DEF_ETH_SCK_PIN;
             mCfg.sys.eth.pinMiso = DEF_ETH_MISO_PIN;
@@ -431,7 +435,11 @@ class settings {
             mCfg.nrf.pinMosi           = DEF_NRF_MOSI_PIN;
             mCfg.nrf.pinSclk           = DEF_NRF_SCLK_PIN;
 
+            #if defined(ETHERNET)
+            mCfg.nrf.enabled           = false;
+            #else
             mCfg.nrf.enabled           = true;
+            #endif
 
             #if defined(ESP32)
             mCfg.cmt.pinSclk           = DEF_CMT_SCLK;

@@ -74,7 +74,6 @@ class AhoyWifi : public AhoyNetwork {
                         DBGPRINT(" "  + String(bssid[j], HEX));
                     }
                     DBGPRINTLN("");
-                    mGotDisconnect = false;
                     WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, 0, &bssid[0]);
                     break;
 
@@ -96,6 +95,9 @@ class AhoyWifi : public AhoyNetwork {
                         MDNS.begin(mConfig->sys.deviceName);
                         mOnNetworkCB(true);
                     }
+
+                    if(WiFi.channel() > 11)
+                        mWasInCh12to14 = true;
                     break;
             }
         }
@@ -104,43 +106,11 @@ class AhoyWifi : public AhoyNetwork {
             return WiFi.localIP().toString();
         }
 
-        void scanAvailNetworks(void) override {
-            if(!mScanActive) {
-                mScanActive = true;
-                WiFi.scanNetworks(true);
-            }
-        }
-
-        bool getAvailNetworks(JsonObject obj) override {
-            JsonArray nets = obj.createNestedArray(F("networks"));
-
-            int n = WiFi.scanComplete();
-            if (n < 0)
-                return false;
-            if(n > 0) {
-                int sort[n];
-                sortRSSI(&sort[0], n);
-                for (int i = 0; i < n; ++i) {
-                    nets[i][F("ssid")] = WiFi.SSID(sort[i]);
-                    nets[i][F("rssi")] = WiFi.RSSI(sort[i]);
-                }
-            }
-            mScanActive = false;
-            WiFi.scanDelete();
-
-            return true;
+        bool getWasInCh12to14() override {
+            return mWasInCh12to14;
         }
 
     private:
-        void sortRSSI(int *sort, int n) {
-            for (int i = 0; i < n; i++)
-                sort[i] = i;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++)
-                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                        std::swap(sort[i], sort[j]);
-        }
-
         bool getBSSIDs() {
             bool result = false;
             int n = WiFi.scanComplete();
@@ -175,9 +145,8 @@ class AhoyWifi : public AhoyNetwork {
     private:
         uint8_t mCnt = 0;
         uint8_t mScanCnt = 0;
-        bool mScanActive = false;
-        bool mGotDisconnect = false;
         std::list<uint8_t> mBSSIDList;
+        bool mWasInCh12to14 = false;
         static constexpr uint8_t TIMEOUT = 20;
         static constexpr uint8_t SCAN_TIMEOUT = 10;
 };

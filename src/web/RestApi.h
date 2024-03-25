@@ -375,14 +375,12 @@ class RestApi {
         }
 
         void getSysInfo(AsyncWebServerRequest *request, JsonObject obj) {
+            obj[F("ap_pwd")]       = mConfig->sys.apPwd;
             #if !defined(ETHERNET)
             obj[F("ssid")]         = mConfig->sys.stationSsid;
-            obj[F("ap_pwd")]       = mConfig->sys.apPwd;
             obj[F("hidd")]         = mConfig->sys.isHidden;
             obj[F("mac")]          = WiFi.macAddress();
             obj[F("wifi_channel")] = WiFi.channel();
-            #else
-            getEthernet(obj.createNestedObject(F("eth")));
             #endif /* !defined(ETHERNET) */
             obj[F("device_name")]  = mConfig->sys.deviceName;
             obj[F("dark_mode")]    = (bool)mConfig->sys.darkMode;
@@ -882,6 +880,9 @@ class RestApi {
             #if defined(ESP32)
             getRadioCmt(obj.createNestedObject(F("radioCmt")));
             #endif
+            #if defined(ETHERNET)
+            getEthernet(obj.createNestedObject(F("eth")));
+            #endif
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
@@ -1050,6 +1051,17 @@ class RestApi {
                 mApp->saveSettings(false); // without reboot
                 //mApp->setStopApAllowedMode(false);
                 mApp->setupStation();
+            }
+            #else
+            else if(F("save_eth") == jsonIn[F("cmd")]) {
+                mConfig->sys.eth.enabled = jsonIn[F("en")].as<bool>();
+                mConfig->sys.eth.pinCs = jsonIn[F("cs")].as<uint8_t>();
+                mConfig->sys.eth.pinSclk = jsonIn[F("sclk")].as<uint8_t>();
+                mConfig->sys.eth.pinMiso = jsonIn[F("miso")].as<uint8_t>();
+                mConfig->sys.eth.pinMosi = jsonIn[F("mosi")].as<uint8_t>();
+                mConfig->sys.eth.pinIrq = jsonIn[F("irq")].as<uint8_t>();
+                mConfig->sys.eth.pinRst = jsonIn[F("reset")].as<uint8_t>();
+                mApp->saveSettings(true);
             }
             #endif /* !defined(ETHERNET */
             else if(F("save_iv") == jsonIn[F("cmd")]) {

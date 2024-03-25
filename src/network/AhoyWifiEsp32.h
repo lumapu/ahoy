@@ -9,8 +9,8 @@
 #if defined(ESP32) && !defined(ETHERNET)
 #include <functional>
 #include <AsyncUDP.h>
-#include <Wifi.h>
 #include "AhoyNetwork.h"
+#include "ESPAsyncWebServer.h"
 
 class AhoyWifi : public AhoyNetwork {
     public:
@@ -69,33 +69,6 @@ class AhoyWifi : public AhoyNetwork {
             return WiFi.localIP().toString();
         }
 
-        void scanAvailNetworks(void) override {
-            if(!mScanActive) {
-                mScanActive = true;
-                WiFi.scanNetworks(true);
-            }
-        }
-
-        bool getAvailNetworks(JsonObject obj) override {
-            JsonArray nets = obj.createNestedArray(F("networks"));
-
-            int n = WiFi.scanComplete();
-            if (n < 0)
-                return false;
-            if(n > 0) {
-                int sort[n];
-                sortRSSI(&sort[0], n);
-                for (int i = 0; i < n; ++i) {
-                    nets[i][F("ssid")] = WiFi.SSID(sort[i]);
-                    nets[i][F("rssi")] = WiFi.RSSI(sort[i]);
-                }
-            }
-            mScanActive = false;
-            WiFi.scanDelete();
-
-            return true;
-        }
-
     private:
         void sortRSSI(int *sort, int n) {
             for (int i = 0; i < n; i++)
@@ -105,9 +78,6 @@ class AhoyWifi : public AhoyNetwork {
                     if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
                         std::swap(sort[i], sort[j]);
         }
-
-    private:
-        bool mScanActive = false;
 };
 
 #endif /*ESP32 & !ETHERNET*/

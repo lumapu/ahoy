@@ -949,7 +949,7 @@
                 }
             }
 
-            function parsePinout(obj, type, system) {
+            function parsePinout(obj) {
                 var e = document.getElementById("pinout");
                 /*IF_ESP32*/
                 var pinList = esp32pins;
@@ -1291,13 +1291,13 @@
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
-                    parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
+                    parsePinout(root.pinout);
                     parseNrfRadio(root["radioNrf"], root["pinout"]);
                     /*IF_ESP32*/
-                    parseCmtRadio(root["radioCmt"]);
+                    parseCmtRadio(root.radioCmt);
                     /*ENDIF_ESP32*/
                     /*IF_ETHERNET*/
-                    parseEth(root.system.eth)
+                    parseEth(root.eth)
                     /*ENDIF_ETHERNET*/
                     parseSerial(root["serial"]);
                     /*IF_PLUGIN_DISPLAY*/

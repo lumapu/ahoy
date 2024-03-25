@@ -184,7 +184,11 @@ class app : public IApp, public ah::Scheduler {
         }*/
 
         bool getWasInCh12to14(void) const override {
-            return false; // @todo  mWifi.getWasInCh12to14();
+            #if defined(ESP8266)
+            return mNetwork->getWasInCh12to14();
+            #else
+            return false;
+            #endif
         }
         #endif /* !defined(ETHERNET) */
 

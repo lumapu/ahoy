@@ -447,10 +447,10 @@ class Web {
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
-            if (request->arg("ap_pwd") != "")
-                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
             mConfig->sys.isHidden = (request->arg("hidd") == "on");
             #endif /* !defined(ETHERNET) */
+            if (request->arg("ap_pwd") != "")
+                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");

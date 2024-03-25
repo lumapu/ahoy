@@ -26,9 +26,11 @@ class AhoyEthernetSpi {
             eth_netif(nullptr) {}
 
         void begin(int8_t pin_miso, int8_t pin_mosi, int8_t pin_sclk, int8_t pin_cs, int8_t pin_int, int8_t pin_rst) {
-            gpio_reset_pin(static_cast<gpio_num_t>(pin_rst));
-            gpio_set_direction(static_cast<gpio_num_t>(pin_rst), GPIO_MODE_OUTPUT);
-            gpio_set_level(static_cast<gpio_num_t>(pin_rst), 0);
+            if(-1 != pin_rst) {
+                gpio_reset_pin(static_cast<gpio_num_t>(pin_rst));
+                gpio_set_direction(static_cast<gpio_num_t>(pin_rst), GPIO_MODE_OUTPUT);
+                gpio_set_level(static_cast<gpio_num_t>(pin_rst), 0);
+            }
 
             gpio_reset_pin(static_cast<gpio_num_t>(pin_sclk));
             gpio_reset_pin(static_cast<gpio_num_t>(pin_mosi));
@@ -41,6 +43,7 @@ class AhoyEthernetSpi {
             detachInterrupt(digitalPinToInterrupt(pin_int));
             gpio_reset_pin(static_cast<gpio_num_t>(pin_int));
             gpio_set_pull_mode(static_cast<gpio_num_t>(pin_int), GPIO_PULLUP_ONLY);
+
 
             spi_bus_config_t buscfg = {
                 .mosi_io_num = pin_mosi,
@@ -80,9 +83,11 @@ class AhoyEthernetSpi {
             ESP_ERROR_CHECK(spi_bus_add_device(SPI3_HOST, &devcfg, &spi));
 
             // Reset sequence
-            delayMicroseconds(500);
-            gpio_set_level(static_cast<gpio_num_t>(pin_rst), 1);
-            delayMicroseconds(1000);
+            if(-1 != pin_rst) {
+                delayMicroseconds(500);
+                gpio_set_level(static_cast<gpio_num_t>(pin_rst), 1);
+                delayMicroseconds(1000);
+            }
 
             // Arduino function to start networking stack if not already started
             tcpipInit();

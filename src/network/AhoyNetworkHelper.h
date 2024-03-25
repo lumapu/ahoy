@@ -9,7 +9,7 @@
 #include "../utils/dbg.h"
 #include <Arduino.h>
 #if defined(ESP32)
-    #include <WiFi.h>
+    #include "ESPAsyncWebServer.h"
     #include <WiFiType.h>
     #include <ESPmDNS.h>
 #else

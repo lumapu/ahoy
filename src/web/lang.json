@@ -84,6 +84,11 @@
                     "de": "prüfen >>"
                 },
                 {
+                    "token": "BTN_REBOOT",
+                    "en": "reboot >>",
+                    "de": "Ahoy neustarten >>"
+                },
+                {
                     "token": "TEST_CONNECTION",
                     "en": "Test Connection",
                     "de": "Verbindung wird überprüft"
@@ -112,6 +117,36 @@
                     "token": "NUM_NETWORKS_FOUND",
                     "en": "Network(s) found",
                     "de": "Netzwerk(e) gefunden"
+                },
+                {
+                    "token": "PIN_OFF",
+                    "en": "off / default",
+                    "de": "aus / Standard"
+                },
+                {
+                    "token": "PIN_NO_IRQ",
+                    "en": "no IRQ!",
+                    "de": "kein Interrupt!"
+                },
+                {
+                    "token": "PIN_INPUT_ONLY",
+                    "en": "in only",
+                    "de": "nur Eingang"
+                },
+                {
+                    "token": "PIN_DONT_USE",
+                    "en": "DONT USE",
+                    "de": "nicht benutzen"
+                },
+                {
+                    "token": "PIN_NOT_AVAIL",
+                    "en": "not available",
+                    "de": "nicht verf&uuml;gbar"
+                },
+                {
+                    "token": "ETH_ENABLE",
+                    "en": "Ethernet enable",
+                    "de": "Ethernet aktivieren"
                 }
             ]
         },
