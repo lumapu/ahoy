@@ -11,7 +11,7 @@
 #include "../utils/spiPatcher.h"
 
 #include <esp_rom_gpio.h>
-#include <RF24_hal.h>
+#include <RF24.h>
 
 #define NRF_MAX_TRANSFER_SZ 64
 #define NRF_DEFAULT_SPI_SPEED 10000000 // 10 MHz
