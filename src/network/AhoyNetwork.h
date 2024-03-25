@@ -161,6 +161,17 @@ class AhoyNetwork {
             }
         }
 
+        #if !defined(ETHERNET)
+        void sortRSSI(int *sort, int n) {
+            for (int i = 0; i < n; i++)
+                sort[i] = i;
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
+                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
+                        std::swap(sort[i], sort[j]);
+        }
+        #endif
+
     private:
         void sendNTPpacket(IPAddress& address) {
             //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
@@ -199,17 +210,6 @@ class AhoyNetwork {
             mOnTimeCB(true);
             mUdp.close();
         }
-
-        #if !defined(ETHERNET)
-        void sortRSSI(int *sort, int n) {
-            for (int i = 0; i < n; i++)
-                sort[i] = i;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++)
-                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                        std::swap(sort[i], sort[j]);
-        }
-        #endif
 
     protected:
         enum class NetworkState : uint8_t {
