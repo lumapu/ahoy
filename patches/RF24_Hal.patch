@@ -959,3 +959,24 @@ index c029c8e..c9d612a 100644
 -#endif // __RF24_H__
 \ No newline at end of file
 +#endif // __RF24_H__
+diff --git a/RF24_hal.h b/RF24_hal.h
+new file mode 100644
+index 0000000..baceab3
+--- /dev/null
++++ b/RF24_hal.h
+@@ -0,0 +1,15 @@
++#pragma once
++
++#include "RF24_config.h"
++
++class RF24_hal
++{
++public:
++    virtual void ce(bool level) = 0;
++    virtual uint8_t read(uint8_t cmd, uint8_t* buf, uint8_t len) = 0;
++    virtual uint8_t read(uint8_t cmd, uint8_t* buf, uint8_t data_len, uint8_t blank_len) = 0;
++    virtual uint8_t write(uint8_t cmd, const uint8_t* buf, uint8_t len) = 0;
++    virtual uint8_t write(uint8_t cmd, const uint8_t* buf, uint8_t len, uint8_t blank_len) = 0;
++    virtual bool begin() = 0;
++    virtual void end() = 0;
++};

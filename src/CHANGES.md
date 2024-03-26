@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.99 - 2024-03-27
+* fix compilation of all environments
+
 ## 0.8.98 - 2024-03-24
 * new network routines
 
