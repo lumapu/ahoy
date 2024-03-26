@@ -1363,7 +1363,8 @@
                         divRow("{#ZE_GROUP_TAB_POWERMETER_TYPE}",
                             ml("select", {name: "pm_type", class: "text", id: "pm_type"}, null),
                         ),
-                        divRow("{#ZE_GROUP_TAB_POWERMETER_URL}", [
+// TODO: URL -> IP
+                        divRow("{#ZE_GROUP_TAB_POWERMETER_IP}", [
                             ml("input", {name: "pm_url", class: "text", type: "text", value: obj.pm_url, maxlength: "100"}, null),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_JSONPATH}", [

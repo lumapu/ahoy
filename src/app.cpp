@@ -93,6 +93,11 @@ void app::setup() {
         mZeroExport.resetWaitRebootAck(iv);
     });
     #endif /*PLUGIN_ZEROEXPORT*/
+    #if defined(PLUGIN_ZEROEXPORT)
+    mCommunication.addNewDataListener([this] (Inverter<> *iv) {
+        mZeroExport.newDataAvailable(iv);
+    });
+    #endif /*PLUGIN_ZEROEXPORT*/
 
     mSys.setup(&mTimestamp, &mConfig->inst, this);
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {

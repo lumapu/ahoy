@@ -854,9 +854,9 @@
                     "de": "Typ:"
                 },
                 {
-                    "token": "ZE_GROUP_TAB_POWERMETER_URL",
-                    "en": "Url:",
-                    "de": "Url:"
+                    "token": "ZE_GROUP_TAB_POWERMETER_IP",
+                    "en": "IP:",
+                    "de": "IP:"
                 },
                 {
                     "token": "ZE_GROUP_TAB_POWERMETER_JSONPATH",

@@ -19,6 +19,7 @@ typedef std::function<void(uint8_t, Inverter<> *)> payloadListenerType;
 typedef std::function<void(Inverter<> *)> powerLimitAckListenerType;
 typedef std::function<void(Inverter<> *)> powerPowerAckListenerType;
 typedef std::function<void(Inverter<> *)> powerRebootAckListenerType;
+typedef std::function<void(Inverter<> *)> newDataListenerType;
 typedef std::function<void(Inverter<> *)> alarmListenerType;
 
 class Communication : public CommQueue<> {
@@ -49,6 +50,10 @@ class Communication : public CommQueue<> {
 
         void addPowerRebootAckListener(powerRebootAckListenerType cb) {
             mCbPwrRebootAck = cb;
+        }
+
+        void addNewDataListener(newDataListenerType cb) {
+            mCbNewData = cb;
         }
 
         void addAlarmListener(alarmListenerType cb) {
@@ -601,6 +606,7 @@ class Communication : public CommQueue<> {
             for (uint8_t i = 0; i < rec->length; i++) {
                 q->iv->addValue(i, mPayload.data(), rec);
             }
+(mCbNewData)(q->iv);
             rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
 
             q->iv->rssi = rssi;
@@ -1057,6 +1063,7 @@ class Communication : public CommQueue<> {
         powerLimitAckListenerType mCbPwrAck = NULL;
         powerPowerAckListenerType mCbPwrPowerAck = NULL;
         powerRebootAckListenerType mCbPwrRebootAck = NULL;
+        newDataListenerType mCbNewData = NULL;
         alarmListenerType mCbAlarm = NULL;
         Heuristic mHeu;
         uint32_t mLastEmptyQueueMillis = 0;
