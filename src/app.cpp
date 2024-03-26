@@ -245,17 +245,12 @@ void app::tickNtpUpdate(void) {
 
     if (!mNtpReceived)
         mNetwork->updateNtpTime();
-    else
+    else {
+        nxtTrig = mConfig->ntp.interval * 60;  // check again in configured interval
         mNtpReceived = false;
+    }
 
     updateNtp();
-    nxtTrig = mConfig->ntp.interval * 60;  // check again in 12h
-
-    // immediately start communicating
-    if (mSendFirst) {
-        mSendFirst = false;
-        once(std::bind(&app::tickSend, this), 1, "senOn");
-    }
 
     mMqttReconnect = false;
 
@@ -532,7 +527,6 @@ void app::resetSystem(void) {
     mTimestamp = 1;
 #endif
 
-    mSendFirst = true;
     mAllIvNotAvail = true;
 
     mSunrise = 0;

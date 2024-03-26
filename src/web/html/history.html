@@ -136,7 +136,7 @@
                 return [
                     mlNs("polyline", {stroke: "url(#gLine)", fill: "none", points: pts}),
                     mlNs("polyline", {stroke: "none", fill: "url(#gFill)", points: pts2}),
-                    mlNs("text", {x: i*.8, y: 10}, "{#MAX_DAY}: " + String(obj.max) + "W"),
+                    mlNs("text", {x: i*.8, y: 10}, "{#MAXIMUM}: " + String(obj.max) + "W"),
                     mlNs("text", {x: i*.8, y: 25}, "{#LAST_VALUE}: " + String(lastVal) + "W")
                 ]
             }

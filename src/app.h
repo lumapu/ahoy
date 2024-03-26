@@ -440,7 +440,6 @@ class app : public IApp, public ah::Scheduler {
         bool mSaveReboot = false;
 
         uint8_t mSendLastIvId = 0;
-        bool mSendFirst = false;
         bool mAllIvNotAvail = false;
 
         bool mNetworkConnected = false;

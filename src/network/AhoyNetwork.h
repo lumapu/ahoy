@@ -57,11 +57,11 @@ class AhoyNetwork {
         }
 
         bool updateNtpTime(void) {
-            if(NetworkState::CONNECTED != mStatus)
+            if(NetworkState::GOT_IP != mStatus)
                 return false;
 
-            IPAddress timeServer;
             if (!mUdp.connected()) {
+                IPAddress timeServer;
                 if (!WiFi.hostByName(mConfig->ntp.addr, timeServer))
                     return false;
                 if (!mUdp.connect(timeServer, mConfig->ntp.port))
@@ -71,7 +71,7 @@ class AhoyNetwork {
             mUdp.onPacket([this](AsyncUDPPacket packet) {
                 this->handleNTPPacket(packet);
             });
-            sendNTPpacket(timeServer);
+            sendNTPpacket();
 
             return true;
         }
@@ -173,7 +173,7 @@ class AhoyNetwork {
         #endif
 
     private:
-        void sendNTPpacket(IPAddress& address) {
+        void sendNTPpacket(void) {
             //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
             uint8_t buf[NTP_PACKET_SIZE];
             memset(buf, 0, NTP_PACKET_SIZE);
@@ -188,9 +188,7 @@ class AhoyNetwork {
             buf[14] = 49;
             buf[15] = 52;
 
-            //mUdp.beginPacket(address, 123); // NTP request, port 123
             mUdp.write(buf, NTP_PACKET_SIZE);
-            //mUdp.endPacket();
         }
 
         void handleNTPPacket(AsyncUDPPacket packet) {

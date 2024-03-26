@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.100 - 2024-03-27
+* fix captions in `/history #1532
+* fix get NTP time #1529 #1530
+* fix translation #1516
+
 ## 0.8.99 - 2024-03-27
 * fix compilation of all environments
 

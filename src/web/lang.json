@@ -631,7 +631,7 @@
                 {
                     "token": "BTN_INV_ADD",
                     "en": "add Inverter",
-                    "de": "Wechselrichter hinzufuegen"
+                    "de": "Wechselrichter hinzuf\u00FCgen"
                 },
                 {
                     "token": "INV_INPUT",
@@ -656,7 +656,7 @@
                 {
                     "token": "TAB_INPUTS",
                     "en": "Inputs",
-                    "de": "Eingaenge"
+                    "de": "Eing&auml;nge"
                 },
                 {
                     "token": "TAB_RADIO",
@@ -1579,9 +1579,9 @@
                     "de": "Gesamtertrag pro Tag"
                 },
                 {
-                    "token": "MAX_DAY",
-                    "en": "Maximum day",
-                    "de": "Tagesmaximum"
+                    "token": "MAXIMUM",
+                    "en": "Maximum",
+                    "de": "Maximum"
                 },
                 {
                     "token": "LAST_VALUE",
