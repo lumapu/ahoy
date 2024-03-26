@@ -462,9 +462,17 @@ class powermeter {
                 switch (smlCurrentState) {
                     case SML_FINAL:
                         mCfg->groups[group].pmPower = _powerMeterTotal;
+
                         mCfg->groups[group].pmPowerL1 = _powerMeter1Power;
                         mCfg->groups[group].pmPowerL2 = _powerMeter2Power;
                         mCfg->groups[group].pmPowerL3 = _powerMeter3Power;
+
+                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power))
+                        {
+                            mCfg->groups[group].pmPowerL1 = _powerMeterTotal / 3;
+                            mCfg->groups[group].pmPowerL2 = _powerMeterTotal / 3;
+                            mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
+                        }
 
 // TODO: Ein return an dieser Stelle verhindert das ordnungsgemäße http.end()
                         result = true;
