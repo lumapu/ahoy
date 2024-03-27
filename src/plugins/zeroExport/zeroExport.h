@@ -1204,6 +1204,11 @@ class ZeroExport {
             if (mCfg->groups[group].inverters[inv].limitNew < mCfg->groups[group].inverters[inv].powerMin) {
                 mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMin;
             }
+            // Restriction LimitNew >= 2%
+            uint16_t power2proz = mIv[group][inv]->getMaxPower() / 100 * 2;
+            if (mCfg->groups[group].inverters[inv].limitNew < power2proz) {
+                mCfg->groups[group].inverters[inv].limitNew = power2proz;
+            }
 
             // Restriction LimitNew <= Pmax
             if (mCfg->groups[group].inverters[inv].limitNew > mCfg->groups[group].inverters[inv].powerMax) {
