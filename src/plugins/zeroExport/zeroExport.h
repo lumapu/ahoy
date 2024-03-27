@@ -19,7 +19,7 @@ template <class HMSYSTEM>
 
 // TODO: Anbindung an MQTT für Logausgabe.
 // TODO: Powermeter erweitern
-// TODO: Der Teil der noch in app.pp steckt komplett hier in die Funktion verschieben.
+// TODO: Der Teil der noch in app.cpp steckt komplett hier in die Funktion verschieben.
 
 class ZeroExport {
    public:
