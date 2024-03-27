@@ -1211,10 +1211,13 @@ class ZeroExport {
             }
 
             // Reject limit if difference < 5 W
-            //                if ((cfgGroupInv->limitNew > cfgGroupInv->limit + 5) && (cfgGroupInv->limitNew < cfgGroupInv->limit - 5)) {
-            //                    objLog["err"] = "Diff < 5W";
-            //                    return false;
-            //                }
+            if (
+                (mCfg->groups[group].inverters[inv].limitNew > (mCfg->groups[group].inverters[inv].limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))
+                ) {
+                mLog["err"] = String("Diff < ") + String (ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
+                return false;
+            }
 
             // Nothing todo
             if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) {

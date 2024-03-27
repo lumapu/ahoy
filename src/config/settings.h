@@ -198,6 +198,8 @@ typedef struct {
 #define ZEROEXPORT_GROUP_MAX_INVERTERS              3
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
+#define ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF          5
+
 
 enum class zeroExportState : uint8_t {
     INIT,
