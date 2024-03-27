@@ -257,6 +257,10 @@ class ZeroExport {
         //            return;
         //        }
 
+        if (iv->actPowerLimit == 65535) {
+            return;
+        }
+
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 if (iv->id == mCfg->groups[group].inverters[inv].id) {
@@ -271,7 +275,7 @@ class ZeroExport {
                     mLog["ivPm"] = iv->getMaxPower();
                     mLog["ivL"] = (uint16_t)(iv->getMaxPower() / 100 * iv->actPowerLimit);
                     mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
-
+                    mCfg->groups[group].inverters[inv].limit = (iv->getMaxPower() / 100 * iv->actPowerLimit);
                     unsigned long eTsp = millis();
                     mLog["B"] = bTsp;
                     mLog["E"] = eTsp;

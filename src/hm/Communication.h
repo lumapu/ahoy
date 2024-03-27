@@ -490,12 +490,16 @@ class Communication : public CommQueue<> {
 
                 case TurnOn: [[fallthrough]];
                 case TurnOff: //[[fallthrough]];
-                    (mCbPwrPowerAck)(q->iv);
+                    if (NULL != mCbPwrPowerAck) {
+                        (mCbPwrPowerAck)(q->iv);
+                    }
                     return true;
                     break;
 
                 case Restart:
-                    (mCbPwrRebootAck)(q->iv);
+                    if (NULL != mCbPwrRebootAck) {
+                        (mCbPwrRebootAck)(q->iv);
+                    }
                     return true;
                     break;
 
@@ -519,7 +523,9 @@ class Communication : public CommQueue<> {
             DBGPRINT(F(" with PowerLimitControl "));
             DBGPRINTLN(String(q->iv->powerLimit[1]));
             q->iv->actPowerLimit = 0xffff; // unknown, readback current value
-            (mCbPwrAck)(q->iv);
+            if (NULL != mCbPwrAck) {
+                (mCbPwrAck)(q->iv);
+            }
 
             return accepted;
         }
@@ -606,11 +612,14 @@ class Communication : public CommQueue<> {
             for (uint8_t i = 0; i < rec->length; i++) {
                 q->iv->addValue(i, mPayload.data(), rec);
             }
-(mCbNewData)(q->iv);
             rec->mqttSentStatus = MqttSentStatus::NEW_DATA;
 
             q->iv->rssi = rssi;
             q->iv->doCalculations();
+
+            if (NULL != mCbNewData) {
+                (mCbNewData)(q->iv);
+            }
 
             if(AlarmData == q->cmd) {
                 uint8_t i = 0;
