@@ -287,7 +287,7 @@ typedef struct {
     float battVoltageOn;
     float battVoltageOff;
     // Advanced
-    uint16_t setPoint;
+    int16_t setPoint;
     uint8_t refresh;
     uint8_t powerTolerance;
     uint16_t powerMax;
@@ -1062,7 +1062,7 @@ class settings {
                     getVal<float>(obj, F("battVoltageOff"), &mCfg.plugin.zeroExport.groups[group].battVoltageOff);
                 // Advanced
                 if (obj.containsKey(F("setPoint")))
-                    getVal<uint16_t>(obj, F("setPoint"), &mCfg.plugin.zeroExport.groups[group].setPoint);
+                    getVal<int16_t>(obj, F("setPoint"), &mCfg.plugin.zeroExport.groups[group].setPoint);
                 if (obj.containsKey(F("refresh")))
                     getVal<uint8_t>(obj, F("refresh"), &mCfg.plugin.zeroExport.groups[group].refresh);
                 if (obj.containsKey(F("powerTolerance")))

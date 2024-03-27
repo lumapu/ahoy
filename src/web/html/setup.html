@@ -1414,7 +1414,7 @@
                     ]),
                     // Advanced
                     ml("div", {id: "div{#ZE_GROUP_TAB_ADVANCED}", class: "tab-content hide"}, [
-                        divRow("{#ZE_GROUP_TAB_ADVANCED_SETPOINT}", ml("input", {name: "setPoint", class: "text", type: "number", min: "0", max: "65535", value: obj.setPoint}, null)),
+                        divRow("{#ZE_GROUP_TAB_ADVANCED_SETPOINT}", ml("input", {name: "setPoint", class: "text", type: "number", min: "-32768", max: "32767", step: "1", value: obj.setPoint}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_REFRESH}", ml("input", {name: "refresh", class: "text", type: "number", min: "0", max: "255", value: obj.refresh}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERTOLERANCE}", ml("input", {name: "powerTolerance", class: "text", type: "number", min: "0", max: "255", value: obj.powerTolerance}, null)),
                         divRow("{#ZE_GROUP_TAB_ADVANCED_POWERMAX}", ml("input", {name: "powerMax", class: "text", type: "number", min: "0", max: "65535", value: obj.powerMax}, null)),
