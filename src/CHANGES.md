@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.101 - 2024-03-28
+* updated converter scripts to include all enabled features again (redundant scan of build flags) #1534
+
 ## 0.8.100 - 2024-03-27
 * fix captions in `/history #1532
 * fix get NTP time #1529 #1530
