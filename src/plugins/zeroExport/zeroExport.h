@@ -273,9 +273,10 @@ class ZeroExport {
                     mLog["a"] = iv->isAvailable();
                     mLog["ivL%"] = iv->actPowerLimit;
                     mLog["ivPm"] = iv->getMaxPower();
-                    mLog["ivL"] = (uint16_t)(iv->getMaxPower() / 100 * iv->actPowerLimit);
+                    uint16_t ivL = (iv->getMaxPower() * iv->actPowerLimit) / 100;
+                    mLog["ivL"] = ivL;
                     mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
-                    mCfg->groups[group].inverters[inv].limit = (iv->getMaxPower() / 100 * iv->actPowerLimit);
+                    mCfg->groups[group].inverters[inv].limit = ivL;
                     unsigned long eTsp = millis();
                     mLog["B"] = bTsp;
                     mLog["E"] = eTsp;
