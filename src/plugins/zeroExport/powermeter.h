@@ -60,11 +60,6 @@ class powermeter {
                 break;
             case 5:
                 result = getPowermeterWattsTibber(logObj, group);
-                //                 if (result) {
-                //                    logObj["export"]  = String(_powerMeterExport);
-                //                    logObj["import"]  = String(_powerMeterImport);
-                //                    logObj["power"]  = String(_powerMeter1Power);
-                //                }
                 break;
         }
         if (!result) {
@@ -400,6 +395,9 @@ class powermeter {
 
     sml_states_t currentState;
 
+
+    float _powerMeterTotal = 0.0;
+
     float _powerMeter1Power = 0.0;
     float _powerMeter2Power = 0.0;
     float _powerMeter3Power = 0.0;
@@ -407,8 +405,24 @@ class powermeter {
     float _powerMeterImport = 0.0;
     float _powerMeterExport = 0.0;
 
+
+/*
+ 07 81 81 c7 82 03 ff		#objName: OBIS Kennzahl für den Hersteller
+ 07 01 00 01 08 00 ff		#objName: OBIS Kennzahl für Wirkenergie Bezug gesamt tariflos
+ 07 01 00 01 08 01 ff 		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif1
+ 07 01 00 01 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif2
+ 07 01 00 02 08 00 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung gesamt tariflos
+ 07 01 00 02 08 01 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif1
+ 07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
+*/
+
     const std::list<OBISHandler> smlHandlerList{
-        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},
+        {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
+
+        {{0x01, 0x00, 0x24, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter1Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L1
+        {{0x01, 0x00, 0x38, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter2Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L2
+        {{0x01, 0x00, 0x4c, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeter3Power},  // OBIS-Kennzahl für momentane Wirkleistung in Phase L3
+
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
@@ -447,12 +461,19 @@ class powermeter {
 
                 switch (smlCurrentState) {
                     case SML_FINAL:
-                        mCfg->groups[group].pmPower = _powerMeter1Power;
-                        mCfg->groups[group].pmPowerL1 = _powerMeter1Power / 3;
-                        mCfg->groups[group].pmPowerL2 = _powerMeter1Power / 3;
-                        mCfg->groups[group].pmPowerL3 = _powerMeter1Power / 3;
-                        /*mCfg->groups[group].pmPower = _powerMeterImport;
-                        mCfg->groups[group].pmPower = _powerMeterExport;*/
+                        mCfg->groups[group].pmPower = _powerMeterTotal;
+
+                        mCfg->groups[group].pmPowerL1 = _powerMeter1Power;
+                        mCfg->groups[group].pmPowerL2 = _powerMeter2Power;
+                        mCfg->groups[group].pmPowerL3 = _powerMeter3Power;
+
+                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power))
+                        {
+                            mCfg->groups[group].pmPowerL1 = _powerMeterTotal / 3;
+                            mCfg->groups[group].pmPowerL2 = _powerMeterTotal / 3;
+                            mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
+                        }
+
 // TODO: Ein return an dieser Stelle verhindert das ordnungsgemäße http.end()
                         result = true;
 //                        return true;
