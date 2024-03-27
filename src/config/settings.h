@@ -344,6 +344,7 @@ typedef struct {
     bool enabled;
     bool log_over_webserial;
     bool log_over_mqtt;
+    bool debug;
     zeroExportGroup_t groups[ZEROEXPORT_MAX_GROUPS];
 
 
@@ -673,6 +674,7 @@ class settings {
             mCfg.plugin.zeroExport.enabled = false;
             mCfg.plugin.zeroExport.log_over_webserial = false;
             mCfg.plugin.zeroExport.log_over_mqtt = false;
+            mCfg.plugin.zeroExport.debug = false;
             for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 // General
                 mCfg.plugin.zeroExport.groups[group].enabled = false;
@@ -1085,6 +1087,7 @@ class settings {
                 obj[F("enabled")] = mCfg.plugin.zeroExport.enabled;
                 obj[F("log_over_webserial")] = mCfg.plugin.zeroExport.log_over_webserial;
                 obj[F("log_over_mqtt")] = mCfg.plugin.zeroExport.log_over_mqtt;
+                obj[F("debug")] = mCfg.plugin.zeroExport.debug;
                 JsonArray grpArr = obj.createNestedArray(F("groups"));
                 for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                     jsonZeroExportGroup(grpArr.createNestedObject(), group, set);
@@ -1098,6 +1101,8 @@ class settings {
                     getVal<bool>(obj, F("log_over_webserial"), &mCfg.plugin.zeroExport.log_over_webserial);
                 if (obj.containsKey(F("log_over_mqtt")))
                     getVal<bool>(obj, F("log_over_mqtt"), &mCfg.plugin.zeroExport.log_over_mqtt);
+                if (obj.containsKey(F("debug")))
+                    getVal<bool>(obj, F("debug"), &mCfg.plugin.zeroExport.debug);
                 if (obj.containsKey(F("groups"))) {
                     for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                         jsonZeroExportGroup(obj[F("groups")][group], group, set);

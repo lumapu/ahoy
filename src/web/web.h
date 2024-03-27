@@ -588,6 +588,7 @@ class Web {
             mConfig->plugin.zeroExport.enabled = (request->arg("ze_enabled") == "on");
             mConfig->plugin.zeroExport.log_over_webserial = (request->arg("ze_log_over_webserial") == "on");
             mConfig->plugin.zeroExport.log_over_mqtt = (request->arg("ze_log_over_mqtt") == "on");
+            mConfig->plugin.zeroExport.debug = (request->arg("ze_debug") == "on");
 // TODO: sortieren
 //            mConfig->plugin.zeroExport.enabled = (request->arg("en_zeroexport") == "on");
 //            mConfig->plugin.zeroExport.two_percent = (request->arg("two_percent") == "on");

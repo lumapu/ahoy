@@ -789,6 +789,11 @@
                     "de": "Log in MQTT"
                 },
                 {
+                    "token": "ZE_DEBUG",
+                    "en": "Debug",
+                    "de": "Debug"
+                },
+                {
                     "token": "ZE_GROUP_ENABLED",
                     "en": "State:",
                     "de": "Status:"
