@@ -204,6 +204,7 @@ typedef struct {
 enum class zeroExportState : uint8_t {
     INIT,
     WAIT,
+    PUBLISH,
     WAITREFRESH,
     GETINVERTERACKS,
     GETINVERTERDATA,
@@ -325,6 +326,8 @@ uint8_t pm_iOut = 0;
     float pmPowerL1;
     float pmPowerL2;
     float pmPowerL3;
+bool publishPower = false;
+
     bool battSwitch;
     float grpPower;
     float grpPowerL1;
