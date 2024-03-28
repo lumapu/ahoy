@@ -391,6 +391,7 @@ class powermeter {
      * @param group
      * @returns true/false
      * @TODO: Username & Passwort wird mittels base64 verschlüsselt. Dies wird für die Authentizierung benötigt. Wichtig diese im WebUI unkenntlich zu machen und base64 im eeprom zu speichern, statt klartext.
+     * @TODO: Abfrage Interval einbauen. Info: Datei-Size kann auch mal 0-bytes sein!
      */
 
     sml_states_t currentState;
@@ -448,7 +449,7 @@ class powermeter {
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK) {
+        if (http.GET() == HTTP_CODE_OK && http.getSize() != 0) {
             String myString = http.getString();
 
             char floatBuffer[20];
@@ -474,9 +475,7 @@ class powermeter {
                             mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
                         }
 
-// TODO: Ein return an dieser Stelle verhindert das ordnungsgemäße http.end()
                         result = true;
-//                        return true;
                         break;
                     case SML_LISTEND:
                         // check handlers on last received list
@@ -487,9 +486,19 @@ class powermeter {
                             }
                         }
                         break;
+
+                    default:
+                        logObj["SML_DEFAULT"] = String(smlCurrentState);
+                        break;
                 }
             }
         }
+        else
+        {
+            logObj["result"] = String(result);
+            logObj["http_size"] = String(http.getSize());
+        }
+
         http.end();
 
         logObj["P"] = mCfg->groups[group].pmPower;
