@@ -68,48 +68,50 @@ class ZeroExport {
                 continue;
             }
 
+            bool flag = false;
+
             switch (mCfg->groups[group].state) {
                 case zeroExportState::INIT:
-                    if (groupInit(group)) sendLog();
+                    flag = groupInit(group);
                     break;
                 case zeroExportState::WAIT:
-                    if (groupWait(group)) sendLog();
+                    flag = groupWait(group);
                     break;
                 case zeroExportState::PUBLISH:
-                    if (groupPublish(group)) sendLog();
+                    flag = groupPublish(group);
                     break;
                 case zeroExportState::WAITREFRESH:
-                    if (groupWaitRefresh(group)) sendLog();
+                    flag = groupWaitRefresh(group);
                     break;
                 case zeroExportState::GETINVERTERACKS:
-                    if (groupGetInverterAcks(group)) sendLog();
+                    flag = groupGetInverterAcks(group);
                     break;
                 case zeroExportState::GETINVERTERDATA:
-                    if (groupGetInverterData(group)) sendLog();
+                    flag = groupGetInverterData(group);
                     break;
                 case zeroExportState::BATTERYPROTECTION:
-                    if (groupBatteryprotection(group)) sendLog();
+                    flag = groupBatteryprotection(group);
                     break;
                 case zeroExportState::GETPOWERMETER:
-                    if (groupGetPowermeter(group)) sendLog();
+                    flag = groupGetPowermeter(group);
                     break;
                 case zeroExportState::CONTROLLER:
-                    if (groupController(group)) sendLog();
+                    flag = groupController(group);
                     break;
                 case zeroExportState::PROGNOSE:
-                    if (groupPrognose(group)) sendLog();
+                    flag = groupPrognose(group);
                     break;
                 case zeroExportState::AUFTEILEN:
-                    if (groupAufteilen(group)) sendLog();
+                    flag = groupAufteilen(group);
                     break;
                 case zeroExportState::SETLIMIT:
-                    if (groupSetLimit(group)) sendLog();
+                    flag = groupSetLimit(group);
                     break;
                 case zeroExportState::SETPOWER:
-                    if (groupSetPower(group)) sendLog();
+                    flag = groupSetPower(group);
                     break;
                 case zeroExportState::SETREBOOT:
-                    if (groupSetReboot(group)) sendLog();
+                    flag = groupSetReboot(group);
                     break;
                 case zeroExportState::FINISH:
                 case zeroExportState::ERROR:
@@ -121,6 +123,8 @@ class ZeroExport {
                     }
                     break;
             }
+
+            if (flag) sendLog();
         }
     }
 
@@ -292,11 +296,17 @@ class ZeroExport {
     }
 
     /** onMqttMessage
-     *
+     * Subscribe section
      */
     void onMqttMessage(JsonObject obj) {
         if ((!mIsInitialized) || (!mCfg->enabled)) {
             return;
+        }
+
+        // MQTT":{"val":0,"path":"zero","cmd":"set","id":0}
+        if (strcmp(obj["cmd"], "set") != 0 && strcmp(obj["path"], "zero") != 0)
+        {
+            mCfg->enabled = (bool)obj["val"];
         }
 
         mLog["MQTT"] = obj;
@@ -460,7 +470,7 @@ class ZeroExport {
             //                mCfg->groups[group].publishPower = false;
             obj["L1"] = mCfg->groups[group].pmPowerL1;
             obj["L2"] = mCfg->groups[group].pmPowerL2;
-            obj["L2"] = mCfg->groups[group].pmPowerL3;
+            obj["L3"] = mCfg->groups[group].pmPowerL3;
             obj["Sum"] = mCfg->groups[group].pmPower;
             mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
             doc.clear();
