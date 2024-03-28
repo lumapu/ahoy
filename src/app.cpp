@@ -630,6 +630,9 @@ void app::resetSystem(void) {
 //-----------------------------------------------------------------------------
 void app::mqttSubRxCb(JsonObject obj) {
     mApi.ctrlRequest(obj);
+#if defined(PLUGIN_ZEROEXPORT)
+    mZeroExport.onMqttMessage(obj);
+#endif
 }
 
 //-----------------------------------------------------------------------------

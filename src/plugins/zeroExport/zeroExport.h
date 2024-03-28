@@ -75,6 +75,9 @@ class ZeroExport {
                 case zeroExportState::WAIT:
                     if (groupWait(group)) sendLog();
                     break;
+                case zeroExportState::PUBLISH:
+                    if (groupPublish(group)) sendLog();
+                    break;
                 case zeroExportState::WAITREFRESH:
                     if (groupWaitRefresh(group)) sendLog();
                     break;
@@ -288,6 +291,18 @@ class ZeroExport {
         }
     }
 
+    /** onMqttMessage
+     *
+     */
+    void onMqttMessage(JsonObject obj) {
+        if ((!mIsInitialized) || (!mCfg->enabled)) {
+            return;
+        }
+
+        mLog["MQTT"] = obj;
+        sendLog();
+    }
+
    private:
     /** groupInit
      * initialisiert die Gruppe und sucht die ivPointer
@@ -410,6 +425,71 @@ class ZeroExport {
 
         mCfg->groups[group].lastRun = eTsp;
         mCfg->groups[group].lastRefresh = eTsp;
+
+        return doLog;
+    }
+
+    /** groupPublish
+     *
+     */
+    bool groupPublish(uint8_t group) {
+        bool doLog = false;
+        unsigned long bTsp = millis();
+
+        mLog["t"] = "groupPublish";
+        mLog["g"] = group;
+
+        mCfg->groups[group].stateLast = zeroExportState::PUBLISH;
+
+        if (mMqtt->isConnected()) {
+            DynamicJsonDocument doc(512);
+            JsonObject obj = doc.to<JsonObject>();
+
+            doLog = true;
+
+            // Init
+            if (!mIsSubscribed) {
+                mIsSubscribed = true;
+                mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+                mMqtt->subscribe("zero/set/enabled", QOS_2);
+            }
+
+            mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+
+            //            if (mCfg->groups[group].publishPower) {
+            //                mCfg->groups[group].publishPower = false;
+            obj["L1"] = mCfg->groups[group].pmPowerL1;
+            obj["L2"] = mCfg->groups[group].pmPowerL2;
+            obj["L2"] = mCfg->groups[group].pmPowerL3;
+            obj["Sum"] = mCfg->groups[group].pmPower;
+            mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
+            doc.clear();
+            //            }
+
+            //            if (mCfg->groups[group].pm_Publish_W) {
+            //                mCfg->groups[group].pm_Publish_W = false;
+            //                obj["todo"]  = "true";
+            //                obj["L1"]  = mCfg->groups[group].pm_P1;
+            //                obj["L2"]  = mCfg->groups[group].pm_P2;
+            //                obj["L2"]  = mCfg->groups[group].pm_P3;
+            //                obj["Sum"] = mCfg->groups[group].pm_P;
+            //                mMqtt->publish("zero/powermeter/W", doc.as<std::string>().c_str(), false);
+            //                doc.clear();
+            //            }
+
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+            }
+        }
+
+        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
+        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+
+        unsigned long eTsp = millis();
+        mLog["B"] = bTsp;
+        mLog["E"] = eTsp;
+        mLog["D"] = eTsp - bTsp;
+
+        mCfg->groups[group].lastRun = eTsp;
 
         return doLog;
     }
@@ -791,8 +871,8 @@ class ZeroExport {
 
         // Next
 #if defined(ZEROEXPORT_DEV_POWERMETER)
-        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+        mCfg->groups[group].state = zeroExportState::PUBLISH;
+        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
         mCfg->groups[group].lastRefresh = millis();
 #else
         if (result) {
@@ -1219,9 +1299,8 @@ class ZeroExport {
             // Reject limit if difference < 5 W
             if (
                 (mCfg->groups[group].inverters[inv].limitNew > (mCfg->groups[group].inverters[inv].limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))
-                ) {
-                mLog["err"] = String("Diff < ") + String (ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
+                (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
+                mLog["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
                 return false;
             }
 
@@ -1252,8 +1331,8 @@ class ZeroExport {
         }
 
         // Next
-        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+        mCfg->groups[group].state = zeroExportState::PUBLISH;
+        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
 
         unsigned long eTsp = millis();
         mLog["B"] = bTsp;
@@ -1326,8 +1405,8 @@ class ZeroExport {
         }
 
         // Next
-        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+        mCfg->groups[group].state = zeroExportState::PUBLISH;
+        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
         mCfg->groups[group].lastRefresh = millis();
 
         unsigned long eTsp = millis();
@@ -1393,8 +1472,8 @@ class ZeroExport {
         }
 
         // Next
-        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+        mCfg->groups[group].state = zeroExportState::PUBLISH;
+        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
         mCfg->groups[group].lastRefresh = millis();
 
         unsigned long eTsp = millis();
@@ -1434,6 +1513,7 @@ class ZeroExport {
     JsonObject mLog = mDocLog.to<JsonObject>();
     PubMqttType *mMqtt;
     powermeter mPowermeter;
+    bool mIsSubscribed = false;
 
     Inverter<> *mIv[ZEROEXPORT_MAX_GROUPS][ZEROEXPORT_GROUP_MAX_INVERTERS];
 };
