@@ -151,6 +151,7 @@ typedef struct {
     char user[MQTT_USER_LEN];
     char pwd[MQTT_PWD_LEN];
     char topic[MQTT_TOPIC_LEN];
+    bool json;
     uint16_t interval;
 } cfgMqtt_t;
 
@@ -477,6 +478,7 @@ class settings {
             snprintf(mCfg.mqtt.pwd,    MQTT_PWD_LEN,   "%s", DEF_MQTT_PWD);
             snprintf(mCfg.mqtt.topic,  MQTT_TOPIC_LEN, "%s", DEF_MQTT_TOPIC);
             mCfg.mqtt.interval = 0; // off
+            mCfg.mqtt.json = 0; // off
 
             mCfg.inst.sendInterval     = SEND_INTERVAL;
             mCfg.inst.rstYieldMidNight = false;
@@ -732,11 +734,13 @@ class settings {
                 obj[F("user")]     = mCfg.mqtt.user;
                 obj[F("pwd")]      = mCfg.mqtt.pwd;
                 obj[F("topic")]    = mCfg.mqtt.topic;
+                obj[F("json")]     = mCfg.mqtt.json;
                 obj[F("intvl")]    = mCfg.mqtt.interval;
 
             } else {
                 getVal<uint16_t>(obj, F("port"), &mCfg.mqtt.port);
                 getVal<uint16_t>(obj, F("intvl"), &mCfg.mqtt.interval);
+                getVal<bool>(obj, F("json"), &mCfg.mqtt.json);
                 getChar(obj, F("broker"), mCfg.mqtt.broker, MQTT_ADDR_LEN);
                 getChar(obj, F("user"), mCfg.mqtt.user, MQTT_USER_LEN);
                 getChar(obj, F("clientId"), mCfg.mqtt.clientId, MQTT_CLIENTID_LEN);
