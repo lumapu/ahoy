@@ -417,6 +417,8 @@ class powermeter {
  07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
 */
 
+    unsigned long previousMillis = 0;
+
     const std::list<OBISHandler> smlHandlerList{
         {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
 
@@ -429,6 +431,8 @@ class powermeter {
 
     bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
         bool result = false;
+
+        if(millis() - previousMillis <= 3000) return false; // skip when it is to fast
 
         mCfg->groups[group].pmPower = 0;
         mCfg->groups[group].pmPowerL1 = 0;
@@ -449,7 +453,7 @@ class powermeter {
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK && http.getSize() != 0) {
+        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
             String myString = http.getString();
 
             char floatBuffer[20];
@@ -486,17 +490,8 @@ class powermeter {
                             }
                         }
                         break;
-
-                    default:
-                        logObj["SML_DEFAULT"] = String(smlCurrentState);
-                        break;
                 }
             }
-        }
-        else
-        {
-            logObj["result"] = String(result);
-            logObj["http_size"] = String(http.getSize());
         }
 
         http.end();
@@ -506,6 +501,7 @@ class powermeter {
         logObj["P2"] = mCfg->groups[group].pmPowerL2;
         logObj["P3"] = mCfg->groups[group].pmPowerL3;
 
+        previousMillis = millis();
         return result;
     }
 

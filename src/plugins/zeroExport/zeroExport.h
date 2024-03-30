@@ -299,17 +299,26 @@ class ZeroExport {
      * Subscribe section
      */
     void onMqttMessage(JsonObject obj) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        // MQTT":{"val":0,"path":"zero","cmd":"set","id":0}
-        if (strcmp(obj["cmd"], "set") != 0 && strcmp(obj["path"], "zero") != 0)
+        String topic = String(obj["topic"]);
+        if(!topic.indexOf("/zero/set/")) return;
+
+        mLog["t"] = "onMqttMessage";
+
+        if (obj["path"] == "zero" && obj["cmd"] == "set")
         {
+            // "topic":"inverter/zero/set/groups/0/enabled"
+            if (topic.indexOf("groups") != -1) {
+                String i = topic.substring(topic.length() - 10, topic.length() - 8);
+                uint id = i.toInt();
+            }
+
             mCfg->enabled = (bool)obj["val"];
+            mLog["zero_enable"] = mCfg->enabled;
         }
 
-        mLog["MQTT"] = obj;
+        mLog["Msg"] = obj;
         sendLog();
     }
 
@@ -457,14 +466,22 @@ class ZeroExport {
 
             doLog = true;
 
+            String gr;
+
             // Init
             if (!mIsSubscribed) {
                 mIsSubscribed = true;
                 mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
+
+                gr = "zero/set/groups/" + String(group) + "/enabled";
+                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
             }
 
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+            gr = "zero/state/groups/" + String(group) + "/enabled";
+            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
 
             //            if (mCfg->groups[group].publishPower) {
             //                mCfg->groups[group].publishPower = false;
@@ -472,6 +489,7 @@ class ZeroExport {
             obj["L2"] = mCfg->groups[group].pmPowerL2;
             obj["L3"] = mCfg->groups[group].pmPowerL3;
             obj["Sum"] = mCfg->groups[group].pmPower;
+
             mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
             doc.clear();
             //            }
@@ -481,7 +499,7 @@ class ZeroExport {
             //                obj["todo"]  = "true";
             //                obj["L1"]  = mCfg->groups[group].pm_P1;
             //                obj["L2"]  = mCfg->groups[group].pm_P2;
-            //                obj["L2"]  = mCfg->groups[group].pm_P3;
+            //                obj["L3"]  = mCfg->groups[group].pm_P3;
             //                obj["Sum"] = mCfg->groups[group].pm_P;
             //                mMqtt->publish("zero/powermeter/W", doc.as<std::string>().c_str(), false);
             //                doc.clear();
