@@ -504,10 +504,14 @@ class ZeroExport {
             if (topic.indexOf("groups") != -1) {
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
                 uint id = i.toInt();
-            }
 
-            mCfg->enabled = (bool)obj["val"];
-            mLog["zero_enable"] = mCfg->enabled;
+                mCfg->groups[id].enabled = (bool)obj["val"];
+            }
+            else
+            {
+                mCfg->enabled = (bool)obj["val"];
+                mLog["zero_enable"] = mCfg->enabled;
+            }
         }
 
         mLog["Msg"] = obj;
@@ -1499,15 +1503,23 @@ class ZeroExport {
             JsonObject obj = doc.to<JsonObject>();
 
             *doLog = true;
+            String gr;
 
             // Init
             if (!mIsSubscribed) {
                 mIsSubscribed = true;
                 mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
+
+                gr = "zero/set/groups/" + String(group) + "/enabled";
+                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
             }
 
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+            gr = "zero/state/groups/" + String(group) + "/enabled";
+            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+
 
             //            if (mCfg->groups[group].publishPower) {
             //                mCfg->groups[group].publishPower = false;
