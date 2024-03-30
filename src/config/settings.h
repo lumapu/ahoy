@@ -188,7 +188,7 @@ typedef struct {
 // Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 
-#define ZEROEXPORT_DEV_POWERMETER
+//#define ZEROEXPORT_DEV_POWERMETER
 #define ZEROEXPORT_MAX_GROUPS                       6
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100

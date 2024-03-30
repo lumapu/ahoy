@@ -433,6 +433,7 @@ class powermeter {
         bool result = false;
 
         if(millis() - previousMillis <= 3000) return false; // skip when it is to fast
+        logObj["mod"] = "getPowermeterWattsTibber";
 
         mCfg->groups[group].pmPower = 0;
         mCfg->groups[group].pmPowerL1 = 0;
@@ -455,11 +456,9 @@ class powermeter {
 
         if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
             String myString = http.getString();
-
-            char floatBuffer[20];
             double readVal = 0;
-
             unsigned char c;
+
             for (int i = 0; i < http.getSize(); ++i) {
                 c = myString[i];
                 sml_states_t smlCurrentState = smlState(c);
@@ -472,11 +471,8 @@ class powermeter {
                         mCfg->groups[group].pmPowerL2 = _powerMeter2Power;
                         mCfg->groups[group].pmPowerL3 = _powerMeter3Power;
 
-                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power))
-                        {
-                            mCfg->groups[group].pmPowerL1 = _powerMeterTotal / 3;
-                            mCfg->groups[group].pmPowerL2 = _powerMeterTotal / 3;
-                            mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
+                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power)) {
+                            mCfg->groups[group].pmPowerL1 = mCfg->groups[group].pmPowerL2 = mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
                         }
 
                         result = true;
