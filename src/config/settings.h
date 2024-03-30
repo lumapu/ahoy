@@ -204,7 +204,6 @@ typedef struct {
 enum class zeroExportState : uint8_t {
     INIT,
     WAIT,
-    PUBLISH,
     WAITREFRESH,
     GETINVERTERACKS,
     GETINVERTERDATA,
@@ -213,9 +212,11 @@ enum class zeroExportState : uint8_t {
 	CONTROLLER,
 	PROGNOSE,
 	AUFTEILEN,
-	SETLIMIT,
-	SETPOWER,
 	SETREBOOT,
+	SETPOWER,
+	SETLIMIT,
+    PUBLISH,
+    EMERGENCY,
     FINISH,
     ERROR
 };
@@ -271,6 +272,9 @@ typedef struct {
     unsigned long limitTsp;
     float dcVoltage;
     bool state;
+    //
+    bool doReboot;
+    int8_t doPower;
 } zeroExportGroupInverter_t;
 
 typedef struct {
@@ -296,12 +300,11 @@ typedef struct {
     uint16_t powerMax;
     //
 
-    zeroExportState stateLast;
     zeroExportState state;
     zeroExportState stateNext;
     unsigned long lastRun;
     unsigned long lastRefresh;
-//    bool waitForAck;
+    uint16_t sleep;
 
     float eSum;
     float eSum1;
@@ -315,12 +318,12 @@ typedef struct {
     float Ki;
     float Kd;
 
-float pm_P[5];
-float pm_P1[5];
-float pm_P2[5];
-float pm_P3[5];
-uint8_t pm_iIn = 0;
-uint8_t pm_iOut = 0;
+//float pm_P[5];
+//float pm_P1[5];
+//float pm_P2[5];
+//float pm_P3[5];
+//uint8_t pm_iIn = 0;
+//uint8_t pm_iOut = 0;
 
     float pmPower;
     float pmPowerL1;
@@ -697,6 +700,8 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitLimitAck = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitPowerAck = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitRebootAck = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doPower = -1;
                 }
                 // Battery
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
@@ -714,6 +719,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
                 mCfg.plugin.zeroExport.groups[group].lastRefresh = 0;
+                mCfg.plugin.zeroExport.groups[group].sleep = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPower = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPowerL1 = 0;
                 mCfg.plugin.zeroExport.groups[group].pmPowerL2 = 0;

@@ -235,7 +235,7 @@ void app::regularTickers(void) {
 
     // Plugin ZeroExport
     #if defined(PLUGIN_ZEROEXPORT)
-    everySec(std::bind(&ZeroExportType::tickerSecond, &mZeroExport), "ZeroExport");
+    everySec(std::bind(&ZeroExportType::tickSecond, &mZeroExport), "ZeroExport");
     #endif
     // Plugin ZeroExport - Ende
 
@@ -423,6 +423,10 @@ void app::tickMinute(void) {
 
 //-----------------------------------------------------------------------------
 void app::tickMidnight(void) {
+    #if defined(PLUGIN_ZEROEXPORT)
+    mZeroExport.tickMidnight();
+    #endif /*defined(PLUGIN_ZEROEXPORT)*/
+
     uint32_t localTime = gTimezone.toLocal(mTimestamp);
     uint32_t nxtTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
     onceAt(std::bind(&app::tickMidnight, this), nxtTrig, "mid2");
