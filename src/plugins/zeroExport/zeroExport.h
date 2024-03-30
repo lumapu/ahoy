@@ -548,7 +548,7 @@ class ZeroExport {
             }
 
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
+            if (mCfg->groups[group].inverters[inv].id < 0) {
                 continue;
             }
 
