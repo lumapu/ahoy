@@ -401,6 +401,7 @@ class ZeroExport {
                         mLog["D"] = eTsp - bTsp;
                     }
                     sendLog();
+                    clearLog();
                     return;
                 }
             }
@@ -435,6 +436,7 @@ class ZeroExport {
                         mLog["D"] = eTsp - bTsp;
                     }
                     sendLog();
+                    clearLog();
                     return;
                 }
             }
@@ -449,9 +451,13 @@ class ZeroExport {
             return;
         }
 
-        //        if (!iv->isAvailable()) {
-        //            return;
-        //        }
+        if (!iv->isAvailable()) {
+            return;
+        }
+
+        if (!iv->isProducing()) {
+            return;
+        }
 
         if (iv->actPowerLimit == 65535) {
             return;
@@ -466,7 +472,8 @@ class ZeroExport {
                     mLog["g"] = group;
                     mLog["i"] = inv;
                     mLog["id"] = iv->id;
-                    mLog["a"] = iv->isAvailable();
+    //                mLog["a"] = iv->isAvailable();
+    //                mLog["p"] = iv->isProducing();
                     mLog["ivL%"] = iv->actPowerLimit;
                     mLog["ivPm"] = iv->getMaxPower();
                     uint16_t ivL = (iv->getMaxPower() * iv->actPowerLimit) / 100;
@@ -481,6 +488,7 @@ class ZeroExport {
                         mLog["D"] = eTsp - bTsp;
                     }
                     sendLog();
+                    clearLog();
                     return;
                 }
             }
@@ -502,6 +510,7 @@ class ZeroExport {
 
         mLog["MQTT"] = obj;
         sendLog();
+        clearLog();
     }
 
    private:
@@ -1480,10 +1489,6 @@ class ZeroExport {
 
         mCfg->groups[group].lastRun = *tsp;
 
-        *doLog = true;
-
-        return true;
-
         if (mMqtt->isConnected()) {
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
@@ -1553,7 +1558,8 @@ class ZeroExport {
      */
     void sendLog(void) {
         if (mCfg->log_over_webserial) {
-            DBGPRINTLN(String("ze: ") + mDocLog.as<String>());
+//            DBGPRINTLN(String("ze: ") + mDocLog.as<String>());
+            DPRINTLN(DBG_INFO, String("ze: ") + mDocLog.as<String>());
         }
 
         if (mCfg->log_over_mqtt) {
