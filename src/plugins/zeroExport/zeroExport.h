@@ -915,9 +915,9 @@ class ZeroExport {
         result = mPowermeter.getData(mLog, group);
         if (
             (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0)) {
+            (mCfg->groups[group].pmPowerL1 == 0) &&
+            (mCfg->groups[group].pmPowerL2 == 0) &&
+            (mCfg->groups[group].pmPowerL3 == 0)) {
             return false;
         }
 
