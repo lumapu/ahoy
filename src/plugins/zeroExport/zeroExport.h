@@ -92,20 +92,12 @@ class ZeroExport {
                     break;
                 case zeroExportState::WAITREFRESH:
                     if (groupWaitRefresh(group, &Tsp, &DoLog)) {
-///                        cfgGroup->state = zeroExportState::GETINVERTERACKS;
                         cfgGroup->state = zeroExportState::GETINVERTERDATA;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
                         cfgGroup->state = zeroExportState::GETPOWERMETER;
 #endif
                     }
                     break;
-///                case zeroExportState::GETINVERTERACKS:
-///                    if (groupGetInverterAcks(group, &Tsp, &DoLog)) {
-///                        cfgGroup->state = zeroExportState::GETINVERTERDATA;
-///                    } else {
-///                        cfgGroup->sleep = 1000;
-///                    }
-///                    break;
                 case zeroExportState::GETINVERTERDATA:
                     if (groupGetInverterData(group, &Tsp, &DoLog)) {
                         cfgGroup->state = zeroExportState::BATTERYPROTECTION;
@@ -420,7 +412,8 @@ class ZeroExport {
             // "topic":"inverter/zero/set/groups/0/enabled"
             if (topic.indexOf("groups") != -1) {
                 // TODO: Topicprüfung
-                // TODO: Topicprüfung ist 10 und 8 korrekt? Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
+                // TODO: Topicprüfung ist 10 und 8 korrekt?
+                // TODO: Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
                 uint8_t group = i.toInt();
                 mLog["g"] = group;
@@ -442,6 +435,35 @@ class ZeroExport {
                 }
             }
         }
+
+// Global
+// - enabled
+
+// General
+// - enabled
+
+// Powermeter
+/// ?
+
+// Inverter
+// - enabled
+// - powerMin
+// - powerMax
+
+// Battery
+/// - enabled
+/// - voltageOn
+/// - voltageOff
+// - switch
+
+// Advanced
+// - setpoint
+/// - refresh
+// - powerTolerance
+// - powerMax
+/// - Kp
+/// - Ki
+/// - Kd
 
         mLog["Msg"] = obj;
         sendLog();
@@ -542,49 +564,6 @@ class ZeroExport {
 
         return true;
     }
-
-    /** groupGetInverterAcks
-     * aktualisiert die Gruppe mit den ACKs der Inverter für neue Limits
-     * @param group
-     * @returns true/false
-     * @todo siehe code
-     */
-/*
-    bool groupGetInverterAcks(uint8_t group, unsigned long *tsp, bool *doLog) {
-        if (mCfg->debug) mLog["t"] = "groupGetInverterAcks";
-
-        mCfg->groups[group].lastRun = *tsp;
-
-        *doLog = true;
-
-        // Wait Acks
-        JsonArray logArr = mLog.createNestedArray("ix");
-        bool wait = false;
-        for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-            JsonObject logObj = logArr.createNestedObject();
-            logObj["i"] = inv;
-
-            // Inverter not enabled or not selected -> ignore
-            if (NotEnabledOrNotSelected(group, inv)) continue;
-
-            // Inverter is not available -> wait
-            if (!mIv[group][inv]->isAvailable()) {
-                logObj["a"] = false;
-                wait = true;
-            }
-            // waitLimitAck
-            if (mCfg->groups[group].inverters[inv].waitLimitAck > 0) {
-                logObj["wL"] = mCfg->groups[group].inverters[inv].waitLimitAck;
-                wait = true;
-            }
-        }
-
-        mLog["w"] = wait;
-
-        if (wait) return false;
-        return true;
-    }
-*/
 
     /** groupGetInverterData
      *
@@ -1455,6 +1434,7 @@ class ZeroExport {
                 gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
                 obj["enabled"] = cfgGroupInv->enabled;
                 obj["id"] = cfgGroupInv->id;
+                obj["target"] = cfgGroupInv->target;
                 obj["powerMin"] = cfgGroupInv->powerMin;
                 obj["powerMax"] = cfgGroupInv->powerMax;
                 mMqtt->publish(gr.c_str(), doc.as<std::string>().c_str(), false);
