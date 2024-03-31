@@ -418,17 +418,26 @@ class ZeroExport {
         if (obj["path"] == "zero" && obj["cmd"] == "set")
         {
             // "topic":"inverter/zero/set/groups/0/enabled"
-            // @TODO: state machine init
             if (topic.indexOf("groups") != -1) {
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
-                uint id = i.toInt();
+                uint8_t group = i.toInt();
 
-                mCfg->groups[id].enabled = (bool)obj["val"];
+                mCfg->groups[group].enabled = (bool)obj["val"];
+
+                // Initialize group
+                mCfg->groups[group].state = zeroExportState::INIT;
+                mCfg->groups[group].sleep = 0;
             }
             else
             {
                 mCfg->enabled = (bool)obj["val"];
                 mLog["zero_enable"] = mCfg->enabled;
+
+                // Initialize groups
+                for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                    mCfg->groups[group].state = zeroExportState::INIT;
+                    mCfg->groups[group].sleep = 0;
+                }
             }
         return;
         }
@@ -441,6 +450,9 @@ class ZeroExport {
    private:
     /** NotEnabledOrNotSelected
      * Inverter not enabled -> ignore || Inverter not selected -> ignore
+     * @param group
+     * @param inv
+     * @returns true/false
      */
     bool NotEnabledOrNotSelected(uint8_t group, uint8_t inv) {
         return ((!mCfg->groups[group].inverters[inv].enabled) || (mCfg->groups[group].inverters[inv].id < 0));
@@ -1083,7 +1095,6 @@ class ZeroExport {
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            *doLog = true;
             // Reset
             if ((mCfg->groups[group].inverters[inv].doReboot) && (mCfg->groups[group].inverters[inv].waitRebootAck == 0)) {
                 result = false;
@@ -1110,6 +1121,7 @@ class ZeroExport {
             }
 
             result = false;
+
             *doLog = true;
 
             logObj["act"] = String("reboot");
@@ -1205,6 +1217,7 @@ class ZeroExport {
             }
 
             result = false;
+
             *doLog = true;
 
             if (!mCfg->debug) logObj["act"] = mCfg->groups[group].inverters[inv].doPower;
