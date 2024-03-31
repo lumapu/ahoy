@@ -46,7 +46,7 @@ class ZeroExport {
         mApi = api;
         mMqtt = mqtt;
 
-        mIsInitialized = mPowermeter.setup(mCfg);
+        mIsInitialized = mPowermeter.setup(mCfg, &mLog);
     }
 
     /** loop
@@ -79,6 +79,7 @@ class ZeroExport {
 
             mLog["g"] = group;
             mLog["s"] = (uint8_t)mCfg->groups[group].state;
+            mLog["s2"] = (uint8_t)mCfg->groups[group].stateNext;
 
             switch (mCfg->groups[group].state) {
                 case zeroExportState::INIT:
@@ -509,6 +510,7 @@ class ZeroExport {
         if (obj["path"] == "zero" && obj["cmd"] == "set")
         {
             // "topic":"inverter/zero/set/groups/0/enabled"
+            // @TODO: state machine init
             if (topic.indexOf("groups") != -1) {
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
                 uint id = i.toInt();
@@ -534,6 +536,14 @@ class ZeroExport {
      * @returns true/false
      * @todo getInverterById statt getInverterByPos, dann würde die Variable *iv und die Schleife nicht gebraucht.
      */
+
+    /* EnabledSelected
+     * Inverter not enabled -> ignore || Inverter not selected -> ignore
+     */
+    bool NotEnabledOrNotSelected(uint8_t group, uint8_t inv) {
+        return !mCfg->groups[group].inverters[inv].enabled || mCfg->groups[group].inverters[inv].id < 0;
+    }
+
     bool groupInit(uint8_t group, unsigned long *tsp, bool *doLog) {
         uint8_t result = false;
 
@@ -550,6 +560,7 @@ class ZeroExport {
 
         // Search/Set ivPointer
         JsonArray logArr = mLog.createNestedArray("ix");
+
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
@@ -557,14 +568,7 @@ class ZeroExport {
             mIv[group][inv] = nullptr;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             // Load Config
             Inverter<> *iv;
@@ -572,14 +576,10 @@ class ZeroExport {
                 iv = mSys->getInverterByPos(i);
 
                 // Inverter not configured -> ignore
-                if (iv == NULL) {
-                    continue;
-                }
+                if (iv == NULL) continue;
 
                 // Inverter not matching -> ignore
-                if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) {
-                    continue;
-                }
+                if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) continue;
 
                 // Save Inverter
                 logObj["pos"] = i;
@@ -663,13 +663,8 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
+
             // Inverter is not available -> wait
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
@@ -720,13 +715,7 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             if (!mIv[group][inv]->isAvailable()) {
                 continue;
@@ -829,13 +818,7 @@ class ZeroExport {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
                     // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) {
-                        continue;
-                    }
-                    // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id <= 0) {
-                        continue;
-                    }
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -863,13 +846,7 @@ class ZeroExport {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
                     // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) {
-                        continue;
-                    }
-                    // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id <= 0) {
-                        continue;
-                    }
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -906,13 +883,15 @@ class ZeroExport {
      */
     bool groupGetPowermeter(uint8_t group, unsigned long *tsp, bool *doLog) {
         if (mCfg->debug) mLog["t"] = "groupGetPowermeter";
-
         mCfg->groups[group].lastRun = *tsp;
 
         *doLog = true;
 
-        bool result = false;
-        result = mPowermeter.getData(mLog, group);
+         mCfg->groups[group].pmPower = mPowermeter.getDataAVG(group).P;
+         mCfg->groups[group].pmPowerL1 = mPowermeter.getDataAVG(group).P1;
+         mCfg->groups[group].pmPowerL2 = mPowermeter.getDataAVG(group).P2;
+         mCfg->groups[group].pmPowerL3 = mPowermeter.getDataAVG(group).P3;
+
         if (
             (mCfg->groups[group].pmPower == 0) &&
             (mCfg->groups[group].pmPowerL1 == 0) &&
@@ -920,6 +899,11 @@ class ZeroExport {
             (mCfg->groups[group].pmPowerL3 == 0)) {
             return false;
         }
+
+        mLog["P"] = mCfg->groups[group].pmPower;
+        mLog["P1"] = mCfg->groups[group].pmPowerL1;
+        mLog["P2"] = mCfg->groups[group].pmPowerL2;
+        mLog["P3"] = mCfg->groups[group].pmPowerL3;
 
         return true;
     }
@@ -1236,13 +1220,8 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
+
             *doLog = true;
             // Reset
             if ((mCfg->groups[group].inverters[inv].doReboot) && (mCfg->groups[group].inverters[inv].waitRebootAck == 0)) {
@@ -1310,13 +1289,7 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             if (mCfg->debug) *doLog = true;
 
@@ -1411,14 +1384,7 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             // if isOff -> Limit Pmin
             if (!mIv[group][inv]->isProducing()) {
