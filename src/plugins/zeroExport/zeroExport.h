@@ -92,19 +92,20 @@ class ZeroExport {
                     break;
                 case zeroExportState::WAITREFRESH:
                     if (groupWaitRefresh(group, &Tsp, &DoLog)) {
-                        cfgGroup->state = zeroExportState::GETINVERTERACKS;
+///                        cfgGroup->state = zeroExportState::GETINVERTERACKS;
+                        cfgGroup->state = zeroExportState::GETINVERTERDATA;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
                         cfgGroup->state = zeroExportState::GETPOWERMETER;
 #endif
                     }
                     break;
-                case zeroExportState::GETINVERTERACKS:
-                    if (groupGetInverterAcks(group, &Tsp, &DoLog)) {
-                        cfgGroup->state = zeroExportState::GETINVERTERDATA;
-                    } else {
-                        cfgGroup->sleep = 1000;
-                    }
-                    break;
+///                case zeroExportState::GETINVERTERACKS:
+///                    if (groupGetInverterAcks(group, &Tsp, &DoLog)) {
+///                        cfgGroup->state = zeroExportState::GETINVERTERDATA;
+///                    } else {
+///                        cfgGroup->sleep = 1000;
+///                    }
+///                    break;
                 case zeroExportState::GETINVERTERDATA:
                     if (groupGetInverterData(group, &Tsp, &DoLog)) {
                         cfgGroup->state = zeroExportState::BATTERYPROTECTION;
@@ -182,7 +183,7 @@ class ZeroExport {
                     }
                     break;
                 case zeroExportState::EMERGENCY:
-                    if (groupEmergency(cfgGroup, &Tsp, &DoLog)) {
+                    if (groupEmergency(group, &Tsp, &DoLog)) {
                         cfgGroup->lastRefresh = Tsp;
                         cfgGroup->state = zeroExportState::INIT;
                         //} else {
@@ -418,11 +419,11 @@ class ZeroExport {
         if (obj["path"] == "zero" && obj["cmd"] == "set") {
             // "topic":"inverter/zero/set/groups/0/enabled"
             if (topic.indexOf("groups") != -1) {
-// TODO: Topicprüfung
-// TODO: Topicprüfung ist 10 und 8 korrekt? Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
+                // TODO: Topicprüfung
+                // TODO: Topicprüfung ist 10 und 8 korrekt? Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
                 uint8_t group = i.toInt();
-        mLog["g"] = group;
+                mLog["g"] = group;
 
                 mCfg->groups[group].enabled = (bool)obj["val"];
 
@@ -430,7 +431,7 @@ class ZeroExport {
                 mCfg->groups[group].state = zeroExportState::INIT;
                 mCfg->groups[group].sleep = 0;
             } else {
-// TODO: Topicprüfung
+                // TODO: Topicprüfung
                 mCfg->enabled = (bool)obj["val"];
                 mLog["mCfg->enabled"] = mCfg->enabled;
 
@@ -548,6 +549,7 @@ class ZeroExport {
      * @returns true/false
      * @todo siehe code
      */
+/*
     bool groupGetInverterAcks(uint8_t group, unsigned long *tsp, bool *doLog) {
         if (mCfg->debug) mLog["t"] = "groupGetInverterAcks";
 
@@ -582,6 +584,7 @@ class ZeroExport {
         if (wait) return false;
         return true;
     }
+*/
 
     /** groupGetInverterData
      *
@@ -1079,6 +1082,8 @@ class ZeroExport {
     /** groupSetReboot
      *
      * @param group
+     * @param tsp
+     * @param doLog
      * @returns true/false
      */
     bool groupSetReboot(uint8_t group, unsigned long *tsp, bool *doLog) {
@@ -1148,19 +1153,24 @@ class ZeroExport {
     /** groupSetPower
      *
      * @param group
+     * @param tsp
+     * @param doLog
      * @returns true/false
      */
     bool groupSetPower(uint8_t group, unsigned long *tsp, bool *doLog) {
+        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
         bool result = true;
 
         if (mCfg->debug) mLog["t"] = "groupSetPower";
 
-        mCfg->groups[group].lastRun = *tsp;
+        cfgGroup->lastRun = *tsp;
 
         JsonArray logArr = mLog.createNestedArray("ix");
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
+
+            zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
 
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
@@ -1173,44 +1183,44 @@ class ZeroExport {
             }
 
             // Reset
-            if ((mCfg->groups[group].inverters[inv].doPower != -1) && (mCfg->groups[group].inverters[inv].waitPowerAck == 0)) {
+            if ((cfgGroupInv->doPower != -1) && (cfgGroupInv->waitPowerAck == 0)) {
                 result = false;
-                mCfg->groups[group].inverters[inv].doPower = -1;
+                cfgGroupInv->doPower = -1;
                 logObj["act"] = "done";
                 continue;
             }
 
             // Calculate
             logObj["battSw"] = mCfg->groups[group].battSwitch;
-            logObj["ivL"] = mCfg->groups[group].inverters[inv].limitNew;
+            logObj["ivL"] = cfgGroupInv->limitNew;
             logObj["ivSw"] = mIv[group][inv]->isProducing();
             if (
                 (mCfg->groups[group].battSwitch == true) &&
-                (mCfg->groups[group].inverters[inv].limitNew > mCfg->groups[group].inverters[inv].powerMin) &&
+                (cfgGroupInv->limitNew > cfgGroupInv->powerMin) &&
                 (mIv[group][inv]->isProducing() == false)) {
                 // On
-                mCfg->groups[group].inverters[inv].doPower = true;
+                cfgGroupInv->doPower = true;
                 logObj["act"] = "on";
             }
             if (
                 (
                     (mCfg->groups[group].battSwitch == false) ||
-                    (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].powerMin - 50))) &&
+                    (cfgGroupInv->limitNew < (cfgGroupInv->powerMin - 50))) &&
                 (mIv[group][inv]->isProducing() == true)) {
                 // Off
-                mCfg->groups[group].inverters[inv].doPower = false;
+                cfgGroupInv->doPower = false;
                 logObj["act"] = "off";
             }
 
             // Wait
-            if (mCfg->groups[group].inverters[inv].waitPowerAck > 0) {
-                logObj["w"] = mCfg->groups[group].inverters[inv].waitPowerAck;
+            if (cfgGroupInv->waitPowerAck > 0) {
+                logObj["w"] = cfgGroupInv->waitPowerAck;
                 result = false;
                 continue;
             }
 
-            // Nothing to do
-            if (mCfg->groups[group].inverters[inv].doPower == -1) {
+            // Nothing todo
+            if (cfgGroupInv->doPower == -1) {
                 logObj["act"] = "nothing to do";
                 continue;
             }
@@ -1219,21 +1229,20 @@ class ZeroExport {
 
             *doLog = true;
 
-            if (!mCfg->debug) logObj["act"] = mCfg->groups[group].inverters[inv].doPower;
+            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doPower;
 
             // wait for Ack
-            mCfg->groups[group].inverters[inv].waitPowerAck = 120;
-            logObj["wP"] = mCfg->groups[group].inverters[inv].waitPowerAck;
+            cfgGroupInv->waitPowerAck = 120;
+            logObj["wP"] = cfgGroupInv->waitPowerAck;
 
             // send Command
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
-            obj["val"] = mCfg->groups[group].inverters[inv].doPower;
-            obj["id"] = mCfg->groups[group].inverters[inv].id;
+            obj["val"] = cfgGroupInv->doPower;
+            obj["id"] = cfgGroupInv->id;
             obj["path"] = "ctrl";
             obj["cmd"] = "power";
             mApi->ctrlRequest(obj);
-
             logObj["d"] = obj;
         }
 
@@ -1241,100 +1250,135 @@ class ZeroExport {
     }
 
     /** groupSetLimit
-     *
+     * Sets the calculated Limit to the Inverter and waits for ACK.
      * @param group
+     * @param tsp
+     * @param doLog
      * @returns true/false
      */
     bool groupSetLimit(uint8_t group, unsigned long *tsp, bool *doLog) {
+        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+        bool result = true;
+
         if (mCfg->debug) mLog["t"] = "groupSetLimit";
 
-        mCfg->groups[group].lastRun = *tsp;
+        cfgGroup->lastRun = *tsp;
 
-        // Set limit
         JsonArray logArr = mLog.createNestedArray("ix");
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
+            zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
+
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            // if isOff -> Limit Pmin
-            if (!mIv[group][inv]->isProducing()) {
-                mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMin;
+            // Inverter not available -> ignore
+            if (!mIv[group][inv]->isAvailable()) {
+                logObj["a"] = false;
+                result = false;
+                continue;
             }
 
-            // Nothing todo
-            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) continue;
+            // Reset
+            if ((cfgGroupInv->doLimit) && (cfgGroupInv->waitLimitAck == 0)) {
+                result = false;
+                cfgGroupInv->doLimit = false;
+                logObj["act"] = "done";
+                continue;
+            }
 
-            // Abbruch weil Inverter nicht verfügbar
-            if (!mIv[group][inv]->isAvailable()) continue;
+            // Calculate
 
-            // Abbruch weil Inverter produziert nicht
-            ///            if (!mIv[group][inv]->isProducing()) {
-            ///                continue;
-            ///            }
-
-            // do
+            // if isOff -> Limit Pmin
+            if (!mIv[group][inv]->isProducing()) {
+                cfgGroupInv->limitNew = cfgGroupInv->powerMin;
+            }
 
             // Restriction LimitNew >= Pmin
-            if (mCfg->groups[group].inverters[inv].limitNew < mCfg->groups[group].inverters[inv].powerMin) {
-                mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMin;
+            if (cfgGroupInv->limitNew < cfgGroupInv->powerMin) {
+                cfgGroupInv->limitNew = cfgGroupInv->powerMin;
             }
             // Restriction LimitNew >= 2%
             uint16_t power2proz = mIv[group][inv]->getMaxPower() / 100 * 2;
-            if (mCfg->groups[group].inverters[inv].limitNew < power2proz) {
-                mCfg->groups[group].inverters[inv].limitNew = power2proz;
+            if (cfgGroupInv->limitNew < power2proz) {
+                cfgGroupInv->limitNew = power2proz;
             }
 
             // Restriction LimitNew <= Pmax
-            if (mCfg->groups[group].inverters[inv].limitNew > mCfg->groups[group].inverters[inv].powerMax) {
-                mCfg->groups[group].inverters[inv].limitNew = mCfg->groups[group].inverters[inv].powerMax;
+            if (cfgGroupInv->limitNew > cfgGroupInv->powerMax) {
+                cfgGroupInv->limitNew = cfgGroupInv->powerMax;
             }
 
             // Reject limit if difference < 5 W
-            if (
-                (mCfg->groups[group].inverters[inv].limitNew > (mCfg->groups[group].inverters[inv].powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                (mCfg->groups[group].inverters[inv].limitNew > (mCfg->groups[group].inverters[inv].limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
-                mLog["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
-                return false;
+            /*
+                        if (
+                            (cfgGroupInv->limitNew > (cfgGroupInv->powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                            (cfgGroupInv->limitNew > (cfgGroupInv->limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                            (cfgGroupInv->limitNew < (cfgGroupInv->limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
+                            logObj["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
+
+                            *doLog = true;
+
+                            return false;
+                        }
+            */
+            // Wait
+            if (cfgGroupInv->waitLimitAck > 0) {
+                logObj["w"] = cfgGroupInv->waitLimitAck;
+                result = false;
+                continue;
             }
 
             // Nothing todo
-            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) continue;
+//            if (cfgGroupInv->doLimit == false) {
+//                logObj["act"] = "nothing to do";
+//                continue;
+//            }
+
+            if (cfgGroupInv->limit == cfgGroupInv->limitNew) {
+                logObj["act"] = "nothing to do";
+                continue;
+            }
+
+            result = false;
 
             *doLog = true;
 
-            mCfg->groups[group].inverters[inv].limit = mCfg->groups[group].inverters[inv].limitNew;
-            mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
+            cfgGroupInv->doLimit = true;
+            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doLimit;
+
+            cfgGroupInv->limit = cfgGroupInv->limitNew;
+            logObj["zeL"] = (uint16_t)cfgGroupInv->limit;
 
             // wait for Ack
-            mCfg->groups[group].inverters[inv].waitLimitAck = 60;
-            mLog["wL"] = mCfg->groups[group].inverters[inv].waitLimitAck;
+            cfgGroupInv->waitLimitAck = 60;
+            logObj["wL"] = cfgGroupInv->waitLimitAck;
 
             // send Command
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
-            obj["val"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
-            obj["id"] = mCfg->groups[group].inverters[inv].id;
+            obj["val"] = (uint16_t)cfgGroupInv->limit;
+            obj["id"] = cfgGroupInv->id;
             obj["path"] = "ctrl";
             obj["cmd"] = "limit_nonpersistent_absolute";
             mApi->ctrlRequest(obj);
-
-            mLog["d"] = obj;
+            logObj["d"] = obj;
         }
 
-        return true;
+        return result;
     }
 
     /** groupPublish
      *
      */
     bool groupPublish(uint8_t group, unsigned long *tsp, bool *doLog) {
+        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+
         if (mCfg->debug) mLog["t"] = "groupPublish";
 
-        mCfg->groups[group].lastRun = *tsp;
+       cfgGroup->lastRun = *tsp;
 
         if (mMqtt->isConnected()) {
             DynamicJsonDocument doc(512);
@@ -1344,44 +1388,100 @@ class ZeroExport {
             String gr;
 
             // Init
+// TODO: Init wird fälschlicherweise hier nur ausgeführt wenn zeroExport 1x aktiviert war.
+// BUG: Wenn zeroExport deaktiviert wurde und dann rebootet, lässt sich zeroExport nicht mehr einschalten.
             if (!mIsSubscribed) {
                 mIsSubscribed = true;
+
+                // Global (zeroExport)
+// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
                 mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
 
+                // General
                 gr = "zero/set/groups/" + String(group) + "/enabled";
-                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+                mMqtt->publish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe(gr.c_str(), QOS_2);
+
+                // Powermeter
+// TODO: fehlt
+
+                // Inverters
+// TODO: fehlt
+
+                // Battery
+// TODO: fehlt
+
+                // Advanced
+// TODO: fehlt
             }
 
+            // Global (zeroExport)
+// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
 
+            // General
             gr = "zero/state/groups/" + String(group) + "/enabled";
-            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+            mMqtt->publish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
 
-            //            if (mCfg->groups[group].publishPower) {
-            //                mCfg->groups[group].publishPower = false;
-            obj["L1"] = mCfg->groups[group].pmPowerL1;
-            obj["L2"] = mCfg->groups[group].pmPowerL2;
-            obj["L3"] = mCfg->groups[group].pmPowerL3;
-            obj["Sum"] = mCfg->groups[group].pmPower;
-            mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
-            doc.clear();
-            //            }
+            gr = "zero/state/groups/" + String(group) + "/name";
+            mMqtt->publish(gr.c_str(), cfgGroup->name, false);
 
-            //            if (mCfg->groups[group].pm_Publish_W) {
-            //                mCfg->groups[group].pm_Publish_W = false;
+            // Powermeter
+//            if (cfgGroup->publishPower) {
+//                cfgGroup->publishPower = false;
+                obj["L1"] = cfgGroup->pmPowerL1;
+                obj["L2"] = cfgGroup->pmPowerL2;
+                obj["L3"] = cfgGroup->pmPowerL3;
+                obj["Sum"] = cfgGroup->pmPower;
+                mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
+                doc.clear();
+//            }
+
+            //            if (cfgGroup->pm_Publish_W) {
+            //                cfgGroup->pm_Publish_W = false;
             //                obj["todo"]  = "true";
-            //                obj["L1"]  = mCfg->groups[group].pm_P1;
-            //                obj["L2"]  = mCfg->groups[group].pm_P2;
-            //                obj["L2"]  = mCfg->groups[group].pm_P3;
-            //                obj["Sum"] = mCfg->groups[group].pm_P;
+            //                obj["L1"]  = cfgGroup->pm_P1;
+            //                obj["L2"]  = cfgGroup->pm_P2;
+            //                obj["L2"]  = cfgGroup->pm_P3;
+            //                obj["Sum"] = cfgGroup->pm_P;
             //                mMqtt->publish("zero/powermeter/W", doc.as<std::string>().c_str(), false);
             //                doc.clear();
             //            }
 
+            // Inverters
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
+                gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
+                obj["enabled"] = cfgGroupInv->enabled;
+                obj["id"] = cfgGroupInv->id;
+                obj["powerMin"] = cfgGroupInv->powerMin;
+                obj["powerMax"] = cfgGroupInv->powerMax;
+                mMqtt->publish(gr.c_str(), doc.as<std::string>().c_str(), false);
+                doc.clear();
             }
+
+            // Battery
+            gr = "zero/state/groups/" + String(group) + "/battery";
+            obj["enabled"] = cfgGroup->battEnabled;
+            obj["voltageOn"] = cfgGroup->battVoltageOn;
+            obj["voltageOff"] = cfgGroup->battVoltageOff;
+            obj["switch"] = cfgGroup->battSwitch;
+            mMqtt->publish(gr.c_str(), doc.as<std::string>().c_str(), false);
+            doc.clear();
+
+            // Advanced
+            gr = "zero/state/groups/" + String(group) + "/advanced";
+            obj["setPoint"] = cfgGroup->setPoint;
+            obj["refresh"] = cfgGroup->refresh;
+            obj["powerTolerance"] = cfgGroup->powerTolerance;
+            obj["powerMax"] = cfgGroup->powerMax;
+            obj["Kp"] = cfgGroup->Kp;
+            obj["Ki"] = cfgGroup->Ki;
+            obj["Kd"] = cfgGroup->Kd;
+            mMqtt->publish(gr.c_str(), doc.as<std::string>().c_str(), false);
+            doc.clear();
+
         }
 
         return true;
@@ -1393,7 +1493,8 @@ class ZeroExport {
      * @returns true/false
      * @todo Hier ist noch keine Funktion
      */
-    bool groupEmergency(zeroExportGroup_t *cfgGroup, unsigned long *tsp, bool *doLog) {
+    bool groupEmergency(uint8_t group, unsigned long *tsp, bool *doLog) {
+        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
         if (mCfg->debug) mLog["t"] = "groupEmergency";
 
         cfgGroup->lastRun = *tsp;

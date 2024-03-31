@@ -204,7 +204,6 @@ typedef struct {
 enum class zeroExportState : uint8_t {
     INIT,
     WAITREFRESH,
-    GETINVERTERACKS,
     GETINVERTERDATA,
     BATTERYPROTECTION,
     GETPOWERMETER,
@@ -274,6 +273,7 @@ typedef struct {
     //
     bool doReboot;
     int8_t doPower;
+    bool doLimit;
 } zeroExportGroupInverter_t;
 
 typedef struct {
@@ -701,6 +701,7 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitRebootAck = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].doPower = -1;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doLimit = false;
                 }
                 // Battery
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
