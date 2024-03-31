@@ -47,9 +47,12 @@ class powermeter {
      */
     void loop(void)
     {
+        unsigned long Tsp = millis();
+        if(Tsp - mPreviousTsp <= 1000) return; // skip when it is to fast
+        mPreviousTsp = Tsp;
+
         PowermeterBuffer_t power;
 
-        if(millis() - previousMillis <= 3000) return; // skip when it is to fast
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
         {
             switch (mCfg->groups[group].pm_type) {
@@ -72,7 +75,6 @@ class powermeter {
 
             bufferWrite(power, group);
         }
-        previousMillis = millis();
     }
 
     /** groupGetPowermeter
@@ -408,6 +410,8 @@ class powermeter {
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
     PowermeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
+        mPreviousTsp = mPreviousTsp + 2000; // Zusätzliche Pause
+
         PowermeterBuffer_t result;
         result.P = result.P1 = result.P2 = result.P3 = 0;
 
@@ -475,7 +479,7 @@ class powermeter {
     zeroExport_t *mCfg;
     JsonObject *mLog;
 
-    unsigned long previousMillis = 0;
+    unsigned long mPreviousTsp = 0;
 
     PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = { 0 };
     short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = { 0 };
