@@ -26,7 +26,7 @@ typedef struct {
     float P1;
     float P2;
     float P3;
-} PowerMeterBuffer_t;
+} PowermeterBuffer_t;
 
 class powermeter {
    public:
@@ -47,23 +47,23 @@ class powermeter {
      */
     void loop(void)
     {
-        PowerMeterBuffer_t power;
+        PowermeterBuffer_t power;
 
         if(millis() - previousMillis <= 3000) return; // skip when it is to fast
         for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
         {
             switch (mCfg->groups[group].pm_type) {
             case zeroExportPowermeterType_t::Shelly:
-                getPowermeterWattsShelly(*mLog, group);
+                power = getPowermeterWattsShelly(*mLog, group);
                 break;
             case zeroExportPowermeterType_t::Tasmota:
-                getPowermeterWattsTasmota(*mLog, group);
+                power = getPowermeterWattsTasmota(*mLog, group);
                 break;
             case zeroExportPowermeterType_t::Mqtt:
-                getPowermeterWattsMqtt(*mLog, group);
+                power = getPowermeterWattsMqtt(*mLog, group);
                 break;
             case zeroExportPowermeterType_t::Hichi:
-                getPowermeterWattsHichi(*mLog, group);
+                power = getPowermeterWattsHichi(*mLog, group);
                 break;
             case zeroExportPowermeterType_t::Tibber:
                 power = getPowermeterWattsTibber(*mLog, group);
@@ -80,16 +80,16 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowerMeterBuffer_t getDataAVG(uint8_t group) {
-        PowerMeterBuffer_t avg;
+    PowermeterBuffer_t getDataAVG(uint8_t group) {
+        PowermeterBuffer_t avg;
         avg.P = avg.P1 = avg.P2 = avg.P2 = avg.P3 = 0;
 
         for (int i = 0; i < 5; i++)
         {
-            avg.P += powermeterbuffer[group][i].P;
-            avg.P1 += powermeterbuffer[group][i].P1;
-            avg.P2 += powermeterbuffer[group][i].P2;
-            avg.P3 += powermeterbuffer[group][i].P3;
+            avg.P += mPowermeterBuffer[group][i].P;
+            avg.P1 += mPowermeterBuffer[group][i].P1;
+            avg.P2 += mPowermeterBuffer[group][i].P2;
+            avg.P3 += mPowermeterBuffer[group][i].P3;
         }
         avg.P = avg.P / 5;
         avg.P1 = avg.P1 / 5;
@@ -106,8 +106,9 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowerMeterBuffer_t getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
-        PowerMeterBuffer_t result;
+    PowermeterBuffer_t getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
 
         logObj["mod"] = "getPowermeterWattsShelly";
 
@@ -115,9 +116,8 @@ class powermeter {
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         http.setUserAgent("Ahoy-Agent");
         // TODO: Ahoy-0.8.850024-zero
-        http.setConnectTimeout(1000);
+        http.setConnectTimeout(500);
         http.setTimeout(1000);
-        // TODO: Timeout von 1000 reduzieren?
         http.addHeader("Content-Type", "application/json");
         http.addHeader("Accept", "application/json");
 
@@ -257,8 +257,9 @@ class powermeter {
      *      }
      *  }
      */
-    PowerMeterBuffer_t getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
-        PowerMeterBuffer_t result;
+    PowermeterBuffer_t getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
 
         logObj["mod"] = "getPowermeterWattsTasmota";
         /*
@@ -329,12 +330,14 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowerMeterBuffer_t  getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-        PowerMeterBuffer_t result;
+    PowermeterBuffer_t getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
 
         logObj["mod"] = "getPowermeterWattsMqtt";
 
         // Hier neuer Code - Anfang
+
         // TODO: Noch nicht komplett
 
         // Hier neuer Code - Ende
@@ -348,16 +351,18 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    PowerMeterBuffer_t getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
-        PowerMeterBuffer_t result;
+    PowermeterBuffer_t getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
 
         logObj["mod"] = "getPowermeterWattsHichi";
 
-
         // Hier neuer Code - Anfang
+
         // TODO: Noch nicht komplett
 
         // Hier neuer Code - Ende
+
         return result;
     }
 
@@ -402,15 +407,17 @@ class powermeter {
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
-    PowerMeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
-        PowerMeterBuffer_t result;
+    PowermeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
         HTTPClient http;
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
         http.setUserAgent("Ahoy-Agent");
-        http.setConnectTimeout(1000);
+        // TODO: Ahoy-0.8.850024-zero
+        http.setConnectTimeout(500);
         http.setTimeout(1000);
         http.addHeader("Content-Type", "application/json");
         http.addHeader("Accept", "application/json");
@@ -458,21 +465,20 @@ class powermeter {
         return result;
     }
 
-    void bufferWrite(PowerMeterBuffer_t raw, short group)
+    void bufferWrite(PowermeterBuffer_t raw, short group)
     {
-        powermeterbuffer[group][powerbufferpos[group]] = raw;
-        powerbufferpos[group]++;
-        if(powerbufferpos[group] >= 5) powerbufferpos[group] = 0;
+        mPowermeterBuffer[group][mPowermeterBufferPos[group]] = raw;
+        mPowermeterBufferPos[group]++;
+        if(mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
     }
-
-
 
     zeroExport_t *mCfg;
     JsonObject *mLog;
+
     unsigned long previousMillis = 0;
 
-    PowerMeterBuffer_t powermeterbuffer[ZEROEXPORT_MAX_GROUPS][5] = { 0 };
-    short powerbufferpos[ZEROEXPORT_MAX_GROUPS] = { 0 };
+    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = { 0 };
+    short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = { 0 };
 };
 
 // TODO: Vorlagen für Powermeter-Analyse
