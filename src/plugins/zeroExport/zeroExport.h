@@ -57,9 +57,7 @@ class ZeroExport {
      * @todo emergency
      */
     void loop(void) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         mPowermeter.loop();
 
@@ -67,205 +65,126 @@ class ZeroExport {
         bool DoLog = false;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            if (!mCfg->groups[group].enabled) {
-                continue;
-            }
+            zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+
+            if (!cfgGroup->enabled) continue;
 
             // sleep
-            if (Tsp <= (mCfg->groups[group].lastRun + mCfg->groups[group].sleep)) {
-                continue;
-            }
-            mCfg->groups[group].sleep = 0;
+            if (Tsp <= (cfgGroup->lastRun + cfgGroup->sleep)) continue;
+            cfgGroup->sleep = 0;
 
             mLog["g"] = group;
-            mLog["s"] = (uint8_t)mCfg->groups[group].state;
+            mLog["s"] = (uint8_t)cfgGroup->state;
 
-            switch (mCfg->groups[group].state) {
+            switch (cfgGroup->state) {
                 case zeroExportState::INIT:
                     if (groupInit(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK -> Wait, WaitRefresh
-                        mCfg->groups[group].state = zeroExportState::WAIT;
-                        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
+                        cfgGroup->sleep = 60000;
                     } else {
-                        // Error -> Wait, Init
-                        mCfg->groups[group].state = zeroExportState::WAIT;
-                        mCfg->groups[group].stateNext = zeroExportState::INIT;
-                    }
-                    break;
-                case zeroExportState::WAIT:
-                    if (groupWait(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        if (mCfg->groups[group].state != mCfg->groups[group].stateNext) {
-                            // OK -> Next
-                            mCfg->groups[group].state = mCfg->groups[group].stateNext;
-                        } else {
-                            // OK -> Init
-                            mCfg->groups[group].state = zeroExportState::INIT;
-                            mCfg->groups[group].stateNext = zeroExportState::INIT;
-                        }
+                        cfgGroup->state = zeroExportState::INIT;
+                        cfgGroup->sleep = 60000;
+#if defined(ZEROEXPORT_DEV_POWERMETER)
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
+                        cfgGroup->sleep = 10000;
+#endif
                     }
                     break;
                 case zeroExportState::WAITREFRESH:
                     if (groupWaitRefresh(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
+                        cfgGroup->state = zeroExportState::GETINVERTERACKS;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
-                        mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
-                        mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
-#else
-                        mCfg->groups[group].state = zeroExportState::GETINVERTERACKS;
-                        mCfg->groups[group].stateNext = zeroExportState::GETINVERTERACKS;
+                        cfgGroup->state = zeroExportState::GETPOWERMETER;
 #endif
                     }
                     break;
                 case zeroExportState::GETINVERTERACKS:
                     if (groupGetInverterAcks(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::GETINVERTERDATA;
-                        mCfg->groups[group].stateNext = zeroExportState::GETINVERTERDATA;
+                        cfgGroup->state = zeroExportState::GETINVERTERDATA;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 1000;
+                        cfgGroup->sleep = 1000;
                     }
                     break;
                 case zeroExportState::GETINVERTERDATA:
                     if (groupGetInverterData(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::BATTERYPROTECTION;
-                        mCfg->groups[group].stateNext = zeroExportState::BATTERYPROTECTION;
+                        cfgGroup->state = zeroExportState::BATTERYPROTECTION;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 500;
+                        cfgGroup->sleep = 500;
                     }
                     break;
                 case zeroExportState::BATTERYPROTECTION:
                     if (groupBatteryprotection(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::GETPOWERMETER;
-                        mCfg->groups[group].stateNext = zeroExportState::GETPOWERMETER;
+                        cfgGroup->state = zeroExportState::GETPOWERMETER;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 1000;
+                        cfgGroup->sleep = 1000;
                     }
                     break;
                 case zeroExportState::GETPOWERMETER:
                     if (groupGetPowermeter(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
+                        cfgGroup->state = zeroExportState::CONTROLLER;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
-                        mCfg->groups[group].lastRefresh = millis();
-                        mCfg->groups[group].state = zeroExportState::PUBLISH;
-                        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
-#else
-                        mCfg->groups[group].state = zeroExportState::CONTROLLER;
-                        mCfg->groups[group].stateNext = zeroExportState::CONTROLLER;
+                        cfgGroup->lastRefresh = millis();
+                        cfgGroup->state = zeroExportState::PUBLISH;
 #endif
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 3000;
+                        cfgGroup->sleep = 3000;
                     }
                     break;
                 case zeroExportState::CONTROLLER:
                     if (groupController(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].lastRefresh = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::PROGNOSE;
-                        mCfg->groups[group].stateNext = zeroExportState::PROGNOSE;
+                        cfgGroup->lastRefresh = Tsp;
+                        cfgGroup->state = zeroExportState::PROGNOSE;
                     } else {
-                        // Error - WaitRefresh
-                        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-                        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
                     }
                     break;
                 case zeroExportState::PROGNOSE:
                     if (groupPrognose(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::AUFTEILEN;
-                        mCfg->groups[group].stateNext = zeroExportState::AUFTEILEN;
+                        cfgGroup->state = zeroExportState::AUFTEILEN;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 500;
+                        cfgGroup->sleep = 500;
                     }
                     break;
                 case zeroExportState::AUFTEILEN:
                     if (groupAufteilen(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::SETREBOOT;
-                        mCfg->groups[group].stateNext = zeroExportState::SETREBOOT;
+                        cfgGroup->state = zeroExportState::SETREBOOT;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 500;
+                        cfgGroup->sleep = 500;
                     }
                     break;
                 case zeroExportState::SETREBOOT:
                     if (groupSetReboot(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].lastRefresh = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::SETPOWER;
-                        mCfg->groups[group].stateNext = zeroExportState::SETPOWER;
+                        cfgGroup->state = zeroExportState::SETPOWER;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 1000;
+                        cfgGroup->sleep = 1000;
                     }
                     break;
                 case zeroExportState::SETPOWER:
                     if (groupSetPower(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].lastRefresh = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::SETLIMIT;
-                        mCfg->groups[group].stateNext = zeroExportState::SETLIMIT;
+                        cfgGroup->lastRefresh = Tsp;
+                        cfgGroup->state = zeroExportState::SETLIMIT;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 1000;
+                        cfgGroup->sleep = 1000;
                     }
                     break;
                 case zeroExportState::SETLIMIT:
                     if (groupSetLimit(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::PUBLISH;
-                        mCfg->groups[group].stateNext = zeroExportState::PUBLISH;
+                        cfgGroup->state = zeroExportState::PUBLISH;
                     } else {
-                        // Error - Sleep
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].sleep = 1000;
+                        cfgGroup->sleep = 1000;
                     }
                     break;
                 case zeroExportState::PUBLISH:
                     if (groupPublish(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::WAITREFRESH;
-                        mCfg->groups[group].stateNext = zeroExportState::WAITREFRESH;
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
                         //} else {
                         // TODO: fehlt
                     }
                     break;
                 case zeroExportState::EMERGENCY:
-                    if (groupEmergency(group, &Tsp, &DoLog)) {
-                        mCfg->groups[group].lastRun = Tsp;
-                        mCfg->groups[group].lastRefresh = Tsp;
-                        // OK
-                        mCfg->groups[group].state = zeroExportState::INIT;
-                        mCfg->groups[group].stateNext = zeroExportState::INIT;
+                    if (groupEmergency(cfgGroup, &Tsp, &DoLog)) {
+                        cfgGroup->lastRefresh = Tsp;
+                        cfgGroup->state = zeroExportState::INIT;
                         //} else {
                         // TODO: fehlt
                     }
@@ -273,11 +192,10 @@ class ZeroExport {
                 case zeroExportState::FINISH:
                 case zeroExportState::ERROR:
                 default:
-                    mCfg->groups[group].lastRun = Tsp;
-                    mCfg->groups[group].lastRefresh = Tsp;
-                    mCfg->groups[group].sleep = 1000;
-                    mCfg->groups[group].state = zeroExportState::INIT;
-                    mCfg->groups[group].stateNext = zeroExportState::INIT;
+                    cfgGroup->lastRun = Tsp;
+                    cfgGroup->lastRefresh = Tsp;
+                    cfgGroup->sleep = 1000;
+                    cfgGroup->state = zeroExportState::INIT;
                     break;
             }
 
@@ -296,12 +214,12 @@ class ZeroExport {
     }
 
     /** tickSecond
-     * Zeitimpuls
+     * Time pulse every second
+     * @param void
+     * @returns void
      */
     void tickSecond() {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         // Wait for ACK
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
@@ -323,30 +241,28 @@ class ZeroExport {
     }
 
     /** tickerMidnight
-     * Zeitimpuls
+     * Time pulse Midnicht
+     * @param void
+     * @returns void
      */
     void tickMidnight(void) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        // Reboot
+        // Select all Inverter to reboot
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-                // Reboot
                 mCfg->groups[group].inverters[inv].doReboot = true;
             }
         }
     }
 
     /** resetWaitLimitAck
-     *
-     * @param
+     * Reset waiting time limit
+     * @param iv
+     * @returns void
      */
     void resetWaitLimitAck(Inverter<> *iv) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
@@ -367,20 +283,20 @@ class ZeroExport {
                         mLog["D"] = eTsp - bTsp;
                     }
                     sendLog();
+                    clearLog();
                     return;
                 }
             }
         }
     }
 
-    /** setPowerAck
-     *
-     * @param
+    /** resetPowerAck
+     * Reset waiting time power
+     * @param iv
+     * @returns void
      */
     void resetWaitPowerAck(Inverter<> *iv) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
@@ -409,13 +325,12 @@ class ZeroExport {
     }
 
     /** resetWaitRebootAck
-     *
-     * @param
+     * Reset waiting time reboot
+     * @param iv
+     * @returns void
      */
     void resetWaitRebootAck(Inverter<> *iv) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
@@ -445,52 +360,46 @@ class ZeroExport {
 
     /** newDataAvailable
      *
+     * @param iv
+     * @returns void
      */
     void newDataAvailable(Inverter<> *iv) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        if (!iv->isAvailable()) {
-            return;
-        }
+        if (!iv->isAvailable()) return;
 
-        if (!iv->isProducing()) {
-            return;
-        }
+        if (!iv->isProducing()) return;
 
-        if (iv->actPowerLimit == 65535) {
-            return;
-        }
+        if (iv->actPowerLimit == 65535) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-                if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                    unsigned long bTsp = millis();
+                if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
-                    mLog["t"] = "newDataAvailable";
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
-                    mLog["id"] = iv->id;
-    //                mLog["a"] = iv->isAvailable();
-    //                mLog["p"] = iv->isProducing();
-                    mLog["ivL%"] = iv->actPowerLimit;
-                    mLog["ivPm"] = iv->getMaxPower();
-                    uint16_t ivL = (iv->getMaxPower() * iv->actPowerLimit) / 100;
-                    mLog["ivL"] = ivL;
-                    mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
-                    mCfg->groups[group].inverters[inv].limit = ivL;
+                if (iv->id != mCfg->groups[group].inverters[inv].id) continue;
 
-                    if (mCfg->debug) {
-                        unsigned long eTsp = millis();
-                        mLog["B"] = bTsp;
-                        mLog["E"] = eTsp;
-                        mLog["D"] = eTsp - bTsp;
-                    }
-                    sendLog();
-                    clearLog();
-                    return;
+                unsigned long bTsp = millis();
+
+                mLog["t"] = "newDataAvailable";
+                mLog["g"] = group;
+                mLog["i"] = inv;
+                mLog["id"] = iv->id;
+                mLog["ivL%"] = iv->actPowerLimit;
+                mLog["ivPm"] = iv->getMaxPower();
+                uint16_t ivL = (iv->getMaxPower() * iv->actPowerLimit) / 100;
+                mLog["ivL"] = ivL;
+                mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
+                mCfg->groups[group].inverters[inv].limit = ivL;
+
+                if (mCfg->debug) {
+                    unsigned long eTsp = millis();
+                    mLog["B"] = bTsp;
+                    mLog["E"] = eTsp;
+                    mLog["D"] = eTsp - bTsp;
                 }
+                sendLog();
+                clearLog();
+                return;
             }
         }
     }
@@ -499,9 +408,8 @@ class ZeroExport {
      * Subscribe section
      */
     void onMqttMessage(JsonObject obj) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) {
-            return;
-        }
+        if ((!mIsInitialized) || (!mCfg->enabled)) return;
+
         return;
         // MQTT":{"val":0,"path":"zero","cmd":"set","id":0}
         if (strcmp(obj["cmd"], "set") != 0 && strcmp(obj["path"], "zero") != 0) {
@@ -515,7 +423,7 @@ class ZeroExport {
 
    private:
     /** groupInit
-     * initialisiert die Gruppe und sucht die ivPointer
+     * Initialize the group and search the InverterPointer
      * @param group
      * @returns true/false
      * @todo getInverterById statt getInverterByPos, dann würde die Variable *iv und die Schleife nicht gebraucht.
@@ -543,14 +451,10 @@ class ZeroExport {
             mIv[group][inv] = nullptr;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
+            if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].id < 0) continue;
 
             // Load Config
             Inverter<> *iv;
@@ -558,14 +462,10 @@ class ZeroExport {
                 iv = mSys->getInverterByPos(i);
 
                 // Inverter not configured -> ignore
-                if (iv == NULL) {
-                    continue;
-                }
+                if (iv == NULL) continue;
 
                 // Inverter not matching -> ignore
-                if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) {
-                    continue;
-                }
+                if (iv->id != (uint8_t)mCfg->groups[group].inverters[inv].id) continue;
 
                 // Save Inverter
                 logObj["pos"] = i;
@@ -588,28 +488,8 @@ class ZeroExport {
         return result;
     }
 
-    /** groupWait
-     * pausiert die Gruppe bis die Wartezeit 60s seit dem lastRun abgelaufen ist.
-     * @param group
-     * @returns true/false
-     */
-    bool groupWait(uint8_t group, unsigned long *tsp, bool *doLog) {
-        if (mCfg->debug) mLog["t"] = "groupWait";
-
-        // Wait 60s
-        if (*tsp <= (mCfg->groups[group].lastRun + 60000UL)) {
-            return false;
-        }
-
-        mCfg->groups[group].lastRun = *tsp;
-
-        *doLog = true;
-
-        return true;
-    }
-
     /** groupWaitRefresh
-     * pausiert die Gruppe bis die Wartezeit refresh seit dem lastRefresh abgelaufen ist.
+     * Pauses the group until the wait time since the lastRefresh has expired.
      * @param group
      * @returns true/false
      */
@@ -617,9 +497,7 @@ class ZeroExport {
         if (mCfg->debug) mLog["t"] = "groupWaitRefresh";
 
         // Wait Refreshtime
-        if (*tsp <= (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL))) {
-            return false;
-        }
+        if (*tsp <= (mCfg->groups[group].lastRefresh + (mCfg->groups[group].refresh * 1000UL))) return false;
 
         mCfg->groups[group].lastRun = *tsp;
 
@@ -649,13 +527,11 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
+            if (!mCfg->groups[group].inverters[inv].enabled) continue;
+
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+
             // Inverter is not available -> wait
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
@@ -666,18 +542,6 @@ class ZeroExport {
                 logObj["wL"] = mCfg->groups[group].inverters[inv].waitLimitAck;
                 wait = true;
             }
-            // TODO: Remove -> is moved to groupSetPower
-            //            // waitPowerAck
-            //            if (mCfg->groups[group].inverters[inv].waitPowerAck > 0) {
-            //                logObj["wP"] = mCfg->groups[group].inverters[inv].waitPowerAck;
-            //                wait = true;
-            //            }
-            // TODO: Remove -> is moved to groupSetReboot
-            //            // waitRebootAck
-            //            if (mCfg->groups[group].inverters[inv].waitRebootAck > 0) {
-            //                logObj["wR"] = mCfg->groups[group].inverters[inv].waitRebootAck;
-            //                wait = true;
-            //            }
         }
 
         mLog["w"] = wait;
@@ -706,17 +570,12 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
-            if (!mIv[group][inv]->isAvailable()) {
-                continue;
-            }
+            // Inverter not selected -> ignore
+            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+
+            if (!mIv[group][inv]->isAvailable()) continue;
 
             // Get Pac
             record_t<> *rec;
@@ -773,17 +632,12 @@ class ZeroExport {
                 zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
                 // Ignore disabled Inverter
-                if (!cfgGroupInv->enabled) {
-                    continue;
-                }
-                if (cfgGroupInv->id <= 0) {
-                    continue;
-                }
+                if (!cfgGroupInv->enabled) continue;
+
+                if (cfgGroupInv->id < 0) continue;
 
                 if (!mIv[group][inv]->isAvailable()) {
-                    if (U > 0) {
-                        continue;
-                    }
+                    if (U > 0) continue;
                     U = 0;
                     id = cfgGroupInv->id;
                     continue;
@@ -815,13 +669,10 @@ class ZeroExport {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
                     // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) {
-                        continue;
-                    }
+                    if (!mCfg->groups[group].inverters[inv].enabled) continue;
+
                     // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id <= 0) {
-                        continue;
-                    }
+                    if (mCfg->groups[group].inverters[inv].id < 0) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -836,7 +687,6 @@ class ZeroExport {
                     }
 
                     mCfg->groups[group].state = zeroExportState::SETPOWER;
-                    mCfg->groups[group].stateNext = zeroExportState::SETPOWER;
                 }
             }
 
@@ -849,13 +699,10 @@ class ZeroExport {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
                     // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) {
-                        continue;
-                    }
+                    if (!mCfg->groups[group].inverters[inv].enabled) continue;
+
                     // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id <= 0) {
-                        continue;
-                    }
+                    if (mCfg->groups[group].inverters[inv].id < 0) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -870,7 +717,6 @@ class ZeroExport {
                     }
 
                     mCfg->groups[group].state = zeroExportState::SETPOWER;
-                    mCfg->groups[group].stateNext = zeroExportState::SETPOWER;
                 }
             }
         } else {
@@ -901,9 +747,9 @@ class ZeroExport {
         result = mPowermeter.getData(mLog, group);
         if (
             (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0) &&
-            (mCfg->groups[group].pmPower == 0)) {
+            (mCfg->groups[group].pmPowerL1 == 0) &&
+            (mCfg->groups[group].pmPowerL2 == 0) &&
+            (mCfg->groups[group].pmPowerL3 == 0)) {
             return false;
         }
 
@@ -924,7 +770,6 @@ class ZeroExport {
 
         // Führungsgröße w in Watt
         float w = mCfg->groups[group].setPoint;
-
         mLog["w"] = w;
 
         // Regelgröße x in Watt
@@ -932,7 +777,6 @@ class ZeroExport {
         float x1 = mCfg->groups[group].pmPowerL1;
         float x2 = mCfg->groups[group].pmPowerL2;
         float x3 = mCfg->groups[group].pmPowerL3;
-
         mLog["x"] = x;
         mLog["x1"] = x1;
         mLog["x2"] = x2;
@@ -943,12 +787,10 @@ class ZeroExport {
         float e1 = w - x1;
         float e2 = w - x2;
         float e3 = w - x3;
-
         mLog["e"] = e;
         mLog["e1"] = e1;
         mLog["e2"] = e2;
         mLog["e3"] = e3;
-
         if (
             (e < mCfg->groups[group].powerTolerance) && (e > -mCfg->groups[group].powerTolerance) &&
             (e1 < mCfg->groups[group].powerTolerance) && (e1 > -mCfg->groups[group].powerTolerance) &&
@@ -1023,7 +865,6 @@ class ZeroExport {
         mLog["y1"] = y1;
         mLog["y2"] = y2;
         mLog["y3"] = y3;
-
         mCfg->groups[group].grpPower = y;
         mCfg->groups[group].grpPowerL1 = y1;
         mCfg->groups[group].grpPowerL2 = y2;
@@ -1226,7 +1067,7 @@ class ZeroExport {
                 continue;
             }
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
+            if (mCfg->groups[group].inverters[inv].id < 0) {
                 continue;
             }
             *doLog = true;
@@ -1296,13 +1137,10 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
+            if (!mCfg->groups[group].inverters[inv].enabled) continue;
+
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].id < 0) continue;
 
             if (mCfg->debug) *doLog = true;
 
@@ -1336,7 +1174,7 @@ class ZeroExport {
             if (
                 (
                     (mCfg->groups[group].battSwitch == false) ||
-                    (mCfg->groups[group].inverters[inv].limitNew < mCfg->groups[group].inverters[inv].powerMin)) &&
+                    (mCfg->groups[group].inverters[inv].limitNew < (mCfg->groups[group].inverters[inv].powerMin - 50))) &&
                 (mIv[group][inv]->isProducing() == true)) {
                 // Off
                 mCfg->groups[group].inverters[inv].doPower = false;
@@ -1397,14 +1235,10 @@ class ZeroExport {
             logObj["i"] = inv;
 
             // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
+            if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
             // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id <= 0) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].id < 0) continue;
 
             // if isOff -> Limit Pmin
             if (!mIv[group][inv]->isProducing()) {
@@ -1412,14 +1246,10 @@ class ZeroExport {
             }
 
             // Nothing todo
-            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) continue;
 
             // Abbruch weil Inverter nicht verfügbar
-            if (!mIv[group][inv]->isAvailable()) {
-                continue;
-            }
+            if (!mIv[group][inv]->isAvailable()) continue;
 
             // Abbruch weil Inverter produziert nicht
             ///            if (!mIv[group][inv]->isProducing()) {
@@ -1453,9 +1283,7 @@ class ZeroExport {
             }
 
             // Nothing todo
-            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) {
-                continue;
-            }
+            if (mCfg->groups[group].inverters[inv].limit == mCfg->groups[group].inverters[inv].limitNew) continue;
 
             *doLog = true;
 
@@ -1538,10 +1366,10 @@ class ZeroExport {
      * @returns true/false
      * @todo Hier ist noch keine Funktion
      */
-    bool groupEmergency(uint8_t group, unsigned long *tsp, bool *doLog) {
+    bool groupEmergency(zeroExportGroup_t *cfgGroup, unsigned long *tsp, bool *doLog) {
         if (mCfg->debug) mLog["t"] = "groupEmergency";
 
-        mCfg->groups[group].lastRun = *tsp;
+        cfgGroup->lastRun = *tsp;
 
         *doLog = true;
 
@@ -1558,7 +1386,7 @@ class ZeroExport {
      */
     void sendLog(void) {
         if (mCfg->log_over_webserial) {
-//            DBGPRINTLN(String("ze: ") + mDocLog.as<String>());
+            //            DBGPRINTLN(String("ze: ") + mDocLog.as<String>());
             DPRINTLN(DBG_INFO, String("ze: ") + mDocLog.as<String>());
         }
 
