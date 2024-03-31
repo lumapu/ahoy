@@ -559,6 +559,9 @@ class PubMqtt {
         }
 
         void sendData(Inverter<> *iv, uint8_t curInfoCmd) {
+            if (cfg_mqtt->json)
+                return;
+
             record_t<> *rec = iv->getRecordStruct(curInfoCmd);
 
             uint32_t lastTs = iv->getLastTs(rec);

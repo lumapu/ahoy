@@ -115,7 +115,7 @@ class PubMqttIvData {
                     mPublish(mSubTopic.data(), mVal.data(), true, QOS_0);
 
                     if((mIv->ivGen == IV_HMS) || (mIv->ivGen == IV_HMT)) {
-                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch0/rssi", mIv->config->name);
+                        snprintf(mSubTopic.data(), mSubTopic.size(), "%s/rssi", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "%d", mIv->rssi);
                         mPublish(mSubTopic.data(), mVal.data(), false, QOS_0);
                     }
