@@ -46,7 +46,7 @@ class ZeroExport {
         mApi = api;
         mMqtt = mqtt;
 
-        mIsInitialized = mPowermeter.setup(mCfg);
+        mIsInitialized = mPowermeter.setup(mCfg, &mLog);
     }
 
     /** loop
@@ -408,26 +408,51 @@ class ZeroExport {
      * Subscribe section
      */
     void onMqttMessage(JsonObject obj) {
-        if ((!mIsInitialized) || (!mCfg->enabled)) return;
+        if (!mIsInitialized) return;
 
+        String topic = String(obj["topic"]);
+        if(!topic.indexOf("/zero/set/")) return;
+
+        mLog["t"] = "onMqttMessage";
+
+        if (obj["path"] == "zero" && obj["cmd"] == "set")
+        {
+            // "topic":"inverter/zero/set/groups/0/enabled"
+            // @TODO: state machine init
+            if (topic.indexOf("groups") != -1) {
+                String i = topic.substring(topic.length() - 10, topic.length() - 8);
+                uint id = i.toInt();
+
+                mCfg->groups[id].enabled = (bool)obj["val"];
+            }
+            else
+            {
+                mCfg->enabled = (bool)obj["val"];
+                mLog["zero_enable"] = mCfg->enabled;
+            }
         return;
-        // MQTT":{"val":0,"path":"zero","cmd":"set","id":0}
-        if (strcmp(obj["cmd"], "set") != 0 && strcmp(obj["path"], "zero") != 0) {
-            mCfg->enabled = (bool)obj["val"];
         }
 
-        mLog["MQTT"] = obj;
+        mLog["Msg"] = obj;
         sendLog();
         clearLog();
     }
 
    private:
+    /** NotEnabledOrNotSelected
+     * Inverter not enabled -> ignore || Inverter not selected -> ignore
+     */
+    bool NotEnabledOrNotSelected(uint8_t group, uint8_t inv) {
+        return ((!mCfg->groups[group].inverters[inv].enabled) || (mCfg->groups[group].inverters[inv].id < 0));
+    }
+
     /** groupInit
      * Initialize the group and search the InverterPointer
      * @param group
      * @returns true/false
      * @todo getInverterById statt getInverterByPos, dann würde die Variable *iv und die Schleife nicht gebraucht.
      */
+
     bool groupInit(uint8_t group, unsigned long *tsp, bool *doLog) {
         uint8_t result = false;
 
@@ -444,17 +469,15 @@ class ZeroExport {
 
         // Search/Set ivPointer
         JsonArray logArr = mLog.createNestedArray("ix");
+
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
             mIv[group][inv] = nullptr;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             // Load Config
             Inverter<> *iv;
@@ -526,11 +549,8 @@ class ZeroExport {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             // Inverter is not available -> wait
             if (!mIv[group][inv]->isAvailable()) {
@@ -569,11 +589,8 @@ class ZeroExport {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             if (!mIv[group][inv]->isAvailable()) continue;
 
@@ -668,11 +685,8 @@ class ZeroExport {
                 for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
-                    // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-                    // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id < 0) continue;
+                    // Inverter not enabled or not selected -> ignore
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -698,11 +712,8 @@ class ZeroExport {
                 for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                     //                        zeroExportGroupInverter_t *cfgGroupInv = &mCfg->groups[group].inverters[inv];
 
-                    // Inverter not enabled -> ignore
-                    if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-                    // Inverter not selected -> ignore
-                    if (mCfg->groups[group].inverters[inv].id < 0) continue;
+                    // Inverter not enabled or not selected -> ignore
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
 
                     // Abbruch weil Inverter nicht verfügbar
                     if (!mIv[group][inv]->isAvailable()) {
@@ -738,13 +749,15 @@ class ZeroExport {
      */
     bool groupGetPowermeter(uint8_t group, unsigned long *tsp, bool *doLog) {
         if (mCfg->debug) mLog["t"] = "groupGetPowermeter";
-
         mCfg->groups[group].lastRun = *tsp;
 
         *doLog = true;
 
-        bool result = false;
-        result = mPowermeter.getData(mLog, group);
+         mCfg->groups[group].pmPower = mPowermeter.getDataAVG(group).P;
+         mCfg->groups[group].pmPowerL1 = mPowermeter.getDataAVG(group).P1;
+         mCfg->groups[group].pmPowerL2 = mPowermeter.getDataAVG(group).P2;
+         mCfg->groups[group].pmPowerL3 = mPowermeter.getDataAVG(group).P3;
+
         if (
             (mCfg->groups[group].pmPower == 0) &&
             (mCfg->groups[group].pmPowerL1 == 0) &&
@@ -752,6 +765,11 @@ class ZeroExport {
             (mCfg->groups[group].pmPowerL3 == 0)) {
             return false;
         }
+
+        mLog["P"] = mCfg->groups[group].pmPower;
+        mLog["P1"] = mCfg->groups[group].pmPowerL1;
+        mLog["P2"] = mCfg->groups[group].pmPowerL2;
+        mLog["P3"] = mCfg->groups[group].pmPowerL3;
 
         return true;
     }
@@ -1062,14 +1080,9 @@ class ZeroExport {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) {
-                continue;
-            }
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) {
-                continue;
-            }
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
+
             *doLog = true;
             // Reset
             if ((mCfg->groups[group].inverters[inv].doReboot) && (mCfg->groups[group].inverters[inv].waitRebootAck == 0)) {
@@ -1136,11 +1149,8 @@ class ZeroExport {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             if (mCfg->debug) *doLog = true;
 
@@ -1234,11 +1244,8 @@ class ZeroExport {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
-            // Inverter not enabled -> ignore
-            if (!mCfg->groups[group].inverters[inv].enabled) continue;
-
-            // Inverter not selected -> ignore
-            if (mCfg->groups[group].inverters[inv].id < 0) continue;
+            // Inverter not enabled or not selected -> ignore
+            if (NotEnabledOrNotSelected(group, inv)) continue;
 
             // if isOff -> Limit Pmin
             if (!mIv[group][inv]->isProducing()) {
@@ -1322,15 +1329,23 @@ class ZeroExport {
             JsonObject obj = doc.to<JsonObject>();
 
             *doLog = true;
+            String gr;
 
             // Init
             if (!mIsSubscribed) {
                 mIsSubscribed = true;
                 mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
+
+                gr = "zero/set/groups/" + String(group) + "/enabled";
+                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
             }
 
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+            gr = "zero/state/groups/" + String(group) + "/enabled";
+            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+
 
             //            if (mCfg->groups[group].publishPower) {
             //                mCfg->groups[group].publishPower = false;

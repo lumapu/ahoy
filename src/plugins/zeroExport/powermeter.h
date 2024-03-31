@@ -21,6 +21,13 @@ typedef struct {
     float *Arg;
 } OBISHandler;
 
+typedef struct {
+    float P;
+    float P1;
+    float P2;
+    float P3;
+} PowerMeterBuffer_t;
+
 class powermeter {
    public:
     powermeter() {
@@ -29,13 +36,43 @@ class powermeter {
     ~powermeter() {
     }
 
-    bool setup(zeroExport_t *cfg /*Hier muss noch geklärt werden was gebraucht wird*/) {
+    bool setup(zeroExport_t *cfg, JsonObject *log  /*Hier muss noch geklärt werden was gebraucht wird*/) {
         mCfg = cfg;
-
+        mLog = log;
         return true;
     }
 
-    void loop(void) {
+    /** loop
+     * abfrage der gruppen um die aktuellen Werte (Zähler) zu ermitteln.
+     */
+    void loop(void)
+    {
+        PowerMeterBuffer_t power;
+
+        if(millis() - previousMillis <= 3000) return; // skip when it is to fast
+        for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
+        {
+            switch (mCfg->groups[group].pm_type) {
+            case zeroExportPowermeterType_t::Shelly:
+                getPowermeterWattsShelly(*mLog, group);
+                break;
+            case zeroExportPowermeterType_t::Tasmota:
+                getPowermeterWattsTasmota(*mLog, group);
+                break;
+            case zeroExportPowermeterType_t::Mqtt:
+                getPowermeterWattsMqtt(*mLog, group);
+                break;
+            case zeroExportPowermeterType_t::Hichi:
+                getPowermeterWattsHichi(*mLog, group);
+                break;
+            case zeroExportPowermeterType_t::Tibber:
+                power = getPowermeterWattsTibber(*mLog, group);
+                break;
+            }
+
+            bufferWrite(power, group);
+        }
+        previousMillis = millis();
     }
 
     /** groupGetPowermeter
@@ -43,30 +80,23 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    bool getData(JsonObject logObj, uint8_t group) {
-        bool result = false;
-        switch (mCfg->groups[group].pm_type) {
-            case 1:
-                result = getPowermeterWattsShelly(logObj, group);
-                break;
-            case 2:
-                result = getPowermeterWattsTasmota(logObj, group);
-                break;
-            case 3:
-                result = getPowermeterWattsMqtt(logObj, group);
-                break;
-            case 4:
-                result = getPowermeterWattsHichi(logObj, group);
-                break;
-            case 5:
-                result = getPowermeterWattsTibber(logObj, group);
-                break;
-        }
-        if (!result) {
-            logObj["err"] = "type: " + String(mCfg->groups[group].pm_type);
-        }
+    PowerMeterBuffer_t getDataAVG(uint8_t group) {
+        PowerMeterBuffer_t avg;
+        avg.P = avg.P1 = avg.P2 = avg.P2 = avg.P3 = 0;
 
-        return result;
+        for (int i = 0; i < 5; i++)
+        {
+            avg.P += powermeterbuffer[group][i].P;
+            avg.P1 += powermeterbuffer[group][i].P1;
+            avg.P2 += powermeterbuffer[group][i].P2;
+            avg.P3 += powermeterbuffer[group][i].P3;
+        }
+        avg.P = avg.P / 5;
+        avg.P1 = avg.P1 / 5;
+        avg.P2 = avg.P2 / 5;
+        avg.P3 = avg.P3 / 5;
+
+        return avg;
     }
 
    private:
@@ -76,15 +106,10 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    bool getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
-        bool result = false;
+    PowerMeterBuffer_t getPowermeterWattsShelly(JsonObject logObj, uint8_t group) {
+        PowerMeterBuffer_t result;
 
         logObj["mod"] = "getPowermeterWattsShelly";
-
-        mCfg->groups[group].pmPower = 0;
-        mCfg->groups[group].pmPowerL1 = 0;
-        mCfg->groups[group].pmPowerL2 = 0;
-        mCfg->groups[group].pmPowerL3 = 0;
 
         HTTPClient http;
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -107,57 +132,48 @@ class powermeter {
             DeserializationError error = deserializeJson(doc, http.getString());
             if (error) {
                 logObj["err"] = "deserializeJson: " + String(error.c_str());
-                return false;
+                return result;
             } else {
                 if (doc.containsKey(F("total_power"))) {
                     // Shelly 3EM
-                    mCfg->groups[group].pmPower = doc["total_power"];
-                    result = true;
+                    result.P = doc["total_power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
-                    mCfg->groups[group].pmPower = doc["em:0"]["total_act_power"];
-                    result = true;
+                    result.P = doc["em:0"]["total_act_power"];
                 } else {
                     // Keine Daten
-                    mCfg->groups[group].pmPower = 0;
+                    result.P = 0;
                 }
 
                 if (doc.containsKey(F("emeters"))) {
                     // Shelly 3EM
-                    mCfg->groups[group].pmPowerL1 = doc["emeters"][0]["power"];
-                    result = true;
+                    result.P1 = doc["emeters"][0]["power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
-                    mCfg->groups[group].pmPowerL1 = doc["em:0"]["a_act_power"];
-                    result = true;
+                    result.P1 = doc["em:0"]["a_act_power"];
                 } else if (doc.containsKey(F("switch:0"))) {
                     // Shelly plus1pm plus2pm
-                    mCfg->groups[group].pmPowerL1 = doc["switch:0"]["apower"];
-                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
-                    result = true;
+                    result.P1 = doc["switch:0"]["apower"];
+                    result.P += result.P1;
                 } else if (doc.containsKey(F("apower"))) {
                     // Shelly Alternative
-                    mCfg->groups[group].pmPowerL1 = doc["apower"];
-                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL1;
-                    result = true;
+                    result.P1 = doc["apower"];
+                    result.P += result.P1;
                 } else {
                     // Keine Daten
-                    mCfg->groups[group].pmPowerL1 = 0;
+                    result.P1 = 0;
                 }
 
                 if (doc.containsKey(F("emeters"))) {
                     // Shelly 3EM
-                    mCfg->groups[group].pmPowerL2 = doc["emeters"][1]["power"];
-                    result = true;
+                    result.P2 = doc["emeters"][1]["power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
-                    mCfg->groups[group].pmPowerL2 = doc["em:0"]["b_act_power"];
-                    result = true;
+                    result.P2 = doc["em:0"]["b_act_power"];
                 } else if (doc.containsKey(F("switch:1"))) {
                     // Shelly plus1pm plus2pm
-                    mCfg->groups[group].pmPowerL2 = doc["switch.1"]["apower"];
-                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL2;
-                    result = true;
+                    result.P2 = doc["switch.1"]["apower"];
+                    result.P += result.P2;
                     //} else if (doc.containsKey(F("apower"))) {
                     // Shelly Alternative
                     //    mCfg->groups[group].pmPowerL2 = doc["apower"];
@@ -165,22 +181,19 @@ class powermeter {
                     //    ret = true;
                 } else {
                     // Keine Daten
-                    mCfg->groups[group].pmPowerL2 = 0;
+                    result.P2 = 0;
                 }
 
                 if (doc.containsKey(F("emeters"))) {
                     // Shelly 3EM
-                    mCfg->groups[group].pmPowerL3 = doc["emeters"][2]["power"];
-                    result = true;
+                    result.P3 = doc["emeters"][2]["power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
-                    mCfg->groups[group].pmPowerL3 = doc["em:0"]["c_act_power"];
-                    result = true;
+                    result.P3 = doc["em:0"]["c_act_power"];
                 } else if (doc.containsKey(F("switch:2"))) {
                     // Shelly plus1pm plus2pm
-                    mCfg->groups[group].pmPowerL3 = doc["switch:2"]["apower"];
-                    mCfg->groups[group].pmPower += mCfg->groups[group].pmPowerL3;
-                    result = true;
+                    result.P3 = doc["switch:2"]["apower"];
+                    result.P += result.P3;
                     //} else if (doc.containsKey(F("apower"))) {
                     // Shelly Alternative
                     //    mCfg->groups[group].pmPowerL3 = doc["apower"];
@@ -188,17 +201,11 @@ class powermeter {
                     //    result = true;
                 } else {
                     // Keine Daten
-                    mCfg->groups[group].pmPowerL3 = 0;
+                    result.P3 = 0;
                 }
             }
         }
         http.end();
-
-        logObj["P"] = mCfg->groups[group].pmPower;
-        logObj["P1"] = mCfg->groups[group].pmPowerL1;
-        logObj["P2"] = mCfg->groups[group].pmPowerL2;
-        logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
         return result;
     }
 
@@ -250,17 +257,10 @@ class powermeter {
      *      }
      *  }
      */
-    bool getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
-        bool result = false;
+    PowerMeterBuffer_t getPowermeterWattsTasmota(JsonObject logObj, uint8_t group) {
+        PowerMeterBuffer_t result;
 
         logObj["mod"] = "getPowermeterWattsTasmota";
-
-        mCfg->groups[group].pmPower = 0;
-        mCfg->groups[group].pmPowerL1 = 0;
-        mCfg->groups[group].pmPowerL2 = 0;
-        mCfg->groups[group].pmPowerL3 = 0;
-
-        result = true;
         /*
         // TODO: nicht komplett
 
@@ -329,27 +329,15 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    bool getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
-        bool result = false;
+    PowerMeterBuffer_t  getPowermeterWattsMqtt(JsonObject logObj, uint8_t group) {
+        PowerMeterBuffer_t result;
 
         logObj["mod"] = "getPowermeterWattsMqtt";
-
-        mCfg->groups[group].pmPower = 0;
-        mCfg->groups[group].pmPowerL1 = 0;
-        mCfg->groups[group].pmPowerL2 = 0;
-        mCfg->groups[group].pmPowerL3 = 0;
 
         // Hier neuer Code - Anfang
         // TODO: Noch nicht komplett
 
-        result = true;
-
         // Hier neuer Code - Ende
-
-        logObj["P"] = mCfg->groups[group].pmPower;
-        logObj["P1"] = mCfg->groups[group].pmPowerL1;
-        logObj["P2"] = mCfg->groups[group].pmPowerL2;
-        logObj["P3"] = mCfg->groups[group].pmPowerL3;
 
         return result;
     }
@@ -360,28 +348,16 @@ class powermeter {
      * @param group
      * @returns true/false
      */
-    bool getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
-        bool result = false;
+    PowerMeterBuffer_t getPowermeterWattsHichi(JsonObject logObj, uint8_t group) {
+        PowerMeterBuffer_t result;
 
         logObj["mod"] = "getPowermeterWattsHichi";
 
-        mCfg->groups[group].pmPower = 0;
-        mCfg->groups[group].pmPowerL1 = 0;
-        mCfg->groups[group].pmPowerL2 = 0;
-        mCfg->groups[group].pmPowerL3 = 0;
 
         // Hier neuer Code - Anfang
         // TODO: Noch nicht komplett
 
-        result = true;
-
         // Hier neuer Code - Ende
-
-        logObj["P"] = mCfg->groups[group].pmPower;
-        logObj["P1"] = mCfg->groups[group].pmPowerL1;
-        logObj["P2"] = mCfg->groups[group].pmPowerL2;
-        logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
         return result;
     }
 
@@ -416,7 +392,6 @@ class powermeter {
  07 01 00 02 08 01 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif1
  07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
 */
-
     const std::list<OBISHandler> smlHandlerList{
         {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
 
@@ -427,13 +402,10 @@ class powermeter {
         {{0x01, 0x00, 0x01, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterImport},
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
-    bool getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
-        bool result = false;
+    PowerMeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
+        PowerMeterBuffer_t result;
 
-        mCfg->groups[group].pmPower = 0;
-        mCfg->groups[group].pmPowerL1 = 0;
-        mCfg->groups[group].pmPowerL2 = 0;
-        mCfg->groups[group].pmPowerL3 = 0;
+        logObj["mod"] = "getPowermeterWattsTibber";
 
         HTTPClient http;
         http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -449,33 +421,25 @@ class powermeter {
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
-        if (http.GET() == HTTP_CODE_OK && http.getSize() != 0) {
+        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
             String myString = http.getString();
-
-            char floatBuffer[20];
             double readVal = 0;
-
             unsigned char c;
+
             for (int i = 0; i < http.getSize(); ++i) {
                 c = myString[i];
                 sml_states_t smlCurrentState = smlState(c);
 
                 switch (smlCurrentState) {
                     case SML_FINAL:
-                        mCfg->groups[group].pmPower = _powerMeterTotal;
+                        result.P = _powerMeterTotal;
+                        result.P1 = _powerMeter1Power;
+                        result.P2 = _powerMeter2Power;
+                        result.P3 = _powerMeter3Power;
 
-                        mCfg->groups[group].pmPowerL1 = _powerMeter1Power;
-                        mCfg->groups[group].pmPowerL2 = _powerMeter2Power;
-                        mCfg->groups[group].pmPowerL3 = _powerMeter3Power;
-
-                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power))
-                        {
-                            mCfg->groups[group].pmPowerL1 = _powerMeterTotal / 3;
-                            mCfg->groups[group].pmPowerL2 = _powerMeterTotal / 3;
-                            mCfg->groups[group].pmPowerL3 = _powerMeterTotal / 3;
+                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power)) {
+                            result.P1 = result.P2 = result.P3 = _powerMeterTotal / 3;
                         }
-
-                        result = true;
                         break;
                     case SML_LISTEND:
                         // check handlers on last received list
@@ -486,31 +450,29 @@ class powermeter {
                             }
                         }
                         break;
-
-                    default:
-                        logObj["SML_DEFAULT"] = String(smlCurrentState);
-                        break;
                 }
             }
         }
-        else
-        {
-            logObj["result"] = String(result);
-            logObj["http_size"] = String(http.getSize());
-        }
 
         http.end();
-
-        logObj["P"] = mCfg->groups[group].pmPower;
-        logObj["P1"] = mCfg->groups[group].pmPowerL1;
-        logObj["P2"] = mCfg->groups[group].pmPowerL2;
-        logObj["P3"] = mCfg->groups[group].pmPowerL3;
-
         return result;
     }
 
-   private:
+    void bufferWrite(PowerMeterBuffer_t raw, short group)
+    {
+        powermeterbuffer[group][powerbufferpos[group]] = raw;
+        powerbufferpos[group]++;
+        if(powerbufferpos[group] >= 5) powerbufferpos[group] = 0;
+    }
+
+
+
     zeroExport_t *mCfg;
+    JsonObject *mLog;
+    unsigned long previousMillis = 0;
+
+    PowerMeterBuffer_t powermeterbuffer[ZEROEXPORT_MAX_GROUPS][5] = { 0 };
+    short powerbufferpos[ZEROEXPORT_MAX_GROUPS] = { 0 };
 };
 
 // TODO: Vorlagen für Powermeter-Analyse

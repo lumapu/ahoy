@@ -352,8 +352,6 @@ typedef struct {
     bool debug;
     zeroExportGroup_t groups[ZEROEXPORT_MAX_GROUPS];
 
-
-
 //    uint8_t query_device;   // 0 - Tibber, 1 - Shelly, 2 - other (rs232?)
 //    char monitor_url[ZEXPORT_ADDR_LEN];
 //    char json_path[ZEXPORT_ADDR_LEN];
