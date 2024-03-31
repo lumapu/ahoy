@@ -411,27 +411,28 @@ class ZeroExport {
         if (!mIsInitialized) return;
 
         String topic = String(obj["topic"]);
-        if(!topic.indexOf("/zero/set/")) return;
+        if (!topic.indexOf("/zero/set/")) return;
 
         mLog["t"] = "onMqttMessage";
 
-        if (obj["path"] == "zero" && obj["cmd"] == "set")
-        {
+        if (obj["path"] == "zero" && obj["cmd"] == "set") {
             // "topic":"inverter/zero/set/groups/0/enabled"
             if (topic.indexOf("groups") != -1) {
+// TODO: Topicprüfung
+// TODO: Topicprüfung ist 10 und 8 korrekt? Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
                 String i = topic.substring(topic.length() - 10, topic.length() - 8);
                 uint8_t group = i.toInt();
+        mLog["g"] = group;
 
                 mCfg->groups[group].enabled = (bool)obj["val"];
 
                 // Initialize group
                 mCfg->groups[group].state = zeroExportState::INIT;
                 mCfg->groups[group].sleep = 0;
-            }
-            else
-            {
+            } else {
+// TODO: Topicprüfung
                 mCfg->enabled = (bool)obj["val"];
-                mLog["zero_enable"] = mCfg->enabled;
+                mLog["mCfg->enabled"] = mCfg->enabled;
 
                 // Initialize groups
                 for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
@@ -439,12 +440,12 @@ class ZeroExport {
                     mCfg->groups[group].sleep = 0;
                 }
             }
-        return;
         }
 
         mLog["Msg"] = obj;
         sendLog();
         clearLog();
+        return;
     }
 
    private:
@@ -765,10 +766,10 @@ class ZeroExport {
 
         *doLog = true;
 
-         mCfg->groups[group].pmPower = mPowermeter.getDataAVG(group).P;
-         mCfg->groups[group].pmPowerL1 = mPowermeter.getDataAVG(group).P1;
-         mCfg->groups[group].pmPowerL2 = mPowermeter.getDataAVG(group).P2;
-         mCfg->groups[group].pmPowerL3 = mPowermeter.getDataAVG(group).P3;
+        mCfg->groups[group].pmPower = mPowermeter.getDataAVG(group).P;
+        mCfg->groups[group].pmPowerL1 = mPowermeter.getDataAVG(group).P1;
+        mCfg->groups[group].pmPowerL2 = mPowermeter.getDataAVG(group).P2;
+        mCfg->groups[group].pmPowerL3 = mPowermeter.getDataAVG(group).P3;
 
         if (
             (mCfg->groups[group].pmPower == 0) &&
@@ -913,7 +914,7 @@ class ZeroExport {
 
         mCfg->groups[group].lastRun = *tsp;
 
-        *doLog = true;
+        //        *doLog = true;
 
         return true;
     }
@@ -1164,8 +1165,6 @@ class ZeroExport {
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            if (mCfg->debug) *doLog = true;
-
             // Inverter not available -> ignore
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
@@ -1341,7 +1340,7 @@ class ZeroExport {
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
 
-            *doLog = true;
+            //            *doLog = true;
             String gr;
 
             // Init
@@ -1351,14 +1350,14 @@ class ZeroExport {
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
 
                 gr = "zero/set/groups/" + String(group) + "/enabled";
-                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
+                mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe(gr.c_str(), QOS_2);
             }
 
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-            gr = "zero/state/groups/" + String(group) + "/enabled";
-            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]) , false);
 
+            gr = "zero/state/groups/" + String(group) + "/enabled";
+            mMqtt->publish(gr.c_str(), ((mCfg->groups[group].enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
 
             //            if (mCfg->groups[group].publishPower) {
             //                mCfg->groups[group].publishPower = false;
@@ -1399,7 +1398,7 @@ class ZeroExport {
 
         cfgGroup->lastRun = *tsp;
 
-        *doLog = true;
+        //        *doLog = true;
 
         //      if (!korrect) {
         //          do
