@@ -203,7 +203,6 @@ typedef struct {
 
 enum class zeroExportState : uint8_t {
     INIT,
-    WAIT,
     WAITREFRESH,
     GETINVERTERACKS,
     GETINVERTERDATA,
@@ -301,7 +300,7 @@ typedef struct {
     //
 
     zeroExportState state;
-    zeroExportState stateNext;
+//    zeroExportState stateNext;
     unsigned long lastRun;
     unsigned long lastRefresh;
     uint16_t sleep;
