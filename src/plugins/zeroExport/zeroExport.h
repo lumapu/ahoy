@@ -20,7 +20,7 @@ template <class HMSYSTEM>
 class ZeroExport {
    public:
     /** ZeroExport
-     * Konstruktor
+     * constructor
      */
     ZeroExport() {
         mIsInitialized = false;
@@ -32,7 +32,7 @@ class ZeroExport {
     }
 
     /** ~ZeroExport
-     * Destruktor
+     * destructor
      */
     ~ZeroExport() {}
 
@@ -1066,42 +1066,53 @@ class ZeroExport {
      * @returns true/false
      */
     bool groupSetReboot(uint8_t group, unsigned long *tsp, bool *doLog) {
+        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
         bool result = true;
 
         if (mCfg->debug) mLog["t"] = "groupSetReboot";
 
-        mCfg->groups[group].lastRun = *tsp;
+        cfgGroup->lastRun = *tsp;
 
         JsonArray logArr = mLog.createNestedArray("ix");
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
 
+            zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
+
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            // Reset
-            if ((mCfg->groups[group].inverters[inv].doReboot) && (mCfg->groups[group].inverters[inv].waitRebootAck == 0)) {
+            // Inverter not available -> ignore
+            if (!mIv[group][inv]->isAvailable()) {
+                logObj["a"] = false;
                 result = false;
-                mCfg->groups[group].inverters[inv].doReboot = false;
                 continue;
             }
 
+            // Reset
+            if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitRebootAck == 0)) {
+                result = false;
+                cfgGroupInv->doReboot = 0;
+                logObj["act"] = "done";
+                continue;
+            }
+
+			// Calculate
+			if (cfgGroupInv->doReboot == 1) {
+				cfgGroupInv->doReboot = 2;
+			}
+
             // Wait
-            if (mCfg->groups[group].inverters[inv].waitRebootAck > 0) {
+            if (cfgGroupInv->waitRebootAck > 0) {
+                logObj["w"] = cfgGroupInv->waitRebootAck;
                 result = false;
                 continue;
             }
 
             // Inverter nothing to do -> ignore
-            if (!mCfg->groups[group].inverters[inv].doReboot) {
-                continue;
-            }
-
-            // Inverter not available -> ignore
-            if (!mIv[group][inv]->isAvailable()) {
-                result = false;
-                logObj["err"] = "is not Available";
+            if (cfgGroupInv->doReboot == 0) {
+                logObj["act"] = "nothing to do";
                 continue;
             }
 
@@ -1109,20 +1120,19 @@ class ZeroExport {
 
             *doLog = true;
 
-            logObj["act"] = String("reboot");
+            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doReboot;
 
             // wait for Ack
-            mCfg->groups[group].inverters[inv].waitRebootAck = 120;
-            logObj["wR"] = mCfg->groups[group].inverters[inv].waitRebootAck;
+            cfgGroupInv->waitRebootAck = 120;
+            logObj["wR"] = cfgGroupInv->waitRebootAck;
 
             // send Command
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
-            obj["id"] = mCfg->groups[group].inverters[inv].id;
+            obj["id"] = cfgGroupInv->id;
             obj["path"] = "ctrl";
             obj["cmd"] = "restart";
             mApi->ctrlRequest(obj);
-
             logObj["d"] = obj;
         }
 

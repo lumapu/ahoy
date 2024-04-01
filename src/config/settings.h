@@ -271,7 +271,7 @@ typedef struct {
     float dcVoltage;
     bool state;
     //
-    bool doReboot;
+    int8_t doReboot;
     int8_t doPower;
     bool doLimit;
 } zeroExportGroupInverter_t;
