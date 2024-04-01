@@ -367,9 +367,28 @@ class ZeroExport {
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                // Keine Datenübernahme wenn falscher Inverter
+                if (iv->id != mCfg->groups[group].inverters[inv].id) continue;
+
+                // Keine Datenübernahme wenn nicht enabled
                 if (!mCfg->groups[group].inverters[inv].enabled) continue;
 
-                if (iv->id != mCfg->groups[group].inverters[inv].id) continue;
+                // Keine Datenübernahme wenn setReboot läuft
+                if (mCfg->groups[group].inverters[inv].waitRebootAck > 0) continue;
+
+                // Keine Datenübernahme wenn setPower läuft
+                if (mCfg->groups[group].inverters[inv].waitPowerAck > 0) continue;
+
+                // Keine Datenübernahme wenn setLimit läuft
+                if (mCfg->groups[group].inverters[inv].waitLimitAck > 0) continue;
+
+                int32_t ivLp = iv->actPowerLimit;
+                int32_t ivPm = iv->getMaxPower();;
+                int32_t ivL = (ivPm * ivLp) / 100;
+                int32_t zeL = mCfg->groups[group].inverters[inv].limit;
+
+                // Keine Datenübernahme wenn zeL gleich ivL
+                if (zeL == ivL) continue;
 
                 unsigned long bTsp = millis();
 
@@ -377,11 +396,10 @@ class ZeroExport {
                 mLog["g"] = group;
                 mLog["i"] = inv;
                 mLog["id"] = iv->id;
-                mLog["ivL%"] = iv->actPowerLimit;
-                mLog["ivPm"] = iv->getMaxPower();
-                uint16_t ivL = (iv->getMaxPower() * iv->actPowerLimit) / 100;
+                mLog["ivL%"] = ivLp;
+                mLog["ivPm"] = ivPm;
                 mLog["ivL"] = ivL;
-                mLog["zeL"] = (uint16_t)mCfg->groups[group].inverters[inv].limit;
+                mLog["zeL"] = zeL;
                 mCfg->groups[group].inverters[inv].limit = ivL;
 
                 if (mCfg->debug) {
