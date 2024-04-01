@@ -188,7 +188,7 @@ typedef struct {
 // Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 
-#define ZEROEXPORT_DEV_POWERMETER
+//#define ZEROEXPORT_DEV_POWERMETER
 #define ZEROEXPORT_MAX_GROUPS                       6
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
@@ -227,22 +227,7 @@ typedef enum {
     Hichi       = 4,
     Tibber      = 5,
 } zeroExportPowermeterType_t;
-/*
-typedef struct {
-    uint8_t type;
-    uint8_t ip;
-    uint8_t url;
-    bool login;
-    uint8_t username;
-    uint8_t password;
-    uint8_t group;
-    uint8_t phase;
-    uint16_t nextRun;
-    uint16_t interval;
-    uint8_t error;
-    uint16_t power;
-} zeroExportPowermeter_t;
-*/
+
 typedef enum {
     Sum     = 0,
     L1      = 1,
@@ -261,9 +246,9 @@ typedef struct {
     uint16_t powerMax;
     //
 
-    float power;
-    float limit;
-    float limitNew;
+    int32_t power;
+    int32_t limit;
+    int32_t limitNew;
     uint8_t waitLimitAck;
     uint8_t waitPowerAck;
     uint8_t waitRebootAck;
@@ -279,6 +264,7 @@ typedef struct {
 typedef struct {
     // General
     bool enabled;
+    bool sleep;
     char name[ZEROEXPORT_GROUP_MAX_LEN_NAME];
     // Powermeter
     uint8_t pm_type;
@@ -303,50 +289,37 @@ typedef struct {
 //    zeroExportState stateNext;
     unsigned long lastRun;
     unsigned long lastRefresh;
-    uint16_t sleep;
+    uint16_t wait;
 
-    float eSum;
-    float eSum1;
-    float eSum2;
-    float eSum3;
-    float eOld;
-    float eOld1;
-    float eOld2;
-    float eOld3;
-    float Kp;
-    float Ki;
-    float Kd;
-
-//float pm_P[5];
-//float pm_P1[5];
-//float pm_P2[5];
-//float pm_P3[5];
-//uint8_t pm_iIn = 0;
-//uint8_t pm_iOut = 0;
-
-    float pmPower;
-    float pmPowerL1;
-    float pmPowerL2;
-    float pmPowerL3;
+    int32_t pm_P;
+    int32_t pm_P1;
+    int32_t pm_P2;
+    int32_t pm_P3;
 bool publishPower = false;
 
     bool battSwitch;
-    float grpPower;
-    float grpPowerL1;
-    float grpPowerL2;
-    float grpPowerL3;
-//    float grpLimit;
-//    float grpLimitL1;
-//    float grpLimitL2;
-//    float grpLimitL3;
 
-//    uint16_t power;             // Aktueller Verbrauch
-//    uint16_t powerLimitAkt;     // Aktuelles Limit
-//    uint16_t powerHyst;         // Hysterese
+    // PID controller
+    int32_t eSum;
+    int32_t eSum1;
+    int32_t eSum2;
+    int32_t eSum3;
+    int32_t eOld;
+    int32_t eOld1;
+    int32_t eOld2;
+    int32_t eOld3;
+    float Kp;
+    float Ki;
+    float Kd;
+    int32_t y;
+    int32_t y1;
+    int32_t y2;
+    int32_t y3;
 } zeroExportGroup_t;
 
 typedef struct {
     bool enabled;
+    bool sleep;
     bool log_over_webserial;
     bool log_over_mqtt;
     bool debug;
@@ -675,12 +648,14 @@ class settings {
             // Plugin ZeroExport
             #if defined(PLUGIN_ZEROEXPORT)
             mCfg.plugin.zeroExport.enabled = false;
+            mCfg.plugin.zeroExport.sleep = false;
             mCfg.plugin.zeroExport.log_over_webserial = false;
             mCfg.plugin.zeroExport.log_over_mqtt = false;
             mCfg.plugin.zeroExport.debug = false;
             for(uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 // General
                 mCfg.plugin.zeroExport.groups[group].enabled = false;
+                mCfg.plugin.zeroExport.groups[group].sleep = false;
                 snprintf(mCfg.plugin.zeroExport.groups[group].name, ZEROEXPORT_GROUP_MAX_LEN_NAME,  "%s", DEF_ZEXPORT);
                 // Powermeter
                 mCfg.plugin.zeroExport.groups[group].pm_type = zeroExportPowermeterType_t::None;
@@ -719,11 +694,11 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
                 mCfg.plugin.zeroExport.groups[group].lastRefresh = 0;
-                mCfg.plugin.zeroExport.groups[group].sleep = 0;
-                mCfg.plugin.zeroExport.groups[group].pmPower = 0;
-                mCfg.plugin.zeroExport.groups[group].pmPowerL1 = 0;
-                mCfg.plugin.zeroExport.groups[group].pmPowerL2 = 0;
-                mCfg.plugin.zeroExport.groups[group].pmPowerL3 = 0;
+                mCfg.plugin.zeroExport.groups[group].wait = 0;
+                mCfg.plugin.zeroExport.groups[group].pm_P = 0;
+                mCfg.plugin.zeroExport.groups[group].pm_P1 = 0;
+                mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
+                mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
             }
