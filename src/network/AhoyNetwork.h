@@ -85,13 +85,18 @@ class AhoyNetwork {
             return false;
         }
 
+        bool isApActive() {
+            return mAp.isEnabled();
+        }
+
         #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj) {
             JsonArray nets = obj.createNestedArray(F("networks"));
 
             if(!mScanActive) {
                 mScanActive = true;
-                WiFi.disconnect();
+                if(NetworkState::GOT_IP != mStatus)
+                    WiFi.disconnect();
                 WiFi.scanNetworks(true, true);
                 return false;
             }

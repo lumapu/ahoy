@@ -188,6 +188,10 @@ class app : public IApp, public ah::Scheduler {
             return mNetwork->getIp();
         }
 
+        bool isApActive(void) override {
+            return mNetwork->isApActive();
+        }
+
         void setRebootFlag() override {
             once(std::bind(&app::tickReboot, this), 3, "rboot");
         }
@@ -386,8 +390,10 @@ class app : public IApp, public ah::Scheduler {
         bool mNtpReceived = false;
         void updateNtp(void);
 
-        void triggerTickSend() override {
-            once(std::bind(&app::tickSend, this), 0, "tSend");
+        void triggerTickSend(uint8_t id) override {
+            once([this, id]() {
+                sendIv(mSys.getInverterByPos(id));
+            }, 0, "devct");
         }
 
         void tickCalcSunrise(void);
@@ -396,6 +402,7 @@ class app : public IApp, public ah::Scheduler {
         void tickSunrise(void);
         void tickComm(void);
         void tickSend(void);
+        bool sendIv(Inverter<> *iv);
         void tickMinute(void);
         void tickZeroValues(void);
         void tickMidnight(void);

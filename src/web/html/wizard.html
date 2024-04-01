@@ -218,7 +218,7 @@
                     sect("{#WIFI_MANUAL}", ml("input", {id: "man", type: "text"})),
                     sect("{#WIFI_PASSWORD}", ml("input", {id: "pwd", type: "password"})),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_NEXT}", onclick: () => {saveWifi()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
                 ])
             }
             /*ENDIF_ETHERNET*/
@@ -229,9 +229,9 @@
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#TEST_CONNECTION}"))),
                     sect("{#TRY_TO_CONNECT}", ml("span", {id: "state"}, "{#CONNECTING}")),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
                 )
-                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 1000);
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 300);
             }
 
             function redirect() {
@@ -286,7 +286,8 @@
             }
 
             c.append(step1())
-            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 1000);
+            getAjax('/api/setup/networks', nets)
+            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 1000)
             /*ENDIF_ETHERNET*/
 
         </script>

@@ -31,6 +31,7 @@ class IApp {
         virtual bool getWasInCh12to14(void) const = 0;
         #endif /* defined(ETHERNET) */
         virtual String getIp(void) = 0;
+        virtual bool isApActive(void) = 0;
 
         virtual uint32_t getUptime() = 0;
         virtual uint32_t getTimestamp() = 0;
@@ -42,7 +43,7 @@ class IApp {
         virtual void getSchedulerInfo(uint8_t *max) = 0;
         virtual void getSchedulerNames() = 0;
 
-        virtual void triggerTickSend() = 0;
+        virtual void triggerTickSend(uint8_t id) = 0;
 
         virtual bool getRebootRequestState() = 0;
         virtual bool getSettingsValid() = 0;

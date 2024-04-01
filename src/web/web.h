@@ -57,7 +57,8 @@ class Web {
             mConfig  = config;
 
             DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1));
+            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, true));
+            mWeb.on("/index",          HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, false));
             mWeb.on("/login",          HTTP_ANY,  std::bind(&Web::onLogin,        this, std::placeholders::_1));
             mWeb.on("/logout",         HTTP_GET,  std::bind(&Web::onLogout,       this, std::placeholders::_1));
             mWeb.on("/colors.css",     HTTP_GET,  std::bind(&Web::onColor,        this, std::placeholders::_1));
@@ -319,7 +320,11 @@ class Web {
             client->send("hello!", NULL, millis(), 1000);
         }
 
-        void onIndex(AsyncWebServerRequest *request) {
+        void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
+            if(mApp->isApActive() && checkAp) {
+                onWizard(request);
+                return;
+            }
             getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
         }
 

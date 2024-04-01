@@ -403,29 +403,7 @@ void app::tickSend(void) {
 
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
-        if(NULL == iv)
-            continue;
-
-        if(iv->config->enabled) {
-            if(!iv->commEnabled) {
-                DPRINT_IVID(DBG_INFO, iv->id);
-                DBGPRINTLN(F("no communication to the inverter (night time)"));
-                continue;
-            }
-
-            if(!iv->radio->isChipConnected())
-                continue;
-
-            if(InverterStatus::OFF != iv->status)
-                notAvail = false;
-
-            iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
-                if(isDevControl)
-                    mCommunication.addImportant(iv, cmd);
-                else
-                    mCommunication.add(iv, cmd);
-            });
-        }
+        sendIv(iv);
     }
 
     if(mAllIvNotAvail != notAvail)
@@ -433,6 +411,37 @@ void app::tickSend(void) {
     mAllIvNotAvail = notAvail;
 
     updateLed();
+}
+
+//-----------------------------------------------------------------------------
+bool app::sendIv(Inverter<> *iv) {
+    bool notAvail = true;
+    if(NULL == iv)
+        return notAvail;
+
+    if(!iv->config->enabled)
+        return notAvail;
+
+    if(!iv->commEnabled) {
+        DPRINT_IVID(DBG_INFO, iv->id);
+        DBGPRINTLN(F("no communication to the inverter (night time)"));
+        return notAvail;
+    }
+
+    if(!iv->radio->isChipConnected())
+        return notAvail;
+
+    if(InverterStatus::OFF != iv->status)
+        notAvail = false;
+
+    iv->tickSend([this, iv](uint8_t cmd, bool isDevControl) {
+        if(isDevControl)
+            mCommunication.addImportant(iv, cmd);
+        else
+            mCommunication.add(iv, cmd);
+    });
+
+    return notAvail;
 }
 
 //-----------------------------------------------------------------------------

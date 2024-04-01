@@ -54,6 +54,9 @@ class AhoyWifiAp {
             if(!mEnabled)
                 return;
 
+            if(WiFi.softAPgetStationNum() > 0)
+                return;
+
             mDns.stop();
             WiFi.softAPdisconnect();
             #if defined(ETHERNET)

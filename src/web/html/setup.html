@@ -57,22 +57,9 @@
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">{#SEARCH_NETWORKS}</div>
-                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="{#BTN_SCAN}" onclick="scan()"/></div>
-                            </div>
-
-                            <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">{#AVAIL_NETWORKS}</div>
-                                <div class="col-12 col-sm-9">
-                                    <select name="networks" id="networks" onChange="selNet()">
-                                        <option value="-1" selected disabled hidden>{#NETWORK_NOT_SCANNED}</option>
-                                    </select>
-                                </div>
-                            </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><br/><a href="/wizard">{#SCAN_WIFI}</a></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -604,12 +591,6 @@
                 var obj = {cmd: "set_time", token: "*", val: parseInt(date.getTime() / 1000)}
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
                 setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
-            }
-
-            function scan() {
-                var obj = {cmd: "scan_wifi", token: "*"}
-                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
             }
 
             function syncTime() {
@@ -1317,13 +1298,6 @@
                     }
                 } else
                     s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
-            }
-
-            function selNet() {
-                var s = document.getElementById("networks");
-                var e = document.getElementsByName("ssid")[0];
-                if(-1 != s.value)
-                    e.value = s.value;
             }
 
             getAjax("/api/setup", parse);
