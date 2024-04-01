@@ -183,7 +183,7 @@ class CmtRadio : public Radio {
 
             if(p.packet[9] > ALL_FRAMES) { // indicates last frame
                 setExpectedFrames(p.packet[9] - ALL_FRAMES);
-                mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
+                mRadioWaitTime.startTimeMonitor(2); // let the inverter first get back to rx mode?
             }
         }
 
