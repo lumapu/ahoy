@@ -311,6 +311,7 @@ class PubMqtt {
 
             DynamicJsonDocument json(128);
             JsonObject root = json.to<JsonObject>();
+            root["topic"] = String(topic);
 
             bool limitAbs = false;
             if(len > 0) {

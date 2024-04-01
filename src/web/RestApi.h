@@ -1158,9 +1158,7 @@ class RestApi {
                 mConfig->plugin.zeroExport.groups[group].Ki = jsonIn[F("Ki")];
                 mConfig->plugin.zeroExport.groups[group].Kd = jsonIn[F("Kd")];
                 // Global
-                mConfig->plugin.zeroExport.groups[group].stateLast = zeroExportState::INIT;
                 mConfig->plugin.zeroExport.groups[group].state = zeroExportState::INIT;
-                mConfig->plugin.zeroExport.groups[group].stateNext = zeroExportState::INIT;
                 mApp->saveSettings(false); // without reboot
             }
             #endif
