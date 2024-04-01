@@ -22,6 +22,12 @@ class AhoyWifiAp {
         void tickLoop() {
             if(mEnabled)
                 mDns.processNextRequest();
+
+            if (WiFi.softAPgetStationNum() != mLast) {
+                mLast = WiFi.softAPgetStationNum();
+                if(mLast > 0)
+                    DBGPRINTLN(F("AP client connected"));
+            }
         }
 
         void enable() {
@@ -68,6 +74,7 @@ class AhoyWifiAp {
         DNSServer mDns;
         IPAddress mIp;
         bool mEnabled = false;
+        uint8_t mLast = 0;
 };
 
 #endif /*__AHOY_WIFI_AP_H__*/

@@ -26,10 +26,8 @@ class IApp {
         virtual const char *getVersionModules() = 0;
 
         #if !defined(ETHERNET)
-        virtual void scanAvailNetworks() = 0;
         virtual bool getAvailNetworks(JsonObject obj) = 0;
         virtual void setupStation(void) = 0;
-        //virtual void setStopApAllowedMode(bool allowed) = 0;
         virtual bool getWasInCh12to14(void) const = 0;
         #endif /* defined(ETHERNET) */
         virtual String getIp(void) = 0;

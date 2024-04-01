@@ -147,10 +147,12 @@ class Improv {
         }
 
         void getNetworks(void) {
-            if(!mScanRunning)
-                mApp->scanAvailNetworks();
-
             JsonObject obj;
+            if(!mScanRunning) {
+                mApp->getAvailNetworks(obj);
+                return;
+            }
+
             if(!mApp->getAvailNetworks(obj))
                 return;
 

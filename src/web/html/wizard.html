@@ -231,7 +231,7 @@
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
                     ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
                 )
-                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 2500);
+                v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 1000);
             }
 
             function redirect() {
@@ -270,6 +270,9 @@
             getAjax("/api/setup", ((o) => c.append(step1(o.eth))));
             /*ELSE*/
             function nets(obj) {
+                if(!obj.success)
+                    return;
+
                 var e = document.getElementById("net");
                 if(obj.networks.length > 0) {
                     var a = []
@@ -280,12 +283,10 @@
                     }
                     e.replaceChildren(...a)
                 }
-                getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
             }
 
-            getAjax("/api/setup", ((o) => {}), "POST", JSON.stringify({cmd: "scan_wifi"}));
             c.append(step1())
-            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 2500);
+            v = setInterval(() => {getAjax('/api/setup/networks', nets)}, 1000);
             /*ENDIF_ETHERNET*/
 
         </script>

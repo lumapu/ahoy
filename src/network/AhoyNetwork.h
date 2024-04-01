@@ -86,19 +86,20 @@ class AhoyNetwork {
         }
 
         #if !defined(ETHERNET)
-        void scanAvailNetworks(void) {
-            if(!mScanActive) {
-                mScanActive = true;
-                WiFi.scanNetworks(true);
-            }
-        }
-
         bool getAvailNetworks(JsonObject obj) {
             JsonArray nets = obj.createNestedArray(F("networks"));
 
-            int n = WiFi.scanComplete();
-            if (n < 0)
+            if(!mScanActive) {
+                mScanActive = true;
+                WiFi.disconnect();
+                WiFi.scanNetworks(true, true);
                 return false;
+            }
+
+            int n = WiFi.scanComplete();
+            if (WIFI_SCAN_RUNNING == n)
+                return false;
+
             if(n > 0) {
                 int sort[n];
                 sortRSSI(&sort[0], n);
@@ -174,7 +175,6 @@ class AhoyNetwork {
 
     private:
         void sendNTPpacket(void) {
-            //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
             uint8_t buf[NTP_PACKET_SIZE];
             memset(buf, 0, NTP_PACKET_SIZE);
 

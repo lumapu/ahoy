@@ -167,10 +167,6 @@ class app : public IApp, public ah::Scheduler {
         }
 
         #if !defined(ETHERNET)
-        void scanAvailNetworks() override {
-            mNetwork->scanAvailNetworks();
-        }
-
         bool getAvailNetworks(JsonObject obj) override {
             return mNetwork->getAvailNetworks(obj);
         }
@@ -178,10 +174,6 @@ class app : public IApp, public ah::Scheduler {
         void setupStation(void) override {
             mNetwork->begin();
         }
-
-        /*void setStopApAllowedMode(bool allowed) override {
-            mWifi.setStopApAllowedMode(allowed);
-        }*/
 
         bool getWasInCh12to14(void) const override {
             #if defined(ESP8266)

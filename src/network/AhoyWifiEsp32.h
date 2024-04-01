@@ -28,7 +28,7 @@ class AhoyWifi : public AhoyNetwork {
                 WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
 
-                DBGPRINT(F("connect to network '")); Serial.flush();
+                DBGPRINT(F("connect to network '"));
                 DBGPRINT(mConfig->sys.stationSsid);
             #endif
         }
@@ -43,10 +43,6 @@ class AhoyWifi : public AhoyNetwork {
                         mConnected = false;
                         mOnNetworkCB(false);
                         mAp.enable();
-                    }
-
-                    if (WiFi.softAPgetStationNum() > 0) {
-                        DBGPRINTLN(F("AP client connected"));
                     }
                     break;
 

@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.102 - 2024-04-01
+* fix NTP for `opendtufusion` #1542
+* fix scan WiFi in AP mode
+
 ## 0.8.101 - 2024-03-28
 * updated converter scripts to include all enabled features again (redundant scan of build flags) #1534
 

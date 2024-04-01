@@ -402,6 +402,7 @@ class Web {
 
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
+            //DBGPRINTLN(request->url());
             request->redirect("/wizard");
         }
 

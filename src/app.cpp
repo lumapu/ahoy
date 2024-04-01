@@ -62,7 +62,6 @@ void app::setup() {
     #endif // ETHERNET
     mNetwork->setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
     mNetwork->begin();
-    everySec(std::bind(&AhoyNetwork::tickNetworkLoop, mNetwork), "net");
 
     esp_task_wdt_reset();
 
@@ -176,6 +175,7 @@ void app::regularTickers(void) {
     DPRINTLN(DBG_DEBUG, F("regularTickers"));
     everySec(std::bind(&WebType::tickSecond, &mWeb), "webSc");
     everySec([this]() { mProtection->tickSecond(); }, "prot");
+    everySec([this]() {mNetwork->tickNetworkLoop(); }, "net");
 
     // Plugins
     #if defined(PLUGIN_DISPLAY)
