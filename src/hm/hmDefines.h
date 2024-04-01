@@ -24,20 +24,20 @@ enum {FLD_UDC = 0, FLD_IDC, FLD_PDC, FLD_YD, FLD_YW, FLD_YT,
         FLD_IRR, FLD_Q, FLD_EVT, FLD_FW_VERSION, FLD_FW_BUILD_YEAR,
         FLD_FW_BUILD_MONTH_DAY, FLD_FW_BUILD_HOUR_MINUTE, FLD_BOOTLOADER_VER,
         FLD_ACT_ACTIVE_PWR_LIMIT, FLD_PART_NUM, FLD_HW_VERSION, FLD_GRID_PROFILE_CODE,
-        FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP};
+        FLD_GRID_PROFILE_VERSION,  /*FLD_ACT_REACTIVE_PWR_LIMIT, FLD_ACT_PF,*/ FLD_LAST_ALARM_CODE, FLD_MP, FLD_MT};
 
 const char* const fields[] = {"U_DC", "I_DC", "P_DC", "YieldDay", "YieldWeek", "YieldTotal",
         "U_AC", "U_AC_1N", "U_AC_2N", "U_AC_3N", "UAC_12", "UAC_23", "UAC_31", "I_AC",
         "IAC_1", "I_AC_2", "I_AC_3", "P_AC", "F_AC", "Temp", "PF_AC", "Efficiency", "Irradiation","Q_AC",
         "ALARM_MES_ID","FWVersion","FWBuildYear","FWBuildMonthDay","FWBuildHourMinute","BootloaderVersion",
         "active_PowerLimit", "HWPartNumber", "HWVersion", "GridProfileCode",
-        "GridProfileVersion", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode", "MaxPower"};
+        "GridProfileVersion", /*"reactivePowerLimit","Powerfactor",*/ "LastAlarmCode", "MaxPower", "MaxTemp"};
 const char* const notAvail = "n/a";
 
 const uint8_t fieldUnits[] = {UNIT_V, UNIT_A, UNIT_W, UNIT_WH, UNIT_KWH, UNIT_KWH,
         UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_V, UNIT_A, UNIT_A, UNIT_A, UNIT_A,
         UNIT_W, UNIT_HZ, UNIT_C, UNIT_NONE, UNIT_PCT, UNIT_PCT, UNIT_VAR,
-        UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_W};
+        UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_PCT, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_NONE, UNIT_W, UNIT_C};
 
 // mqtt discovery device classes
 enum {DEVICE_CLS_NONE = 0, DEVICE_CLS_CURRENT, DEVICE_CLS_ENERGY, DEVICE_CLS_PWR, DEVICE_CLS_VOLTAGE, DEVICE_CLS_FREQ, DEVICE_CLS_TEMP};
@@ -68,7 +68,7 @@ const byteAssign_fieldDeviceClass deviceFieldAssignment[] = {
 #define DEVICE_CLS_ASSIGN_LIST_LEN     (sizeof(deviceFieldAssignment) / sizeof(byteAssign_fieldDeviceClass))
 
 // indices to calculation functions, defined in hmInverter.h
-enum {CALC_YT_CH0 = 0, CALC_YD_CH0, CALC_UDC_CH, CALC_PDC_CH0, CALC_EFF_CH0, CALC_IRR_CH, CALC_MPAC_CH0, CALC_MPDC_CH};
+enum {CALC_YT_CH0 = 0, CALC_YD_CH0, CALC_UDC_CH, CALC_PDC_CH0, CALC_EFF_CH0, CALC_IRR_CH, CALC_MPAC_CH0, CALC_MPDC_CH, CALC_MT_CH0};
 enum {CMD_CALC = 0xffff};
 
 
@@ -173,7 +173,8 @@ const byteAssign_t hm1chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 };
 #define HM1CH_LIST_LEN      (sizeof(hm1chAssignment) / sizeof(byteAssign_t))
 #define HM1CH_PAYLOAD_LEN   30
@@ -211,7 +212,8 @@ const byteAssign_t hm2chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0,   0, CMD_CALC }
 
 };
 #define HM2CH_LIST_LEN      (sizeof(hm2chAssignment) / sizeof(byteAssign_t))
@@ -266,7 +268,8 @@ const byteAssign_t hm4chAssignment[] = {
     { FLD_YT,  UNIT_KWH,  CH0, CALC_YT_CH0,   0, CMD_CALC },
     { FLD_PDC, UNIT_W,    CH0, CALC_PDC_CH0,  0, CMD_CALC },
     { FLD_EFF, UNIT_PCT,  CH0, CALC_EFF_CH0,  0, CMD_CALC },
-    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC }
+    { FLD_MP,  UNIT_W,    CH0, CALC_MPAC_CH0, 0, CMD_CALC },
+    { FLD_MT,  UNIT_C,    CH0, CALC_MT_CH0, 0, CMD_CALC }
 };
 #define HM4CH_LIST_LEN      (sizeof(hm4chAssignment) / sizeof(byteAssign_t))
 #define HM4CH_PAYLOAD_LEN   62

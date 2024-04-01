@@ -120,6 +120,7 @@
                 }
 
                 var maxAcPwr = toIsoDateStr(new Date(obj.ts_max_ac_pwr * 1000));
+                var maxTemp = toIsoDateStr(new Date(obj.ts_max_temp * 1000));
                 return ml("div", {class: "row mt-2"},
                     ml("div", {class: "col"}, [
                         ml("div", {class: "p-2 " + clh},
@@ -134,7 +135,8 @@
                                 ml("div", {class: "col a-c"}, ml("span", { class: "pointer", onclick: function() {
                                     getAjax("/api/inverter/alarm/" + obj.id, parseIvAlarm);
                                 }}, ("{#ALARMS}: " + obj.alarm_cnt))),
-                                ml("div", {class: "col a-r mx-2 mx-md-1"}, String(obj.ch[0][5].toFixed(1)) + t.innerText)
+                                ml("div", {class: "col a-r mx-2 mx-md-1 tooltip", data: maxTemp}, String(obj.ch[0][5].toFixed(1)) + t.innerText + "<br>" +
+                                    "Max:" + String(obj.ch[0][12].toFixed(1)) + t.innerText)
                             ])
                         ),
                         ml("div", {class: "p-2 " + clbg}, [

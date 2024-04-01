@@ -54,6 +54,9 @@ template<class T=float>
 static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
+static T calcMaxTempCh0(Inverter<> *iv, uint8_t arg0);
+
+template<class T=float>
 static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0);
 
 template<class T=float>
@@ -107,7 +110,8 @@ const calcFunc_t<T> calcFunctions[] = {
     { CALC_EFF_CH0,  &calcEffiencyCh0   },
     { CALC_IRR_CH,   &calcIrradiation   },
     { CALC_MPAC_CH0, &calcMaxPowerAcCh0 },
-    { CALC_MPDC_CH,  &calcMaxPowerDc    }
+    { CALC_MPDC_CH,  &calcMaxPowerDc    },
+    { CALC_MT_CH0,   &calcMaxTempCh0    }
 };
 
 template <class REC_TYP>
@@ -147,6 +151,7 @@ class Inverter {
         HeuristicInv  heuristics;                           // heuristic information / logic
         uint8_t       curCmtFreq = 0;                       // current used CMT frequency, used to check if freq. was changed during runtime
         uint32_t      tsMaxAcPower = 0;                     // holds the timestamp when the MaxAC power was seen
+        uint32_t      tsMaxTemp = 0;                        // holds the timestamp when the max temp was seen
         bool          commEnabled = true;                   // 'pause night communication' sets this field to false
 
     public:
@@ -950,6 +955,28 @@ static T calcMaxPowerAcCh0(Inverter<> *iv, uint8_t arg0) {
     }
     return acMaxPower;
 }
+
+template<class T=float>
+static T calcMaxTempCh0(Inverter<> *iv, uint8_t arg0) {
+    DPRINTLN(DBG_VERBOSE, F("hmInverter.h:calcMaxTempCh0"));
+    T maxTemp = 0.0;
+    if(NULL != iv) {
+        record_t<> *rec = iv->getRecordStruct(RealTimeRunData_Debug);
+        T Temp = iv->getChannelFieldValue(arg0, FLD_T, rec);
+
+        for(uint8_t i = 0; i < rec->length; i++) {
+            if((FLD_MT == rec->assign[i].fieldId) && (0 == rec->assign[i].ch)) {
+                maxTemp = iv->getValue(i, rec);
+            }
+        }
+        if(Temp > maxTemp) {
+            iv->tsMaxTemp = *iv->timestamp;
+            return Temp;
+        }
+    }
+    return maxTemp;
+}
+
 
 template<class T=float>
 static T calcMaxPowerDc(Inverter<> *iv, uint8_t arg0) {

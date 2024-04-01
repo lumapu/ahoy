@@ -602,6 +602,7 @@ class RestApi {
             obj[F("alarm_cnt")]        = iv->alarmCnt;
             obj[F("rssi")]             = iv->rssi;
             obj[F("ts_max_ac_pwr")]    = iv->tsMaxAcPower;
+            obj[F("ts_max_temp")]      = iv->tsMaxTemp;
 
             JsonArray ch = obj.createNestedArray("ch");
 
@@ -1110,9 +1111,9 @@ class RestApi {
 
     private:
         constexpr static uint8_t acList[] = {FLD_UAC, FLD_IAC, FLD_PAC, FLD_F, FLD_PF, FLD_T, FLD_YT,
-            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t acListHmt[] = {FLD_UAC_1N, FLD_IAC_1, FLD_PAC, FLD_F, FLD_PF, FLD_T,
-            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP};
+            FLD_YT, FLD_YD, FLD_PDC, FLD_EFF, FLD_Q, FLD_MP, FLD_MT};
         constexpr static uint8_t dcList[] = {FLD_UDC, FLD_IDC, FLD_PDC, FLD_YD, FLD_YT, FLD_IRR, FLD_MP};
 
     private:
