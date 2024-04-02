@@ -414,7 +414,7 @@ class app : public IApp, public ah::Scheduler {
 
         bool mShowRebootRequest = false;
 
-        AhoyNetwork *mNetwork;
+        AhoyNetwork *mNetwork = nullptr;
         WebType mWeb;
         RestApiType mApi;
         Protection *mProtection = nullptr;

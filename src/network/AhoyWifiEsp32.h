@@ -68,16 +68,6 @@ class AhoyWifi : public AhoyNetwork {
         String getIp(void) override {
             return WiFi.localIP().toString();
         }
-
-    private:
-        void sortRSSI(int *sort, int n) {
-            for (int i = 0; i < n; i++)
-                sort[i] = i;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++)
-                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                        std::swap(sort[i], sort[j]);
-        }
 };
 
 #endif /*ESP32 & !ETHERNET*/

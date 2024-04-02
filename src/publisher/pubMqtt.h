@@ -251,8 +251,8 @@ class PubMqtt {
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
 
-            publish(subtopics[MQTT_VERSION], mVersion, true);
-            publish(subtopics[MQTT_DEVICE], mDevName, true);
+            publish(subtopics[MQTT_VERSION], mVersion, false);
+            publish(subtopics[MQTT_DEVICE], mDevName, false);
             publish(subtopics[MQTT_IP_ADDR], mApp->getIp().c_str(), true);
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);

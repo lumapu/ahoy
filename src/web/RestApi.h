@@ -166,7 +166,7 @@ class RestApi {
             #else
             DynamicJsonDocument json(12000);  // does this work? I have no ESP32 :-(
             #endif
-            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            DeserializationError err = deserializeJson(json, static_cast<const char *>(mTmpBuf, mTmpSize));
             json.shrinkToFit();
             JsonObject obj = json.as<JsonObject>();
 

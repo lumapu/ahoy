@@ -56,9 +56,9 @@ void app::setup() {
 
     #ifdef ETHERNET
         delay(1000);
-        mNetwork = (AhoyNetwork*) new AhoyEthernet();
+        mNetwork = static_cast<AhoyNetwork*>(new AhoyEthernet());
     #else
-        mNetwork = (AhoyNetwork*) new AhoyWifi();
+        mNetwork = static_cast<AhoyNetwork*>(new AhoyWifi());
     #endif // ETHERNET
     mNetwork->setup(mConfig, &mTimestamp, [this](bool gotIp) { this->onNetwork(gotIp); }, [this](bool gotTime) { this->onNtpUpdate(gotTime); });
     mNetwork->begin();
@@ -403,7 +403,8 @@ void app::tickSend(void) {
 
     for (uint8_t i = 0; i < MAX_NUM_INVERTERS; i++) {
         Inverter<> *iv = mSys.getInverterByPos(i);
-        sendIv(iv);
+        if(!sendIv(iv))
+            notAvail = false;
     }
 
     if(mAllIvNotAvail != notAvail)
@@ -415,22 +416,22 @@ void app::tickSend(void) {
 
 //-----------------------------------------------------------------------------
 bool app::sendIv(Inverter<> *iv) {
-    bool notAvail = true;
     if(NULL == iv)
-        return notAvail;
+        return true;
 
     if(!iv->config->enabled)
-        return notAvail;
+        return true;
 
     if(!iv->commEnabled) {
         DPRINT_IVID(DBG_INFO, iv->id);
         DBGPRINTLN(F("no communication to the inverter (night time)"));
-        return notAvail;
+        return true;
     }
 
     if(!iv->radio->isChipConnected())
-        return notAvail;
+        return true;
 
+    bool notAvail = true;
     if(InverterStatus::OFF != iv->status)
         notAvail = false;
 

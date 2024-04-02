@@ -187,7 +187,6 @@ class PubMqttIvData {
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_MONTH_DAY, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_FW_BUILD_HOUR_MINUTE, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_BOOTLOADER_VER, rec)));
-                        retained = true;
                     } else if(InverterDevInform_Simple == mCmd) {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/hardware", mIv->config->name);
                         snprintf(mVal.data(), mVal.size(), "{\"part\":%d,\"version\":\"%d\",\"grid_profile_code\":%d,\"grid_profile_version\":%d}",
@@ -195,7 +194,6 @@ class PubMqttIvData {
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_HW_VERSION, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_CODE, rec)),
                             static_cast<int>(mIv->getChannelFieldValue(CH0, FLD_GRID_PROFILE_VERSION, rec)));
-                        retained = true;
                     } else {
                         snprintf(mSubTopic.data(), mSubTopic.size(), "%s/ch%d/%s", mIv->config->name, rec->assign[mPos].ch, fields[rec->assign[mPos].fieldId]);
                         snprintf(mVal.data(), mVal.size(), "%g", ah::round3(mIv->getValue(mPos, rec)));
