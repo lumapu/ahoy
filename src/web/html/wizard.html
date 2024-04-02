@@ -206,7 +206,7 @@
                     ]),
                     ...lst,
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_REBOOT}", onclick: () => {saveEth()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "/"}, "{#STOP_WIZARD}")))
                 ])
             }
             /*ELSE*/
@@ -218,7 +218,7 @@
                     sect("{#WIFI_MANUAL}", ml("input", {id: "man", type: "text"})),
                     sect("{#WIFI_PASSWORD}", ml("input", {id: "pwd", type: "password"})),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn", value: "{#BTN_NEXT}", onclick: () => {saveWifi()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "/index"}, "{#STOP_WIZARD}")))
                 ])
             }
             /*ENDIF_ETHERNET*/
@@ -229,13 +229,13 @@
                     ml("div", {class: "row"}, ml("div", {class: "col"}, ml("span", {class: "fs-5"}, "{#TEST_CONNECTION}"))),
                     sect("{#TRY_TO_CONNECT}", ml("span", {id: "state"}, "{#CONNECTING}")),
                     ml("div", {class: "row my-4"}, ml("div", {class: "col a-r"}, ml("input", {type: "button", class:"btn hide", id: "btn", value: "{#BTN_FINISH}", onclick: () => {redirect()}}, null))),
-                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "http://192.168.4.1/index"}, "{#STOP_WIZARD}")))
+                    ml("div", {class: "row mt-5"}, ml("div", {class: "col a-c"}, ml("a", {href: "/index"}, "{#STOP_WIZARD}")))
                 )
                 v = setInterval(() => {getAjax('/api/setup/getip', printIp)}, 300);
             }
 
             function redirect() {
-                window.location.replace("http://192.168.4.1/")
+                window.location.replace("/")
             }
 
             function printIp(obj) {
