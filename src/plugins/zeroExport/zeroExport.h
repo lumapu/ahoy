@@ -428,83 +428,64 @@ class ZeroExport {
         mLog["t"] = "onMqttMessage";
 
         if (obj["path"] == "zero" && obj["cmd"] == "set") {
-/*
-            // "topic":"???/zero/set/enabled"
-            if (topic.indexOf("zero/set/enabled") != -1) {
+            int8_t topicGroup = getGroupFromTopic(topic.c_str());
+            int8_t topicInverter = getInverterFromTopic(topic.c_str());
 
+            if((topicGroup == -1) && (topicInverter == -1)) {
+                // "topic":"???/zero/set/enabled"
+                if (topic.indexOf("zero/set/enabled") != -1) {
+                    mCfg->enabled = (bool)obj["val"];
+                    mLog["mCfg->enabled"] = mCfg->enabled;
+                    // Initialize groups
+                    for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+                        mCfg->groups[group].state = zeroExportState::INIT;
+                        mCfg->groups[group].wait = 0;
+                    }
+                }
+                else
+                // "topic":"???/zero/set/sleep"
+                if (topic.indexOf("zero/set/sleep") != -1) {
+                    mCfg->sleep = (bool)obj["val"];
+                    mLog["mCfg->sleep"] = mCfg->sleep;
+                }
             }
             else
-            // "topic":"???/zero/set/sleep"
-            if (topic.indexOf("zero/set/sleep") != -1) {
+            if((topicGroup != -1) && (topicInverter == -1)) {
+                uint8_t group = topicGroup;
+                // "topic":"???/zero/set/groups/0/???"
+//                if (topic.indexOf("zero/set/groups/") != -1) {
+//                    String i = topic.substring(topic.length() - 10, topic.length() - 8);
+//                    uint8_t group = i.toInt();
+                    mLog["g"] = group;
+                    // "topic":"???/zero/set/groups/0/enabled"
+                    if (topic.indexOf("enabled") != -1) {
+                        mCfg->groups[group].enabled = (bool)obj["val"];
+                        // Initialize group
+                        mCfg->groups[group].state = zeroExportState::INIT;
+                        mCfg->groups[group].wait = 0;
+                    }
+                    // "topic":"???/zero/set/groups/0/sleep"
+                    if (topic.indexOf("sleep") != -1) {
+                        mCfg->groups[group].sleep = (bool)obj["val"];
+                    }
+//                }
+// Battery
+// - switch
 
+// Advanced
+// - setpoint
+// - powerTolerance
+// - powerMax
             }
             else
-            // "topic":"???/zero/set/groups/0/enabled"
-            if (topic.indexOf("zero/set/groups") != -1) {
-                String i = topic.substring(topic.length() - 10, topic.length() - 8);
-                uint8_t group = i.toInt();
-                mLog["g"] = group;
-                if (topic.indexOf("enabled") != -1) {
-                }
-                if (topic.indexOf("zero/set/groups") != -1) {
-                }
-            }
-*/
-            // "topic":"inverter/zero/set/groups/0/enabled"
-            if (topic.indexOf("groups") != -1) {
-                // TODO: Topicprüfung
-                // TODO: Topicprüfung ist 10 und 8 korrekt?
-                // TODO: Wäre es nicht besser das anhand der / rauszufiltern wenn es 2-stellige Gruppen gibt?
-                String i = topic.substring(topic.length() - 10, topic.length() - 8);
-                uint8_t group = i.toInt();
-                mLog["g"] = group;
-
-                mCfg->groups[group].enabled = (bool)obj["val"];
-
-                // Initialize group
-                mCfg->groups[group].state = zeroExportState::INIT;
-                mCfg->groups[group].sleep = 0;
-            } else {
-                // TODO: Topicprüfung
-                mCfg->enabled = (bool)obj["val"];
-                mLog["mCfg->enabled"] = mCfg->enabled;
-
-                // Initialize groups
-                for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-                    mCfg->groups[group].state = zeroExportState::INIT;
-                    mCfg->groups[group].sleep = 0;
-                }
-            }
-        }
-
-// Global
-// - enabled
-
-// General
-// - enabled
-
-// Powermeter
-/// ?
-
+            if((topicGroup != -1) && (topicInverter != -1)) {
 // Inverter
 // - enabled
 // - powerMin
 // - powerMax
 
-// Battery
-/// - enabled
-/// - voltageOn
-/// - voltageOff
-// - switch
-
-// Advanced
-// - setpoint
-/// - refresh
-// - powerTolerance
-// - powerMax
-/// - Kp
-/// - Ki
-/// - Kd
+            }
+        }
 
         mLog["Msg"] = obj;
         sendLog();
@@ -521,6 +502,30 @@ class ZeroExport {
      */
     bool NotEnabledOrNotSelected(uint8_t group, uint8_t inv) {
         return ((!mCfg->groups[group].inverters[inv].enabled) || (mCfg->groups[group].inverters[inv].id < 0));
+    }
+
+    int8_t getGroupFromTopic(const char* topic) {
+        const char* pGroupSection = strstr(topic, "groups/");
+        if (pGroupSection == NULL) return -1;
+        pGroupSection += 7;
+        char strGroup[3];
+        uint8_t digitsCopied = 0;
+        while(*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
+        strGroup[digitsCopied] = '\0';
+        int8_t group = atoi(strGroup);
+        return group;
+    }
+
+    int8_t getInverterFromTopic(const char* topic) {
+        const char* pInverterSection = strstr(topic, "inverters/");
+        if (pInverterSection == NULL) return -1;
+        pInverterSection += 10;
+        char strInverter[3];
+        uint8_t digitsCopied = 0;
+        while(*pInverterSection != '/' && digitsCopied < 2) strInverter[digitsCopied++] = *pInverterSection++;
+        strInverter[digitsCopied] = '\0';
+        int8_t inverter = atoi(strInverter);
+        return inverter;
     }
 
     /** groupInit
@@ -1428,16 +1433,36 @@ class ZeroExport {
                 mMqtt->subscribe(gr.c_str(), QOS_2);
 
                 // Powermeter
-// TODO: fehlt
 
                 // Inverters
-// TODO: fehlt
+                for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
+                    gr = "zero/set/groups/" + String(group) + "/inverters/" + String(inv) + "/enabled";
+                    mMqtt->publish(gr.c_str(), ((cfgGroupInv->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+                    mMqtt->subscribe(gr.c_str(), QOS_2);
+                    gr = "zero/set/groups/" + String(group) + "/inverters/" + String(inv) + "/powerMin";
+                    mMqtt->publish(gr.c_str(), String(cfgGroupInv->powerMin).c_str(), false);
+                    mMqtt->subscribe(gr.c_str(), QOS_2);
+                    gr = "zero/set/groups/" + String(group) + "/inverters/" + String(inv) + "/powerMax";
+                    mMqtt->publish(gr.c_str(), String(cfgGroupInv->powerMax).c_str(), false);
+                    mMqtt->subscribe(gr.c_str(), QOS_2);
+                }
 
                 // Battery
-// TODO: fehlt
+                gr = "zero/set/groups/" + String(group) + "/battery/switch";
+                mMqtt->publish(gr.c_str(), ((cfgGroup->battSwitch) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
 
                 // Advanced
-// TODO: fehlt
+                gr = "zero/set/groups/" + String(group) + "/advanced/setPoint";
+                mMqtt->publish(gr.c_str(), String(cfgGroup->setPoint).c_str(), false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
+                gr = "zero/set/groups/" + String(group) + "/advanced/powerTolerance";
+                mMqtt->publish(gr.c_str(), String(cfgGroup->powerTolerance).c_str(), false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
+                gr = "zero/set/groups/" + String(group) + "/advanced/powerMax";
+                mMqtt->publish(gr.c_str(), String(cfgGroup->powerMax).c_str(), false);
+                mMqtt->subscribe(gr.c_str(), QOS_2);
             }
 
             // Global (zeroExport)
