@@ -52,10 +52,9 @@ class powermeter {
     /** loop
      * abfrage der gruppen um die aktuellen Werte (Zähler) zu ermitteln.
      */
-    void loop(void) {
-        unsigned long Tsp = millis();
-        if (Tsp - mPreviousTsp <= 1000) return;  // skip when it is to fast
-        mPreviousTsp = Tsp;
+    void loop(unsigned long *tsp, bool *doLog) {
+        if (*tsp - mPreviousTsp <= 1000) return;  // skip when it is to fast
+        mPreviousTsp = *tsp;
 
         PowermeterBuffer_t power;
 
@@ -89,6 +88,7 @@ class powermeter {
             }
 
             bufferWrite(power, group);
+            *doLog = true;
         }
     }
 

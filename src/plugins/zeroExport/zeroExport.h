@@ -59,10 +59,13 @@ class ZeroExport {
     void loop(void) {
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        mPowermeter.loop();
-
-        unsigned long Tsp = millis();
         bool DoLog = false;
+        unsigned long Tsp = millis();
+
+        mPowermeter.loop(&Tsp, &DoLog);
+        if (DoLog) sendLog();
+        clearLog();
+        DoLog = false;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
