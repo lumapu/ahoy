@@ -1,5 +1,10 @@
 # Development Changes
 
+## 0.8.103 - 2024-04-02
+* merge PR: fix: get refresh property from object #1552
+* merge PR: fix typos and spelling in Github Issue template #1550
+* merge PR: shorten last cmt waiting time #1549
+
 ## 0.8.102 - 2024-04-01
 * fix NTP for `opendtufusion` #1542
 * fix scan WiFi in AP mode
