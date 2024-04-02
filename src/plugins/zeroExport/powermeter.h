@@ -156,7 +156,9 @@ class powermeter {
                     result.P = doc["total_power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
-                    result.P = doc["em:0"]["total_act_power"];
+                } else if (doc.containsKey(F("total_act_power"))) {
+                    // Shelly pro 3EM
+                    result.P = doc["total_act_power"];
                 } else {
                     // Keine Daten
                     result.P = 0;
@@ -168,6 +170,9 @@ class powermeter {
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
                     result.P1 = doc["em:0"]["a_act_power"];
+                } else if (doc.containsKey(F("a_act_power"))) {
+                    // Shelly pro 3EM
+                    result.P1 = doc["a_act_power"];
                 } else if (doc.containsKey(F("switch:0"))) {
                     // Shelly plus1pm plus2pm
                     result.P1 = doc["switch:0"]["apower"];
@@ -187,6 +192,9 @@ class powermeter {
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
                     result.P2 = doc["em:0"]["b_act_power"];
+                } else if (doc.containsKey(F("b_act_power"))) {
+                    // Shelly pro 3EM
+                    result.P2 = doc["b_act_power"];
                 } else if (doc.containsKey(F("switch:1"))) {
                     // Shelly plus1pm plus2pm
                     result.P2 = doc["switch.1"]["apower"];
@@ -207,6 +215,9 @@ class powermeter {
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
                     result.P3 = doc["em:0"]["c_act_power"];
+                } else if (doc.containsKey(F("c_act_power"))) {
+                    // Shelly pro 3EM
+                    result.P3 = doc["c_act_power"];
                 } else if (doc.containsKey(F("switch:2"))) {
                     // Shelly plus1pm plus2pm
                     result.P3 = doc["switch:2"]["apower"];
@@ -507,6 +518,18 @@ class powermeter {
 };
 
 // TODO: Vorlagen für Powermeter-Analyse
+
+/** Shelly Pro 3EM
+ * Stand: 02.04.2024
+ * Analysiert: tictrick
+ * /rpc/EM.GetStatus?id=0
+ * {"id":0,"a_current":1.275,"a_voltage":228.8,"a_act_power":243.2,"a_aprt_power":291.6,"a_pf":0.86,"a_freq":50.0,"b_current":0.335,"b_voltage":228.2,"b_act_power":24.5,"b_aprt_power":76.6,"b_pf":0.59,"b_freq":50.0,"c_current":0.338,"c_voltage":227.6,"c_act_power":34.9,"c_aprt_power":76.9,"c_pf":0.65,"c_freq":50.0,"n_current":null,"total_current":1.949,"total_act_power":302.554,"total_aprt_power":445.042, "user_calibrated_phase":[]}
+ * /rpc/Shelly.GetStatus
+ * {"ble":{},"cloud":{"connected":true},"em:0":{"id":0,"a_current":1.269,"a_voltage":228.5,"a_act_power":239.8,"a_aprt_power":289.7,"a_pf":0.86,"a_freq":50.0,"b_current":0.348,"b_voltage":227.5,"b_act_power":24.7,"b_aprt_power":79.0,"b_pf":0.58,"b_freq":50.0,"c_current":0.378,"c_voltage":228.5,"c_act_power":42.3,"c_aprt_power":86.3,"c_pf":0.66,"c_freq":50.0,"n_current":null,"total_current":1.995,"total_act_power":306.811,"total_aprt_power":455.018, "user_calibrated_phase":[]},"emdata:0":{"id":0,"a_total_act_energy":648103.86,"a_total_act_ret_energy":0.00,"b_total_act_energy":142793.47,"b_total_act_ret_energy":171396.02,"c_total_act_energy":493778.01,"c_total_act_ret_energy":0.00,"total_act":1284675.34, "total_act_ret":171396.02},"eth":{"ip":null},"modbus":{},"mqtt":{"connected":false},"script:1":{"id":1,"running":true,"mem_used":1302,"mem_peak":3094,"mem_free":23898},"sys":{"mac":"3CE90E6EBE5C","restart_required":false,"time":"18:09","unixtime":1712074162,"uptime":3180551,"ram_size":240004,"ram_free":96584,"fs_size":524288,"fs_free":176128,"cfg_rev":23,"kvs_rev":9104,"schedule_rev":0,"webhook_rev":0,"available_updates":{},"reset_reason":3},"temperature:0":{"id": 0,"tC":46.2, "tF":115.1},"wifi":{"sta_ip":"192.168.0.69","status":"got ip","ssid":"Riker","rssi":-70},"ws":{"connected":false}}
+ */
+
+
+
 /*
 Shelly 1pm
 Der Shelly 1pm verfügt über keine eigene Spannungsmessung sondern geht von 220V * Korrekturfaktor aus. Dadurch wird die Leistungsmessung verfälscht und der Shelly ist ungeeignet.
