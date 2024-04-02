@@ -16,10 +16,6 @@
 #endif
 
 #include <array>
-#if defined(ETHERNET)
-#include "../eth/ahoyeth.h"
-#endif
-
 #include "../utils/dbg.h"
 #include "../config/config.h"
 #include <espMqttClient.h>
@@ -56,7 +52,8 @@ class PubMqtt {
 
         ~PubMqtt() { }
 
-        void setup(cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
+        void setup(IApp *app, cfgMqtt_t *cfg_mqtt, const char *devName, const char *version, HMSYSTEM *sys, uint32_t *utcTs, uint32_t *uptime) {
+            mApp             = app;
             mCfgMqtt         = cfg_mqtt;
             mDevName         = devName;
             mVersion         = version;
@@ -254,13 +251,9 @@ class PubMqtt {
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
 
-            publish(subtopics[MQTT_VERSION], mVersion, true);
-            publish(subtopics[MQTT_DEVICE], mDevName, true);
-            #if defined(ETHERNET)
-            publish(subtopics[MQTT_IP_ADDR], ETH.localIP().toString().c_str(), true);
-            #else
-            publish(subtopics[MQTT_IP_ADDR], WiFi.localIP().toString().c_str(), true);
-            #endif
+            publish(subtopics[MQTT_VERSION], mVersion, false);
+            publish(subtopics[MQTT_DEVICE], mDevName, false);
+            publish(subtopics[MQTT_IP_ADDR], mApp->getIp().c_str(), true);
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
 
@@ -612,6 +605,7 @@ class PubMqtt {
 
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
+        IApp *mApp;
         #if defined(ESP8266)
         WiFiEventHandler mHWifiCon, mHWifiDiscon;
         #endif

@@ -81,12 +81,17 @@
                 {
                     "token": "BTN_NEXT",
                     "en": "next >>",
-                    "de": "prüfen >>"
+                    "de": "pr&uuml;fen >>"
+                },
+                {
+                    "token": "BTN_REBOOT",
+                    "en": "reboot >>",
+                    "de": "Ahoy neustarten >>"
                 },
                 {
                     "token": "TEST_CONNECTION",
                     "en": "Test Connection",
-                    "de": "Verbindung wird überprüft"
+                    "de": "Verbindung wird &uuml;berpr&uuml;ft"
                 },
                 {
                     "token": "TRY_TO_CONNECT",
@@ -112,6 +117,36 @@
                     "token": "NUM_NETWORKS_FOUND",
                     "en": "Network(s) found",
                     "de": "Netzwerk(e) gefunden"
+                },
+                {
+                    "token": "PIN_OFF",
+                    "en": "off / default",
+                    "de": "aus / Standard"
+                },
+                {
+                    "token": "PIN_NO_IRQ",
+                    "en": "no IRQ!",
+                    "de": "kein Interrupt!"
+                },
+                {
+                    "token": "PIN_INPUT_ONLY",
+                    "en": "in only",
+                    "de": "nur Eingang"
+                },
+                {
+                    "token": "PIN_DONT_USE",
+                    "en": "DONT USE",
+                    "de": "nicht benutzen"
+                },
+                {
+                    "token": "PIN_NOT_AVAIL",
+                    "en": "not available",
+                    "de": "nicht verf&uuml;gbar"
+                },
+                {
+                    "token": "ETH_ENABLE",
+                    "en": "Ethernet enable",
+                    "de": "Ethernet aktivieren"
                 }
             ]
         },
@@ -224,19 +259,9 @@
                     "de": "Netzwerke suchen"
                 },
                 {
-                    "token": "BTN_SCAN",
-                    "en": "scan",
-                    "de": "Suche starten"
-                },
-                {
-                    "token": "AVAIL_NETWORKS",
-                    "en": "Avail Networks",
-                    "de": "Verf&uuml;gbare Netzwerke"
-                },
-                {
-                    "token": "NETWORK_NOT_SCANNED",
-                    "en": "not scanned",
-                    "de": "nicht gesucht"
+                    "token": "SCAN_WIFI",
+                    "en": "scan for WiFi networks",
+                    "de": "nach WiFi Netzwerken suchen"
                 },
                 {
                     "token": "SSID_HIDDEN",
@@ -596,7 +621,7 @@
                 {
                     "token": "BTN_INV_ADD",
                     "en": "add Inverter",
-                    "de": "Wechselrichter hinzufuegen"
+                    "de": "Wechselrichter hinzuf\u00FCgen"
                 },
                 {
                     "token": "INV_INPUT",
@@ -621,7 +646,7 @@
                 {
                     "token": "TAB_INPUTS",
                     "en": "Inputs",
-                    "de": "Eingaenge"
+                    "de": "Eing&auml;nge"
                 },
                 {
                     "token": "TAB_RADIO",
@@ -722,6 +747,11 @@
                     "token": "CMT_ENABLE",
                     "en": "CMT2300A radio enable",
                     "de": "CMT2300A Funkmodul aktivieren"
+                },
+                {
+                    "token": "ETH_ENABLE",
+                    "en": "Ethernet enable",
+                    "de": "Ethernet aktivieren"
                 },
                 {
                     "token": "DISP_NONE",
@@ -1769,9 +1799,9 @@
                     "de": "Gesamtertrag pro Tag"
                 },
                 {
-                    "token": "MAX_DAY",
-                    "en": "Maximum day",
-                    "de": "Tagesmaximum"
+                    "token": "MAXIMUM",
+                    "en": "Maximum",
+                    "de": "Maximum"
                 },
                 {
                     "token": "LAST_VALUE",

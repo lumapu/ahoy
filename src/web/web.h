@@ -40,14 +40,19 @@
 //#define WEB_SERIAL_BUF_SIZE 2048
 #define WEB_SERIAL_BUF_SIZE 3072
 
-const char* const pinArgNames[] = {"pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0", "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk", "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"};
+const char* const pinArgNames[] = {
+    "pinCs", "pinCe", "pinIrq", "pinSclk", "pinMosi", "pinMiso", "pinLed0",
+    "pinLed1", "pinLed2", "pinLedHighActive", "pinLedLum", "pinCmtSclk",
+    "pinSdio", "pinCsb", "pinFcsb", "pinGpio3"
+    #if defined (ETHERNET)
+    , "ethCs", "ethSclk", "ethMiso", "ethMosi", "ethIrq", "ethRst"
+    #endif
+};
 
 template <class HMSYSTEM>
 class Web {
    public:
-        Web(void) : mWeb(80), mEvts("/events") {
-            memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
-        }
+        Web(void) : mWeb(80), mEvts("/events") {}
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
             mApp     = app;
@@ -55,7 +60,8 @@ class Web {
             mConfig  = config;
 
             DPRINTLN(DBG_VERBOSE, F("app::setup-on"));
-            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1));
+            mWeb.on("/",               HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, true));
+            mWeb.on("/index",          HTTP_GET,  std::bind(&Web::onIndex,        this, std::placeholders::_1, false));
             mWeb.on("/login",          HTTP_ANY,  std::bind(&Web::onLogin,        this, std::placeholders::_1));
             mWeb.on("/logout",         HTTP_GET,  std::bind(&Web::onLogout,       this, std::placeholders::_1));
             mWeb.on("/colors.css",     HTTP_GET,  std::bind(&Web::onColor,        this, std::placeholders::_1));
@@ -105,11 +111,17 @@ class Web {
 
         void tickSecond() {
             if (mSerialClientConnnected) {
+                if(nullptr == mSerialBuf)
+                    return;
+
                 if (mSerialBufFill > 0) {
                     mEvts.send(mSerialBuf, "serial", millis());
                     memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
                     mSerialBufFill = 0;
                 }
+            } else if(nullptr != mSerialBuf) {
+                delete[] mSerialBuf;
+                mSerialBuf = nullptr;
             }
         }
 
@@ -179,6 +191,9 @@ class Web {
 
         void serialCb(String msg) {
             if (!mSerialClientConnnected)
+                return;
+
+            if(nullptr == mSerialBuf)
                 return;
 
             msg.replace("\r\n", "<rn>");
@@ -297,6 +312,10 @@ class Web {
         void onConnect(AsyncEventSourceClient *client) {
             DPRINTLN(DBG_VERBOSE, "onConnect");
 
+            if(nullptr == mSerialBuf) {
+                mSerialBuf = new char[WEB_SERIAL_BUF_SIZE];
+                memset(mSerialBuf, 0, WEB_SERIAL_BUF_SIZE);
+            }
             mSerialClientConnnected = true;
 
             if (client->lastId())
@@ -305,7 +324,11 @@ class Web {
             client->send("hello!", NULL, millis(), 1000);
         }
 
-        void onIndex(AsyncWebServerRequest *request) {
+        void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
+            if(mApp->isApActive() && checkAp) {
+                onWizard(request);
+                return;
+            }
             getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
         }
 
@@ -388,6 +411,7 @@ class Web {
 
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
+            //DBGPRINTLN(request->url());
             request->redirect("/wizard");
         }
 
@@ -433,10 +457,10 @@ class Web {
                 request->arg("ssid").toCharArray(mConfig->sys.stationSsid, SSID_LEN);
             if (request->arg("pwd") != "{PWD}")
                 request->arg("pwd").toCharArray(mConfig->sys.stationPwd, PWD_LEN);
-            if (request->arg("ap_pwd") != "")
-                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
             mConfig->sys.isHidden = (request->arg("hidd") == "on");
             #endif /* !defined(ETHERNET) */
+            if (request->arg("ap_pwd") != "")
+                request->arg("ap_pwd").toCharArray(mConfig->sys.apPwd, PWD_LEN);
             if (request->arg("device") != "")
                 request->arg("device").toCharArray(mConfig->sys.deviceName, DEVNAME_LEN);
             mConfig->sys.darkMode = (request->arg("darkMode") == "on");
@@ -486,7 +510,12 @@ class Web {
 
 
             // pinout
-            for (uint8_t i = 0; i < 16; i++) {
+            #if defined(ETHERNET)
+            for (uint8_t i = 0; i < 22; i++)
+            #else
+            for (uint8_t i = 0; i < 16; i++)
+            #endif
+            {
                 uint8_t pin = request->arg(String(pinArgNames[i])).toInt();
                 switch(i) {
                     case 0:  mConfig->nrf.pinCs    = ((pin != 0xff) ? pin : DEF_NRF_CS_PIN);  break;
@@ -505,11 +534,23 @@ class Web {
                     case 13: mConfig->cmt.pinCsb   = pin; break;
                     case 14: mConfig->cmt.pinFcsb  = pin; break;
                     case 15: mConfig->cmt.pinIrq   = pin; break;
+
+                    #if defined(ETHERNET)
+                    case 16: mConfig->sys.eth.pinCs   = pin; break;
+                    case 17: mConfig->sys.eth.pinSclk = pin; break;
+                    case 18: mConfig->sys.eth.pinMiso = pin; break;
+                    case 19: mConfig->sys.eth.pinMosi = pin; break;
+                    case 20: mConfig->sys.eth.pinIrq  = pin; break;
+                    case 21: mConfig->sys.eth.pinRst  = pin; break;
+                    #endif
                 }
             }
 
             mConfig->nrf.enabled = (request->arg("nrfEnable") == "on");
             mConfig->cmt.enabled = (request->arg("cmtEnable") == "on");
+            #if defined(ETHERNET)
+            mConfig->sys.eth.enabled = (request->arg("ethEn") == "on");
+            #endif
 
             // ntp
             if (request->arg("ntpAddr") != "") {
@@ -953,7 +994,7 @@ class Web {
         settings_t *mConfig = nullptr;
 
         bool mSerialAddTime = true;
-        char mSerialBuf[WEB_SERIAL_BUF_SIZE];
+        char *mSerialBuf = nullptr;
         uint16_t mSerialBufFill = 0;
         bool mSerialClientConnnected = false;
 

@@ -1,5 +1,33 @@
 # Development Changes
 
+## 0.8.103 - 2024-04-02
+* merge PR: fix: get refresh property from object #1552
+* merge PR: fix typos and spelling in Github Issue template #1550
+* merge PR: shorten last cmt waiting time #1549
+* fix cppcheck warnings
+* changed MqTT retained flags of some topics
+
+## 0.8.102 - 2024-04-01
+* fix NTP for `opendtufusion` #1542
+* fix scan WiFi in AP mode
+* fix MDNS #1538
+* improved Wizard
+* improved MqTT on devcontrol e.g. set power limit
+
+## 0.8.101 - 2024-03-28
+* updated converter scripts to include all enabled features again (redundant scan of build flags) #1534
+
+## 0.8.100 - 2024-03-27
+* fix captions in `/history #1532
+* fix get NTP time #1529 #1530
+* fix translation #1516
+
+## 0.8.99 - 2024-03-27
+* fix compilation of all environments
+
+## 0.8.98 - 2024-03-24
+* new network routines
+
 ## 0.8.97 - 2024-03-22
 * add support for newest generation of inverters with A-F in their serial number
 * fix NTP and sunrise / sunset

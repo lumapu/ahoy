@@ -57,22 +57,9 @@
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">{#SEARCH_NETWORKS}</div>
-                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="{#BTN_SCAN}" onclick="scan()"/></div>
-                            </div>
-
-                            <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">{#AVAIL_NETWORKS}</div>
-                                <div class="col-12 col-sm-9">
-                                    <select name="networks" id="networks" onChange="selNet()">
-                                        <option value="-1" selected disabled hidden>{#NETWORK_NOT_SCANNED}</option>
-                                    </select>
-                                </div>
-                            </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><br/><a href="/wizard">{#SCAN_WIFI}</a></div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -247,7 +234,7 @@
                             <p class="des">{#MQTT_NOTE}</p>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#INTERVAL}</div>
-                                <div class="col-12 col-sm-9"><input type="number" name="mqttInterval" title="Invalid input" /></div>
+                                <div class="col-12 col-sm-9"><input tyCMT2300Ape="number" name="mqttInterval" title="Invalid input" /></div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">Discovery Config (homeassistant)</div>
@@ -272,6 +259,10 @@
                             <p class="des">{#RADIO} (CMT2300A)</p>
                             <div id="cmt"></div>
                             <!--ENDIF_ESP32-->
+                            <!--IF_ETHERNET-->
+                            <p class="des">Ethernet</p>
+                            <div id="eth"></div>
+                            <!--ENDIF_ETHERNET-->
                         </fieldset>
                     </div>
                     <!--IF_PLUGIN_DISPLAY-->
@@ -625,12 +616,6 @@
                 setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
-            function scan() {
-                var obj = {cmd: "scan_wifi", token: "*"}
-                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
-            }
-
             function syncTime() {
                 var obj = {cmd: "sync_ntp", token: "*"}
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
@@ -968,7 +953,7 @@
                 }
             }
 
-            function parsePinout(obj, type, system) {
+            function parsePinout(obj) {
                 var e = document.getElementById("pinout");
                 /*IF_ESP32*/
                 var pinList = esp32pins;
@@ -1009,7 +994,7 @@
                 )
             }
 
-            function parseNrfRadio(obj, objPin, type, system) {
+            function parseNrfRadio(obj, objPin) {
                 var e = document.getElementById("rf24");
                 var en = inp("nrfEnable", null, null, ["cb"], "nrfEnable", "checkbox");
                 en.checked = obj["en"];
@@ -1036,11 +1021,11 @@
                     ])
                 );
 
-                if ("ESP8266" == type) {
-                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
-                } else {
-                    pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso']];
-                }
+                /*IF_ESP32*/
+                var pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq'], ['sclk', 'pinSclk'], ['mosi', 'pinMosi'], ['miso', 'pinMiso']];
+                /*ELSE*/
+                var pins = [['cs', 'pinCs'], ['ce', 'pinCe'], ['irq', 'pinIrq']];
+                /*ENDIF_ESP32*/
                 for(p of pins) {
                     e.append(
                         ml("div", {class: "row mb-3"}, [
@@ -1054,7 +1039,7 @@
             }
 
             /*IF_ESP32*/
-            function parseCmtRadio(obj, type, system) {
+            function parseCmtRadio(obj) {
                 var e = document.getElementById("cmt");
                 var en = inp("cmtEnable", null, null, ["cb"], "cmtEnable", "checkbox");
                 var pinList = esp32pins;
@@ -1069,7 +1054,6 @@
                 /*ENDIF_ESP32-C3*/
 
                 en.checked = obj["en"];
-
                 e.replaceChildren (
                     ml("div", {class: "row mb-3"}, [
                         ml("div", {class: "col-8 col-sm-3 my-2"}, "{#CMT_ENABLE}"),
@@ -1095,6 +1079,42 @@
                 }
             }
             /*ENDIF_ESP32*/
+
+            /*IF_ETHERNET*/
+            function parseEth(obj) {
+                var e = document.getElementById("eth");
+                var en = inp("ethEn", null, null, ["cb"], "ethEn", "checkbox");
+                var pinList = esp32pins;
+                /*IF_ESP32-S2*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S2*/
+                /*IF_ESP32-S3*/
+                pinList = esp32sXpins;
+                /*ENDIF_ESP32-S3*/
+                /*IF_ESP32-C3*/
+                pinList = esp32c3pins;
+                /*ENDIF_ESP32-C3*/
+
+                en.checked = obj["en"];
+                e.replaceChildren (
+                    ml("div", {class: "row mb-3"}, [
+                        ml("div", {class: "col-8 col-sm-3 my-2"}, "{#ETH_ENABLE}"),
+                        ml("div", {class: "col-4 col-sm-9"}, en)
+                    ])
+                );
+                pins = [['cs', 'ethCs'], ['sclk', 'ethSclk'], ['miso', 'ethMiso'], ['mosi', 'ethMosi'], ['irq', 'ethIrq'], ['reset', 'ethRst']];
+                for(p of pins) {
+                    e.append(
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-3 my-2"}, p[0].toUpperCase()),
+                            ml("div", {class: "col-12 col-sm-9"},
+                                sel(p[1], pinList, obj[p[0]])
+                            )
+                        ])
+                    );
+                }
+            }
+            /*ENDIF_ETHERNET*/
 
             function parseSerial(obj) {
                 var e = document.getElementById("serialCb")
@@ -1442,10 +1462,10 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
-// Inhalt f�r pm_type aus config laden und in eine Funktion ausgliedern
+// Inhalt f?r pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: �bersetzen?
+// TODO: ?bersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
                 e.appendChild(opt("2", "Tasmota"));
@@ -1482,7 +1502,7 @@
                 for (var inv = 0; inv < maxInv; inv++) {
                     var e = document.getElementById("invTarget"+inv);
                     selDelAllOpt(e);
-// TODO: �bersetzen?
+// TODO: ?bersetzen?
                     e.appendChild(opt("-1", "---"));
                     e.appendChild(opt("0", "Sum"));
                     e.appendChild(opt("1", "L1"));
@@ -1719,13 +1739,15 @@
                     parseMqtt(root["mqtt"]);
                     parseNtp(root["ntp"]);
                     parseSun(root["sun"]);
-                    parsePinout(root["pinout"], root["system"]["esp_type"], root["system"]);
-                    parseNrfRadio(root["radioNrf"], root["pinout"], root["system"]["esp_type"], root["system"]);
+                    parsePinout(root.pinout);
+                    parseNrfRadio(root["radioNrf"], root["pinout"]);
 
                     /*IF_ESP32*/
-                    parseCmtRadio(root["radioCmt"], root["system"]["esp_type"], root["system"]);
+                    parseCmtRadio(root.radioCmt);
                     /*ENDIF_ESP32*/
-
+                    /*IF_ETHERNET*/
+                    parseEth(root.eth)
+                    /*ENDIF_ETHERNET*/
                     parseSerial(root["serial"]);
                     /*IF_PLUGIN_DISPLAY*/
                     parseDisplay(root["display"], root["system"]["esp_type"], root["system"]);
@@ -1746,13 +1768,6 @@
                     }
                 } else
                     s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
-            }
-
-            function selNet() {
-                var s = document.getElementById("networks");
-                var e = document.getElementsByName("ssid")[0];
-                if(-1 != s.value)
-                    e.value = s.value;
             }
 
             getAjax("/api/setup", parse);
