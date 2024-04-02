@@ -150,11 +150,11 @@
                     parseRssi(obj.generic)
                     window.setInterval("getAjax('/api/powerHistory', parsePowerHistory)", obj.refresh * 1000)
                     setTimeout(() => {
-                        window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", refresh * 1000)
+                        window.setInterval("getAjax('/api/powerHistoryDay', parsePowerHistoryDay)", obj.refresh * 1000)
                     }, 200)
                     /*IF_ENABLE_HISTORY_YIELD_PER_DAY*/
                     setTimeout(() => {
-                        window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", refresh * 1000)
+                        window.setInterval("getAjax('/api/yieldDayHistory', parseYieldDayHistory)", obj.refresh * 1000)
                     }, 400)
                     /*ENDIF_ENABLE_HISTORY_YIELD_PER_DAY*/
                 }
