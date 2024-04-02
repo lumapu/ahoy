@@ -7,19 +7,26 @@
 #define __POWERMETER_H__
 
 #include <AsyncJson.h>
-#include <base64.h>
 #include <HTTPClient.h>
+#if defined(ZEROEXPORT_POWERMETER_TIBBER)
+#include <base64.h>
 #include <string.h>
+
 #include <list>
+#endif
 
 #include "config/settings.h"
+#if defined(ZEROEXPORT_POWERMETER_TIBBER)
 #include "plugins/zeroExport/lib/sml.h"
+#endif
 
+#if defined(ZEROEXPORT_POWERMETER_TIBBER)
 typedef struct {
     const unsigned char OBIS[6];
     void (*Fn)(double &);
     float *Arg;
 } OBISHandler;
+#endif
 
 typedef struct {
     float P;
@@ -36,7 +43,7 @@ class powermeter {
     ~powermeter() {
     }
 
-    bool setup(zeroExport_t *cfg, JsonObject *log  /*Hier muss noch geklärt werden was gebraucht wird*/) {
+    bool setup(zeroExport_t *cfg, JsonObject *log /*Hier muss noch geklärt werden was gebraucht wird*/) {
         mCfg = cfg;
         mLog = log;
         return true;
@@ -45,32 +52,40 @@ class powermeter {
     /** loop
      * abfrage der gruppen um die aktuellen Werte (Zähler) zu ermitteln.
      */
-    void loop(void)
-    {
+    void loop(void) {
         unsigned long Tsp = millis();
-        if(Tsp - mPreviousTsp <= 1000) return; // skip when it is to fast
+        if (Tsp - mPreviousTsp <= 1000) return;  // skip when it is to fast
         mPreviousTsp = Tsp;
 
         PowermeterBuffer_t power;
 
-        for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
-        {
+        for (u_short group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             switch (mCfg->groups[group].pm_type) {
-            case zeroExportPowermeterType_t::Shelly:
-                power = getPowermeterWattsShelly(*mLog, group);
-                break;
-            case zeroExportPowermeterType_t::Tasmota:
-                power = getPowermeterWattsTasmota(*mLog, group);
-                break;
-            case zeroExportPowermeterType_t::Mqtt:
-                power = getPowermeterWattsMqtt(*mLog, group);
-                break;
-            case zeroExportPowermeterType_t::Hichi:
-                power = getPowermeterWattsHichi(*mLog, group);
-                break;
-            case zeroExportPowermeterType_t::Tibber:
-                power = getPowermeterWattsTibber(*mLog, group);
-                break;
+#if defined(ZEROEXPORT_POWERMETER_SHELLY)
+                case zeroExportPowermeterType_t::Shelly:
+                    power = getPowermeterWattsShelly(*mLog, group);
+                    break;
+#endif
+#if defined(ZEROEXPORT_POWERMETER_TASMOTA)
+                case zeroExportPowermeterType_t::Tasmota:
+                    power = getPowermeterWattsTasmota(*mLog, group);
+                    break;
+#endif
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
+                case zeroExportPowermeterType_t::Mqtt:
+                    power = getPowermeterWattsMqtt(*mLog, group);
+                    break;
+#endif
+#if defined(ZEROEXPORT_POWERMETER_HICHI)
+                case zeroExportPowermeterType_t::Hichi:
+                    power = getPowermeterWattsHichi(*mLog, group);
+                    break;
+#endif
+#if defined(ZEROEXPORT_POWERMETER_TIBBER)
+                case zeroExportPowermeterType_t::Tibber:
+                    power = getPowermeterWattsTibber(*mLog, group);
+                    break;
+#endif
             }
 
             bufferWrite(power, group);
@@ -86,8 +101,7 @@ class powermeter {
         PowermeterBuffer_t avg;
         avg.P = avg.P1 = avg.P2 = avg.P2 = avg.P3 = 0;
 
-        for (int i = 0; i < 5; i++)
-        {
+        for (int i = 0; i < 5; i++) {
             avg.P += mPowermeterBuffer[group][i].P;
             avg.P1 += mPowermeterBuffer[group][i].P1;
             avg.P2 += mPowermeterBuffer[group][i].P2;
@@ -102,6 +116,7 @@ class powermeter {
     }
 
    private:
+#if defined(ZEROEXPORT_POWERMETER_SHELLY)
     /** getPowermeterWattsShelly
      * ...
      * @param logObj
@@ -210,7 +225,9 @@ class powermeter {
         http.end();
         return result;
     }
+#endif
 
+#if defined(ZEROEXPORT_POWERMETER_TASMOTA)
     /** getPowermeterWattsTasmota
      * ...
      * @param logObj
@@ -325,7 +342,9 @@ class powermeter {
         */
         return result;
     }
+#endif
 
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
     /** getPowermeterWattsMqtt
      * ...
      * @param logObj
@@ -346,7 +365,9 @@ class powermeter {
 
         return result;
     }
+#endif
 
+#if defined(ZEROEXPORT_POWERMETER_HICHI)
     /** getPowermeterWattsHichi
      * ...
      * @param logObj
@@ -367,7 +388,9 @@ class powermeter {
 
         return result;
     }
+#endif
 
+#if defined(ZEROEXPORT_POWERMETER_TIBBER)
     /** getPowermeterWattsTibber
      * ...
      * @param logObj
@@ -379,7 +402,6 @@ class powermeter {
 
     sml_states_t currentState;
 
-
     float _powerMeterTotal = 0.0;
 
     float _powerMeter1Power = 0.0;
@@ -389,16 +411,15 @@ class powermeter {
     float _powerMeterImport = 0.0;
     float _powerMeterExport = 0.0;
 
-
-/*
- 07 81 81 c7 82 03 ff		#objName: OBIS Kennzahl für den Hersteller
- 07 01 00 01 08 00 ff		#objName: OBIS Kennzahl für Wirkenergie Bezug gesamt tariflos
- 07 01 00 01 08 01 ff 		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif1
- 07 01 00 01 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif2
- 07 01 00 02 08 00 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung gesamt tariflos
- 07 01 00 02 08 01 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif1
- 07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
-*/
+    /*
+     07 81 81 c7 82 03 ff		#objName: OBIS Kennzahl für den Hersteller
+     07 01 00 01 08 00 ff		#objName: OBIS Kennzahl für Wirkenergie Bezug gesamt tariflos
+     07 01 00 01 08 01 ff 		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif1
+     07 01 00 01 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Bezug Tarif2
+     07 01 00 02 08 00 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung gesamt tariflos
+     07 01 00 02 08 01 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif1
+     07 01 00 02 08 02 ff		#objName: OBIS-Kennzahl für Wirkenergie Einspeisung Tarif2
+    */
     const std::list<OBISHandler> smlHandlerList{
         {{0x01, 0x00, 0x10, 0x07, 0x00, 0xff}, &smlOBISW, &_powerMeterTotal},  // total - OBIS-Kennzahl für momentane Gesamtwirkleistung
 
@@ -410,7 +431,7 @@ class powermeter {
         {{0x01, 0x00, 0x02, 0x08, 0x00, 0xff}, &smlOBISWh, &_powerMeterExport}};
 
     PowermeterBuffer_t getPowermeterWattsTibber(JsonObject logObj, uint8_t group) {
-        mPreviousTsp = mPreviousTsp + 2000; // Zusätzliche Pause
+        mPreviousTsp = mPreviousTsp + 2000;  // Zusätzliche Pause
 
         PowermeterBuffer_t result;
         result.P = result.P1 = result.P2 = result.P3 = 0;
@@ -448,7 +469,7 @@ class powermeter {
                         result.P2 = _powerMeter2Power;
                         result.P3 = _powerMeter3Power;
 
-                        if(! (_powerMeter1Power && _powerMeter2Power && _powerMeter3Power)) {
+                        if (!(_powerMeter1Power && _powerMeter2Power && _powerMeter3Power)) {
                             result.P1 = result.P2 = result.P3 = _powerMeterTotal / 3;
                         }
                         break;
@@ -468,12 +489,12 @@ class powermeter {
         http.end();
         return result;
     }
+#endif
 
-    void bufferWrite(PowermeterBuffer_t raw, short group)
-    {
+    void bufferWrite(PowermeterBuffer_t raw, short group) {
         mPowermeterBuffer[group][mPowermeterBufferPos[group]] = raw;
         mPowermeterBufferPos[group]++;
-        if(mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
+        if (mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
     }
 
     zeroExport_t *mCfg;
@@ -481,8 +502,8 @@ class powermeter {
 
     unsigned long mPreviousTsp = 0;
 
-    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = { 0 };
-    short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = { 0 };
+    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
+    short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
 };
 
 // TODO: Vorlagen für Powermeter-Analyse
