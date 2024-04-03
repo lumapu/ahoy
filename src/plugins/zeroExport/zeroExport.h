@@ -63,7 +63,7 @@ class ZeroExport {
         unsigned long Tsp = millis();
 
         mPowermeter.loop(&Tsp, &DoLog);
-        if (DoLog) sendLog();
+//        if (DoLog) sendLog();
         clearLog();
         DoLog = false;
 
@@ -247,7 +247,7 @@ class ZeroExport {
         // Select all Inverter to reboot
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-                mCfg->groups[group].inverters[inv].doReboot = true;
+//                mCfg->groups[group].inverters[inv].doReboot = 1;
             }
         }
     }
@@ -261,28 +261,37 @@ class ZeroExport {
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            bool DoLog = false;
+            unsigned long bTsp = millis();
+
+            mLog["g"] = group;
+            mLog["t"] = "resetWaitLimitAck";
+
+            JsonArray logArr = mLog.createNestedArray("ix");
+
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 if (iv->id == (uint8_t)mCfg->groups[group].inverters[inv].id) {
-                    unsigned long bTsp = millis();
+                    JsonObject logObj = logArr.createNestedObject();
 
-                    mLog["t"] = "resetWaitLimitAck";
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
-                    mLog["id"] = iv->id;
+                    logObj["i"] = inv;
+                    logObj["id"] = iv->id;
                     mCfg->groups[group].inverters[inv].waitLimitAck = 0;
-                    mLog["w"] = 0;
+                    logObj["wL"] = mCfg->groups[group].inverters[inv].waitLimitAck;
 
-                    if (mCfg->debug) {
-                        unsigned long eTsp = millis();
-                        mLog["B"] = bTsp;
-                        mLog["E"] = eTsp;
-                        mLog["D"] = eTsp - bTsp;
-                    }
-                    sendLog();
-                    clearLog();
-                    return;
+                    DoLog = true;
                 }
             }
+
+            if (mCfg->debug) {
+                unsigned long eTsp = millis();
+                mLog["B"] = bTsp;
+                mLog["E"] = eTsp;
+                mLog["D"] = eTsp - bTsp;
+            }
+
+            if(DoLog) sendLog();
+            clearLog();
+            DoLog = false;
         }
     }
 
@@ -295,28 +304,37 @@ class ZeroExport {
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            bool DoLog = false;
+            unsigned long bTsp = millis();
+
+            mLog["g"] = group;
+            mLog["t"] = "resetWaitPowerAck";
+
+            JsonArray logArr = mLog.createNestedArray("ix");
+
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                    unsigned long bTsp = millis();
+                    JsonObject logObj = logArr.createNestedObject();
 
-                    mLog["t"] = "resetWaitPowerAck";
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
-                    mLog["id"] = iv->id;
+                    logObj["i"] = inv;
+                    logObj["id"] = iv->id;
                     mCfg->groups[group].inverters[inv].waitPowerAck = 30;
-                    mLog["w"] = 30;
+                    logObj["wP"] = mCfg->groups[group].inverters[inv].waitPowerAck;
 
-                    if (mCfg->debug) {
-                        unsigned long eTsp = millis();
-                        mLog["B"] = bTsp;
-                        mLog["E"] = eTsp;
-                        mLog["D"] = eTsp - bTsp;
-                    }
-                    sendLog();
-                    clearLog();
-                    return;
+                    DoLog = true;
                 }
             }
+
+            if (mCfg->debug) {
+                unsigned long eTsp = millis();
+                mLog["B"] = bTsp;
+                mLog["E"] = eTsp;
+                mLog["D"] = eTsp - bTsp;
+            }
+
+            if(DoLog) sendLog();
+            clearLog();
+            DoLog = false;
         }
     }
 
@@ -329,28 +347,37 @@ class ZeroExport {
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            bool DoLog = false;
+            unsigned long bTsp = millis();
+
+            mLog["g"] = group;
+            mLog["t"] = "resetWaitRebootAck";
+
+            JsonArray logArr = mLog.createNestedArray("ix");
+
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 if (iv->id == mCfg->groups[group].inverters[inv].id) {
-                    unsigned long bTsp = millis();
+                    JsonObject logObj = logArr.createNestedObject();
 
-                    mLog["t"] = "resetWaitRebootAck";
-                    mLog["g"] = group;
-                    mLog["i"] = inv;
-                    mLog["id"] = iv->id;
+                    logObj["i"] = inv;
+                    logObj["id"] = iv->id;
                     mCfg->groups[group].inverters[inv].waitRebootAck = 30;
-                    mLog["w"] = 30;
+                    logObj["wR"] = mCfg->groups[group].inverters[inv].waitRebootAck;
 
-                    if (mCfg->debug) {
-                        unsigned long eTsp = millis();
-                        mLog["B"] = bTsp;
-                        mLog["E"] = eTsp;
-                        mLog["D"] = eTsp - bTsp;
-                    }
-                    sendLog();
-                    clearLog();
-                    return;
+                    DoLog = true;
                 }
             }
+
+            if (mCfg->debug) {
+                unsigned long eTsp = millis();
+                mLog["B"] = bTsp;
+                mLog["E"] = eTsp;
+                mLog["D"] = eTsp - bTsp;
+            }
+
+            if(DoLog) sendLog();
+            clearLog();
+            DoLog = false;
         }
     }
 
@@ -1004,8 +1031,8 @@ class ZeroExport {
         mLog["y3"] = y3;
 
         bool grpTarget[7] = {false, false, false, false, false, false, false};
-        uint8_t ivId_Pmin[7] = {0, 0, 0, 0, 0, 0, 0};
-        uint8_t ivId_Pmax[7] = {0, 0, 0, 0, 0, 0, 0};
+        int8_t ivId_Pmin[7] = {-1, -1, -1, -1, -1, -1, -1};
+        int8_t ivId_Pmax[7] = {-1, -1, -1, -1, -1, -1, -1};
         uint16_t ivPmin[7] = {65535, 65535, 65535, 65535, 65535, 65535, 65535};
         uint16_t ivPmax[7] = {0, 0, 0, 0, 0, 0, 0};
 
@@ -1141,45 +1168,46 @@ class ZeroExport {
             // Inverter not available -> ignore
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
+                continue;
+            }
+
+            logObj["dR"] = cfgGroupInv->doReboot;
+            logObj["wR"] = cfgGroupInv->waitRebootAck;
+
+            // Wait
+            if (cfgGroupInv->waitRebootAck > 0) {
                 result = false;
+                if (!mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
             if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitRebootAck == 0)) {
-                ///                result = false;
-                cfgGroupInv->doReboot = 0;
-                logObj["act"] = "done";
+                cfgGroupInv->doReboot = -1;
+                if (!mCfg->debug) {
+                    logObj["act"] = "done";
+                    *doLog = true;
+                }
                 continue;
             }
 
             // Calculate
             if (cfgGroupInv->doReboot == 1) {
                 cfgGroupInv->doReboot = 2;
-            }
-
-            // Wait
-            if (cfgGroupInv->waitRebootAck > 0) {
-                logObj["w"] = cfgGroupInv->waitRebootAck;
-                result = false;
-                continue;
+                cfgGroupInv->waitRebootAck = 120;
             }
 
             // Inverter nothing to do -> ignore
-            if (cfgGroupInv->doReboot == 0) {
-                logObj["act"] = "nothing to do";
+            if (cfgGroupInv->doReboot == -1) {
+                if (!mCfg->debug) {
+                    logObj["act"] = "nothing to do";
+                    *doLog = true;
+                }
                 continue;
             }
 
             result = false;
-
             *doLog = true;
-
-            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doReboot;
-
-            // wait for Ack
-            cfgGroupInv->waitRebootAck = 120;
-            logObj["wR"] = cfgGroupInv->waitRebootAck;
 
             // send Command
             DynamicJsonDocument doc(512);
@@ -1188,7 +1216,7 @@ class ZeroExport {
             obj["path"] = "ctrl";
             obj["cmd"] = "restart";
             mApi->ctrlRequest(obj);
-            logObj["d"] = obj;
+            if (!mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
@@ -1222,15 +1250,26 @@ class ZeroExport {
             // Inverter not available -> ignore
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
+                continue;
+            }
+
+            logObj["dP"] = cfgGroupInv->doPower;
+            logObj["wP"] = cfgGroupInv->waitPowerAck;
+
+            // Wait
+            if (cfgGroupInv->waitPowerAck > 0) {
                 result = false;
+                if (!mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
             if ((cfgGroupInv->doPower != -1) && (cfgGroupInv->waitPowerAck == 0)) {
-                ///                result = false;
                 cfgGroupInv->doPower = -1;
-                logObj["act"] = "done";
+                if (!mCfg->debug) {
+                    logObj["act"] = "done";
+                    *doLog = true;
+                }
                 continue;
             }
 
@@ -1243,7 +1282,8 @@ class ZeroExport {
                 (cfgGroupInv->limitNew > cfgGroupInv->powerMin) &&
                 (mIv[group][inv]->isProducing() == false)) {
                 // On
-                cfgGroupInv->doPower = true;
+                cfgGroupInv->doPower = 1;
+                cfgGroupInv->waitPowerAck = 120;
                 logObj["act"] = "on";
             }
             if (
@@ -1252,32 +1292,22 @@ class ZeroExport {
                     (cfgGroupInv->limitNew < (cfgGroupInv->powerMin - 50))) &&
                 (mIv[group][inv]->isProducing() == true)) {
                 // Off
-                cfgGroupInv->doPower = false;
+                cfgGroupInv->doPower = 0;
+                cfgGroupInv->waitPowerAck = 120;
                 logObj["act"] = "off";
             }
 
-            // Wait
-            if (cfgGroupInv->waitPowerAck > 0) {
-                logObj["w"] = cfgGroupInv->waitPowerAck;
-                result = false;
-                continue;
-            }
-
-            // Nothing todo
+            // Inverter nothing to do -> ignore
             if (cfgGroupInv->doPower == -1) {
-                logObj["act"] = "nothing to do";
+                if (!mCfg->debug) {
+                    logObj["act"] = "nothing to do";
+                    *doLog = true;
+                }
                 continue;
             }
 
             result = false;
-
             *doLog = true;
-
-            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doPower;
-
-            // wait for Ack
-            cfgGroupInv->waitPowerAck = 120;
-            logObj["wP"] = cfgGroupInv->waitPowerAck;
 
             // send Command
             DynamicJsonDocument doc(512);
@@ -1287,7 +1317,7 @@ class ZeroExport {
             obj["path"] = "ctrl";
             obj["cmd"] = "power";
             mApi->ctrlRequest(obj);
-            logObj["d"] = obj;
+            if (!mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
@@ -1321,15 +1351,27 @@ class ZeroExport {
             // Inverter not available -> ignore
             if (!mIv[group][inv]->isAvailable()) {
                 logObj["a"] = false;
+                continue;
+            }
+
+            logObj["dL"] = cfgGroupInv->doLimit;
+            logObj["wL"] = cfgGroupInv->waitLimitAck;
+            logObj["L"] = cfgGroupInv->limit;
+
+            // Wait
+            if (cfgGroupInv->waitLimitAck > 0) {
                 result = false;
+                if (!mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
-            if ((cfgGroupInv->doLimit) && (cfgGroupInv->waitLimitAck == 0)) {
-                ///                result = false;
-                cfgGroupInv->doLimit = false;
-                logObj["act"] = "done";
+            if ((cfgGroupInv->doLimit != -1) && (cfgGroupInv->waitLimitAck == 0)) {
+                cfgGroupInv->doLimit = -1;
+                if (!mCfg->debug) {
+                    logObj["act"] = "done";
+                    *doLog = true;
+                }
                 continue;
             }
 
@@ -1340,75 +1382,76 @@ class ZeroExport {
                 cfgGroupInv->limitNew = cfgGroupInv->powerMin;
             }
 
-            // Restriction LimitNew >= Pmin
+            // Restriction LimitNew < Pmin
             if (cfgGroupInv->limitNew < cfgGroupInv->powerMin) {
                 cfgGroupInv->limitNew = cfgGroupInv->powerMin;
             }
-            // Restriction LimitNew >= 2%
-            uint16_t power2proz = mIv[group][inv]->getMaxPower() / 100 * 2;
+
+            // Restriction LimitNew < 2%
+            uint16_t power2proz = (mIv[group][inv]->getMaxPower() *2) / 100;
             if (cfgGroupInv->limitNew < power2proz) {
                 cfgGroupInv->limitNew = power2proz;
             }
 
-            // Restriction LimitNew <= Pmax
+            // Restriction LimitNew > Pmax
             if (cfgGroupInv->limitNew > cfgGroupInv->powerMax) {
                 cfgGroupInv->limitNew = cfgGroupInv->powerMax;
             }
 
-            // Reject limit if difference < 5 W
-            /*
-                        if (
-                            (cfgGroupInv->limitNew > (cfgGroupInv->powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                            (cfgGroupInv->limitNew > (cfgGroupInv->limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                            (cfgGroupInv->limitNew < (cfgGroupInv->limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
-                            logObj["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
-
-                            *doLog = true;
-
-                            return false;
-                        }
-            */
-            // Wait
-            if (cfgGroupInv->waitLimitAck > 0) {
-                logObj["w"] = cfgGroupInv->waitLimitAck;
-                result = false;
-                continue;
+            // Restriction LimitNew > 100%
+            uint16_t power100proz = mIv[group][inv]->getMaxPower();
+            if (cfgGroupInv->limitNew > power100proz) {
+                cfgGroupInv->limitNew = power100proz;
             }
 
-            // Nothing todo
-            //            if (cfgGroupInv->doLimit == false) {
-            //                logObj["act"] = "nothing to do";
-            //                continue;
-            //            }
+            // Restriction deltaLimitNew < 5 W
+/*
+            if (
+                (cfgGroupInv->limitNew > (cfgGroupInv->powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                (cfgGroupInv->limitNew > (cfgGroupInv->limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                (cfgGroupInv->limitNew < (cfgGroupInv->limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
+                logObj["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
 
-            if (cfgGroupInv->limit == cfgGroupInv->limitNew) {
-                ///                logObj["act"] = "nothing to do";
+                *doLog = true;
+                return false;
+            }
+*/
+
+            logObj["zeLold"] = cfgGroupInv->limit;
+
+            if (cfgGroupInv->limit != cfgGroupInv->limitNew) {
+                cfgGroupInv->doLimit = 1;
+                cfgGroupInv->waitLimitAck = 60;
+            }
+
+            cfgGroupInv->limit = cfgGroupInv->limitNew;
+            logObj["zeL"] = cfgGroupInv->limit;
+
+            // Inverter nothing to do -> ignore
+            if (cfgGroupInv->doLimit == -1) {
+                if (!mCfg->debug) {
+                    logObj["act"] = "nothing to do";
+                    *doLog = true;
+                }
                 continue;
             }
 
             result = false;
-
             *doLog = true;
-
-            cfgGroupInv->doLimit = true;
-            if (!mCfg->debug) logObj["act"] = cfgGroupInv->doLimit;
-
-            cfgGroupInv->limit = cfgGroupInv->limitNew;
-            logObj["zeL"] = (uint16_t)cfgGroupInv->limit;
-
-            // wait for Ack
-            cfgGroupInv->waitLimitAck = 60;
-            logObj["wL"] = cfgGroupInv->waitLimitAck;
 
             // send Command
             DynamicJsonDocument doc(512);
             JsonObject obj = doc.to<JsonObject>();
-            obj["val"] = (uint16_t)cfgGroupInv->limit;
+            if (cfgGroupInv->limit > 0) {
+                obj["val"] = cfgGroupInv->limit;
+            } else {
+                obj["val"] = 0;
+            }
             obj["id"] = cfgGroupInv->id;
             obj["path"] = "ctrl";
             obj["cmd"] = "limit_nonpersistent_absolute";
             mApi->ctrlRequest(obj);
-            logObj["d"] = obj;
+            if (!mCfg->debug) logObj["d"] = obj;
         }
 
         return result;

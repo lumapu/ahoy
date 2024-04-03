@@ -279,7 +279,7 @@ typedef struct {
     //
     int8_t doReboot;
     int8_t doPower;
-    bool doLimit;
+    int8_t doLimit;
 } zeroExportGroupInverter_t;
 
 typedef struct {
@@ -713,9 +713,9 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitLimitAck = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitPowerAck = false;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].waitRebootAck = false;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = -1;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].doPower = -1;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doLimit = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doLimit = -1;
                 }
                 // Battery
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
