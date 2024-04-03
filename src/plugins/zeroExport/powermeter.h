@@ -93,7 +93,7 @@ class powermeter {
             }
 
             bufferWrite(power, group);
-            *doLog = true;
+            if (mCfg->debug) *doLog = true;
         }
     }
 
