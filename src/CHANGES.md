@@ -1,5 +1,9 @@
 # Development Changes
 
+## 0.8.104 - 2024-04-04
+* fix reboot on inverter save (ESP32) #1559
+* fix NRF and Ethernet #1506
+
 ## 0.8.103 - 2024-04-02
 * merge PR: fix: get refresh property from object #1552
 * merge PR: fix typos and spelling in Github Issue template #1550

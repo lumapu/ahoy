@@ -52,14 +52,18 @@
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
-
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
+                            <!--IF_ETHERNET-->
+                            <!--ELSE-->
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/><br/><a href="/wizard">{#SCAN_WIFI}</a></div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="text" name="ssid"/><br/>
+                                    <a href="/wizard">{#SCAN_WIFI}</a>
+                                </div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -69,6 +73,7 @@
                                 <div class="col-12 col-sm-3 my-2">{#PASSWORD}</div>
                                 <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
                             </div>
+                            <!--ENDIF_ETHERNET-->
                         </fieldset>
                         <fieldset class="mb-4">
                             <legend class="des">{#STATIC_IP}</legend>
@@ -652,9 +657,14 @@
             }
 
             function parseSys(obj) {
+                /*IF_ETHERNET*/
+                for(var i of [["device", "device_name"], ["ap_pwd", "ap_pwd"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                /*ELSE*/
                 for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 document.getElementsByName("hidd")[0].checked = obj["hidd"];
+                /*ENDIF_ETHERNET*/
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
                 document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
                 e = document.getElementsByName("adminpwd")[0];
@@ -1286,18 +1296,6 @@
                     /*ENDIF_PLUGIN_DISPLAY*/
                     getAjax("/api/inverter/list", parseIv);
                 }
-            }
-
-            function listNetworks(root) {
-                var s = document.getElementById("networks");
-                selDelAllOpt(s);
-                if(root["networks"].length > 0) {
-                    s.appendChild(opt("-1", "{#NETWORK_PLEASE_SELECT}"));
-                    for(i = 0; i < root["networks"].length; i++) {
-                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
-                    }
-                } else
-                    s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
             }
 
             getAjax("/api/setup", parse);

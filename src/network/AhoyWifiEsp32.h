@@ -58,7 +58,7 @@ class AhoyWifi : public AhoyNetwork {
                         mConnected = true;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
-                        MDNS.addServiceTxt("http", "tcp", "path", "/");
+                        //MDNS.addServiceTxt("http", "tcp", "path", "/");
                         mOnNetworkCB(true);
                     }
                     break;
