@@ -1462,16 +1462,17 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
-// Inhalt f?r pm_type aus config laden und in eine Funktion ausgliedern
+// Inhalt fuer pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: ?bersetzen?
+// TODO: uebersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
-                e.appendChild(opt("2", "Tasmota"));
-                e.appendChild(opt("3", "Mqtt"));
-                e.appendChild(opt("4", "Hichi"));
+                //e.appendChild(opt("2", "Tasmota"));
+                //e.appendChild(opt("3", "Mqtt"));
+                //e.appendChild(opt("4", "Hichi"));
                 e.appendChild(opt("5", "Tibber"));
+                e.appendChild(opt("6", "Shrdzm"));
                 for (var i = 0; i < e.options.length; i++) {
                     if (e.options[i].value == obj.pm_type) {
                         e.selectedIndex = i;

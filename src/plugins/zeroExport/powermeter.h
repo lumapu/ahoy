@@ -85,6 +85,11 @@ class powermeter {
                     power = getPowermeterWattsTibber(*mLog, group);
                     break;
 #endif
+#if defined(ZEROEXPORT_POWERMETER_SHRDZM)
+                case zeroExportPowermeterType_t::Shrdzm:
+                    power = getPowermeterWattsShrdzm(*mLog, group);
+                    break;
+#endif
             }
 
             bufferWrite(power, group);
@@ -498,6 +503,65 @@ class powermeter {
         }
 
         http.end();
+        return result;
+    }
+#endif
+
+#if defined(ZEROEXPORT_POWERMETER_SHRDZM)
+    /** getPowermeterWattsShrdzm
+     * ...
+     * @param logObj
+     * @param group
+     * @returns true/false
+     * @TODO: Username & Passwort wird mittels base64 verschlüsselt. Dies wird für die Authentizierung benötigt. Wichtig diese im WebUI unkenntlich zu machen und base64 im eeprom zu speichern, statt klartext.
+     * @TODO: Abfrage Interval einbauen. Info: Datei-Size kann auch mal 0-bytes sein!
+     * Quelle: https://cms.shrdzm.com
+     * Abfrage: http://IP/getLastData?user=XXXXXX&password=YYYYYY
+     * Ergebnis: {"1.8.0":"21561001","2.8.0":"44477","3.8.1":"64037","4.8.1":"6021512","1.7.0":"277","2.7.0":"0","3.7.0":"0","4.7.0":"184","1.128.0":"0","16.7.0":"277","uptime":"0000:07:35:38"}
+     */
+    PowermeterBuffer_t getPowermeterWattsShrdzm(JsonObject logObj, uint8_t group) {
+        PowermeterBuffer_t result;
+        result.P = result.P1 = result.P2 = result.P3 = 0;
+
+        logObj["mod"] = "getPowermeterWattsShrdzm";
+
+        HTTPClient http;
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        http.setUserAgent("Ahoy-Agent");
+        // TODO: Ahoy-0.8.850024-zero
+        http.setConnectTimeout(500);
+        http.setTimeout(1000);
+        http.addHeader("Content-Type", "application/json");
+        http.addHeader("Accept", "application/json");
+
+        String url =
+            String("http://") + String(mCfg->groups[group].pm_url) +
+            String("/") + String(mCfg->groups[group].pm_jsonPath +
+            String("?user=") + String(mCfg->groups[group].pm_user) +
+            String("&password=") + String(mCfg->groups[group].pm_pass));
+
+        http.begin(url);
+
+        if (http.GET() == HTTP_CODE_OK && http.getSize() > 0) {
+            // Parsing
+            DynamicJsonDocument doc(512);
+            DeserializationError error = deserializeJson(doc, http.getString());
+            if (error) {
+                logObj["err"] = "deserializeJson: " + String(error.c_str());
+                return result;
+            } else {
+                if (doc.containsKey(F("16.7.0"))) {
+                    result.P = doc["16.7.0"];
+                }
+
+                if (!(result.P1 && result.P2 && result.P3)) {
+                    result.P1 = result.P2 = result.P3 = result.P / 3;
+                }
+
+            }
+        }
+        http.end();
+
         return result;
     }
 #endif

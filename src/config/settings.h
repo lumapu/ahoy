@@ -215,12 +215,11 @@ typedef struct {
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
 #define ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF          5
 #define ZEROEXPORT_POWERMETER_SHELLY
-#define ZEROEXPORT_POWERMETER_TASMOTA
-#define ZEROEXPORT_POWERMETER_MQTT
-#define ZEROEXPORT_POWERMETER_HICHI
+//#define ZEROEXPORT_POWERMETER_TASMOTA
+//#define ZEROEXPORT_POWERMETER_MQTT
+//#define ZEROEXPORT_POWERMETER_HICHI
 #define ZEROEXPORT_POWERMETER_TIBBER
-
-
+#define ZEROEXPORT_POWERMETER_SHRDZM
 
 enum class zeroExportState : uint8_t {
     INIT,
@@ -247,6 +246,7 @@ typedef enum {
     Mqtt        = 3,
     Hichi       = 4,
     Tibber      = 5,
+    Shrdzm      = 6,
 } zeroExportPowermeterType_t;
 
 typedef enum {
