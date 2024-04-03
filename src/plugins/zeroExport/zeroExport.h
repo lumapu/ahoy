@@ -387,7 +387,8 @@ class ZeroExport {
 
                 // Calculate
                 int32_t ivLp = iv->actPowerLimit;
-                int32_t ivPm = iv->getMaxPower();;
+                int32_t ivPm = iv->getMaxPower();
+                ;
                 int32_t ivL = (ivPm * ivLp) / 100;
                 int32_t zeL = mCfg->groups[group].inverters[inv].limit;
 
@@ -432,11 +433,13 @@ class ZeroExport {
 
         if (obj["path"] == "zero" && obj["cmd"] == "set") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
+            mLog["topicGroup"] = topicGroup;
             int8_t topicInverter = getInverterFromTopic(topic.c_str());
+            mLog["topicInverter"] = topicInverter;
 
-            if((topicGroup == -1) && (topicInverter == -1)) {
+            if ((topicGroup == -1) && (topicInverter == -1)) {
                 // "topic":"???/zero/set/enabled"
-                if (topic.indexOf("zero/set/enabled") != -1) {
+                if (topic.indexOf("/zero/set/enabled") != -1) {
                     mCfg->enabled = (bool)obj["val"];
                     mLog["mCfg->enabled"] = mCfg->enabled;
                     // Initialize groups
@@ -445,48 +448,54 @@ class ZeroExport {
                         mCfg->groups[group].wait = 0;
                     }
                 }
-                else
                 // "topic":"???/zero/set/sleep"
-                if (topic.indexOf("zero/set/sleep") != -1) {
+                if (topic.indexOf("/zero/set/sleep") != -1) {
                     mCfg->sleep = (bool)obj["val"];
                     mLog["mCfg->sleep"] = mCfg->sleep;
                 }
-            }
-            else
-            if((topicGroup != -1) && (topicInverter == -1)) {
-                uint8_t group = topicGroup;
+            } else if ((topicGroup != -1) && (topicInverter == -1)) {
                 // "topic":"???/zero/set/groups/0/???"
-//                if (topic.indexOf("zero/set/groups/") != -1) {
-//                    String i = topic.substring(topic.length() - 10, topic.length() - 8);
-//                    uint8_t group = i.toInt();
-                    mLog["g"] = group;
-                    // "topic":"???/zero/set/groups/0/enabled"
-                    if (topic.indexOf("enabled") != -1) {
-                        mCfg->groups[group].enabled = (bool)obj["val"];
-                        // Initialize group
-                        mCfg->groups[group].state = zeroExportState::INIT;
-                        mCfg->groups[group].wait = 0;
-                    }
-                    // "topic":"???/zero/set/groups/0/sleep"
-                    if (topic.indexOf("sleep") != -1) {
-                        mCfg->groups[group].sleep = (bool)obj["val"];
-                    }
-//                }
-// Battery
-// - switch
-
-// Advanced
-// - setpoint
-// - powerTolerance
-// - powerMax
-            }
-            else
-            if((topicGroup != -1) && (topicInverter != -1)) {
-// Inverter
-// - enabled
-// - powerMin
-// - powerMax
-
+                mLog["g"] = topicGroup;
+                // "topic":"???/zero/set/groups/0/enabled"
+                if (topic.indexOf("enabled") != -1) {
+                    mCfg->groups[topicGroup].enabled = (bool)obj["val"];
+                    // Initialize group
+                    mCfg->groups[topicGroup].state = zeroExportState::INIT;
+                    mCfg->groups[topicGroup].wait = 0;
+                }
+                // "topic":"???/zero/set/groups/0/sleep"
+                if (topic.indexOf("sleep") != -1) {
+                    mCfg->groups[topicGroup].sleep = (bool)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/battery/switch"
+                if (topic.indexOf("battery/switch") != -1) {
+                    mCfg->groups[topicGroup].battSwitch = (bool)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/advanced/setPoint"
+                if (topic.indexOf("advanced/setPoint") != -1) {
+                    mCfg->groups[topicGroup].setPoint = (int32_t)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/advanced/powerTolerance"
+                if (topic.indexOf("advanced/powerTolerance") != -1) {
+                    mCfg->groups[topicGroup].powerTolerance = (uint16_t)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/advanced/powerMax"
+                if (topic.indexOf("advanced/powerMax") != -1) {
+                    mCfg->groups[topicGroup].powerMax = (uint16_t)obj["val"];
+                }
+            } else if ((topicGroup != -1) && (topicInverter != -1)) {
+                // "topic":"???/zero/set/groups/0/inverter/0/enabled"
+                if (topic.indexOf("enabled") != -1) {
+                    mCfg->groups[topicGroup].inverters[topicInverter].enabled = (bool)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/inverter/0/powerMin"
+                if (topic.indexOf("powerMin") != -1) {
+                    mCfg->groups[topicGroup].inverters[topicInverter].powerMin = (uint16_t)obj["val"];
+                }
+                // "topic":"???/zero/set/groups/0/inverter/0/powerMax"
+                if (topic.indexOf("powerMax") != -1) {
+                    mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
+                }
             }
         }
 
@@ -507,25 +516,35 @@ class ZeroExport {
         return ((!mCfg->groups[group].inverters[inv].enabled) || (mCfg->groups[group].inverters[inv].id < 0));
     }
 
-    int8_t getGroupFromTopic(const char* topic) {
-        const char* pGroupSection = strstr(topic, "groups/");
+    /** getGroupFromTopic
+     *
+     * @param
+     * @returns
+     */
+    int8_t getGroupFromTopic(const char *topic) {
+        const char *pGroupSection = strstr(topic, "groups/");
         if (pGroupSection == NULL) return -1;
         pGroupSection += 7;
         char strGroup[3];
         uint8_t digitsCopied = 0;
-        while(*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
+        while (*pGroupSection != '/' && digitsCopied < 2) strGroup[digitsCopied++] = *pGroupSection++;
         strGroup[digitsCopied] = '\0';
         int8_t group = atoi(strGroup);
         return group;
     }
 
-    int8_t getInverterFromTopic(const char* topic) {
-        const char* pInverterSection = strstr(topic, "inverters/");
+    /** getInverterFromTopic
+     *
+     * @param
+     * @returns
+     */
+    int8_t getInverterFromTopic(const char *topic) {
+        const char *pInverterSection = strstr(topic, "inverters/");
         if (pInverterSection == NULL) return -1;
         pInverterSection += 10;
         char strInverter[3];
         uint8_t digitsCopied = 0;
-        while(*pInverterSection != '/' && digitsCopied < 2) strInverter[digitsCopied++] = *pInverterSection++;
+        while (*pInverterSection != '/' && digitsCopied < 2) strInverter[digitsCopied++] = *pInverterSection++;
         strInverter[digitsCopied] = '\0';
         int8_t inverter = atoi(strInverter);
         return inverter;
@@ -537,7 +556,6 @@ class ZeroExport {
      * @returns true/false
      * @todo getInverterById statt getInverterByPos, dann würde die Variable *iv und die Schleife nicht gebraucht.
      */
-
     bool groupInit(uint8_t group, unsigned long *tsp, bool *doLog) {
         uint8_t result = false;
 
@@ -1129,16 +1147,16 @@ class ZeroExport {
 
             // Reset
             if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitRebootAck == 0)) {
-///                result = false;
+                ///                result = false;
                 cfgGroupInv->doReboot = 0;
                 logObj["act"] = "done";
                 continue;
             }
 
-			// Calculate
-			if (cfgGroupInv->doReboot == 1) {
-				cfgGroupInv->doReboot = 2;
-			}
+            // Calculate
+            if (cfgGroupInv->doReboot == 1) {
+                cfgGroupInv->doReboot = 2;
+            }
 
             // Wait
             if (cfgGroupInv->waitRebootAck > 0) {
@@ -1210,7 +1228,7 @@ class ZeroExport {
 
             // Reset
             if ((cfgGroupInv->doPower != -1) && (cfgGroupInv->waitPowerAck == 0)) {
-///                result = false;
+                ///                result = false;
                 cfgGroupInv->doPower = -1;
                 logObj["act"] = "done";
                 continue;
@@ -1309,7 +1327,7 @@ class ZeroExport {
 
             // Reset
             if ((cfgGroupInv->doLimit) && (cfgGroupInv->waitLimitAck == 0)) {
-///                result = false;
+                ///                result = false;
                 cfgGroupInv->doLimit = false;
                 logObj["act"] = "done";
                 continue;
@@ -1358,13 +1376,13 @@ class ZeroExport {
             }
 
             // Nothing todo
-//            if (cfgGroupInv->doLimit == false) {
-//                logObj["act"] = "nothing to do";
-//                continue;
-//            }
+            //            if (cfgGroupInv->doLimit == false) {
+            //                logObj["act"] = "nothing to do";
+            //                continue;
+            //            }
 
             if (cfgGroupInv->limit == cfgGroupInv->limitNew) {
-///                logObj["act"] = "nothing to do";
+                ///                logObj["act"] = "nothing to do";
                 continue;
             }
 
@@ -1404,7 +1422,7 @@ class ZeroExport {
 
         if (mCfg->debug) mLog["t"] = "groupPublish";
 
-       cfgGroup->lastRun = *tsp;
+        cfgGroup->lastRun = *tsp;
 
         if (mMqtt->isConnected()) {
             DynamicJsonDocument doc(512);
@@ -1414,16 +1432,16 @@ class ZeroExport {
             String gr;
 
             // Init
-// TODO: Init wird fälschlicherweise hier nur ausgeführt wenn zeroExport 1x aktiviert war.
-// BUG: Wenn zeroExport deaktiviert wurde und dann rebootet, lässt sich zeroExport nicht mehr einschalten.
+            // TODO: Init wird fälschlicherweise hier nur ausgeführt wenn zeroExport 1x aktiviert war.
+            // BUG: Wenn zeroExport deaktiviert wurde und dann rebootet, lässt sich zeroExport nicht mehr einschalten.
             if (!mIsSubscribed) {
                 mIsSubscribed = true;
 
                 // Global (zeroExport)
-// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+                // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
                 mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/enabled", QOS_2);
-// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+                // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
                 mMqtt->publish("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
                 mMqtt->subscribe("zero/set/sleep", QOS_2);
 
@@ -1469,9 +1487,9 @@ class ZeroExport {
             }
 
             // Global (zeroExport)
-// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+            // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
             mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-// TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+            // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
             mMqtt->publish("zero/state/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
 
             // General
@@ -1485,15 +1503,15 @@ class ZeroExport {
             mMqtt->publish(gr.c_str(), cfgGroup->name, false);
 
             // Powermeter
-//            if (cfgGroup->publishPower) {
-//                cfgGroup->publishPower = false;
-                obj["Sum"] = cfgGroup->pm_P;
-                obj["L1"] = cfgGroup->pm_P1;
-                obj["L2"] = cfgGroup->pm_P2;
-                obj["L3"] = cfgGroup->pm_P3;
-                mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
-                doc.clear();
-//            }
+            //            if (cfgGroup->publishPower) {
+            //                cfgGroup->publishPower = false;
+            obj["Sum"] = cfgGroup->pm_P;
+            obj["L1"] = cfgGroup->pm_P1;
+            obj["L2"] = cfgGroup->pm_P2;
+            obj["L3"] = cfgGroup->pm_P3;
+            mMqtt->publish("zero/state/powermeter/P", doc.as<std::string>().c_str(), false);
+            doc.clear();
+            //            }
 
             //            if (cfgGroup->pm_Publish_W) {
             //                cfgGroup->pm_Publish_W = false;
@@ -1539,7 +1557,6 @@ class ZeroExport {
             obj["Kd"] = cfgGroup->Kd;
             mMqtt->publish(gr.c_str(), doc.as<std::string>().c_str(), false);
             doc.clear();
-
         }
 
         return true;
