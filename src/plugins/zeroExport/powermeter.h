@@ -8,19 +8,14 @@
 
 #include <AsyncJson.h>
 #include <HTTPClient.h>
+#include "config/settings.h"
+
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
 #include <base64.h>
 #include <string.h>
-
 #include <list>
-#endif
-
-#include "config/settings.h"
-#if defined(ZEROEXPORT_POWERMETER_TIBBER)
 #include "plugins/zeroExport/lib/sml.h"
-#endif
 
-#if defined(ZEROEXPORT_POWERMETER_TIBBER)
 typedef struct {
     const unsigned char OBIS[6];
     void (*Fn)(double &);
@@ -83,6 +78,7 @@ class powermeter {
 #if defined(ZEROEXPORT_POWERMETER_TIBBER)
                 case zeroExportPowermeterType_t::Tibber:
                     power = getPowermeterWattsTibber(*mLog, group);
+                    mPreviousTsp += 2000;  // Zusätzliche Pause
                     break;
 #endif
 #if defined(ZEROEXPORT_POWERMETER_SHRDZM)
@@ -121,6 +117,18 @@ class powermeter {
     }
 
    private:
+
+    // set HTTPClient header
+    void setHeader(HTTPClient* h) {
+        h->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        h->setUserAgent("Ahoy-Agent");
+        // TODO: Ahoy-0.8.850024-zero
+        h->setConnectTimeout(500);
+        h->setTimeout(1000);
+        h->addHeader("Content-Type", "application/json");
+        h->addHeader("Accept", "application/json");
+    }
+
 #if defined(ZEROEXPORT_POWERMETER_SHELLY)
     /** getPowermeterWattsShelly
      * ...
@@ -454,18 +462,21 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsTibber";
 
-        HTTPClient http;
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        http.setUserAgent("Ahoy-Agent");
-        // TODO: Ahoy-0.8.850024-zero
-        http.setConnectTimeout(500);
-        http.setTimeout(1000);
-        http.addHeader("Content-Type", "application/json");
-        http.addHeader("Accept", "application/json");
+        String auth;
+        if(strlen(mCfg->groups[group].pm_user) > 0 && strlen(mCfg->groups[group].pm_pass) > 0) {
+            auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
+            snprintf(mCfg->groups[group].pm_user, ZEROEXPORT_GROUP_MAX_LEN_PM_USER,  "%s", DEF_ZEXPORT);
+            snprintf(mCfg->groups[group].pm_pass, ZEROEXPORT_GROUP_MAX_LEN_PM_PASS,  "%s", auth.c_str());
+            //@TODO:mApp->saveSettings(false);
+        }
+        else
+        {
+            auth = mCfg->groups[group].pm_pass;
+        }
 
         String url = String("http://") + mCfg->groups[group].pm_url + String("/") + String(mCfg->groups[group].pm_jsonPath);
-        String auth = base64::encode(String(mCfg->groups[group].pm_user) + String(":") + String(mCfg->groups[group].pm_pass));
 
+        setHeader(&http);
         http.begin(url);
         http.addHeader("Authorization", "Basic " + auth);
 
@@ -525,15 +536,8 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsShrdzm";
 
-        HTTPClient http;
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        http.setUserAgent("Ahoy-Agent");
-        // TODO: Ahoy-0.8.850024-zero
-        http.setConnectTimeout(500);
-        http.setTimeout(1000);
-        http.addHeader("Content-Type", "application/json");
-        http.addHeader("Accept", "application/json");
-
+        setHeader(&http);
+    
         String url =
             String("http://") + String(mCfg->groups[group].pm_url) +
             String("/") + String(mCfg->groups[group].pm_jsonPath +
@@ -571,6 +575,8 @@ class powermeter {
         mPowermeterBufferPos[group]++;
         if (mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
     }
+
+    HTTPClient http;
 
     zeroExport_t *mCfg;
     JsonObject *mLog;
