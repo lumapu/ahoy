@@ -39,7 +39,7 @@ void DisplayEPaper::init(uint8_t type, uint8_t _CS, uint8_t _DC, uint8_t _RST, u
 #if defined(ESP32) && defined(USE_HSPI_FOR_EPD)
         hspi.begin(_SCK, _BUSY, _MOSI, _CS);
         _display->epd2.selectSPI(hspi, SPISettings(spiClk, MSBFIRST, SPI_MODE0));
-#elif defined(ESP32)
+#elif defined(ESP32) && defined(PLUGIN_DISPLAY)
         _display->epd2.init(_SCK, _MOSI, 115200, true, 20, false);
 #endif
         _display->init(115200, true, 20, false);

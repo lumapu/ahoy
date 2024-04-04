@@ -2,6 +2,7 @@
 
 ## 0.8.105 - 2024-04-05
 * cleanup of `defines.h`
+* fix compile of esp32-minimal
 
 ## 0.8.104 - 2024-04-04
 * fix reboot on inverter save (ESP32) #1559
