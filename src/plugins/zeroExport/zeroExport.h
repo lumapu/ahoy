@@ -1177,14 +1177,14 @@ class ZeroExport {
             // Wait
             if (cfgGroupInv->waitRebootAck > 0) {
                 result = false;
-                if (!mCfg->debug) *doLog = true;
+                if (mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
             if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitRebootAck == 0)) {
                 cfgGroupInv->doReboot = -1;
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "done";
                     *doLog = true;
                 }
@@ -1199,7 +1199,7 @@ class ZeroExport {
 
             // Inverter nothing to do -> ignore
             if (cfgGroupInv->doReboot == -1) {
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "nothing to do";
                     *doLog = true;
                 }
@@ -1216,7 +1216,7 @@ class ZeroExport {
             obj["path"] = "ctrl";
             obj["cmd"] = "restart";
             mApi->ctrlRequest(obj);
-            if (!mCfg->debug) logObj["d"] = obj;
+            if (mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
@@ -1259,14 +1259,14 @@ class ZeroExport {
             // Wait
             if (cfgGroupInv->waitPowerAck > 0) {
                 result = false;
-                if (!mCfg->debug) *doLog = true;
+                if (mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
             if ((cfgGroupInv->doPower != -1) && (cfgGroupInv->waitPowerAck == 0)) {
                 cfgGroupInv->doPower = -1;
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "done";
                     *doLog = true;
                 }
@@ -1299,7 +1299,7 @@ class ZeroExport {
 
             // Inverter nothing to do -> ignore
             if (cfgGroupInv->doPower == -1) {
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "nothing to do";
                     *doLog = true;
                 }
@@ -1317,7 +1317,7 @@ class ZeroExport {
             obj["path"] = "ctrl";
             obj["cmd"] = "power";
             mApi->ctrlRequest(obj);
-            if (!mCfg->debug) logObj["d"] = obj;
+            if (mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
@@ -1361,14 +1361,14 @@ class ZeroExport {
             // Wait
             if (cfgGroupInv->waitLimitAck > 0) {
                 result = false;
-                if (!mCfg->debug) *doLog = true;
+                if (mCfg->debug) *doLog = true;
                 continue;
             }
 
             // Reset
             if ((cfgGroupInv->doLimit != -1) && (cfgGroupInv->waitLimitAck == 0)) {
                 cfgGroupInv->doLimit = -1;
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "done";
                     *doLog = true;
                 }
@@ -1429,7 +1429,7 @@ class ZeroExport {
 
             // Inverter nothing to do -> ignore
             if (cfgGroupInv->doLimit == -1) {
-                if (!mCfg->debug) {
+                if (mCfg->debug) {
                     logObj["act"] = "nothing to do";
                     *doLog = true;
                 }
@@ -1451,7 +1451,7 @@ class ZeroExport {
             obj["path"] = "ctrl";
             obj["cmd"] = "limit_nonpersistent_absolute";
             mApi->ctrlRequest(obj);
-            if (!mCfg->debug) logObj["d"] = obj;
+            if (mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
