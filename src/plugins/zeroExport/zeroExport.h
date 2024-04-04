@@ -17,6 +17,8 @@
 
 template <class HMSYSTEM>
 
+// TODO: groupAufteilen und groupSetLimit ... 4W Regel? für alle Parameter
+
 class ZeroExport {
    public:
     /** ZeroExport
@@ -63,7 +65,7 @@ class ZeroExport {
         unsigned long Tsp = millis();
 
         mPowermeter.loop(&Tsp, &DoLog);
-//        if (DoLog) sendLog();
+        //        if (DoLog) sendLog();
         clearLog();
         DoLog = false;
 
@@ -247,7 +249,7 @@ class ZeroExport {
         // Select all Inverter to reboot
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-//                mCfg->groups[group].inverters[inv].doReboot = 1;
+                //                mCfg->groups[group].inverters[inv].doReboot = 1;
             }
         }
     }
@@ -289,7 +291,7 @@ class ZeroExport {
                 mLog["D"] = eTsp - bTsp;
             }
 
-            if(DoLog) sendLog();
+            if (DoLog) sendLog();
             clearLog();
             DoLog = false;
         }
@@ -332,7 +334,7 @@ class ZeroExport {
                 mLog["D"] = eTsp - bTsp;
             }
 
-            if(DoLog) sendLog();
+            if (DoLog) sendLog();
             clearLog();
             DoLog = false;
         }
@@ -375,7 +377,7 @@ class ZeroExport {
                 mLog["D"] = eTsp - bTsp;
             }
 
-            if(DoLog) sendLog();
+            if (DoLog) sendLog();
             clearLog();
             DoLog = false;
         }
@@ -669,11 +671,13 @@ class ZeroExport {
 
         mCfg->groups[group].lastRun = *tsp;
 
-        *doLog = true;
+        mCfg->groups[group].power = 0;
+
+//        *doLog = true;
 
         // Get Data
         JsonArray logArr = mLog.createNestedArray("ix");
-        bool wait = false;
+///        bool wait = false;
         for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
             JsonObject logObj = logArr.createNestedObject();
             logObj["i"] = inv;
@@ -681,12 +685,12 @@ class ZeroExport {
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            if (!mIv[group][inv]->isAvailable()) continue;
+//            if (!mIv[group][inv]->isAvailable()) continue;
 
             // Get Pac
             record_t<> *rec;
             rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
-            float p = mIv[group][inv]->getChannelFieldValue(CH0, FLD_PAC, rec);
+            mCfg->groups[group].power += mIv[group][inv]->getChannelFieldValue(CH0, FLD_PAC, rec);
 
             // TODO: Save Hole Power für die Webanzeige
         }
@@ -1009,10 +1013,18 @@ class ZeroExport {
 
         *doLog = true;
 
-        float y = mCfg->groups[group].y;
-        float y1 = mCfg->groups[group].y1;
-        float y2 = mCfg->groups[group].y2;
-        float y3 = mCfg->groups[group].y3;
+        int32_t y = mCfg->groups[group].y;
+        int32_t y1 = mCfg->groups[group].y1;
+        int32_t y2 = mCfg->groups[group].y2;
+        int32_t y3 = mCfg->groups[group].y3;
+
+if (mCfg->groups[group].power > mCfg->groups[group].powerMax) {
+    int32_t diff = mCfg->groups[group].power - mCfg->groups[group].powerMax;
+    y = y - diff;
+    y1 = y1 - (diff * y1 / y);
+    y1 = y1 - (diff * y2 / y);
+    y1 = y1 - (diff * y3 / y);
+}
 
         // TDOD: nochmal durchdenken ... es muss für Sum und L1-3 sein
         //        uint16_t groupPmax = 0;
@@ -1047,14 +1059,14 @@ class ZeroExport {
             rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
             cfgGroupInv->power = mIv[group][inv]->getChannelFieldValue(CH0, FLD_PAC, rec);
 
-            if (cfgGroupInv->power < ivPmin[cfgGroupInv->target]) {
+            if ((cfgGroupInv->power < ivPmin[cfgGroupInv->target]) && (cfgGroupInv->limit < cfgGroupInv->powerMax) && (cfgGroupInv->limit < mIv[group][inv]->getMaxPower())) {
                 grpTarget[cfgGroupInv->target] = true;
                 ivPmin[cfgGroupInv->target] = cfgGroupInv->power;
                 ivId_Pmin[cfgGroupInv->target] = inv;
                 // Hier kein return oder continue sonst dauerreboot
             }
 
-            if (cfgGroupInv->power > ivPmax[cfgGroupInv->target]) {
+            if ((cfgGroupInv->power > ivPmax[cfgGroupInv->target]) && (cfgGroupInv->limit > cfgGroupInv->powerMin) && (cfgGroupInv->limit > (mIv[group][inv]->getMaxPower() * 2 / 100))) {
                 grpTarget[cfgGroupInv->target] = true;
                 ivPmax[cfgGroupInv->target] = cfgGroupInv->power;
                 ivId_Pmax[cfgGroupInv->target] = inv;
@@ -1377,7 +1389,7 @@ class ZeroExport {
 
             // Calculate
             uint16_t power100proz = mIv[group][inv]->getMaxPower();
-            uint16_t power2proz = (power100proz *2) / 100;
+            uint16_t power2proz = (power100proz * 2) / 100;
 
             // if isOff -> Limit Pmin
             if (!mIv[group][inv]->isProducing()) {
@@ -1394,10 +1406,10 @@ class ZeroExport {
                 cfgGroupInv->limitNew = power2proz;
             }
 
-            // Restriction Power + 10% < Limit
-            if ((cfgGroupInv->power + (power100proz * 10 / 100)) < cfgGroupInv->limit) {
-                cfgGroupInv->limitNew += (power100proz * 10 / 100);
-            }
+            ///            // Restriction Power + 10% < Limit
+            ///            if ((cfgGroupInv->power + (power100proz * 10 / 100)) < cfgGroupInv->limit) {
+            ///                cfgGroupInv->limitNew += (power100proz * 10 / 100);
+            ///            }
 
             // Restriction LimitNew > Pmax
             if (cfgGroupInv->limitNew > cfgGroupInv->powerMax) {
@@ -1411,20 +1423,20 @@ class ZeroExport {
 
             // Restriction modulo 4 bzw 2
             cfgGroupInv->limitNew = cfgGroupInv->limitNew - (cfgGroupInv->limitNew % 4);
-// TODO: HM-800 kann vermutlich nur in 4W Schritten ... 20W -> 16W ... 100W -> 96W
+            // TODO: HM-800 kann vermutlich nur in 4W Schritten ... 20W -> 16W ... 100W -> 96W
 
             // Restriction deltaLimitNew < 5 W
-/*
-            if (
-                (cfgGroupInv->limitNew > (cfgGroupInv->powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                (cfgGroupInv->limitNew > (cfgGroupInv->limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
-                (cfgGroupInv->limitNew < (cfgGroupInv->limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
-                logObj["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
+            /*
+                        if (
+                            (cfgGroupInv->limitNew > (cfgGroupInv->powerMin + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                            (cfgGroupInv->limitNew > (cfgGroupInv->limit + ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF)) &&
+                            (cfgGroupInv->limitNew < (cfgGroupInv->limit - ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF))) {
+                            logObj["err"] = String("Diff < ") + String(ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF) + String("W");
 
-                *doLog = true;
-                return false;
-            }
-*/
+                            *doLog = true;
+                            return false;
+                        }
+            */
 
             if (cfgGroupInv->limit != cfgGroupInv->limitNew) {
                 cfgGroupInv->doLimit = 1;

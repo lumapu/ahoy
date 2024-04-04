@@ -302,6 +302,7 @@ typedef struct {
     // Advanced
     int16_t setPoint;
     uint8_t refresh;
+    int32_t power;
     uint8_t powerTolerance;
     uint16_t powerMax;
     //
@@ -740,6 +741,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
+                mCfg.plugin.zeroExport.groups[group].power = 0;
             }
 //            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
 //            snprintf(mCfg.plugin.zeroExport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);

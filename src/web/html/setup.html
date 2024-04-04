@@ -1629,6 +1629,7 @@
                     // Advanced
                     o.setPoint = 0;
                     o.refresh = 10;
+                    o.power = 0;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
                     o.Kp = -1;
@@ -1683,7 +1684,8 @@
                         ml("td", {style: "text-align: left;", }, badge(obj.groups[group].enabled, (obj.groups[group].enabled) ? "{#ENABLED}" : "{#DISABLED}")),
                         ml("td", {style: "text-align: center;", }, String(obj.groups[group].id)),
                         ml("td", {style: "text-align: left;", }, String(obj.groups[group].name)),
-                        ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
+//                        ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
+                        ml("td", {style: "text-align: right;", id: "groupPower"+group}, String(obj.groups[group].power)),
                         ml("td", {style: "text-align: center;", onclick: function() {
                             function zeroGetIvList(ivObj) {
                                 ZeroExportGroup_Modal(obj.groups[group], ivObj)
