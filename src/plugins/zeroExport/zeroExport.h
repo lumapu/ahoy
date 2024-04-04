@@ -1376,6 +1376,8 @@ class ZeroExport {
             }
 
             // Calculate
+            uint16_t power100proz = mIv[group][inv]->getMaxPower();
+            uint16_t power2proz = (power100proz *2) / 100;
 
             // if isOff -> Limit Pmin
             if (!mIv[group][inv]->isProducing()) {
@@ -1388,9 +1390,13 @@ class ZeroExport {
             }
 
             // Restriction LimitNew < 2%
-            uint16_t power2proz = (mIv[group][inv]->getMaxPower() *2) / 100;
             if (cfgGroupInv->limitNew < power2proz) {
                 cfgGroupInv->limitNew = power2proz;
+            }
+
+            // Restriction Power + 10% < Limit
+            if ((cfgGroupInv->power + (power100proz * 10 / 100)) < cfgGroupInv->limit) {
+                cfgGroupInv->limitNew += (power100proz * 10 / 100);
             }
 
             // Restriction LimitNew > Pmax
@@ -1399,10 +1405,13 @@ class ZeroExport {
             }
 
             // Restriction LimitNew > 100%
-            uint16_t power100proz = mIv[group][inv]->getMaxPower();
             if (cfgGroupInv->limitNew > power100proz) {
                 cfgGroupInv->limitNew = power100proz;
             }
+
+            // Restriction modulo 4 bzw 2
+            cfgGroupInv->limitNew = cfgGroupInv->limitNew - (cfgGroupInv->limitNew % 4);
+// TODO: HM-800 kann vermutlich nur in 4W Schritten ... 20W -> 16W ... 100W -> 96W
 
             // Restriction deltaLimitNew < 5 W
 /*
@@ -1416,8 +1425,6 @@ class ZeroExport {
                 return false;
             }
 */
-
-            logObj["zeLold"] = cfgGroupInv->limit;
 
             if (cfgGroupInv->limit != cfgGroupInv->limitNew) {
                 cfgGroupInv->doLimit = 1;
