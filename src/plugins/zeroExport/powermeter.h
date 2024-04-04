@@ -161,6 +161,7 @@ class powermeter {
                     result.P = doc["total_power"];
                 } else if (doc.containsKey(F("em:0"))) {
                     // Shelly pro 3EM
+                    result.P = doc["em:0"]["total_act_power"];
                 } else if (doc.containsKey(F("total_act_power"))) {
                     // Shelly pro 3EM
                     result.P = doc["total_act_power"];
