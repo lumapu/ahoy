@@ -602,6 +602,10 @@ class PubMqtt {
             mLastAnyAvail = anyAvail;
         }
 
+    private:
+        enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
+
+    private:
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
         IApp *mApp;

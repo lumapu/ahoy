@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.105 - 2024-04-05
+* cleanup of `defines.h`
+
 ## 0.8.104 - 2024-04-04
 * fix reboot on inverter save (ESP32) #1559
 * fix NRF and Ethernet #1506
