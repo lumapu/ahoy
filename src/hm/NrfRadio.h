@@ -38,7 +38,7 @@ class NrfRadio : public Radio {
             #if defined(SPI_HAL)
             //mNrf24.reset(new RF24());
             #else
-            mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
+            mNrf24.reset(new RF24(DEF_NRF_CE_PIN, DEF_NRF_CS_PIN, SPI_SPEED));
             #endif
         }
         ~NrfRadio() {}
