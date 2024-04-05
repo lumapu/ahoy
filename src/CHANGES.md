@@ -3,6 +3,7 @@
 ## 0.8.106 - 2024-04-05
 * fix bootloop with CMT and NRF on ESP32 #1566 #1562
 * possible fix of #1553
+* change MqTT return value of power limit acknowledge from `boolean` to `float`. The value returned is the same as it was set to confirm reception (not the read back value)
 
 ## 0.8.105 - 2024-04-05
 * cleanup of `defines.h`

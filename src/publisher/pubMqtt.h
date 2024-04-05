@@ -243,7 +243,8 @@ class PubMqtt {
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
                 snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(mSubTopic.data(), "true", true, true, QOS_2);
+                snprintf(mVal.data(), mVal.size(), "%.1f", iv->powerLimit[0]/10.0);
+                publish(mSubTopic.data(), mVal.data(), true, true, QOS_2);
             }
         }
 
