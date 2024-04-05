@@ -7,7 +7,7 @@
 #include <U8g2lib.h>
 
 #include "../../hm/hmSystem.h"
-#include "../../hm/hmRadio.h"
+#include "../../hm/NrfRadio.h"
 #include "../../utils/helper.h"
 #include "../plugin_lang.h"
 #include "Display_Mono.h"
@@ -25,9 +25,9 @@ class Display {
             mMono = NULL;
         }
 
-        void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, RADIO *hmradio, RADIO *hmsradio, uint32_t *utcTs) {
+        void setup(IApp *app, display_t *cfg, HMSYSTEM *sys, RADIO *nrfRadio, RADIO *hmsradio, uint32_t *utcTs) {
             mApp = app;
-            mHmRadio  = hmradio;
+            mNrfRadio  = nrfRadio;
             mHmsRadio = hmsradio;
             mCfg = cfg;
             mSys = sys;
@@ -149,7 +149,7 @@ class Display {
             mDisplayData.totalYieldDay = totalYieldDay;
             mDisplayData.totalYieldTotal = totalYieldTotal;
             bool nrf_en = mApp->getNrfEnabled();
-            bool nrf_ok = nrf_en && mHmRadio->isChipConnected();
+            bool nrf_ok = nrf_en && mNrfRadio->isChipConnected();
             #if defined(ESP32)
             bool cmt_en = mApp->getCmtEnabled();
             bool cmt_ok = cmt_en && mHmsRadio->isChipConnected();
@@ -231,7 +231,7 @@ class Display {
         uint32_t *mUtcTs = nullptr;
         display_t *mCfg = nullptr;
         HMSYSTEM *mSys = nullptr;
-        RADIO *mHmRadio = nullptr;
+        RADIO *mNrfRadio = nullptr;
         RADIO *mHmsRadio = nullptr;
         uint16_t mRefreshCycle = 0;
 

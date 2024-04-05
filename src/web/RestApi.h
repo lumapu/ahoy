@@ -40,7 +40,7 @@ class RestApi {
             mApp      = app;
             mSrv      = srv;
             mSys      = sys;
-            mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
+            mRadioNrf = (NrfRadio<>*)mApp->getRadioObj(true);
             #if defined(ESP32)
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
@@ -1112,7 +1112,7 @@ class RestApi {
     private:
         IApp *mApp = nullptr;
         HMSYSTEM *mSys = nullptr;
-        HmRadio<> *mRadioNrf = nullptr;
+        NrfRadio<> *mRadioNrf = nullptr;
         #if defined(ESP32)
         CmtRadio<> *mRadioCmt = nullptr;
         #endif

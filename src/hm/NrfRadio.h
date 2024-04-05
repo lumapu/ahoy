@@ -8,8 +8,9 @@
 
 #include <RF24.h>
 #include "SPI.h"
-#include "radio.h"
+#include "Radio.h"
 #include "../config/config.h"
+#include "../config/settings.h"
 #if defined(SPI_HAL)
 #include "nrfHal.h"
 #endif
@@ -28,10 +29,10 @@ const char* const rf24AmpPowerNames[] = {"MIN", "LOW", "HIGH", "MAX"};
 //-----------------------------------------------------------------------------
 // HM Radio class
 //-----------------------------------------------------------------------------
-template <uint8_t IRQ_PIN = DEF_NRF_IRQ_PIN, uint8_t CE_PIN = DEF_NRF_CE_PIN, uint8_t CS_PIN = DEF_NRF_CS_PIN, uint8_t AMP_PWR = RF24_PA_LOW, uint8_t SCLK_PIN = DEF_NRF_SCLK_PIN, uint8_t MOSI_PIN = DEF_NRF_MOSI_PIN, uint8_t MISO_PIN = DEF_NRF_MISO_PIN, uint32_t DTU_SN = 0x81001765>
-class HmRadio : public Radio {
+template <uint32_t DTU_SN = 0x81001765>
+class NrfRadio : public Radio {
     public:
-        HmRadio() {
+        NrfRadio() {
             mDtuSn   = DTU_SN;
             mIrqRcvd = false;
             #if defined(SPI_HAL)
@@ -40,12 +41,18 @@ class HmRadio : public Radio {
             mNrf24.reset(new RF24(CE_PIN, CS_PIN, SPI_SPEED));
             #endif
         }
-        ~HmRadio() {}
+        ~NrfRadio() {}
 
-        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN) {
-            DPRINTLN(DBG_VERBOSE, F("hmRadio.h:setup"));
+        void setup(bool *serialDebug, bool *privacyMode, bool *printWholeTrace, cfgNrf24_t *cfg) {
+            DPRINTLN(DBG_VERBOSE, F("NrfRadio::setup"));
 
-            pinMode(irq, INPUT_PULLUP);
+            mCfg = cfg;
+            //uint8_t irq = IRQ_PIN, uint8_t ce = CE_PIN, uint8_t cs = CS_PIN, uint8_t sclk = SCLK_PIN, uint8_t mosi = MOSI_PIN, uint8_t miso = MISO_PIN
+
+            if(!mCfg->enabled)
+                return;
+
+            pinMode(mCfg->pinIrq, INPUT_PULLUP);
 
             mSerialDebug     = serialDebug;
             mPrivacyMode     = privacyMode;
@@ -56,7 +63,7 @@ class HmRadio : public Radio {
 
             #ifdef ESP32
                 #if defined(SPI_HAL)
-                    mNrfHal.init(mosi, miso, sclk, cs, ce, SPI_SPEED);
+                    mNrfHal.init(mCfg->pinMosi, mCfg->pinMiso, mCfg->pinSclk, mCfg->pinCs, mCfg->pinCe, SPI_SPEED);
                     mNrf24.reset(new RF24(&mNrfHal));
                 #else
                     #if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
@@ -64,7 +71,7 @@ class HmRadio : public Radio {
                     #else
                         mSpi.reset(new SPIClass(VSPI));
                     #endif
-                    mSpi->begin(sclk, miso, mosi, cs);
+                    mSpi->begin(mCfg->pinSclk, mCfg->pinMiso, mCfg->pinMosi, mCfg->pinCs);
                 #endif
             #else
                 //the old ESP82xx cannot freely place their SPI pins
@@ -75,7 +82,7 @@ class HmRadio : public Radio {
             #if defined(SPI_HAL)
                 mNrf24->begin();
             #else
-                mNrf24->begin(mSpi.get(), ce, cs);
+                mNrf24->begin(mSpi.get(), mCfg->pinCe, mCfg->pinCs);
             #endif
             mNrf24->setRetries(3, 15); // wait 3*250 = 750us, 16 * 250us -> 4000us = 4ms
 
@@ -99,21 +106,24 @@ class HmRadio : public Radio {
         }
 
         // returns true if communication is active
-        bool loop(void) override {
+        void loop(void) {
+            if(!mCfg->enabled)
+                return;
+
             if (!mIrqRcvd && !mNRFisInRX)
-                return false; // first quick check => nothing to do at all here
+                return; // first quick check => nothing to do at all here
 
             if(NULL == mLastIv) // prevent reading on NULL object!
-                return false;
+                return;
 
             if(!mIrqRcvd) {     // no news from nRF, check timers
                 if ((millis() - mTimeslotStart) < innerLoopTimeout)
-                    return true; // nothing to do, still waiting
+                    return; // nothing to do, still waiting
 
                 if (mRadioWaitTime.isTimeout()) { // timeout reached!
                     mNRFisInRX = false;
                     rx_ready = false;
-                    return false;
+                    return;
                 }
 
                 // otherwise switch to next RX channel
@@ -132,7 +142,7 @@ class HmRadio : public Radio {
                 mNrf24->setChannel(mRfChLst[tempRxChIdx]);
                 isRxInit = false;
 
-                return true; // communicating, but changed RX channel
+                return; // communicating, but changed RX channel
             } else {
                 // here we got news from the nRF
                 mIrqRcvd     = false;
@@ -145,7 +155,7 @@ class HmRadio : public Radio {
 
                     if(mNRFisInRX) {
                         DPRINTLN(DBG_WARN, F("unexpected tx irq!"));
-                        return false;
+                        return;
                     }
 
                     mNRFisInRX = true;
@@ -181,18 +191,23 @@ class HmRadio : public Radio {
                         }
                     }
                     rx_ready = false; // reset
-                    return mNRFisInRX;
+                    return;
                 }
             }
 
-            return false;
+            return;
         }
 
         bool isChipConnected(void) const override {
+            if(!mCfg->enabled)
+                return false;
             return mNrf24->isChipConnected();
         }
 
         void sendControlPacket(Inverter<> *iv, uint8_t cmd, uint16_t *data, bool isRetransmit) override {
+            if(!mCfg->enabled)
+                return;
+
             DPRINT_IVID(DBG_INFO, iv->id);
             DBGPRINT(F("sendControlPacket cmd: "));
             DBGHEXLN(cmd);
@@ -279,13 +294,14 @@ class HmRadio : public Radio {
         }
 
         uint8_t getDataRate(void) const {
-            if(!mNrf24->isChipConnected())
+            if(!isChipConnected())
                 return 3; // unknown
             return mNrf24->getDataRate();
         }
 
         bool isPVariant(void) const {
-            return mNrf24->isPVariant();
+            if(!isChipConnected())
+                return mNrf24->isPVariant();
         }
 
     private:
@@ -413,6 +429,7 @@ class HmRadio : public Radio {
         }
 
         uint64_t mDtuRadioId = 0ULL;
+        cfgNrf24_t *mCfg = nullptr;
         const uint8_t mRfChLst[RF_CHANNELS] = {03, 23, 40, 61, 75}; // channel List:2403, 2423, 2440, 2461, 2475MHz
         uint8_t mTxChIdx = 0;
         uint8_t mRxChIdx = 0;

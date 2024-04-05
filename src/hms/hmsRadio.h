@@ -7,7 +7,7 @@
 #define __HMS_RADIO_H__
 
 #include "cmt2300a.h"
-#include "../hm/radio.h"
+#include "../hm/Radio.h"
 
 //#define CMT_SWITCH_CHANNEL_CYCLE    5
 
@@ -24,16 +24,16 @@ class CmtRadio : public Radio {
             mTxBuf.fill(0);
         }
 
-        bool loop() override {
+        void loop() override {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return false;
+                return;
             getRx();
             if(CmtStatus::SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
-            return false;
+            return;
         }
 
         bool isChipConnected(void) const override {

@@ -45,9 +45,7 @@ void app::setup() {
 
     esp_task_wdt_reset();
 
-    if(mConfig->nrf.enabled) {
-        mNrfRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->nrf.pinIrq, mConfig->nrf.pinCe, mConfig->nrf.pinCs, mConfig->nrf.pinSclk, mConfig->nrf.pinMosi, mConfig->nrf.pinMiso);
-    }
+    mNrfRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, &mConfig->nrf);
     #if defined(ESP32)
     if(mConfig->cmt.enabled) {
         mCmtRadio.setup(&mConfig->serial.debug, &mConfig->serial.privacyLog, &mConfig->serial.printWholeTrace, mConfig->cmt.pinSclk, mConfig->cmt.pinSdio, mConfig->cmt.pinCsb, mConfig->cmt.pinFcsb, mConfig->sys.region);
@@ -141,8 +139,7 @@ void app::setup() {
 void app::loop(void) {
     esp_task_wdt_reset();
 
-    if(mConfig->nrf.enabled)
-        mNrfRadio.loop();
+    mNrfRadio.loop();
 
     #if defined(ESP32)
     if(mConfig->cmt.enabled)

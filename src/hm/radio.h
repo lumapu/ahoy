@@ -33,7 +33,7 @@ class Radio {
         virtual uint16_t getBaseFreqMhz() { return 0; }
         virtual uint16_t getBootFreqMhz() { return 0; }
         virtual std::pair<uint16_t,uint16_t> getFreqRangeMhz(void) { return std::make_pair(0, 0); }
-        virtual bool loop(void) = 0;
+        virtual void loop(void) = 0;
 
         Radio() : mTxBuf{} {}
 

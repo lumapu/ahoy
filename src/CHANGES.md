@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.106 - 2024-04-05
+* fix bootloop with CMT and NRF on ESP32 #1566 #1562
+
 ## 0.8.105 - 2024-04-05
 * cleanup of `defines.h`
 * fix compile of esp32-minimal
