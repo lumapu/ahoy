@@ -19,7 +19,7 @@
 #include "hm/hmSystem.h"
 #include "hm/NrfRadio.h"
 #if defined(ESP32)
-#include "hms/hmsRadio.h"
+#include "hms/CmtRadio.h"
 #endif
 #if defined(ENABLE_MQTT)
 #include "publisher/pubMqtt.h"

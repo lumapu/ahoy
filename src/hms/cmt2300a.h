@@ -248,14 +248,12 @@ class Cmt2300a {
         }
 
         CmtStatus tx(uint8_t buf[], uint8_t len) {
-            if(mTxPending)
-                return CmtStatus::ERR_TX_PENDING;
-
             if(mInRxMode) {
                 mInRxMode = false;
                 if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                     return CmtStatus::ERR_SWITCH_STATE;
             }
+            mTxPending = false; // safety
 
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
