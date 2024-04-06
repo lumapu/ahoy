@@ -26,6 +26,23 @@ Abfrage:
 Ergebnis:
 {"ble":{},"cloud":{"connected":true},"em:0":{"id":0,"a_current":1.269,"a_voltage":228.5,"a_act_power":239.8,"a_aprt_power":289.7,"a_pf":0.86,"a_freq":50.0,"b_current":0.348,"b_voltage":227.5,"b_act_power":24.7,"b_aprt_power":79.0,"b_pf":0.58,"b_freq":50.0,"c_current":0.378,"c_voltage":228.5,"c_act_power":42.3,"c_aprt_power":86.3,"c_pf":0.66,"c_freq":50.0,"n_current":null,"total_current":1.995,"total_act_power":306.811,"total_aprt_power":455.018, "user_calibrated_phase":[]},"emdata:0":{"id":0,"a_total_act_energy":648103.86,"a_total_act_ret_energy":0.00,"b_total_act_energy":142793.47,"b_total_act_ret_energy":171396.02,"c_total_act_energy":493778.01,"c_total_act_ret_energy":0.00,"total_act":1284675.34, "total_act_ret":171396.02},"eth":{"ip":null},"modbus":{},"mqtt":{"connected":false},"script:1":{"id":1,"running":true,"mem_used":1302,"mem_peak":3094,"mem_free":23898},"sys":{"mac":"3CE90E6EBE5C","restart_required":false,"time":"18:09","unixtime":1712074162,"uptime":3180551,"ram_size":240004,"ram_free":96584,"fs_size":524288,"fs_free":176128,"cfg_rev":23,"kvs_rev":9104,"schedule_rev":0,"webhook_rev":0,"available_updates":{},"reset_reason":3},"temperature:0":{"id": 0,"tC":46.2, "tF":115.1},"wifi":{"sta_ip":"192.168.0.69","status":"got ip","ssid":"Riker","rssi":-70},"ws":{"connected":false}}
 
+Shelly PM Mini Gen3
+-------------------
+
+Stand: 04.04.2024
+
+Abfrage:
+rpc/PM1.GetStatus?id=0
+
+Ergebnis:
+{"id":0, "voltage":226.0, "current":0.384, "apower":-55.0 ,"freq":50.0,"aenergy":{"total":11755.618,"by_minute":[1063.082,1700.931,1275.698],"minute_ts":1712248200},"ret_aenergy":{"total":10973.555,"by_minute":[1063.082,1700.931,1275.698],"minute_ts":1712248200}}
+
+Abfrage:
+rpc/Shelly.GetStatus
+
+Ergebnis:
+{"ble":{},"cloud":{"connected":true},"mqtt":{"connected":false},"pm1:0":{"id":0, "voltage":228.5, "current":0.451, "apower":-67.1 ,"freq":50.1,"aenergy":{"total":11754.555,"by_minute":[1700.931,1275.698,1913.547],"minute_ts":1712248140},"ret_aenergy":{"total":10972.492,"by_minute":[1700.931,1275.698,1913.547],"minute_ts":1712248140}},"sys":{"mac":"ECDA3BC63CC8","restart_required":false,"time":"18:29","unixtime":1712248162,"uptime":13723,"ram_size":260764,"ram_free":146460,"fs_size":1048576,"fs_free":729088,"cfg_rev":11,"kvs_rev":2,"schedule_rev":0,"webhook_rev":0,"available_updates":{},"reset_reason":1},"wifi":{"sta_ip":"192.168.0.57","status":"got ip","ssid":"Riker","rssi":-30},"ws":{"connected":false}}
+
 ---------------------------------------------------------------------------
 
 Tasmota
