@@ -68,14 +68,14 @@ class ZeroExport {
 
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        bool DoLog = false;
+        bool DoLog = false; // false state ?
         unsigned long Tsp = millis();
 
         mPowermeter.loop(&Tsp, &DoLog);
         if (DoLog) sendLog();
         clearLog();
 
-        DoLog = false;
+        DoLog = false;      // here again??
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
@@ -139,7 +139,7 @@ class ZeroExport {
                         cfgGroup->state = zeroExportState::CONTROLLER;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
                         cfgGroup->lastRefresh = millis();
-                        cfgGroup->state = zeroExportState::PUBLISH;
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
 #endif
                     } else {
                         cfgGroup->wait = 3000;
@@ -264,8 +264,8 @@ class ZeroExport {
         if (!mIsInitialized) return;
 
         // Select all Inverter to reboot
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+        for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
                 mCfg->groups[group].inverters[inv].doReboot = 1;
             }
         }
@@ -472,11 +472,10 @@ class ZeroExport {
      */
     void onMqttMessage(JsonObject obj) {
         if (!mIsInitialized) return;
+        mLog["t"] = "onMqttMessage";
 
         String topic = String(obj["topic"]);
         if (!topic.indexOf("/zero/set/")) return;
-
-        mLog["t"] = "onMqttMessage";
 
         if (obj["path"] == "zero" && obj["cmd"] == "set") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
@@ -520,11 +519,11 @@ class ZeroExport {
                 }
                 // "topic":"???/zero/set/groups/0/advanced/setPoint"
                 if (topic.indexOf("advanced/setPoint") != -1) {
-                    mCfg->groups[topicGroup].setPoint = (int32_t)obj["val"];
+                    mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
                 }
                 // "topic":"???/zero/set/groups/0/advanced/powerTolerance"
                 if (topic.indexOf("advanced/powerTolerance") != -1) {
-                    mCfg->groups[topicGroup].powerTolerance = (uint16_t)obj["val"];
+                    mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
                 }
                 // "topic":"???/zero/set/groups/0/advanced/powerMax"
                 if (topic.indexOf("advanced/powerMax") != -1) {
@@ -543,6 +542,17 @@ class ZeroExport {
                 if (topic.indexOf("powerMax") != -1) {
                     mCfg->groups[topicGroup].inverters[topicInverter].powerMax = (uint16_t)obj["val"];
                 }
+            }
+        }
+
+        // topic for powermeter?
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
+        {
+            if(mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
+            {
+                mLog["mqttDevice"] = "topicInverter";
+                if(!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
+                mCfg->groups[group].power = (int32_t)obj["val"];
             }
         }
 
@@ -829,10 +839,8 @@ class ZeroExport {
         mCfg->groups[group].pm_P3 = mPowermeter.getDataAVG(group).P3;
 
         if (
-            (mCfg->groups[group].pm_P == 0) &&
-            (mCfg->groups[group].pm_P1 == 0) &&
-            (mCfg->groups[group].pm_P2 == 0) &&
-            (mCfg->groups[group].pm_P3 == 0)) {
+            (mCfg->groups[group].pm_P == 0) && (mCfg->groups[group].pm_P1 == 0) &&
+            (mCfg->groups[group].pm_P2 == 0) && (mCfg->groups[group].pm_P3 == 0)) {
             return false;
         }
 
@@ -842,12 +850,17 @@ class ZeroExport {
         mLog["P3"] = mCfg->groups[group].pm_P3;
 
         // MQTT - Powermeter
-        mqttObj["Sum"] = mCfg->groups[group].pm_P;
-        mqttObj["L1"] = mCfg->groups[group].pm_P1;
-        mqttObj["L2"] = mCfg->groups[group].pm_P2;
-        mqttObj["L3"] = mCfg->groups[group].pm_P3;
-        mMqtt->publish("zero/state/powermeter/P", mqttDoc.as<std::string>().c_str(), false);
-        mqttDoc.clear();
+        if(mMqtt->isConnected())
+        {
+            mqttObj["Sum"] = mCfg->groups[group].pm_P;
+            mqttObj["L1"] = mCfg->groups[group].pm_P1;
+            mqttObj["L2"] = mCfg->groups[group].pm_P2;
+            mqttObj["L3"] = mCfg->groups[group].pm_P3;
+            mMqtt->publish("zero/state/powermeter/P", mqttDoc.as<std::string>().c_str(), false);
+            mqttDoc.clear();
+        }
+
+
 
         //            if (cfgGroup->pm_Publish_W) {
         //                cfgGroup->pm_Publish_W = false;
@@ -1229,7 +1242,7 @@ class ZeroExport {
             if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitAckSetReboot == 0)) {
                 cfgGroupInv->doReboot = -1;
                 if (mCfg->debug) {
-                    logObj["act"] = "done";
+                    logObj["act"] = "nothing to do";
                     *doLog = true;
                 }
                 continue;
@@ -1504,18 +1517,38 @@ class ZeroExport {
             obj["cmd"] = "limit_nonpersistent_absolute";
             mApi->ctrlRequest(obj);
 
+            // publish to mqtt when mqtt
+            if(mMqtt->isConnected()) //@TODO: check if isConnected the correct way, or better bool from settings?
+            {
+                String gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
+                mqttObj["enabled"] = cfgGroupInv->enabled;
+                mqttObj["id"] = cfgGroupInv->id;
+                mqttObj["target"] = cfgGroupInv->target;
+                mqttObj["powerMin"] = cfgGroupInv->powerMin;
+                mqttObj["powerMax"] = cfgGroupInv->powerMax;
+                mMqtt->publish(gr.c_str(), mqttDoc.as<std::string>().c_str(), false);
+                mqttDoc.clear();
+            }
+
             if (mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
     }
-
-    /**
-     *
-     */
-    void PubSubInit(String gr, String payload) {
-        mMqtt->publish(gr.c_str(), payload.c_str(), false);
+    /* mqttSubscribe
+     * when a MQTT Msg is needed to subscribe, then a publish is leading
+    */
+    void mqttSubscribe(String gr, String payload)
+    {
+        mqttPublish(gr, payload);
         mMqtt->subscribe(gr.c_str(), QOS_2);
+    }
+    /* PubInit
+     * when a MQTT Msg is needed to Publish, but not to subscribe.
+    */
+    void mqttPublish(String gr, String payload, bool retain = false)
+    {
+        mMqtt->publish(gr.c_str(), payload.c_str(), retain);
     }
 
     /**
@@ -1528,40 +1561,45 @@ class ZeroExport {
         mIsSubscribed = true;
 
         // Global (zeroExport)
-        mMqtt->publish("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-        mMqtt->subscribe("zero/set/enabled", QOS_2);
+        // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+        mqttSubscribe("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
-        mMqtt->publish("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-        mMqtt->subscribe("zero/set/sleep", QOS_2);
+        // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
+        mqttSubscribe("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
-        // Gruppen
         String gr;
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+            if(!cfgGroup->enabled) continue; // exit here when group is disabled
+
             gr = "zero/set/groups/" + String(group);
 
             // General
-            PubSubInit(gr + "/enabled", ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
-            PubSubInit(gr + "/sleep", ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
+            mqttSubscribe(gr + "/enabled", ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
+            mqttSubscribe(gr + "/sleep", ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
             // Powermeter
 
-            // Inverters
+            // Inverters - Only Publish
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
 
-                PubSubInit(gr + "/inverters/" + String(inv) + "/enabled", ((cfgGroupInv->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
-                PubSubInit(gr + "/inverters/" + String(inv) + "/powerMin", String(cfgGroupInv->powerMin));
-                PubSubInit(gr + "/inverters/" + String(inv) + "/powerMax", String(cfgGroupInv->powerMax));
+                mqttSubscribe(gr + "/inverters/" + String(inv) + "/enabled", ((cfgGroupInv->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
+                mqttSubscribe(gr + "/inverters/" + String(inv) + "/powerMin", String(cfgGroupInv->powerMin));
+                mqttSubscribe(gr + "/inverters/" + String(inv) + "/powerMax", String(cfgGroupInv->powerMax));
             }
 
             // Battery
-            PubSubInit(gr + "/battery/switch", ((cfgGroup->battSwitch) ? dict[STR_TRUE] : dict[STR_FALSE]));
+            mqttSubscribe(gr + "/battery/switch", ((cfgGroup->battSwitch) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
             // Advanced
-            PubSubInit(gr + "/advanced/setPoint", String(cfgGroup->setPoint));
-            PubSubInit(gr + "/advanced/powerTolerance", String(cfgGroup->powerTolerance));
-            PubSubInit(gr + "/advanced/powerMax", String(cfgGroup->powerMax));
+            mqttSubscribe(gr + "/advanced/setPoint", String(cfgGroup->setPoint));
+            mqttSubscribe(gr + "/advanced/powerTolerance", String(cfgGroup->powerTolerance));
+            mqttSubscribe(gr + "/advanced/powerMax", String(cfgGroup->powerMax));
+            mqttSubscribe(gr + "/advanced/refresh", String(cfgGroup->refresh));
+            mqttSubscribe(gr + "/advanced/Kp", String(cfgGroup->Kp));
+            mqttSubscribe(gr + "/advanced/Ki", String(cfgGroup->Ki));
+            mqttSubscribe(gr + "/advanced/Kd", String(cfgGroup->Kd));
         }
     }
 
@@ -1580,54 +1618,20 @@ class ZeroExport {
             String gr;
 
             // Global (zeroExport)
-            // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
-            mMqtt->publish("zero/state/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-            // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
-            mMqtt->publish("zero/state/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+            mqttSubscribe("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
+            mqttSubscribe("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
             // General
             gr = "zero/state/groups/" + String(group) + "/enabled";
-            mMqtt->publish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
+
+            mqttPublish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
+            mqttPublish(gr.c_str(), ((cfgGroup->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
             gr = "zero/state/groups/" + String(group) + "/sleep";
             mMqtt->publish(gr.c_str(), ((cfgGroup->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
 
             gr = "zero/state/groups/" + String(group) + "/name";
             mMqtt->publish(gr.c_str(), cfgGroup->name, false);
-
-            // Inverters
-            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-                zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
-                gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
-                mqttObj["enabled"] = cfgGroupInv->enabled;
-                mqttObj["id"] = cfgGroupInv->id;
-                mqttObj["target"] = cfgGroupInv->target;
-                mqttObj["powerMin"] = cfgGroupInv->powerMin;
-                mqttObj["powerMax"] = cfgGroupInv->powerMax;
-                mMqtt->publish(gr.c_str(), mqttDoc.as<std::string>().c_str(), false);
-                mqttDoc.clear();
-            }
-
-            // Battery
-            gr = "zero/state/groups/" + String(group) + "/battery";
-            mqttObj["enabled"] = cfgGroup->battEnabled;
-            mqttObj["voltageOn"] = cfgGroup->battVoltageOn;
-            mqttObj["voltageOff"] = cfgGroup->battVoltageOff;
-            mqttObj["switch"] = cfgGroup->battSwitch;
-            mMqtt->publish(gr.c_str(), mqttDoc.as<std::string>().c_str(), false);
-            mqttDoc.clear();
-
-            // Advanced
-            gr = "zero/state/groups/" + String(group) + "/advanced";
-            mqttObj["setPoint"] = cfgGroup->setPoint;
-            mqttObj["refresh"] = cfgGroup->refresh;
-            mqttObj["powerTolerance"] = cfgGroup->powerTolerance;
-            mqttObj["powerMax"] = cfgGroup->powerMax;
-            mqttObj["Kp"] = cfgGroup->Kp;
-            mqttObj["Ki"] = cfgGroup->Ki;
-            mqttObj["Kd"] = cfgGroup->Kd;
-            mMqtt->publish(gr.c_str(), mqttDoc.as<std::string>().c_str(), false);
-            mqttDoc.clear();
         }
 
         return true;
