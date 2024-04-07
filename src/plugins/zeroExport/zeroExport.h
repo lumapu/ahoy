@@ -284,7 +284,7 @@ class ZeroExport {
             unsigned long bTsp = millis();
 
             mLog["g"] = group;
-            mLog["s"] = (100 + (uint8_t)zeroExportState::SETLIMIT);
+            mLog["s"] = (uint8_t)zeroExportState::SETLIMIT;
             if (mCfg->debug) mLog["t"] = "eventAckSetLimit";
 
             JsonArray logArr = mLog.createNestedArray("ix");
@@ -294,7 +294,7 @@ class ZeroExport {
                     JsonObject logObj = logArr.createNestedObject();
 
                     logObj["i"] = inv;
-                    logObj["id"] = iv->id;
+                    if (mCfg->debug) logObj["id"] = iv->id;
                     mCfg->groups[group].inverters[inv].waitAckSetLimit = 0;
                     logObj["wL"] = mCfg->groups[group].inverters[inv].waitAckSetLimit;
 
@@ -328,7 +328,7 @@ class ZeroExport {
             unsigned long bTsp = millis();
 
             mLog["g"] = group;
-            mLog["s"] = (100 + (uint8_t)zeroExportState::SETPOWER);
+            mLog["s"] = (uint8_t)zeroExportState::SETPOWER;
             if (mCfg->debug) mLog["t"] = "eventAckSetPower";
 
             JsonArray logArr = mLog.createNestedArray("ix");
@@ -372,7 +372,7 @@ class ZeroExport {
             unsigned long bTsp = millis();
 
             mLog["g"] = group;
-            mLog["s"] = (100 + (uint8_t)zeroExportState::SETREBOOT);
+            mLog["s"] = (uint8_t)zeroExportState::SETREBOOT;
             if (mCfg->debug) mLog["t"] = "eventAckSetReboot";
 
             JsonArray logArr = mLog.createNestedArray("ix");
@@ -689,6 +689,7 @@ class ZeroExport {
      */
     bool groupGetInverterData(uint8_t group, unsigned long *tsp, bool *doLog) {
         zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+        bool result = true;
 
         cfgGroup->lastRun = *tsp;
 
@@ -696,9 +697,6 @@ class ZeroExport {
             mLog["t"] = "groupGetInverterData";
             *doLog = true;
         }
-
-        // Init data
-        cfgGroup->power = 0;
 
         // Get Data
         JsonArray logArr = mLog.createNestedArray("ix");
@@ -713,7 +711,10 @@ class ZeroExport {
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            if (!mIv[group][inv]->isAvailable()) continue;
+            if (!mIv[group][inv]->isAvailable()) {
+                result = false;
+                continue;
+            }
 
             record_t<> *rec;
             rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
@@ -724,14 +725,22 @@ class ZeroExport {
             power += cfgGroupInv->power;
 
             // Get dcVoltage
-            cfgGroupInv->dcVoltage = mIv[group][inv]->getChannelFieldValue(CH1, FLD_UDC, rec);
+            float U = mIv[group][inv]->getChannelFieldValue(CH1, FLD_UDC, rec);
+            if (U == 0) {
+                result = false;
+                continue;
+            }
+            cfgGroupInv->dcVoltage = U;
             logObj["U"] = cfgGroupInv->dcVoltage;
         }
 
         cfgGroup->power = power;
         mLog["P"] = cfgGroup->power;
 
-        return true;
+        if ((cfgGroup->battEnabled) && (cfgGroup->power > 0))
+            cfgGroup->battSwitch = true;
+
+        return result;
     }
 
     /** groupBatteryprotection
@@ -779,22 +788,35 @@ class ZeroExport {
                 return false;
             }
 
-            bool switchOn = true;
-            bool switchOff = false;
-            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-                // Inverter not enabled or not selected -> ignore
-                if (NotEnabledOrNotSelected(group, inv)) continue;
+            // Check
+            JsonArray logArr = mLog.createNestedArray("ix");
 
-                if (cfgGroup->inverters[inv].dcVoltage < cfgGroup->battVoltageOn) switchOn = false;
-                if (cfgGroup->inverters[inv].dcVoltage < cfgGroup->battVoltageOff) switchOff = true;
-            }
+            if (!cfgGroup->battSwitch) {
+                // is off turn on
+                for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    // Inverter not enabled or not selected -> ignore
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
 
-            if (switchOff == true) {
-                cfgGroup->battSwitch = false;
-                *doLog = true;
-            } else {
-                if (switchOn == true) {
+                    JsonObject logObj = logArr.createNestedObject();
+                    logObj["i"] = inv;
+                    logObj["U"] = cfgGroup->inverters[inv].dcVoltage;
+
+                    if (cfgGroup->inverters[inv].dcVoltage < cfgGroup->battVoltageOn) continue;
                     cfgGroup->battSwitch = true;
+                    *doLog = true;
+                }
+            } else {
+                // is on turn off
+                for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+                    // Inverter not enabled or not selected -> ignore
+                    if (NotEnabledOrNotSelected(group, inv)) continue;
+
+                    JsonObject logObj = logArr.createNestedObject();
+                    logObj["i"] = inv;
+                    logObj["U"] = cfgGroup->inverters[inv].dcVoltage;
+
+                    if (cfgGroup->inverters[inv].dcVoltage > cfgGroup->battVoltageOff) continue;
+                    cfgGroup->battSwitch = false;
                     *doLog = true;
                 }
             }
@@ -1085,9 +1107,9 @@ class ZeroExport {
             // Inverter not enabled or not selected -> ignore
             if (NotEnabledOrNotSelected(group, inv)) continue;
 
-///            record_t<> *rec;
-///            rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
-///            cfgGroupInv->power = mIv[group][inv]->getChannelFieldValue(CH0, FLD_PAC, rec);
+            ///            record_t<> *rec;
+            ///            rec = mIv[group][inv]->getRecordStruct(RealTimeRunData_Debug);
+            ///            cfgGroupInv->power = mIv[group][inv]->getChannelFieldValue(CH0, FLD_PAC, rec);
 
             if ((cfgGroupInv->power < ivPmin[cfgGroupInv->target]) && (cfgGroupInv->limit < cfgGroupInv->powerMax) && (cfgGroupInv->limit < mIv[group][inv]->getMaxPower())) {
                 grpTarget[cfgGroupInv->target] = true;
@@ -1216,6 +1238,7 @@ class ZeroExport {
             if (mCfg->debug) {
                 logObj["dR"] = cfgGroupInv->doReboot;
                 logObj["wR"] = cfgGroupInv->waitAckSetReboot;
+                *doLog = true;
             }
 
             // Wait
@@ -1402,9 +1425,9 @@ class ZeroExport {
                 continue;
             }
 
+            logObj["wL"] = cfgGroupInv->waitAckSetLimit;
             if (mCfg->debug) {
                 logObj["dL"] = cfgGroupInv->doLimit;
-                logObj["wL"] = cfgGroupInv->waitAckSetLimit;
                 logObj["L"] = cfgGroupInv->limit;
             }
 
@@ -1660,18 +1683,6 @@ class ZeroExport {
      * Sendet den LogSpeicher über Webserial und/oder MQTT
      */
     void sendLog(void) {
-
-//if (mLog["s"] == 1) return;
-//if (mLog["s"] == 2) return;
-//if (mLog["s"] == 3) return;
-if (mLog["s"] == 4) return;
-//if (mLog["s"] == 5) return;
-//if (mLog["s"] == 6) return;
-//if (mLog["s"] == 7) return;
-//if (mLog["s"] == 8) return;
-//if (mLog["s"] == 9) return;
-//if (mLog["s"] == 10) return;
-
         // Log over Webserial
         if (mCfg->log_over_webserial) {
             DPRINTLN(DBG_INFO, String("ze: ") + mDocLog.as<String>());
