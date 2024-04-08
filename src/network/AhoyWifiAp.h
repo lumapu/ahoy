@@ -44,6 +44,7 @@ class AhoyWifiAp {
             WiFi.softAPConfig(mIp, mIp, IPAddress(255, 255, 255, 0));
             WiFi.softAP(WIFI_AP_SSID, mCfg->apPwd);
 
+            mDns.setErrorReplyCode(DNSReplyCode::NoError);
             mDns.start(53, "*", mIp);
 
             mEnabled = true;

@@ -91,12 +91,10 @@ class AhoyNetwork {
 
         #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj) {
-            JsonArray nets = obj.createNestedArray(F("networks"));
-
             if(!mScanActive) {
                 mScanActive = true;
-                if(NetworkState::GOT_IP != mStatus)
-                    WiFi.disconnect();
+                //if(NetworkState::GOT_IP != mStatus)
+                //    WiFi.disconnect();
                 WiFi.scanNetworks(true, true);
                 return false;
             }
@@ -106,6 +104,7 @@ class AhoyNetwork {
                 return false;
 
             if(n > 0) {
+                JsonArray nets = obj.createNestedArray(F("networks"));
                 int sort[n];
                 sortRSSI(&sort[0], n);
                 for (int i = 0; i < n; ++i) {

@@ -76,6 +76,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
+            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));   //Android captive portal
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));

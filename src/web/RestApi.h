@@ -892,6 +892,7 @@ class RestApi {
         #if !defined(ETHERNET)
         void getNetworks(JsonObject obj) {
             obj[F("success")] = mApp->getAvailNetworks(obj);
+            obj[F("ip")] = mApp->getIp();
         }
         #endif /* !defined(ETHERNET) */
 

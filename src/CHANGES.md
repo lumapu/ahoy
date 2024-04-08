@@ -3,6 +3,7 @@
 ## 0.8.107 - 2024-04-08
 * fix boot loop on `reboot on midnight` feature #1542, #1599, #1566, #1571
 * fix German translation #1569
+* improved `Wizard`
 
 ## 0.8.106 - 2024-04-05
 * fix bootloop with CMT and NRF on ESP32 #1566 #1562
