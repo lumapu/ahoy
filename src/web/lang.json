@@ -6,7 +6,7 @@
                 {
                     "token": "NAV_WIZARD",
                     "en": "Setup Wizard",
-                    "de": "Daten"
+                    "de": "Einrichtungsassitent"
                 },
                 {
                     "token": "NAV_LIVE",
@@ -81,7 +81,7 @@
                 {
                     "token": "BTN_NEXT",
                     "en": "next >>",
-                    "de": "pr&uuml;fen >>"
+                    "de": "speichern >>"
                 },
                 {
                     "token": "BTN_REBOOT",
