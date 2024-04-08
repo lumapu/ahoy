@@ -68,14 +68,14 @@ class ZeroExport {
 
         if ((!mIsInitialized) || (!mCfg->enabled)) return;
 
-        bool DoLog = false; // false state ?
+        bool DoLog = false;
         unsigned long Tsp = millis();
 
         mPowermeter.loop(&Tsp, &DoLog);
         if (DoLog) sendLog();
         clearLog();
 
-        DoLog = false;      // here again??
+        DoLog = false;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
@@ -263,9 +263,11 @@ class ZeroExport {
     void tickMidnight(void) {
         if (!mIsInitialized) return;
 
-        // Select all Inverter to reboot
-        for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
-            for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+       // Select all Inverter to reboot
+       // shutdown for clean start environment
+       //@Todo: move to ahoy!
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+           for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 mCfg->groups[group].inverters[inv].doReboot = 1;
             }
         }
@@ -552,7 +554,7 @@ class ZeroExport {
             {
                 mLog["mqttDevice"] = "topicInverter";
                 if(!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
-                mCfg->groups[group].power = (int32_t)obj["val"];
+                mCfg->groups[group].pm_P = (int32_t)obj["val"];
             }
         }
 
@@ -808,6 +810,14 @@ class ZeroExport {
                     *doLog = true;
                 }
             }
+           // Battery
+            String gr = "zero/state/groups/" + String(group) + "/battery";
+            mqttObj["enabled"] = cfgGroup->battEnabled;
+            mqttObj["voltageOn"] = cfgGroup->battVoltageOn;
+            mqttObj["voltageOff"] = cfgGroup->battVoltageOff;
+            mqttObj["switch"] = cfgGroup->battSwitch;
+            mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
+            mqttDoc.clear();
         } else {
             mLog["en"] = false;
 
@@ -1016,6 +1026,18 @@ class ZeroExport {
             mLog["tol"] = cfgGroup->powerTolerance;
             return false;
         }
+
+        // Advanced
+        String gr = "zero/state/groups/" + String(group) + "/advanced";
+        mqttObj["setPoint"] = cfgGroup->setPoint;
+        mqttObj["refresh"] = cfgGroup->refresh;
+        mqttObj["powerTolerance"] = cfgGroup->powerTolerance;
+        mqttObj["powerMax"] = cfgGroup->powerMax;
+        mqttObj["Kp"] = cfgGroup->Kp;
+        mqttObj["Ki"] = cfgGroup->Ki;
+        mqttObj["Kd"] = cfgGroup->Kd;
+        mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
+        mqttDoc.clear();
 
         return true;
     }
@@ -1242,7 +1264,7 @@ class ZeroExport {
             if ((cfgGroupInv->doReboot == 2) && (cfgGroupInv->waitAckSetReboot == 0)) {
                 cfgGroupInv->doReboot = -1;
                 if (mCfg->debug) {
-                    logObj["act"] = "nothing to do";
+                    logObj["act"] = "done";
                     *doLog = true;
                 }
                 continue;
@@ -1518,7 +1540,7 @@ class ZeroExport {
             mApi->ctrlRequest(obj);
 
             // publish to mqtt when mqtt
-            if(mMqtt->isConnected()) //@TODO: check if isConnected the correct way, or better bool from settings?
+            if(mMqtt->isConnected())
             {
                 String gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
                 mqttObj["enabled"] = cfgGroupInv->enabled;
