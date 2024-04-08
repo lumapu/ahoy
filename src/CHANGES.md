@@ -1,5 +1,8 @@
 # Development Changes
 
+## 0.8.107 - 2024-04-08
+* fix boot loop on `reboot on midnight` feature #1542, #1599, #1566, #1571
+
 ## 0.8.106 - 2024-04-05
 * fix bootloop with CMT and NRF on ESP32 #1566 #1562
 * possible fix of #1553

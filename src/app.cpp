@@ -162,7 +162,7 @@ void app::onNetwork(bool gotIp) {
     ah::Scheduler::resetTicker();
     regularTickers(); //reinstall regular tickers
     every(std::bind(&app::tickSend, this), mConfig->inst.sendInterval, "tSend");
-    mMqttReconnect = true;
+    mTickerInstallOnce = true;
     mSunrise = 0;  // needs to be set to 0, to reinstall sunrise and ivComm tickers!
     once(std::bind(&app::tickNtpUpdate, this), 2, "ntp2");
 }
@@ -200,40 +200,37 @@ void app::onNtpUpdate(bool gotTime) {
         mCalculatedTimezoneOffset = (int8_t)((mConfig->sun.lon >= 0 ? mConfig->sun.lon + 7.5 : mConfig->sun.lon - 7.5) / 15) * 3600;
         tickCalcSunrise();
     }
+
+    if (mTickerInstallOnce) {
+        mTickerInstallOnce = false;
+        #if defined(ENABLE_MQTT)
+        if (mMqttEnabled) {
+            mMqtt.tickerSecond();
+            everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
+            everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
+        }
+        #endif /*ENABLE_MQTT*/
+
+        if (mConfig->inst.rstValsNotAvail)
+            everyMin(std::bind(&app::tickMinute, this), "tMin");
+
+        if(mNtpReceived) {
+            uint32_t localTime = gTimezone.toLocal(mTimestamp);
+            uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
+            onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
+
+            if (mConfig->sys.schedReboot) {
+                uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
+                onceAt(std::bind(&app::tickReboot, this), rebootTrig, "midRe");
+            }
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
 void app::updateNtp(void) {
-    #if defined(ENABLE_MQTT)
-    if (mMqttReconnect && mMqttEnabled) {
-        mMqtt.tickerSecond();
-        everySec(std::bind(&PubMqttType::tickerSecond, &mMqtt), "mqttS");
-        everyMin(std::bind(&PubMqttType::tickerMinute, &mMqtt), "mqttM");
-    }
-    #endif /*ENABLE_MQTT*/
-
-    // only install schedulers once even if NTP wasn't successful in first loop
-    if (mMqttReconnect) {  // @TODO: mMqttReconnect is variable which scope has changed
-        if (mConfig->inst.rstValsNotAvail)
-            everyMin(std::bind(&app::tickMinute, this), "tMin");
-
-        uint32_t localTime = gTimezone.toLocal(mTimestamp);
-        uint32_t midTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86400);  // next midnight local time
-        onceAt(std::bind(&app::tickMidnight, this), midTrig, "midNi");
-
-        if (mConfig->sys.schedReboot) {
-            uint32_t rebootTrig = gTimezone.toUTC(localTime - (localTime % 86400) + 86410);  // reboot 10 secs after midnght
-            if (rebootTrig <= mTimestamp) { //necessary for times other than midnight to prevent reboot loop
-               rebootTrig += 86400;
-            }
-            onceAt(std::bind(&app::tickReboot, this), rebootTrig, "midRe");
-        }
-    }
-
     if(mNtpReceived)
         onNtpUpdate(true);
-
-    mMqttReconnect = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -248,8 +245,6 @@ void app::tickNtpUpdate(void) {
     }
 
     updateNtp();
-
-    mMqttReconnect = false;
 
     once(std::bind(&app::tickNtpUpdate, this), nxtTrig, "ntp");
 }
@@ -548,6 +543,7 @@ void app::resetSystem(void) {
 
     mNetworkConnected = false;
     mNtpReceived = false;
+    mTickerInstallOnce = false;
 }
 
 //-----------------------------------------------------------------------------

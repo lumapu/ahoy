@@ -96,7 +96,7 @@
                 {
                     "token": "TRY_TO_CONNECT",
                     "en": "AhoyDTU is trying to connect to your WiFi",
-                    "de": "AhoyDTU versucht eine Verindung mit deinem Netzwerk herzustellen"
+                    "de": "AhoyDTU versucht eine Verbindung mit Deinem Netzwerk herzustellen"
                 },
                 {
                     "token": "CONNECTING",

@@ -447,7 +447,7 @@ class app : public IApp, public ah::Scheduler {
         #if defined(ENABLE_MQTT)
         PubMqttType mMqtt;
         #endif /*ENABLE_MQTT*/
-        bool mMqttReconnect = false;
+        bool mTickerInstallOnce = false;
         bool mMqttEnabled = false;
 
         // sun
