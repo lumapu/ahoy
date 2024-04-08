@@ -139,7 +139,7 @@ class ZeroExport {
                         cfgGroup->state = zeroExportState::CONTROLLER;
 #if defined(ZEROEXPORT_DEV_POWERMETER)
                         cfgGroup->lastRefresh = millis();
-                        cfgGroup->state = zeroExportState::PUBLISH;
+                        cfgGroup->state = zeroExportState::WAITREFRESH;
 #endif
                     } else {
                         cfgGroup->wait = 3000;
@@ -433,7 +433,7 @@ class ZeroExport {
                 // Calculate
                 int32_t ivLp = iv->actPowerLimit;
                 int32_t ivPm = iv->getMaxPower();
-                ;
+
                 int32_t ivL = (ivPm * ivLp) / 100;
                 int32_t zeL = mCfg->groups[group].inverters[inv].limit;
 
@@ -843,6 +843,7 @@ class ZeroExport {
         mCfg->groups[group].lastRun = *tsp;
 
         if (mCfg->debug) mLog["t"] = "groupGetPowermeter";
+        mLog["g"] = group;
         *doLog = true;
 
         mCfg->groups[group].pm_P = mPowermeter.getDataAVG(group).P;
