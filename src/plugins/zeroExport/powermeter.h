@@ -117,6 +117,16 @@ class powermeter {
     }
 
    private:
+    HTTPClient http;
+
+    zeroExport_t *mCfg;
+    JsonObject *mLog;
+
+    unsigned long mPreviousTsp = 0;
+
+    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
+    short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
+
 
     // set HTTPClient header
     void setHeader(HTTPClient* h) {
@@ -142,14 +152,7 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsShelly";
 
-        HTTPClient http;
-        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        http.setUserAgent("Ahoy-Agent");
-        // TODO: Ahoy-0.8.850024-zero
-        http.setConnectTimeout(500);
-        http.setTimeout(1000);
-        http.addHeader("Content-Type", "application/json");
-        http.addHeader("Accept", "application/json");
+        setHeader(&http);
 
         String url = String("http://") + String(mCfg->groups[group].pm_url) + String("/") + String(mCfg->groups[group].pm_jsonPath);
         logObj["HTTP_URL"] = url;
@@ -340,11 +343,9 @@ class powermeter {
 
         logObj["mod"] = "getPowermeterWattsMqtt";
 
-        // Hier neuer Code - Anfang
-
-        // TODO: Noch nicht komplett
-
-        // Hier neuer Code - Ende
+        // topic for powermeter?
+        result.P = mCfg->groups[group].pm_P;
+        result.P1 = result.P2 = result.P3 = mCfg->groups[group].pm_P / 3;
 
         return result;
     }
@@ -531,16 +532,6 @@ class powermeter {
         mPowermeterBufferPos[group]++;
         if (mPowermeterBufferPos[group] >= 5) mPowermeterBufferPos[group] = 0;
     }
-
-    HTTPClient http;
-
-    zeroExport_t *mCfg;
-    JsonObject *mLog;
-
-    unsigned long mPreviousTsp = 0;
-
-    PowermeterBuffer_t mPowermeterBuffer[ZEROEXPORT_MAX_GROUPS][5] = {0};
-    short mPowermeterBufferPos[ZEROEXPORT_MAX_GROUPS] = {0};
 };
 
 #endif /*__POWERMETER_H__*/
