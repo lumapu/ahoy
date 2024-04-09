@@ -93,8 +93,8 @@ class AhoyNetwork {
         bool getAvailNetworks(JsonObject obj) {
             if(!mScanActive) {
                 mScanActive = true;
-                //if(NetworkState::GOT_IP != mStatus)
-                //    WiFi.disconnect();
+                if(NetworkState::GOT_IP != mStatus)
+                    WiFi.disconnect();
                 WiFi.scanNetworks(true, true);
                 return false;
             }
