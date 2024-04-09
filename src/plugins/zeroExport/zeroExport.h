@@ -255,6 +255,7 @@ class ZeroExport {
 
     /** tickerMidnight
      * Time pulse Midnicht
+     * Reboots Inverter at Midnight to reset YieldDay and clean start environment
      * @param void
      * @returns void
      * @todo Reboot der Inverter um Mitternacht in Ahoy selbst verschieben mit separater Config-Checkbox
@@ -263,9 +264,6 @@ class ZeroExport {
     void tickMidnight(void) {
         if (!mIsInitialized) return;
 
-       // Select all Inverter to reboot
-       // shutdown for clean start environment
-       //@Todo: move to ahoy!
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 mCfg->groups[group].inverters[inv].doReboot = 1;
