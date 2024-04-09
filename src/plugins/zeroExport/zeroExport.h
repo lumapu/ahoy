@@ -520,11 +520,11 @@ class ZeroExport {
                 }
                 // "topic":"???/zero/set/groups/0/advanced/setPoint"
                 if (topic.indexOf("advanced/setPoint") != -1) {
-                    mCfg->groups[topicGroup].setPoint = (int32_t)obj["val"];
+                    mCfg->groups[topicGroup].setPoint = (int16_t)obj["val"];
                 }
                 // "topic":"???/zero/set/groups/0/advanced/powerTolerance"
                 if (topic.indexOf("advanced/powerTolerance") != -1) {
-                    mCfg->groups[topicGroup].powerTolerance = (uint16_t)obj["val"];
+                    mCfg->groups[topicGroup].powerTolerance = (uint8_t)obj["val"];
                 }
                 // "topic":"???/zero/set/groups/0/advanced/powerMax"
                 if (topic.indexOf("advanced/powerMax") != -1) {
@@ -843,7 +843,6 @@ class ZeroExport {
         mCfg->groups[group].lastRun = *tsp;
 
         if (mCfg->debug) mLog["t"] = "groupGetPowermeter";
-        mLog["g"] = group;
         *doLog = true;
 
         mCfg->groups[group].pm_P = mPowermeter.getDataAVG(group).P;
@@ -869,7 +868,7 @@ class ZeroExport {
         mqttObj["L1"] = mCfg->groups[group].pm_P1;
         mqttObj["L2"] = mCfg->groups[group].pm_P2;
         mqttObj["L3"] = mCfg->groups[group].pm_P3;
-        mMqtt->publish("zero/state/powermeter/P", mqttDoc.as<std::string>().c_str(), false);
+        mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
         mqttDoc.clear();
 
         //            if (cfgGroup->pm_Publish_W) {
