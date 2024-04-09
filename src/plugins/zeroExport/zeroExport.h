@@ -474,10 +474,11 @@ class ZeroExport {
      */
     void onMqttMessage(JsonObject obj) {
         if (!mIsInitialized) return;
-        mLog["t"] = "onMqttMessage";
 
         String topic = String(obj["topic"]);
         if (!topic.indexOf("/zero/set/")) return;
+
+        mLog["t"] = "onMqttMessage";
 
         if (obj["path"] == "zero" && obj["cmd"] == "set") {
             int8_t topicGroup = getGroupFromTopic(topic.c_str());
