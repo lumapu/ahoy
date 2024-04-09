@@ -22,7 +22,7 @@
 #include <functional>
 #include "../config/settings.h"
 
-#include "radio.h"
+#include "Radio.h"
 /**
  * For values which are of interest and not transmitted by the inverter can be
  * calculated automatically.

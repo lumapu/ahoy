@@ -22,6 +22,12 @@ class AhoyWifiAp {
         void tickLoop() {
             if(mEnabled)
                 mDns.processNextRequest();
+
+            if (WiFi.softAPgetStationNum() != mLast) {
+                mLast = WiFi.softAPgetStationNum();
+                if(mLast > 0)
+                    DBGPRINTLN(F("AP client connected"));
+            }
         }
 
         void enable() {
@@ -38,6 +44,7 @@ class AhoyWifiAp {
             WiFi.softAPConfig(mIp, mIp, IPAddress(255, 255, 255, 0));
             WiFi.softAP(WIFI_AP_SSID, mCfg->apPwd);
 
+            mDns.setErrorReplyCode(DNSReplyCode::NoError);
             mDns.start(53, "*", mIp);
 
             mEnabled = true;
@@ -46,6 +53,9 @@ class AhoyWifiAp {
 
         void disable() {
             if(!mEnabled)
+                return;
+
+            if(WiFi.softAPgetStationNum() > 0)
                 return;
 
             mDns.stop();
@@ -68,6 +78,7 @@ class AhoyWifiAp {
         DNSServer mDns;
         IPAddress mIp;
         bool mEnabled = false;
+        uint8_t mLast = 0;
 };
 
 #endif /*__AHOY_WIFI_AP_H__*/

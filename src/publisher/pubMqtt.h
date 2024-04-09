@@ -243,7 +243,8 @@ class PubMqtt {
         void setPowerLimitAck(Inverter<> *iv) {
             if (NULL != iv) {
                 snprintf(mSubTopic.data(), mSubTopic.size(), "%s/%s", iv->config->name, subtopics[MQTT_ACK_PWR_LMT]);
-                publish(mSubTopic.data(), "true", true, true, QOS_2);
+                snprintf(mVal.data(), mVal.size(), "%.1f", iv->powerLimit[0]/10.0);
+                publish(mSubTopic.data(), mVal.data(), true, true, QOS_2);
             }
         }
 
@@ -251,8 +252,8 @@ class PubMqtt {
         void onConnect(bool sessionPreset) {
             DPRINTLN(DBG_INFO, F("MQTT connected"));
 
-            publish(subtopics[MQTT_VERSION], mVersion, true);
-            publish(subtopics[MQTT_DEVICE], mDevName, true);
+            publish(subtopics[MQTT_VERSION], mVersion, false);
+            publish(subtopics[MQTT_DEVICE], mDevName, false);
             publish(subtopics[MQTT_IP_ADDR], mApp->getIp().c_str(), true);
             tickerMinute();
             publish(mLwtTopic.data(), mqttStr[MQTT_STR_LWT_CONN], true, false);
@@ -605,6 +606,10 @@ class PubMqtt {
             mLastAnyAvail = anyAvail;
         }
 
+    private:
+        enum {MQTT_STATUS_OFFLINE = 0, MQTT_STATUS_PARTIAL, MQTT_STATUS_ONLINE};
+
+    private:
         espMqttClient mClient;
         cfgMqtt_t *mCfgMqtt = nullptr;
         IApp *mApp;

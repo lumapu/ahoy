@@ -33,7 +33,6 @@
 
 #define CONFIG_VERSION      11
 
-
 #define PROT_MASK_INDEX     0x0001
 #define PROT_MASK_LIVE      0x0002
 #define PROT_MASK_SERIAL    0x0004
@@ -53,6 +52,20 @@
 #define DEF_PROT_HISTORY    0x0000
 #define DEF_PROT_API        0x0000
 #define DEF_PROT_MQTT       0x0000
+
+
+#define SSID_LEN                32
+#define PWD_LEN                 64
+#define DEVNAME_LEN             16
+#define NTP_ADDR_LEN            32 // DNS Name
+
+#define MQTT_ADDR_LEN           64 // DNS Name
+#define MQTT_CLIENTID_LEN       22 // number of chars is limited to 23 up to v3.1 of MQTT
+#define MQTT_USER_LEN           65 // there is another byte necessary for \0
+#define MQTT_PWD_LEN            65
+#define MQTT_TOPIC_LEN          65
+
+#define MQTT_MAX_PACKET_SIZE    384
 
 
 typedef struct {

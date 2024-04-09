@@ -40,7 +40,7 @@ class RestApi {
             mApp      = app;
             mSrv      = srv;
             mSys      = sys;
-            mRadioNrf = (HmRadio<>*)mApp->getRadioObj(true);
+            mRadioNrf = (NrfRadio<>*)mApp->getRadioObj(true);
             #if defined(ESP32)
             mRadioCmt = (CmtRadio<>*)mApp->getRadioObj(false);
             #endif
@@ -100,7 +100,7 @@ class RestApi {
             else if(path == "setup")          getSetup(request, root);
             #if !defined(ETHERNET)
             else if(path == "setup/networks") getNetworks(root);
-            else if(path == "setup/getip")    getWifiIp(root);
+            else if(path == "setup/getip")    getIp(root);
             #endif /* !defined(ETHERNET) */
             else if(path == "live")           getLive(request,root);
             else if (path == "powerHistory")  getPowerHistory(request, root);
@@ -166,7 +166,7 @@ class RestApi {
             #else
             DynamicJsonDocument json(12000);  // does this work? I have no ESP32 :-(
             #endif
-            DeserializationError err = deserializeJson(json, (const char *)mTmpBuf, mTmpSize);
+            DeserializationError err = deserializeJson(json, static_cast<const char *>(mTmpBuf, mTmpSize));
             json.shrinkToFit();
             JsonObject obj = json.as<JsonObject>();
 
@@ -893,12 +893,14 @@ class RestApi {
 
         #if !defined(ETHERNET)
         void getNetworks(JsonObject obj) {
-            mApp->getAvailNetworks(obj);
-        }
-        void getWifiIp(JsonObject obj) {
+            obj[F("success")] = mApp->getAvailNetworks(obj);
             obj[F("ip")] = mApp->getIp();
         }
         #endif /* !defined(ETHERNET) */
+
+        void getIp(JsonObject obj) {
+            obj[F("ip")] = mApp->getIp();
+        }
 
         void getLive(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
@@ -1012,7 +1014,7 @@ class RestApi {
 
                 accepted = iv->setDevControlRequest(ActivePowerContr);
                 if(accepted)
-                    mApp->triggerTickSend();
+                    mApp->triggerTickSend(iv->id);
             } else if(F("dev") == jsonIn[F("cmd")]) {
                 DPRINTLN(DBG_INFO, F("dev cmd"));
                 iv->setDevCommand(jsonIn[F("val")].as<int>());
@@ -1033,11 +1035,6 @@ class RestApi {
             if(isProtected(jsonIn, jsonOut, clientIP))
                 return false;
 
-            #if !defined(ETHERNET)
-            if(F("scan_wifi") == jsonIn[F("cmd")])
-                mApp->scanAvailNetworks();
-            else
-            #endif /* !defined(ETHERNET) */
             if(F("set_time") == jsonIn[F("cmd")])
                 mApp->setTimestamp(jsonIn[F("val")]);
             else if(F("sync_ntp") == jsonIn[F("cmd")])
@@ -1051,7 +1048,6 @@ class RestApi {
                 snprintf(mConfig->sys.stationSsid, SSID_LEN, "%s", jsonIn[F("ssid")].as<const char*>());
                 snprintf(mConfig->sys.stationPwd, PWD_LEN, "%s", jsonIn[F("pwd")].as<const char*>());
                 mApp->saveSettings(false); // without reboot
-                //mApp->setStopApAllowedMode(false);
                 mApp->setupStation();
             }
             #else
@@ -1119,7 +1115,7 @@ class RestApi {
     private:
         IApp *mApp = nullptr;
         HMSYSTEM *mSys = nullptr;
-        HmRadio<> *mRadioNrf = nullptr;
+        NrfRadio<> *mRadioNrf = nullptr;
         #if defined(ESP32)
         CmtRadio<> *mRadioCmt = nullptr;
         #endif

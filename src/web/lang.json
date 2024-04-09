@@ -6,7 +6,7 @@
                 {
                     "token": "NAV_WIZARD",
                     "en": "Setup Wizard",
-                    "de": "Daten"
+                    "de": "Einrichtungsassitent"
                 },
                 {
                     "token": "NAV_LIVE",
@@ -81,7 +81,7 @@
                 {
                     "token": "BTN_NEXT",
                     "en": "next >>",
-                    "de": "prüfen >>"
+                    "de": "speichern >>"
                 },
                 {
                     "token": "BTN_REBOOT",
@@ -91,12 +91,12 @@
                 {
                     "token": "TEST_CONNECTION",
                     "en": "Test Connection",
-                    "de": "Verbindung wird überprüft"
+                    "de": "Verbindung wird &uuml;berpr&uuml;ft"
                 },
                 {
                     "token": "TRY_TO_CONNECT",
                     "en": "AhoyDTU is trying to connect to your WiFi",
-                    "de": "AhoyDTU versucht eine Verindung mit deinem Netzwerk herzustellen"
+                    "de": "AhoyDTU versucht eine Verbindung mit Deinem Netzwerk herzustellen"
                 },
                 {
                     "token": "CONNECTING",
@@ -259,19 +259,9 @@
                     "de": "Netzwerke suchen"
                 },
                 {
-                    "token": "BTN_SCAN",
-                    "en": "scan",
-                    "de": "Suche starten"
-                },
-                {
-                    "token": "AVAIL_NETWORKS",
-                    "en": "Avail Networks",
-                    "de": "Verf&uuml;gbare Netzwerke"
-                },
-                {
-                    "token": "NETWORK_NOT_SCANNED",
-                    "en": "not scanned",
-                    "de": "nicht gesucht"
+                    "token": "SCAN_WIFI",
+                    "en": "scan for WiFi networks",
+                    "de": "nach WiFi Netzwerken suchen"
                 },
                 {
                     "token": "SSID_HIDDEN",

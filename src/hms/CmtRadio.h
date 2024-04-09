@@ -7,7 +7,7 @@
 #define __HMS_RADIO_H__
 
 #include "cmt2300a.h"
-#include "../hm/radio.h"
+#include "../hm/Radio.h"
 
 //#define CMT_SWITCH_CHANNEL_CYCLE    5
 
@@ -24,16 +24,16 @@ class CmtRadio : public Radio {
             mTxBuf.fill(0);
         }
 
-        bool loop() override {
+        void loop() override {
             mCmt.loop();
             if((!mIrqRcvd) && (!mRqstGetRx))
-                return false;
+                return;
             getRx();
             if(CmtStatus::SUCCESS == mCmt.goRx()) {
                 mIrqRcvd   = false;
                 mRqstGetRx = false;
             }
-            return false;
+            return;
         }
 
         bool isChipConnected(void) const override {
@@ -183,7 +183,7 @@ class CmtRadio : public Radio {
 
             if(p.packet[9] > ALL_FRAMES) { // indicates last frame
                 setExpectedFrames(p.packet[9] - ALL_FRAMES);
-                mRadioWaitTime.startTimeMonitor(DURATION_PAUSE_LASTFR); // let the inverter first get back to rx mode?
+                mRadioWaitTime.startTimeMonitor(2); // let the inverter first get back to rx mode?
             }
         }
 

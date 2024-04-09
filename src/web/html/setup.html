@@ -52,27 +52,18 @@
                     <div class="s_content">
                         <fieldset class="mb-2">
                             <legend class="des">WiFi</legend>
-
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#AP_PWD}</div>
                                 <div class="col-12 col-sm-9"><input type="text" name="ap_pwd" minlength="8" /></div>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-12 col-sm-3 my-2">{#SEARCH_NETWORKS}</div>
-                                <div class="col-12 col-sm-9"><input type="button" name="scanbtn" id="scanbtn" class="btn" value="{#BTN_SCAN}" onclick="scan()"/></div>
-                            </div>
-
-                            <div class="row mb-2 mb-sm-3">
-                                <div class="col-12 col-sm-3 my-2">{#AVAIL_NETWORKS}</div>
-                                <div class="col-12 col-sm-9">
-                                    <select name="networks" id="networks" onChange="selNet()">
-                                        <option value="-1" selected disabled hidden>{#NETWORK_NOT_SCANNED}</option>
-                                    </select>
-                                </div>
-                            </div>
+                            <!--IF_ETHERNET-->
+                            <!--ELSE-->
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3 my-2">SSID</div>
-                                <div class="col-12 col-sm-9"><input type="text" name="ssid"/></div>
+                                <div class="col-12 col-sm-9">
+                                    <input type="text" name="ssid"/><br/>
+                                    <a href="/wizard">{#SCAN_WIFI}</a>
+                                </div>
                             </div>
                             <div class="row mb-2 mb-sm-3">
                                 <div class="col-12 col-sm-3">{#SSID_HIDDEN}</div>
@@ -82,6 +73,7 @@
                                 <div class="col-12 col-sm-3 my-2">{#PASSWORD}</div>
                                 <div class="col-12 col-sm-9"><input type="password" name="pwd" value="{PWD}"/></div>
                             </div>
+                            <!--ENDIF_ETHERNET-->
                         </fieldset>
                         <fieldset class="mb-4">
                             <legend class="des">{#STATIC_IP}</legend>
@@ -610,12 +602,6 @@
                 setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
-            function scan() {
-                var obj = {cmd: "scan_wifi", token: "*"}
-                getAjax("/api/setup", apiCbWifi, "POST", JSON.stringify(obj));
-                setTimeout(function() {getAjax('/api/setup/networks', listNetworks)}, 5000);
-            }
-
             function syncTime() {
                 var obj = {cmd: "sync_ntp", token: "*"}
                 getAjax("/api/setup", apiCbNtp, "POST", JSON.stringify(obj))
@@ -675,9 +661,14 @@
             }
 
             function parseSys(obj) {
+                /*IF_ETHERNET*/
+                for(var i of [["device", "device_name"], ["ap_pwd", "ap_pwd"]])
+                    document.getElementsByName(i[0])[0].value = obj[i[1]];
+                /*ELSE*/
                 for(var i of [["device", "device_name"], ["ssid", "ssid"], ["ap_pwd", "ap_pwd"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
                 document.getElementsByName("hidd")[0].checked = obj["hidd"];
+                /*ENDIF_ETHERNET*/
                 document.getElementsByName("darkMode")[0].checked = obj["dark_mode"];
                 document.getElementsByName("schedReboot")[0].checked = obj["sched_reboot"];
                 e = document.getElementsByName("adminpwd")[0];
@@ -1310,25 +1301,6 @@
                     /*ENDIF_PLUGIN_DISPLAY*/
                     getAjax("/api/inverter/list", parseIv);
                 }
-            }
-
-            function listNetworks(root) {
-                var s = document.getElementById("networks");
-                selDelAllOpt(s);
-                if(root["networks"].length > 0) {
-                    s.appendChild(opt("-1", "{#NETWORK_PLEASE_SELECT}"));
-                    for(i = 0; i < root["networks"].length; i++) {
-                        s.appendChild(opt(root["networks"][i]["ssid"], root["networks"][i]["ssid"] + " (" + root["networks"][i]["rssi"] + " dBm)"));
-                    }
-                } else
-                    s.appendChild(opt("-1", "{#NO_NETWORK_FOUND}"));
-            }
-
-            function selNet() {
-                var s = document.getElementById("networks");
-                var e = document.getElementsByName("ssid")[0];
-                if(-1 != s.value)
-                    e.value = s.value;
             }
 
             getAjax("/api/setup", parse);

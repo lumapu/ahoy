@@ -145,7 +145,7 @@
     #ifndef DEF_MOTION_SENSOR_PIN
         #define DEF_MOTION_SENSOR_PIN   DEF_PIN_OFF
     #endif
-#else
+#else // ESP8266
     #ifndef DEF_NRF_CS_PIN
         #define DEF_NRF_CS_PIN          15
     #endif

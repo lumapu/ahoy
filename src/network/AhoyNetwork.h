@@ -85,21 +85,26 @@ class AhoyNetwork {
             return false;
         }
 
-        #if !defined(ETHERNET)
-        void scanAvailNetworks(void) {
-            if(!mScanActive) {
-                mScanActive = true;
-                WiFi.scanNetworks(true);
-            }
+        bool isApActive() {
+            return mAp.isEnabled();
         }
 
+        #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj) {
-            JsonArray nets = obj.createNestedArray(F("networks"));
+            if(!mScanActive) {
+                mScanActive = true;
+                //if(NetworkState::GOT_IP != mStatus)
+                //    WiFi.disconnect();
+                WiFi.scanNetworks(true, true);
+                return false;
+            }
 
             int n = WiFi.scanComplete();
-            if (n < 0)
+            if (WIFI_SCAN_RUNNING == n)
                 return false;
+
             if(n > 0) {
+                JsonArray nets = obj.createNestedArray(F("networks"));
                 int sort[n];
                 sortRSSI(&sort[0], n);
                 for (int i = 0; i < n; ++i) {
@@ -174,7 +179,6 @@ class AhoyNetwork {
 
     private:
         void sendNTPpacket(void) {
-            //DPRINTLN(DBG_VERBOSE, F("wifi::sendNTPpacket"));
             uint8_t buf[NTP_PACKET_SIZE];
             memset(buf, 0, NTP_PACKET_SIZE);
 

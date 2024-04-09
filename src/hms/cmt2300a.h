@@ -6,7 +6,7 @@
 #ifndef __CMT2300A_H__
 #define __CMT2300A_H__
 
-#if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+#if defined(SPI_HAL)
 #include "cmtHal.h"
 #else
 #include "esp32_3wSpi.h"
@@ -248,14 +248,12 @@ class Cmt2300a {
         }
 
         CmtStatus tx(uint8_t buf[], uint8_t len) {
-            if(mTxPending)
-                return CmtStatus::ERR_TX_PENDING;
-
             if(mInRxMode) {
                 mInRxMode = false;
                 if(!cmtSwitchStatus(CMT2300A_GO_STBY, CMT2300A_STA_STBY))
                     return CmtStatus::ERR_SWITCH_STATE;
             }
+            mTxPending = false; // safety
 
             mSpi.writeReg(CMT2300A_CUS_INT1_CTL, CMT2300A_INT_SEL_TX_DONE);
 
@@ -545,7 +543,7 @@ class Cmt2300a {
         }
 
     private:
-        #if defined(CONFIG_IDF_TARGET_ESP32S3) && defined(SPI_HAL)
+        #if defined(SPI_HAL)
         cmtHal mSpi;
         #else
         esp32_3wSpi mSpi;

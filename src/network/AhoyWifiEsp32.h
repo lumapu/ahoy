@@ -28,7 +28,7 @@ class AhoyWifi : public AhoyNetwork {
                 WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
                 WiFi.begin(mConfig->sys.stationSsid, mConfig->sys.stationPwd, WIFI_ALL_CHANNEL_SCAN);
 
-                DBGPRINT(F("connect to network '")); Serial.flush();
+                DBGPRINT(F("connect to network '"));
                 DBGPRINT(mConfig->sys.stationSsid);
             #endif
         }
@@ -43,10 +43,7 @@ class AhoyWifi : public AhoyNetwork {
                         mConnected = false;
                         mOnNetworkCB(false);
                         mAp.enable();
-                    }
-
-                    if (WiFi.softAPgetStationNum() > 0) {
-                        DBGPRINTLN(F("AP client connected"));
+                        MDNS.end();
                     }
                     break;
 
@@ -54,11 +51,14 @@ class AhoyWifi : public AhoyNetwork {
                     break;
 
                 case NetworkState::GOT_IP:
-                    if(!mConnected) {
+                    if(mAp.isEnabled())
                         mAp.disable();
+
+                    if(!mConnected) {
                         mConnected = true;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);
+                        //MDNS.addServiceTxt("http", "tcp", "path", "/");
                         mOnNetworkCB(true);
                     }
                     break;
@@ -67,16 +67,6 @@ class AhoyWifi : public AhoyNetwork {
 
         String getIp(void) override {
             return WiFi.localIP().toString();
-        }
-
-    private:
-        void sortRSSI(int *sort, int n) {
-            for (int i = 0; i < n; i++)
-                sort[i] = i;
-            for (int i = 0; i < n; i++)
-                for (int j = i + 1; j < n; j++)
-                    if (WiFi.RSSI(sort[j]) > WiFi.RSSI(sort[i]))
-                        std::swap(sort[i], sort[j]);
         }
 };
 
