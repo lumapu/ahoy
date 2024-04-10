@@ -298,12 +298,14 @@ typedef struct {
     bool battEnabled;
     float battVoltageOn;
     float battVoltageOff;
+    bool isChangedBattery;
     // Advanced
     int16_t setPoint;
     uint8_t refresh;
     int32_t power;
     uint8_t powerTolerance;
     uint16_t powerMax;
+    bool isChangedAdvanced;
     //
 
     zeroExportState state;
@@ -722,6 +724,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOn = 0;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOff = 0;
+                mCfg.plugin.zeroExport.groups[group].isChangedBattery = true;
                 // Advanced
                 mCfg.plugin.zeroExport.groups[group].setPoint = 0;
                 mCfg.plugin.zeroExport.groups[group].refresh = 10;
@@ -730,6 +733,7 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].Kp = -1;
                 mCfg.plugin.zeroExport.groups[group].Ki = 0;
                 mCfg.plugin.zeroExport.groups[group].Kd = 0;
+                mCfg.plugin.zeroExport.groups[group].isChangedAdvanced = true;
                 //
                 mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;

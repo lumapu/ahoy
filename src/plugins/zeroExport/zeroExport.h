@@ -265,7 +265,7 @@ class ZeroExport {
         if (!mIsInitialized) return;
 
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
-           for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
+            for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 mCfg->groups[group].inverters[inv].doReboot = 1;
             }
         }
@@ -546,16 +546,16 @@ class ZeroExport {
             }
         }
 
+#if defined(ZEROEXPORT_POWERMETER_MQTT)
         // topic for powermeter?
-        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++)
-        {
-            if(mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt)
-            {
+        for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
+            if (mCfg->groups[group].pm_type == zeroExportPowermeterType_t::Mqtt) {
                 mLog["mqttDevice"] = "topicInverter";
-                if(!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
+                if (!topic.equals(mCfg->groups[group].pm_jsonPath)) return;
                 mCfg->groups[group].pm_P = (int32_t)obj["val"];
             }
         }
+#endif /*defined(ZEROEXPORT_POWERMETER_MQTT)*/
 
         if (mCfg->debug) mLog["Msg"] = obj;
         sendLog();
@@ -815,6 +815,7 @@ class ZeroExport {
                     if (cfgGroup->inverters[inv].dcVoltage < cfgGroup->battVoltageOn) continue;
                     cfgGroup->battSwitch = true;
                     *doLog = true;
+                    cfgGroup->isChangedBattery = true;
                 }
             } else {
                 // is on turn off
@@ -829,16 +830,9 @@ class ZeroExport {
                     if (cfgGroup->inverters[inv].dcVoltage > cfgGroup->battVoltageOff) continue;
                     cfgGroup->battSwitch = false;
                     *doLog = true;
+                    cfgGroup->isChangedBattery = true;
                 }
             }
-           // Battery
-            String gr = "zero/state/groups/" + String(group) + "/battery";
-            mqttObj["enabled"] = cfgGroup->battEnabled;
-            mqttObj["voltageOn"] = cfgGroup->battVoltageOn;
-            mqttObj["voltageOff"] = cfgGroup->battVoltageOff;
-            mqttObj["switch"] = cfgGroup->battSwitch;
-            mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
-            mqttDoc.clear();
         } else {
             mLog["en"] = false;
 
@@ -846,6 +840,20 @@ class ZeroExport {
         }
 
         mLog["sw"] = cfgGroup->battSwitch;
+
+        // MQTT - Battery
+        if (cfgGroup->isChangedBattery) {
+            if (mMqtt->isConnected()) {
+                String gr = "zero/state/groups/" + String(group) + "/battery";
+                mqttObj["enabled"] = cfgGroup->battEnabled;
+                mqttObj["voltageOn"] = cfgGroup->battVoltageOn;
+                mqttObj["voltageOff"] = cfgGroup->battVoltageOff;
+                mqttObj["switch"] = cfgGroup->battSwitch;
+                mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
+                mqttDoc.clear();
+                cfgGroup->isChangedBattery = false;
+            }
+        }
 
         return true;
     }
@@ -881,13 +889,13 @@ class ZeroExport {
         mLog["P3"] = mCfg->groups[group].pm_P3;
 
         // MQTT - Powermeter
-        if(mMqtt->isConnected())
-        {
+        if (mMqtt->isConnected()) {
+            String gr = "zero/state/groups/" + String(group) + "/powermeter";
             mqttObj["Sum"] = mCfg->groups[group].pm_P;
             mqttObj["L1"] = mCfg->groups[group].pm_P1;
             mqttObj["L2"] = mCfg->groups[group].pm_P2;
             mqttObj["L3"] = mCfg->groups[group].pm_P3;
-            mMqtt->publish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str(), false);
+            mqttPublish(String("zero/state/groups/" + String(group) + "/powermeter/P").c_str(), mqttDoc.as<std::string>().c_str());
             mqttDoc.clear();
         }
 
@@ -898,7 +906,7 @@ class ZeroExport {
         //                obj["L1"]  = cfgGroup->pm_P1;
         //                obj["L2"]  = cfgGroup->pm_P2;
         //                obj["L2"]  = cfgGroup->pm_P3;
-        //                mMqtt->publish("zero/powermeter/W", doc.as<std::string>().c_str(), false);
+        //                mqttPublish("zero/powermeter/W", doc.as<std::string>().c_str());
         //                doc.clear();
         //            }
 
@@ -1046,17 +1054,22 @@ class ZeroExport {
             return false;
         }
 
-        // Advanced
-        String gr = "zero/state/groups/" + String(group) + "/advanced";
-        mqttObj["setPoint"] = cfgGroup->setPoint;
-        mqttObj["refresh"] = cfgGroup->refresh;
-        mqttObj["powerTolerance"] = cfgGroup->powerTolerance;
-        mqttObj["powerMax"] = cfgGroup->powerMax;
-        mqttObj["Kp"] = cfgGroup->Kp;
-        mqttObj["Ki"] = cfgGroup->Ki;
-        mqttObj["Kd"] = cfgGroup->Kd;
-        mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
-        mqttDoc.clear();
+        // MATT - Advanced
+        if (cfgGroup->isChangedAdvanced) {
+            if (mMqtt->isConnected()) {
+                String gr = "zero/state/groups/" + String(group) + "/advanced";
+                mqttObj["setPoint"] = cfgGroup->setPoint;
+                mqttObj["refresh"] = cfgGroup->refresh;
+                mqttObj["powerTolerance"] = cfgGroup->powerTolerance;
+                mqttObj["powerMax"] = cfgGroup->powerMax;
+                mqttObj["Kp"] = cfgGroup->Kp;
+                mqttObj["Ki"] = cfgGroup->Ki;
+                mqttObj["Kd"] = cfgGroup->Kd;
+                mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
+                mqttDoc.clear();
+                cfgGroup->isChangedAdvanced = false;
+            }
+        }
 
         return true;
     }
@@ -1105,10 +1118,14 @@ class ZeroExport {
 
         if (cfgGroup->power > cfgGroup->powerMax) {
             int32_t diff = cfgGroup->power - cfgGroup->powerMax;
-            y = y - diff;
-            y1 = y1 - (diff * y1 / y);
-            y1 = y1 - (diff * y2 / y);
-            y1 = y1 - (diff * y3 / y);
+//            y = y - diff;
+//            y1 = y1 - (diff * y1 / y);
+//            y2 = y2 - (diff * y2 / y);
+//            y3 = y3 - (diff * y3 / y);
+            y = -diff;
+            y1 = -(diff * y1 / y);
+            y2 = -(diff * y2 / y);
+            y3 = -(diff * y3 / y);
         }
 
         // TDOD: nochmal durchdenken ... es muss für Sum und L1-3 sein
@@ -1559,60 +1576,67 @@ class ZeroExport {
             obj["cmd"] = "limit_nonpersistent_absolute";
             mApi->ctrlRequest(obj);
 
+            if (mCfg->debug) logObj["d"] = obj;
+
             // publish to mqtt when mqtt
-            if(mMqtt->isConnected())
-            {
+            if (mMqtt->isConnected()) {
                 String gr = "zero/state/groups/" + String(group) + "/inverters/" + String(inv);
                 mqttObj["enabled"] = cfgGroupInv->enabled;
-                mqttObj["id"] = cfgGroupInv->id;
-                mqttObj["target"] = cfgGroupInv->target;
+//                mqttObj["id"] = cfgGroupInv->id;
+//                mqttObj["target"] = cfgGroupInv->target;
                 mqttObj["powerMin"] = cfgGroupInv->powerMin;
                 mqttObj["powerMax"] = cfgGroupInv->powerMax;
-                mMqtt->publish(gr.c_str(), mqttDoc.as<std::string>().c_str(), false);
+                mqttObj["power"] = cfgGroupInv->power;
+                mqttObj["limit"] = cfgGroupInv->limit;
+                mqttPublish(gr.c_str(), mqttDoc.as<std::string>().c_str());
                 mqttDoc.clear();
             }
-
-            if (mCfg->debug) logObj["d"] = obj;
         }
 
         return result;
     }
-    /* mqttSubscribe
+
+    /** mqttSubscribe
      * when a MQTT Msg is needed to subscribe, then a publish is leading
-    */
-    void mqttSubscribe(String gr, String payload)
-    {
+     * @param gr
+     * @param payload
+     * @returns void
+     */
+    void mqttSubscribe(String gr, String payload) {
         mqttPublish(gr, payload);
         mMqtt->subscribe(gr.c_str(), QOS_2);
     }
-    /* PubInit
+
+    /** PubInit
      * when a MQTT Msg is needed to Publish, but not to subscribe.
-    */
-    void mqttPublish(String gr, String payload, bool retain = false)
-    {
+     * @param gr
+     * @param payload
+     * @param retain
+     * @returns void
+     */
+    void mqttPublish(String gr, String payload, bool retain = false) {
         mMqtt->publish(gr.c_str(), payload.c_str(), retain);
     }
 
-    /**
-     *
+    /** mqttInitTopic
+     * Initialize, subscribe mqtt Topics
+     * @param void
+     * @returns void
      */
-    void mqttInitTopic() {
+    void mqttInitTopic(void) {
         if (mIsSubscribed) return;
         if (!mMqtt->isConnected()) return;
 
         mIsSubscribed = true;
 
         // Global (zeroExport)
-        // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
         mqttSubscribe("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
-
-        // TODO: Global wird fälschlicherweise hier je nach anzahl der aktivierten Gruppen bis zu 6x ausgeführt.
         mqttSubscribe("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
         String gr;
         for (uint8_t group = 0; group < ZEROEXPORT_MAX_GROUPS; group++) {
             zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
-            if(!cfgGroup->enabled) continue; // exit here when group is disabled
+            if (!cfgGroup->enabled) continue;  // exit here when group is disabled
 
             gr = "zero/set/groups/" + String(group);
 
@@ -1622,7 +1646,7 @@ class ZeroExport {
 
             // Powermeter
 
-            // Inverters - Only Publish
+            // Inverters
             for (uint8_t inv = 0; inv < ZEROEXPORT_GROUP_MAX_INVERTERS; inv++) {
                 zeroExportGroupInverter_t *cfgGroupInv = &cfgGroup->inverters[inv];
 
@@ -1638,46 +1662,32 @@ class ZeroExport {
             mqttSubscribe(gr + "/advanced/setPoint", String(cfgGroup->setPoint));
             mqttSubscribe(gr + "/advanced/powerTolerance", String(cfgGroup->powerTolerance));
             mqttSubscribe(gr + "/advanced/powerMax", String(cfgGroup->powerMax));
-            mqttSubscribe(gr + "/advanced/refresh", String(cfgGroup->refresh));
-            mqttSubscribe(gr + "/advanced/Kp", String(cfgGroup->Kp));
-            mqttSubscribe(gr + "/advanced/Ki", String(cfgGroup->Ki));
-            mqttSubscribe(gr + "/advanced/Kd", String(cfgGroup->Kd));
+            //            mqttSubscribe(gr + "/advanced/refresh", String(cfgGroup->refresh));
+            //            mqttSubscribe(gr + "/advanced/Kp", String(cfgGroup->Kp));
+            //            mqttSubscribe(gr + "/advanced/Ki", String(cfgGroup->Ki));
+            //            mqttSubscribe(gr + "/advanced/Kd", String(cfgGroup->Kd));
         }
     }
 
     /** groupPublish
      *
      */
-    bool groupPublish(uint8_t group, unsigned long *tsp, bool *doLog) {
-        zeroExportGroup_t *cfgGroup = &mCfg->groups[group];
+    /*
+        bool groupPublish(uint8_t group, unsigned long *tsp, bool *doLog) {
+            if (mMqtt->isConnected()) {
+                String gr;
 
-        if (mCfg->debug) mLog["t"] = "groupPublish";
+                gr = "zero/state/groups/" + String(group) + "/enabled";
+                mqttPublish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
-        cfgGroup->lastRun = *tsp;
+                gr = "zero/state/groups/" + String(group) + "/sleep";
+                mqttPublish(gr.c_str(), ((cfgGroup->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
 
-        if (mMqtt->isConnected()) {
-            //            *doLog = true;
-            String gr;
-
-            // Global (zeroExport)
-            mqttSubscribe("zero/set/enabled", ((mCfg->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
-            mqttSubscribe("zero/set/sleep", ((mCfg->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
-
-            // General
-            gr = "zero/state/groups/" + String(group) + "/enabled";
-
-            mqttPublish(gr.c_str(), ((cfgGroup->enabled) ? dict[STR_TRUE] : dict[STR_FALSE]));
-            mqttPublish(gr.c_str(), ((cfgGroup->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]));
-
-            gr = "zero/state/groups/" + String(group) + "/sleep";
-            mMqtt->publish(gr.c_str(), ((cfgGroup->sleep) ? dict[STR_TRUE] : dict[STR_FALSE]), false);
-
-            gr = "zero/state/groups/" + String(group) + "/name";
-            mMqtt->publish(gr.c_str(), cfgGroup->name, false);
+                gr = "zero/state/groups/" + String(group) + "/name";
+                mqttPublish(gr.c_str(), cfgGroup->name);
+            }
         }
-
-        return true;
-    }
+    */
 
     /** groupEmergency
      * Dieser State versucht zeroExport in einen sicheren Zustand zu bringen, wenn technische Ausfälle vorliegen.
