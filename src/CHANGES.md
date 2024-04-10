@@ -1,5 +1,11 @@
 # Development Changes
 
+## 0.8.109 - 2024-04-09
+* fix hal patch
+
+## 0.8.108 - 2024-04-09
+* point to git SHA for `NRF24` library
+
 ## 0.8.107 - 2024-04-08
 * fix boot loop on `reboot on midnight` feature #1542, #1599, #1566, #1571
 * fix German translation #1569
