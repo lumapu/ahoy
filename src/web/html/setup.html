@@ -1393,10 +1393,10 @@
                             ml("input", {name: "pm_jsonPath", class: "text", type: "text", value: obj.pm_jsonPath}, null),
                         ]),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_USER}",
-                            ml("input", {name: "pm_user", class: "text", type: "text", value: obj.pm_user}, null),
+                            ml("input", {name: "pm_user", class: "text", type: "text", value: "" }, null),
                         ),
                         divRow("{#ZE_GROUP_TAB_POWERMETER_PASS}",
-                            ml("input", {name: "pm_pass", class: "text", type: "text", value: obj.pm_pass}, null),
+                            ml("input", {name: "pm_pass", class: "text", type: "password", value: "****"}, null),
                         ),
 // TODO: Uebersetzen mit lang.json und auf die entsprechende Dokuseite verlinken
                         divRow("Hinweis: ",
@@ -1462,16 +1462,17 @@
                 modal("{#ZE_GROUP_EDIT_MODAL}: " + obj.id, html);
 //                ser.dispatchEvent(new Event('change'));
 
-// Inhalt f?r pm_type aus config laden und in eine Funktion ausgliedern
+// Inhalt fuer pm_type aus config laden und in eine Funktion ausgliedern
                 var e = document.getElementById("pm_type");
                 selDelAllOpt(e);
-// TODO: ?bersetzen?
+// TODO: uebersetzen?
                 e.appendChild(opt("0", "---"));
                 e.appendChild(opt("1", "Shelly"));
-                e.appendChild(opt("2", "Tasmota"));
+                //e.appendChild(opt("2", "Tasmota"));
                 e.appendChild(opt("3", "Mqtt"));
-                e.appendChild(opt("4", "Hichi"));
+                //e.appendChild(opt("4", "Hichi"));
                 e.appendChild(opt("5", "Tibber"));
+                e.appendChild(opt("6", "Shrdzm"));
                 for (var i = 0; i < e.options.length; i++) {
                     if (e.options[i].value == obj.pm_type) {
                         e.selectedIndex = i;
@@ -1628,6 +1629,7 @@
                     // Advanced
                     o.setPoint = 0;
                     o.refresh = 10;
+                    o.power = 0;
                     o.powerTolerance = 10;
                     o.powerMax = 600;
                     o.Kp = -1;
@@ -1682,7 +1684,8 @@
                         ml("td", {style: "text-align: left;", }, badge(obj.groups[group].enabled, (obj.groups[group].enabled) ? "{#ENABLED}" : "{#DISABLED}")),
                         ml("td", {style: "text-align: center;", }, String(obj.groups[group].id)),
                         ml("td", {style: "text-align: left;", }, String(obj.groups[group].name)),
-                        ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
+//                        ml("td", {style: "text-align: right;", id: "groupPowerTotal"+group}, "n/a"),
+                        ml("td", {style: "text-align: right;", id: "groupPower"+group}, String(obj.groups[group].power)),
                         ml("td", {style: "text-align: center;", onclick: function() {
                             function zeroGetIvList(ivObj) {
                                 ZeroExportGroup_Modal(obj.groups[group], ivObj)

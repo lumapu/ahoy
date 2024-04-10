@@ -1,0 +1,141 @@
+//-----------------------------------------------------------------------------
+// 2024 Ahoy, https://ahoydtu.de
+// Creative Commons - https://creativecommons.org/licenses/by-nc-sa/4.0/deed
+//-----------------------------------------------------------------------------
+
+Shelly
+======
+
+Shelly 3EM
+----------
+
+Shelly pro 3EM
+--------------
+
+Stand: 02.04.2024
+
+Abfrage:
+/rpc/EM.GetStatus?id=0
+
+Ergebnis:
+{"id":0,"a_current":1.275,"a_voltage":228.8,"a_act_power":243.2,"a_aprt_power":291.6,"a_pf":0.86,"a_freq":50.0,"b_current":0.335,"b_voltage":228.2,"b_act_power":24.5,"b_aprt_power":76.6,"b_pf":0.59,"b_freq":50.0,"c_current":0.338,"c_voltage":227.6,"c_act_power":34.9,"c_aprt_power":76.9,"c_pf":0.65,"c_freq":50.0,"n_current":null,"total_current":1.949,"total_act_power":302.554,"total_aprt_power":445.042, "user_calibrated_phase":[]}
+
+Abfrage:
+/rpc/Shelly.GetStatus
+
+Ergebnis:
+{"ble":{},"cloud":{"connected":true},"em:0":{"id":0,"a_current":1.269,"a_voltage":228.5,"a_act_power":239.8,"a_aprt_power":289.7,"a_pf":0.86,"a_freq":50.0,"b_current":0.348,"b_voltage":227.5,"b_act_power":24.7,"b_aprt_power":79.0,"b_pf":0.58,"b_freq":50.0,"c_current":0.378,"c_voltage":228.5,"c_act_power":42.3,"c_aprt_power":86.3,"c_pf":0.66,"c_freq":50.0,"n_current":null,"total_current":1.995,"total_act_power":306.811,"total_aprt_power":455.018, "user_calibrated_phase":[]},"emdata:0":{"id":0,"a_total_act_energy":648103.86,"a_total_act_ret_energy":0.00,"b_total_act_energy":142793.47,"b_total_act_ret_energy":171396.02,"c_total_act_energy":493778.01,"c_total_act_ret_energy":0.00,"total_act":1284675.34, "total_act_ret":171396.02},"eth":{"ip":null},"modbus":{},"mqtt":{"connected":false},"script:1":{"id":1,"running":true,"mem_used":1302,"mem_peak":3094,"mem_free":23898},"sys":{"mac":"3CE90E6EBE5C","restart_required":false,"time":"18:09","unixtime":1712074162,"uptime":3180551,"ram_size":240004,"ram_free":96584,"fs_size":524288,"fs_free":176128,"cfg_rev":23,"kvs_rev":9104,"schedule_rev":0,"webhook_rev":0,"available_updates":{},"reset_reason":3},"temperature:0":{"id": 0,"tC":46.2, "tF":115.1},"wifi":{"sta_ip":"192.168.0.69","status":"got ip","ssid":"Riker","rssi":-70},"ws":{"connected":false}}
+
+Shelly PM Mini Gen3
+-------------------
+
+Stand: 04.04.2024
+
+Abfrage:
+rpc/PM1.GetStatus?id=0
+
+Ergebnis:
+{"id":0, "voltage":226.0, "current":0.384, "apower":-55.0 ,"freq":50.0,"aenergy":{"total":11755.618,"by_minute":[1063.082,1700.931,1275.698],"minute_ts":1712248200},"ret_aenergy":{"total":10973.555,"by_minute":[1063.082,1700.931,1275.698],"minute_ts":1712248200}}
+
+Abfrage:
+rpc/Shelly.GetStatus
+
+Ergebnis:
+{"ble":{},"cloud":{"connected":true},"mqtt":{"connected":false},"pm1:0":{"id":0, "voltage":228.5, "current":0.451, "apower":-67.1 ,"freq":50.1,"aenergy":{"total":11754.555,"by_minute":[1700.931,1275.698,1913.547],"minute_ts":1712248140},"ret_aenergy":{"total":10972.492,"by_minute":[1700.931,1275.698,1913.547],"minute_ts":1712248140}},"sys":{"mac":"ECDA3BC63CC8","restart_required":false,"time":"18:29","unixtime":1712248162,"uptime":13723,"ram_size":260764,"ram_free":146460,"fs_size":1048576,"fs_free":729088,"cfg_rev":11,"kvs_rev":2,"schedule_rev":0,"webhook_rev":0,"available_updates":{},"reset_reason":1},"wifi":{"sta_ip":"192.168.0.57","status":"got ip","ssid":"Riker","rssi":-30},"ws":{"connected":false}}
+
+---------------------------------------------------------------------------
+
+Tasmota
+=======
+
+     * Vorlage:
+     * http://IP/cm?cmnd=Status0
+     * {
+     *  "Status":{
+     *      "Module":1,
+     *      "DeviceName":"Tasmota",
+     *      "FriendlyName":["Tasmota"],
+     *      "Topic":"Tasmota",
+     *      "ButtonTopic":"0",
+     *      "Power":0,
+     *      "PowerOnState":3,
+     *      "LedState":1,
+     *      "LedMask":"FFFF",
+     *      "SaveData":1,
+     *      "SaveState":1,
+     *      "SwitchTopic":"0",
+     *      "SwitchMode":[0,0,0,0,0,0,0,0],
+     *      "ButtonRetain":0,
+     *      "SwitchRetain":0,
+     *      "SensorRetain":0,
+     *      "PowerRetain":0,
+     *      "InfoRetain":0,
+     *      "StateRetain":0},
+     *      "StatusPRM":{"Baudrate":9600,"SerialConfig":"8N1","GroupTopic":"tasmotas","OtaUrl":"http://ota.tasmota.com/tasmota/release/tasmota.bin.gz","RestartReason":"Software/System restart","Uptime":"202T01:24:51","StartupUTC":"2023-08-13T15:21:13","Sleep":50,"CfgHolder":4617,"BootCount":27,"BCResetTime":"2023-02-04T16:45:38","SaveCount":150,"SaveAddress":"F5000"},
+     *      "StatusFWR":{"Version":"11.1.0(tasmota)","BuildDateTime":"2022-05-05T03:23:22","Boot":31,"Core":"2_7_4_9","SDK":"2.2.2-dev(38a443e)","CpuFrequency":80,"Hardware":"ESP8266EX","CR":"378/699"},
+     *      "StatusLOG":{"SerialLog":0,"WebLog":2,"MqttLog":0,"SysLog":0,"LogHost":"","LogPort":514,"SSId":["Odyssee2001",""],"TelePeriod":300,"Resolution":"558180C0","SetOption":["00008009","2805C80001000600003C5A0A190000000000","00000080","00006000","00004000"]},
+     *      "StatusMEM":{"ProgramSize":658,"Free":344,"Heap":17,"ProgramFlashSize":1024,"FlashSize":1024,"FlashChipId":"14325E","FlashFrequency":40,"FlashMode":3,"Features":["00000809","87DAC787","043E8001","000000CF","010013C0","C000F989","00004004","00001000","04000020"],"Drivers":"1,2,3,4,5,6,7,8,9,10,12,16,18,19,20,21,22,24,26,27,29,30,35,37,45,56,62","Sensors":"1,2,3,4,5,6,53"},
+     *      "StatusNET":{"Hostname":"Tasmota","IPAddress":"192.168.100.81","Gateway":"192.168.100.1","Subnetmask":"255.255.255.0","DNSServer1":"192.168.100.1","DNSServer2":"0.0.0.0","Mac":"4C:11:AE:11:F8:50","Webserver":2,"HTTP_API":1,"WifiConfig":4,"WifiPower":17.0},
+     *      "StatusMQT":{"MqttHost":"192.168.100.80","MqttPort":1883,"MqttClientMask":"Tasmota","MqttClient":"Tasmota","MqttUser":"mqttuser","MqttCount":156,"MAX_PACKET_SIZE":1200,"KEEPALIVE":30,"SOCKET_TIMEOUT":4},
+     *      "StatusTIM":{"UTC":"2024-03-02T16:46:04","Local":"2024-03-02T17:46:04","StartDST":"2024-03-31T02:00:00","EndDST":"2024-10-27T03:00:00","Timezone":"+01:00","Sunrise":"07:29","Sunset":"18:35"},
+     *      "StatusSNS":{
+     *          "Time":"2024-03-02T17:46:04",
+     *          "PV":{
+     *              "Bezug":0.364,
+     *              "Einspeisung":3559.439,
+     *              "Leistung":-14
+     *          }
+     *      },
+     *      "StatusSTS":{"Time":"2024-03-02T17:46:04","Uptime":"202T01:24:51","UptimeSec":17457891,"Heap":16,"SleepMode":"Dynamic","Sleep":50,"LoadAvg":19,"MqttCount":156,"POWER":"OFF","Wifi":{"AP":1,"SSId":"Odyssee2001","BSSId":"34:31:C4:22:92:74","Channel":6,"Mode":"11n","RSSI":100,"Signal":-50,"LinkCount":15,"Downtime":"0T00:08:22"}
+     *      }
+     *  }
+
+---------------------------------------------------------------------------
+
+Tibber
+======
+
+---------------------------------------------------------------------------
+
+Shrdzm
+======
+
+Stand: 03.04.2024
+
+Quelle:
+https://cms.shrdzm.com
+
+Abfrage:
+http://IP/getLastData?user=XXXXXX&password=YYYYYY
+
+Ergebnis:
+{"1.8.0":"21561001","2.8.0":"44477","3.8.1":"64037","4.8.1":"6021512","1.7.0":"277","2.7.0":"0","3.7.0":"0","4.7.0":"184","1.128.0":"0","16.7.0":"277","uptime":"0000:07:35:38"}
+
+---------------------------------------------------------------------------
+
+
+
+
+
+/*
+Sortieren:
+
+Shelly 1pm
+Der Shelly 1pm verfügt über keine eigene Spannungsmessung sondern geht von 220V * Korrekturfaktor aus. Dadurch wird die Leistungsmessung verfälscht und der Shelly ist ungeeignet.
+
+
+http://192.168.xxx.xxx/status
+Shelly 3em (oder em3) :
+ok
+{"wifi_sta":{"connected":true,"ssid":"Odyssee2001","ip":"192.168.100.85","rssi":-23},"cloud":{"enabled":false,"connected":false},"mqtt":{"connected":true},"time":"17:13","unixtime":1709223219,"serial":27384,"has_update":false,"mac":"3494547B94EE","cfg_changed_cnt":1,"actions_stats":{"skipped":0},"relays":[{"ison":false,"has_timer":false,"timer_started":0,"timer_duration":0,"timer_remaining":0,"overpower":false,"is_valid":true,"source":"input"}],"emeters":[{"power":51.08,"pf":0.27,"current":0.78,"voltage":234.90,"is_valid":true,"total":1686297.2,"total_returned":428958.4},{"power":155.02,"pf":0.98,"current":0.66,"voltage":235.57,"is_valid":true,"total":878905.6,"total_returned":4.1},{"power":6.75,"pf":0.26,"current":0.11,"voltage":234.70,"is_valid":true,"total":206151.1,"total_returned":0.0}],"total_power":212.85,"emeter_n":{"current":0.00,"ixsum":1.29,"mismatch":false,"is_valid":false},"fs_mounted":true,"v_data":1,"ct_calst":0,"update":{"status":"idle","has_update":false,"new_version":"20230913-114244/v1.14.0-gcb84623","old_version":"20230913-114244/v1.14.0-gcb84623","beta_version":"20231107-165007/v1.14.1-rc1-g0617c15"},"ram_total":49920,"ram_free":30192,"fs_size":233681,"fs_free":154616,"uptime":13728721}
+
+
+Shelly plus 2pm :
+ok
+{"ble":{},"cloud":{"connected":false},"input:0":{"id":0,"state":false},"input:1":{"id":1,"state":false},"mqtt":{"connected":true},"switch:0":{"id":0, "source":"MQTT", "output":false, "apower":0.0, "voltage":237.0, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":62758.285,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223337},"temperature":{"tC":35.5, "tF":96.0}},"switch:1":{"id":1, "source":"MQTT", "output":false, "apower":0.0, "voltage":237.1, "freq":50.0, "current":0.000, "pf":0.00, "aenergy":{"total":61917.211,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223337},"temperature":{"tC":35.5, "tF":96.0}},"sys":{"mac":"B0B21C10A478","restart_required":false,"time":"17:15","unixtime":1709223338,"uptime":8746115,"ram_size":245016,"ram_free":141004,"fs_size":458752,"fs_free":135168,"cfg_rev":7,"kvs_rev":0,"schedule_rev":0,"webhook_rev":0,"available_updates":{"stable":{"version":"1.2.2"}}},"wifi":{"sta_ip":"192.168.100.87","status":"got ip","ssid":"Odyssee2001","rssi":-62},"ws":{"connected":false}}
+
+http://192.168.xxx.xxx/rpc/Shelly.GetStatus
+Shelly plus 1pm :
+nok keine negativen Leistungswerte
+{"ble":{},"cloud":{"connected":false},"input:0":{"id":0,"state":false},"mqtt":{"connected":true},"switch:0":{"id":0, "source":"MQTT", "output":false, "apower":0.0, "voltage":235.9, "current":0.000, "aenergy":{"total":20393.619,"by_minute":[0.000,0.000,0.000],"minute_ts":1709223441},"temperature":{"tC":34.6, "tF":94.3}},"sys":{"mac":"FCB467A66E3C","restart_required":false,"time":"17:17","unixtime":1709223443,"uptime":8644483,"ram_size":246256,"ram_free":143544,"fs_size":458752,"fs_free":147456,"cfg_rev":9,"kvs_rev":0,"schedule_rev":0,"webhook_rev":0,"available_updates":{"stable":{"version":"1.2.2"}}},"wifi":{"sta_ip":"192.168.100.88","status":"got ip","ssid":"Odyssee2001","rssi":-42},"ws":{"connected":false}}
+*/

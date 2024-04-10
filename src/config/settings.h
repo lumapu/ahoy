@@ -203,7 +203,7 @@ typedef struct {
 // Plugin ZeroExport
 #if defined(PLUGIN_ZEROEXPORT)
 
-//#define ZEROEXPORT_DEV_POWERMETER
+#define ZEROEXPORT_DEV_POWERMETER
 #define ZEROEXPORT_MAX_GROUPS                       6
 #define ZEROEXPORT_GROUP_MAX_LEN_NAME              25
 #define ZEROEXPORT_GROUP_MAX_LEN_PM_URL           100
@@ -214,7 +214,12 @@ typedef struct {
 #define ZEROEXPORT_POWERMETER_MAX_ERRORS            5
 #define ZEROEXPORT_DEF_INV_WAITINGTIME_MS       10000
 #define ZEROEXPORT_GROUP_WR_LIMIT_MIN_DIFF          5
-
+#define ZEROEXPORT_POWERMETER_SHELLY
+//#define ZEROEXPORT_POWERMETER_TASMOTA
+#define ZEROEXPORT_POWERMETER_MQTT
+//#define ZEROEXPORT_POWERMETER_HICHI
+#define ZEROEXPORT_POWERMETER_TIBBER
+#define ZEROEXPORT_POWERMETER_SHRDZM
 
 enum class zeroExportState : uint8_t {
     INIT,
@@ -228,7 +233,6 @@ enum class zeroExportState : uint8_t {
 	SETREBOOT,
 	SETPOWER,
 	SETLIMIT,
-    PUBLISH,
     EMERGENCY,
     FINISH,
     ERROR
@@ -241,6 +245,7 @@ typedef enum {
     Mqtt        = 3,
     Hichi       = 4,
     Tibber      = 5,
+    Shrdzm      = 6,
 } zeroExportPowermeterType_t;
 
 typedef enum {
@@ -264,16 +269,16 @@ typedef struct {
     int32_t power;
     int32_t limit;
     int32_t limitNew;
-    uint8_t waitLimitAck;
-    uint8_t waitPowerAck;
-    uint8_t waitRebootAck;
+    uint8_t waitAckSetLimit;
+    uint8_t waitAckSetPower;
+    uint8_t waitAckSetReboot;
     unsigned long limitTsp;
-    float dcVoltage;
     bool state;
     //
     int8_t doReboot;
     int8_t doPower;
-    bool doLimit;
+    int8_t doLimit;
+    float dcVoltage;
 } zeroExportGroupInverter_t;
 
 typedef struct {
@@ -293,11 +298,14 @@ typedef struct {
     bool battEnabled;
     float battVoltageOn;
     float battVoltageOff;
+    bool isChangedBattery;
     // Advanced
     int16_t setPoint;
     uint8_t refresh;
+    int32_t power;
     uint8_t powerTolerance;
     uint16_t powerMax;
+    bool isChangedAdvanced;
     //
 
     zeroExportState state;
@@ -704,17 +712,19 @@ class settings {
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMin = 10;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].powerMax = 600;
                     //
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitLimitAck = false;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitPowerAck = false;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitRebootAck = false;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitAckSetLimit = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitAckSetPower = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].waitAckSetReboot = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doReboot = -1;
                     mCfg.plugin.zeroExport.groups[group].inverters[inv].doPower = -1;
-                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doLimit = false;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].doLimit = -1;
+                    mCfg.plugin.zeroExport.groups[group].inverters[inv].dcVoltage = 0;
                 }
                 // Battery
                 mCfg.plugin.zeroExport.groups[group].battEnabled = false;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOn = 0;
                 mCfg.plugin.zeroExport.groups[group].battVoltageOff = 0;
+                mCfg.plugin.zeroExport.groups[group].isChangedBattery = true;
                 // Advanced
                 mCfg.plugin.zeroExport.groups[group].setPoint = 0;
                 mCfg.plugin.zeroExport.groups[group].refresh = 10;
@@ -723,17 +733,19 @@ class settings {
                 mCfg.plugin.zeroExport.groups[group].Kp = -1;
                 mCfg.plugin.zeroExport.groups[group].Ki = 0;
                 mCfg.plugin.zeroExport.groups[group].Kd = 0;
+                mCfg.plugin.zeroExport.groups[group].isChangedAdvanced = true;
                 //
                 mCfg.plugin.zeroExport.groups[group].state = zeroExportState::INIT;
                 mCfg.plugin.zeroExport.groups[group].lastRun = 0;
                 mCfg.plugin.zeroExport.groups[group].lastRefresh = 0;
-                mCfg.plugin.zeroExport.groups[group].wait = 0;
+                mCfg.plugin.zeroExport.groups[group].wait = 60000;
                 mCfg.plugin.zeroExport.groups[group].pm_P = 0;
                 mCfg.plugin.zeroExport.groups[group].pm_P1 = 0;
                 mCfg.plugin.zeroExport.groups[group].pm_P2 = 0;
                 mCfg.plugin.zeroExport.groups[group].pm_P3 = 0;
 
                 mCfg.plugin.zeroExport.groups[group].battSwitch = false;
+                mCfg.plugin.zeroExport.groups[group].power = 0;
             }
 //            snprintf(mCfg.plugin.zeroExport.monitor_url, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);
 //            snprintf(mCfg.plugin.zeroExport.tibber_pw, ZEXPORT_ADDR_LEN,  "%s", DEF_ZEXPORT);

@@ -80,7 +80,7 @@ class RestApi {
             mHeapFrag = ESP.getHeapFragmentation();
             #endif
 
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, 10000);
             JsonObject root = response->getRoot();
 
             String path = request->url().substring(5);
@@ -860,6 +860,7 @@ class RestApi {
                 // Advanced
                 objGroup[F("setPoint")]  = (int16_t)mConfig->plugin.zeroExport.groups[group].setPoint;
                 objGroup[F("refresh")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].refresh;
+                objGroup[F("power")]  = (int32_t)mConfig->plugin.zeroExport.groups[group].power;
                 objGroup[F("powerTolerance")]  = (uint8_t)mConfig->plugin.zeroExport.groups[group].powerTolerance;
                 objGroup[F("powerMax")]  = (uint16_t)mConfig->plugin.zeroExport.groups[group].powerMax;
                 objGroup[F("Kp")]  = ah::round3((float)mConfig->plugin.zeroExport.groups[group].Kp);

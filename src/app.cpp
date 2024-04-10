@@ -74,7 +74,7 @@ void app::setup() {
     #if defined(PLUGIN_ZEROEXPORT) || defined(ENABLE_MQTT)
     mCommunication.addPowerLimitAckListener([this] (Inverter<> *iv) {
         #if defined(PLUGIN_ZEROEXPORT)
-            mZeroExport.resetWaitLimitAck(iv);
+            mZeroExport.eventAckSetLimit(iv);
         #endif /*PLUGIN_ZEROEXPORT*/
         #if defined(ENABLE_MQTT)
             mMqtt.setPowerLimitAck(iv);
@@ -83,17 +83,17 @@ void app::setup() {
     #endif /*defined(PLUGIN_ZEROEXPORT) || defined(ENABLE_MQTT)*/
     #if defined(PLUGIN_ZEROEXPORT)
     mCommunication.addPowerPowerAckListener([this] (Inverter<> *iv) {
-        mZeroExport.resetWaitPowerAck(iv);
+        mZeroExport.eventAckSetPower(iv);
     });
     #endif /*PLUGIN_ZEROEXPORT*/
     #if defined(PLUGIN_ZEROEXPORT)
     mCommunication.addPowerRebootAckListener([this] (Inverter<> *iv) {
-        mZeroExport.resetWaitRebootAck(iv);
+        mZeroExport.eventAckSetReboot(iv);
     });
     #endif /*PLUGIN_ZEROEXPORT*/
     #if defined(PLUGIN_ZEROEXPORT)
     mCommunication.addNewDataListener([this] (Inverter<> *iv) {
-        mZeroExport.newDataAvailable(iv);
+        mZeroExport.eventNewDataAvailable(iv);
     });
     #endif /*PLUGIN_ZEROEXPORT*/
 
