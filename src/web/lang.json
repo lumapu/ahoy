@@ -106,7 +106,7 @@
                 {
                     "token": "NETWORK_SUCCESS",
                     "en": "success, got following IP in your network: ",
-                    "de": "Verindung erfolgreich. AhoyDTU hat die folgende IP bekommen: "
+                    "de": "Verbindung erfolgreich. AhoyDTU hat die folgende IP bekommen: "
                 },
                 {
                     "token": "BTN_FINISH",

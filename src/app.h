@@ -168,7 +168,7 @@ class app : public IApp, public ah::Scheduler {
 
         #if !defined(ETHERNET)
         bool getAvailNetworks(JsonObject obj) override {
-            return mNetwork->getAvailNetworks(obj);
+            return mNetwork->getAvailNetworks(obj, this);
         }
 
         void setupStation(void) override {
@@ -202,6 +202,10 @@ class app : public IApp, public ah::Scheduler {
 
         const char *getVersionModules() override {
             return mVersionModules;
+        }
+
+        void addOnce(ah::scdCb c, uint32_t timeout, const char *name) override {
+            once(c, timeout, name);
         }
 
         uint32_t getSunrise() override {

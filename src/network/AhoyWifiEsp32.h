@@ -30,6 +30,7 @@ class AhoyWifi : public AhoyNetwork {
 
                 DBGPRINT(F("connect to network '"));
                 DBGPRINT(mConfig->sys.stationSsid);
+                DBGPRINTLN(F("'"));
             #endif
         }
 
